@@ -31,7 +31,7 @@ func TestLookupBalanceRewriteCacheDnssec(t *testing.T) {
 `
 	ex, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("could not get CoreDNS serving instance: %s", err)
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 
 	udp, _ := CoreDNSServerPorts(ex, 0)

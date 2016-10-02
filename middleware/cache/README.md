@@ -4,20 +4,32 @@
 
 ## Syntax
 
-~~~
+~~~ txt
 cache [ttl] [zones...]
 ~~~
 
-* `ttl` max TTL in seconds. If not specified, the TTL of the reply (SOA minimum or minimum TTL in the
-  answer section) will be used.
+* `ttl` max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hours for
+    positive responses and half an hour for negative ones.
 * `zones` zones it should cache for. If empty, the zones from the configuration block are used.
 
-Each element in the cache is cached according to its TTL. For the negative cache, the SOA's MinTTL
-value is used.
+Each element in the cache is cached according to its TTL (with `ttl` as the max).
+For the negative cache, the SOA's MinTTL value is used. A cache can contain up to 10,000 items by
+default.
 
-A cache mostly makes sense with a middleware that is potentially slow (e.g., a proxy that retrieves an
-answer), or to minimize backend queries for middleware like etcd. Using a cache with the file
-middleware essentially doubles the memory load with no conceivable increase of query speed.
+Or if you want more control:
+
+~~~ txt
+cache [ttl] [zones...] {
+    postive capacity [ttl]
+    negative capacity [ttl]
+}
+~~~
+
+* `ttl`  and `zones` as above.
+* `positive`, override the settings for caching positive responses, capacity indicates the maximum
+  number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
+* `negative`, override the settings for caching negative responses, capacity indicates the maximum
+  number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
 
 The minimum TTL allowed on resource records is 5 seconds.
 

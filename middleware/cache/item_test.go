@@ -7,19 +7,14 @@ import (
 )
 
 func TestKey(t *testing.T) {
-	if noDataKey("miek.nl.", dns.TypeMX, false) != "0miek.nl...15" {
-		t.Errorf("failed to create correct key")
+	if x := rawKey("miek.nl.", dns.TypeMX, false); x != "0miek.nl..15" {
+		t.Errorf("failed to create correct key, got %s", x)
 	}
-	if noDataKey("miek.nl.", dns.TypeMX, true) != "1miek.nl...15" {
-		t.Errorf("failed to create correct key")
+	if x := rawKey("miek.nl.", dns.TypeMX, true); x != "1miek.nl..15" {
+		t.Errorf("failed to create correct key, got %s", x)
 	}
-	if nameErrorKey("miek.nl.", false) != "0miek.nl." {
-		t.Errorf("failed to create correct key")
-	}
-	if nameErrorKey("miek.nl.", true) != "1miek.nl." {
-		t.Errorf("failed to create correct key")
-	}
-	if noDataKey("miek.nl.", dns.TypeMX, false) != successKey("miek.nl.", dns.TypeMX, false) {
-		t.Errorf("nameErrorKey and successKey should be the same")
+	// rawKey does not lowercase.
+	if x := rawKey("miEK.nL.", dns.TypeMX, true); x != "1miEK.nL..15" {
+		t.Errorf("failed to create correct key, got %s", x)
 	}
 }

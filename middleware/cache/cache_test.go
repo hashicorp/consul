@@ -8,6 +8,7 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/response"
 	"github.com/miekg/coredns/middleware/test"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
 )
 
@@ -26,21 +27,15 @@ var cacheTestCases = []cacheTestCase{
 		Case: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,
 			Answer: []dns.RR{
-				test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
-				test.MX("miek.nl.	1800	IN	MX	10 aspmx2.googlemail.com."),
-				test.MX("miek.nl.	1800	IN	MX	10 aspmx3.googlemail.com."),
-				test.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
-				test.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
+				test.MX("miek.nl.	3600	IN	MX	1 aspmx.l.google.com."),
+				test.MX("miek.nl.	3600	IN	MX	10 aspmx2.googlemail.com."),
 			},
 		},
 		in: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,
 			Answer: []dns.RR{
-				test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
-				test.MX("miek.nl.	1800	IN	MX	10 aspmx2.googlemail.com."),
-				test.MX("miek.nl.	1800	IN	MX	10 aspmx3.googlemail.com."),
-				test.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
-				test.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
+				test.MX("miek.nl.	3601	IN	MX	1 aspmx.l.google.com."),
+				test.MX("miek.nl.	3601	IN	MX	10 aspmx2.googlemail.com."),
 			},
 		},
 	},
@@ -65,14 +60,17 @@ func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 	return m
 }
 
-func newTestCache() (Cache, *ResponseWriter) {
-	c := NewCache(0, []string{"."}, nil)
-	crr := NewCachingResponseWriter(nil, c.cache, time.Duration(0))
+func newTestCache(ttl time.Duration) (*Cache, *ResponseWriter) {
+	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: ttl, nttl: ttl}
+	c.pcache, _ = lru.New(c.pcap)
+	c.ncache, _ = lru.New(c.ncap)
+
+	crr := &ResponseWriter{nil, c}
 	return c, crr
 }
 
 func TestCache(t *testing.T) {
-	c, crr := newTestCache()
+	c, crr := newTestCache(maxTTL)
 
 	for _, tc := range cacheTestCases {
 		m := tc.in.Msg()
@@ -80,14 +78,15 @@ func TestCache(t *testing.T) {
 		do := tc.in.Do
 
 		mt, _ := response.Classify(m)
-		key := cacheKey(m, mt, do)
-		crr.set(m, key, mt)
+		k := key(m, mt, do)
+		crr.set(m, k, mt, c.pttl)
 
 		name := middleware.Name(m.Question[0].Name).Normalize()
 		qtype := m.Question[0].Qtype
-		i, ok := c.get(name, qtype, do)
-		if !ok && !m.Truncated {
+		i, ok, _ := c.get(name, qtype, do)
+		if ok && m.Truncated {
 			t.Errorf("Truncated message should not have been cached")
+			continue
 		}
 
 		if ok {

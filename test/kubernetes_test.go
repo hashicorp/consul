@@ -74,12 +74,12 @@ func TestKubernetesIntegration(t *testing.T) {
 func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("could not get CoreDNS serving instance: %s", err)
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 
 	udp, _ := CoreDNSServerPorts(server, 0)
 	if udp == "" {
-		t.Fatalf("could not get udp listening port")
+		t.Fatalf("Could not get UDP listening port")
 	}
 
 	return server, udp

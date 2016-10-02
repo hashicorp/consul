@@ -48,12 +48,12 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 
 	ex, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("could not get CoreDNS serving instance: %s", err)
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 
 	udp, _ := CoreDNSServerPorts(ex, 0)
 	if udp == "" {
-		t.Fatalf("could not get udp listening port")
+		t.Fatalf("Could not get UDP listening port")
 	}
 	defer ex.Stop()
 

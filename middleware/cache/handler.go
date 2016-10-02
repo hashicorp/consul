@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"time"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/request"
 
@@ -10,7 +12,7 @@ import (
 )
 
 // ServeDNS implements the middleware.Handler interface.
-func (c Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 
 	qname := state.Name()
@@ -20,34 +22,36 @@ func (c Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		return c.Next.ServeDNS(ctx, w, r)
 	}
 
-	do := state.Do() // might need more from OPT record?
+	do := state.Do() // might need more from OPT record? Like the actual bufsize?
 
-	if i, ok := c.get(qname, qtype, do); ok {
+	if i, ok, expired := c.get(qname, qtype, do); ok && !expired {
+
 		resp := i.toMsg(r)
 		state.SizeAndDo(resp)
 		w.WriteMsg(resp)
 
 		cacheHitCount.WithLabelValues(zone).Inc()
+
 		return dns.RcodeSuccess, nil
 	}
+
 	cacheMissCount.WithLabelValues(zone).Inc()
 
-	crr := NewCachingResponseWriter(w, c.cache, c.cap)
+	crr := &ResponseWriter{w, c}
 	return c.Next.ServeDNS(ctx, crr, r)
 }
 
-func (c Cache) get(qname string, qtype uint16, do bool) (*item, bool) {
-	nxdomain := nameErrorKey(qname, do)
-	if i, ok := c.cache.Get(nxdomain); ok {
-		return i.(*item), true
+func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {
+	k := rawKey(qname, qtype, do)
+
+	if i, ok := c.ncache.Get(k); ok {
+		return i.(*item), ok, i.(*item).expired(time.Now())
 	}
 
-	// TODO(miek): delegation was added double check
-	successOrNoData := successKey(qname, qtype, do)
-	if i, ok := c.cache.Get(successOrNoData); ok {
-		return i.(*item), true
+	if i, ok := c.pcache.Get(k); ok {
+		return i.(*item), ok, i.(*item).expired(time.Now())
 	}
-	return nil, false
+	return nil, false, false
 }
 
 var (

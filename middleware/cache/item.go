@@ -1,9 +1,9 @@
 package cache
 
 import (
-	"strconv"
 	"time"
 
+	"github.com/miekg/coredns/middleware/pkg/response"
 	"github.com/miekg/dns"
 )
 
@@ -44,7 +44,7 @@ func newItem(m *dns.Msg, d time.Duration) *item {
 	return i
 }
 
-// toMsg turns i into a message, it tailers to reply to m.
+// toMsg turns i into a message, it tailers the reply to m.
 func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1 := new(dns.Msg)
 	m1.SetReply(m)
@@ -58,44 +58,51 @@ func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1.Extra = i.Extra
 
 	ttl := int(i.origTTL) - int(time.Now().UTC().Sub(i.stored).Seconds())
-	if ttl < baseTTL {
-		ttl = baseTTL
+	if ttl < int(minTTL.Seconds()) {
+		ttl = int(minTTL.Seconds())
 	}
-	setCap(m1, uint32(ttl))
+	setMsgTTL(m1, uint32(ttl))
 	return m1
 }
 
-// setCap sets the ttl on all RRs in all sections.
-func setCap(m *dns.Msg, ttl uint32) {
+func (i *item) expired(now time.Time) bool {
+	ttl := int(i.origTTL) - int(now.UTC().Sub(i.stored).Seconds())
+	return ttl < 0
+}
+
+// setMsgTTL sets the ttl on all RRs in all sections.
+func setMsgTTL(m *dns.Msg, ttl uint32) {
 	for _, r := range m.Answer {
-		r.Header().Ttl = uint32(ttl)
+		r.Header().Ttl = ttl
 	}
 	for _, r := range m.Ns {
-		r.Header().Ttl = uint32(ttl)
+		r.Header().Ttl = ttl
 	}
 	for _, r := range m.Extra {
 		if r.Header().Rrtype == dns.TypeOPT {
 			continue
 		}
-		r.Header().Ttl = uint32(ttl)
+		r.Header().Ttl = ttl
 	}
 }
 
-// nodataKey returns a caching key for NODATA responses.
-func noDataKey(qname string, qtype uint16, do bool) string {
-	if do {
-		return "1" + qname + ".." + strconv.Itoa(int(qtype))
+func minMsgTTL(m *dns.Msg, mt response.Type) time.Duration {
+	if mt != response.Success && mt != response.NameError && mt != response.NoData {
+		return 0
 	}
-	return "0" + qname + ".." + strconv.Itoa(int(qtype))
-}
 
-// nameErrorKey returns a caching key for NXDOMAIN responses.
-func nameErrorKey(qname string, do bool) string {
-	if do {
-		return "1" + qname
+	minTTL := maxTTL
+	for _, r := range append(m.Answer, m.Ns...) {
+		switch mt {
+		case response.NameError, response.NoData:
+			if r.Header().Rrtype == dns.TypeSOA {
+				return time.Duration(r.(*dns.SOA).Minttl) * time.Second
+			}
+		case response.Success, response.Delegation:
+			if r.Header().Ttl < uint32(minTTL.Seconds()) {
+				minTTL = time.Duration(r.Header().Ttl) * time.Second
+			}
+		}
 	}
-	return "0" + qname
+	return minTTL
 }
-
-// successKey returns a caching key for successfull answers.
-func successKey(qname string, qtype uint16, do bool) string { return noDataKey(qname, qtype, do) }

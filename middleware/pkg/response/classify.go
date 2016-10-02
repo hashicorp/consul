@@ -18,6 +18,22 @@ const (
 	OtherError
 )
 
+func (t Type) String() string {
+	switch t {
+	case Success:
+		return "NOERROR"
+	case NameError:
+		return "NXDOMAIN"
+	case NoData:
+		return "NODATA"
+	case Delegation:
+		return "DELEGATION"
+	case OtherError:
+		return "OTHERERROR"
+	}
+	return ""
+}
+
 // Classify classifies a message, it returns the Type.
 func Classify(m *dns.Msg) (Type, *dns.OPT) {
 	opt := m.IsEdns0()

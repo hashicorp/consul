@@ -2,61 +2,58 @@ package cache
 
 import (
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/response"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
-	gcache "github.com/patrickmn/go-cache"
 )
 
 // Cache is middleware that looks up responses in a cache and caches replies.
+// It has a positive and a negative cache.
 type Cache struct {
 	Next  middleware.Handler
 	Zones []string
-	cache *gcache.Cache
-	cap   time.Duration
+
+	ncache *lru.Cache
+	ncap   int
+	nttl   time.Duration
+
+	pcache *lru.Cache
+	pcap   int
+	pttl   time.Duration
 }
 
-// NewCache returns a new cache.
-func NewCache(ttl int, zones []string, next middleware.Handler) Cache {
-	return Cache{Next: next, Zones: zones, cache: gcache.New(defaultDuration, purgeDuration), cap: time.Duration(ttl) * time.Second}
-}
-
-func cacheKey(m *dns.Msg, t response.Type, do bool) string {
+// Return key under which we store the item.
+func key(m *dns.Msg, t response.Type, do bool) string {
 	if m.Truncated {
+		// TODO(miek): wise to store truncated responses?
+		return ""
+	}
+	if t == response.OtherError {
 		return ""
 	}
 
 	qtype := m.Question[0].Qtype
 	qname := strings.ToLower(m.Question[0].Name)
-	switch t {
-	case response.Success:
-		fallthrough
-	case response.Delegation:
-		return successKey(qname, qtype, do)
-	case response.NameError:
-		return nameErrorKey(qname, do)
-	case response.NoData:
-		return noDataKey(qname, qtype, do)
-	case response.OtherError:
-		return ""
+	return rawKey(qname, qtype, do)
+}
+
+func rawKey(qname string, qtype uint16, do bool) string {
+	if do {
+		return "1" + qname + "." + strconv.Itoa(int(qtype))
 	}
-	return ""
+	return "0" + qname + "." + strconv.Itoa(int(qtype))
 }
 
 // ResponseWriter is a response writer that caches the reply message.
 type ResponseWriter struct {
 	dns.ResponseWriter
-	cache *gcache.Cache
-	cap   time.Duration
-}
-
-// NewCachingResponseWriter returns a new ResponseWriter.
-func NewCachingResponseWriter(w dns.ResponseWriter, cache *gcache.Cache, cap time.Duration) *ResponseWriter {
-	return &ResponseWriter{w, cache, cap}
+	*Cache
 }
 
 // WriteMsg implements the dns.ResponseWriter interface.
@@ -67,42 +64,47 @@ func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		do = opt.Do()
 	}
 
-	key := cacheKey(res, mt, do)
-	c.set(res, key, mt)
+	key := key(res, mt, do)
 
-	if c.cap != 0 {
-		setCap(res, uint32(c.cap.Seconds()))
+	duration := c.pttl
+	if mt == response.NameError || mt == response.NoData {
+		duration = c.nttl
 	}
+
+	msgTTL := minMsgTTL(res, mt)
+	if msgTTL < duration {
+		duration = msgTTL
+	}
+
+	if key != "" {
+		c.set(res, key, mt, duration)
+	}
+
+	setMsgTTL(res, uint32(duration.Seconds()))
 
 	return c.ResponseWriter.WriteMsg(res)
 }
 
-func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type) {
+func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration time.Duration) {
 	if key == "" {
 		log.Printf("[ERROR] Caching called with empty cache key")
 		return
 	}
 
-	duration := c.cap
 	switch mt {
 	case response.Success, response.Delegation:
-		if c.cap == 0 {
-			duration = minTTL(m.Answer, mt)
-		}
 		i := newItem(m, duration)
+		c.pcache.Add(key, i)
 
-		c.cache.Set(key, i, duration)
 	case response.NameError, response.NoData:
-		if c.cap == 0 {
-			duration = minTTL(m.Ns, mt)
-		}
 		i := newItem(m, duration)
+		c.ncache.Add(key, i)
 
-		c.cache.Set(key, i, duration)
 	case response.OtherError:
 		// don't cache these
+		// TODO(miek): what do we do with these?
 	default:
-		log.Printf("[WARNING] Caching called with unknown middleware MsgType: %d", mt)
+		log.Printf("[WARNING] Caching called with unknown classification: %d", mt)
 	}
 }
 
@@ -113,36 +115,10 @@ func (c *ResponseWriter) Write(buf []byte) (int, error) {
 	return n, err
 }
 
-// Hijack implements the dns.ResponseWriter interface.
-func (c *ResponseWriter) Hijack() {
-	c.ResponseWriter.Hijack()
-	return
-}
-
-func minTTL(rrs []dns.RR, mt response.Type) time.Duration {
-	if mt != response.Success && mt != response.NameError && mt != response.NoData {
-		return 0
-	}
-
-	minTTL := maxTTL
-	for _, r := range rrs {
-		switch mt {
-		case response.NameError, response.NoData:
-			if r.Header().Rrtype == dns.TypeSOA {
-				return time.Duration(r.(*dns.SOA).Minttl) * time.Second
-			}
-		case response.Success, response.Delegation:
-			if r.Header().Ttl < minTTL {
-				minTTL = r.Header().Ttl
-			}
-		}
-	}
-	return time.Duration(minTTL) * time.Second
-}
-
 const (
-	purgeDuration          = 1 * time.Minute
-	defaultDuration        = 20 * time.Minute
-	baseTTL                = 5 // minimum TTL that we will allow
-	maxTTL          uint32 = 2 * 3600
+	maxTTL  = 1 * time.Hour
+	maxNTTL = 30 * time.Minute
+	minTTL  = 5 * time.Second
+
+	defaultCap = 10000 // default capacity of the cache.
 )
