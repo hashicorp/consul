@@ -19,9 +19,9 @@ type Request struct {
 	// Cache size after first call to Size or Do.
 	size int
 	do   int // 0: not, 1: true: 2: false
-	// TODO(miek): opt record itself as well.
+	// TODO(miek): opt record itself as well?
 
-	// Cache name as (lowercase) well
+	// Cache lowercase qname.
 	name string
 }
 
@@ -135,19 +135,31 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 	if o == nil {
 		return false
 	}
-	o.Hdr.Name = "."
-	o.Hdr.Rrtype = dns.TypeOPT
-	o.SetVersion(0)
+
+	odo := o.Do()
+
 	if mo := m.IsEdns0(); mo != nil {
 		mo.Hdr.Name = "."
 		mo.Hdr.Rrtype = dns.TypeOPT
 		mo.SetVersion(0)
 		mo.SetUDPSize(o.UDPSize())
-		if o.Do() {
+		mo.Hdr.Ttl &= 0xff00 // clear flags
+
+		if odo {
 			mo.SetDo()
 		}
 		return true
 	}
+
+	o.Hdr.Name = "."
+	o.Hdr.Rrtype = dns.TypeOPT
+	o.SetVersion(0)
+	o.Hdr.Ttl &= 0xff00 // clear flags
+
+	if odo {
+		o.SetDo()
+	}
+
 	m.Extra = append(m.Extra, o)
 	return true
 }
