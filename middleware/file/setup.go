@@ -83,7 +83,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 			noReload := false
 			for c.NextBlock() {
-				t, _, e := TransferParse(c)
+				t, _, e := TransferParse(c, false)
 				if e != nil {
 					return Zones{}, e
 				}
@@ -105,8 +105,9 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 }
 
 // TransferParse parses transfer statements: 'transfer to [address...]'.
-// Exported so secondary can use this as well.
-func TransferParse(c *caddy.Controller) (tos, froms []string, err error) {
+// Exported so secondary can use this as well. For the `file` middleware transfer from does
+// not make sense; make this an error.
+func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, err error) {
 	what := c.Val()
 	if !c.NextArg() {
 		return nil, nil, c.ArgErr()
@@ -126,6 +127,9 @@ func TransferParse(c *caddy.Controller) (tos, froms []string, err error) {
 			}
 		}
 		if value == "from" {
+			if !secondary {
+				return nil, nil, fmt.Errorf("can't use `transfer from` when not being a seconary")
+			}
 			froms = c.RemainingArgs()
 			for i := range froms {
 				if froms[i] != "*" {

@@ -63,7 +63,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 			}
 
 			for c.NextBlock() {
-				t, f, e := file.TransferParse(c)
+				t, f, e := file.TransferParse(c, true)
 				if e != nil {
 					return file.Zones{}, e
 				}

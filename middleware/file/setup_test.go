@@ -27,6 +27,13 @@ func TestFileParse(t *testing.T) {
 		expectedZones  Zones
 	}{
 		{
+			`file ` + zoneFileName1 + ` miek.nl {
+				transfer from 127.0.0.1
+			}`,
+			true,
+			Zones{},
+		},
+		{
 			`file`,
 			true,
 			Zones{},
