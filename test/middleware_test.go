@@ -12,7 +12,7 @@ import (
 
 func benchmarkLookupBalanceRewriteCache(b *testing.B) {
 	t := new(testing.T)
-	name, rm, err := test.TempFile(t, ".", exampleOrg)
+	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
 		t.Fatalf("failed to created zone: %s", err)
 	}

@@ -32,8 +32,8 @@ func TestZoneSigningDouble(t *testing.T) {
 	defer rm1()
 	defer rm2()
 
-	fPriv1, rmPriv1, _ := test.TempFile(t, ".", privKey1)
-	fPub1, rmPub1, _ := test.TempFile(t, ".", pubKey1)
+	fPriv1, rmPriv1, _ := test.TempFile(".", privKey1)
+	fPub1, rmPub1, _ := test.TempFile(".", pubKey1)
 	defer rmPriv1()
 	defer rmPub1()
 
@@ -57,8 +57,8 @@ func TestZoneSigningDouble(t *testing.T) {
 
 // TestSigningDifferentZone tests if a key for miek.nl and be used for example.org.
 func TestSigningDifferentZone(t *testing.T) {
-	fPriv, rmPriv, _ := test.TempFile(t, ".", privKey)
-	fPub, rmPub, _ := test.TempFile(t, ".", pubKey)
+	fPriv, rmPriv, _ := test.TempFile(".", privKey)
+	fPub, rmPub, _ := test.TempFile(".", pubKey)
 	defer rmPriv()
 	defer rmPub()
 
@@ -163,8 +163,8 @@ func newDnssec(t *testing.T, zones []string) (Dnssec, func(), func()) {
 }
 
 func newKey(t *testing.T) (*DNSKEY, func(), func()) {
-	fPriv, rmPriv, _ := test.TempFile(t, ".", privKey)
-	fPub, rmPub, _ := test.TempFile(t, ".", pubKey)
+	fPriv, rmPriv, _ := test.TempFile(".", privKey)
+	fPub, rmPub, _ := test.TempFile(".", pubKey)
 
 	key, err := ParseKeyFile(fPub, fPriv)
 	if err != nil {

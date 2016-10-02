@@ -9,8 +9,8 @@ import (
 )
 
 func TestCacheSet(t *testing.T) {
-	fPriv, rmPriv, _ := test.TempFile(t, ".", privKey)
-	fPub, rmPub, _ := test.TempFile(t, ".", pubKey)
+	fPriv, rmPriv, _ := test.TempFile(".", privKey)
+	fPub, rmPub, _ := test.TempFile(".", pubKey)
 	defer rmPriv()
 	defer rmPub()
 
