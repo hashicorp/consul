@@ -8,7 +8,7 @@
 cache [ttl] [zones...]
 ~~~
 
-* `ttl` max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hours for
+* `ttl` max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hour for
     positive responses and half an hour for negative ones.
 * `zones` zones it should cache for. If empty, the zones from the configuration block are used.
 
