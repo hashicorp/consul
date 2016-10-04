@@ -243,14 +243,14 @@ body must look like:
   "ID": "mem",
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
-  "DeregisterCriticalServiceAfter": "90m"
+  "DeregisterCriticalServiceAfter": "90m",
   "Script": "/usr/local/bin/check_mem.py",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
   "HTTP": "http://example.com",
   "TCP": "example.com:22",
   "Interval": "10s",
-  "TTL": "15s",
+  "TTL": "15s"
 }
 ```
 
