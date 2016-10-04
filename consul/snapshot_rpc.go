@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/hashicorp/consul/consul/snapshot"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 )
@@ -30,10 +31,10 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 	switch args.Op {
 	case structs.SnapshotSave:
-		return NewSnapshot(s.logger, s.raft)
+		return snapshot.New(s.logger, s.raft)
 
 	case structs.SnapshotRestore:
-		if err := RestoreSnapshot(s.logger, in, s.raft); err != nil {
+		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
 			return nil, fmt.Errorf("failed to restore snapshot: %v", err)
 		}
 		return nil, nil
