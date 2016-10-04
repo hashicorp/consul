@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"net"
 	"sync"
 
 	"github.com/miekg/coredns/core/dnsserver"
@@ -35,15 +36,15 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func prometheusParse(c *caddy.Controller) (Metrics, error) {
+func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var (
-		met Metrics
+		met = &Metrics{Addr: addr}
 		err error
 	)
 
 	for c.Next() {
 		if len(met.ZoneNames) > 0 {
-			return Metrics{}, c.Err("metrics: can only have one metrics module per server")
+			return met, c.Err("metrics: can only have one metrics module per server")
 		}
 		met.ZoneNames = make([]string, len(c.ServerBlockKeys))
 		copy(met.ZoneNames, c.ServerBlockKeys)
@@ -56,25 +57,31 @@ func prometheusParse(c *caddy.Controller) (Metrics, error) {
 		case 0:
 		case 1:
 			met.Addr = args[0]
+			_, _, e := net.SplitHostPort(met.Addr)
+			if e != nil {
+				return met, e
+			}
 		default:
-			return Metrics{}, c.ArgErr()
+			return met, c.ArgErr()
 		}
 		for c.NextBlock() {
 			switch c.Val() {
 			case "address":
 				args = c.RemainingArgs()
 				if len(args) != 1 {
-					return Metrics{}, c.ArgErr()
+					return met, c.ArgErr()
 				}
 				met.Addr = args[0]
+				// expecting something that resembles a host-port
+				_, _, e := net.SplitHostPort(met.Addr)
+				if e != nil {
+					return met, e
+				}
 			default:
-				return Metrics{}, c.Errf("metrics: unknown item: %s", c.Val())
+				return met, c.Errf("metrics: unknown item: %s", c.Val())
 			}
 
 		}
-	}
-	if met.Addr == "" {
-		met.Addr = addr
 	}
 	return met, err
 }
