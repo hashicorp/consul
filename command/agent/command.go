@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-reap"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client/scada"
@@ -771,33 +770,6 @@ func (c *Command) Run(args []string) int {
 		defer server.Shutdown()
 	}
 
-	// Enable child process reaping
-	if (config.Reap != nil && *config.Reap) || (config.Reap == nil && os.Getpid() == 1) {
-		if !reap.IsSupported() {
-			c.Ui.Error("Child process reaping is not supported on this platform (set reap=false)")
-			return 1
-		} else {
-			logger := c.agent.logger
-			logger.Printf("[DEBUG] Automatically reaping child processes")
-
-			pids := make(reap.PidCh, 1)
-			errors := make(reap.ErrorCh, 1)
-			go func() {
-				for {
-					select {
-					case pid := <-pids:
-						logger.Printf("[DEBUG] Reaped child process %d", pid)
-					case err := <-errors:
-						logger.Printf("[ERR] Error reaping child process: %v", err)
-					case <-c.agent.shutdownCh:
-						return
-					}
-				}
-			}()
-			go reap.ReapChildren(pids, errors, c.agent.shutdownCh, &c.agent.reapLock)
-		}
-	}
-
 	// Check and shut down the SCADA listeners at the end
 	defer func() {
 		if c.scadaHttp != nil {
@@ -829,7 +801,7 @@ func (c *Command) Run(args []string) int {
 	// Register the watches
 	for _, wp := range config.WatchPlans {
 		go func(wp *watch.WatchPlan) {
-			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"], &c.agent.reapLock)
+			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
@@ -1017,7 +989,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	// Register the new watches
 	for _, wp := range newConf.WatchPlans {
 		go func(wp *watch.WatchPlan) {
-			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"], &c.agent.reapLock)
+			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
