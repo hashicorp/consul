@@ -824,7 +824,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if !dnsNameRe.MatchString(tag) {
-			a.logger.Printf("[WARN] Service tag %q will not be discoverable "+
+			a.logger.Printf("[DEBUG] Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
 		}
