@@ -30,11 +30,11 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
-  - ./contrib/kubernetes/testscripts/start_k8s_with_services.sh
+  - ./.travis/kubernetes/start_k8s_with_services.sh
 
 script:
   - docker ps -a
-  - ./contrib/kubernetes/testscripts/kubectl version
+  - ./.travis/kubernetes/kubectl version
   - make coverage
 
 after_success:
