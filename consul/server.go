@@ -855,7 +855,7 @@ As of Consul 0.7.0, the peers.json file is only used for recovery
 after an outage. It should be formatted as a JSON array containing the address
 and port of each Consul server in the cluster, like this:
 
-["10.1.0.1:8500","10.1.0.2:8500","10.1.0.3:8500"]
+["10.1.0.1:8300","10.1.0.2:8300","10.1.0.3:8300"]
 
 Under normal operation, the peers.json file will not be present.
 
