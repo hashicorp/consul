@@ -39,11 +39,10 @@ which must be set to enable stale reads, and
 [`dns_config.max_stale`](/docs/agent/options.html#max_stale)
 which limits how stale results are allowed to be.
 
-By default, [`allow_stale`](/docs/agent/options.html#allow_stale) is disabled,
-meaning no stale results may be served. The default for
-[`max_stale`](/docs/agent/options.html#max_stale) is 5 seconds. This means that
-if [`allow_stale`](/docs/agent/options.html#allow_stale) is enabled, we will use
-data from any Consul server that is within 5 seconds of the leader.
+Starting from Consul 0.7, [`allow_stale`](/docs/agent/options.html#allow_stale)
+is enabled by default, using a [`max_stale`](/docs/agent/options.html#max_stale)
+value that defaults to 5 seconds, meaning that we will use data from
+any Consul server that is within 5 seconds of the leader.
 
 ## Negative Response Caching
 
