@@ -73,8 +73,8 @@ type LockOptions struct {
 	Value            []byte        // Optional, value to associate with the lock
 	Session          string        // Optional, created if not specified
 	SessionOpts      *SessionEntry // Optional, options to use when creating a session
-	SessionName      string        // Optional, defaults to DefaultLockSessionName
-	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL
+	SessionName      string        // Optional, defaults to DefaultLockSessionName (ignored if SessionOpts is given)
+	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL (ignored if SessionOpts is given)
 	MonitorRetries   int           // Optional, defaults to 0 which means no retries
 	MonitorRetryTime time.Duration // Optional, defaults to DefaultMonitorRetryTime
 	LockWaitTime     time.Duration // Optional, defaults to DefaultLockWaitTime
