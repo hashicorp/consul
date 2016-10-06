@@ -72,6 +72,7 @@ type LockOptions struct {
 	Key              string        // Must be set and have write permissions
 	Value            []byte        // Optional, value to associate with the lock
 	Session          string        // Optional, created if not specified
+	SessionOpts      *SessionEntry // Optional, options to use when creating a session
 	SessionName      string        // Optional, defaults to DefaultLockSessionName
 	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL
 	MonitorRetries   int           // Optional, defaults to 0 which means no retries
@@ -329,9 +330,12 @@ func (l *Lock) Destroy() error {
 // createSession is used to create a new managed session
 func (l *Lock) createSession() (string, error) {
 	session := l.c.Session()
-	se := &SessionEntry{
-		Name: l.opts.SessionName,
-		TTL:  l.opts.SessionTTL,
+	se := l.opts.SessionOpts
+	if se == nil {
+		se = &SessionEntry{
+			Name: l.opts.SessionName,
+			TTL:  l.opts.SessionTTL,
+		}
 	}
 	id, _, err := session.Create(se, nil)
 	if err != nil {
