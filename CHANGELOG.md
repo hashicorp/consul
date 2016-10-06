@@ -4,6 +4,10 @@ FEATURES:
 
 * **Command Line Interface for Key/Value Store:** A new set of `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
 
+IMPROVEMENTS:
+
+* api: All session options can now be set when using `api.Lock()`. [GH-2372]
+
 BUG FIXES:
 
 * agent: Fixed a Go race issue with log buffering at startup. [GH-2262]
