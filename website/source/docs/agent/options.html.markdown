@@ -628,7 +628,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
   automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
-  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively).
+  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively). This option was removed
+  in Consul 0.7.1. For later versions of Consul, you will need to reap processes using a wrapper, please see the
+  [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
+  for an example.
 
 * <a name="reconnect_timeout"></a><a href="#reconnect_timeout">`reconnect_timeout`</a> This controls
   how long it takes for a failed node to be completely removed from the cluster. This defaults to
