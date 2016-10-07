@@ -6,6 +6,9 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
+// Snapshot handles requests to take and restore snapshots. This uses a special
+// mechanism to make the RPC since we potentially stream large amounts of data
+// as part of these requests.
 func (s *HTTPServer) Snapshot(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.SnapshotRequest
 	s.parseDC(req, &args.Datacenter)

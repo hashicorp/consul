@@ -81,7 +81,8 @@ func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
 	return &Snapshot{archive}, nil
 }
 
-// XXX - TODO
+// Read passes through to the underlying snapshot file. This is safe to call on
+// a nil snapshot, it will just return an EOF.
 func (s *Snapshot) Read(p []byte) (n int, err error) {
 	if s == nil {
 		return 0, io.EOF

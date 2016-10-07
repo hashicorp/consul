@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
+// dispatchSnapshotRequest takes an incoming request structure with possibly some
+// streaming data (for a restore) and returns possibly some streaming data (for
+// a snapshot save). We can't use the normal RPC mechanism in a streaming manner
+// like this, so we have to dispatch these by hand.
 func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
 	// We may need to forward if this is not our datacenter or we are not
 	// the leader.
@@ -27,15 +31,23 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		return SnapshotRPC(dc, server.Addr, s.connPool, args, in)
 	}
 
-	// TODO - ACLs - need a management token
+	// Verify token is allowed to operate on snapshots. There's only a
+	// single ACL sense here (not read and write) since reading gets you
+	// all the ACLs and you could escalate from there.
+	if acl, err := s.resolveToken(args.Token); err != nil {
+		return nil, err
+	} else if acl == nil || !acl.Snapshot() {
+		return nil, permissionDeniedErr
+	}
 
+	// Dispatch the operation.
 	switch args.Op {
 	case structs.SnapshotSave:
 		return snapshot.New(s.logger, s.raft)
 
 	case structs.SnapshotRestore:
 		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
-			return nil, fmt.Errorf("failed to restore snapshot: %v", err)
+			return nil, err
 		}
 		return nil, nil
 
@@ -44,7 +56,9 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	}
 }
 
-// handleSnapshotRequest reads the request from the conn and dispatches it.
+// handleSnapshotRequest reads the request from the conn and dispatches it. This
+// will be called from a goroutine after an incoming stream is determined to be
+// a snapshot request.
 func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	var args structs.SnapshotRequest
 	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
@@ -74,7 +88,13 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	return nil
 }
 
-// XXX - TODO
+// SnapshotRPC is a streaming client function for performing a snapshot RPC
+// request to a remote server. It will dial up a fresh connection for each
+// request, send the request header, and then stream in any data from the given
+// reader (for a restore). It will then parse the received response header, and
+// if there's no error will return a reader for the streaming part of the
+// response (for a snapshot save). If this doesn't return an error, you must
+// close the returned reader.
 func SnapshotRPC(dc string, addr net.Addr, pool *ConnPool,
 	args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
 

@@ -86,6 +86,9 @@ type ACL interface {
 
 	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
+
+	// Snapshot checks for permission to take and restore snapshots.
+	Snapshot() bool
 }
 
 // StaticACL is used to implement a base ACL policy. It either
@@ -153,6 +156,10 @@ func (s *StaticACL) ACLList() bool {
 }
 
 func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) Snapshot() bool {
 	return s.allowManage
 }
 
@@ -473,4 +480,9 @@ func (p *PolicyACL) ACLList() bool {
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
 	return p.parent.ACLModify()
+}
+
+// Snapshot checks if taking and restoring snapshots is allowed.
+func (p *PolicyACL) Snapshot() bool {
+	return p.parent.Snapshot()
 }
