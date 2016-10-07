@@ -1,5 +1,7 @@
 # Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
 
+[![Join the chat at https://gitter.im/hashicorp-consul/Lobby](https://badges.gitter.im/hashicorp-consul/Lobby.svg)](https://gitter.im/hashicorp-consul/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 * Website: https://www.consul.io
 * IRC: `#consul` on Freenode
 * Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
