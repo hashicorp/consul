@@ -43,6 +43,9 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// Dispatch the operation.
 	switch args.Op {
 	case structs.SnapshotSave:
+		if err := s.consistentRead(); err != nil {
+			return nil, err
+		}
 		return snapshot.New(s.logger, s.raft)
 
 	case structs.SnapshotRestore:
