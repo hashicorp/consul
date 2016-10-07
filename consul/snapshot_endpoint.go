@@ -36,7 +36,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// all the ACLs and you could escalate from there.
 	if acl, err := s.resolveToken(args.Token); err != nil {
 		return nil, err
-	} else if acl == nil || !acl.Snapshot() {
+	} else if acl != nil && !acl.Snapshot() {
 		return nil, permissionDeniedErr
 	}
 
