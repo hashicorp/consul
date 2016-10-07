@@ -6,7 +6,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 FEATURES:
 
-* **Command Line Interface for Key/Value Store:** A new set of `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
+* **Key/Value Store Command Line Interface:** New `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
 
 IMPROVEMENTS:
 
