@@ -1,5 +1,9 @@
 ## 0.7.1 (UNRELEASED)
 
+BACKWARDS INCOMPATIBILITIES:
+
+* Child process reaping support has been removed, along with the `-reap` option. Reaping is also done via [dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker image](https://github.com/hashicorp/docker-consul), so removing it from Consul itself simplifies the code and eases future maintainence for Consul. If you are running Consul as PID 1 in a container, you will need to arrange for a wrapper process to reap child processes. [GH-1988]
+
 FEATURES:
 
 * **Command Line Interface for Key/Value Store:** A new set of `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
