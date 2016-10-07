@@ -128,13 +128,13 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 
 const (
 	// DefaultPort is the default port.
-	DefaultPort = "2053"
+	DefaultPort = "53"
 )
 
 // These "soft defaults" are configurable by
 // command line flags, etc.
 var (
-	// Port is the site port
+	// Port is the port we listen on by default.
 	Port = DefaultPort
 
 	// GracefulTimeout is the maximum duration of a graceful shutdown.

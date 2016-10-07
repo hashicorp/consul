@@ -71,8 +71,8 @@ listening on port 2053, it should show the following:
 
 ~~~ txt
 .:2053
-2016/09/18 09:20:50 [INFO] CoreDNS-001 starting
-CoreDNS-001 starting
+2016/09/18 09:20:50 [INFO] CoreDNS-001
+CoreDNS-001
 ~~~
 
 Any query send to port 2053 should return some information; your sending address, port and protocol

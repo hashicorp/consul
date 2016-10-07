@@ -39,7 +39,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 	}
 
 	if port == "" {
-		port = "53"
+		port = Port
 	}
 
 	return zoneAddr{Zone: strings.ToLower(dns.Fqdn(host)), Port: port}, err
