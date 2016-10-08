@@ -39,7 +39,6 @@ func TestZoneSigningBlackLies(t *testing.T) {
 	if nsec.NextDomain != "\\000.ww.miek.nl." {
 		t.Errorf("expected %s, got %s", "\\000.ww.miek.nl.", nsec.NextDomain)
 	}
-	t.Logf("%+v\n", m)
 }
 
 func testNxdomainMsg() *dns.Msg {

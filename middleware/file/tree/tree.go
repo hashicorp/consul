@@ -179,11 +179,21 @@ func (t *Tree) SearchGlue(qname string) (*Elem, Result) {
 }
 
 // search searches the tree for qname and type. If glue is true the search *does* not
-// spot when hitting NS records, but descends in search of glue. The qtype for this
+// stop when hitting NS records, but descends in search of glue. The qtype for this
 // kind of search can only be AAAA or A.
 func (n *Node) search(qname string, qtype uint16, glue bool) (*Node, Result) {
 	old := n
+
+	var wild *Node
+
 	for n != nil {
+
+		// Is this a wildcard that applies to us
+		if n.Elem.IsWildcard() {
+			if dns.IsSubDomain(n.Elem.Name()[2:], qname) {
+				wild = n
+			}
+		}
 
 		switch c := Less(n.Elem, qname); {
 		case c == 0:
@@ -200,6 +210,13 @@ func (n *Node) search(qname string, qtype uint16, glue bool) (*Node, Result) {
 			n = n.Right
 		}
 	}
+
+	// If we have seen a wildcard "on-the-way-to-here", we should return this wildcard
+	// instead. This is to be able to have a more specific RR defined *under* the wildcard.
+	if wild != nil {
+		return wild, Found
+	}
+
 	if dns.CountLabel(qname) < dns.CountLabel(old.Elem.Name()) {
 		return n, EmptyNonTerminal
 	}

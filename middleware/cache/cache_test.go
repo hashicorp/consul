@@ -40,6 +40,23 @@ var cacheTestCases = []cacheTestCase{
 		},
 	},
 	{
+		RecursionAvailable: true, AuthenticatedData: true, Authoritative: true,
+		Case: test.Case{
+			Qname: "mIEK.nL.", Qtype: dns.TypeMX,
+			Answer: []dns.RR{
+				test.MX("mIEK.nL.	3600	IN	MX	1 aspmx.l.google.com."),
+				test.MX("mIEK.nL.	3600	IN	MX	10 aspmx2.googlemail.com."),
+			},
+		},
+		in: test.Case{
+			Qname: "mIEK.nL.", Qtype: dns.TypeMX,
+			Answer: []dns.RR{
+				test.MX("mIEK.nL.	3601	IN	MX	1 aspmx.l.google.com."),
+				test.MX("mIEK.nL.	3601	IN	MX	10 aspmx2.googlemail.com."),
+			},
+		},
+	},
+	{
 		Truncated: true,
 		Case: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,

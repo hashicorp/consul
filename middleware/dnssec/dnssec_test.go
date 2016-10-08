@@ -52,7 +52,6 @@ func TestZoneSigningDouble(t *testing.T) {
 	if !section(m.Ns, 2) {
 		t.Errorf("authority section should have 1 sig")
 	}
-	t.Logf("%+v\n", m)
 }
 
 // TestSigningDifferentZone tests if a key for miek.nl and be used for example.org.
@@ -73,11 +72,12 @@ func TestSigningDifferentZone(t *testing.T) {
 	m = d.Sign(state, "example.org.", time.Now().UTC())
 	if !section(m.Answer, 1) {
 		t.Errorf("answer section should have 1 sig")
+		t.Logf("%+v\n", m)
 	}
 	if !section(m.Ns, 1) {
 		t.Errorf("authority section should have 1 sig")
+		t.Logf("%+v\n", m)
 	}
-	t.Logf("%+v\n", m)
 }
 
 func TestSigningCname(t *testing.T) {
@@ -91,7 +91,6 @@ func TestSigningCname(t *testing.T) {
 	if !section(m.Answer, 1) {
 		t.Errorf("answer section should have 1 sig")
 	}
-	t.Logf("%+v\n", m)
 }
 
 func TestZoneSigningDelegation(t *testing.T) {

@@ -42,8 +42,6 @@ func TestWhoami(t *testing.T) {
 		rec := dnsrecorder.New(&test.ResponseWriter{})
 		code, err := wh.ServeDNS(ctx, rec, req)
 
-		t.Logf("%s\n", rec.Msg)
-
 		if err != tc.expectedErr {
 			t.Errorf("Test %d: Expected error %v, but got %v", i, tc.expectedErr, err)
 		}

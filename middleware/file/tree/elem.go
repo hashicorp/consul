@@ -4,7 +4,8 @@ import "github.com/miekg/dns"
 
 // Elem is an element in the tree.
 type Elem struct {
-	m map[uint16][]dns.RR
+	m    map[uint16][]dns.RR
+	name string // owner name
 }
 
 // newElem returns a new elem.
@@ -14,13 +15,20 @@ func newElem(rr dns.RR) *Elem {
 	return &e
 }
 
-// Types returns the RRs with type qtype from e.
-func (e *Elem) Types(qtype uint16) []dns.RR {
-	if rrs, ok := e.m[qtype]; ok {
-		return rrs
+// Types returns the RRs with type qtype from e. If qname is given (only the
+// first one is used), the RR are copied and the owner is replaced with qname[0].
+func (e *Elem) Types(qtype uint16, qname ...string) []dns.RR {
+	rrs := e.m[qtype]
+
+	if rrs != nil && len(qname) > 0 {
+		copied := make([]dns.RR, len(rrs))
+		for i := range rrs {
+			copied[i] = dns.Copy(rrs[i])
+			copied[i].Header().Name = qname[0]
+		}
+		return copied
 	}
-	// nodata
-	return nil
+	return rrs
 }
 
 // All returns all RRs from e, regardless of type.
@@ -34,10 +42,23 @@ func (e *Elem) All() []dns.RR {
 
 // Name returns the name for this node.
 func (e *Elem) Name() string {
+	if e.name != "" {
+		return e.name
+	}
 	for _, rrs := range e.m {
-		return rrs[0].Header().Name
+		e.name = rrs[0].Header().Name
+		return e.name
 	}
 	return ""
+}
+
+// Wildcard returns true if this name starts with a wildcard label (*.)
+func (e *Elem) IsWildcard() bool {
+	n := e.Name()
+	if len(n) < 2 {
+		return false
+	}
+	return n[0] == '*' && n[1] == '.'
 }
 
 // Insert inserts rr into e. If rr is equal to existing rrs this is a noop.

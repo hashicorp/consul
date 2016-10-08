@@ -319,12 +319,9 @@ func TestKubernetesParse(t *testing.T) {
 		},
 	}
 
-	t.Logf("Parser test cases count: %v", len(tests))
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
 		k8sController, err := kubernetesParse(c)
-		t.Logf("setup test: %2v -- %v\n", i, test.description)
-		//t.Logf("controller: %v\n", k8sController)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)

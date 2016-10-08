@@ -44,7 +44,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		glue := []dns.RR{}
 		for _, ns := range rrs {
 			if dns.IsSubDomain(ns.Header().Name, ns.(*dns.NS).Ns) {
-				// even with Do, this should be unsigned.
+				// Even with Do, this should be unsigned.
 				elem, res := z.Tree.SearchGlue(ns.(*dns.NS).Ns)
 				if res == tree.Found {
 					glue = append(glue, elem.Types(dns.TypeAAAA)...)
@@ -55,21 +55,22 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		return nil, rrs, glue, Delegation
 	}
 
-	rrs := elem.Types(dns.TypeCNAME)
+	rrs := elem.Types(dns.TypeCNAME, qname)
 	if len(rrs) > 0 { // should only ever be 1 actually; TODO(miek) check for this?
 		return z.lookupCNAME(rrs, qtype, do)
 	}
 
-	rrs = elem.Types(qtype)
+	rrs = elem.Types(qtype, qname)
 	if len(rrs) == 0 {
 		return z.noData(elem, do)
 	}
 
 	if do {
-		sigs := elem.Types(dns.TypeRRSIG)
+		sigs := elem.Types(dns.TypeRRSIG, qname)
 		sigs = signatureForSubType(sigs, qtype)
 		rrs = append(rrs, sigs...)
 	}
+
 	return rrs, nil, nil, Success
 }
 
@@ -156,6 +157,7 @@ func (z *Zone) lookupCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}
+
 	targets := cnameForType(elem.All(), qtype)
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
