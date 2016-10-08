@@ -16,7 +16,7 @@ import (
 )
 
 func fakeStubServerExampleNet(t *testing.T) (*dns.Server, string) {
-	server, addr, err := test.UDPServer(t, "127.0.0.1:0")
+	server, addr, err := test.UDPServer("127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create a UDP server: %s", err)
 	}
