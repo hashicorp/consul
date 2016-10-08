@@ -10,7 +10,6 @@ func TestParseNSEC3PARAM(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error when reading zone, got nothing")
 	}
-	t.Logf("%v\n", err)
 }
 
 func TestParseNSEC3(t *testing.T) {
@@ -18,7 +17,6 @@ func TestParseNSEC3(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error when reading zone, got nothing")
 	}
-	t.Logf("%v\n", err)
 }
 
 const nsec3paramTest = `miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1460175181 14400 3600 604800 14400

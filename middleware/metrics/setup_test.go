@@ -6,7 +6,7 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func TestPrometheus(t *testing.T) {
+func TestPrometheusParse(t *testing.T) {
 	tests := []struct {
 		input     string
 		shouldErr bool

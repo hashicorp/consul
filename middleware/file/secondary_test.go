@@ -2,6 +2,8 @@ package file
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/miekg/coredns/middleware/test"
@@ -70,11 +72,12 @@ const testZone = "secondary.miek.nl."
 
 func TestShouldTransfer(t *testing.T) {
 	soa := soa{250}
+	log.SetOutput(ioutil.Discard)
 
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := test.TCPServer(t, "127.0.0.1:0")
+	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -114,11 +117,12 @@ func TestShouldTransfer(t *testing.T) {
 
 func TestTransferIn(t *testing.T) {
 	soa := soa{250}
+	log.SetOutput(ioutil.Discard)
 
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := test.TCPServer(t, "127.0.0.1:0")
+	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}

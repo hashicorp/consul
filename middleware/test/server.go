@@ -3,14 +3,13 @@ package test
 import (
 	"net"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/miekg/dns"
 )
 
 // TCPServer starts a DNS server with a TCP listener on laddr.
-func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
+func TCPServer(laddr string) (*dns.Server, string, error) {
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		return nil, "", err
@@ -20,7 +19,7 @@ func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 
 	waitLock := sync.Mutex{}
 	waitLock.Lock()
-	server.NotifyStartedFunc = func() { t.Logf("started TCP server on %s", l.Addr()); waitLock.Unlock() }
+	server.NotifyStartedFunc = func() { waitLock.Unlock() }
 
 	go func() {
 		server.ActivateAndServe()
@@ -32,7 +31,7 @@ func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 }
 
 // UDPServer starts a DNS server with an UDP listener on laddr.
-func UDPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
+func UDPServer(laddr string) (*dns.Server, string, error) {
 	pc, err := net.ListenPacket("udp", laddr)
 	if err != nil {
 		return nil, "", err
@@ -41,7 +40,7 @@ func UDPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 
 	waitLock := sync.Mutex{}
 	waitLock.Lock()
-	server.NotifyStartedFunc = func() { t.Logf("started UDP server on %s", pc.LocalAddr()); waitLock.Unlock() }
+	server.NotifyStartedFunc = func() { waitLock.Unlock() }
 
 	go func() {
 		server.ActivateAndServe()

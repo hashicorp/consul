@@ -1,6 +1,11 @@
 package test
 
 import (
+	"io/ioutil"
+	"log"
+
+	"github.com/miekg/coredns/core/dnsserver"
+
 	// Hook in CoreDNS.
 	_ "github.com/miekg/coredns/core"
 
@@ -10,6 +15,9 @@ import (
 // CoreDNSServer returns a CoreDNS test server. It just takes a normal Corefile as input.
 func CoreDNSServer(corefile string) (*caddy.Instance, error) {
 	caddy.Quiet = true
+	dnsserver.Quiet = true
+	log.SetOutput(ioutil.Discard)
+
 	return caddy.Start(NewInput(corefile))
 }
 
