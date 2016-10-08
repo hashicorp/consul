@@ -58,7 +58,7 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 		for c.NextBlock() {
 			switch c.Val() {
 			// first number is cap, second is an new ttl
-			case "positive":
+			case "success":
 				args := c.RemainingArgs()
 				if len(args) == 0 {
 					return nil, c.ArgErr()
@@ -75,7 +75,7 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 					}
 					ca.pttl = time.Duration(pttl) * time.Second
 				}
-			case "negative":
+			case "denial":
 				args := c.RemainingArgs()
 				if len(args) == 0 {
 					return nil, c.ArgErr()

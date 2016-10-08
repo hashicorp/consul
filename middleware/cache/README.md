@@ -9,7 +9,7 @@ cache [ttl] [zones...]
 ~~~
 
 * `ttl` max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hour for
-    positive responses and half an hour for negative ones.
+    noerror responses and half an hour for denial of existence ones.
 * `zones` zones it should cache for. If empty, the zones from the configuration block are used.
 
 Each element in the cache is cached according to its TTL (with `ttl` as the max).
@@ -20,16 +20,18 @@ Or if you want more control:
 
 ~~~ txt
 cache [ttl] [zones...] {
-    postive capacity [ttl]
-    negative capacity [ttl]
+    noerror capacity [ttl]
+    denial capacity [ttl]
 }
 ~~~
 
 * `ttl`  and `zones` as above.
-* `positive`, override the settings for caching positive responses, capacity indicates the maximum
+* `success`, override the settings for caching noerror responses, capacity indicates the maximum
   number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
-* `negative`, override the settings for caching negative responses, capacity indicates the maximum
+* `denial`, override the settings for caching denial of existence responses, capacity indicates the maximum
   number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
+
+There is a third category (`error`) but those responses are never cached.
 
 The minimum TTL allowed on resource records is 5 seconds.
 

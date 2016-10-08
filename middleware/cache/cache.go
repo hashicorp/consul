@@ -15,7 +15,7 @@ import (
 )
 
 // Cache is middleware that looks up responses in a cache and caches replies.
-// It has a positive and a negative cache.
+// It has a success and a denial of existence cache.
 type Cache struct {
 	Next  middleware.Handler
 	Zones []string

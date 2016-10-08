@@ -24,7 +24,6 @@ TSIG key information, something like `transfer out [address...] key [name] [base
 
 ~~~
 file dbfile [zones... ] {
-    transfer from [address...]
     transfer to [address...]
     no_reload
 }
