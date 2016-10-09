@@ -154,7 +154,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) HealthServiceNodesBatch(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Set default DC
+	// Set default DC  
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
