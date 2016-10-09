@@ -12,13 +12,22 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
+	ui := new(cli.MockUi)
+	return ui, &LockCommand{
+		Meta: Meta{
+			Ui:    ui,
+			Flags: FlagSetHTTP,
+		},
+	}
+}
+
 func TestLockCommand_implements(t *testing.T) {
 	var _ cli.Command = &LockCommand{}
 }
 
 func argFail(t *testing.T, args []string, expected string) {
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
 	}
@@ -40,8 +49,7 @@ func TestLockCommand_Run(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "test/prefix", touchCmd}
@@ -63,8 +71,7 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "-try=10s", "test/prefix", touchCmd}
@@ -95,8 +102,7 @@ func TestLockCommand_Try_Semaphore(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-try=10s", "test/prefix", touchCmd}
@@ -127,8 +133,7 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "test/prefix", touchCmd}
@@ -160,8 +165,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "test/prefix", touchCmd}
@@ -193,8 +197,7 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "-monitor-retry=9", "test/prefix", touchCmd}
@@ -226,8 +229,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &LockCommand{Ui: ui}
+	ui, c := testLockCommand(t)
 	filePath := filepath.Join(a1.dir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
 	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-monitor-retry=9", "test/prefix", touchCmd}

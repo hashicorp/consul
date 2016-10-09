@@ -104,7 +104,10 @@ func init() {
 		"lock": func() (cli.Command, error) {
 			return &command.LockCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Meta: command.Meta{
+					Flags: command.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
