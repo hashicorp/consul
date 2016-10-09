@@ -488,6 +488,10 @@ type IndexedNodeServices struct {
 	QueryMeta
 }
 
+type IndexedCheckServiceNodesMap struct {
+	Nodes map[string]IndexedCheckServiceNodes
+}
+
 type IndexedHealthChecks struct {
 	HealthChecks HealthChecks
 	QueryMeta

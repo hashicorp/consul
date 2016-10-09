@@ -121,7 +121,10 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 
 	// Make the RPC request
 	var out structs.IndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	defer func() {
+		setMeta(resp, &out.QueryMeta)
+	}()
+
 	if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		return nil, err
 	}
@@ -148,6 +151,80 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 
 	return out.Nodes, nil
+}
+
+func (s *HTTPServer) HealthServiceNodesBatch(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Set default DC
+	args := structs.ServiceSpecificRequest{}
+	s.parseSource(req, &args.Source)
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Check for a tag
+	params := req.URL.Query()
+	if _, ok := params["tag"]; ok {
+		args.ServiceTag = params.Get("tag")
+		args.TagFilter = true
+	}
+
+	// Pull out the service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/services/")
+
+	if args.ServiceName == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing service name"))
+		return nil, nil
+	}
+
+	// Make the RPC request
+
+	services := strings.Split(args.ServiceName, ",")
+
+	out := structs.IndexedCheckServiceNodesMap{Nodes: make(map[string]structs.IndexedCheckServiceNodes)}
+
+	for _, currService := range services {
+		out.Nodes[currService] = structs.IndexedCheckServiceNodes{}
+	}
+
+	defer func() {
+		for _, value := range out.Nodes {
+			setMeta(resp, &value.QueryMeta)
+		}
+	}()
+
+	err := s.agent.RPC("Health.ServiceNodesBatch", &args, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range out.Nodes {
+		// Filter to only passing if specified
+
+		if _, ok := params[structs.HealthPassing]; ok {
+			value.Nodes = filterNonPassing(value.Nodes)
+		}
+
+		if len(value.Nodes) == 0 {
+			delete(out.Nodes, key)
+		}
+
+		// Use empty list instead of nil
+		for i, _ := range value.Nodes {
+			// TODO (slackpad) It's lame that this isn't a slice of pointers
+			// but it's not a well-scoped change to fix this. We should
+			// change this at the next opportunity.
+			if value.Nodes[i].Checks == nil {
+				value.Nodes[i].Checks = make(structs.HealthChecks, 0)
+			}
+		}
+		if value.Nodes == nil {
+			value.Nodes = make(structs.CheckServiceNodes, 0)
+		}
+	}
+
+	return out, nil
 }
 
 // filterNonPassing is used to filter out any nodes that have check that are not passing
