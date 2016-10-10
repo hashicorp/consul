@@ -3,6 +3,8 @@ package log
 import (
 	"testing"
 
+	"github.com/miekg/coredns/middleware/pkg/response"
+
 	"github.com/mholt/caddy"
 )
 
@@ -43,7 +45,7 @@ func TestLogParse(t *testing.T) {
 			Format:     CombinedLogFormat,
 		}}},
 		{`log example.org. log.txt
-		  log example.net accesslog.txt {combined}`, false, []Rule{{
+			  log example.net accesslog.txt {combined}`, false, []Rule{{
 			NameScope:  "example.org.",
 			OutputFile: "log.txt",
 			Format:     DefaultLogFormat,
@@ -53,7 +55,7 @@ func TestLogParse(t *testing.T) {
 			Format:     CombinedLogFormat,
 		}}},
 		{`log example.org stdout {host}
-		  log example.org log.txt {when}`, false, []Rule{{
+			  log example.org log.txt {when}`, false, []Rule{{
 			NameScope:  "example.org.",
 			OutputFile: "stdout",
 			Format:     "{host}",
@@ -61,6 +63,31 @@ func TestLogParse(t *testing.T) {
 			NameScope:  "example.org.",
 			OutputFile: "log.txt",
 			Format:     "{when}",
+		}}},
+
+		{`log example.org log.txt {
+				class all
+			}`, false, []Rule{{
+			NameScope:  "example.org.",
+			OutputFile: "log.txt",
+			Format:     CommonLogFormat,
+			Class:      response.All,
+		}}},
+		{`log example.org log.txt {
+			class denial
+		}`, false, []Rule{{
+			NameScope:  "example.org.",
+			OutputFile: "log.txt",
+			Format:     CommonLogFormat,
+			Class:      response.Denial,
+		}}},
+		{`log {
+			class denial
+		}`, false, []Rule{{
+			NameScope:  ".",
+			OutputFile: DefaultLogFilename,
+			Format:     CommonLogFormat,
+			Class:      response.Denial,
 		}}},
 	}
 	for i, test := range tests {
@@ -91,6 +118,11 @@ func TestLogParse(t *testing.T) {
 			if actualLogRule.Format != test.expectedLogRules[j].Format {
 				t.Errorf("Test %d expected %dth LogRule Format to be  %s  , but got %s",
 					i, j, test.expectedLogRules[j].Format, actualLogRule.Format)
+			}
+
+			if actualLogRule.Class != test.expectedLogRules[j].Class {
+				t.Errorf("Test %d expected %dth LogRule Class to be  %s  , but got %s",
+					i, j, test.expectedLogRules[j].Class, actualLogRule.Class)
 			}
 		}
 	}

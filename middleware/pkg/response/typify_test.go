@@ -10,7 +10,7 @@ import (
 
 func TestClassifyDelegation(t *testing.T) {
 	m := delegationMsg()
-	mt, _ := Classify(m)
+	mt, _ := Typify(m)
 	if mt != Delegation {
 		t.Errorf("message is wrongly classified, expected delegation, got %d", mt)
 	}

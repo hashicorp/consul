@@ -41,7 +41,7 @@ func New(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
 func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg {
 	req := state.Req
 
-	mt, _ := response.Classify(req) // TODO(miek): need opt record here?
+	mt, _ := response.Typify(req) // TODO(miek): need opt record here?
 	if mt == response.Delegation {
 		return req
 	}

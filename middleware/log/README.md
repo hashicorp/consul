@@ -1,34 +1,53 @@
 # log
 
-`log` enables request logging. The request log is also known in some vernacular as an access log.
+`log` enables query logging.
 
 ## Syntax
 
-~~~
+~~~ txt
 log
 ~~~
 
 * With no arguments, a query log entry is written to query.log in the common log format for all requests
     (base name = .).
 
-~~~
+~~~ txt
 log file
 ~~~
 
-* file is the log file to create (or append to). The base path is assumed to be . .
+* file is the log file to create (or append to). The base name is assumed to be '.' .
 
-~~~
-log name file [format]
+~~~ txt
+log [name] [file] [format]
 ~~~
 
 * `name` is the base name to match in order to be logged
 * `file` is the log file to create (or append to)
 * `format` is the log format to use (default is Common Log Format)
 
+You can further specify the class of responses that get logged:
+
+~~~ txt
+log [name] [file] [format] {
+    class [success|denial|error|all]
+}
+~~~
+
+Here *success*, *denial* and *error* denotes the class of responses that should be logged. The
+classes have the following meaning:
+
+* `success`: successful response
+* `denial`: either NXDOMAIN or NODATA (name exists, type does not)
+* `error`: SERVFAIL, NOTIMP, REFUSED, etc. Any that indicated the remove server is not willing to
+    resolve the request.
+* `all`: the default is nothing is specified.
+
+If no class is specified it defaults to *all*.
+
 ## Log File
 
-The log file can be any filename. It could also be stdout or stderr to write the log to the console,
-or syslog to write to the system log (except on Windows). If the log file does not exist beforehand,
+The log file can be any filename. It could also be *stdout* or *stderr* to write the log to the console,
+or *syslog* to write to the system log (except on Windows). If the log file does not exist beforehand,
 CoreDNS will create it before appending to it.
 
 ## Log Format
@@ -53,6 +72,11 @@ The following place holders are supported:
 * `{>id}`: query ID
 * `{>opcode}`: query OPCODE
 
+The default Common Log Format is:
+
+~~~ txt
+`{remote} - [{when}] "{type} {class} {name} {proto} {>do} {>bufsize}" {rcode} {size} {duration}`
+~~~
 
 ## Examples
 
@@ -66,4 +90,12 @@ Custom log format:
 
 ~~~
 log . ../query.log "{proto} Request: {name} {type} {>id}"
+~~~
+
+Only log denials for example.org (and below to a file)
+
+~~~
+log example.org example-query-log {
+    class denial
+}
 ~~~

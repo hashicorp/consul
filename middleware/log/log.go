@@ -10,6 +10,7 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/pkg/rcode"
 	"github.com/miekg/coredns/middleware/pkg/replacer"
+	"github.com/miekg/coredns/middleware/pkg/response"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -27,30 +28,38 @@ type Logger struct {
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	for _, rule := range l.Rules {
-		if middleware.Name(rule.NameScope).Matches(state.Name()) {
-			responseRecorder := dnsrecorder.New(w)
-			rc, err := l.Next.ServeDNS(ctx, responseRecorder, r)
+		if !middleware.Name(rule.NameScope).Matches(state.Name()) {
+			continue
+		}
 
-			if rc > 0 {
-				// There was an error up the chain, but no response has been written yet.
-				// The error must be handled here so the log entry will record the response size.
-				if l.ErrorFunc != nil {
-					l.ErrorFunc(responseRecorder, r, rc)
-				} else {
-					answer := new(dns.Msg)
-					answer.SetRcode(r, rc)
-					state.SizeAndDo(answer)
+		responseRecorder := dnsrecorder.New(w)
+		rc, err := l.Next.ServeDNS(ctx, responseRecorder, r)
 
-					metrics.Report(state, metrics.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
-					w.WriteMsg(answer)
-				}
-				rc = 0
+		if rc > 0 {
+			// There was an error up the chain, but no response has been written yet.
+			// The error must be handled here so the log entry will record the response size.
+			if l.ErrorFunc != nil {
+				l.ErrorFunc(responseRecorder, r, rc)
+			} else {
+				answer := new(dns.Msg)
+				answer.SetRcode(r, rc)
+				state.SizeAndDo(answer)
+
+				metrics.Report(state, metrics.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
+
+				w.WriteMsg(answer)
 			}
+			rc = 0
+		}
+
+		class, _ := response.Classify(responseRecorder.Msg)
+		if rule.Class == response.All || rule.Class == class {
 			rep := replacer.New(r, responseRecorder, CommonLogEmptyValue)
 			rule.Log.Println(rep.Replace(rule.Format))
-			return rc, err
-
 		}
+
+		return rc, err
+
 	}
 	return l.Next.ServeDNS(ctx, w, r)
 }
@@ -58,6 +67,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 // Rule configures the logging middleware.
 type Rule struct {
 	NameScope  string
+	Class      response.Class
 	OutputFile string
 	Format     string
 	Log        *log.Logger

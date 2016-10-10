@@ -60,7 +60,7 @@ type ResponseWriter struct {
 // WriteMsg implements the dns.ResponseWriter interface.
 func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
-	mt, opt := response.Classify(res)
+	mt, opt := response.Typify(res)
 	if opt != nil {
 		do = opt.Do()
 	}
@@ -93,7 +93,7 @@ func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration 
 	}
 
 	switch mt {
-	case response.Success, response.Delegation:
+	case response.NoError, response.Delegation:
 		i := newItem(m, duration)
 		c.pcache.Add(key, i)
 

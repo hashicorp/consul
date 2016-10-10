@@ -7,6 +7,7 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/response"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -104,6 +105,26 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 				OutputFile: args[1],
 				Format:     format,
 			})
+		}
+
+		// Class refinements in an extra block.
+		for c.NextBlock() {
+			switch c.Val() {
+			// class followed by all, denial, error or success.
+			case "class":
+				classes := c.RemainingArgs()
+				if len(classes) == 0 {
+					return nil, c.ArgErr()
+				}
+				cls, err := response.ClassFromString(classes[0])
+				if err != nil {
+					return nil, err
+				}
+				// update class and the last added Rule (bit icky)
+				rules[len(rules)-1].Class = cls
+			default:
+				return nil, c.ArgErr()
+			}
 		}
 	}
 

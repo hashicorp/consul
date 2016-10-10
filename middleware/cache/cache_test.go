@@ -94,7 +94,7 @@ func TestCache(t *testing.T) {
 		m = cacheMsg(m, tc)
 		do := tc.in.Do
 
-		mt, _ := response.Classify(m)
+		mt, _ := response.Typify(m)
 		k := key(m, mt, do)
 		crr.set(m, k, mt, c.pttl)
 

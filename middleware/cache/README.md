@@ -20,7 +20,7 @@ Or if you want more control:
 
 ~~~ txt
 cache [ttl] [zones...] {
-    noerror capacity [ttl]
+    success capacity [ttl]
     denial capacity [ttl]
 }
 ~~~
