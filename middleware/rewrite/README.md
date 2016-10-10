@@ -1,17 +1,17 @@
 # rewrite
 
-`rewrite` performs internal message rewriting. Rewrites are invisible to the client.
+*rewrite* performs internal message rewriting. Rewrites are invisible to the client.
 There are simple rewrites (fast) and complex rewrites (slower), but they're powerful enough to
 accommodate most dynamic back-end applications.
 
 ## Syntax
 
 ~~~
-rewrite from to
+rewrite FROM TO
 ~~~
 
-* from is the exact name of type to match
-* to is the destination name or type to rewrite to
+* **FROM** is the exact name of type to match
+* **TO** is the destination name or type to rewrite to
 
 If from *and* to look like a DNS type (`A`, `MX`, etc.), the type of the message will be rewriten;
 e.g., to rewrite ANY queries to HINFO, use `rewrite ANY HINFO`.

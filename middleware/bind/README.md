@@ -1,16 +1,16 @@
 # bind
 
-bind overrides the host to which the server should bind. Normally, the listener binds to the
+*bind* overrides the host to which the server should bind. Normally, the listener binds to the
 wildcard host. However, you may force the listener to bind to another IP instead. This
-directive accepts only an address, not a port. 
+directive accepts only an address, not a port.
 
 ## Syntax
 
 ~~~ txt
-bind address
+bind ADDRESS
 ~~~
 
-address is the IP address to bind to.
+**ADDRESS** is the IP address to bind to.
 
 ## Examples
 

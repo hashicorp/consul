@@ -1,6 +1,6 @@
 # kubernetes
 
-`kubernetes` enables reading zone data from a kubernetes cluster. Record names
+*kubernetes* enables reading zone data from a kubernetes cluster. Record names
 are constructed as "myservice.mynamespace.coredns.local" where:
 
 * "myservice" is the name of the k8s service (this may include multiple DNS labels,
@@ -13,19 +13,23 @@ The record name format can be changed by specifying a name template in the Coref
 ## Syntax
 
 ~~~
-kubernetes [zones...]
+kubernetes [ZONES...]
 ~~~
 
-* `zones` zones kubernetes should be authorative for. Overlapping zones are ignored.
+* `ZONES` zones kubernetes should be authorative for. Overlapping zones are ignored.
 
+
+Or if you want to specify an endpoint:
 
 ~~~
-kubernetes [zones] {
-    endpoint http://localhost:8080
+kubernetes [ZONES...] {
+    endpoint ENDPOINT
 }
 ~~~
 
-* `endpoint` the kubernetes API endpoint, default to http://localhost:8080
+* **ENDPOINT** the kubernetes API endpoint, defaults to http://localhost:8080
+
+TODO(...): Add all the other options.
 
 ## Examples
 
@@ -41,8 +45,8 @@ This is the default kubernetes setup, with everything specified in full:
         resyncperiod 5m
         # Use url for k8s API endpoint
         endpoint https://k8sendpoint:8080
-	# The tls cert, key and the CA cert filenames
-	tls cert key cacert
+        # The tls cert, key and the CA cert filenames
+        tls cert key cacert
         # Assemble k8s record names with the template
         template {service}.{namespace}.{zone}
         # Only expose the k8s namespace "demo"
@@ -69,8 +73,9 @@ Defaults:
   is required. The label selector syntax is described in the kubernetes API documentation at:
   http://kubernetes.io/docs/user-guide/labels/
 
-### Template syntax
+### Template Syntax
 Record name templates can be constructed using the symbolic elements:
+
 | template symbol | description                                                         |
 | `{service}`     | Kubernetes object/service name.                                     |
 | `{namespace}`   | The kubernetes namespace.                                           |
@@ -81,10 +86,9 @@ Record name templates can be constructed using the symbolic elements:
 
 #### Launch Kubernetes
 
-Kubernetes is launched using the commands in the `contrib/kubernetes/testscripts/00_run_k8s.sh` script.
+Kubernetes is launched using the commands in the `.travis/kubernetes/00_run_k8s.sh` script.
 
-
-#### Configure kubectl and test
+#### Configure kubectl and Test
 
 The kubernetes control client can be downloaded from the generic URL:
 `http://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/${GOOS}/${GOARCH}/${K8S_BINARY}`
@@ -94,7 +98,6 @@ For example, the kubectl client for Linux can be downloaded using the command:
 
 The `contrib/kubernetes/testscripts/10_setup_kubectl.sh` script can be stored in the same directory as
 kubectl to setup kubectl to communicate with kubernetes running on the localhost.
-
 
 #### Launch a kubernetes service and expose the service
 
@@ -112,7 +115,7 @@ $ ./kubectl expose deployment mynginx --namespace=demo --port=80
 $ ./kubectl get service --namespace=demo
 ~~~
 
-The script `contrib/kubernetes/testscripts/20_setup_k8s_services.sh` creates a couple of sample namespaces
+The script `.travis/kubernetes/20_setup_k8s_services.sh` creates a couple of sample namespaces
 with services running in those namespaces. The automated kubernetes integration tests in
 `test/kubernetes_test.go` depend on these services and namespaces to exist in kubernetes.
 
@@ -125,7 +128,7 @@ Build CoreDNS and launch using this configuration file:
 # Serve on port 53
 .:53 {
     kubernetes coredns.local {
-		resyncperiod 5m
+        resyncperiod 5m
         endpoint http://localhost:8080
         template {service}.{namespace}.{zone}
         namespaces demo
@@ -154,10 +157,6 @@ In a separate terminal a DNS query can be issued using dig:
 ~~~
 $ dig @localhost mynginx.demo.coredns.local
 
-; <<>> DiG 9.9.4-RedHat-9.9.4-29.el7_2.3 <<>> @localhost mynginx.demo.coredns.local
-; (2 servers found)
-;; global options: +cmd
-;; Got answer:
 ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47614
 ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
 
@@ -176,6 +175,7 @@ mynginx.demo.coredns.local. 0   IN  A   10.0.0.10
 ~~~
 
 
+TODO(miek|...): below this line file bugs or issues and cleanup:
 
 ## Implementation Notes/Ideas
 

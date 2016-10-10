@@ -1,22 +1,22 @@
 # secondary
 
-`secondary` enables serving a zone retrieved from a primary server.
+*secondary* enables serving a zone retrieved from a primary server.
 
 ## Syntax
 
 ~~~
-secondary [zones...]
+secondary [ZONES...]
 ~~~
 
-* `zones` zones it should be authoritative for. If empty, the zones from the configuration block
+* **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
     are used. Note that without a remote address to *get* the zone from, the above is not that useful.
 
 A working syntax would be:
 
 ~~~
 secondary [zones...] {
-    transfer from address
-    [transfer to address]
+    transfer from ADDRESS
+    [transfer to ADDRESS]
 }
 ~~~
 
@@ -27,7 +27,7 @@ secondary [zones...] {
 ## Examples
 
 ~~~
-secondary [zones...] {
+secondary example.org {
     transfer from 10.0.1.1
     transfer from 10.1.2.1
 }

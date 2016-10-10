@@ -35,7 +35,7 @@ Caddy bug](https://github.com/mholt/caddy/issues/675).
 ## Syntax
 
 ~~~
-prometheus
+prometheus [ADDRESS]
 ~~~
 
 For each zone that you want to see metrics for.

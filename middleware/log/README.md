@@ -1,6 +1,6 @@
 # log
 
-`log` enables query logging.
+*log* enables query logging.
 
 ## Syntax
 
@@ -9,31 +9,30 @@ log
 ~~~
 
 * With no arguments, a query log entry is written to query.log in the common log format for all requests
-    (base name = .).
 
 ~~~ txt
-log file
+log FILE
 ~~~
 
-* file is the log file to create (or append to). The base name is assumed to be '.' .
+* **FILE** is the log file to create (or append to).
 
 ~~~ txt
-log [name] [file] [format]
+log [NAME] FILE [FORMAT]
 ~~~
 
-* `name` is the base name to match in order to be logged
-* `file` is the log file to create (or append to)
-* `format` is the log format to use (default is Common Log Format)
+* `NAME` is the name to match in order to be logged
+* `FILE` is the log file to create (or append to)
+* `FORMAT` is the log format to use (default is Common Log Format)
 
 You can further specify the class of responses that get logged:
 
 ~~~ txt
-log [name] [file] [format] {
+log [NAME] FILE [FORMAT] {
     class [success|denial|error|all]
 }
 ~~~
 
-Here *success*, *denial* and *error* denotes the class of responses that should be logged. The
+Here `success` `denial` and `error` denotes the class of responses that should be logged. The
 classes have the following meaning:
 
 * `success`: successful response

@@ -1,41 +1,42 @@
 # cache
 
-`cache` enables a frontend cache.
+*cache* enables a frontend cache.
 
 ## Syntax
 
 ~~~ txt
-cache [ttl] [zones...]
+cache [TTL] [ZONES...]
 ~~~
 
-* `ttl` max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hour for
+* **TTL** max TTL in seconds. If not specified, the maximum TTL will be used which is 1 hour for
     noerror responses and half an hour for denial of existence ones.
-* `zones` zones it should cache for. If empty, the zones from the configuration block are used.
+* **ZONES** zones it should cache for. If empty, the zones from the configuration block are used.
 
-Each element in the cache is cached according to its TTL (with `ttl` as the max).
+Each element in the cache is cached according to its TTL (with **TTL** as the max).
 For the negative cache, the SOA's MinTTL value is used. A cache can contain up to 10,000 items by
 default.
 
-Or if you want more control:
+If you want more control:
 
 ~~~ txt
-cache [ttl] [zones...] {
-    success capacity [ttl]
-    denial capacity [ttl]
+cache [TTL] [ZONES...] {
+    success CAPACITY [TTL]
+    denial CAPACITY [TTL]
 }
 ~~~
 
-* `ttl`  and `zones` as above.
-* `success`, override the settings for caching noerror responses, capacity indicates the maximum
-  number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
-* `denial`, override the settings for caching denial of existence responses, capacity indicates the maximum
-  number of packets we cache before we start evicting (LRU). Ttl overrides the cache maximum TTL.
+* **TTL**  and **ZONES** as above.
+* `success`, override the settings for caching succesful responses, **CAPACITY** indicates the maximum
+  number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.
+* `denial`, override the settings for caching denial of existence responses, **CAPACITY** indicates the maximum
+  number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.
 
 There is a third category (`error`) but those responses are never cached.
 
 The minimum TTL allowed on resource records is 5 seconds.
 
-If monitoring is enabled (via the `prometheus` directive) then the following extra metrics are added:
+If monitoring is enabled (via the *prometheus* directive) then the following extra metrics are added:
+
 * coredns_cache_hit_count_total, and
 * coredns_cache_miss_count_total
 

@@ -1,14 +1,14 @@
 # dnssec
 
-`dnssec` enables on-the-fly DNSSEC signing of served data.
+*dnssec* enables on-the-fly DNSSEC signing of served data.
 
 ## Syntax
 
 ~~~
-dnssec [zones...]
+dnssec [ZONES...]
 ~~~
 
-* `zones` zones that should be signed. If empty, the zones from the configuration block
+* **ZONES** zones that should be signed. If empty, the zones from the configuration block
     are used.
 
 If keys are not specified (see below), a key is generated and used for all signing operations. The
@@ -23,10 +23,9 @@ NOTE: Key generation has not been implemented yet.
 
 TODO(miek): think about key rollovers, and how to do them automatically.
 
-
 ~~~
-dnssec [zones... ] {
-    key file [key...]
+dnssec [ZONES... ] {
+    key file KEY...
 }
 ~~~
 

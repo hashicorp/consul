@@ -1,36 +1,36 @@
 # proxy
 
-`proxy` facilitates both a basic reverse proxy and a robust load balancer. The proxy has support for
-multiple backends and adding custom headers. The load balancing features include multiple policies,
-health checks, and failovers. If all hosts fail their health check the proxy middleware will fail
-back to randomly selecting a target and sending packets to it.
+*proxy* facilitates both a basic reverse proxy and a robust load balancer. The proxy has support for
+ multiple backends. The load balancing features include multiple policies, health checks, and
+ failovers. If all hosts fail their health check the proxy middleware will fail back to randomly
+ selecting a target and sending packets to it.
 
 ## Syntax
 
 In its most basic form, a simple reverse proxy uses this syntax:
 
 ~~~
-proxy from to
+proxy FROM To
 ~~~
 
-* `from` is the base path to match for the request to be proxied
-* `to` is the destination endpoint to proxy to
+* **FROM** is the base path to match for the request to be proxied
+* **TO** is the destination endpoint to proxy to
 
 However, advanced features including load balancing can be utilized with an expanded syntax:
 
 ~~~
-proxy from to... {
-    policy random | least_conn | round_robin
-    fail_timeout duration
-    max_fails integer
-    health_check path:port [duration]
-    except ignored_names...
+proxy FROM TO... {
+    policy random|least_conn|round_robin
+    fail_timeout DURATION
+    max_fails INTEGER
+    health_check PATH:PORT [DURATION]
+    except IGNORED_NAMES...
     spray
 }
 ~~~
 
-* `from` is the base path to match for the request to be proxied.
-* `to` is the destination endpoint to proxy to. At least one is required, but multiple may be specified.
+* **FROM** is the name to match for the request to be proxied.
+* **TO** is the destination endpoint to proxy to. At least one is required, but multiple may be specified.
 * `policy` is the load balancing policy to use; applies only with multiple backends. May be one of random, least_conn, or round_robin. Default is random.
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to communicate with it. The default value is 10 seconds ("10s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
@@ -41,9 +41,9 @@ proxy from to... {
 ## Policies
 
 There are three load-balancing policies available:
-* *random* (default) - Randomly select a backend
-* *least_conn* - Select the backend with the fewest active connections
-* *round_robin* - Select the backend in round-robin fashion
+* `random` (default) - Randomly select a backend
+* `least_conn` - Select the backend with the fewest active connections
+* `round_robin` - Select the backend in round-robin fashion
 
 All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
 available. This is to preeempt the case where the healthchecking (as a mechanism) fails.

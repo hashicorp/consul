@@ -1,6 +1,6 @@
 # whoami
 
-whoami returns your local IP address, port and transport used. Your local IP address is returned in
+*whoami* returns your local IP address, port and transport used. Your local IP address is returned in
 the additional section as either an A or AAAA record.
 
 The port and transport are included in the additional section as a SRV record, transport can be
