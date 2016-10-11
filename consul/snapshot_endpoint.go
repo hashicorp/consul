@@ -25,6 +25,20 @@ import (
 // a snapshot save). We can't use the normal RPC mechanism in a streaming manner
 // like this, so we have to dispatch these by hand.
 func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
+	// forward is a helper to dial up another server using the pool and
+	// relay the request.
+	forward := func(dc string, addr net.Addr) (io.ReadCloser, error) {
+		conn, err := s.connPool.Dial(dc, addr)
+		if err != nil {
+			return nil, err
+		}
+		if err := SnapshotRPC(conn, args, in); err != nil {
+			conn.Close()
+			return nil, err
+		}
+		return conn, nil
+	}
+
 	// We may need to forward if this is not our datacenter or we are not
 	// the leader.
 	if dc := args.Datacenter; dc != s.config.Datacenter {
@@ -32,12 +46,12 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		if !ok {
 			return nil, structs.ErrNoDCPath
 		}
-		return SnapshotRPC(dc, server.Addr, s.connPool, args, in)
+		return forward(dc, server.Addr)
 	} else if isLeader, server := s.getLeader(); !isLeader {
 		if server == nil {
 			return nil, structs.ErrNoLeader
 		}
-		return SnapshotRPC(dc, server.Addr, s.connPool, args, in)
+		return forward(dc, server.Addr)
 	}
 
 	// Verify token is allowed to operate on snapshots. There's only a
@@ -101,53 +115,37 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 }
 
 // SnapshotRPC is a streaming client function for performing a snapshot RPC
-// request to a remote server. It will dial up a fresh connection for each
-// request, send the request header, and then stream in any data from the given
+// request to a remote server. It should be given a fresh connection for each
+// request, sends the request header, and then streams in any data from the
 // reader (for a restore). It will then parse the received response header, and
-// if there's no error will return a reader for the streaming part of the
-// response (for a snapshot save). If this doesn't return an error, you must
-// close the returned reader.
-func SnapshotRPC(dc string, addr net.Addr, pool *ConnPool,
-	args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
-
-	// Dial since we make a fresh connection for each RPC.
-	conn, err := pool.Dial(dc, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	var keep bool
-	defer func() {
-		if keep {
-			return
-		}
-
-		conn.Close()
-	}()
-
+// if there's no error you should read the remainder of the data in the conn to
+// get the streaming part of the response.
+func SnapshotRPC(conn net.Conn, args *structs.SnapshotRequest, in io.Reader) error {
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
 	if _, err := conn.Write([]byte{byte(rpcSnapshot)}); err != nil {
-		return nil, err
+		return err
 	}
 
+	// Push the header encoded as JSON, then stream the input.
 	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
 	if err := enc.Encode(&args); err != nil {
-		return nil, fmt.Errorf("failed to encode request: %v", err)
+		return fmt.Errorf("failed to encode request: %v", err)
 	}
 	if _, err := io.Copy(conn, in); err != nil {
-		return nil, fmt.Errorf("failed to copy snapshot in: %v", err)
+		return fmt.Errorf("failed to copy snapshot in: %v", err)
 	}
 
+	// Pull the header decoded as JSON, then stream the output by giving
+	// the caller back the conn.
 	var resp structs.SnapshotResponse
 	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
 	if err := dec.Decode(&resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
+		return fmt.Errorf("failed to decode response: %v", err)
 	}
 	if resp.Error != "" {
-		return nil, errors.New(resp.Error)
+		return errors.New(resp.Error)
 	}
 
-	keep = true
-	return conn, nil
+	return nil
 }

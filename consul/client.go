@@ -338,23 +338,29 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	return nil
 }
 
-// XXX TODO
+// SnapshotRPC sends the snapshot request to one of the servers, reading from
+// the streaming input and writing to the streaming output depending on the
+// operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer) error {
 	server := c.servers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
 
-	snap, err := SnapshotRPC(c.config.Datacenter, server.Addr, c.connPool, args, in)
+	conn, err := c.connPool.Dial(c.config.Datacenter, server.Addr)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := snap.Close(); err != nil {
-			c.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+		if err := conn.Close(); err != nil {
+			c.logger.Printf("[ERR] consul: Failed to close snapshot connection: %v", err)
 		}
 	}()
-	if _, err := io.Copy(out, snap); err != nil {
+
+	if err := SnapshotRPC(conn, args, in); err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, conn); err != nil {
 		return fmt.Errorf("failed to stream snapshot: %v", err)
 	}
 
