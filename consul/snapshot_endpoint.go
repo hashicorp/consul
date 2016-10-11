@@ -8,9 +8,11 @@
 package consul
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 
 	"github.com/hashicorp/consul/consul/snapshot"
@@ -59,7 +61,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
 			return nil, err
 		}
-		return nil, nil
+		return ioutil.NopCloser(bytes.NewReader([]byte(""))), nil
 
 	default:
 		return nil, fmt.Errorf("unrecognized snapshot op %q", args.Op)
