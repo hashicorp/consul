@@ -1,3 +1,12 @@
+// The archive utilities manage the internal format of a snapshot, which is a
+// zip-compressed file with the following contents:
+//
+// metadata.json - JSON-encoded snapshot metadata from Raft
+// snapshot.data - Encoded snapshot data from Raft
+// SHA256SUMS    - SHA-256 sums of the above two files
+//
+// The integrity information is automatically created and checked, and a failure
+// there just looks like an error to the caller.
 package snapshot
 
 import (

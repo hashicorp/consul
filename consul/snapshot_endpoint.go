@@ -1,3 +1,10 @@
+// The snapshot endpoint is a special non-RPC endpoint that supports streaming
+// for taking and restoring snapshots for disaster recovery. This gets wired
+// directly into Consul's stream handler, and a new TCP connection is made for
+// each request.
+//
+// This also includes a SnapshotRPC() function, which acts as a lightweight
+// client that knows the details of the stream protocol.
 package consul
 
 import (
