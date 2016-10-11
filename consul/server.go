@@ -807,7 +807,8 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	return codec.err
 }
 
-// XXX TODO
+// SnapshotRPC dispatches the given snapshot request, reading from the streaming
+// input and writing to the streaming output depending on the operation.
 func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer) error {
 	snap, err := s.dispatchSnapshotRequest(args, in)
 	if err != nil {
