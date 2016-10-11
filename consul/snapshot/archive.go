@@ -1,9 +1,9 @@
 // The archive utilities manage the internal format of a snapshot, which is a
 // zip-compressed file with the following contents:
 //
-// metadata.json - JSON-encoded snapshot metadata from Raft
-// snapshot.data - Encoded snapshot data from Raft
-// SHA256SUMS    - SHA-256 sums of the above two files
+// meta.json  - JSON-encoded snapshot metadata from Raft
+// state.bin  - Encoded snapshot data from Raft
+// SHA256SUMS - SHA-256 sums of the above two files
 //
 // The integrity information is automatically created and checked, and a failure
 // there just looks like an error to the caller.
@@ -101,22 +101,22 @@ func write(zipper *zip.Writer, metadata *raft.SnapshotMeta, snap io.Reader) erro
 
 	// Encode the snapshot metadata, which we need to feed back during a
 	// restore.
-	metaWriter, err := zipper.Create("metadata.json")
+	metaWriter, err := zipper.Create("meta.json")
 	if err != nil {
 		return fmt.Errorf("failed to create snapshot metadata entry: %v", err)
 	}
-	metaHash := hl.Add("metadata.json")
+	metaHash := hl.Add("meta.json")
 	enc := json.NewEncoder(io.MultiWriter(metaHash, metaWriter))
 	if err := enc.Encode(metadata); err != nil {
 		return fmt.Errorf("failed to write snapshot metadata: %v", err)
 	}
 
 	// Streaming copy the serialized portion of the Raft snapshot.
-	snapWriter, err := zipper.Create("snapshot.data")
+	snapWriter, err := zipper.Create("state.bin")
 	if err != nil {
 		return fmt.Errorf("failed to create snapshot data entry: %v", err)
 	}
-	snapHash := hl.Add("snapshot.data")
+	snapHash := hl.Add("state.bin")
 	if _, err := io.Copy(io.MultiWriter(snapHash, snapWriter), snap); err != nil {
 		return fmt.Errorf("failed to write snapshot data: %v", err)
 	}
@@ -158,7 +158,7 @@ func read(unzipper *zip.ReadCloser) (*raft.SnapshotMeta, io.ReadCloser, error) {
 	hl := newHashList()
 
 	// Open the metadata file.
-	metaFile, err := openFile(unzipper, "metadata.json")
+	metaFile, err := openFile(unzipper, "meta.json")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -170,14 +170,14 @@ func read(unzipper *zip.ReadCloser) (*raft.SnapshotMeta, io.ReadCloser, error) {
 
 	// Decode the metadata and tee it through the hash so we can check it.
 	var metadata raft.SnapshotMeta
-	metaHash := hl.Add("metadata.json")
+	metaHash := hl.Add("meta.json")
 	dec := json.NewDecoder(io.TeeReader(metaReader, metaHash))
 	if err := dec.Decode(&metadata); err != nil {
 		return nil, nil, fmt.Errorf("failed to read snapshot metadata: %v", err)
 	}
 
 	// Get the snapshot file.
-	snapFile, err := openFile(unzipper, "snapshot.data")
+	snapFile, err := openFile(unzipper, "state.bin")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -185,7 +185,7 @@ func read(unzipper *zip.ReadCloser) (*raft.SnapshotMeta, io.ReadCloser, error) {
 	// Run through it once to get the hash. This kind of sucks, but we don't
 	// want the ingestion of it into Raft to be where we discover things are
 	// corrupt.
-	snapHash := hl.Add("snapshot.data")
+	snapHash := hl.Add("state.bin")
 	snapReader, err := snapFile.Open()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open snapshot data entry: %v", err)
