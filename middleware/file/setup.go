@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
@@ -49,6 +50,8 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 	names := []string{}
 	origins := []string{}
 
+	config := dnsserver.GetConfig(c)
+
 	for c.Next() {
 		if c.Val() == "file" {
 			// file db.file [zones...]
@@ -62,6 +65,10 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				origins = args
+			}
+
+			if !path.IsAbs(fileName) && config.Root != "" {
+				fileName = path.Join(config.Root, fileName)
 			}
 
 			reader, err := os.Open(fileName)

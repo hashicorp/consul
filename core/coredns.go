@@ -21,6 +21,7 @@ import (
 	_ "github.com/miekg/coredns/middleware/pprof"
 	_ "github.com/miekg/coredns/middleware/proxy"
 	_ "github.com/miekg/coredns/middleware/rewrite"
+	_ "github.com/miekg/coredns/middleware/root"
 	_ "github.com/miekg/coredns/middleware/secondary"
 	_ "github.com/miekg/coredns/middleware/whoami"
 )

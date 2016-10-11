@@ -73,6 +73,7 @@ func RegisterDevDirective(name, before string) {
 // (after) them during a request, but they must not
 // care what middleware above them are doing.
 var directives = []string{
+	"root",
 	"bind",
 	"health",
 	"pprof",

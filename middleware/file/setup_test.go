@@ -51,7 +51,7 @@ func TestFileParse(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		c := caddy.NewTestController("file", test.inputFileRules)
+		c := caddy.NewTestController("dns", test.inputFileRules)
 		actualZones, err := fileParse(c)
 
 		if err == nil && test.shouldErr {

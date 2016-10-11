@@ -17,6 +17,10 @@ type Config struct {
 	// The port to listen on.
 	Port string
 
+	// Root points to a base directory we we find user defined "things".
+	// First consumer is the file middleware to looks for zone files in this place.
+	Root string
+
 	// Middleware stack.
 	Middleware []middleware.Middleware
 

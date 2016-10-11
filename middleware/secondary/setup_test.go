@@ -29,7 +29,7 @@ func TestSecondaryParse(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		c := caddy.NewTestController("secondary", test.inputFileRules)
+		c := caddy.NewTestController("dns", test.inputFileRules)
 		_, err := secondaryParse(c)
 
 		if err == nil && test.shouldErr {

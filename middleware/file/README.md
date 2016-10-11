@@ -13,7 +13,8 @@ zonefile.
 file DBFILE [ZONES...]
 ~~~
 
-* **DBFILE** the database file to read and parse.
+* **DBFILE** the database file to read and parse. If the path is relative the path from the *root*
+  directive will be prepended to it.
 * **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
     are used.
 
