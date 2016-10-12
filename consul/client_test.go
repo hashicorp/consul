@@ -1,7 +1,9 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"sync"
@@ -450,5 +452,51 @@ func TestClient_Encrypted(t *testing.T) {
 	}
 	if !c2.Encrypted() {
 		t.Fatalf("should be encrypted")
+	}
+}
+
+func TestClient_SnapshotRPC(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Wait for the leader
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Try to join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
+		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
+	}
+
+	// Wait until we've got a healthy server.
+	testutil.WaitForResult(func() (bool, error) {
+		return c1.servers.NumServers() == 1, nil
+	}, func(err error) {
+		t.Fatalf("expected consul server")
+	})
+
+	// Take a snapshot.
+	var snap bytes.Buffer
+	args := structs.SnapshotRequest{
+		Datacenter: "dc1",
+		Op:         structs.SnapshotSave,
+	}
+	if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Restore a snapshot.
+	args.Op = structs.SnapshotRestore
+	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
