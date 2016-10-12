@@ -43,7 +43,7 @@ func TestLookupWildcard(t *testing.T) {
 	for _, lookup := range []string{"w.example.org.", "a.w.example.org.", "a.a.w.example.org."} {
 		resp, err := p.Lookup(state, lookup, dns.TypeTXT)
 		if err != nil || resp == nil {
-			t.Fatal("Expected to receive reply, but didn't for %s", lookup)
+			t.Fatalf("Expected to receive reply, but didn't for %s", lookup)
 		}
 
 		// ;; ANSWER SECTION:

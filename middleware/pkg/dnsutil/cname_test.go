@@ -36,14 +36,14 @@ func TestDuplicateCNAME(t *testing.T) {
 	for i, test := range tests {
 		cnameRR, err := dns.NewRR(test.cname)
 		if err != nil {
-			t.Fatal("Test %d, cname ('%s') error (%s)!", i, test.cname, err)
+			t.Fatalf("Test %d, cname ('%s') error (%s)!", i, test.cname, err)
 		}
 		cname := cnameRR.(*dns.CNAME)
 		records := []dns.RR{}
 		for j, r := range test.records {
 			rr, err := dns.NewRR(r)
 			if err != nil {
-				t.Fatal("Test %d, record %d ('%s') error (%s)!", i, j, r, err)
+				t.Fatalf("Test %d, record %d ('%s') error (%s)!", i, j, r, err)
 			}
 			records = append(records, rr)
 		}

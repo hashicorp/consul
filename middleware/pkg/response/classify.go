@@ -68,6 +68,4 @@ func classify(t Type) Class {
 	default:
 		return Error
 	}
-	// never reached
-	return All
 }

@@ -10,19 +10,19 @@ import (
 	"github.com/miekg/dns"
 )
 
-type Client struct {
+type client struct {
 	Timeout time.Duration
 
 	group *singleflight.Group
 }
 
-func NewClient() *Client {
-	return &Client{Timeout: defaultTimeout, group: new(singleflight.Group)}
+func newClient() *client {
+	return &client{Timeout: defaultTimeout, group: new(singleflight.Group)}
 }
 
 // ServeDNS does not satisfy middleware.Handler, instead it interacts with the upstream
 // and returns the respons or an error.
-func (c *Client) ServeDNS(w dns.ResponseWriter, r *dns.Msg, u *UpstreamHost) (*dns.Msg, error) {
+func (c *client) ServeDNS(w dns.ResponseWriter, r *dns.Msg, u *UpstreamHost) (*dns.Msg, error) {
 	co, err := net.DialTimeout(request.Proto(w), u.Name, c.Timeout)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (c *Client) ServeDNS(w dns.ResponseWriter, r *dns.Msg, u *UpstreamHost) (*d
 	return reply, nil
 }
 
-func (c *Client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, error) {
+func (c *client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, error) {
 	t := "nop"
 	if t1, ok := dns.TypeToString[m.Question[0].Qtype]; ok {
 		t = t1
@@ -76,7 +76,7 @@ func (c *Client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, err
 
 // exchange does *not* return a pointer to dns.Msg because that leads to buffer reuse when
 // group.Do is used in Exchange.
-func (c *Client) exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
+func (c *client) exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
 	opt := m.IsEdns0()
 
 	udpsize := uint16(dns.MinMsgSize)

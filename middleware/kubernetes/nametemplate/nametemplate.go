@@ -61,14 +61,16 @@ var requiredSymbols = []string{
 //		 symbol consumes the other segments. Most likely this would be the servicename.
 //		 Also consider how to handle static strings in the format template.
 
-type NameTemplate struct {
+// TODO(infoblox): docs
+type Template struct {
 	formatString string
 	splitFormat  []string
 	// Element is a map of element name :: index in the segmented record name for the named element
 	Element map[string]int
 }
 
-func (t *NameTemplate) SetTemplate(s string) error {
+// TODO: docs
+func (t *Template) SetTemplate(s string) error {
 	var err error
 
 	t.Element = map[string]int{}
@@ -105,7 +107,7 @@ func (t *NameTemplate) SetTemplate(s string) error {
 //		 to treat the query string segments as a reverse stack and
 //       step down the stack to find the right element.
 
-func (t *NameTemplate) GetZoneFromSegmentArray(segments []string) string {
+func (t *Template) ZoneFromSegmentArray(segments []string) string {
 	index, ok := t.Element["zone"]
 	if !ok {
 		return ""
@@ -113,16 +115,16 @@ func (t *NameTemplate) GetZoneFromSegmentArray(segments []string) string {
 	return strings.Join(segments[index:len(segments)], ".")
 }
 
-func (t *NameTemplate) GetNamespaceFromSegmentArray(segments []string) string {
-	return t.GetSymbolFromSegmentArray("namespace", segments)
+func (t *Template) NamespaceFromSegmentArray(segments []string) string {
+	return t.SymbolFromSegmentArray("namespace", segments)
 }
 
-func (t *NameTemplate) GetServiceFromSegmentArray(segments []string) string {
-	return t.GetSymbolFromSegmentArray("service", segments)
+func (t *Template) ServiceFromSegmentArray(segments []string) string {
+	return t.SymbolFromSegmentArray("service", segments)
 }
 
-func (t *NameTemplate) GetTypeFromSegmentArray(segments []string) string {
-	typeSegment := t.GetSymbolFromSegmentArray("type", segments)
+func (t *Template) TypeFromSegmentArray(segments []string) string {
+	typeSegment := t.SymbolFromSegmentArray("type", segments)
 
 	// Limit type to known types symbols
 	if dns_strings.StringInSlice(typeSegment, types) {
@@ -132,7 +134,7 @@ func (t *NameTemplate) GetTypeFromSegmentArray(segments []string) string {
 	return typeSegment
 }
 
-func (t *NameTemplate) GetSymbolFromSegmentArray(symbol string, segments []string) string {
+func (t *Template) SymbolFromSegmentArray(symbol string, segments []string) string {
 	index, ok := t.Element[symbol]
 	if !ok {
 		return ""
@@ -140,9 +142,9 @@ func (t *NameTemplate) GetSymbolFromSegmentArray(symbol string, segments []strin
 	return segments[index]
 }
 
-// GetRecordNameFromNameValues returns the string produced by applying the
+// RecordNameFromNameValues returns the string produced by applying the
 // values to the NameTemplate format string.
-func (t *NameTemplate) GetRecordNameFromNameValues(values NameValues) string {
+func (t *Template) RecordNameFromNameValues(values NameValues) string {
 	recordName := make([]string, len(t.splitFormat))
 	copy(recordName[:], t.splitFormat)
 
@@ -164,8 +166,8 @@ func (t *NameTemplate) GetRecordNameFromNameValues(values NameValues) string {
 	return strings.Join(recordName, ".")
 }
 
-func (t *NameTemplate) IsValid() bool {
-	// This is *only* used in a test, for the test this should be a private method.
+// IsValid returns true if the template has all the required symbols, false otherwise.
+func (t *Template) IsValid() bool {
 	result := true
 
 	// Ensure that all requiredSymbols are found in NameTemplate
@@ -179,6 +181,7 @@ func (t *NameTemplate) IsValid() bool {
 	return result
 }
 
+// TODO(infoblox): what's this?
 type NameValues struct {
 	ServiceName string
 	Namespace   string

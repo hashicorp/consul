@@ -22,7 +22,7 @@ var exampleTemplates = map[string][]int{
 func TestSetTemplate(t *testing.T) {
 	for s, expectedValue := range exampleTemplates {
 
-		n := new(NameTemplate)
+		n := new(Template)
 		n.SetTemplate(s)
 
 		// check the indexes resulting from calling SetTemplate() against expectedValues
@@ -34,9 +34,9 @@ func TestSetTemplate(t *testing.T) {
 	}
 }
 
-func TestGetServiceFromSegmentArray(t *testing.T) {
+func TestServiceFromSegmentArray(t *testing.T) {
 	var (
-		n               *NameTemplate
+		n               *Template
 		formatString    string
 		queryString     string
 		splitQuery      []string
@@ -45,37 +45,37 @@ func TestGetServiceFromSegmentArray(t *testing.T) {
 	)
 
 	// Case where template contains {service}
-	n = new(NameTemplate)
+	n = new(Template)
 	formatString = "{service}.{namespace}.{zone}"
 	n.SetTemplate(formatString)
 
 	queryString = "myservice.mynamespace.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedService = "myservice"
-	actualService = n.GetServiceFromSegmentArray(splitQuery)
+	actualService = n.ServiceFromSegmentArray(splitQuery)
 
 	if actualService != expectedService {
 		t.Errorf("Expected service name '%v', instead got service name '%v' for query string '%v' and format '%v'", expectedService, actualService, queryString, formatString)
 	}
 
 	// Case where template does not contain {service}
-	n = new(NameTemplate)
+	n = new(Template)
 	formatString = "{namespace}.{zone}"
 	n.SetTemplate(formatString)
 
 	queryString = "mynamespace.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedService = ""
-	actualService = n.GetServiceFromSegmentArray(splitQuery)
+	actualService = n.ServiceFromSegmentArray(splitQuery)
 
 	if actualService != expectedService {
 		t.Errorf("Expected service name '%v', instead got service name '%v' for query string '%v' and format '%v'", expectedService, actualService, queryString, formatString)
 	}
 }
 
-func TestGetZoneFromSegmentArray(t *testing.T) {
+func TestZoneFromSegmentArray(t *testing.T) {
 	var (
-		n            *NameTemplate
+		n            *Template
 		formatString string
 		queryString  string
 		splitQuery   []string
@@ -84,42 +84,42 @@ func TestGetZoneFromSegmentArray(t *testing.T) {
 	)
 
 	// Case where template contains {zone}
-	n = new(NameTemplate)
+	n = new(Template)
 	formatString = "{service}.{namespace}.{zone}"
 	n.SetTemplate(formatString)
 
 	queryString = "myservice.mynamespace.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = "coredns"
-	actualZone = n.GetZoneFromSegmentArray(splitQuery)
+	actualZone = n.ZoneFromSegmentArray(splitQuery)
 
 	if actualZone != expectedZone {
 		t.Errorf("Expected zone name '%v', instead got zone name '%v' for query string '%v' and format '%v'", expectedZone, actualZone, queryString, formatString)
 	}
 
 	// Case where template does not contain {zone}
-	n = new(NameTemplate)
+	n = new(Template)
 	formatString = "{service}.{namespace}"
 	n.SetTemplate(formatString)
 
 	queryString = "mynamespace.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = ""
-	actualZone = n.GetZoneFromSegmentArray(splitQuery)
+	actualZone = n.ZoneFromSegmentArray(splitQuery)
 
 	if actualZone != expectedZone {
 		t.Errorf("Expected zone name '%v', instead got zone name '%v' for query string '%v' and format '%v'", expectedZone, actualZone, queryString, formatString)
 	}
 
 	// Case where zone is multiple segments
-	n = new(NameTemplate)
+	n = new(Template)
 	formatString = "{service}.{namespace}.{zone}"
 	n.SetTemplate(formatString)
 
 	queryString = "myservice.mynamespace.coredns.cluster.local"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = "coredns.cluster.local"
-	actualZone = n.GetZoneFromSegmentArray(splitQuery)
+	actualZone = n.ZoneFromSegmentArray(splitQuery)
 
 	if actualZone != expectedZone {
 		t.Errorf("Expected zone name '%v', instead got zone name '%v' for query string '%v' and format '%v'", expectedZone, actualZone, queryString, formatString)

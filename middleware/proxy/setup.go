@@ -20,7 +20,7 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("proxy", err)
 	}
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return Proxy{Next: next, Client: NewClient(), Upstreams: upstreams}
+		return Proxy{Next: next, Client: newClient(), Upstreams: upstreams}
 	})
 
 	return nil

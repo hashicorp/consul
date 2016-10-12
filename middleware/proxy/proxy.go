@@ -17,7 +17,7 @@ var errUnreachable = errors.New("unreachable backend")
 // Proxy represents a middleware instance that can proxy requests to another DNS server.
 type Proxy struct {
 	Next      middleware.Handler
-	Client    *Client
+	Client    *client
 	Upstreams []Upstream
 }
 

@@ -35,7 +35,7 @@ type Kubernetes struct {
 	APIClientKey  string
 	APIConn       *dnsController
 	ResyncPeriod  time.Duration
-	NameTemplate  *nametemplate.NameTemplate
+	NameTemplate  *nametemplate.Template
 	Namespaces    []string
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
@@ -125,7 +125,7 @@ func (k *Kubernetes) getZoneForName(name string) (string, []string) {
 // for instance.
 func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	// TODO: refector this.
-	// Right now GetNamespaceFromSegmentArray do not supports PRE queries
+	// Right now NamespaceFromSegmentArray do not supports PRE queries
 	ip := dnsutil.ExtractAddressFromReverse(name)
 	if ip != "" {
 		records := k.getServiceRecordForIP(ip, name)
@@ -142,9 +142,9 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	// TODO: Implementation above globbed together segments for the serviceName if
 	//       multiple segments remained. Determine how to do similar globbing using
 	//		 the template-based implementation.
-	namespace = k.NameTemplate.GetNamespaceFromSegmentArray(serviceSegments)
-	serviceName = k.NameTemplate.GetServiceFromSegmentArray(serviceSegments)
-	typeName = k.NameTemplate.GetTypeFromSegmentArray(serviceSegments)
+	namespace = k.NameTemplate.NamespaceFromSegmentArray(serviceSegments)
+	serviceName = k.NameTemplate.ServiceFromSegmentArray(serviceSegments)
+	typeName = k.NameTemplate.TypeFromSegmentArray(serviceSegments)
 
 	if namespace == "" {
 		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
@@ -205,7 +205,7 @@ func (k *Kubernetes) getRecordsForServiceItems(serviceItems []*api.Service, valu
 
 // Get performs the call to the Kubernetes http API.
 func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, serviceWildcard bool) ([]*api.Service, error) {
-	serviceList := k.APIConn.GetServiceList()
+	serviceList := k.APIConn.ServiceList()
 
 	var resultItems []*api.Service
 

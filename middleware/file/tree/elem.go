@@ -52,7 +52,7 @@ func (e *Elem) Name() string {
 	return ""
 }
 
-// Wildcard returns true if this name starts with a wildcard label (*.)
+// IsWildcard returns true if this name starts with a wildcard label (*.)
 func (e *Elem) IsWildcard() bool {
 	n := e.Name()
 	if len(n) < 2 {

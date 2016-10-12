@@ -52,7 +52,7 @@ func setup(c *caddy.Controller) error {
 
 func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 	k8s := &Kubernetes{ResyncPeriod: defaultResyncPeriod}
-	k8s.NameTemplate = new(nametemplate.NameTemplate)
+	k8s.NameTemplate = new(nametemplate.Template)
 	k8s.NameTemplate.SetTemplate(defaultNameTemplate)
 
 	for c.Next() {

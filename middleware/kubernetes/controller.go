@@ -51,7 +51,7 @@ type dnsController struct {
 	stopCh   chan struct{}
 }
 
-// newDNSController creates a controller for coredns
+// newDNSController creates a controller for CoreDNS.
 func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lselector *labels.Selector) *dnsController {
 	dns := dnsController{
 		client:   kubeClient,
@@ -168,7 +168,7 @@ func (dns *dnsController) Run() {
 	<-dns.stopCh
 }
 
-func (dns *dnsController) GetNamespaceList() *api.NamespaceList {
+func (dns *dnsController) NamespaceList() *api.NamespaceList {
 	nsList, err := dns.nsLister.List()
 	if err != nil {
 		return &api.NamespaceList{}
@@ -177,7 +177,7 @@ func (dns *dnsController) GetNamespaceList() *api.NamespaceList {
 	return &nsList
 }
 
-func (dns *dnsController) GetServiceList() []*api.Service {
+func (dns *dnsController) ServiceList() []*api.Service {
 	svcs, err := dns.svcLister.List(labels.Everything())
 	if err != nil {
 		return []*api.Service{}
@@ -186,10 +186,11 @@ func (dns *dnsController) GetServiceList() []*api.Service {
 	return svcs
 }
 
-// GetServicesByNamespace returns a map of
+// ServicesByNamespace returns a map of:
+//
 // namespacename :: [ kubernetesService ]
-func (dns *dnsController) GetServicesByNamespace() map[string][]api.Service {
-	k8sServiceList := dns.GetServiceList()
+func (dns *dnsController) ServicesByNamespace() map[string][]api.Service {
+	k8sServiceList := dns.ServiceList()
 	items := make(map[string][]api.Service, len(k8sServiceList))
 	for _, i := range k8sServiceList {
 		namespace := i.Namespace
@@ -199,9 +200,8 @@ func (dns *dnsController) GetServicesByNamespace() map[string][]api.Service {
 	return items
 }
 
-// GetServiceInNamespace returns the Service that matches
-// servicename in the namespace
-func (dns *dnsController) GetServiceInNamespace(namespace string, servicename string) *api.Service {
+// ServiceInNamespace returns the Service that matches servicename in the namespace
+func (dns *dnsController) ServiceInNamespace(namespace, servicename string) *api.Service {
 	svcObj, err := dns.svcLister.Services(namespace).Get(servicename)
 	if err != nil {
 		// TODO(...): should return err here

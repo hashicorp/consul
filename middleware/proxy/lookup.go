@@ -13,7 +13,7 @@ import (
 
 // New create a new proxy with the hosts in host and a Random policy.
 func New(hosts []string) Proxy {
-	p := Proxy{Next: nil, Client: NewClient()}
+	p := Proxy{Next: nil, Client: newClient()}
 
 	upstream := &staticUpstream{
 		from:        "",

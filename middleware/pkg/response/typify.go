@@ -10,7 +10,7 @@ import (
 type Type int
 
 const (
-	// Success indicates a positive reply
+	// NoError indicates a positive reply
 	NoError Type = iota
 	// NameError is a NXDOMAIN in header, SOA in auth.
 	NameError
