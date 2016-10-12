@@ -459,7 +459,9 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec1 := rpcClient(t, s1)
