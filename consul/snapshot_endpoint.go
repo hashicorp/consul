@@ -113,7 +113,7 @@ RESPOND:
 func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 	args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
 
-	conn, err := pool.Dial(dc, addr)
+	conn, hc, err := pool.Dial(dc, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +142,16 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 		return nil, fmt.Errorf("failed to copy snapshot in: %v", err)
 	}
 
-	// If this is a TCP connection, we close the write side since this is
-	// the only way to get an EOF on the other side to signal that we are
-	// done. This is a bit jank but it beats having to know the size in
-	// advance on the receiving end.
-	if tc, ok := conn.(*net.TCPConn); ok {
-		if err := tc.CloseWrite(); err != nil {
-			return nil, fmt.Errorf("failed to half close snapshot TCP connection: %v", err)
+	// Our RPC protocol requires support for a half-close in order to signal
+	// the other side that they are done reading the stream, since we don't
+	// know the size in advance. This is a bit jank but it beats having to
+	// buffer just to calculate the size.
+	if hc != nil {
+		if err := hc.CloseWrite(); err != nil {
+			return nil, fmt.Errorf("failed to half close snapshot connection: %v", err)
 		}
+	} else {
+		return nil, fmt.Errorf("snapshot connection requires half-close support")
 	}
 
 	// Pull the header decoded as JSON. The caller can continue to read
