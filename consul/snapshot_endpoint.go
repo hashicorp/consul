@@ -133,7 +133,7 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 		return nil, fmt.Errorf("failed to write stream type: %v", err)
 	}
 
-	// Push the header encoded as JSON, then stream the input.
+	// Push the header encoded as msgpack, then stream the input.
 	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
 	if err := enc.Encode(&args); err != nil {
 		return nil, fmt.Errorf("failed to encode request: %v", err)
@@ -144,8 +144,8 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 
 	// Our RPC protocol requires support for a half-close in order to signal
 	// the other side that they are done reading the stream, since we don't
-	// know the size in advance. This is a bit jank but it beats having to
-	// buffer just to calculate the size.
+	// know the size in advance. This saves us from having to buffer just to
+	// calculate the size.
 	if hc != nil {
 		if err := hc.CloseWrite(); err != nil {
 			return nil, fmt.Errorf("failed to half close snapshot connection: %v", err)
@@ -154,7 +154,7 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 		return nil, fmt.Errorf("snapshot connection requires half-close support")
 	}
 
-	// Pull the header decoded as JSON. The caller can continue to read
+	// Pull the header decoded as msgpack. The caller can continue to read
 	// the conn to stream the remaining data.
 	var resp structs.SnapshotResponse
 	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
