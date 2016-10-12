@@ -96,6 +96,7 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	snap, err := s.dispatchSnapshotRequest(&args, conn)
 	if err != nil {
 		resp.Error = err.Error()
+		goto RESPOND
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
@@ -103,12 +104,15 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 		}
 	}()
 
+RESPOND:
 	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
 	if err := enc.Encode(&resp); err != nil {
 		return fmt.Errorf("failed to encode response: %v", err)
 	}
-	if _, err := io.Copy(conn, snap); err != nil {
-		return fmt.Errorf("failed to stream snapshot: %v", err)
+	if snap != nil {
+		if _, err := io.Copy(conn, snap); err != nil {
+			return fmt.Errorf("failed to stream snapshot: %v", err)
+		}
 	}
 
 	return nil
@@ -120,6 +124,11 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 // reader (for a restore). It will then parse the received response header, and
 // if there's no error you should read the remainder of the data in the conn to
 // get the streaming part of the response.
+//
+// If the given connection is a TCP connection, it will be closed for writes
+// after the data has been streamed in from the reader. This propagates the EOF
+// so the remote side knows to stop reading, since we don't have the size of the
+// payload ahead of time.
 func SnapshotRPC(conn net.Conn, args *structs.SnapshotRequest, in io.Reader) error {
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
@@ -136,8 +145,18 @@ func SnapshotRPC(conn net.Conn, args *structs.SnapshotRequest, in io.Reader) err
 		return fmt.Errorf("failed to copy snapshot in: %v", err)
 	}
 
-	// Pull the header decoded as JSON, then stream the output by giving
-	// the caller back the conn.
+	// If this is a TCP connection, we close the write side since this is
+	// the only way to get an EOF on the other side to signal that we are
+	// done. This is a bit jank but it beats having to know the size in
+	// advance on the receiving end.
+	if tc, ok := conn.(*net.TCPConn); ok {
+		if err := tc.CloseWrite(); err != nil {
+			return fmt.Errorf("failed to half close snapshot TCP connection: %v", err)
+		}
+	}
+
+	// Pull the header decoded as JSON. The caller can continue to read
+	// the conn to stream the remaining data.
 	var resp structs.SnapshotResponse
 	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
 	if err := dec.Decode(&resp); err != nil {
