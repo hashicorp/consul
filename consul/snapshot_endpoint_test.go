@@ -3,11 +3,9 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
@@ -39,20 +37,17 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Take a snapshot.
-	addr := s.config.RPCAddr
-	snap, err := net.DialTimeout("tcp", addr.String(), time.Second)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer snap.Close()
 	args := structs.SnapshotRequest{
 		Datacenter: dc,
 		Token:      token,
 		Op:         structs.SnapshotSave,
 	}
-	if err := SnapshotRPC(snap, &args, bytes.NewReader([]byte(""))); err != nil {
+	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+		&args, bytes.NewReader([]byte("")))
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer snap.Close()
 
 	// Read back the before value.
 	{
@@ -118,15 +113,13 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Restore the snapshot.
-	restore, err := net.DialTimeout("tcp", addr.String(), time.Second)
+	args.Op = structs.SnapshotRestore
+	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+		&args, snap)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	defer restore.Close()
-	args.Op = structs.SnapshotRestore
-	if err := SnapshotRPC(restore, &args, snap); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
 	// Read back the before value post-snapshot.
 	{
@@ -175,17 +168,12 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 
 	// Take a snapshot.
 	func() {
-		addr := s1.config.RPCAddr
-		snap, err := net.DialTimeout("tcp", addr.String(), time.Second)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		defer snap.Close()
 		args := structs.SnapshotRequest{
 			Datacenter: "dc1",
 			Op:         structs.SnapshotSave,
 		}
-		err = SnapshotRPC(snap, &args, bytes.NewReader([]byte("")))
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+			&args, bytes.NewReader([]byte("")))
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
@@ -193,17 +181,12 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 
 	// Restore a snapshot.
 	func() {
-		addr := s1.config.RPCAddr
-		snap, err := net.DialTimeout("tcp", addr.String(), time.Second)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		defer snap.Close()
 		args := structs.SnapshotRequest{
 			Datacenter: "dc1",
 			Op:         structs.SnapshotRestore,
 		}
-		err = SnapshotRPC(snap, &args, bytes.NewReader([]byte("")))
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+			&args, bytes.NewReader([]byte("")))
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}

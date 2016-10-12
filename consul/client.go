@@ -347,20 +347,11 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 		return structs.ErrNoServers
 	}
 
-	conn, err := c.connPool.Dial(c.config.Datacenter, server.Addr)
+	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, args, in)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			c.logger.Printf("[ERR] consul: Failed to close snapshot connection: %v", err)
-		}
-	}()
-
-	if err := SnapshotRPC(conn, args, in); err != nil {
-		return err
-	}
-	if _, err := io.Copy(out, conn); err != nil {
+	if _, err := io.Copy(out, snap); err != nil {
 		return fmt.Errorf("failed to stream snapshot: %v", err)
 	}
 
