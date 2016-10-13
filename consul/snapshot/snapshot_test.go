@@ -256,8 +256,7 @@ func TestSnapshot_BadRestore(t *testing.T) {
 
 	// Attempt to restore a truncated version of the snapshot. This is
 	// expected to fail.
-	trunc := &io.LimitedReader{snap, 512}
-	err = Restore(logger, trunc, after)
+	err = Restore(logger, io.LimitReader(snap, 512), after)
 	if err == nil || !strings.Contains(err.Error(), "not a valid zip file") {
 		t.Fatalf("err: %v", err)
 	}

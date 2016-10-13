@@ -75,6 +75,11 @@ func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
 		return nil, fmt.Errorf("failed to write snapshot file: %v", err)
 	}
 
+	// Finalize the archive.
+	if err := zipper.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finalize snapshot: %v", err)
+	}
+
 	// Rewind the file so it's ready to be read again.
 	if _, err := archive.Seek(0, 0); err != nil {
 		return nil, fmt.Errorf("failed to rewind snapshot: %v", err)

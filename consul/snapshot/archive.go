@@ -71,7 +71,7 @@ func (hl *hashList) Decode(r io.Reader) error {
 
 		h, ok := hl.hashes[file]
 		if !ok {
-			return fmt.Errorf("missing hash for %q", file)
+			return fmt.Errorf("list missing hash for %q", file)
 		}
 		if !bytes.Equal(sha, h.Sum([]byte{})) {
 			return fmt.Errorf("hash check failed for %q", file)
@@ -85,7 +85,7 @@ func (hl *hashList) Decode(r io.Reader) error {
 	// Make sure everything we had a hash for was seen.
 	for file, _ := range hl.hashes {
 		if _, ok := seen[file]; !ok {
-			return fmt.Errorf("no hash found for %q", file)
+			return fmt.Errorf("file missing hash for %q", file)
 		}
 	}
 
@@ -128,11 +128,6 @@ func write(zipper *zip.Writer, metadata *raft.SnapshotMeta, snap io.Reader) erro
 	}
 	if err := hl.Encode(shaWriter); err != nil {
 		return fmt.Errorf("failed to write snapshot hashes: %v", err)
-	}
-
-	// Finalize the archive.
-	if err := zipper.Close(); err != nil {
-		return fmt.Errorf("failed to finalize snapshot: %v", err)
 	}
 
 	return nil

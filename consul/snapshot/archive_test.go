@@ -1,0 +1,152 @@
+package snapshot
+
+import (
+	"archive/zip"
+	"bytes"
+	"crypto/rand"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/raft"
+)
+
+func TestArchive(t *testing.T) {
+	// Create some fake snapshot data.
+	metadata := &raft.SnapshotMeta{
+		Index: 2005,
+		Term:  2011,
+		Configuration: raft.Configuration{
+			Servers: []raft.Server{
+				raft.Server{
+					Suffrage: raft.Voter,
+					ID:       raft.ServerID("hello"),
+					Address:  raft.ServerAddress("127.0.0.1:8300"),
+				},
+			},
+		},
+		Size: 1024,
+	}
+	var snap bytes.Buffer
+	var expected bytes.Buffer
+	both := io.MultiWriter(&snap, &expected)
+	if _, err := io.Copy(both, io.LimitReader(rand.Reader, 1024)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a new on-disk archive.
+	archive, err := ioutil.TempFile("", "snapshot")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(archive.Name())
+
+	// Write out the snapshot.
+	zipper := zip.NewWriter(archive)
+	if err := write(zipper, metadata, &snap); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := zipper.Close(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Rewind the file so it's ready to be read again.
+	if _, err := archive.Seek(0, 0); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Read the snapshot back in.
+	unzipper, err := zip.OpenReader(archive.Name())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer unzipper.Close()
+	newMeta, newSnap, err := read(unzipper)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the contents.
+	if !reflect.DeepEqual(newMeta, metadata) {
+		t.Fatalf("bad: %#v", newMeta)
+	}
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, newSnap); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !bytes.Equal(buf.Bytes(), expected.Bytes()) {
+		t.Fatalf("snapshot contents didn't match")
+	}
+}
+
+func TestArchive_BadData(t *testing.T) {
+	cases := []struct {
+		Name  string
+		Error string
+	}{
+		{"../../test/snapshot/empty.zip", "failed to find \"meta.json\""},
+		{"../../test/snapshot/missing-meta.zip", "failed to find \"meta.json\""},
+		{"../../test/snapshot/missing-state.zip", "failed to find \"state.bin\""},
+		{"../../test/snapshot/missing-sha.zip", "failed to find \"SHA256SUMS\""},
+		{"../../test/snapshot/corrupt-meta.zip", "hash check failed for \"meta.json\""},
+		{"../../test/snapshot/corrupt-state.zip", "hash check failed for \"state.bin\""},
+		{"../../test/snapshot/corrupt-sha.zip", "file missing hash for \"meta.json\""},
+	}
+	for i, c := range cases {
+		unzipper, err := zip.OpenReader(c.Name)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		defer unzipper.Close()
+
+		_, _, err = read(unzipper)
+		if err == nil || !strings.Contains(err.Error(), c.Error) {
+			t.Fatalf("case %d (%s): %v", i, c.Name, err)
+		}
+	}
+}
+
+func TestArchive_hashList(t *testing.T) {
+	hl := newHashList()
+	for i := 0; i < 16; i++ {
+		h := hl.Add(fmt.Sprintf("file-%d", i))
+		if _, err := io.CopyN(h, rand.Reader, 32); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Do a normal round trip.
+	var buf bytes.Buffer
+	if err := hl.Encode(&buf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := hl.Decode(&buf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Have a local hash that isn't in the file.
+	buf.Reset()
+	if err := hl.Encode(&buf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	hl.Add("nope")
+	err := hl.Decode(&buf)
+	if err == nil || !strings.Contains(err.Error(), "file missing hash for \"nope\"") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Have a hash in the file that we haven't seen locally.
+	buf.Reset()
+	if err := hl.Encode(&buf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	delete(hl.hashes, "nope")
+	err = hl.Decode(&buf)
+	if err == nil || !strings.Contains(err.Error(), "list missing hash for \"nope\"") {
+		t.Fatalf("err: %v", err)
+	}
+}
