@@ -254,7 +254,7 @@ will exit with an error at startup.
 
 * <a name="_ui_dir"></a><a href="#_ui_dir">`-ui-dir`</a> - This flag provides the directory containing
   the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
-  readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this option is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI.
+  readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this flag is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI.
 
 ## <a name="configuration_files"></a>Configuration Files
 
