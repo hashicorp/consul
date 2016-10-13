@@ -20,6 +20,12 @@ import (
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
+const (
+	// noSnapshotsInDevMode indicates that snapshots aren't available for a
+	// server in dev mode.
+	noSnapshotsInDevMode = "Snapshot operations not available in dev mode"
+)
+
 // dispatchSnapshotRequest takes an incoming request structure with possibly some
 // streaming data (for a restore) and returns possibly some streaming data (for
 // a snapshot save). We can't use the normal RPC mechanism in a streaming manner
@@ -38,6 +44,13 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoLeader
 		}
 		return SnapshotRPC(s.connPool, dc, server.Addr, args, in)
+	}
+
+	// Snapshots don't work in dev mode because we need Raft's snapshots to
+	// be readable. Better to present a clear error than one from deep down
+	// in the Raft snapshot store.
+	if s.config.DevMode {
+		return nil, errors.New(noSnapshotsInDevMode)
 	}
 
 	// Verify token is allowed to operate on snapshots. There's only a
