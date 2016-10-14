@@ -26,14 +26,14 @@ Usage: consul snapshot save [options] [FILE]
   which includes key/value entries, service catalog, prepared queries, sessions,
   and ACLs.
 
-  To create a snapshot from the leader server and save it to "backup.tgz":
+  To create a snapshot from the leader server and save it to "backup.snap":
 
-    $ consul snapshot save backup.tgz
+    $ consul snapshot save backup.snap
 
   To create a potentially stale snapshot from any available server (useful if no
   leader is available):
 
-    $ consul snapshot save -stale backup.tgz
+    $ consul snapshot save -stale backup.snap
 
   For a full list of options and examples, please see the Consul documentation.
 

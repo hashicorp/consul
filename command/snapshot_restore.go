@@ -29,9 +29,9 @@ Usage: consul snapshot restore [options] [FILE]
   intended to be used when recovering from a disaster, restoring into a fresh
   cluster of Consul servers.
 
-  To restore a snapshot:
+  To restore a snapshot from the file "backup.snap":
 
-    $ consul snapshot restore backup.tgz
+    $ consul snapshot restore backup.snap
 
   For a full list of options and examples, please see the Consul documentation.
 
@@ -90,6 +90,8 @@ func (c *SnapshotRestoreCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error restoring snapshot: %s", err))
 		return 1
 	}
+
+	c.Ui.Info("Restored snapshot")
 	return 0
 }
 

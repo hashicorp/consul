@@ -30,11 +30,11 @@ Usage: consul snapshot <subcommand> [options] [args]
 
   Create a snapshot:
 
-      $ consul snapshot save backup.tgz
+      $ consul snapshot save backup.snap
 
   Restore a snapshot:
 
-      $ consul snapshot restore backup.tgz
+      $ consul snapshot restore backup.snap
 
 
   For more examples, ask for subcommand help or view the documentation.
