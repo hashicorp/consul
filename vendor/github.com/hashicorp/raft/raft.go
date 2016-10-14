@@ -700,7 +700,7 @@ func (r *Raft) quorumSize() int {
 // so that the snapshot will be sent to followers and used for any new joiners.
 // This can only be run on the leader, and returns a future that can be used to
 // block until complete.
-func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.ReadCloser) error {
+func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.Reader) error {
 	defer metrics.MeasureSince([]string{"raft", "restoreUserSnapshot"}, time.Now())
 
 	// Sanity check the version.

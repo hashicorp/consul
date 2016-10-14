@@ -196,7 +196,7 @@ type userRestoreFuture struct {
 	meta *SnapshotMeta
 
 	// reader is the interface to read the snapshot contents from.
-	reader io.ReadCloser
+	reader io.Reader
 }
 
 // reqSnapshotFuture is used for requesting a snapshot start.

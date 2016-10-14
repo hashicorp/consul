@@ -833,7 +833,7 @@ func (r *Raft) Snapshot() SnapshotFuture {
 // install snapshot process. This involves a potentially dangerous period where
 // the leader commits ahead of its followers, so should only be used for disaster
 // recovery into a fresh cluster, and should not be used in normal operations.
-func (r *Raft) Restore(meta *SnapshotMeta, reader io.ReadCloser, timeout time.Duration) Future {
+func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Duration) Future {
 	metrics.IncrCounter([]string{"raft", "restore"}, 1)
 	var timer <-chan time.Time
 	if timeout > 0 {
