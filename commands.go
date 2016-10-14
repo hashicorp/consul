@@ -151,6 +151,24 @@ func init() {
 			}, nil
 		},
 
+		"snapshot": func() (cli.Command, error) {
+			return &command.SnapshotCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"snapshot restore": func() (cli.Command, error) {
+			return &command.SnapshotRestoreCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"snapshot save": func() (cli.Command, error) {
+			return &command.SnapshotSaveCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				HumanVersion: GetHumanVersion(),
