@@ -20,11 +20,14 @@ type SnapshotSaveCommand struct {
 
 func (c *SnapshotSaveCommand) Help() string {
 	helpText := `
-Usage: consul snapshot save [options] [FILE]
+Usage: consul snapshot save [options] FILE
 
   Retrieves an atomic, point-in-time snapshot of the state of the Consul servers
   which includes key/value entries, service catalog, prepared queries, sessions,
   and ACLs.
+
+  If ACLs are enabled, a management token must be supplied in order to perform
+  snapshot operations.
 
   To create a snapshot from the leader server and save it to "backup.snap":
 

@@ -18,7 +18,7 @@ type SnapshotRestoreCommand struct {
 
 func (c *SnapshotRestoreCommand) Help() string {
 	helpText := `
-Usage: consul snapshot restore [options] [FILE]
+Usage: consul snapshot restore [options] FILE
 
   Restores an atomic, point-in-time snapshot of the state of the Consul servers
   which includes key/value entries, service catalog, prepared queries, sessions,
@@ -28,6 +28,9 @@ Usage: consul snapshot restore [options] [FILE]
   designed to handle server failures during a restore. This command is primarily
   intended to be used when recovering from a disaster, restoring into a fresh
   cluster of Consul servers.
+
+  If ACLs are enabled, a management token must be supplied in order to perform
+  snapshot operations.
 
   To restore a snapshot from the file "backup.snap":
 
