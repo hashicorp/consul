@@ -338,19 +338,37 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	return nil
 }
 
+// SnapshotReplyFn gets a peek at the reply before the snapshot streams, which
+// is useful for setting headers.
+type SnapshotReplyFn func(reply *structs.SnapshotResponse) error
+
 // SnapshotRPC sends the snapshot request to one of the servers, reading from
 // the streaming input and writing to the streaming output depending on the
 // operation.
-func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer) error {
+func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
+	replyFn SnapshotReplyFn) error {
+
+	// Locate a server to make the request to.
 	server := c.servers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
 
-	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, args, in)
+	// Request the operation.
+	var reply structs.SnapshotResponse
+	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, args, in, &reply)
 	if err != nil {
 		return err
 	}
+
+	// Let the caller peek at the reply.
+	if replyFn != nil {
+		if err := replyFn(&reply); err != nil {
+			return nil
+		}
+	}
+
+	// Stream the snapshot.
 	if _, err := io.Copy(out, snap); err != nil {
 		return fmt.Errorf("failed to stream snapshot: %v", err)
 	}

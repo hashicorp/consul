@@ -393,13 +393,13 @@ func TestClient_SnapshotRPC(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.SnapshotSave,
 	}
-	if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap); err != nil {
+	if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Restore a snapshot.
 	args.Op = structs.SnapshotRestore
-	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard); err != nil {
+	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -452,13 +452,13 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.SnapshotSave,
 	}
-	if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap); err != nil {
+	if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Restore a snapshot.
 	args.Op = structs.SnapshotRestore
-	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard); err != nil {
+	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }

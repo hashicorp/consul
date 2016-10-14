@@ -19,7 +19,8 @@ import (
 // to hold a snapshot. By using an intermediate file we avoid holding everything
 // in memory.
 type Snapshot struct {
-	file *os.File
+	file  *os.File
+	index uint64
 }
 
 // New takes a state snapshot of the given Raft instance into a temporary file
@@ -86,7 +87,16 @@ func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
 	}
 
 	keep = true
-	return &Snapshot{archive}, nil
+	return &Snapshot{archive, metadata.Index}, nil
+}
+
+// Index returns the index of the snapshot. This is safe to call on a nil
+// snapshot, it will just return 0.
+func (s *Snapshot) Index() uint64 {
+	if s == nil {
+		return 0
+	}
+	return s.index
 }
 
 // Read passes through to the underlying snapshot file. This is safe to call on

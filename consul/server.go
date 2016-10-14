@@ -809,8 +809,12 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 
 // SnapshotRPC dispatches the given snapshot request, reading from the streaming
 // input and writing to the streaming output depending on the operation.
-func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer) error {
-	snap, err := s.dispatchSnapshotRequest(args, in)
+func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
+	replyFn SnapshotReplyFn) error {
+
+	// Perform the operation.
+	var reply structs.SnapshotResponse
+	snap, err := s.dispatchSnapshotRequest(args, in, &reply)
 	if err != nil {
 		return err
 	}
@@ -819,10 +823,18 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
 		}
 	}()
+
+	// Let the caller peek at the reply.
+	if replyFn != nil {
+		if err := replyFn(&reply); err != nil {
+			return nil
+		}
+	}
+
+	// Stream the snapshot.
 	if _, err := io.Copy(out, snap); err != nil {
 		return fmt.Errorf("failed to stream snapshot: %v", err)
 	}
-
 	return nil
 }
 

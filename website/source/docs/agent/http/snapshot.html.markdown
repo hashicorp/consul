@@ -18,17 +18,17 @@ Raft [consensus protocol](/docs/internals/consensus.html), including:
 * Sessions
 * ACLs
 
-These endpoints, available in Consul 0.7.1 and later, allow for atomic,
-point-in-time snapshots of the above data to be obtained in a format that can be
-saved externally. These snapshots can then be used to restore the server state
-into a fresh cluster of Consul servers in the event of a disaster.
+Available in Consul 0.7.1 and later, these endpoints allow for atomic,
+point-in-time snapshots of the above data in a format that can be saved
+externally. Snapshots can then be used to restore the server state into a fresh
+cluster of Consul servers in the event of a disaster.
 
 The following endpoints are supported:
 
 * [`/v1/snapshot`](#snapshot): Save and restore Consul server state
 
-These endpoints do not support blocking queries and always use the consistent
-mode for reads. Requests are always forwarded internally to the cluster leader.
+These endpoints do not support blocking queries. Saving snapshots uses the
+consistent mode by default and stale mode is supported.
 
 The endpoints support the use of ACL Tokens. Because snapshots contain all
 server state, including ACLs, a management token is required to perform snapshot
@@ -57,11 +57,24 @@ to be edited.
 By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter.
 
+By default, snapshots use consistent mode which means the request is internally
+forwarded to the cluster leader, and leadership is checked before performing the
+snapshot. If `stale` is specified using the "?stale" query parameter, then any
+server can handle the request and the results may be arbitrarily stale. To support
+bounding the acceptable staleness of snapshots, responses provide the `X-Consul-LastContact`
+header containing the time in milliseconds that a server was last contacted by
+the leader node. The `X-Consul-KnownLeader` header also indicates if there is a
+known leader. These can be used by clients to gauge the staleness of a snapshot
+and take appropriate action. The stale mode is particularly useful from taking a
+snapshot of a cluster in a failed state with no current leader.
+
 If ACLs are enabled, the client will need to supply an ACL Token with management
 privileges.
 
 The return code is 200 on success, and the snapshot will be returned in the body
-as a zip archive.
+as a zip archive. In addition to the stale-related headers described above, the
+`X-Consul-Index` header will also be set to the index at which the snapshot took
+place.
 
 #### PUT Method
 

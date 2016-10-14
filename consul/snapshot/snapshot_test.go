@@ -195,6 +195,10 @@ func TestSnapshot(t *testing.T) {
 func TestSnapshot_Nil(t *testing.T) {
 	var snap *Snapshot
 
+	if idx := snap.Index(); idx != 0 {
+		t.Fatalf("bad: %d", idx)
+	}
+
 	n, err := snap.Read(make([]byte, 16))
 	if n != 0 || err != io.EOF {
 		t.Fatalf("bad: %d %v", n, err)

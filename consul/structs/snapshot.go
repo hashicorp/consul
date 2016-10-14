@@ -19,6 +19,10 @@ type SnapshotRequest struct {
 	// then all operations require a management token.
 	Token string
 
+	// If set, any follower can service the request. Results may be
+	// arbitrarily stale. Only applies to SnapshotSave.
+	AllowStale bool
+
 	// Op is the operation code for the RPC.
 	Op SnapshotOp
 }
@@ -29,4 +33,8 @@ type SnapshotRequest struct {
 type SnapshotResponse struct {
 	// Error is the overall error status of the RPC request.
 	Error string
+
+	// QueryMeta has freshness information about the server that handled the
+	// request. It is only filled in for a SnapshotSave.
+	QueryMeta
 }

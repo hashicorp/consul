@@ -92,8 +92,16 @@ func TestSnapshot_Options(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This should work.
+	// This should work with a valid token.
 	snap, err := snapshot.Save(&QueryOptions{Token: "root"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer snap.Close()
+
+	// This should work with a stale snapshot. This doesn't have good feedback
+	// that the stale option was sent, but it makes sure nothing bad happens.
+	snap, err = snapshot.Save(&QueryOptions{Token: "root", AllowStale: true})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

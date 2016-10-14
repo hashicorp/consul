@@ -17,7 +17,8 @@ func (c *Client) Snapshot() *Snapshot {
 
 // Save requests a new snapshot and provides an io.ReadCloser with the snapshot
 // data to save. If this doesn't return an error, then it's the responsibility
-// of the caller to close it.
+// of the caller to close it. Only a subset of the QueryOptions are supported:
+// Datacenter, AllowStale, and Token.
 func (s *Snapshot) Save(q *QueryOptions) (io.ReadCloser, error) {
 	r := s.c.newRequest("GET", "/v1/snapshot")
 	r.setQueryOptions(q)

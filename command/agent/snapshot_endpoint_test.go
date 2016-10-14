@@ -24,6 +24,19 @@ func TestSnapshot(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		snap = resp.Body
+
+		header := resp.Header().Get("X-Consul-Index")
+		if header == "" {
+			t.Fatalf("bad: %v", header)
+		}
+		header = resp.Header().Get("X-Consul-KnownLeader")
+		if header != "true" {
+			t.Fatalf("bad: %v", header)
+		}
+		header = resp.Header().Get("X-Consul-LastContact")
+		if header != "0" {
+			t.Fatalf("bad: %v", header)
+		}
 	})
 
 	httpTest(t, func(srv *HTTPServer) {
@@ -67,6 +80,26 @@ func TestSnapshot_Options(t *testing.T) {
 			_, err = srv.Snapshot(resp, req)
 			if err == nil || !strings.Contains(err.Error(), "No path to datacenter") {
 				t.Fatalf("err: %v", err)
+			}
+		})
+
+		httpTest(t, func(srv *HTTPServer) {
+			body := bytes.NewBuffer(nil)
+			req, err := http.NewRequest(method, "/v1/snapshot?token=root&stale", body)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			resp := httptest.NewRecorder()
+			_, err = srv.Snapshot(resp, req)
+			if method == "GET" {
+				if err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			} else {
+				if err == nil || !strings.Contains(err.Error(), "stale not allowed") {
+					t.Fatalf("err: %v", err)
+				}
 			}
 		})
 	}

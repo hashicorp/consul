@@ -30,20 +30,26 @@ const (
 // streaming data (for a restore) and returns possibly some streaming data (for
 // a snapshot save). We can't use the normal RPC mechanism in a streaming manner
 // like this, so we have to dispatch these by hand.
-func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
-	// We may need to forward if this is not our datacenter or we are not
-	// the leader.
+func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Reader,
+	reply *structs.SnapshotResponse) (io.ReadCloser, error) {
+
+	// Perform DC forwarding.
 	if dc := args.Datacenter; dc != s.config.Datacenter {
 		server, ok := s.getRemoteServer(dc)
 		if !ok {
 			return nil, structs.ErrNoDCPath
 		}
-		return SnapshotRPC(s.connPool, dc, server.Addr, args, in)
-	} else if isLeader, server := s.getLeader(); !isLeader {
-		if server == nil {
-			return nil, structs.ErrNoLeader
+		return SnapshotRPC(s.connPool, dc, server.Addr, args, in, reply)
+	}
+
+	// Perform leader forwarding if required.
+	if !args.AllowStale {
+		if isLeader, server := s.getLeader(); !isLeader {
+			if server == nil {
+				return nil, structs.ErrNoLeader
+			}
+			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr, args, in, reply)
 		}
-		return SnapshotRPC(s.connPool, dc, server.Addr, args, in)
 	}
 
 	// Snapshots don't work in dev mode because we need Raft's snapshots to
@@ -65,12 +71,25 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// Dispatch the operation.
 	switch args.Op {
 	case structs.SnapshotSave:
-		if err := s.consistentRead(); err != nil {
-			return nil, err
+		if !args.AllowStale {
+			if err := s.consistentRead(); err != nil {
+				return nil, err
+			}
 		}
-		return snapshot.New(s.logger, s.raft)
+
+		// Set the metadata here before we do anything; this should always be
+		// pessimistic if we get more data while the snapshot is being taken.
+		s.setQueryMeta(&reply.QueryMeta)
+
+		// Take the snapshot and capture the index.
+		snap, err := snapshot.New(s.logger, s.raft)
+		reply.Index = snap.Index()
+		return snap, err
 
 	case structs.SnapshotRestore:
+		if args.AllowStale {
+			return nil, fmt.Errorf("stale not allowed for restore")
+		}
 		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
 			return nil, err
 		}
@@ -91,10 +110,10 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 		return fmt.Errorf("failed to decode request: %v", err)
 	}
 
-	var resp structs.SnapshotResponse
-	snap, err := s.dispatchSnapshotRequest(&args, conn)
+	var reply structs.SnapshotResponse
+	snap, err := s.dispatchSnapshotRequest(&args, conn, &reply)
 	if err != nil {
-		resp.Error = err.Error()
+		reply.Error = err.Error()
 		goto RESPOND
 	}
 	defer func() {
@@ -105,7 +124,7 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 
 RESPOND:
 	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
-	if err := enc.Encode(&resp); err != nil {
+	if err := enc.Encode(&reply); err != nil {
 		return fmt.Errorf("failed to encode response: %v", err)
 	}
 	if snap != nil {
@@ -122,9 +141,11 @@ RESPOND:
 // request, send the request header, and then stream in any data from the
 // reader (for a restore). It will then parse the received response header, and
 // if there's no error will return an io.ReadCloser (that you must close) with
-// the streaming output (for a snapshot).
+// the streaming output (for a snapshot). If the reply contains an error, this
+// will always return an error as well, so you don't need to check the error
+// inside the filled-in reply.
 func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
-	args *structs.SnapshotRequest, in io.Reader) (io.ReadCloser, error) {
+	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
 
 	conn, hc, err := pool.Dial(dc, addr)
 	if err != nil {
@@ -169,13 +190,12 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 
 	// Pull the header decoded as msgpack. The caller can continue to read
 	// the conn to stream the remaining data.
-	var resp structs.SnapshotResponse
 	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
-	if err := dec.Decode(&resp); err != nil {
+	if err := dec.Decode(reply); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
-	if resp.Error != "" {
-		return nil, errors.New(resp.Error)
+	if reply.Error != "" {
+		return nil, errors.New(reply.Error)
 	}
 
 	keep = true

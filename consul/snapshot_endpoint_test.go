@@ -42,8 +42,9 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		Token:      token,
 		Op:         structs.SnapshotSave,
 	}
+	var reply structs.SnapshotResponse
 	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
-		&args, bytes.NewReader([]byte("")))
+		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -115,7 +116,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
 	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
-		&args, snap)
+		&args, snap, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -172,8 +173,9 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.SnapshotSave,
 		}
+		var reply structs.SnapshotResponse
 		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
-			&args, bytes.NewReader([]byte("")))
+			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
@@ -185,8 +187,9 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.SnapshotRestore,
 		}
+		var reply structs.SnapshotResponse
 		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
-			&args, bytes.NewReader([]byte("")))
+			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
@@ -260,6 +263,53 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	}
 }
 
+func TestSnapshot_AllowStale(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Run against the servers which aren't haven't been set up to establish
+	// a leader and make sure we get a no leader error.
+	for _, s := range []*Server{s1, s2} {
+		// Take a snapshot.
+		args := structs.SnapshotRequest{
+			Datacenter: s.config.Datacenter,
+			Op:         structs.SnapshotSave,
+		}
+		var reply structs.SnapshotResponse
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+			&args, bytes.NewReader([]byte("")), &reply)
+		if err == nil || !strings.Contains(err.Error(), structs.ErrNoLeader.Error()) {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Run in stale mode and make sure we get an error from Raft (snapshot
+	// was attempted), and not a no leader error.
+	for _, s := range []*Server{s1, s2} {
+		// Take a snapshot.
+		args := structs.SnapshotRequest{
+			Datacenter: s.config.Datacenter,
+			AllowStale: true,
+			Op:         structs.SnapshotSave,
+		}
+		var reply structs.SnapshotResponse
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+			&args, bytes.NewReader([]byte("")), &reply)
+		if err == nil || !strings.Contains(err.Error(), "Raft error when taking snapshot") {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
+
 func TestSnapshot_DevMode(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DevMode = true
@@ -275,8 +325,9 @@ func TestSnapshot_DevMode(t *testing.T) {
 		Datacenter: s1.config.Datacenter,
 		Op:         structs.SnapshotSave,
 	}
+	var reply structs.SnapshotResponse
 	_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
-		&args, bytes.NewReader([]byte("")))
+		&args, bytes.NewReader([]byte("")), &reply)
 	if err == nil || !strings.Contains(err.Error(), noSnapshotsInDevMode) {
 		t.Fatalf("err: %v", err)
 	}
