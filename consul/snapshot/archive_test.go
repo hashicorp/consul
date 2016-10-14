@@ -1,7 +1,6 @@
 package snapshot
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/rand"
 	"fmt"
@@ -17,7 +16,7 @@ import (
 
 func TestArchive(t *testing.T) {
 	// Create some fake snapshot data.
-	metadata := &raft.SnapshotMeta{
+	metadata := raft.SnapshotMeta{
 		Index: 2005,
 		Term:  2011,
 		Configuration: raft.Configuration{
@@ -38,35 +37,16 @@ func TestArchive(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create a new on-disk archive.
-	archive, err := ioutil.TempFile("", "snapshot")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.Remove(archive.Name())
-
 	// Write out the snapshot.
-	zipper := zip.NewWriter(archive)
-	if err := write(zipper, metadata, &snap); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err := zipper.Close(); err != nil {
+	var archive bytes.Buffer
+	if err := write(&archive, &metadata, &snap); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Rewind the file so it's ready to be read again.
-	if _, err := archive.Seek(0, 0); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Read the snapshot back in.
-	unzipper, err := zip.OpenReader(archive.Name())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer unzipper.Close()
-	newMeta, newSnap, err := read(unzipper)
-	if err != nil {
+	// Read the snapshot back.
+	var newMeta raft.SnapshotMeta
+	var newSnap bytes.Buffer
+	if err := read(&archive, &newMeta, &newSnap); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -75,7 +55,7 @@ func TestArchive(t *testing.T) {
 		t.Fatalf("bad: %#v", newMeta)
 	}
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, newSnap); err != nil {
+	if _, err := io.Copy(&buf, &newSnap); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !bytes.Equal(buf.Bytes(), expected.Bytes()) {
@@ -88,22 +68,24 @@ func TestArchive_BadData(t *testing.T) {
 		Name  string
 		Error string
 	}{
-		{"../../test/snapshot/empty.zip", "failed to find \"meta.json\""},
-		{"../../test/snapshot/missing-meta.zip", "failed to find \"meta.json\""},
-		{"../../test/snapshot/missing-state.zip", "failed to find \"state.bin\""},
-		{"../../test/snapshot/missing-sha.zip", "failed to find \"SHA256SUMS\""},
-		{"../../test/snapshot/corrupt-meta.zip", "hash check failed for \"meta.json\""},
-		{"../../test/snapshot/corrupt-state.zip", "hash check failed for \"state.bin\""},
-		{"../../test/snapshot/corrupt-sha.zip", "file missing hash for \"meta.json\""},
+		{"../../test/snapshot/empty.tar", "failed checking integrity of snapshot"},
+		{"../../test/snapshot/extra.tar", "unexpected file \"nope\""},
+		{"../../test/snapshot/missing-meta.tar", "hash check failed for \"meta.json\""},
+		{"../../test/snapshot/missing-state.tar", "hash check failed for \"state.bin\""},
+		{"../../test/snapshot/missing-sha.tar", "file missing"},
+		{"../../test/snapshot/corrupt-meta.tar", "hash check failed for \"meta.json\""},
+		{"../../test/snapshot/corrupt-state.tar", "hash check failed for \"state.bin\""},
+		{"../../test/snapshot/corrupt-sha.tar", "list missing hash for \"nope\""},
 	}
 	for i, c := range cases {
-		unzipper, err := zip.OpenReader(c.Name)
+		f, err := os.Open(c.Name)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		defer unzipper.Close()
+		defer f.Close()
 
-		_, _, err = read(unzipper)
+		var metadata raft.SnapshotMeta
+		err = read(f, &metadata, ioutil.Discard)
 		if err == nil || !strings.Contains(err.Error(), c.Error) {
 			t.Fatalf("case %d (%s): %v", i, c.Name, err)
 		}

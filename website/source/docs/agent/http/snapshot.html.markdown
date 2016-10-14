@@ -46,13 +46,12 @@ The snapshot endpoint supports the `GET` and `PUT` methods.
 When using the `GET` method, Consul will perform an atomic, point-in-time
 snapshot of the Consul server state.
 
-Snapshots are exposed as zip archives which internally contain the Raft metadata
-required to restore, as well as a binary serialized version of the Consul server
-state. In addition to the CRC provided by zip, the contents are covered internally
-by SHA-256 hashes. These hashes are verified during snapshot restore operations.
-The structure of the zip archive is internal to Consul and not intended to be used
-other than for restore operations. In particular, the zip archives are not designed
-to be edited.
+Snapshots are exposed as gzipped tar archives which internally contain the Raft
+metadata required to restore, as well as a binary serialized version of the Consul
+server state. The contents are covered internally by SHA-256 hashes. These hashes
+are verified during snapshot restore operations. The structure of the archive is
+internal to Consul and not intended to be used other than for restore operations.
+In particular, the archives are not designed to be modified before a restore.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter.
@@ -72,8 +71,8 @@ If ACLs are enabled, the client will need to supply an ACL Token with management
 privileges.
 
 The return code is 200 on success, and the snapshot will be returned in the body
-as a zip archive. In addition to the stale-related headers described above, the
-`X-Consul-Index` header will also be set to the index at which the snapshot took
+as a gzipped tar archive. In addition to the stale-related headers described above,
+the `X-Consul-Index` header will also be set to the index at which the snapshot took
 place.
 
 #### PUT Method
@@ -92,6 +91,7 @@ provided using the "?dc=" query parameter.
 If ACLs are enabled, the client will need to supply an ACL Token with management
 privileges.
 
-The body of the request should a snapshot zip archive as given by the `GET` method.
+The body of the request should be a snapshot archive returned from a previous call
+to the `GET` method.
 
 The return code is 200 on success.
