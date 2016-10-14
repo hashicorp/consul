@@ -26,6 +26,10 @@ var (
 	// because it's been deposed in the process.
 	ErrLeadershipLost = errors.New("leadership lost while committing log")
 
+	// ErrAbortedByRestore is returned when a leader fails to commit a log
+	// entry because it's been superseded by a user snapshot restore.
+	ErrAbortedByRestore = errors.New("snapshot restored while committing log")
+
 	// ErrRaftShutdown is returned when operations are requested against an
 	// inactive Raft.
 	ErrRaftShutdown = errors.New("raft is already shutdown")

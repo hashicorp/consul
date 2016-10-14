@@ -719,6 +719,16 @@ func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.ReadCloser) err
 			latestIndex, committedIndex)
 	}
 
+	// Cancel any inflight requests.
+	for {
+		e := r.leaderState.inflight.Front()
+		if e == nil {
+			break
+		}
+		e.Value.(*logFuture).respond(ErrAbortedByRestore)
+		r.leaderState.inflight.Remove(e)
+	}
+
 	// We will overwrite the snapshot metadata with the current term,
 	// an index that's greater than the current index, or the last
 	// index in the snapshot. It's important that we leave a hole in
