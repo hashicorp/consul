@@ -19,14 +19,19 @@ func (c *Client) Snapshot() *Snapshot {
 // data to save. If this doesn't return an error, then it's the responsibility
 // of the caller to close it. Only a subset of the QueryOptions are supported:
 // Datacenter, AllowStale, and Token.
-func (s *Snapshot) Save(q *QueryOptions) (io.ReadCloser, error) {
+func (s *Snapshot) Save(q *QueryOptions) (io.ReadCloser, *QueryMeta, error) {
 	r := s.c.newRequest("GET", "/v1/snapshot")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(s.c.doRequest(r))
+
+	rtt, resp, err := requireOK(s.c.doRequest(r))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return resp.Body, nil
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+	return resp.Body, qm, nil
 }
 
 // Restore streams in an existing snapshot and attempts to restore it.

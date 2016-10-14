@@ -157,6 +157,15 @@ func TestSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer snap.Close()
+
+	// Verify the snapshot. We have to rewind it after for the restore.
+	if err := Verify(snap); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := snap.file.Seek(0, 0); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Make a new, independent Raft.
 	after, fsm := makeRaft(t, path.Join(dir, "after"))
@@ -205,6 +214,14 @@ func TestSnapshot_Nil(t *testing.T) {
 	}
 
 	if err := snap.Close(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSnapshot_BadVerify(t *testing.T) {
+	buf := bytes.NewBuffer([]byte("nope"))
+	err := Verify(buf)
+	if err == nil || !strings.Contains(err.Error(), "unexpected EOF") {
 		t.Fatalf("err: %v", err)
 	}
 }

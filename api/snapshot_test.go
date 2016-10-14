@@ -32,11 +32,17 @@ func TestSnapshot(t *testing.T) {
 
 	// Take a snapshot.
 	snapshot := c.Snapshot()
-	snap, err := snapshot.Save(nil)
+	snap, qm, err := snapshot.Save(nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	defer snap.Close()
+
+	// Sanity check th query metadata.
+	if qm.LastIndex == 0 || !qm.KnownLeader ||
+		qm.RequestTime == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
 
 	// Overwrite the key's value.
 	key.Value = []byte("goodbye")
@@ -81,19 +87,19 @@ func TestSnapshot_Options(t *testing.T) {
 
 	// Try to take a snapshot with a bad token.
 	snapshot := c.Snapshot()
-	_, err := snapshot.Save(&QueryOptions{Token: "anonymous"})
+	_, _, err := snapshot.Save(&QueryOptions{Token: "anonymous"})
 	if err == nil || !strings.Contains(err.Error(), "Permission denied") {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Now try an unknown DC.
-	_, err = snapshot.Save(&QueryOptions{Datacenter: "nope"})
+	_, _, err = snapshot.Save(&QueryOptions{Datacenter: "nope"})
 	if err == nil || !strings.Contains(err.Error(), "No path to datacenter") {
 		t.Fatalf("err: %v", err)
 	}
 
 	// This should work with a valid token.
-	snap, err := snapshot.Save(&QueryOptions{Token: "root"})
+	snap, _, err := snapshot.Save(&QueryOptions{Token: "root"})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -101,7 +107,7 @@ func TestSnapshot_Options(t *testing.T) {
 
 	// This should work with a stale snapshot. This doesn't have good feedback
 	// that the stale option was sent, but it makes sure nothing bad happens.
-	snap, err = snapshot.Save(&QueryOptions{Token: "root", AllowStale: true})
+	snap, _, err = snapshot.Save(&QueryOptions{Token: "root", AllowStale: true})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
