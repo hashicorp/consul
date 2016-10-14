@@ -13,7 +13,7 @@ command line. It exposes top-level commands for inserting, updating, reading,
 and deleting from the store.
 
 The key-value store is also accessible via the
-[HTTP API](docs/agent/http/kv.html).
+[HTTP API](/docs/agent/http/kv.html).
 
 ## Usage
 
