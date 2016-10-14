@@ -69,7 +69,7 @@ type Template struct {
 	Element map[string]int
 }
 
-// TODO: docs
+// TODO(infoblox): docs
 func (t *Template) SetTemplate(s string) error {
 	var err error
 
@@ -107,24 +107,28 @@ func (t *Template) SetTemplate(s string) error {
 //		 to treat the query string segments as a reverse stack and
 //       step down the stack to find the right element.
 
+// ZoneFromSegmentArray returns the zone string from the segments.
 func (t *Template) ZoneFromSegmentArray(segments []string) string {
 	index, ok := t.Element["zone"]
 	if !ok {
 		return ""
 	}
-	return strings.Join(segments[index:len(segments)], ".")
+	return strings.Join(segments[index:], ".")
 }
 
+// NamespaceFromSegmentArray returns the namespace string from the segments.
 func (t *Template) NamespaceFromSegmentArray(segments []string) string {
-	return t.SymbolFromSegmentArray("namespace", segments)
+	return t.symbolFromSegmentArray("namespace", segments)
 }
 
+// ServiceFromSegmentArray returns the service string from the segments.
 func (t *Template) ServiceFromSegmentArray(segments []string) string {
-	return t.SymbolFromSegmentArray("service", segments)
+	return t.symbolFromSegmentArray("service", segments)
 }
 
+// TypeFromSegmentArray returns the type string from the segments.
 func (t *Template) TypeFromSegmentArray(segments []string) string {
-	typeSegment := t.SymbolFromSegmentArray("type", segments)
+	typeSegment := t.symbolFromSegmentArray("type", segments)
 
 	// Limit type to known types symbols
 	if dns_strings.StringInSlice(typeSegment, types) {
@@ -134,7 +138,7 @@ func (t *Template) TypeFromSegmentArray(segments []string) string {
 	return typeSegment
 }
 
-func (t *Template) SymbolFromSegmentArray(symbol string, segments []string) string {
+func (t *Template) symbolFromSegmentArray(symbol string, segments []string) string {
 	index, ok := t.Element[symbol]
 	if !ok {
 		return ""
