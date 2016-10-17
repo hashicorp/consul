@@ -27,12 +27,13 @@ func setup(c *caddy.Controller) error {
 
 	// Add startup functions to notify the master(s).
 	for _, n := range zones.Names {
+		z := zones.Z[n]
 		c.OnStartup(func() error {
-			zones.Z[n].StartupOnce.Do(func() {
-				if len(zones.Z[n].TransferTo) > 0 {
-					zones.Z[n].Notify()
+			z.StartupOnce.Do(func() {
+				if len(z.TransferTo) > 0 {
+					z.Notify()
 				}
-				zones.Z[n].Reload(nil)
+				z.Reload(nil)
 			})
 			return nil
 		})
