@@ -6,6 +6,7 @@ import (
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/mholt/caddy"
 )
 
@@ -22,8 +23,12 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("dnssec", err)
 	}
 
+	cache, err := lru.New(defaultCap)
+	if err != nil {
+		return err
+	}
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return New(zones, keys, next)
+		return New(zones, keys, next, cache)
 	})
 
 	return nil

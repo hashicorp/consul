@@ -10,8 +10,8 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
 	"github.com/miekg/coredns/request"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
-	gcache "github.com/patrickmn/go-cache"
 )
 
 // Dnssec signs the reply on-the-fly.
@@ -21,15 +21,15 @@ type Dnssec struct {
 	zones    []string
 	keys     []*DNSKEY
 	inflight *singleflight.Group
-	cache    *gcache.Cache
+	cache    *lru.Cache
 }
 
 // New returns a new Dnssec.
-func New(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
+func New(zones []string, keys []*DNSKEY, next middleware.Handler, cache *lru.Cache) Dnssec {
 	return Dnssec{Next: next,
 		zones:    zones,
 		keys:     keys,
-		cache:    gcache.New(defaultDuration, purgeDuration),
+		cache:    cache,
 		inflight: new(singleflight.Group),
 	}
 }
@@ -110,9 +110,7 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32) 
 }
 
 func (d Dnssec) set(key string, sigs []dns.RR) {
-	// we insert the sigs with a duration that is 24 hours less then the expiration, as these
-	// sigs have *just* been made the duration is 7 days.
-	d.cache.Set(key, sigs, eightDays-24*time.Hour)
+	d.cache.Add(key, sigs)
 }
 
 func (d Dnssec) get(key string) ([]dns.RR, bool) {
@@ -129,7 +127,6 @@ func incepExpir(now time.Time) (uint32, uint32) {
 }
 
 const (
-	purgeDuration   = 3 * time.Hour
-	defaultDuration = 24 * time.Hour
-	eightDays       = 8 * 24 * time.Hour
+	eightDays  = 8 * 24 * time.Hour
+	defaultCap = 10000 // default capacity of the cache.
 )

@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -77,7 +78,8 @@ func TestLookupZone(t *testing.T) {
 	dnskey, rm1, rm2 := newKey(t)
 	defer rm1()
 	defer rm2()
-	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, fm)
+	cache, _ := lru.New(defaultCap)
+	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, fm, cache)
 	ctx := context.TODO()
 
 	for _, tc := range dnsTestCases {
@@ -115,7 +117,8 @@ func TestLookupDNSKEY(t *testing.T) {
 	dnskey, rm1, rm2 := newKey(t)
 	defer rm1()
 	defer rm2()
-	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, test.ErrorHandler())
+	cache, _ := lru.New(defaultCap)
+	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, test.ErrorHandler(), cache)
 	ctx := context.TODO()
 
 	for _, tc := range dnssecTestCases {
