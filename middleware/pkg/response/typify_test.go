@@ -8,6 +8,15 @@ import (
 	"github.com/miekg/dns"
 )
 
+func TestTypifyNilMsg(t *testing.T) {
+	var m *dns.Msg = nil
+
+	ty, _ := Typify(m)
+	if ty != OtherError {
+		t.Errorf("message wrongly typified, expected OtherError, got %d", ty)
+	}
+}
+
 func TestClassifyDelegation(t *testing.T) {
 	m := delegationMsg()
 	mt, _ := Typify(m)

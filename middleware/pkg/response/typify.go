@@ -58,6 +58,10 @@ func TypeFromString(s string) (Type, error) {
 
 // Typify classifies a message, it returns the Type.
 func Typify(m *dns.Msg) (Type, *dns.OPT) {
+	if m == nil {
+		return OtherError, nil
+	}
+
 	opt := m.IsEdns0()
 
 	if len(m.Answer) > 0 && m.Rcode == dns.RcodeSuccess {
