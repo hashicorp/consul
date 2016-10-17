@@ -9,7 +9,7 @@ import (
 )
 
 func TestTypifyNilMsg(t *testing.T) {
-	var m *dns.Msg = nil
+	var m *dns.Msg
 
 	ty, _ := Typify(m)
 	if ty != OtherError {
