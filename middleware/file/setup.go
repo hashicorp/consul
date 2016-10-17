@@ -33,7 +33,7 @@ func setup(c *caddy.Controller) error {
 				if len(z.TransferTo) > 0 {
 					z.Notify()
 				}
-				z.Reload(nil)
+				z.Reload()
 			})
 			return nil
 		})
@@ -99,7 +99,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				case "no_reload":
 					noReload = true
 				}
-				// discard from, here, maybe check and show log when we do?
+
 				for _, origin := range origins {
 					if t != nil {
 						z[origin].TransferTo = append(z[origin].TransferTo, t...)
@@ -113,8 +113,6 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 }
 
 // TransferParse parses transfer statements: 'transfer to [address...]'.
-// Exported so secondary can use this as well. For the `file` middleware transfer from does
-// not make sense; make this an error.
 func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, err error) {
 	what := c.Val()
 	if !c.NextArg() {

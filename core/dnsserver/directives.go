@@ -89,6 +89,7 @@ var directives = []string{
 
 	"dnssec",
 	"file",
+	"auto",
 	"secondary",
 	"etcd",
 	"kubernetes",

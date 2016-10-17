@@ -22,7 +22,6 @@ func fakeStubServerExampleNet(t *testing.T) (*dns.Server, string) {
 	}
 	// add handler for example.net
 	dns.HandleFunc("example.net.", func(w dns.ResponseWriter, r *dns.Msg) {
-		t.Logf("writing response for example.net.")
 		m := new(dns.Msg)
 		m.SetReply(r)
 		m.Answer = []dns.RR{test.A("example.net.	86400	IN	A	93.184.216.34")}

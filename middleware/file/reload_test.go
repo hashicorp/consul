@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware/test"
+
 	"github.com/miekg/dns"
 )
 
@@ -28,7 +29,7 @@ func TestZoneReload(t *testing.T) {
 		t.Fatalf("failed to parse zone: %s", err)
 	}
 
-	z.Reload(nil)
+	z.Reload()
 
 	if _, _, _, res := z.Lookup("miek.nl.", dns.TypeSOA, false); res != Success {
 		t.Fatalf("failed to lookup, got %d", res)

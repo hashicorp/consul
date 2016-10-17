@@ -23,11 +23,11 @@ deps:
 
 .PHONY: test
 test: deps
-	go test $(TEST_VERBOSE) ./...
+	go test -race $(TEST_VERBOSE) ./...
 
 .PHONY: testk8s
 testk8s: deps
-	go test $(TEST_VERBOSE) -tags=k8s -run 'TestKubernetes' ./test ./middleware/kubernetes/...
+	go test -race $(TEST_VERBOSE) -tags=k8s -run 'TestKubernetes' ./test ./middleware/kubernetes/...
 
 .PHONY: coverage
 coverage: deps

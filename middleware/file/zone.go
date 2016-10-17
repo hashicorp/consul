@@ -27,9 +27,9 @@ type Zone struct {
 	TransferFrom []string
 	Expired      *bool
 
-	NoReload bool
-	reloadMu sync.RWMutex
-	// TODO: shutdown watcher channel
+	NoReload       bool
+	reloadMu       sync.RWMutex
+	ReloadShutdown chan bool
 }
 
 // Apex contains the apex records of a zone: SOA, NS and their potential signatures.
@@ -42,7 +42,13 @@ type Apex struct {
 
 // NewZone returns a new zone.
 func NewZone(name, file string) *Zone {
-	z := &Zone{origin: dns.Fqdn(name), file: path.Clean(file), Tree: &tree.Tree{}, Expired: new(bool)}
+	z := &Zone{
+		origin:         dns.Fqdn(name),
+		file:           path.Clean(file),
+		Tree:           &tree.Tree{},
+		Expired:        new(bool),
+		ReloadShutdown: make(chan bool),
+	}
 	*z.Expired = false
 	return z
 }
@@ -138,7 +144,7 @@ func (z *Zone) All() []dns.RR {
 }
 
 // Reload reloads a zone when it is changed on disk. If z.NoRoload is true, no reloading will be done.
-func (z *Zone) Reload(shutdown chan bool) error {
+func (z *Zone) Reload() error {
 	if z.NoReload {
 		return nil
 	}
@@ -156,7 +162,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if path.Clean(event.Name) == z.file {
+				if event.Op == fsnotify.Write && path.Clean(event.Name) == z.file {
 					reader, err := os.Open(z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
@@ -176,7 +182,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)
 					z.Notify()
 				}
-			case <-shutdown:
+			case <-z.ReloadShutdown:
 				watcher.Close()
 				return
 			}

@@ -22,8 +22,8 @@ type (
 
 	// Zones maps zone names to a *Zone.
 	Zones struct {
-		Z     map[string]*Zone
-		Names []string
+		Z     map[string]*Zone // A map mapping zone (origin) to the Zone's data
+		Names []string         // All the keys from the map Z as a string slice.
 	}
 )
 
@@ -35,6 +35,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return dns.RcodeServerFailure, errors.New("can only deal with ClassINET")
 	}
 	qname := state.Name()
+	// TODO(miek): match the qname better in the map
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)
 	if zone == "" {
 		if f.Next != nil {
@@ -49,6 +50,8 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if z == nil {
 		return dns.RcodeServerFailure, nil
 	}
+
+	// This is only for when we are a secondary zones.
 	if r.Opcode == dns.OpcodeNotify {
 		if z.isNotify(state) {
 			m := new(dns.Msg)

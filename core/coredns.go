@@ -5,7 +5,8 @@ import (
 	// plug in the server
 	_ "github.com/miekg/coredns/core/dnsserver"
 
-	// plug in the standard directives
+	// plug in the standard directives (sorted)
+	_ "github.com/miekg/coredns/middleware/auto"
 	_ "github.com/miekg/coredns/middleware/bind"
 	_ "github.com/miekg/coredns/middleware/cache"
 	_ "github.com/miekg/coredns/middleware/chaos"
