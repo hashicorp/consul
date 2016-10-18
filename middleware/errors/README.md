@@ -16,8 +16,6 @@ errors [LOGFILE]
   situations. The default is stderr. The above syntax will simply enable error reporting on the
   server. To specify custom error pages, open a block:
 
-TODO(miek): check what is actually implemented and clean this up!
-
 ~~~
 errors {
     what where
@@ -39,16 +37,4 @@ Make errors visible to the client (for debugging only):
 
 ~~~
 errors visible
-~~~
-
-Maintain error log files automatically:
-
-~~~
-errors {
-    log error.log {
-        size 50 # Rotate after 50 MB
-        age  30 # Keep rotated files for 30 days
-        keep 5  # Keep at most 5 log files
-    }
-}
 ~~~
