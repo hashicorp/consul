@@ -16,22 +16,24 @@ are able to do what you want with your DNS data. And if not: write some middlewa
 
 Currently CoreDNS is able to:
 
-* Serve zone data from a file; both DNSSEC (NSEC only) and DNS are supported (middleware/file).
-* Retrieve zone data from primaries, i.e., act as a secondary server (AXFR only) (middleware/secondary).
-* Sign zone data on-the-fly (middleware/dnssec).
-* Load balancing of responses (middleware/loadbalance).
-* Allow for zone transfers, i.e., act as a primary server (middleware/file).
-* Caching (middleware/cache).
-* Health checking (middleware/health).
+* Serve zone data from a file; both DNSSEC (NSEC only) and DNS are supported (*file*).
+* Retrieve zone data from primaries, i.e., act as a secondary server (AXFR only) (*secondary*).
+* Sign zone data on-the-fly (*dnssec*).
+* Load balancing of responses (*loadbalance*).
+* Allow for zone transfers, i.e., act as a primary server (*file*).
+* Automatically load zone files from disk (*auto*)
+* Caching (*cache*).
+* Health checking endpoint (*health*).
 * Use etcd as a backend, i.e., a 101.5% replacement for
-  [SkyDNS](https://github.com/skynetservices/skydns) (middleware/etcd).
-* Use k8s (kubernetes) as a backend (middleware/kubernetes).
-* Serve as a proxy to forward queries to some other (recursive) nameserver (middleware/proxy).
-* Rewrite queries (qtype, qclass and qname) (middleware/rewrite).
-* Provide metrics (by using Prometheus) (middleware/metrics).
-* Provide Logging (middleware/log).
-* Support the CH class: `version.bind` and friends (middleware/chaos).
-* Profiling support (middleware/pprof).
+  [SkyDNS](https://github.com/skynetservices/skydns) (*etcd*).
+* Use k8s (kubernetes) as a backend (*kubernetes*).
+* Serve as a proxy to forward queries to some other (recursive) nameserver (*proxy*).
+* Provide metrics (by using Prometheus) (*metrics*).
+* Provide query (*log*) and error (*error*) logging.
+* Support the CH class: `version.bind` and friends (*chaos*).
+* Profiling support (*pprof*).
+* Rewrite queries (qtype, qclass and qname) (*rewrite*).
+* Echo back the IP address, transport and port number used (*whoami*).
 
 Each of the middlewares has a README.md of its own.
 
@@ -45,11 +47,11 @@ things fast and to reduce the memory usage.
 
 All in all, CoreDNS should be able to provide you with enough functionality to replace parts of BIND
 9, Knot, NSD or PowerDNS and SkyDNS. Most documentation is in the source and some blog articles can
-be [found here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please
+be [found here](https://blog.coredns.io). If you do want to use CoreDNS in production, please
 let us know and how we can help.
 
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
-Caddyfile when I forked it).
+Caddyfile when forked).
 
 ## Compilation
 
@@ -67,16 +69,28 @@ This should yield a `coredns` binary.
 ## Examples
 
 When starting CoreDNS without any configuration, it loads the `whoami` middleware and starts
-listening on port 2053, it should show the following:
+listening on port 53 (override with `-dns.port`), it should show the following:
 
 ~~~ txt
-.:2053
+.:53
 2016/09/18 09:20:50 [INFO] CoreDNS-001
 CoreDNS-001
 ~~~
 
-Any query send to port 2053 should return some information; your sending address, port and protocol
+Any query send to port 53 should return some information; your sending address, port and protocol
 used.
+
+If you have a Corefile without a port number specified it will, by default, use port 53, but you
+can override the port with the `-dns.port` flag:
+
+~~~ txt
+.: {
+    proxy . 8.8.8.8:53
+    log stdout
+}
+~~~
+
+`./coredns -dns.port 1053`, runs the server on port 1053.
 
 Start a simple proxy, you'll need to be root to start listening on port 53.
 

@@ -33,7 +33,12 @@ something has been written to the client (by the middleware).
 
 TODO(miek): text here on how to hook up middleware.
 
-# Documentation
+## Metrics
+
+When exporting metrics the *Namespace* should be `middleware.Namespace` (="coredns"), and the
+*Subsystem* should be the name of the middleware.
+
+## Documentation
 
 Each middleware should have a README.md explaining what the middleware does and how it is
 configured. The file should have the following layout:
@@ -44,7 +49,7 @@ configured. The file should have the following layout:
 
 More sections are of course possible.
 
-## Style
+### Style
 
 We use the Unix manual page style:
 
