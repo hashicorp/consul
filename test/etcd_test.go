@@ -26,7 +26,7 @@ func etcdMiddleware() *etcd.Etcd {
 	}
 	cli, _ := etcdc.New(etcdCfg)
 	client := etcdc.NewKeysAPI(cli)
-	return &etcd.Etcd{Client: client}
+	return &etcd.Etcd{Client: client, PathPrefix: "/skydns"}
 }
 
 // This test starts two coredns servers (and needs etcd). Configure a stubzones in both (that will loop) and
