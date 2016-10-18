@@ -1,6 +1,7 @@
 package dnssec
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/miekg/coredns/core/dnsserver"
@@ -18,12 +19,12 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	zones, keys, err := dnssecParse(c)
+	zones, keys, capacity, err := dnssecParse(c)
 	if err != nil {
 		return middleware.Error("dnssec", err)
 	}
 
-	cache, err := lru.New(defaultCap)
+	cache, err := lru.New(capacity)
 	if err != nil {
 		return err
 	}
@@ -34,10 +35,12 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, error) {
+func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 	zones := []string{}
 
 	keys := []*DNSKEY{}
+
+	capacity := defaultCap
 	for c.Next() {
 		if c.Val() == "dnssec" {
 			// dnssec [zones...]
@@ -49,47 +52,57 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, error) {
 			}
 
 			for c.NextBlock() {
-				k, e := keyParse(c)
-				if e != nil {
-					return nil, nil, e
+				switch c.Val() {
+				case "key":
+					k, e := keyParse(c)
+					if e != nil {
+						return nil, nil, 0, e
+					}
+					keys = append(keys, k...)
+				case "cache_capacity":
+					if !c.NextArg() {
+						return nil, nil, 0, c.ArgErr()
+					}
+					value := c.Val()
+					cacheCap, err := strconv.Atoi(value)
+					if err != nil {
+						return nil, nil, 0, err
+					}
+					capacity = cacheCap
 				}
-				keys = append(keys, k...)
+
 			}
 		}
 	}
 	for i := range zones {
 		zones[i] = middleware.Host(zones[i]).Normalize()
 	}
-	return zones, keys, nil
+	return zones, keys, capacity, nil
 }
 
 func keyParse(c *caddy.Controller) ([]*DNSKEY, error) {
 	keys := []*DNSKEY{}
 
-	what := c.Val()
 	if !c.NextArg() {
 		return nil, c.ArgErr()
 	}
 	value := c.Val()
-	switch what {
-	case "key":
-		if value == "file" {
-			ks := c.RemainingArgs()
-			for _, k := range ks {
-				base := k
-				// Kmiek.nl.+013+26205.key, handle .private or without extension: Kmiek.nl.+013+26205
-				if strings.HasSuffix(k, ".key") {
-					base = k[:len(k)-4]
-				}
-				if strings.HasSuffix(k, ".private") {
-					base = k[:len(k)-8]
-				}
-				k, err := ParseKeyFile(base+".key", base+".private")
-				if err != nil {
-					return nil, err
-				}
-				keys = append(keys, k)
+	if value == "file" {
+		ks := c.RemainingArgs()
+		for _, k := range ks {
+			base := k
+			// Kmiek.nl.+013+26205.key, handle .private or without extension: Kmiek.nl.+013+26205
+			if strings.HasSuffix(k, ".key") {
+				base = k[:len(k)-4]
 			}
+			if strings.HasSuffix(k, ".private") {
+				base = k[:len(k)-8]
+			}
+			k, err := ParseKeyFile(base+".key", base+".private")
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, k)
 		}
 	}
 	return keys, nil

@@ -13,19 +13,25 @@ func TestSetupDnssec(t *testing.T) {
 		shouldErr          bool
 		expectedZones      []string
 		expectedKeys       []string
+		expectedCapacity   int
 		expectedErrContent string
 	}{
 		{
-			`dnssec`, false, nil, nil, "",
+			`dnssec`, false, nil, nil, defaultCap, "",
 		},
 		{
-			`dnssec miek.nl`, false, []string{"miek.nl."}, nil, "",
+			`dnssec miek.nl`, false, []string{"miek.nl."}, nil, defaultCap, "",
+		},
+		{
+			`dnssec miek.nl {
+				cache_capacity 100
+			}`, false, []string{"miek.nl."}, nil, 100, "",
 		},
 	}
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		zones, keys, err := dnssecParse(c)
+		zones, keys, capacity, err := dnssecParse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error but found %s for input %s", i, err, test.input)
@@ -50,6 +56,9 @@ func TestSetupDnssec(t *testing.T) {
 				if k != keys[i].K.Header().Name {
 					t.Errorf("Dnssec not correctly set for input %s. Expected: '%s', actual: '%s'", test.input, k, keys[i].K.Header().Name)
 				}
+			}
+			if capacity != test.expectedCapacity {
+				t.Errorf("Dnssec not correctly set capacity for input '%s' Expected: '%d', actual: '%d'", test.input, capacity, test.expectedCapacity)
 			}
 		}
 	}

@@ -26,11 +26,17 @@ TODO(miek): think about key rollovers, and how to do them automatically.
 ~~~
 dnssec [ZONES... ] {
     key file KEY...
+    cache_capacity CAPACITY
 }
 ~~~
 
 * `key file` indicates that key file(s) should be read from disk. When multiple keys are specified, RRsets
   will be signed with all keys. Generating a key can be done with `dnssec-keygen`: `dnssec-keygen -a
   ECDSAP256SHA256 <zonename>`. A key created for zone *A* can be safely used for zone *B*.
+
+
+* `cache_capacity` indicates the capacity of the LRU cache. The dnssec middleware uses LRU cache to manage
+  objects and the default capacity is 10000.
+
 
 ## Examples
