@@ -15,7 +15,7 @@
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
 # * Up the version in coremain/version.go
-# * Commit
+# * Commit -am'releasing <version>
 # * Run: make -f Makefile.release
 
 NAME=coredns
