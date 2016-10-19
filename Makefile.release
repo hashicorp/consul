@@ -23,7 +23,12 @@ VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | 
 ARCH=$(shell uname -m)
 GITHUB=miekg
 
-all:	build release
+all:	push build release
+
+.PHONY: push
+push:
+	@echo Pushing release to master
+	git push
 
 .PHONY: build
 build:
