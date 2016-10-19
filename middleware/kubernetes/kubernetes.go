@@ -50,6 +50,12 @@ func (k *Kubernetes) getClientConfig() (*restclient.Config, error) {
 	authinfo := clientcmdapi.AuthInfo{}
 	if len(k.APIEndpoint) > 0 {
 		clusterinfo.Server = k.APIEndpoint
+	} else {
+		cc, err := restclient.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+		return cc, err
 	}
 	if len(k.APICertAuth) > 0 {
 		clusterinfo.CertificateAuthority = k.APICertAuth
