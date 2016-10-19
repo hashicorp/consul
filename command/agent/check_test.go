@@ -228,6 +228,19 @@ func mockHTTPServer(responseCode int) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
+func mockHTTPSServer(responseCode int) *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Body larger than 4k limit
+		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+		w.WriteHeader(responseCode)
+		w.Write(body)
+		return
+	})
+
+	return httptest.NewTLSServer(mux)
+}
+
 func expectHTTPStatus(t *testing.T, url string, status string) {
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
@@ -288,6 +301,32 @@ func TestCheckHTTPCritical(t *testing.T) {
 	server.Close()
 }
 
+func TestCheckHTTPSCritical(t *testing.T) {
+
+	server := mockHTTPSServer(150)
+	fmt.Println(server.URL)
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	server.Close()
+
+	// 2xx - 1
+	server = mockHTTPSServer(199)
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	server.Close()
+
+	// 2xx + 1
+	server = mockHTTPSServer(300)
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	server.Close()
+
+	server = mockHTTPSServer(400)
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	server.Close()
+
+	server = mockHTTPSServer(500)
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	server.Close()
+}
+
 func TestCheckHTTPPassing(t *testing.T) {
 	var server *httptest.Server
 
@@ -308,8 +347,33 @@ func TestCheckHTTPPassing(t *testing.T) {
 	server.Close()
 }
 
+func TestCheckHTTPSPassing(t *testing.T) {
+
+	server := mockHTTPSServer(200)
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	server.Close()
+
+	server = mockHTTPSServer(201)
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	server.Close()
+
+	server = mockHTTPSServer(250)
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	server.Close()
+
+	server = mockHTTPSServer(299)
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	server.Close()
+}
+
 func TestCheckHTTPWarning(t *testing.T) {
 	server := mockHTTPServer(429)
+	expectHTTPStatus(t, server.URL, structs.HealthWarning)
+	server.Close()
+}
+
+func TestCheckHTTPSWarning(t *testing.T) {
+	server := mockHTTPSServer(429)
 	expectHTTPStatus(t, server.URL, structs.HealthWarning)
 	server.Close()
 }
