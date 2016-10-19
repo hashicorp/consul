@@ -177,6 +177,8 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	off, end := 0, false
 	ctx := context.Background()
 
+	var dshandler *Config
+
 	for {
 		l := len(q[off:])
 		for i := 0; i < l; i++ {
@@ -195,12 +197,28 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				}
 				return
 			}
+			// The type is DS, keep the handler, but keep on searching as maybe we are serving
+			// the parent as well and the DS should be routed to it - this will probably *misroute* DS
+			// queries to a possibly grand parent, but there is no way for us to know at this point
+			// if there is an actually delegation from grandparent -> parent -> zone.
+			// In all fairness: direct DS queries should not be needed.
+			dshandler = h
 		}
 		off, end = dns.NextLabel(q, off)
 		if end {
 			break
 		}
 	}
+
+	if dshandler != nil {
+		// DS request, and we found a zone, use the handler for the query
+		rcode, _ := dshandler.middlewareChain.ServeDNS(ctx, w, r)
+		if rcodeNoClientWrite(rcode) {
+			DefaultErrorFunc(w, r, rcode)
+		}
+		return
+	}
+
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.middlewareChain.ServeDNS(ctx, w, r)
