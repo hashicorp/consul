@@ -4,19 +4,25 @@
 
 PWD=`pwd`
 BASEDIR=`readlink -e $(dirname ${0})`
-
 cd ${BASEDIR}
 
-KUBECTL='./kubectl'
+KUBECTL='docker exec hyperkube /hyperkube kubectl'
 
 #RUN_SKYDNS="yes"
 RUN_SKYDNS="no"
+
+# DNS_ARGUMENTS needs to be passed when Kubernetes is setup.
+if [ "${RUN_SKYDNS}" = "yes" ]; then
+	DNS_ARGUMENTS="--cluster-dns=10.0.0.10 --cluster-domain=cluster.local"
+else
+	DNS_ARGUMENTS=""
+fi
 
 wait_until_k8s_ready() {
 	# Wait until kubernetes is up and fully responsive
 	while :
 	do
-   	 ${KUBECTL} get nodes 2>/dev/null | grep -q '127.0.0.1'
+		${KUBECTL} get nodes 2>/dev/null | grep -q '127.0.0.1'
 		if [ "${?}" = "0" ]; then
 			break
 		else
