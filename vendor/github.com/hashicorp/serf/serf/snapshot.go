@@ -320,7 +320,7 @@ func (s *Snapshotter) appendLine(l string) error {
 
 	n, err := s.buffered.WriteString(l)
 	if err != nil {
-		// Try to recovery from error state like disk-full.
+		// Try to recover from error state like disk-full.
 		s.buffered.Reset(s.fh)
 
 		if err := s.buffered.Flush(); err != nil {
