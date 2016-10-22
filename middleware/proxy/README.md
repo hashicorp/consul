@@ -30,7 +30,7 @@ proxy FROM TO... {
 ~~~
 
 * **FROM** is the name to match for the request to be proxied.
-* **TO** is the destination endpoint to proxy to. At least one is required, but multiple may be specified.
+* **TO** is the destination endpoint to proxy to. At least one is required, but multiple may be specified. To may be an IP:Port pair, or may reference a file in resolv.conf format
 * `policy` is the load balancing policy to use; applies only with multiple backends. May be one of random, least_conn, or round_robin. Default is random.
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to communicate with it. The default value is 10 seconds ("10s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
@@ -83,6 +83,14 @@ Proxy everything except requests to miek.nl or example.org
 
 ~~~
 proxy . backend:1234 {
+	except miek.nl example.org
+}
+~~~
+
+Proxy everything except example.org using the host resolv.conf nameservers:
+
+~~~
+proxy . /etc/resolv.conf {
 	except miek.nl example.org
 }
 ~~~

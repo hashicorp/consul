@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -65,13 +66,27 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		if len(to) == 0 {
 			return upstreams, c.ArgErr()
 		}
+
+		// process the host list, substituting in any nameservers in files
+		var toHosts []string
 		for _, host := range to {
 			h, _, err := net.SplitHostPort(host)
 			if err != nil {
 				h = host
 			}
 			if x := net.ParseIP(h); x == nil {
-				return upstreams, fmt.Errorf("not an IP address: `%s'", h)
+				// it's a file, parse as resolv.conf
+				c, err := dns.ClientConfigFromFile(host)
+				if err == os.ErrNotExist {
+					return upstreams, fmt.Errorf("not an IP address or file: `%s'", h)
+				} else if err != nil {
+					return upstreams, err
+				}
+				for _, s := range c.Servers {
+					toHosts = append(toHosts, net.JoinHostPort(s, c.Port))
+				}
+			} else {
+				toHosts = append(toHosts, host)
 			}
 		}
 
@@ -81,8 +96,8 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			}
 		}
 
-		upstream.Hosts = make([]*UpstreamHost, len(to))
-		for i, host := range to {
+		upstream.Hosts = make([]*UpstreamHost, len(toHosts))
+		for i, host := range toHosts {
 			uh := &UpstreamHost{
 				Name:        defaultHostPort(host),
 				Conns:       0,
