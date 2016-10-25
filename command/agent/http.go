@@ -257,6 +257,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
 	s.handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
 	s.handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+	s.handleFuncMetrics("/v1/health/services/", s.wrap(s.HealthServiceNodesBatch))
 
 	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
 	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))

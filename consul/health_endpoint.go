@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -139,5 +140,77 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			metrics.IncrCounter([]string{"consul", "health", "service", "not-found", args.ServiceName}, 1)
 		}
 	}
+	return err
+}
+
+func (h *Health) ServiceNodesBatch(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodesMap) error {
+
+	reply.Nodes = make(map[string]structs.IndexedCheckServiceNodes)
+	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide service name")
+	}
+
+	serviceNames := strings.Split(args.ServiceName, ",")
+
+	// Get the nodes
+	state := h.srv.fsm.State()
+
+	var queryMeta structs.QueryMeta
+
+	err := h.srv.blockingRPC(
+		&args.QueryOptions,
+		&queryMeta,
+		state.GetQueryWatch("CheckServiceNodes"),
+		func() error {
+			var tempIndex map[string]uint64
+			var tempNodes map[string]structs.CheckServiceNodes
+			var tempErrs map[string]error
+			var lastErr error
+
+			if args.TagFilter {
+				tempIndex, tempNodes, tempErrs = state.CheckServiceTagNodesBatch(serviceNames, args.ServiceTag)
+			} else {
+				tempIndex, tempNodes, tempErrs = state.CheckServiceNodesBatch(serviceNames)
+			}
+
+			for _, name := range serviceNames {
+
+				if tempErrs[name] == nil {
+
+					value := structs.IndexedCheckServiceNodes{}
+					value.Nodes = tempNodes[name]
+					value.Index = tempIndex[name]
+
+					h.srv.filterACL(args.Token, value)
+					h.srv.sortNodesByDistanceFrom(args.Source, value.Nodes)
+
+					reply.Nodes[name] = value
+				} else {
+					lastErr = tempErrs[name]
+				}
+			}
+
+			return lastErr
+		})
+
+	// Provide some metrics
+	if err == nil {
+		metrics.IncrCounter([]string{"consul", "health", "service", "query", args.ServiceName}, 1)
+		if args.ServiceTag != "" {
+			metrics.IncrCounter([]string{"consul", "health", "service", "query-tag", args.ServiceName, args.ServiceTag}, 1)
+		}
+
+		for _, value := range reply.Nodes {
+			if len(value.Nodes) == 0 {
+				metrics.IncrCounter([]string{"consul", "health", "service", "not-found", args.ServiceName}, 1)
+			}
+		}
+	}
+
 	return err
 }

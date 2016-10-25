@@ -1210,6 +1210,44 @@ func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.Chec
 	return s.parseCheckServiceNodes(tx, idx, results, err)
 }
 
+func (s *StateStore) CheckServiceNodesBatch(serviceNames []string) (map[string]uint64, map[string]structs.CheckServiceNodes, map[string]error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	results := make(map[string]structs.CheckServiceNodes)
+	resultIdx := make(map[string]uint64)
+	resultErr := make(map[string]error)
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+
+	for _, serviceName := range serviceNames {
+		// Query the state store for the service.
+		services, err := tx.Get("services", "service", serviceName)
+		if err != nil {
+			results[serviceName] = nil
+			resultIdx[serviceName] = 0
+			resultErr[serviceName] = err
+			//return nil, nil, fmt.Errorf("failed service lookup: %s", err)
+		}
+
+		// Return the results.
+		var tempResults structs.ServiceNodes
+
+		for service := services.Next(); service != nil; service = services.Next() {
+			tempResults = append(tempResults, service.(*structs.ServiceNode))
+		}
+		tempIdx, tempServices, tempErr := s.parseCheckServiceNodes(tx, idx, tempResults, err)
+
+		results[serviceName] = tempServices
+		resultIdx[serviceName] = tempIdx
+		resultErr[serviceName] = tempErr
+
+	}
+
+	return resultIdx, results, resultErr
+}
+
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag. The results
 // are compounded into a CheckServiceNodes, and the index returned is the maximum
@@ -1236,6 +1274,47 @@ func (s *StateStore) CheckServiceTagNodes(serviceName, tag string) (uint64, stru
 		}
 	}
 	return s.parseCheckServiceNodes(tx, idx, results, err)
+}
+
+func (s *StateStore) CheckServiceTagNodesBatch(serviceNames []string, tag string) (map[string]uint64, map[string]structs.CheckServiceNodes, map[string]error) {
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+
+	results := make(map[string]structs.CheckServiceNodes)
+	resultIdx := make(map[string]uint64)
+	resultErr := make(map[string]error)
+
+	for _, serviceName := range serviceNames {
+
+		// Query the state store for the service.
+		services, err := tx.Get("services", "service", serviceName)
+		if err != nil {
+			results[serviceName] = nil
+			resultIdx[serviceName] = 0
+			resultErr[serviceName] = err
+			fmt.Errorf("failed service lookup: %s", err)
+		}
+
+		// Return the results, filtering by tag.
+		var currResults structs.ServiceNodes
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode)
+			if !serviceTagFilter(svc, tag) {
+				currResults = append(currResults, svc)
+			}
+		}
+		tempIdx, tempServices, tempErr := s.parseCheckServiceNodes(tx, idx, currResults, err)
+
+		results[serviceName] = tempServices
+		resultIdx[serviceName] = tempIdx
+		resultErr[serviceName] = tempErr
+
+	}
+	return resultIdx, results, resultErr
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
