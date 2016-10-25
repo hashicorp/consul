@@ -360,6 +360,11 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := snap.Close(); err != nil {
+			c.logger.Printf("[WARN] consul: Failed closing snapshot stream: %v", err)
+		}
+	}()
 
 	// Let the caller peek at the reply.
 	if replyFn != nil {
