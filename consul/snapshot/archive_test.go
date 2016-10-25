@@ -106,7 +106,7 @@ func TestArchive_hashList(t *testing.T) {
 	if err := hl.Encode(&buf); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := hl.Decode(&buf); err != nil {
+	if err := hl.DecodeAndVerify(&buf); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -116,7 +116,7 @@ func TestArchive_hashList(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	hl.Add("nope")
-	err := hl.Decode(&buf)
+	err := hl.DecodeAndVerify(&buf)
 	if err == nil || !strings.Contains(err.Error(), "file missing for \"nope\"") {
 		t.Fatalf("err: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestArchive_hashList(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	delete(hl.hashes, "nope")
-	err = hl.Decode(&buf)
+	err = hl.DecodeAndVerify(&buf)
 	if err == nil || !strings.Contains(err.Error(), "list missing hash for \"nope\"") {
 		t.Fatalf("err: %v", err)
 	}

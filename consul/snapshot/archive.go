@@ -57,9 +57,9 @@ func (hl *hashList) Encode(w io.Writer) error {
 	return nil
 }
 
-// Decode reads a SHA256SUMS-style text file and checks the results against the
-// current sums for all the hashes.
-func (hl *hashList) Decode(r io.Reader) error {
+// DecodeAndVerify reads a SHA256SUMS-style text file and checks the results
+// against the current sums for all the hashes.
+func (hl *hashList) DecodeAndVerify(r io.Reader) error {
 	// Read the file and make sure everything in there has a matching hash.
 	seen := make(map[string]struct{})
 	s := bufio.NewScanner(r)
@@ -215,7 +215,7 @@ func read(in io.Reader, metadata *raft.SnapshotMeta, snap io.Writer) error {
 	}
 
 	// Verify all the hashes.
-	if err := hl.Decode(&shaBuffer); err != nil {
+	if err := hl.DecodeAndVerify(&shaBuffer); err != nil {
 		return fmt.Errorf("failed checking integrity of snapshot: %v", err)
 	}
 
