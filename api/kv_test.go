@@ -244,6 +244,7 @@ func TestClient_WatchGet(t *testing.T) {
 
 	// Put the key
 	value := []byte("test")
+	doneCh := make(chan struct{})
 	go func() {
 		kv := c.KV()
 
@@ -252,6 +253,7 @@ func TestClient_WatchGet(t *testing.T) {
 		if _, err := kv.Put(p, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		doneCh <- struct{}{}
 	}()
 
 	// Get should work
@@ -272,6 +274,9 @@ func TestClient_WatchGet(t *testing.T) {
 	if meta2.LastIndex <= meta.LastIndex {
 		t.Fatalf("unexpected value: %#v", meta2)
 	}
+
+	// Block until put finishes to avoid a race between it and deferred s.Stop()
+	<-doneCh
 }
 
 func TestClient_WatchList(t *testing.T) {
@@ -297,6 +302,7 @@ func TestClient_WatchList(t *testing.T) {
 
 	// Put the key
 	value := []byte("test")
+	doneCh := make(chan struct{})
 	go func() {
 		kv := c.KV()
 
@@ -305,6 +311,7 @@ func TestClient_WatchList(t *testing.T) {
 		if _, err := kv.Put(p, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		doneCh <- struct{}{}
 	}()
 
 	// Get should work
@@ -326,6 +333,8 @@ func TestClient_WatchList(t *testing.T) {
 		t.Fatalf("unexpected value: %#v", meta2)
 	}
 
+	// Block until put finishes to avoid a race between it and deferred s.Stop()
+	<-doneCh
 }
 
 func TestClient_Keys_DeleteRecurse(t *testing.T) {
