@@ -189,9 +189,15 @@ func TestHTTPAgentJoin(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if len(a2.LANMembers()) != 2 {
+	if len(srv.agent.LANMembers()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(a2.LANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 members")
+	})
 }
 
 func TestHTTPAgentJoin_WAN(t *testing.T) {
@@ -216,6 +222,10 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 	}
 	if obj != nil {
 		t.Fatalf("Err: %v", obj)
+	}
+
+	if len(srv.agent.WANMembers()) != 2 {
+		t.Fatalf("should have 2 members")
 	}
 
 	testutil.WaitForResult(func() (bool, error) {

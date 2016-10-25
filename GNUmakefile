@@ -10,7 +10,15 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
 # all builds binaries for all targets
-all: tools
+all: bin
+
+ci:
+	if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then \
+		$(MAKE) bin ;\
+	fi
+	@$(MAKE) test
+
+bin: tools
 	@mkdir -p bin/
 	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
@@ -61,4 +69,4 @@ static-assets:
 tools:
 	go get -u -v $(GOTOOLS)
 
-.PHONY: all bin dev dist cov test cover format vet static-assets tools
+.PHONY: all ci bin dev dist cov test cover format vet static-assets tools

@@ -180,8 +180,10 @@ will exit with an error at startup.
 
 * <a name="_retry_join"></a><a href="#_retry_join">`-retry-join`</a> - Similar
   to [`-join`](#_join) but allows retrying a join if the first
-  attempt fails. This is useful for cases where we know the address will become
-  available eventually.
+  attempt fails. The list should contain IPv4 addresses with optional Serf
+  LAN port number also specified or bracketed IPv6 addresses with optional
+  port number — for example: `[::1]:8301`. This is useful for cases where we
+  know the address will become available eventually.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
@@ -661,7 +663,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="retry_join"></a><a href="#retry_join">`retry_join`</a> Equivalent to the
   [`-retry-join` command-line flag](#_retry_join). Takes a list
   of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one
-  [`-join`](#_join) works.
+  [`-join`](#_join) works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).

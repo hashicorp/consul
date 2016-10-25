@@ -36,7 +36,7 @@ Network coordinates manifest in several ways inside Consul:
   [Health endpoints](/docs/agent/http/health.html) can sort the results of queries based
   on the network round trip time from a given node using a "?near=" parameter.
 
-* [Prepared queries](/docs/agent/http/query.html) can automatically fail over services to
+* [Prepared queries](/docs/agent/http/query.html) can automatically fail over services 
   to other Consul datacenters based on network round trip times.
 
 * The [Coordinate endpoint](/docs/agent/http/coordinate.html) exposes raw network
