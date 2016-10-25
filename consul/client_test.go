@@ -211,9 +211,14 @@ func TestClient_RPC_Pool(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
-		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
-	}
+
+	// Wait for both agents to finish joining
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.LANMembers()) == 2 && len(c1.LANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.",
+			len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
+	})
 
 	// Blast out a bunch of RPC requests at the same time to try to get
 	// contention opening new connections.
