@@ -117,7 +117,7 @@ func TestArchive_hashList(t *testing.T) {
 	}
 	hl.Add("nope")
 	err := hl.Decode(&buf)
-	if err == nil || !strings.Contains(err.Error(), "file missing hash for \"nope\"") {
+	if err == nil || !strings.Contains(err.Error(), "file missing for \"nope\"") {
 		t.Fatalf("err: %v", err)
 	}
 
