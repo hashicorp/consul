@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/cli"
 )
@@ -88,29 +89,32 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 		}
 	}
 
-	// Wait for the updates to get flushed to the data store.
-	time.Sleep(2 * updatePeriod)
+	// Ask for the RTT of two known nodes
+	ui := new(cli.MockUi)
+	c := &RTTCommand{Ui: ui}
+	args := []string{
+		"-http-addr=" + a.httpAddr,
+		a.config.NodeName,
+		"dogs",
+	}
 
-	// Try two known nodes.
-	{
-		ui := new(cli.MockUi)
-		c := &RTTCommand{Ui: ui}
-		args := []string{
-			"-http-addr=" + a.httpAddr,
-			a.config.NodeName,
-			"dogs",
-		}
+	// Wait for the updates to get flushed to the data store.
+	testutil.WaitForResult(func() (bool, error) {
 		code := c.Run(args)
 		if code != 0 {
-			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
+			return false, fmt.Errorf("bad: %d: %#v", code, ui.ErrorWriter.String())
 		}
 
 		// Make sure the proper RTT was reported in the output.
 		expected := fmt.Sprintf("rtt: %s", dist_str)
 		if !strings.Contains(ui.OutputWriter.String(), expected) {
-			t.Fatalf("bad: %#v", ui.OutputWriter.String())
+			return false, fmt.Errorf("bad: %#v", ui.OutputWriter.String())
 		}
-	}
+
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("failed to get proper RTT output: %v", err)
+	})
 
 	// Default to the agent's node.
 	{
