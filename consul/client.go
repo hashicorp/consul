@@ -369,8 +369,10 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	}
 
 	// Stream the snapshot.
-	if _, err := io.Copy(out, snap); err != nil {
-		return fmt.Errorf("failed to stream snapshot: %v", err)
+	if out != nil {
+		if _, err := io.Copy(out, snap); err != nil {
+			return fmt.Errorf("failed to stream snapshot: %v", err)
+		}
 	}
 
 	return nil

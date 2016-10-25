@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"sync"
@@ -399,7 +398,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 
 	// Restore a snapshot.
 	args.Op = structs.SnapshotRestore
-	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard, nil); err != nil {
+	if err := c1.SnapshotRPC(&args, &snap, nil, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -458,7 +457,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	// Restore a snapshot.
 	args.Op = structs.SnapshotRestore
-	if err := c1.SnapshotRPC(&args, &snap, ioutil.Discard, nil); err != nil {
+	if err := c1.SnapshotRPC(&args, &snap, nil, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
