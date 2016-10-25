@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -26,7 +27,11 @@ func (s *HTTPServer) Snapshot(resp http.ResponseWriter, req *http.Request) (inte
 			setMeta(resp, &reply.QueryMeta)
 			return nil
 		}
-		if err := s.agent.SnapshotRPC(&args, req.Body, resp, replyFn); err != nil {
+
+		// Don't bother sending any request body through since it will
+		// be ignored.
+		var null bytes.Buffer
+		if err := s.agent.SnapshotRPC(&args, &null, resp, replyFn); err != nil {
 			return nil, err
 		}
 		return nil, nil
