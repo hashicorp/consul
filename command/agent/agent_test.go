@@ -248,6 +248,7 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 		}
 	}()
 
+	c = nextConfig()
 	c.ReconnectTimeoutLan = 24 * time.Hour
 	c.ReconnectTimeoutWan = 36 * time.Hour
 	func() {

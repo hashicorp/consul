@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
@@ -126,25 +125,29 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(300 * time.Millisecond)
 
-	// Query again and now foo should have moved to the front of the line.
-	resp = httptest.NewRecorder()
-	obj, err = srv.HealthChecksInState(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	assertIndex(t, resp)
-	nodes = obj.(structs.HealthChecks)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
+	// Retry until foo moves to the front of the line.
+	testutil.WaitForResult(func() (bool, error) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthChecksInState(resp, req)
+		if err != nil {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.HealthChecks)
+		if len(nodes) != 2 {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		if nodes[0].Node != "foo" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("failed to get sorted service nodes: %v", err)
+	})
 }
 
 func TestHealthNodeChecks(t *testing.T) {
@@ -320,25 +323,29 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(300 * time.Millisecond)
 
-	// Query again and now foo should have moved to the front of the line.
-	resp = httptest.NewRecorder()
-	obj, err = srv.HealthServiceChecks(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	assertIndex(t, resp)
-	nodes = obj.(structs.HealthChecks)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
+	// Retry until foo has moved to the front of the line.
+	testutil.WaitForResult(func() (bool, error) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.HealthChecks)
+		if len(nodes) != 2 {
+			return false, fmt.Errorf("bad: %v", obj)
+		}
+		if nodes[0].Node != "foo" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("failed to get sorted service checks: %v", err)
+	})
 }
 
 func TestHealthServiceNodes(t *testing.T) {
@@ -487,25 +494,29 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(300 * time.Millisecond)
 
-	// Query again and now foo should have moved to the front of the line.
-	resp = httptest.NewRecorder()
-	obj, err = srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	assertIndex(t, resp)
-	nodes = obj.(structs.CheckServiceNodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node.Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node.Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
+	// Retry until foo has moved to the front of the line.
+	testutil.WaitForResult(func() (bool, error) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthServiceNodes(resp, req)
+		if err != nil {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.CheckServiceNodes)
+		if len(nodes) != 2 {
+			return false, fmt.Errorf("bad: %v", obj)
+		}
+		if nodes[0].Node.Node != "foo" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		if nodes[1].Node.Node != "bar" {
+			return false, fmt.Errorf("bad: %v", nodes)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("failed to get sorted service nodes: %v", err)
+	})
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
