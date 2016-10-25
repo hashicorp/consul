@@ -185,7 +185,7 @@ func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
 	}
 
 	// Feed the snapshot into Raft.
-	future := r.Restore(&metadata, snap, 10*time.Minute)
+	future := r.Restore(&metadata, snap, 60*time.Second)
 	if err := future.Error(); err != nil {
 		return fmt.Errorf("Raft error when restoring snapshot: %v", err)
 	}
