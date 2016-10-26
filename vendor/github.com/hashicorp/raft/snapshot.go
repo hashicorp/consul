@@ -76,15 +76,19 @@ func (r *Raft) runSnapshots() {
 			}
 
 			// Trigger a snapshot
-			if err := r.takeSnapshot(); err != nil {
+			if _, err := r.takeSnapshot(); err != nil {
 				r.logger.Printf("[ERR] raft: Failed to take snapshot: %v", err)
 			}
 
-		case future := <-r.snapshotCh:
+		case future := <-r.userSnapshotCh:
 			// User-triggered, run immediately
-			err := r.takeSnapshot()
+			id, err := r.takeSnapshot()
 			if err != nil {
 				r.logger.Printf("[ERR] raft: Failed to take snapshot: %v", err)
+			} else {
+				future.opener = func() (*SnapshotMeta, io.ReadCloser, error) {
+					return r.snapshots.Open(id)
+				}
 			}
 			future.respond(err)
 
@@ -113,8 +117,9 @@ func (r *Raft) shouldSnapshot() bool {
 }
 
 // takeSnapshot is used to take a new snapshot. This must only be called from
-// the snapshot thread, never the main thread.
-func (r *Raft) takeSnapshot() error {
+// the snapshot thread, never the main thread. This returns the ID of the new
+// snapshot, along with an error.
+func (r *Raft) takeSnapshot() (string, error) {
 	defer metrics.MeasureSince([]string{"raft", "snapshot", "takeSnapshot"}, time.Now())
 
 	// Create a request for the FSM to perform a snapshot.
@@ -125,7 +130,7 @@ func (r *Raft) takeSnapshot() error {
 	select {
 	case r.fsmSnapshotCh <- snapReq:
 	case <-r.shutdownCh:
-		return ErrRaftShutdown
+		return "", ErrRaftShutdown
 	}
 
 	// Wait until we get a response
@@ -133,7 +138,7 @@ func (r *Raft) takeSnapshot() error {
 		if err != ErrNothingNewToSnapshot {
 			err = fmt.Errorf("failed to start snapshot: %v", err)
 		}
-		return err
+		return "", err
 	}
 	defer snapReq.snapshot.Release()
 
@@ -145,10 +150,10 @@ func (r *Raft) takeSnapshot() error {
 	select {
 	case r.configurationsCh <- configReq:
 	case <-r.shutdownCh:
-		return ErrRaftShutdown
+		return "", ErrRaftShutdown
 	}
 	if err := configReq.Error(); err != nil {
-		return err
+		return "", err
 	}
 	committed := configReq.configurations.committed
 	committedIndex := configReq.configurations.committedIndex
@@ -162,7 +167,7 @@ func (r *Raft) takeSnapshot() error {
 	// then it's not crucial that we snapshot, since there's not much going
 	// on Raft-wise.
 	if snapReq.index < committedIndex {
-		return fmt.Errorf("cannot take snapshot now, wait until the configuration entry at %v has been applied (have applied %v)",
+		return "", fmt.Errorf("cannot take snapshot now, wait until the configuration entry at %v has been applied (have applied %v)",
 			committedIndex, snapReq.index)
 	}
 
@@ -172,7 +177,7 @@ func (r *Raft) takeSnapshot() error {
 	version := getSnapshotVersion(r.protocolVersion)
 	sink, err := r.snapshots.Create(version, snapReq.index, snapReq.term, committed, committedIndex, r.trans)
 	if err != nil {
-		return fmt.Errorf("failed to create snapshot: %v", err)
+		return "", fmt.Errorf("failed to create snapshot: %v", err)
 	}
 	metrics.MeasureSince([]string{"raft", "snapshot", "create"}, start)
 
@@ -180,13 +185,13 @@ func (r *Raft) takeSnapshot() error {
 	start = time.Now()
 	if err := snapReq.snapshot.Persist(sink); err != nil {
 		sink.Cancel()
-		return fmt.Errorf("failed to persist snapshot: %v", err)
+		return "", fmt.Errorf("failed to persist snapshot: %v", err)
 	}
 	metrics.MeasureSince([]string{"raft", "snapshot", "persist"}, start)
 
 	// Close and check for error.
 	if err := sink.Close(); err != nil {
-		return fmt.Errorf("failed to close snapshot: %v", err)
+		return "", fmt.Errorf("failed to close snapshot: %v", err)
 	}
 
 	// Update the last stable snapshot info.
@@ -194,11 +199,11 @@ func (r *Raft) takeSnapshot() error {
 
 	// Compact the logs.
 	if err := r.compactLogs(snapReq.index); err != nil {
-		return err
+		return "", err
 	}
 
 	r.logger.Printf("[INFO] raft: Snapshot to %d complete", snapReq.index)
-	return nil
+	return sink.ID(), nil
 }
 
 // compactLogs takes the last inclusive index of a snapshot

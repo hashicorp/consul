@@ -27,6 +27,7 @@ const (
 	rpcMultiplex // Old Muxado byte, no longer supported.
 	rpcTLS
 	rpcMultiplexV2
+	rpcSnapshot
 )
 
 const (
@@ -119,6 +120,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case rpcMultiplexV2:
 		s.handleMultiplexV2(conn)
 
+	case rpcSnapshot:
+		s.handleSnapshotConn(conn)
+
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
 		conn.Close()
@@ -165,6 +169,17 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
 	}
+}
+
+// handleSnapshotConn is used to dispatch snapshot saves and restores, which
+// stream so don't use the normal RPC mechanism.
+func (s *Server) handleSnapshotConn(conn net.Conn) {
+	go func() {
+		defer conn.Close()
+		if err := s.handleSnapshotRequest(conn); err != nil {
+			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
+		}
+	}()
 }
 
 // forward is used to forward to a remote DC or to forward to the local leader
@@ -216,9 +231,9 @@ CHECK_LEADER:
 	return true, structs.ErrNoLeader
 }
 
-// getLeader returns if the current node is the leader, and if not
-// then it returns the leader which is potentially nil if the cluster
-// has not yet elected a leader.
+// getLeader returns if the current node is the leader, and if not then it
+// returns the leader which is potentially nil if the cluster has not yet
+// elected a leader.
 func (s *Server) getLeader() (bool, *agent.Server) {
 	// Check if we are the leader
 	if s.IsLeader() {
@@ -249,23 +264,29 @@ func (s *Server) forwardLeader(server *agent.Server, method string, args interfa
 	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, args, reply)
 }
 
-// forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
-func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
-	// Bail if we can't find any servers
+// getRemoteServer returns a random server from a remote datacenter. This uses
+// the bool parameter to signal that none were available.
+func (s *Server) getRemoteServer(dc string) (*agent.Server, bool) {
 	s.remoteLock.RLock()
+	defer s.remoteLock.RUnlock()
 	servers := s.remoteConsuls[dc]
 	if len(servers) == 0 {
-		s.remoteLock.RUnlock()
+		return nil, false
+	}
+
+	offset := rand.Int31n(int32(len(servers)))
+	server := servers[offset]
+	return server, true
+}
+
+// forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
+func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
+	server, ok := s.getRemoteServer(dc)
+	if !ok {
 		s.logger.Printf("[WARN] consul.rpc: RPC request for DC '%s', no path found", dc)
 		return structs.ErrNoDCPath
 	}
 
-	// Select a random addr
-	offset := rand.Int31n(int32(len(servers)))
-	server := servers[offset]
-	s.remoteLock.RUnlock()
-
-	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
 	return s.connPool.RPC(dc, server.Addr, server.Version, method, args, reply)
 }

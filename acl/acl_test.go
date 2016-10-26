@@ -77,6 +77,9 @@ func TestStaticACL(t *testing.T) {
 	if all.ACLModify() {
 		t.Fatalf("should not allow")
 	}
+	if all.Snapshot() {
+		t.Fatalf("should not allow")
+	}
 
 	if none.KeyRead("foobar") {
 		t.Fatalf("should not allow")
@@ -126,6 +129,9 @@ func TestStaticACL(t *testing.T) {
 	if none.ACLModify() {
 		t.Fatalf("should not allow")
 	}
+	if none.Snapshot() {
+		t.Fatalf("should not allow")
+	}
 
 	if !manage.KeyRead("foobar") {
 		t.Fatalf("should allow")
@@ -167,6 +173,9 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLModify() {
+		t.Fatalf("should allow")
+	}
+	if !manage.Snapshot() {
 		t.Fatalf("should allow")
 	}
 }
@@ -493,6 +502,9 @@ func TestPolicyACL_Parent(t *testing.T) {
 		t.Fatalf("should not allow")
 	}
 	if acl.ACLModify() {
+		t.Fatalf("should not allow")
+	}
+	if acl.Snapshot() {
 		t.Fatalf("should not allow")
 	}
 }

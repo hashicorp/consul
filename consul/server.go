@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -804,6 +805,39 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		return err
 	}
 	return codec.err
+}
+
+// SnapshotRPC dispatches the given snapshot request, reading from the streaming
+// input and writing to the streaming output depending on the operation.
+func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
+	replyFn SnapshotReplyFn) error {
+
+	// Perform the operation.
+	var reply structs.SnapshotResponse
+	snap, err := s.dispatchSnapshotRequest(args, in, &reply)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := snap.Close(); err != nil {
+			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+		}
+	}()
+
+	// Let the caller peek at the reply.
+	if replyFn != nil {
+		if err := replyFn(&reply); err != nil {
+			return nil
+		}
+	}
+
+	// Stream the snapshot.
+	if out != nil {
+		if _, err := io.Copy(out, snap); err != nil {
+			return fmt.Errorf("failed to stream snapshot: %v", err)
+		}
+	}
+	return nil
 }
 
 // InjectEndpoint is used to substitute an endpoint for testing.

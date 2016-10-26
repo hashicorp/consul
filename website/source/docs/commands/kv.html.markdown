@@ -14,7 +14,7 @@ and deleting from the store. This command is available in Consul 0.7.1 and
 later.
 
 The key-value store is also accessible via the
-[HTTP API](docs/agent/http/kv.html).
+[HTTP API](/docs/agent/http/kv.html).
 
 ## Usage
 
