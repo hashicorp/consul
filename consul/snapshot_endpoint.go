@@ -90,9 +90,30 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		if args.AllowStale {
 			return nil, fmt.Errorf("stale not allowed for restore")
 		}
+
+		// Restore the snapshot.
 		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
 			return nil, err
 		}
+
+		// Run a barrier so we are sure that our FSM is caught up with
+		// any snapshot restore details (it's also part of Raft's restore
+		// process but we don't want to depend on that detail for this to
+		// be correct). Once that works, we can redo the leader actions
+		// so our leader-maintained state will be up to date.
+		barrier := s.raft.Barrier(0)
+		if err := barrier.Error(); err != nil {
+			return nil, err
+		}
+		if err := s.revokeLeadership(); err != nil {
+			return nil, err
+		}
+		if err := s.establishLeadership(); err != nil {
+			return nil, err
+		}
+
+		// Give the caller back an empty reader since there's nothing to
+		// stream back.
 		return ioutil.NopCloser(bytes.NewReader([]byte(""))), nil
 
 	default:

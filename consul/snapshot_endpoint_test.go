@@ -154,6 +154,88 @@ func TestSnapshot(t *testing.T) {
 	verifySnapshot(t, s1, "dc1", "")
 }
 
+func TestSnapshot_LeaderState(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Make a before session.
+	var before string
+	{
+		args := structs.SessionRequest{
+			Datacenter: s1.config.Datacenter,
+			Op:         structs.SessionCreate,
+			Session: structs.Session{
+				Node: s1.config.NodeName,
+				TTL:  "60s",
+			},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &args, &before); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Take a snapshot.
+	args := structs.SnapshotRequest{
+		Datacenter: s1.config.Datacenter,
+		Op:         structs.SnapshotSave,
+	}
+	var reply structs.SnapshotResponse
+	snap, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+		&args, bytes.NewReader([]byte("")), &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer snap.Close()
+
+	// Make an after session.
+	var after string
+	{
+		args := structs.SessionRequest{
+			Datacenter: s1.config.Datacenter,
+			Op:         structs.SessionCreate,
+			Session: structs.Session{
+				Node: s1.config.NodeName,
+				TTL:  "60s",
+			},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &args, &after); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Make sure the leader has timers setup.
+	if _, ok := s1.sessionTimers[before]; !ok {
+		t.Fatalf("missing session timer")
+	}
+	if _, ok := s1.sessionTimers[after]; !ok {
+		t.Fatalf("missing session timer")
+	}
+
+	// Restore the snapshot.
+	args.Op = structs.SnapshotRestore
+	restore, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+		&args, snap, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer restore.Close()
+
+	// Make sure the before time is still there, and that the after timer
+	// got reverted. This proves we fully cycled the leader state.
+	if _, ok := s1.sessionTimers[before]; !ok {
+		t.Fatalf("missing session timer")
+	}
+	if _, ok := s1.sessionTimers[after]; ok {
+		t.Fatalf("unexpected session timer")
+	}
+}
+
 func TestSnapshot_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
