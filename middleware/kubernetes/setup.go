@@ -137,6 +137,6 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 }
 
 const (
-	defaultNameTemplate = "{service}.{namespace}.{zone}"
+	defaultNameTemplate = "{service}.{namespace}.{type}.{zone}"
 	defaultResyncPeriod = 5 * time.Minute
 )

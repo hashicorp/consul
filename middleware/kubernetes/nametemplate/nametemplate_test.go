@@ -14,8 +14,8 @@ const (
 // Map of format string :: expected locations of name symbols in the format.
 // -1 value indicates that symbol does not exist in format.
 var exampleTemplates = map[string][]int{
-	"{service}.{namespace}.{zone}": []int{2, 1, 0}, // service symbol expected @ position 0, namespace @ 1, zone @ 2
-	"{namespace}.{zone}":           []int{1, 0, -1},
+	"{service}.{namespace}.{type}.{zone}": []int{3, 1, 0}, // service symbol expected @ position 0, namespace @ 1, zone @ 3
+	"{namespace}.{type}.{zone}":           []int{2, 0, -1},
 	"":                             []int{-1, -1, -1},
 }
 
@@ -46,10 +46,10 @@ func TestServiceFromSegmentArray(t *testing.T) {
 
 	// Case where template contains {service}
 	n = new(Template)
-	formatString = "{service}.{namespace}.{zone}"
+	formatString = "{service}.{namespace}.{type}.{zone}"
 	n.SetTemplate(formatString)
 
-	queryString = "myservice.mynamespace.coredns"
+	queryString = "myservice.mynamespace.svc.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedService = "myservice"
 	actualService = n.ServiceFromSegmentArray(splitQuery)
@@ -60,10 +60,10 @@ func TestServiceFromSegmentArray(t *testing.T) {
 
 	// Case where template does not contain {service}
 	n = new(Template)
-	formatString = "{namespace}.{zone}"
+	formatString = "{namespace}.{type}.{zone}"
 	n.SetTemplate(formatString)
 
-	queryString = "mynamespace.coredns"
+	queryString = "mynamespace.svc.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedService = ""
 	actualService = n.ServiceFromSegmentArray(splitQuery)
@@ -85,10 +85,10 @@ func TestZoneFromSegmentArray(t *testing.T) {
 
 	// Case where template contains {zone}
 	n = new(Template)
-	formatString = "{service}.{namespace}.{zone}"
+	formatString = "{service}.{namespace}.{type}.{zone}"
 	n.SetTemplate(formatString)
 
-	queryString = "myservice.mynamespace.coredns"
+	queryString = "myservice.mynamespace.svc.coredns"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = "coredns"
 	actualZone = n.ZoneFromSegmentArray(splitQuery)
@@ -99,10 +99,10 @@ func TestZoneFromSegmentArray(t *testing.T) {
 
 	// Case where template does not contain {zone}
 	n = new(Template)
-	formatString = "{service}.{namespace}"
+	formatString = "{service}.{namespace}.{type}"
 	n.SetTemplate(formatString)
 
-	queryString = "mynamespace.coredns"
+	queryString = "mynamespace.coredns.svc"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = ""
 	actualZone = n.ZoneFromSegmentArray(splitQuery)
@@ -113,10 +113,10 @@ func TestZoneFromSegmentArray(t *testing.T) {
 
 	// Case where zone is multiple segments
 	n = new(Template)
-	formatString = "{service}.{namespace}.{zone}"
+	formatString = "{service}.{namespace}.{type}.{zone}"
 	n.SetTemplate(formatString)
 
-	queryString = "myservice.mynamespace.coredns.cluster.local"
+	queryString = "myservice.mynamespace.svc.coredns.cluster.local"
 	splitQuery = strings.Split(queryString, ".")
 	expectedZone = "coredns.cluster.local"
 	actualZone = n.ZoneFromSegmentArray(splitQuery)
