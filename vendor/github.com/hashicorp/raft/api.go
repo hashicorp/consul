@@ -825,15 +825,15 @@ func (r *Raft) Snapshot() SnapshotFuture {
 // will also use the higher of the index of the snapshot, or the current index,
 // and then add 1 to that, so we force a new state with a hole in the Raft log,
 // so that the snapshot will be sent to followers and used for any new joiners.
-// This can only be run on the leader, and returns a future that can be used to
-// block until complete.
+// This can only be run on the leader, and blocks until the restore is complete
+// or an error occurs.
 //
 // WARNING! This operation has the leader take on the state of the snapshot and
 // then sets itself up so that it replicates that to its followers though the
 // install snapshot process. This involves a potentially dangerous period where
 // the leader commits ahead of its followers, so should only be used for disaster
 // recovery into a fresh cluster, and should not be used in normal operations.
-func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Duration) Future {
+func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Duration) error {
 	metrics.IncrCounter([]string{"raft", "restore"}, 1)
 	var timer <-chan time.Time
 	if timeout > 0 {
@@ -848,13 +848,13 @@ func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Durati
 	restore.init()
 	select {
 	case <-timer:
-		return errorFuture{ErrEnqueueTimeout}
+		return ErrEnqueueTimeout
 	case <-r.shutdownCh:
-		return errorFuture{ErrRaftShutdown}
+		return ErrRaftShutdown
 	case r.userRestoreCh <- restore:
 		// If the restore is ingested then wait for it to complete.
 		if err := restore.Error(); err != nil {
-			return restore
+			return err
 		}
 	}
 
@@ -870,11 +870,11 @@ func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Durati
 	noop.init()
 	select {
 	case <-timer:
-		return errorFuture{ErrEnqueueTimeout}
+		return ErrEnqueueTimeout
 	case <-r.shutdownCh:
-		return errorFuture{ErrRaftShutdown}
+		return ErrRaftShutdown
 	case r.applyCh <- noop:
-		return noop
+		return noop.Error()
 	}
 }
 
