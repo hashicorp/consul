@@ -343,17 +343,16 @@ func TestClient_RPC_TLS(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Check the members
-	if len(s1.LANMembers()) != 2 {
-		t.Fatalf("bad len")
-	}
-
-	if len(c1.LANMembers()) != 2 {
-		t.Fatalf("bad len")
-	}
-
-	// RPC should succeed
+	// Wait for joins to finish/RPC to succeed
 	testutil.WaitForResult(func() (bool, error) {
+		if len(s1.LANMembers()) != 2 {
+			return false, fmt.Errorf("bad len: %v", len(s1.LANMembers()))
+		}
+
+		if len(c1.LANMembers()) != 2 {
+			return false, fmt.Errorf("bad len: %v", len(c1.LANMembers()))
+		}
+
 		err := c1.RPC("Status.Ping", struct{}{}, &out)
 		return err == nil, err
 	}, func(err error) {
