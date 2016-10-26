@@ -51,6 +51,8 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return 0, nil
 }
 
+func (c Chaos) Name() string { return "chaos" }
+
 func trim(s string) string {
 	if len(s) < 256 {
 		return s

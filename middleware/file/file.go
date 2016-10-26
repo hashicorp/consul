@@ -110,6 +110,8 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	return dns.RcodeSuccess, nil
 }
 
+func (f File) Name() string { return "file" }
+
 // Parse parses the zone in filename and returns a new Zone or an error.
 func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
 	tokens := dns.ParseZone(f, dns.Fqdn(origin), fileName)

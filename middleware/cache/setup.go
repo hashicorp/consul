@@ -28,6 +28,10 @@ func setup(c *caddy.Controller) error {
 		return ca
 	})
 
+	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.
+	cacheCapacity.WithLabelValues(Success).Set(float64(ca.pcap))
+	cacheCapacity.WithLabelValues(Denial).Set(float64(ca.ncap))
+
 	return nil
 }
 
@@ -58,7 +62,7 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 		for c.NextBlock() {
 			switch c.Val() {
 			// first number is cap, second is an new ttl
-			case "success":
+			case Success:
 				args := c.RemainingArgs()
 				if len(args) == 0 {
 					return nil, c.ArgErr()
@@ -75,7 +79,7 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 					}
 					ca.pttl = time.Duration(pttl) * time.Second
 				}
-			case "denial":
+			case Denial:
 				args := c.RemainingArgs()
 				if len(args) == 0 {
 					return nil, c.ArgErr()

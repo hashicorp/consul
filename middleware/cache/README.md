@@ -35,24 +35,24 @@ There is a third category (`error`) but those responses are never cached.
 
 The minimum TTL allowed on resource records is 5 seconds.
 
-If monitoring is enabled (via the *prometheus* directive) then the following extra metrics are added:
+## Metrics
 
-* coredns_cache_hit_count_total, and
-* coredns_cache_miss_count_total
+If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
 
-They both work on a per-zone basis and just count the hit and miss counts for each query.
+* coredns_cache_size_guage{type} - total elements in the case, type is either "denial" or "success".
+* coredns_cache_capacity_guage{type} - total capacity of the cache, type is either "denial" or "success".
 
 ## Examples
+
+Enable caching for all zones, but cap everything to a TTL of 10 seconds:
 
 ~~~
 cache 10
 ~~~
 
-Enable caching for all zones, but cap everything to a TTL of 10 seconds.
+Proxy to Google Public DNS and only cache responses for example.org (or below).
 
 ~~~
 proxy . 8.8.8.8:53
 cache example.org
 ~~~
-
-Proxy to Google Public DNS and only cache responses for example.org (or below).

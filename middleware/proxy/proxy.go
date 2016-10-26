@@ -102,5 +102,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return p.Next.ServeDNS(ctx, w, r)
 }
 
+func (p Proxy) Name() string { return "proxy" }
+
 // defaultTimeout is the default networking timeout for DNS requests.
 const defaultTimeout = 5 * time.Second

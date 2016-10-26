@@ -8,6 +8,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
+	"github.com/miekg/coredns/middleware/metrics"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -20,6 +21,7 @@ type (
 		Next middleware.Handler
 		*Zones
 
+		metrics *metrics.Metrics
 		loader
 	}
 
@@ -97,3 +99,5 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
+
+func (a Auto) Name() string { return "auto" }

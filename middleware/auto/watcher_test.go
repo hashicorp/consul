@@ -27,15 +27,18 @@ func TestWatcher(t *testing.T) {
 		template:  `${1}`,
 	}
 
-	z := &Zones{}
+	a := Auto{
+		loader: ldr,
+		Zones:  &Zones{},
+	}
 
-	z.Walk(ldr)
+	a.Walk()
 
 	// example.org and example.com should exist
-	if x := len(z.Z["example.org."].All()); x != 4 {
+	if x := len(a.Zones.Z["example.org."].All()); x != 4 {
 		t.Fatalf("expected 4 RRs, got %d", x)
 	}
-	if x := len(z.Z["example.com."].All()); x != 4 {
+	if x := len(a.Zones.Z["example.com."].All()); x != 4 {
 		t.Fatalf("expected 4 RRs, got %d", x)
 	}
 
@@ -44,5 +47,6 @@ func TestWatcher(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	z.Walk(ldr)
+	a.Walk()
+	// TODO(miek): check
 }

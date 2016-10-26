@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/metrics/vars"
 	"github.com/miekg/coredns/middleware/pkg/edns"
+	"github.com/miekg/coredns/middleware/pkg/rcode"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -247,13 +249,15 @@ func (s *Server) OnStartupComplete() {
 }
 
 // DefaultErrorFunc responds to an DNS request with an error.
-func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
+func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rc int) {
 	state := request.Request{W: w, Req: r}
 
 	answer := new(dns.Msg)
-	answer.SetRcode(r, rcode)
+	answer.SetRcode(r, rc)
 
 	state.SizeAndDo(answer)
+
+	vars.Report(state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
 }

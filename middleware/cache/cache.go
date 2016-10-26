@@ -79,6 +79,9 @@ func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 
 	if key != "" {
 		c.set(res, key, mt, duration)
+
+		cacheSize.WithLabelValues(Success).Set(float64(c.pcache.Len()))
+		cacheSize.WithLabelValues(Denial).Set(float64(c.ncache.Len()))
 	}
 
 	setMsgTTL(res, uint32(duration.Seconds()))
@@ -103,7 +106,6 @@ func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration 
 
 	case response.OtherError:
 		// don't cache these
-		// TODO(miek): what do we do with these?
 	default:
 		log.Printf("[WARNING] Caching called with unknown classification: %d", mt)
 	}
@@ -122,4 +124,9 @@ const (
 	minTTL  = 5 * time.Second
 
 	defaultCap = 10000 // default capacity of the cache.
+
+	// Success is the class for caching postive caching.
+	Success = "success"
+	// Denial is the class defined for negative caching.
+	Denial = "denial"
 )

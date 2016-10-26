@@ -38,18 +38,17 @@ func setup(c *caddy.Controller) error {
 
 func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var (
-		met = &Metrics{Addr: addr}
+		met = &Metrics{Addr: Addr, zoneMap: make(map[string]bool)}
 		err error
 	)
 
 	for c.Next() {
-		if len(met.ZoneNames) > 0 {
-			return met, c.Err("metrics: can only have one metrics module per server")
+		if len(met.ZoneNames()) > 0 {
+			return met, c.Err("can only have one metrics module per server")
 		}
-		met.ZoneNames = make([]string, len(c.ServerBlockKeys))
-		copy(met.ZoneNames, c.ServerBlockKeys)
-		for i := range met.ZoneNames {
-			met.ZoneNames[i] = middleware.Host(met.ZoneNames[i]).Normalize()
+
+		for _, z := range c.ServerBlockKeys {
+			met.AddZone(middleware.Host(z).Normalize())
 		}
 		args := c.RemainingArgs()
 
@@ -78,7 +77,7 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 					return met, e
 				}
 			default:
-				return met, c.Errf("metrics: unknown item: %s", c.Val())
+				return met, c.Errf("unknown item: %s", c.Val())
 			}
 
 		}
@@ -88,4 +87,4 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 
 var metricsOnce sync.Once
 
-const addr = "localhost:9153"
+const Addr = "localhost:9153"

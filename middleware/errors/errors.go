@@ -48,6 +48,8 @@ func (h errorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 	return rcode, err
 }
 
+func (h errorHandler) Name() string { return "errors" }
+
 func (h errorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	rec := recover()
 	if rec == nil {

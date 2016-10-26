@@ -40,9 +40,9 @@ func (z *Zones) Zones(name string) *file.Zone {
 	return zo
 }
 
-// Insert inserts a new zone into z. If zo.NoReload is false, the
+// Add adds a new zone into z. If zo.NoReload is false, the
 // reload goroutine is started.
-func (z *Zones) Insert(zo *file.Zone, name string) {
+func (z *Zones) Add(zo *file.Zone, name string) {
 	z.Lock()
 
 	if z.Z == nil {
@@ -51,14 +51,13 @@ func (z *Zones) Insert(zo *file.Zone, name string) {
 
 	z.Z[name] = zo
 	z.names = append(z.names, name)
-
 	zo.Reload()
 
 	z.Unlock()
 }
 
-// Delete removes the zone named name from z. It also stop the the zone's reload goroutine.
-func (z *Zones) Delete(name string) {
+// Remove removes the zone named name from z. It also stop the the zone's reload goroutine.
+func (z *Zones) Remove(name string) {
 	z.Lock()
 
 	if zo, ok := z.Z[name]; ok && !zo.NoReload {
@@ -67,10 +66,11 @@ func (z *Zones) Delete(name string) {
 
 	delete(z.Z, name)
 
-	// just regenerate Names (might be bad if you have a lot of zones...)
+	// TODO(miek): just regenerate Names (might be bad if you have a lot of zones...)
 	z.names = []string{}
 	for n := range z.Z {
 		z.names = append(z.names, n)
 	}
+
 	z.Unlock()
 }

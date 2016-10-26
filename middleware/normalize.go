@@ -51,7 +51,7 @@ func (n Name) Normalize() string { return strings.ToLower(dns.Fqdn(string(n))) }
 type (
 	// Host represents a host from the Corefile, may contain port.
 	Host string // Host represents a host from the Corefile, may contain port.
-	// Addr resprents an address in the Corefile.
+	// Addr represents an address in the Corefile.
 	Addr string // Addr resprents an address in the Corefile.
 )
 

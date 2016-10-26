@@ -40,24 +40,26 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 }
 
 var (
-	cacheHitCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	cacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "hit_count_total",
-		Help:      "Counter of signatures that were found in the cache.",
-	}, []string{"zone"})
+		Name:      "size_guage",
+		Help:      "Gauge of number of elements in the cache.",
+	}, []string{"type"})
 
-	cacheMissCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "miss_count_total",
-		Help:      "Counter of signatures that were not found in the cache.",
-	}, []string{"zone"})
+		Name:      "capacity_gauge",
+		Help:      "Gauge of cache's capacity.",
+	}, []string{"type"})
 )
+
+func (d Dnssec) Name() string { return "dnssec" }
 
 const subsystem = "dnssec"
 
 func init() {
-	prometheus.MustRegister(cacheHitCount)
-	prometheus.MustRegister(cacheMissCount)
+	prometheus.MustRegister(cacheSize)
+	prometheus.MustRegister(cacheCapacity)
 }

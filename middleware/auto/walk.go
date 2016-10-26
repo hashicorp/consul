@@ -13,26 +13,26 @@ import (
 )
 
 // Walk will recursively walk of the file under l.directory and adds the one that match l.re.
-func (z *Zones) Walk(l loader) error {
+func (a Auto) Walk() error {
 
 	// TODO(miek): should add something so that we don't stomp on each other.
 
 	toDelete := make(map[string]bool)
-	for _, n := range z.Names() {
+	for _, n := range a.Zones.Names() {
 		toDelete[n] = true
 	}
 
-	filepath.Walk(l.directory, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(a.loader.directory, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 
-		match, origin := matches(l.re, info.Name(), l.template)
+		match, origin := matches(a.loader.re, info.Name(), a.loader.template)
 		if !match {
 			return nil
 		}
 
-		if _, ok := z.Z[origin]; ok {
+		if _, ok := a.Zones.Z[origin]; ok {
 			// we already have this zone
 			toDelete[origin] = false
 			return nil
@@ -50,10 +50,14 @@ func (z *Zones) Walk(l loader) error {
 			return nil
 		}
 
-		zo.NoReload = l.noReload
-		zo.TransferTo = l.transferTo
+		zo.NoReload = a.loader.noReload
+		zo.TransferTo = a.loader.transferTo
 
-		z.Insert(zo, origin)
+		a.Zones.Add(zo, origin)
+
+		if a.metrics != nil {
+			a.metrics.AddZone(origin)
+		}
 
 		zo.Notify()
 
@@ -68,7 +72,13 @@ func (z *Zones) Walk(l loader) error {
 		if !ok {
 			continue
 		}
-		z.Delete(origin)
+
+		if a.metrics != nil {
+			a.metrics.RemoveZone(origin)
+		}
+
+		a.Zones.Remove(origin)
+
 		log.Printf("[INFO] Deleting zone `%s'", origin)
 	}
 

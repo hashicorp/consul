@@ -30,6 +30,8 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 
 	if state.Do() {
 		res = d.d.Sign(state, zone, time.Now().UTC())
+
+		cacheSize.WithLabelValues("signature").Set(float64(d.d.cache.Len()))
 	}
 	state.SizeAndDo(res)
 

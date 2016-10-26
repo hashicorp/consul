@@ -18,3 +18,5 @@ func (rr RoundRobin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	wrr := &RoundRobinResponseWriter{w}
 	return rr.Next.ServeDNS(ctx, wrr, r)
 }
+
+func (rr RoundRobin) Name() string { return "loadbalance" }

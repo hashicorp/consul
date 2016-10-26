@@ -101,6 +101,8 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	return dns.RcodeSuccess, nil
 }
 
+func (k Kubernetes) Name() string { return "kubernetes" }
+
 // Err writes an error response back to the client.
 func (k Kubernetes) Err(zone string, rcode int, state request.Request) (int, error) {
 	m := new(dns.Msg)

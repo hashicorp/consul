@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/metrics"
+	"github.com/miekg/coredns/middleware/metrics/vars"
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/pkg/rcode"
 	"github.com/miekg/coredns/middleware/pkg/replacer"
@@ -45,7 +45,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 				answer.SetRcode(r, rc)
 				state.SizeAndDo(answer)
 
-				metrics.Report(state, metrics.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
+				vars.Report(state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 
 				w.WriteMsg(answer)
 			}
@@ -63,6 +63,8 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	}
 	return l.Next.ServeDNS(ctx, w, r)
 }
+
+func (l Logger) Name() string { return "log" }
 
 // Rule configures the logging middleware.
 type Rule struct {

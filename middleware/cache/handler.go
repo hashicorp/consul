@@ -30,16 +30,14 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		state.SizeAndDo(resp)
 		w.WriteMsg(resp)
 
-		cacheHitCount.WithLabelValues(zone).Inc()
-
 		return dns.RcodeSuccess, nil
 	}
-
-	cacheMissCount.WithLabelValues(zone).Inc()
 
 	crr := &ResponseWriter{w, c}
 	return c.Next.ServeDNS(ctx, crr, r)
 }
+
+func (c *Cache) Name() string { return "cache" }
 
 func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {
 	k := rawKey(qname, qtype, do)
@@ -55,24 +53,24 @@ func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {
 }
 
 var (
-	cacheHitCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	cacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "hit_count_total",
-		Help:      "Counter of DNS requests that were found in the cache.",
-	}, []string{"zone"})
+		Name:      "size_guage",
+		Help:      "Gauge of number of elements in the cache.",
+	}, []string{"type"})
 
-	cacheMissCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "miss_count_total",
-		Help:      "Counter of DNS requests that were not found in the cache.",
-	}, []string{"zone"})
+		Name:      "capacity_gauge",
+		Help:      "Gauge of cache's capacity.",
+	}, []string{"type"})
 )
 
 const subsystem = "cache"
 
 func init() {
-	prometheus.MustRegister(cacheHitCount)
-	prometheus.MustRegister(cacheMissCount)
+	prometheus.MustRegister(cacheSize)
+	prometheus.MustRegister(cacheCapacity)
 }

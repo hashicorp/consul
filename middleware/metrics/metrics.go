@@ -1,5 +1,4 @@
-// Package metrics implement a handler and middleware that provides Prometheus
-// metrics.
+// Package metrics implement a handler and middleware that provides Prometheus metrics.
 package metrics
 
 import (
@@ -9,37 +8,51 @@ import (
 	"sync"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/metrics/vars"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	requestCount        *prometheus.CounterVec
-	requestDuration     *prometheus.HistogramVec
-	requestSize         *prometheus.HistogramVec
-	requestTransferSize *prometheus.HistogramVec
-	requestDo           *prometheus.CounterVec
-	requestType         *prometheus.CounterVec
-
-	responseSize         *prometheus.HistogramVec
-	responseTransferSize *prometheus.HistogramVec
-	responseRcode        *prometheus.CounterVec
-)
-
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
 type Metrics struct {
-	Next      middleware.Handler
-	Addr      string
-	ln        net.Listener
-	mux       *http.ServeMux
-	Once      sync.Once
-	ZoneNames []string
+	Next middleware.Handler
+	Addr string
+	ln   net.Listener
+	mux  *http.ServeMux
+	Once sync.Once
+
+	zoneNames []string
+	zoneMap   map[string]bool
+	zoneMu    sync.RWMutex
+}
+
+// AddZone adds zone z to m.
+func (m *Metrics) AddZone(z string) {
+	m.zoneMu.Lock()
+	m.zoneMap[z] = true
+	m.zoneNames = keys(m.zoneMap)
+	m.zoneMu.Unlock()
+}
+
+// RemoveZone remove zone z from m.
+func (m *Metrics) RemoveZone(z string) {
+	m.zoneMu.Lock()
+	delete(m.zoneMap, z)
+	m.zoneNames = keys(m.zoneMap)
+	m.zoneMu.Unlock()
+}
+
+// ZoneNames returns the zones of m.
+func (m *Metrics) ZoneNames() []string {
+	m.zoneMu.RLock()
+	s := m.zoneNames
+	m.zoneMu.RUnlock()
+	return s
 }
 
 // OnStartup sets up the metrics on startup.
 func (m *Metrics) OnStartup() error {
 	m.Once.Do(func() {
-		define()
 
 		ln, err := net.Listen("tcp", m.Addr)
 		if err != nil {
@@ -51,18 +64,16 @@ func (m *Metrics) OnStartup() error {
 
 		m.mux = http.NewServeMux()
 
-		prometheus.MustRegister(requestCount)
-		prometheus.MustRegister(requestDuration)
-		prometheus.MustRegister(requestSize)
-		prometheus.MustRegister(requestTransferSize)
-		prometheus.MustRegister(requestDo)
-		prometheus.MustRegister(requestType)
+		prometheus.MustRegister(vars.RequestCount)
+		prometheus.MustRegister(vars.RequestDuration)
+		prometheus.MustRegister(vars.RequestSize)
+		prometheus.MustRegister(vars.RequestDo)
+		prometheus.MustRegister(vars.RequestType)
 
-		prometheus.MustRegister(responseSize)
-		prometheus.MustRegister(responseTransferSize)
-		prometheus.MustRegister(responseRcode)
+		prometheus.MustRegister(vars.ResponseSize)
+		prometheus.MustRegister(vars.ResponseRcode)
 
-		m.mux.Handle(path, prometheus.Handler())
+		m.mux.Handle("/metrics", prometheus.Handler())
 
 		go func() {
 			http.Serve(m.ln, m.mux)
@@ -79,79 +90,10 @@ func (m *Metrics) OnShutdown() error {
 	return nil
 }
 
-func define() {
-	requestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_count_total",
-		Help:      "Counter of DNS requests made per zone, protocol and family.",
-	}, []string{"zone", "proto", "family"})
-
-	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_duration_milliseconds",
-		Buckets:   append(prometheus.DefBuckets, []float64{50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000}...),
-		Help:      "Histogram of the time (in milliseconds) each request took.",
-	}, []string{"zone"})
-
-	requestSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_size_bytes",
-		Help:      "Size of the EDNS0 UDP buffer in bytes (64K for TCP).",
-		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone", "proto"})
-
-	requestTransferSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_transfer_size_bytes",
-		Help:      "Size of the incoming zone transfer in bytes.",
-		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone", "proto"})
-
-	requestDo = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_do_count_total",
-		Help:      "Counter of DNS requests with DO bit set per zone.",
-	}, []string{"zone"})
-
-	requestType = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "request_type_count_total",
-		Help:      "Counter of DNS requests per type, per zone.",
-	}, []string{"zone", "type"})
-
-	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "response_size_bytes",
-		Help:      "Size of the returned response in bytes.",
-		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone", "proto"})
-
-	responseTransferSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "response_transfer_size_bytes",
-		Help:      "Size of the returned zone transfer in bytes.",
-		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone", "proto"})
-
-	responseRcode = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: middleware.Namespace,
-		Subsystem: subsystem,
-		Name:      "response_rcode_count_total",
-		Help:      "Counter of response status codes.",
-	}, []string{"zone", "rcode"})
+func keys(m map[string]bool) []string {
+	sx := []string{}
+	for k := range m {
+		sx = append(sx, k)
+	}
+	return sx
 }
-
-const (
-	// Dropped indicates we dropped the query before any handling. It has no closing dot, so it can not be a valid zone.
-	Dropped   = "dropped"
-	subsystem = "dns"
-	path      = "/metrics"
-)

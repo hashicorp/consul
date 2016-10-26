@@ -55,3 +55,5 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	return 0, nil
 }
+
+func (wh Whoami) Name() string { return "whoami" }

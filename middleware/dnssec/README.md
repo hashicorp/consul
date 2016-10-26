@@ -34,9 +34,14 @@ dnssec [ZONES... ] {
   will be signed with all keys. Generating a key can be done with `dnssec-keygen`: `dnssec-keygen -a
   ECDSAP256SHA256 <zonename>`. A key created for zone *A* can be safely used for zone *B*.
 
-
 * `cache_capacity` indicates the capacity of the LRU cache. The dnssec middleware uses LRU cache to manage
   objects and the default capacity is 10000.
 
+## Metrics
+
+If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+
+* coredns_dnssec_size_guage{type} - total elements in the cache, type is "signature".
+* coredns_dnssec_capacity_guage{type} - total capacity of the cache, type is "signature".
 
 ## Examples

@@ -36,7 +36,8 @@ TODO(miek): text here on how to hook up middleware.
 ## Metrics
 
 When exporting metrics the *Namespace* should be `middleware.Namespace` (="coredns"), and the
-*Subsystem* should be the name of the middleware.
+*Subsystem* should be the name of the middleware. The README.md for the middleware should then
+also contain a *Metrics* section detailing the metrics.
 
 ## Documentation
 

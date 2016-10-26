@@ -32,6 +32,9 @@ func setup(c *caddy.Controller) error {
 		return New(zones, keys, next, cache)
 	})
 
+	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.
+	cacheCapacity.WithLabelValues("signature").Set(float64(capacity))
+
 	return nil
 }
 

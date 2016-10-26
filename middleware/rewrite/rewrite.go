@@ -52,6 +52,8 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	return rw.Next.ServeDNS(ctx, w, r)
 }
 
+func (rw Rewrite) Name() string { return "rewrite" }
+
 // Rule describes an internal location rewrite rule.
 type Rule interface {
 	// Rewrite rewrites the internal location of the current request.

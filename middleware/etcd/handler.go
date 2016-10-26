@@ -117,6 +117,8 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return dns.RcodeSuccess, nil
 }
 
+func (e *Etcd) Name() string { return "etcd" }
+
 // Err write an error response to the client.
 func (e *Etcd) Err(zone string, rcode int, state request.Request, debug []msg.Service, err error, opt Options) (int, error) {
 	m := new(dns.Msg)
