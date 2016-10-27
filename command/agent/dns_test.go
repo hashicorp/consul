@@ -1733,7 +1733,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	serverClientTimeout := 3 * time.Second
 	testClientTimeout := serverClientTimeout + 5*time.Second
 
-	resolverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:9999")
+	resolverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Error(err)
 	}
@@ -1742,6 +1742,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer resolver.Close()
 
 	dir, srv := makeDNSServerConfig(t, func(c *Config) {
 		c.DNSRecursor = resolver.LocalAddr().String() // host must cause a connection|read|write timeout
