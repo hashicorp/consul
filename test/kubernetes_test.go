@@ -19,22 +19,22 @@ var testdataLookupA = []struct {
 	ARecordCount     int
 }{
 	// Matching queries
-	{"mynginx.demo.coredns.local.", 1, 1}, // One A record, should exist
+	{"mynginx.demo.svc.coredns.local.", 1, 1}, // One A record, should exist
 
 	// Failure queries
-	{"mynginx.test.coredns.local.", 0, 0},                     // One A record, is not exposed
-	{"someservicethatdoesnotexist.demo.coredns.local.", 0, 0}, // Record does not exist
+	{"mynginx.test.svc.coredns.local.", 0, 0},                     // One A record, is not exposed
+	{"someservicethatdoesnotexist.demo.svc.coredns.local.", 0, 0}, // Record does not exist
 
 	// Namespace wildcards
-	{"mynginx.*.coredns.local.", 1, 1},                       // One A record, via wildcard namespace
-	{"mynginx.any.coredns.local.", 1, 1},                     // One A record, via wildcard namespace
-	{"someservicethatdoesnotexist.*.coredns.local.", 0, 0},   // Record does not exist with wildcard for namespace
-	{"someservicethatdoesnotexist.any.coredns.local.", 0, 0}, // Record does not exist with wildcard for namespace
-	{"*.demo.coredns.local.", 2, 2},                          // Two A records, via wildcard
-	{"any.demo.coredns.local.", 2, 2},                        // Two A records, via wildcard
-	{"*.test.coredns.local.", 0, 0},                          // Two A record, via wildcard that is not exposed
-	{"any.test.coredns.local.", 0, 0},                        // Two A record, via wildcard that is not exposed
-	{"*.*.coredns.local.", 2, 2},                             // Two A records, via namespace and service wildcard
+	{"mynginx.*.svc.coredns.local.", 1, 1},                       // One A record, via wildcard namespace
+	{"mynginx.any.svc.coredns.local.", 1, 1},                     // One A record, via wildcard namespace
+	{"someservicethatdoesnotexist.*.svc.coredns.local.", 0, 0},   // Record does not exist with wildcard for namespace
+	{"someservicethatdoesnotexist.any.svc.coredns.local.", 0, 0}, // Record does not exist with wildcard for namespace
+	{"*.demo.svc.coredns.local.", 2, 2},                          // Two A records, via wildcard
+	{"any.demo.svc.coredns.local.", 2, 2},                        // Two A records, via wildcard
+	{"*.test.svc.coredns.local.", 0, 0},                          // Two A record, via wildcard that is not exposed
+	{"any.test.svc.coredns.local.", 0, 0},                        // Two A record, via wildcard that is not exposed
+	{"*.*.svc.coredns.local.", 2, 2},                             // Two A records, via namespace and service wildcard
 }
 
 // Test data for SRV records
@@ -45,22 +45,22 @@ var testdataLookupSRV = []struct {
 	SRVRecordCount int
 }{
 	// Matching queries
-	{"mynginx.demo.coredns.local.", 1, 1}, // One SRV record, should exist
+	{"mynginx.demo.svc.coredns.local.", 1, 1}, // One SRV record, should exist
 
 	// Failure queries
-	{"mynginx.test.coredns.local.", 0, 0},                     // One SRV record, is not exposed
-	{"someservicethatdoesnotexist.demo.coredns.local.", 0, 0}, // Record does not exist
+	{"mynginx.test.svc.coredns.local.", 0, 0},                     // One SRV record, is not exposed
+	{"someservicethatdoesnotexist.demo.svc.coredns.local.", 0, 0}, // Record does not exist
 
 	// Namespace wildcards
-	{"mynginx.*.coredns.local.", 1, 1},                       // One SRV record, via wildcard namespace
-	{"mynginx.any.coredns.local.", 1, 1},                     // One SRV record, via wildcard namespace
-	{"someservicethatdoesnotexist.*.coredns.local.", 0, 0},   // Record does not exist with wildcard for namespace
-	{"someservicethatdoesnotexist.any.coredns.local.", 0, 0}, // Record does not exist with wildcard for namespace
-	{"*.demo.coredns.local.", 2, 2},                          // Two (mynginx, webserver) SRV record, via wildcard
-	{"any.demo.coredns.local.", 2, 2},                        // Two (mynginx, webserver) SRV record, via wildcard
-	{"*.test.coredns.local.", 0, 0},                          // One SRV record, via wildcard that is not exposed
-	{"any.test.coredns.local.", 0, 0},                        // One SRV record, via wildcard that is not exposed
-	{"*.*.coredns.local.", 2, 2},                             // Two SRV record, via namespace and service wildcard
+	{"mynginx.*.svc.coredns.local.", 1, 1},                       // One SRV record, via wildcard namespace
+	{"mynginx.any.svc.coredns.local.", 1, 1},                     // One SRV record, via wildcard namespace
+	{"someservicethatdoesnotexist.*.svc.coredns.local.", 0, 0},   // Record does not exist with wildcard for namespace
+	{"someservicethatdoesnotexist.any.svc.coredns.local.", 0, 0}, // Record does not exist with wildcard for namespace
+	{"*.demo.svc.coredns.local.", 2, 2},                          // Two (mynginx, webserver) SRV record, via wildcard
+	{"any.demo.svc.coredns.local.", 2, 2},                        // Two (mynginx, webserver) SRV record, via wildcard
+	{"*.test.svc.coredns.local.", 0, 0},                          // One SRV record, via wildcard that is not exposed
+	{"any.test.svc.coredns.local.", 0, 0},                        // One SRV record, via wildcard that is not exposed
+	{"*.*.svc.coredns.local.", 2, 2},                             // Two SRV record, via namespace and service wildcard
 }
 
 func TestKubernetesIntegration(t *testing.T) {
