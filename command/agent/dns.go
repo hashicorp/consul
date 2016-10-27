@@ -50,7 +50,7 @@ func (d *DNSServer) Shutdown() {
 
 // NewDNSServer starts a new DNS server to provide an agent interface
 func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
-	// Make sure domain is FQDN, make it case insensitive
+	// Make sure domain is FQDN, make it case insensitive for ServeMux
 	domain = dns.Fqdn(strings.ToLower(domain))
 
 	// Construct the DNS components
