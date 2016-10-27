@@ -100,4 +100,5 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	return dns.RcodeSuccess, nil
 }
 
+// Name implements the Handler interface.
 func (a Auto) Name() string { return "auto" }

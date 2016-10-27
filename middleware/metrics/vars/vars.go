@@ -6,6 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// Request* and Reponse* are the prometheus counters and gauges we are using for exporting metrics.
 var (
 	RequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: middleware.Namespace,

@@ -61,7 +61,7 @@ var requiredSymbols = []string{
 //		 symbol consumes the other segments. Most likely this would be the servicename.
 //		 Also consider how to handle static strings in the format template.
 
-// TODO(infoblox): docs
+// Template holds the kubernetes template.
 type Template struct {
 	formatString string
 	splitFormat  []string
@@ -69,7 +69,7 @@ type Template struct {
 	Element map[string]int
 }
 
-// TODO(infoblox): docs
+// SetTemplate use the string s the set the template.
 func (t *Template) SetTemplate(s string) error {
 	var err error
 
@@ -185,7 +185,8 @@ func (t *Template) IsValid() bool {
 	return result
 }
 
-// TODO(infoblox): what's this?
+// NameValues contains a number of values.
+// TODO(...): better docs.
 type NameValues struct {
 	ServiceName string
 	Namespace   string

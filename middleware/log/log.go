@@ -64,6 +64,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	return l.Next.ServeDNS(ctx, w, r)
 }
 
+// Name implements the Handler interface.
 func (l Logger) Name() string { return "log" }
 
 // Rule configures the logging middleware.

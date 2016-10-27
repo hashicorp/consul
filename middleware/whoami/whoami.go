@@ -56,4 +56,5 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	return 0, nil
 }
 
+// Name implements the Handler interface.
 func (wh Whoami) Name() string { return "whoami" }

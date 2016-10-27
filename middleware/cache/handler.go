@@ -37,6 +37,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	return c.Next.ServeDNS(ctx, crr, r)
 }
 
+// Name implements the Handler interface.
 func (c *Cache) Name() string { return "cache" }
 
 func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {

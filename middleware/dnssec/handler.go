@@ -55,6 +55,7 @@ var (
 	}, []string{"type"})
 )
 
+// Name implements the Handler interface.
 func (d Dnssec) Name() string { return "dnssec" }
 
 const subsystem = "dnssec"

@@ -87,4 +87,5 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 
 var metricsOnce sync.Once
 
+// Addr is the address the where the metrics are exported by default.
 const Addr = "localhost:9153"

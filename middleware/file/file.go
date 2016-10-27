@@ -110,6 +110,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	return dns.RcodeSuccess, nil
 }
 
+// Name implements the Handler interface.
 func (f File) Name() string { return "file" }
 
 // Parse parses the zone in filename and returns a new Zone or an error.

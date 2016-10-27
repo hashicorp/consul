@@ -292,4 +292,5 @@ func (f HandlerFunc) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	return f(ctx, w, r)
 }
 
+// Name implements the Handler interface.
 func (f HandlerFunc) Name() string { return "handlerfunc" }

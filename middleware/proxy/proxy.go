@@ -102,6 +102,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return p.Next.ServeDNS(ctx, w, r)
 }
 
+// Name implements the Handler interface.
 func (p Proxy) Name() string { return "proxy" }
 
 // defaultTimeout is the default networking timeout for DNS requests.

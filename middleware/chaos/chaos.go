@@ -51,6 +51,7 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return 0, nil
 }
 
+// Name implements the Handler interface.
 func (c Chaos) Name() string { return "chaos" }
 
 func trim(s string) string {
