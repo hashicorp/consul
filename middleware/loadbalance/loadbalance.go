@@ -28,6 +28,7 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 func roundRobin(in []dns.RR) []dns.RR {
 	cname := []dns.RR{}
 	address := []dns.RR{}
+	mx := []dns.RR{}
 	rest := []dns.RR{}
 	for _, r := range in {
 		switch r.Header().Rrtype {
@@ -35,17 +36,29 @@ func roundRobin(in []dns.RR) []dns.RR {
 			cname = append(cname, r)
 		case dns.TypeA, dns.TypeAAAA:
 			address = append(address, r)
+		case dns.TypeMX:
+			mx = append(mx, r)
 		default:
 			rest = append(rest, r)
 		}
 	}
 
-	switch l := len(address); l {
+	roundRobinShuffle(address)
+	roundRobinShuffle(mx)
+
+	out := append(cname, rest...)
+	out = append(out, address...)
+	out = append(out, mx...)
+	return out
+}
+
+func roundRobinShuffle(records []dns.RR) {
+	switch l := len(records); l {
 	case 0, 1:
 		break
 	case 2:
 		if dns.Id()%2 == 0 {
-			address[0], address[1] = address[1], address[0]
+			records[0], records[1] = records[1], records[0]
 		}
 	default:
 		for j := 0; j < l*(int(dns.Id())%4+1); j++ {
@@ -54,12 +67,9 @@ func roundRobin(in []dns.RR) []dns.RR {
 			if q == p {
 				p = (p + 1) % l
 			}
-			address[q], address[p] = address[p], address[q]
+			records[q], records[p] = records[p], records[q]
 		}
 	}
-	out := append(cname, rest...)
-	out = append(out, address...)
-	return out
 }
 
 // Write implements the dns.ResponseWriter interface.
