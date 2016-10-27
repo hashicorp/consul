@@ -18,7 +18,7 @@ BUG FIXES:
 * agent: Fixed a Go race issue with log buffering at startup. [GH-2262]
 * agent: Fixed a panic during anti-entropy sync for services and checks. [GH-2125]
 * agent: Fixed an issue on Windows where "wsarecv" errors were logged when CLI commands accessed the RPC interface. [GH-2356]
-* dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records [GH-1228]
+* dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * server: Fixed the port numbers in the sample JSON inside peers.info. [GH-2391]
 
 ## 0.7.0 (September 14, 2016)
