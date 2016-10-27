@@ -50,8 +50,8 @@ func (d *DNSServer) Shutdown() {
 
 // NewDNSServer starts a new DNS server to provide an agent interface
 func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
-	// Make sure domain is FQDN
-	domain = dns.Fqdn(domain)
+	// Make sure domain is FQDN, make it case insensitive for ServeMux
+	domain = dns.Fqdn(strings.ToLower(domain))
 
 	// Construct the DNS components
 	mux := dns.NewServeMux()
@@ -877,6 +877,19 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(name string) []dns.RR {
+	// If the CNAME record points to a Consul address, resolve it internally
+	// Convert query to lowercase because DNS is case insensitive; d.domain is
+	// already converted
+	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
+		req := &dns.Msg{}
+		resp := &dns.Msg{}
+
+		req.SetQuestion(name, dns.TypeANY)
+		d.dispatch("udp", req, resp)
+
+		return resp.Answer
+	}
+
 	// Do nothing if we don't have a recursor
 	if len(d.recursors) == 0 {
 		return nil
