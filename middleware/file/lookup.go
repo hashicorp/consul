@@ -26,13 +26,31 @@ const (
 // Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
 func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	if qtype == dns.TypeSOA {
+		if !z.NoReload {
+			z.reloadMu.RLock()
+		}
 		return z.lookupSOA(do)
+		if !z.NoReload {
+			z.reloadMu.RUnlock()
+		}
 	}
 	if qtype == dns.TypeNS && qname == z.origin {
+		if !z.NoReload {
+			z.reloadMu.RLock()
+		}
 		return z.lookupNS(do)
+		if !z.NoReload {
+			z.reloadMu.RUnlock()
+		}
 	}
 
+	if !z.NoReload {
+		z.reloadMu.RLock()
+	}
 	elem, res := z.Tree.Search(qname, qtype)
+	if !z.NoReload {
+		z.reloadMu.RUnlock()
+	}
 	if elem == nil {
 		if res == tree.EmptyNonTerminal {
 			return z.emptyNonTerminal(qname, do)

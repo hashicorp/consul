@@ -163,22 +163,24 @@ func (z *Zone) Reload() error {
 			select {
 			case event := <-watcher.Events:
 				if event.Op == fsnotify.Write && path.Clean(event.Name) == z.file {
+
 					reader, err := os.Open(z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
 						continue
 					}
-					z.reloadMu.Lock()
 					zone, err := Parse(reader, z.origin, z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to parse `%s': %v", z.origin, err)
-						z.reloadMu.Unlock()
 						continue
 					}
+
 					// copy elements we need
+					z.reloadMu.Lock()
 					z.Apex = zone.Apex
 					z.Tree = zone.Tree
 					z.reloadMu.Unlock()
+
 					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)
 					z.Notify()
 				}
