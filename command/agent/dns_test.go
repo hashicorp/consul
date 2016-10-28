@@ -1062,7 +1062,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 	}
 }
 
-func TestDNS_ServiceLookup_ServiceAddressIPv6(t *testing.T) {
+func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3490,6 +3490,85 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	}
 	if len(in.Answer) != 0 {
 		t.Fatalf("Bad: %#v", in)
+	}
+}
+
+func TestDNS_AddressLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Look up the addresses
+	cases := map[string]string{
+		"7f000001.addr.dc1.consul.": "127.0.0.1",
+	}
+	for question, answer := range cases {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.To4().String() != answer {
+			t.Fatalf("Bad: %#v", aRec)
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+}
+
+func TestDNS_AddressLookupIPV6(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Look up the addresses
+	cases := map[string]string{
+		"2607002040050808000000000000200e.addr.consul.": "2607:20:4005:808::200e",
+		"2607112040051808ffffffffffff200e.addr.consul.": "2607:1120:4005:1808:ffff:ffff:ffff:200e",
+	}
+	for question, answer := range cases {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aaaaRec, ok := in.Answer[0].(*dns.AAAA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aaaaRec.AAAA.To16().String() != answer {
+			t.Fatalf("Bad: %#v", aaaaRec)
+		}
+		if aaaaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
 	}
 }
 
