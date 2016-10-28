@@ -13,7 +13,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	met := &Metrics{Addr: Addr, zoneMap: make(map[string]bool)}
+	met := &Metrics{Addr: "localhost:0", zoneMap: make(map[string]bool)}
 	if err := met.OnStartup(); err != nil {
 		t.Fatalf("Failed to start metrics handler: %s", err)
 	}
@@ -71,7 +71,7 @@ func TestMetrics(t *testing.T) {
 			t.Fatalf("Test %d: Expected no error, but got %s", i, err)
 		}
 
-		result := mtest.Scrape(t, "http://"+Addr+"/metrics")
+		result := mtest.Scrape(t, "http://"+ListenAddr+"/metrics")
 
 		if tc.expectedValue != "" {
 			got, _ := mtest.MetricValue(tc.metric, result)

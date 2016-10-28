@@ -38,7 +38,7 @@ func setup(c *caddy.Controller) error {
 
 func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var (
-		met = &Metrics{Addr: Addr, zoneMap: make(map[string]bool)}
+		met = &Metrics{Addr: addr, zoneMap: make(map[string]bool)}
 		err error
 	)
 
@@ -88,4 +88,4 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 var metricsOnce sync.Once
 
 // Addr is the address the where the metrics are exported by default.
-const Addr = "localhost:9153"
+const addr = "localhost:9153"

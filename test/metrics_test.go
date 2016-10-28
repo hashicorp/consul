@@ -20,12 +20,12 @@ import (
 func TestMetricsServer(t *testing.T) {
 	corefile := `example.org:0 {
 	chaos CoreDNS-001 miek@miek.nl
-	prometheus
+	prometheus localhost:0
 }
 
 example.com:0 {
 	proxy . 8.8.4.4:53
-	prometheus
+	prometheus localhost:0
 }
 `
 	srv, err := CoreDNSServer(corefile)
@@ -40,7 +40,7 @@ func TestMetricsRefused(t *testing.T) {
 
 	corefile := `example.org:0 {
 	proxy . 8.8.8.8:53
-	prometheus
+	prometheus localhost:0
 }
 `
 	srv, err := CoreDNSServer(corefile)
@@ -58,7 +58,7 @@ func TestMetricsRefused(t *testing.T) {
 		t.Fatalf("Could not send message: %s", err)
 	}
 
-	data := mtest.Scrape(t, "http://"+metrics.Addr+"/metrics")
+	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	got, labels := mtest.MetricValue(metricName, data)
 
 	if got != "1" {
@@ -77,7 +77,7 @@ func TestMetricsCache(t *testing.T) {
 
 	corefile := `example.net:0 {
 	proxy . 8.8.8.8:53
-	prometheus
+	prometheus localhost:0
 	cache
 }
 `
@@ -96,7 +96,7 @@ func TestMetricsCache(t *testing.T) {
 		t.Fatalf("Could not send message: %s", err)
 	}
 
-	data := mtest.Scrape(t, "http://"+metrics.Addr+"/metrics")
+	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	// Get the value for the metrics where the one of the labels values matches "success"
 	got, _ := mtest.MetricValueLabel(metricName, cache.Success, data)
 
@@ -111,12 +111,11 @@ func TestMetricsAuto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO(miek): Random port as string and use that later?
 	corefile := `org:0 {
 		auto {
 			directory ` + tmpdir + ` db\.(.*) {1} 1
 		}
-		prometheus
+		prometheus localhost:0
 	}
 `
 
@@ -149,7 +148,7 @@ func TestMetricsAuto(t *testing.T) {
 
 	metricName := "coredns_dns_request_count_total" //{zone, proto, family}
 
-	data := mtest.Scrape(t, "http://"+metrics.Addr+"/metrics")
+	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	// Get the value for the metrics where the one of the labels values matches "example.org."
 	got, _ := mtest.MetricValueLabel(metricName, "example.org.", data)
 
@@ -164,7 +163,7 @@ func TestMetricsAuto(t *testing.T) {
 		t.Fatalf("Could not send message: %s", err)
 	}
 
-	data = mtest.Scrape(t, "http://"+metrics.Addr+"/metrics")
+	data = mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	got, _ = mtest.MetricValueLabel(metricName, "example.org.", data)
 
 	if got != "1" {

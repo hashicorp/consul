@@ -61,6 +61,7 @@ func (m *Metrics) OnStartup() error {
 		}
 
 		m.ln = ln
+		ListenAddr = m.ln.Addr().String()
 
 		m.mux = http.NewServeMux()
 
@@ -97,3 +98,7 @@ func keys(m map[string]bool) []string {
 	}
 	return sx
 }
+
+// ListenAddr is assigned the address of the prometheus listener. Its use is mainly in tests where
+// we listen on "localhost:0" and need to retrieve the actual address.
+var ListenAddr string
