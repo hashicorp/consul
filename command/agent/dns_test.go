@@ -1039,7 +1039,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "foo.node.dc1.consul." {
+		if srvRec.Target != "7f000002.addr.dc1.consul." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
@@ -1050,7 +1050,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Name != "foo.node.dc1.consul." {
+		if aRec.Hdr.Name != "7f000002.addr.dc1.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.A.String() != "127.0.0.2" {
@@ -1157,7 +1157,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Name != "foo.node.dc2.consul." {
+		if aRec.Hdr.Name != "7f000002.addr.dc2.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.A.String() != "127.0.0.2" {
@@ -3193,7 +3193,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if srv.Target != "foo.node.dc2.consul." {
+	if srv.Target != "7f000002.addr.dc2.consul." {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 
@@ -3201,7 +3201,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
-	if a.Hdr.Name != "foo.node.dc2.consul." {
+	if a.Hdr.Name != "7f000002.addr.dc2.consul." {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 	if a.A.String() != "127.0.0.2" {
