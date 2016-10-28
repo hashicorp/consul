@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -356,6 +357,46 @@ PARSE:
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(labels[:n-1], ".")
 		d.preparedQueryLookup(network, datacenter, query, req, resp)
+
+	case "addr":
+		if n < 2 {
+			goto INVALID
+		}
+
+		switch len(labels[0]) / 2 {
+		// IPv4
+		case 4:
+			ip, err := hex.DecodeString(labels[0])
+			if err != nil {
+				goto INVALID
+			}
+
+			resp.Answer = append(resp.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				A: ip,
+			})
+		// IPv6
+		case 16:
+			ip, err := hex.DecodeString(labels[0])
+			if err != nil {
+				goto INVALID
+			}
+
+			resp.Answer = append(resp.Answer, &dns.AAAA{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				AAAA: ip,
+			})
+		}
 
 	default:
 		// Store the DC, and re-parse
@@ -820,8 +861,32 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 
 		// Add the extra record
 		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
+
 		if records != nil {
-			resp.Extra = append(resp.Extra, records...)
+			// Use the node address if it doesn't differ from the service address
+			if addr == node.Node.Address {
+				resp.Extra = append(resp.Extra, records...)
+			} else {
+				// If it differs from the service address, give a special response in the
+				// 'addr.consul' domain with the service IP encoded in it. We have to do
+				// this because we can't put an IP in the target field of an SRV record.
+				switch record := records[0].(type) {
+				// IPv4
+				case *dns.A:
+					addr := hex.EncodeToString(record.A)
+
+					// Take the last 8 chars (4 bytes) of the encoded address to avoid junk bytes
+					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", addr[len(addr)-(net.IPv4len*2):], dc, d.domain)
+					record.Hdr.Name = srvRec.Target
+					resp.Extra = append(resp.Extra, record)
+
+				// IPv6
+				case *dns.AAAA:
+					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(record.AAAA), dc, d.domain)
+					record.Hdr.Name = srvRec.Target
+					resp.Extra = append(resp.Extra, record)
+				}
+			}
 		}
 	}
 }
