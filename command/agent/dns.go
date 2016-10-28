@@ -359,7 +359,7 @@ PARSE:
 		d.preparedQueryLookup(network, datacenter, query, req, resp)
 
 	case "addr":
-		if n < 2 {
+		if n != 2 {
 			goto INVALID
 		}
 
