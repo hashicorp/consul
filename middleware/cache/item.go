@@ -8,6 +8,7 @@ import (
 )
 
 type item struct {
+	Rcode              int
 	Authoritative      bool
 	AuthenticatedData  bool
 	RecursionAvailable bool
@@ -21,6 +22,7 @@ type item struct {
 
 func newItem(m *dns.Msg, d time.Duration) *item {
 	i := new(item)
+	i.Rcode = m.Rcode
 	i.Authoritative = m.Authoritative
 	i.AuthenticatedData = m.AuthenticatedData
 	i.RecursionAvailable = m.RecursionAvailable
@@ -45,12 +47,15 @@ func newItem(m *dns.Msg, d time.Duration) *item {
 }
 
 // toMsg turns i into a message, it tailers the reply to m.
+// The Autoritative bit is always set to 0, because the answer is from the cache.
 func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1 := new(dns.Msg)
 	m1.SetReply(m)
-	m1.Authoritative = i.Authoritative
+
+	m1.Authoritative = false
 	m1.AuthenticatedData = i.AuthenticatedData
 	m1.RecursionAvailable = i.RecursionAvailable
+	m1.Rcode = i.Rcode
 	m1.Compress = true
 
 	m1.Answer = i.Answer

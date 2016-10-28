@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"io/ioutil"
+	"log"
 	"testing"
 	"time"
 
@@ -64,12 +66,30 @@ var cacheTestCases = []cacheTestCase{
 		},
 		in: test.Case{},
 	},
+	{
+		RecursionAvailable: true, Authoritative: true,
+		Case: test.Case{
+			Rcode: dns.RcodeNameError,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{
+				test.SOA("example.org. 3600 IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016082540 7200 3600 1209600 3600"),
+			},
+		},
+		in: test.Case{
+			Rcode: dns.RcodeNameError,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{
+				test.SOA("example.org. 3600 IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016082540 7200 3600 1209600 3600"),
+			},
+		},
+	},
 }
 
 func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 	m.RecursionAvailable = tc.RecursionAvailable
 	m.AuthenticatedData = tc.AuthenticatedData
 	m.Authoritative = tc.Authoritative
+	m.Rcode = tc.Rcode
 	m.Truncated = tc.Truncated
 	m.Answer = tc.in.Answer
 	m.Ns = tc.in.Ns
@@ -88,6 +108,8 @@ func newTestCache(ttl time.Duration) (*Cache, *ResponseWriter) {
 
 func TestCache(t *testing.T) {
 	c, crr := newTestCache(maxTTL)
+
+	log.SetOutput(ioutil.Discard)
 
 	for _, tc := range cacheTestCases {
 		m := tc.in.Msg()
