@@ -49,7 +49,7 @@ example.net:0 {
 		t.Fatal("Expected to receive reply, but didn't")
 	}
 	if len(resp.Answer) != 2 {
-		t.Fatal("Expected two RR in answer section got %d", len(resp.Answer))
+		t.Fatalf("Expected two RR in answer section got %d", len(resp.Answer))
 	}
 
 	// Remove RR from the Apex
@@ -63,7 +63,7 @@ example.net:0 {
 	}
 
 	if len(resp.Answer) != 1 {
-		t.Fatal("Expected two RR in answer section got %d", len(resp.Answer))
+		t.Fatalf("Expected two RR in answer section got %d", len(resp.Answer))
 	}
 }
 
