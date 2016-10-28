@@ -29,28 +29,36 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		if !z.NoReload {
 			z.reloadMu.RLock()
 		}
-		return z.lookupSOA(do)
+
+		r1, r2, r3, res := z.lookupSOA(do)
+
 		if !z.NoReload {
 			z.reloadMu.RUnlock()
 		}
+		return r1, r2, r3, res
 	}
 	if qtype == dns.TypeNS && qname == z.origin {
 		if !z.NoReload {
 			z.reloadMu.RLock()
 		}
-		return z.lookupNS(do)
+
+		r1, r2, r3, res := z.lookupNS(do)
+
 		if !z.NoReload {
 			z.reloadMu.RUnlock()
 		}
+		return r1, r2, r3, res
 	}
 
 	if !z.NoReload {
 		z.reloadMu.RLock()
 	}
+
 	elem, res := z.Tree.Search(qname, qtype)
 	if !z.NoReload {
 		z.reloadMu.RUnlock()
 	}
+
 	if elem == nil {
 		if res == tree.EmptyNonTerminal {
 			return z.emptyNonTerminal(qname, do)

@@ -123,8 +123,10 @@ func (z *Zone) TransferAllowed(req request.Request) bool {
 // All returns all records from the zone, the first record will be the SOA record,
 // otionally followed by all RRSIG(SOA)s.
 func (z *Zone) All() []dns.RR {
-	z.reloadMu.RLock()
-	defer z.reloadMu.RUnlock()
+	if !z.NoReload {
+		z.reloadMu.RLock()
+		defer z.reloadMu.RUnlock()
+	}
 
 	records := []dns.RR{}
 	allNodes := z.Tree.All()
@@ -162,7 +164,9 @@ func (z *Zone) Reload() error {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if event.Op == fsnotify.Write && path.Clean(event.Name) == z.file {
+				// Looks for Write and Create events. Write is obvious, Create is used when
+				// a file in mv-ed into this place.
+				if (event.Op == fsnotify.Write || event.Op == fsnotify.Create) && path.Clean(event.Name) == z.file {
 
 					reader, err := os.Open(z.file)
 					if err != nil {
