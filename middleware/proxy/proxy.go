@@ -74,6 +74,9 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		for time.Now().Sub(start) < tryDuration {
 			host := upstream.Select()
 			if host == nil {
+
+				RequestDuration.WithLabelValues(upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+
 				return dns.RcodeServerFailure, errUnreachable
 			}
 
@@ -85,6 +88,9 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 			if backendErr == nil {
 				w.WriteMsg(reply)
+
+				RequestDuration.WithLabelValues(upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+
 				return 0, nil
 			}
 			timeout := host.FailTimeout
@@ -97,6 +103,9 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				atomic.AddInt32(&host.Fails, -1)
 			}(host, timeout)
 		}
+
+		RequestDuration.WithLabelValues(upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+
 		return dns.RcodeServerFailure, errUnreachable
 	}
 	return p.Next.ServeDNS(ctx, w, r)

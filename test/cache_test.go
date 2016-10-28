@@ -13,8 +13,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-// This tests uses the exampleOrg zone as defined in proxy_test.go
-
 func TestLookupCache(t *testing.T) {
 	// Start auth. CoreDNS holding the auth zone.
 	name, rm, err := test.TempFile(".", exampleOrg)

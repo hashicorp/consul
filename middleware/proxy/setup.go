@@ -23,5 +23,7 @@ func setup(c *caddy.Controller) error {
 		return Proxy{Next: next, Client: newClient(), Upstreams: upstreams}
 	})
 
+	c.OnStartup(OnStartup)
+
 	return nil
 }

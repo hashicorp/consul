@@ -48,6 +48,15 @@ There are three load-balancing policies available:
 All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
 available. This is to preeempt the case where the healthchecking (as a mechanism) fails.
 
+## Metrics
+
+If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
+
+* coredns_proxy_request_count_total{zone, proto, family}
+
+This has some overlap with `coredns_dns_request_count_total{zone, proto, family}`, but allows for
+specifics on upstream query resolving. See the *prometheus* documentation for more details.
+
 ## Examples
 
 Proxy all requests within example.org. to a backend system:
