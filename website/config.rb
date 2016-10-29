@@ -34,4 +34,13 @@ helpers do
 
     "Consul by HashiCorp"
   end
+
+  # Get the description for the page
+  #
+  # @param [Middleman::Page] page
+  #
+  # @return [String]
+  def description_for(page)
+    return escape_html(page.data.description || "")
+  end
 end

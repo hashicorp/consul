@@ -1,32 +1,31 @@
-Consul Website
-==============
+# Consul Website
 
-This subdirectory contains the entire source for the [Consul Website](https://www.consul.io). This is a [Middleman](http://middlemanapp.com) project, which builds a static site from these source files.
+This subdirectory contains the entire source for the
+[Consul Website](https://www.consul.io/). This is a
+[Middleman](http://middlemanapp.com) project, which builds a static site from
+these source files.
 
-Contributions Welcome!
-----------------------
+## Contributions Welcome!
 
-If you find a typo or you feel like you can improve the HTML, CSS, or JavaScript, we welcome contributions. Feel free to open issues or pull requests like any normal GitHub project, and we'll merge it in.
+If you find a typo or you feel like you can improve the HTML, CSS, or
+JavaScript, we welcome contributions. Feel free to open issues or pull
+requests like any normal GitHub project, and we'll merge it in.
 
-Running the Site Locally
-------------------------
+## Running the Site Locally
 
-Running the site locally is simple. Clone this repo and run `make dev`.
+To run the site locally, clone this repository and run:
 
-Then open up `localhost:4567`. Note that some URLs you may need to append ".html" to make them work (in the navigation and such).
-
-Building Site
--------------
-
-Building the static version of the site and running it is simple. Clone this repo and run the following commands:
-
+```shell
+$ make website
 ```
+
+You must have Docker installed for this to work.
+
+Alternatively, you can manually run the website like this:
+
+```shell
 $ bundle
-$ bundle exec middleman build
-$ foreman start
+$ bundle exec middleman server
 ```
 
-Then open up `localhost:5000`.
-
-Alternately, the site can now be deployed to Heroku or Cloud Foundry.
-
+Then open up `http://localhost:4567`.
