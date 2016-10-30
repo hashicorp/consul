@@ -28,17 +28,16 @@ func init() {
 func newEtcdMiddleware() *Etcd {
 	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
 
-	etcdCfg := etcdc.Config{
-		Endpoints: []string{"http://localhost:2379"},
-	}
-	cli, _ := etcdc.New(etcdCfg)
+	endpoints := []string{"http://localhost:2379"}
+	client, _ := newEtcdClient(endpoints, "", "", "")
+
 	return &Etcd{
 		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},
 		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},
-		Client:     etcdc.NewKeysAPI(cli),
+		Client:     client,
 	}
 }
 

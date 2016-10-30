@@ -3,6 +3,7 @@ package kubernetes
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -11,8 +12,9 @@ import (
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
-	dns_strings "github.com/miekg/coredns/middleware/pkg/strings"
+	dnsstrings "github.com/miekg/coredns/middleware/pkg/strings"
 	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"k8s.io/kubernetes/pkg/api"
@@ -39,6 +41,28 @@ type Kubernetes struct {
 	Namespaces    []string
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
+}
+
+// Services implements the ServiceBackend interface.
+func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
+	s, e := k.Records(state.Name(), exact)
+	return s, nil, e // Haven't implemented debug queries yet.
+}
+
+// Lookup implements the ServiceBackend interface.
+func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
+	return k.Proxy.Lookup(state, name, typ)
+}
+
+// IsNameError implements the ServiceBackend interface.
+// TODO(infoblox): implement!
+func (k *Kubernetes) IsNameError(err error) bool {
+	return false
+}
+
+// Debug implements the ServiceBackend interface.
+func (k *Kubernetes) Debug() string {
+	return "debug"
 }
 
 func (k *Kubernetes) getClientConfig() (*restclient.Config, error) {
@@ -73,7 +97,6 @@ func (k *Kubernetes) getClientConfig() (*restclient.Config, error) {
 }
 
 // InitKubeCache initializes a new Kubernetes cache.
-// TODO(miek): is this correct?
 func (k *Kubernetes) InitKubeCache() error {
 
 	config, err := k.getClientConfig()
@@ -83,21 +106,24 @@ func (k *Kubernetes) InitKubeCache() error {
 
 	kubeClient, err := clientset_generated.NewForConfig(config)
 	if err != nil {
-		log.Printf("[ERROR] Failed to create kubernetes notification controller: %v", err)
-		return err
+		return fmt.Errorf("Failed to create kubernetes notification controller: %v", err)
 	}
-	if k.LabelSelector == nil {
-		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be performed.")
-	} else {
+
+	if k.LabelSelector != nil {
 		var selector labels.Selector
 		selector, err = unversionedapi.LabelSelectorAsSelector(k.LabelSelector)
 		k.Selector = &selector
 		if err != nil {
-			log.Printf("[ERROR] Unable to create Selector for LabelSelector '%s'.Error was: %s", k.LabelSelector, err)
-			return err
+			return fmt.Errorf("Unable to create Selector for LabelSelector '%s'.Error was: %s", k.LabelSelector, err)
 		}
+	}
+
+	if k.LabelSelector == nil {
+		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be performed.")
+	} else {
 		log.Printf("[INFO] Kubernetes middleware configured with the label selector '%s'. Only kubernetes objects matching this label selector will be exposed.", unversionedapi.FormatLabelSelector(k.LabelSelector))
 	}
+
 	k.APIConn = newdnsController(kubeClient, k.ResyncPeriod, k.Selector)
 
 	return err
@@ -125,12 +151,11 @@ func (k *Kubernetes) getZoneForName(name string) (string, []string) {
 	return zone, serviceSegments
 }
 
-// Records looks up services in kubernetes.
-// If exact is true, it will lookup just
-// this name. This is used when find matches when completing SRV lookups
+// Records looks up services in kubernetes. If exact is true, it will lookup
+// just this name. This is used when find matches when completing SRV lookups
 // for instance.
 func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
-	// TODO: refector this.
+	// TODO: refactor this.
 	// Right now NamespaceFromSegmentArray do not supports PRE queries
 	ip := dnsutil.ExtractAddressFromReverse(name)
 	if ip != "" {
@@ -169,7 +194,7 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
-	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(namespace, k.Namespaces)) {
+	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(namespace, k.Namespaces)) {
 		return nil, nil
 	}
 
@@ -219,7 +244,7 @@ func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, 
 		if symbolMatches(namespace, item.Namespace, nsWildcard) && symbolMatches(servicename, item.Name, serviceWildcard) {
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
-			if nsWildcard && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(item.Namespace, k.Namespaces)) {
+			if nsWildcard && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(item.Namespace, k.Namespaces)) {
 				continue
 			}
 			resultItems = append(resultItems, item)
@@ -240,11 +265,6 @@ func symbolMatches(queryString string, candidateString string, wildcard bool) bo
 		result = true
 	}
 	return result
-}
-
-// kubernetesNameError checks if the error is ErrorCodeKeyNotFound from kubernetes.
-func isKubernetesNameError(err error) bool {
-	return false
 }
 
 func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {

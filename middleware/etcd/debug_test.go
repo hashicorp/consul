@@ -31,7 +31,7 @@ func TestIsDebug(t *testing.T) {
 
 func TestDebugLookup(t *testing.T) {
 	etc := newEtcdMiddleware()
-	etc.Debug = true
+	etc.Debugging = true
 
 	for _, serv := range servicesDebug {
 		set(t, etc, serv.Key, 0, serv)

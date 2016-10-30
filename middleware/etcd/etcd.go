@@ -11,8 +11,10 @@ import (
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/miekg/coredns/request"
 
 	etcdc "github.com/coreos/etcd/client"
+	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
@@ -26,17 +28,47 @@ type Etcd struct {
 	Ctx        context.Context
 	Inflight   *singleflight.Group
 	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
-	Debug      bool                    // Do we allow debug queries.
+	Debugging  bool                    // Do we allow debug queries.
 
 	endpoints []string // Stored here as well, to aid in testing.
 }
 
-// Records looks up records in etcd. If exact is true, it will lookup just
-// this name. This is used when find matches when completing SRV lookups
-// for instance.
+// Services implements the ServiceBackend interface.
+func (e *Etcd) Services(state request.Request, exact bool, opt middleware.Options) (services, debug []msg.Service, err error) {
+	services, err = e.Records(state.Name(), exact)
+	if err != nil {
+		return
+	}
+	if opt.Debug != "" {
+		debug = services
+	}
+	services = msg.Group(services)
+	return
+}
+
+// Lookup implements the ServiceBackend interface.
+func (e *Etcd) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
+	return e.Proxy.Lookup(state, name, typ)
+}
+
+// IsNameError implements the ServiceBackend interface.
+func (e *Etcd) IsNameError(err error) bool {
+	if ee, ok := err.(etcdc.Error); ok && ee.Code == etcdc.ErrorCodeKeyNotFound {
+		return true
+	}
+	return false
+}
+
+// Debug implements the ServiceBackend interface.
+func (e *Etcd) Debug() string {
+	return e.PathPrefix
+}
+
+// Records looks up records in etcd. If exact is true, it will lookup just this
+// name. This is used when find matches when completing SRV lookups for instance.
 func (e *Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 	path, star := msg.PathWithWildcard(name, e.PathPrefix)
-	r, err := e.Get(path, true)
+	r, err := e.get(path, true)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +83,8 @@ func (e *Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 	}
 }
 
-// Get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
-func (e *Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
+// get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
+func (e *Etcd) get(path string, recursive bool) (*etcdc.Response, error) {
 	resp, err := e.Inflight.Do(path, func() (interface{}, error) {
 		ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
 		defer cancel()
@@ -76,7 +108,7 @@ func (e *Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
 
 // loopNodes recursively loops through the nodes and returns all the values. The nodes' keyname
 // will be match against any wildcards when star is true.
-func (e Etcd) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
+func (e *Etcd) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
 	if bx == nil {
 		bx = make(map[msg.Service]bool)
 	}
@@ -145,18 +177,8 @@ func (e *Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
 	return serv.TTL
 }
 
-// etcNameError checks if the error is ErrorCodeKeyNotFound from etcd.
-func isEtcdNameError(err error) bool {
-	if e, ok := err.(etcdc.Error); ok && e.Code == etcdc.ErrorCodeKeyNotFound {
-		return true
-	}
-	return false
-}
-
 const (
 	priority    = 10  // default priority when nothing is set
 	ttl         = 300 // default ttl when nothing is set
-	minTTL      = 60
-	hostmaster  = "hostmaster"
 	etcdTimeout = 5 * time.Second
 )

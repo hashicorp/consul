@@ -30,6 +30,7 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return middleware.Error("etcd", err)
 	}
+
 	if stubzones {
 		c.OnStartup(func() error {
 			e.UpdateStubZones()
@@ -55,7 +56,6 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		Stubmap:    &stub,
 	}
 	var (
-		client        etcdc.KeysAPI
 		tlsCertFile   = ""
 		tlsKeyFile    = ""
 		tlsCAcertFile = ""
@@ -64,7 +64,6 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 	)
 	for c.Next() {
 		if c.Val() == "etcd" {
-			etc.Client = client
 			etc.Zones = c.RemainingArgs()
 			if len(etc.Zones) == 0 {
 				etc.Zones = make([]string, len(c.ServerBlockKeys))
@@ -77,7 +76,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				case "stubzones":
 					stubzones = true
 				case "debug":
-					etc.Debug = true
+					etc.Debugging = true
 				case "path":
 					if !c.NextArg() {
 						return &Etcd{}, false, c.ArgErr()
@@ -117,7 +116,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 					case "stubzones":
 						stubzones = true
 					case "debug":
-						etc.Debug = true
+						etc.Debugging = true
 					case "path":
 						if !c.NextArg() {
 							return &Etcd{}, false, c.ArgErr()
@@ -161,6 +160,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 			}
 			etc.Client = client
 			etc.endpoints = endpoints
+
 			return &etc, stubzones, nil
 		}
 	}

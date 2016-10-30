@@ -39,7 +39,7 @@ etcd [ZONES...] {
   pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
   the proxy middleware.
 * `tls` followed the cert, key and the CA's cert filenames.
-* `debug` allow debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
+* `debug` allows for debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
   additional section of the reply in the form of TXT records.
 
 ## Examples

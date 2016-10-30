@@ -17,7 +17,7 @@ import (
 func TestProxyLookupFailDebug(t *testing.T) {
 	etc := newEtcdMiddleware()
 	etc.Proxy = proxy.New([]string{"127.0.0.1:154"})
-	etc.Debug = true
+	etc.Debugging = true
 
 	for _, serv := range servicesProxy {
 		set(t, etc, serv.Key, 0, serv)
