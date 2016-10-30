@@ -191,3 +191,25 @@ func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
 
 	return nil
 }
+
+// ReadMetadata takes a snapshot from the reader and returns its SnapshotMeta
+func ReadMetadata(in io.Reader) (*raft.SnapshotMeta, error) {
+	// Wrap the reader in a gzip decompressor.
+	decomp, err := gzip.NewReader(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress snapshot: %v", err)
+	}
+	defer func() {
+		if err := decomp.Close(); err != nil {
+			fmt.Printf("[ERR] snapshot: Failed to close snapshot decompressor: %v", err)
+		}
+	}()
+
+	// Read the archive.
+	var metadata raft.SnapshotMeta
+	if err := read(decomp, &metadata, ioutil.Discard); err != nil {
+		return nil, fmt.Errorf("failed to read snapshot file: %v", err)
+	}
+
+	return &metadata, nil
+}

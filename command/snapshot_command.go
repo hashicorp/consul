@@ -36,6 +36,10 @@ Usage: consul snapshot <subcommand> [options] [args]
 
       $ consul snapshot restore backup.snap
 
+  Inspect a snapshot:
+
+      $ consul snapshot inspect backup.snap
+
 
   For more examples, ask for subcommand help or view the documentation.
 
@@ -44,5 +48,5 @@ Usage: consul snapshot <subcommand> [options] [args]
 }
 
 func (c *SnapshotCommand) Synopsis() string {
-	return "Saves and restores snapshots of Consul server state"
+	return "Saves, restores and inspects snapshots of Consul server state"
 }
