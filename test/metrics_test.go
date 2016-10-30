@@ -73,7 +73,7 @@ func TestMetricsRefused(t *testing.T) {
 }
 
 func TestMetricsCache(t *testing.T) {
-	metricName := "coredns_cache_size_guage"
+	metricName := "coredns_cache_size"
 
 	corefile := `example.net:0 {
 	proxy . 8.8.8.8:53
@@ -97,7 +97,7 @@ func TestMetricsCache(t *testing.T) {
 	}
 
 	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
-	// Get the value for the metrics where the one of the labels values matches "success"
+	// Get the value for the metrics where the one of the labels values matches "success".
 	got, _ := mtest.MetricValueLabel(metricName, cache.Success, data)
 
 	if got != "1" {
