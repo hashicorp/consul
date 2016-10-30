@@ -43,15 +43,15 @@ var (
 	cacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "size_guage",
-		Help:      "Gauge of number of elements in the cache.",
+		Name:      "cache_size",
+		Help:      "The number of elements in the dnssec cache.",
 	}, []string{"type"})
 
 	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "capacity_gauge",
-		Help:      "Gauge of cache's capacity.",
+		Name:      "cache_capacity",
+		Help:      "The dnssec cache's capacity.",
 	}, []string{"type"})
 )
 

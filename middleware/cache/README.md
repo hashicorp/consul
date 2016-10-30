@@ -39,8 +39,8 @@ The minimum TTL allowed on resource records is 5 seconds.
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
 
-* coredns_cache_size_guage{type} - total elements in the case, type is either "denial" or "success".
-* coredns_cache_capacity_guage{type} - total capacity of the cache, type is either "denial" or "success".
+* coredns_cache_size{type} - total elements in the case, type is either "denial" or "success".
+* coredns_cache_capacity{type} - total capacity of the cache, type is either "denial" or "success".
 
 ## Examples
 
