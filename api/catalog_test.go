@@ -31,7 +31,6 @@ func TestCatalog_Datacenters(t *testing.T) {
 }
 
 func TestCatalog_Nodes(t *testing.T) {
-	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -52,7 +51,7 @@ func TestCatalog_Nodes(t *testing.T) {
 		}
 
 		if _, ok := nodes[0].TaggedAddresses["wan"]; !ok {
-			return false, fmt.Errorf("Bad: %v", nodes)
+			return false, fmt.Errorf("Bad: %v", nodes[0])
 		}
 
 		return true, nil
