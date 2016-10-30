@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset_generated "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_4"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -31,7 +31,7 @@ func (s *storeToNamespaceLister) List() (ns api.NamespaceList, err error) {
 }
 
 type dnsController struct {
-	client *client.Client
+	client *clientset_generated.Clientset
 
 	selector *labels.Selector
 
@@ -52,7 +52,7 @@ type dnsController struct {
 }
 
 // newDNSController creates a controller for CoreDNS.
-func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lselector *labels.Selector) *dnsController {
+func newdnsController(kubeClient *clientset_generated.Clientset, resyncPeriod time.Duration, lselector *labels.Selector) *dnsController {
 	dns := dnsController{
 		client:   kubeClient,
 		selector: lselector,
@@ -86,7 +86,7 @@ func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lse
 	return &dns
 }
 
-func serviceListFunc(c *client.Client, ns string, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
+func serviceListFunc(c *clientset_generated.Clientset, ns string, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
 	return func(opts api.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = *s
@@ -95,7 +95,7 @@ func serviceListFunc(c *client.Client, ns string, s *labels.Selector) func(api.L
 	}
 }
 
-func serviceWatchFunc(c *client.Client, ns string, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
+func serviceWatchFunc(c *clientset_generated.Clientset, ns string, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
 	return func(options api.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = *s
@@ -104,7 +104,7 @@ func serviceWatchFunc(c *client.Client, ns string, s *labels.Selector) func(opti
 	}
 }
 
-func endpointsListFunc(c *client.Client, ns string, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
+func endpointsListFunc(c *clientset_generated.Clientset, ns string, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
 	return func(opts api.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = *s
@@ -113,7 +113,7 @@ func endpointsListFunc(c *client.Client, ns string, s *labels.Selector) func(api
 	}
 }
 
-func endpointsWatchFunc(c *client.Client, ns string, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
+func endpointsWatchFunc(c *clientset_generated.Clientset, ns string, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
 	return func(options api.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = *s
@@ -122,7 +122,7 @@ func endpointsWatchFunc(c *client.Client, ns string, s *labels.Selector) func(op
 	}
 }
 
-func namespaceListFunc(c *client.Client, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
+func namespaceListFunc(c *clientset_generated.Clientset, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
 	return func(opts api.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = *s
@@ -131,7 +131,7 @@ func namespaceListFunc(c *client.Client, s *labels.Selector) func(api.ListOption
 	}
 }
 
-func namespaceWatchFunc(c *client.Client, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
+func namespaceWatchFunc(c *clientset_generated.Clientset, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
 	return func(options api.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = *s

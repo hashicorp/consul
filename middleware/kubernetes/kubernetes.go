@@ -17,8 +17,8 @@ import (
 	"github.com/miekg/dns"
 	"k8s.io/kubernetes/pkg/api"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
+	clientset_generated "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_4"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	unversionedclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/labels"
@@ -81,7 +81,7 @@ func (k *Kubernetes) InitKubeCache() error {
 		return err
 	}
 
-	kubeClient, err := unversionedclient.New(config)
+	kubeClient, err := clientset_generated.NewForConfig(config)
 	if err != nil {
 		log.Printf("[ERROR] Failed to create kubernetes notification controller: %v", err)
 		return err
