@@ -383,13 +383,26 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 
 	// Check if syslog is enabled
 	var syslog io.Writer
+	retries := 12
+	delay := 5 * time.Second
 	if config.EnableSyslog {
-		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Syslog setup failed: %v", err))
-			return nil, nil, nil
+		for i := 0; i <= retries; i++ {
+			l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Syslog setup error: %v", err))
+				if i == retries {
+					timeout := time.Duration(retries) * delay
+					c.Ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
+					return nil, nil, nil
+				} else {
+					c.Ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
+					time.Sleep(delay)
+				}
+			} else {
+				syslog = &SyslogWrapper{l, c.logFilter}
+				break
+			}
 		}
-		syslog = &SyslogWrapper{l, c.logFilter}
 	}
 
 	// Create a log writer, and wrap a logOutput around it
