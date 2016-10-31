@@ -53,6 +53,20 @@ var (
 		Name:      "cache_capacity",
 		Help:      "The dnssec cache's capacity.",
 	}, []string{"type"})
+
+	cacheHits = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "cache_hits_total",
+		Help:      "The count of cache hits.",
+	})
+
+	cacheMisses = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "cache_misses_total",
+		Help:      "The count of cache misses.",
+	})
 )
 
 // Name implements the Handler interface.
@@ -63,4 +77,6 @@ const subsystem = "dnssec"
 func init() {
 	prometheus.MustRegister(cacheSize)
 	prometheus.MustRegister(cacheCapacity)
+	prometheus.MustRegister(cacheHits)
+	prometheus.MustRegister(cacheMisses)
 }

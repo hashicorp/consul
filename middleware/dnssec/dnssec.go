@@ -115,8 +115,10 @@ func (d Dnssec) set(key string, sigs []dns.RR) {
 
 func (d Dnssec) get(key string) ([]dns.RR, bool) {
 	if s, ok := d.cache.Get(key); ok {
+		cacheHits.Inc()
 		return s.([]dns.RR), true
 	}
+	cacheMisses.Inc()
 	return nil, false
 }
 

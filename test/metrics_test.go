@@ -73,7 +73,8 @@ func TestMetricsRefused(t *testing.T) {
 }
 
 func TestMetricsCache(t *testing.T) {
-	metricName := "coredns_cache_size"
+	cacheSizeMetricName := "coredns_cache_size"
+	cacheHitMetricName := "coredns_cache_hits_total"
 
 	corefile := `example.net:0 {
 	proxy . 8.8.8.8:53
@@ -97,11 +98,24 @@ func TestMetricsCache(t *testing.T) {
 	}
 
 	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
-	// Get the value for the metrics where the one of the labels values matches "success".
-	got, _ := mtest.MetricValueLabel(metricName, cache.Success, data)
+	// Get the value for the cache size metric where the one of the labels values matches "success".
+	got, _ := mtest.MetricValueLabel(cacheSizeMetricName, cache.Success, data)
 
 	if got != "1" {
-		t.Errorf("Expected value %s for %s, but got %s", "1", metricName, got)
+		t.Errorf("Expected value %s for %s, but got %s", "1", cacheSizeMetricName, got)
+	}
+
+	// Second request for the same response to test hit counter.
+	if _, err = dns.Exchange(m, udp); err != nil {
+		t.Fatalf("Could not send message: %s", err)
+	}
+
+	data = mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
+	// Get the value for the cache hit counter where the one of the labels values matches "success".
+	got, _ = mtest.MetricValueLabel(cacheHitMetricName, cache.Success, data)
+
+	if got != "1" {
+		t.Errorf("Expected value %s for %s, but got %s", "1", cacheHitMetricName, got)
 	}
 }
 

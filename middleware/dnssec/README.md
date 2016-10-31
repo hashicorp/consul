@@ -43,5 +43,7 @@ If monitoring is enabled (via the *prometheus* directive) then the following met
 
 * coredns_dnssec_cache_size{type} - total elements in the cache, type is "signature".
 * coredns_dnssec_cache_capacity{type} - total capacity of the cache, type is "signature".
+* coredns_dnssec_cache_hits_total - Counter of cache hits.
+* coredns_dnssec_cache_misses_total - Counter of cache misses.
 
 ## Examples

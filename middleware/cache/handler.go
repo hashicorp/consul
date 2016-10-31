@@ -44,12 +44,15 @@ func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {
 	k := rawKey(qname, qtype, do)
 
 	if i, ok := c.ncache.Get(k); ok {
+		cacheHits.WithLabelValues(Denial).Inc()
 		return i.(*item), ok, i.(*item).expired(time.Now())
 	}
 
 	if i, ok := c.pcache.Get(k); ok {
+		cacheHits.WithLabelValues(Success).Inc()
 		return i.(*item), ok, i.(*item).expired(time.Now())
 	}
+	cacheMisses.Inc()
 	return nil, false, false
 }
 
@@ -67,6 +70,20 @@ var (
 		Name:      "capacity",
 		Help:      "The cache's capacity.",
 	}, []string{"type"})
+
+	cacheHits = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "hits_total",
+		Help:      "The count of cache hits.",
+	}, []string{"type"})
+
+	cacheMisses = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "misses_total",
+		Help:      "The count of cache misses.",
+	})
 )
 
 const subsystem = "cache"
@@ -74,4 +91,6 @@ const subsystem = "cache"
 func init() {
 	prometheus.MustRegister(cacheSize)
 	prometheus.MustRegister(cacheCapacity)
+	prometheus.MustRegister(cacheHits)
+	prometheus.MustRegister(cacheMisses)
 }
