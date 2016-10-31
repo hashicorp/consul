@@ -386,7 +386,7 @@ func (s *Server) setupRaft() error {
 		s.raftInmem = store
 		stable = store
 		log = store
-		snap = raft.NewDiscardSnapshotStore()
+		snap = raft.NewInmemSnapshotStore()
 	} else {
 		// Create the base raft path.
 		path := filepath.Join(s.config.DataDir, raftState)
