@@ -135,9 +135,10 @@ func TestSnapshot(t *testing.T) {
 	// Make a Raft and populate it with some data. We tee everything we
 	// apply off to a buffer for checking post-snapshot.
 	var expected []bytes.Buffer
+	entries := 64 * 1024
 	before, _ := makeRaft(t, path.Join(dir, "before"))
 	defer before.Shutdown()
-	for i := 0; i < 64*1024; i++ {
+	for i := 0; i < entries; i++ {
 		var log bytes.Buffer
 		var copy bytes.Buffer
 		both := io.MultiWriter(&log, &copy)
@@ -160,11 +161,21 @@ func TestSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Verify the snapshot. We have to rewind it after for the restore.
-	if err := Verify(snap); err != nil {
+	metadata, err := Verify(snap)
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := snap.file.Seek(0, 0); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if int(metadata.Index) != entries+2 {
+		t.Fatalf("bad: %d", metadata.Index)
+	}
+	if metadata.Term != 2 {
+		t.Fatalf("bad: %d", metadata.Index)
+	}
+	if metadata.Version != raft.SnapshotVersionMax {
+		t.Fatalf("bad: %d", metadata.Version)
 	}
 
 	// Make a new, independent Raft.
@@ -220,7 +231,7 @@ func TestSnapshot_Nil(t *testing.T) {
 
 func TestSnapshot_BadVerify(t *testing.T) {
 	buf := bytes.NewBuffer([]byte("nope"))
-	err := Verify(buf)
+	_, err := Verify(buf)
 	if err == nil || !strings.Contains(err.Error(), "unexpected EOF") {
 		t.Fatalf("err: %v", err)
 	}

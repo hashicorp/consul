@@ -125,20 +125,20 @@ func (s *Snapshot) Close() error {
 }
 
 // Verify takes the snapshot from the reader and verifies its contents.
-func Verify(in io.Reader) error {
+func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 	// Wrap the reader in a gzip decompressor.
 	decomp, err := gzip.NewReader(in)
 	if err != nil {
-		return fmt.Errorf("failed to decompress snapshot: %v", err)
+		return nil, fmt.Errorf("failed to decompress snapshot: %v", err)
 	}
 	defer decomp.Close()
 
 	// Read the archive, throwing away the snapshot data.
 	var metadata raft.SnapshotMeta
 	if err := read(decomp, &metadata, ioutil.Discard); err != nil {
-		return fmt.Errorf("failed to read snapshot file: %v", err)
+		return nil, fmt.Errorf("failed to read snapshot file: %v", err)
 	}
-	return nil
+	return &metadata, nil
 }
 
 // Restore takes the snapshot from the reader and attempts to apply it to the

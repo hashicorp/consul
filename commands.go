@@ -169,6 +169,12 @@ func init() {
 			}, nil
 		},
 
+		"snapshot inspect": func() (cli.Command, error) {
+			return &command.SnapshotInspectCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				HumanVersion: GetHumanVersion(),
