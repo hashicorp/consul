@@ -76,7 +76,6 @@ func TestHealth_Checks(t *testing.T) {
 }
 
 func TestHealth_Service(t *testing.T) {
-	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -95,7 +94,7 @@ func TestHealth_Service(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
 		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
-			return false, fmt.Errorf("Bad: %v", checks)
+			return false, fmt.Errorf("Bad: %v", checks[0].Node)
 		}
 		return true, nil
 	}, func(err error) {

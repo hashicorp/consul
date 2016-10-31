@@ -244,21 +244,24 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.updates["foo"] < 2 {
+			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
-	}
+		if mock.state["foo"] != status {
+			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		}
 
-	if mock.state["foo"] != status {
-		t.Fatalf("should be %v %v", status, mock.state)
-	}
-
-	// Allow slightly more data than CheckBufSize, for the header
-	if n := len(mock.output["foo"]); n > (CheckBufSize + 256) {
-		t.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
-	}
+		// Allow slightly more data than CheckBufSize, for the header
+		if n := len(mock.output["foo"]); n > (CheckBufSize + 256) {
+			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTPCritical(t *testing.T) {
@@ -347,16 +350,19 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.updates["bar"] < 2 {
+			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["bar"] < 2 {
-		t.Fatalf("should have at least 2 updates %v", mock.updates)
-	}
-
-	if mock.state["bar"] != structs.HealthCritical {
-		t.Fatalf("should be critical %v", mock.state)
-	}
+		if mock.state["bar"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
@@ -410,16 +416,19 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.updates["foo"] < 2 {
+			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
-	}
-
-	if mock.state["foo"] != status {
-		t.Fatalf("should be %v %v", status, mock.state)
-	}
+		if mock.state["foo"] != status {
+			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckTCPCritical(t *testing.T) {

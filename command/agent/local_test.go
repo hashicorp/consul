@@ -655,49 +655,54 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
-	time.Sleep(200 * time.Millisecond)
 
-	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 	}
 	var checks structs.IndexedHealthChecks
-	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 5 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			if !reflect.DeepEqual(chk, chk1) {
-				t.Fatalf("bad: %v %v", chk, chk1)
-			}
-		case "redis":
-			if !reflect.DeepEqual(chk, chk2) {
-				t.Fatalf("bad: %v %v", chk, chk2)
-			}
-		case "web":
-			if !reflect.DeepEqual(chk, chk3) {
-				t.Fatalf("bad: %v %v", chk, chk3)
-			}
-		case "cache":
-			if !reflect.DeepEqual(chk, chk5) {
-				t.Fatalf("bad: %v %v", chk, chk5)
-			}
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
+	// Verify that we are in sync
+	testutil.WaitForResult(func() (bool, error) {
+		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			return false, fmt.Errorf("err: %v", err)
 		}
-	}
+
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 5 {
+			return false, fmt.Errorf("bad: %v", checks)
+		}
+
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				if !reflect.DeepEqual(chk, chk1) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk1)
+				}
+			case "redis":
+				if !reflect.DeepEqual(chk, chk2) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk2)
+				}
+			case "web":
+				if !reflect.DeepEqual(chk, chk3) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk3)
+				}
+			case "cache":
+				if !reflect.DeepEqual(chk, chk5) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk5)
+				}
+			case "serfHealth":
+				// ignore
+			default:
+				return false, fmt.Errorf("unexpected check: %v", chk)
+			}
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 
 	// Check the local state
 	if len(agent.state.checks) != 4 {
@@ -734,40 +739,44 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
-	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
-	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 4 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			if !reflect.DeepEqual(chk, chk1) {
-				t.Fatalf("bad: %v %v", chk, chk1)
-			}
-		case "web":
-			if !reflect.DeepEqual(chk, chk3) {
-				t.Fatalf("bad: %v %v", chk, chk3)
-			}
-		case "cache":
-			if !reflect.DeepEqual(chk, chk5) {
-				t.Fatalf("bad: %v %v", chk, chk5)
-			}
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
+	testutil.WaitForResult(func() (bool, error) {
+		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			return false, fmt.Errorf("err: %v", err)
 		}
-	}
+
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 4 {
+			return false, fmt.Errorf("bad: %v", checks)
+		}
+
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				if !reflect.DeepEqual(chk, chk1) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk1)
+				}
+			case "web":
+				if !reflect.DeepEqual(chk, chk3) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk3)
+				}
+			case "cache":
+				if !reflect.DeepEqual(chk, chk5) {
+					return false, fmt.Errorf("bad: %v %v", chk, chk5)
+				}
+			case "serfHealth":
+				// ignore
+			default:
+				return false, fmt.Errorf("unexpected check: %v", chk)
+			}
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 
 	// Check the local state
 	if len(agent.state.checks) != 3 {
@@ -1212,22 +1221,24 @@ func TestAgent_sendCoordinate(t *testing.T) {
 
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
-	// Wait a little while for an update.
-	time.Sleep(3 * conf.ConsulConfig.CoordinateUpdatePeriod)
-
 	// Make sure the coordinate is present.
 	req := structs.DCSpecificRequest{
 		Datacenter: agent.config.Datacenter,
 	}
 	var reply structs.IndexedCoordinates
-	if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
+			return false, fmt.Errorf("err: %s", err)
+		}
+		if len(reply.Coordinates) != 1 {
+			return false, fmt.Errorf("expected a coordinate: %v", reply)
+		}
+		coord := reply.Coordinates[0]
+		if coord.Node != agent.config.NodeName || coord.Coord == nil {
+			return false, fmt.Errorf("bad: %v", coord)
+		}
+		return true, nil
+	}, func(err error) {
 		t.Fatalf("err: %s", err)
-	}
-	if len(reply.Coordinates) != 1 {
-		t.Fatalf("expected a coordinate: %v", reply)
-	}
-	coord := reply.Coordinates[0]
-	if coord.Node != agent.config.NodeName || coord.Coord == nil {
-		t.Fatalf("bad: %v", coord)
-	}
+	})
 }
