@@ -3,7 +3,7 @@ GEM
   specs:
     execjs (2.3.0)
     json (1.8.2)
-    libv8 (3.16.14.7)
+    libv8 (3.16.14.15)
     ref (1.0.5)
     sass (3.4.11)
     therubyracer (0.12.1)
@@ -20,3 +20,6 @@ DEPENDENCIES
   sass
   therubyracer
   uglifier
+
+BUNDLED WITH
+   1.12.5
