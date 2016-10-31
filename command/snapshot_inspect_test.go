@@ -74,37 +74,43 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 	file := path.Join(dir, "backup.tgz")
 
 	// Save a snapshot of the current Consul state
-	{
-		f, err := os.Create(file)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	f, err := os.Create(file)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		snap, _, err := client.Snapshot().Save(nil)
-		if err != nil {
-			f.Close()
-			t.Fatalf("err: %v", err)
-		}
-		if _, err := io.Copy(f, snap); err != nil {
-			f.Close()
-			t.Fatalf("err: %v", err)
-		}
-		if err := f.Close(); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	snap, _, err := client.Snapshot().Save(nil)
+	if err != nil {
+		f.Close()
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := io.Copy(f, snap); err != nil {
+		f.Close()
+		t.Fatalf("err: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Inspect the snapshot
-	{
-		inspect := &SnapshotInspectCommand{Ui: ui}
-		args := []string{file}
+	inspect := &SnapshotInspectCommand{Ui: ui}
+	args := []string{file}
 
-		code := inspect.Run(args)
-		if code != 0 {
-			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-		}
-		if !strings.Contains(ui.OutputWriter.String(), "ID") {
-			t.Fatalf("bad: %s", ui.OutputWriter.String())
+	code := inspect.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	for _, key := range []string{
+		"ID",
+		"Size",
+		"Index",
+		"Term",
+		"Version",
+	} {
+		if !strings.Contains(output, key) {
+			t.Fatalf("bad %#v, missing %q", output, key)
 		}
 	}
 }

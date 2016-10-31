@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"bytes"
 	"github.com/hashicorp/consul/consul/snapshot"
 	"github.com/mitchellh/cli"
 	"text/tabwriter"
-	"bytes"
 )
 
 // SnapshotInspectCommand is a Command implementation that is used to display

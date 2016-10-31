@@ -135,7 +135,7 @@ func TestSnapshot(t *testing.T) {
 	// Make a Raft and populate it with some data. We tee everything we
 	// apply off to a buffer for checking post-snapshot.
 	var expected []bytes.Buffer
-	entries := 64*1024
+	entries := 64 * 1024
 	before, _ := makeRaft(t, path.Join(dir, "before"))
 	defer before.Shutdown()
 	for i := 0; i < entries; i++ {
