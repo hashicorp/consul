@@ -20,10 +20,10 @@ func (c *SnapshotCommand) Help() string {
 	helpText := `
 Usage: consul snapshot <subcommand> [options] [args]
 
-  This command has subcommands for saving and restoring the state of the Consul
-  servers for disaster recovery. These are atomic, point-in-time snapshots which
-  include key/value entries, service catalog, prepared queries, sessions, and
-  ACLs.
+  This command has subcommands for saving, restoring, and inspecting the state
+  of the Consul servers for disaster recovery. These are atomic, point-in-time
+  snapshots which include key/value entries, service catalog, prepared queries,
+  sessions, and ACLs.
 
   If ACLs are enabled, a management token must be supplied in order to perform
   snapshot operations.

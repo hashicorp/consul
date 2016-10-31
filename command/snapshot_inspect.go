@@ -1,15 +1,15 @@
 package command
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
-	"bytes"
 	"github.com/hashicorp/consul/consul/snapshot"
 	"github.com/mitchellh/cli"
-	"text/tabwriter"
 )
 
 // SnapshotInspectCommand is a Command implementation that is used to display

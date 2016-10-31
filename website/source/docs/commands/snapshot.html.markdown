@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-snapshot"
 
 Command: `consul snapshot`
 
-The `snapshot` command has subcommands for saving, restoring and inspecting the
+The `snapshot` command has subcommands for saving, restoring, and inspecting the
 state of the Consul servers for disaster recovery. These are atomic, point-in-time
 snapshots which include key/value entries, service catalog, prepared queries,
 sessions, and ACLs. This command is available in Consul 0.7.1 and later.
