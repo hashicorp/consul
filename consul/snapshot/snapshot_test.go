@@ -160,7 +160,7 @@ func TestSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Verify the snapshot. We have to rewind it after for the restore.
-	if err := Verify(snap); err != nil {
+	if _, err := Verify(snap); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := snap.file.Seek(0, 0); err != nil {
@@ -220,7 +220,7 @@ func TestSnapshot_Nil(t *testing.T) {
 
 func TestSnapshot_BadVerify(t *testing.T) {
 	buf := bytes.NewBuffer([]byte("nope"))
-	err := Verify(buf)
+	_, err := Verify(buf)
 	if err == nil || !strings.Contains(err.Error(), "unexpected EOF") {
 		t.Fatalf("err: %v", err)
 	}

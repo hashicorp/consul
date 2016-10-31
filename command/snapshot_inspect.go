@@ -8,6 +8,8 @@ import (
 
 	"github.com/hashicorp/consul/consul/snapshot"
 	"github.com/mitchellh/cli"
+	"text/tabwriter"
+	"bytes"
 )
 
 // SnapshotInspectCommand is a Command implementation that is used to display
@@ -61,23 +63,23 @@ func (c *SnapshotInspectCommand) Run(args []string) int {
 	}
 	defer f.Close()
 
-	meta, err := snapshot.ReadMetadata(f)
+	meta, err := snapshot.Verify(f)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing metadata: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 	}
 
-	c.Ui.Output(fmt.Sprintf("id = %s", meta.ID))
-	c.Ui.Output(fmt.Sprintf("size = %d", meta.Size))
-	c.Ui.Output(fmt.Sprintf("index = %d", meta.Index))
-	c.Ui.Output(fmt.Sprintf("term = %d", meta.Term))
-	c.Ui.Output(fmt.Sprintf("snapshot_version = %d", meta.Version))
-	c.Ui.Output(fmt.Sprintf("configuration_index = %d", meta.ConfigurationIndex))
-	c.Ui.Output("\nservers:\n")
-	for _, server := range meta.Configuration.Servers {
-		c.Ui.Output(string(server.ID))
-		c.Ui.Output(fmt.Sprintf("\taddress = %s", server.Address))
-		c.Ui.Output(fmt.Sprintf("\tsuffrage = %s", server.Suffrage.String()))
+	var b bytes.Buffer
+	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
+	fmt.Fprintf(tw, "ID\t%s\n", meta.ID)
+	fmt.Fprintf(tw, "Size\t%d\n", meta.Size)
+	fmt.Fprintf(tw, "Index\t%d\n", meta.Index)
+	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
+	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
+	if err = tw.Flush(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 	}
+
+	c.Ui.Info(b.String())
 
 	return 0
 }

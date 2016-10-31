@@ -103,7 +103,7 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
-		if !strings.Contains(ui.OutputWriter.String(), "size = ") {
+		if !strings.Contains(ui.OutputWriter.String(), "ID") {
 			t.Fatalf("bad: %s", ui.OutputWriter.String())
 		}
 	}

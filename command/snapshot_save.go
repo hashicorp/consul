@@ -113,7 +113,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
 		return 1
 	}
-	if err := snapshot.Verify(f); err != nil {
+	if _, err := snapshot.Verify(f); err != nil {
 		f.Close()
 		c.Ui.Error(fmt.Sprintf("Error verifying snapshot file: %s", err))
 		return 1
