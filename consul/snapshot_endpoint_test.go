@@ -391,26 +391,3 @@ func TestSnapshot_AllowStale(t *testing.T) {
 		}
 	}
 }
-
-func TestSnapshot_DevMode(t *testing.T) {
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.DevMode = true
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
-
-	args := structs.SnapshotRequest{
-		Datacenter: s1.config.Datacenter,
-		Op:         structs.SnapshotSave,
-	}
-	var reply structs.SnapshotResponse
-	_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
-		&args, bytes.NewReader([]byte("")), &reply)
-	if err == nil || !strings.Contains(err.Error(), noSnapshotsInDevMode) {
-		t.Fatalf("err: %v", err)
-	}
-}

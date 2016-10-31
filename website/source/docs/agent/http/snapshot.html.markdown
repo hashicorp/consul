@@ -34,9 +34,6 @@ The endpoints support the use of ACL Tokens. Because snapshots contain all
 server state, including ACLs, a management token is required to perform snapshot
 operations is ACLs are enabled.
 
--> Snapshot operations are not available for servers running in
-   [dev mode](/docs/agent/options.html#_dev).
-
 ### <a name="snapshot"></a> /v1/snapshot
 
 The snapshot endpoint supports the `GET` and `PUT` methods.
