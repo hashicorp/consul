@@ -24,19 +24,19 @@ Ember.Handlebars.helper('sessionName', function(session) {
   var name;
 
   if (session.Name === "") {
-    name = '<span>' + session.ID + '</span>';
+    name = '<span>' + Handlebars.Utils.escapeExpression(session.ID) + '</span>';
   } else {
-    name = '<span>' + session.Name + '</span>' + ' <small>' + session.ID + '</small>';
+    name = '<span>' + Handlebars.Utils.escapeExpression(session.Name) + '</span>' + ' <small>' + Handlebars.Utils.escapeExpression(session.ID) + '</small>';
   }
 
   return new Handlebars.SafeString(name);
 });
 
 Ember.Handlebars.helper('sessionMeta', function(session) {
-  var meta = '<div class="metadata">' + session.Behavior + ' behavior</div>';
+  var meta = '<div class="metadata">' + Handlebars.Utils.escapeExpression(session.Behavior) + ' behavior</div>';
 
   if (session.TTL !== "") {
-    meta = meta + '<div class="metadata">, ' + session.TTL + ' TTL</div>';
+    meta = meta + '<div class="metadata">, ' + Handlebars.Utils.escapeExpression(session.TTL) + ' TTL</div>';
   }
 
   return new Handlebars.SafeString(meta);
@@ -46,7 +46,7 @@ Ember.Handlebars.helper('aclName', function(name, id) {
   if (name === "") {
     return id;
   } else {
-    return new Handlebars.SafeString(name + ' <small class="pull-right no-case">' + id + '</small>');
+    return new Handlebars.SafeString(Handlebars.Utils.escapeExpression(name) + ' <small class="pull-right no-case">' + Handlebars.Utils.escapeExpression(id) + '</small>');
   }
 });
 
