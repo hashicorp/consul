@@ -267,6 +267,10 @@ func TestRetryJoinWanFail(t *testing.T) {
 }
 
 func TestDiscoverEC2Hosts(t *testing.T) {
+	if os.Getenv("AWS_REGION") == "" {
+		t.Skip("AWS_REGION not set, skipping")
+	}
+
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
 		t.Skip("AWS_ACCESS_KEY_ID not set, skipping")
 	}
@@ -277,7 +281,7 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 
 	c := &Config{
 		EC2Discovery: EC2Discovery{
-			Region:          "us-east-1",
+			Region:          os.Getenv("AWS_REGION"),
 			AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
 			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 			TagKey:          "ConsulRole",
@@ -289,7 +293,6 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(servers)
 	if len(servers) != 3 {
 		t.Fatalf("bad: %v", servers)
 	}
