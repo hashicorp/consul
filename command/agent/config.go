@@ -118,6 +118,20 @@ type DNSConfig struct {
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
+// EC2Discovery is used to configure discovery of instances via Amazon's EC2 api
+type EC2Discovery struct {
+	// The AWS region to look for instances in
+	Region string `mapstructure:"region"`
+
+	// The tag key and value to use when filtering instances
+	TagKey   string `mapstructure:"tag_key"`
+	TagValue string `mapstructure:"tag_value"`
+
+	// The AWS credentials to use for making requests to EC2
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -530,20 +544,8 @@ type Config struct {
 	// empty, the defaults from the provider are used.
 	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
 
-	// AwsAccessKey is an AWS IAM key used for discovering EC2 instances
-	AwsAccessKey string `mapstructure:"aws_access_key"`
-
-	// AwsSecretKey is the secret key for AwsAccessKey
-	AwsSecretKey string `mapstructure:aws_secret_key`
-
-	// AwsRegion is the region to attempt to discover instances in
-	AwsRegion string `mapstructure:aws_region`
-
-	// EC2TagKey is the tag applied to EC2 instances to filter on to discover servers
-	EC2TagKey string `mapstructure:"ec2_tag_key"`
-
-	// EC2TagValue is the value of ec2-tag-key to filter for
-	EC2TagValue string `mapstructure:"ec2_tag_value"`
+	// EC2Discovery configuration
+	EC2Discovery EC2Discovery `mapstructure:"ec2_discovery"`
 
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
@@ -1450,20 +1452,20 @@ func MergeConfig(a, b *Config) *Config {
 	if b.AtlasEndpoint != "" {
 		result.AtlasEndpoint = b.AtlasEndpoint
 	}
-	if b.AwsAccessKey != "" {
-		result.AwsAccessKey = b.AwsAccessKey
+	if b.EC2Discovery.AccessKeyID != "" {
+		result.EC2Discovery.AccessKeyID = b.EC2Discovery.AccessKeyID
 	}
-	if b.AwsSecretKey != "" {
-		result.AwsSecretKey = b.AwsSecretKey
+	if b.EC2Discovery.SecretAccessKey != "" {
+		result.EC2Discovery.SecretAccessKey = b.EC2Discovery.SecretAccessKey
 	}
-	if b.AwsRegion != "" {
-		result.AwsRegion = b.AwsRegion
+	if b.EC2Discovery.Region != "" {
+		result.EC2Discovery.Region = b.EC2Discovery.Region
 	}
-	if b.EC2TagKey != "" {
-		result.EC2TagKey = b.EC2TagKey
+	if b.EC2Discovery.TagKey != "" {
+		result.EC2Discovery.TagKey = b.EC2Discovery.TagKey
 	}
-	if b.EC2TagValue != "" {
-		result.EC2TagValue = b.EC2TagValue
+	if b.EC2Discovery.TagValue != "" {
+		result.EC2Discovery.TagValue = b.EC2Discovery.TagValue
 	}
 	if b.DisableCoordinates {
 		result.DisableCoordinates = true

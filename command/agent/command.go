@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -104,11 +103,9 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
 	cmdFlags.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "endpoint for Atlas integration")
 
-	cmdFlags.StringVar(&cmdConfig.AwsAccessKey, "aws-access-key", "", "AWS key for EC2 discovery")
-	cmdFlags.StringVar(&cmdConfig.AwsSecretKey, "aws-secret-key", "", "AWS secret for EC2 discovery")
-	cmdFlags.StringVar(&cmdConfig.AwsRegion, "aws-region", "", "Region to search for instances in")
-	cmdFlags.StringVar(&cmdConfig.EC2TagKey, "ec2-tag-key", "", "EC2 tag key to filter for server discovery")
-	cmdFlags.StringVar(&cmdConfig.EC2TagValue, "ec2-tag-value", "", "EC2 tag value to filter for server discovery")
+	cmdFlags.StringVar(&cmdConfig.EC2Discovery.Region, "ec2-region", "", "Region to search for instances in")
+	cmdFlags.StringVar(&cmdConfig.EC2Discovery.TagKey, "ec2-tag-key", "", "EC2 tag key to filter for server discovery")
+	cmdFlags.StringVar(&cmdConfig.EC2Discovery.TagValue, "ec2-tag-value", "", "EC2 tag value to filter for server discovery")
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
@@ -197,6 +194,15 @@ func (c *Command) readConfig() *Config {
 	}
 	if config.SkipLeaveOnInt == nil {
 		config.SkipLeaveOnInt = Bool(config.Server)
+	}
+
+	// Load AWS creds for discovery from the environment (if present)
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		config.EC2Discovery.AccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	}
+
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		config.EC2Discovery.SecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 	}
 
 	// Ensure we have a data directory
@@ -321,30 +327,24 @@ func (c *Command) readConfig() *Config {
 		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
 	}
 
-	if (config.AwsAccessKey != "" || config.AwsSecretKey != "") && (config.AwsAccessKey == "" && config.AwsSecretKey == "") {
-		c.Ui.Error("aws-acces-key and aws-secret-key are required together")
-		return nil
-	}
-
-	if config.EC2TagKey != "" || config.EC2TagValue != "" {
-		if config.EC2TagKey == "" && config.EC2TagValue == "" {
-			c.Ui.Error("ec2-tag-key and ec2-tag-value are required together")
+	// Populate the join list using EC2 discovery if configured
+	if config.EC2Discovery.TagKey != "" || config.EC2Discovery.TagValue != "" {
+		if config.EC2Discovery.TagKey == "" || config.EC2Discovery.TagValue == "" {
+			c.Ui.Error("EC2 tag key and EC2 tag value are both required")
 			return nil
 		}
 
-		if config.AwsRegion == "" {
-			c.Ui.Error("aws-region is required")
+		if config.EC2Discovery.Region == "" {
+			c.Ui.Error("Amazon EC2 region is required")
 			return nil
 		}
 
-		ec2servers, err := config.loadEc2Hosts()
+		ec2servers, err := config.discoverEc2Hosts()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Unable to query EC2 insances: %s", err))
 			return nil
 		}
 		config.StartJoin = append(config.StartJoin, ec2servers...)
-		fmt.Println(config.StartJoin)
-		os.Exit(1)
 	}
 
 	// Set the version info
@@ -399,40 +399,36 @@ func (config *Config) verifyUniqueListeners() error {
 	return nil
 }
 
-func (config *Config) loadEc2Hosts() ([]string, error) {
+// discoverEc2Hosts searches the given AWS region, returning a list of instance
+// addresses where EC2TagKey = EC2TagValue
+func (c *Config) discoverEc2Hosts() ([]string, error) {
+	config := c.EC2Discovery
 	awsConfig := &aws.Config{
-		Region: aws.String(config.AwsRegion),
-	}
-
-	if config.AwsAccessKey != "" {
-		awsConfig.Credentials = credentials.NewStaticCredentials(config.AwsAccessKey, config.AwsSecretKey, "")
+		Region:      aws.String(config.Region),
+		Credentials: credentials.NewStaticCredentials(config.AccessKeyID, config.SecretAccessKey, ""),
 	}
 
 	svc := ec2.New(session.New(), awsConfig)
 
-	var search bytes.Buffer
-	search.WriteString("tag:")
-	search.WriteString(config.EC2TagKey)
-
 	resp, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String(search.String()),
+				Name: aws.String("tag:" + config.TagKey),
 				Values: []*string{
-					aws.String(config.EC2TagValue),
+					aws.String(config.TagValue),
 				},
 			},
 		},
 	})
 
-	var servers []string
 	if err != nil {
-		return servers, fmt.Errorf("Unable to fetch EC2 instances: %s", err)
+		return nil, err
 	}
 
+	servers := make([]string, 0)
 	for i := range resp.Reservations {
-		for _, inst := range resp.Reservations[i].Instances {
-			servers = append(servers, *inst.PrivateIpAddress)
+		for _, instance := range resp.Reservations[i].Instances {
+			servers = append(servers, *instance.PrivateIpAddress)
 		}
 	}
 
@@ -1162,10 +1158,8 @@ Options:
   -atlas-join              Enables auto-joining the Atlas cluster
   -atlas-token=token       Provides the Atlas API token
   -atlas-endpoint=1.2.3.4  The address of the endpoint for Atlas integration.
-  -aws-access-key          AWS access key used to search for instances
-  -aws-secret-key          AWS secret key for aws-acces-key
-  -aws-region              AWS region to search for instances
-  -ec2-tag-key=tag         The EC2 instance tag to filter on for EC2 discover
+  -ec2-region              The AWS region to search for instances in
+  -ec2-tag-key=tag         The EC2 instance tag to filter on
   -ec2-tag-value=value     The filter value for ec2-tag-key
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication

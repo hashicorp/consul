@@ -266,6 +266,35 @@ func TestRetryJoinWanFail(t *testing.T) {
 	}
 }
 
+func TestDiscoverEC2Hosts(t *testing.T) {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		t.Skip("AWS_ACCESS_KEY_ID not set, skipping")
+	}
+
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		t.Skip("AWS_SECRET_ACCESS_KEY not set, skipping")
+	}
+
+	c := &Config{
+		EC2Discovery: EC2Discovery{
+			Region:          "us-east-1",
+			AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			TagKey:          "ConsulRole",
+			TagValue:        "Server",
+		},
+	}
+
+	servers, err := c.discoverEc2Hosts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(servers)
+	if len(servers) != 3 {
+		t.Fatalf("bad: %v", servers)
+	}
+}
+
 func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
