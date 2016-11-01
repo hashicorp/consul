@@ -12,7 +12,7 @@ Consul makes use of a HashiCorp service called [Checkpoint](http://checkpoint.ha
 which is used to check for updates and critical security bulletins.
 Only anonymous information, which cannot be used to identify the user or host, is
 sent to Checkpoint . An anonymous ID is sent which helps de-duplicate warning messages.
-This anonymous ID can can be disabled. In fact, using the Checkpoint service is optional
+This anonymous ID can be disabled. In fact, using the Checkpoint service is optional
 and can be disabled.
 
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
