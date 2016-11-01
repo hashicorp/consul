@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -638,6 +639,335 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_ExternalServiceLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a node with an external service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "www.google.com",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service
+	questions := []string{
+		"db.service.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "foo.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Name != "foo.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Target != "www.google.com." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+}
+
+func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
+	dir, srv := makeDNSServerConfig(t, func(c *Config) {
+		c.Domain = "CONSUL."
+	}, nil)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register the initial node with a service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "web",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "web",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an external service pointing to the 'web' service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "alias",
+			Address:    "web.service.consul",
+			Service: &structs.NodeService{
+				Service: "alias",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly
+	questions := []string{
+		"alias.service.consul.",
+		"alias.service.CoNsUl.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "alias.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		if len(in.Extra) != 2 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Name != "alias.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Target != "web.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+
+		aRec, ok := in.Extra[1].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if aRec.Hdr.Name != "web.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+	}
+}
+
+func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register the initial node with a service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "web",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "web",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an external service pointing to the 'web' service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "alias",
+			Address:    "web.service.consul",
+			Service: &structs.NodeService{
+				Service: "alias",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an external service pointing to the 'alias' service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "alias2",
+			Address:    "alias.service.consul",
+			Service: &structs.NodeService{
+				Service: "alias2",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly
+	questions := []string{
+		"alias2.service.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "alias2.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		if len(in.Extra) != 3 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Name != "alias2.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Target != "alias.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if cnameRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+
+		cnameRec, ok = in.Extra[1].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if cnameRec.Hdr.Name != "alias.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if cnameRec.Target != "web.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if cnameRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+
+		aRec, ok := in.Extra[2].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+		if aRec.Hdr.Name != "web.service.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+	}
+}
+
 func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -709,7 +1039,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "foo.node.dc1.consul." {
+		if srvRec.Target != "7f000002.addr.dc1.consul." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
@@ -720,10 +1050,104 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Name != "foo.node.dc1.consul." {
+		if aRec.Hdr.Name != "7f000002.addr.dc1.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.A.String() != "127.0.0.2" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+}
+
+func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Address: "2607:20:4005:808::200e",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"db.service.consul.",
+		id + ".query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "2607002040050808000000000000200e.addr.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		aRec, ok := in.Extra[0].(*dns.AAAA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "2607002040050808000000000000200e.addr.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.AAAA.String() != "2607:20:4005:808::200e" {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.Hdr.Ttl != 0 {
@@ -827,7 +1251,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Name != "foo.node.dc2.consul." {
+		if aRec.Hdr.Name != "7f000002.addr.dc2.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.A.String() != "127.0.0.2" {
@@ -1399,6 +1823,58 @@ func TestDNS_Recurse(t *testing.T) {
 	}
 }
 
+func TestDNS_RecursorTimeout(t *testing.T) {
+	serverClientTimeout := 3 * time.Second
+	testClientTimeout := serverClientTimeout + 5*time.Second
+
+	resolverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Error(err)
+	}
+
+	resolver, err := net.ListenUDP("udp", resolverAddr)
+	if err != nil {
+		t.Error(err)
+	}
+	defer resolver.Close()
+
+	dir, srv := makeDNSServerConfig(t, func(c *Config) {
+		c.DNSRecursor = resolver.LocalAddr().String() // host must cause a connection|read|write timeout
+	}, func(c *DNSConfig) {
+		c.RecursorTimeout = serverClientTimeout
+	})
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	// This client calling the server under test must have a longer timeout than the one we set internally
+	c := &dns.Client{Timeout: testClientTimeout}
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+
+	start := time.Now()
+	in, _, err := c.Exchange(m, addr.String())
+
+	duration := time.Now().Sub(start)
+
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Rcode != dns.RcodeServerFailure {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	if duration < serverClientTimeout {
+		t.Fatalf("Expected the call to return after at least %f seconds but lasted only %f", serverClientTimeout.Seconds(), duration.Seconds())
+	}
+
+}
+
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -1744,27 +2220,6 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 		if err := srv.agent.RPC("Catalog.Register", args3, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		args4 := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "quux",
-			Address:    "127.0.0.4",
-			Service: &structs.NodeService{
-				Service: "db",
-				Tags:    []string{"master"},
-				Port:    12345,
-			},
-			Check: &structs.HealthCheck{
-				CheckID:   "db",
-				Name:      "db",
-				ServiceID: "db",
-				Status:    structs.HealthUnknown,
-			},
-		}
-
-		if err := srv.agent.RPC("Catalog.Register", args4, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
 	}
 
 	// Register an equivalent prepared query.
@@ -1986,8 +2441,8 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 	longServiceName := "this-is-a-very-very-very-very-very-long-name-for-a-service"
 
-	// Register 3 nodes
-	for i := 0; i < 3; i++ {
+	// Register a lot of nodes.
+	for i := 0; i < 4; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -2042,12 +2497,32 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		// Make sure the response size is RFC 1035-compliant for UDP messages
 		if in.Len() > 512 {
-			t.Fatalf("Bad: %#v", in.Len())
+			t.Fatalf("Bad: %d", in.Len())
 		}
 
 		// We should only have two answers now
 		if len(in.Answer) != 2 {
-			t.Fatalf("Bad: %#v", len(in.Answer))
+			t.Fatalf("Bad: %d", len(in.Answer))
+		}
+
+		// Make sure the ADDITIONAL section matches the ANSWER section.
+		if len(in.Answer) != len(in.Extra) {
+			t.Fatalf("Bad: %d vs. %d", len(in.Answer), len(in.Extra))
+		}
+		for i := 0; i < len(in.Answer); i++ {
+			srv, ok := in.Answer[i].(*dns.SRV)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Answer[i])
+			}
+
+			a, ok := in.Extra[i].(*dns.A)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Extra[i])
+			}
+
+			if srv.Target != a.Hdr.Name {
+				t.Fatalf("Bad: %#v %#v", srv, a)
+			}
 		}
 
 		// Check for the truncate bit
@@ -2308,7 +2783,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 		c.DNSRecursor = recursor.Addr
 	}, func(c *DNSConfig) {
 		c.NodeTTL = 10 * time.Second
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	})
 	defer os.RemoveAll(dir)
@@ -2428,7 +2903,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 			"db": 10 * time.Second,
 			"*":  5 * time.Second,
 		}
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)
@@ -2531,7 +3006,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 			"db": 10 * time.Second,
 			"*":  5 * time.Second,
 		}
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)
@@ -2712,6 +3187,118 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 	if aRec.Hdr.Ttl != 5 {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_PreparedQuery_Failover(t *testing.T) {
+	dir1, srv1 := makeDNSServerConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.TranslateWanAddrs = true
+	}, nil)
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+
+	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.TranslateWanAddrs = true
+	}, nil)
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Join WAN cluster.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a remote node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "db",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register a local prepared query.
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "my-query",
+				Service: structs.ServiceQuery{
+					Service: "db",
+					Failover: structs.QueryDatacenterOptions{
+						Datacenters: []string{"dc2"},
+					},
+				},
+			},
+		}
+		var id string
+		if err := srv1.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the SRV record via the query.
+	m := new(dns.Msg)
+	m.SetQuestion("my-query.query.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	cl_addr, _ := srv1.agent.config.ClientListener("", srv1.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, cl_addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure we see the remote DC and that the address gets
+	// translated.
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Answer[0].Header().Name != "my-query.query.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	srv, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srv.Target != "7f000002.addr.dc2.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	a, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if a.Hdr.Name != "7f000002.addr.dc2.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if a.A.String() != "127.0.0.2" {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }
@@ -2906,6 +3493,85 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	}
 }
 
+func TestDNS_AddressLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Look up the addresses
+	cases := map[string]string{
+		"7f000001.addr.dc1.consul.": "127.0.0.1",
+	}
+	for question, answer := range cases {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.To4().String() != answer {
+			t.Fatalf("Bad: %#v", aRec)
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+}
+
+func TestDNS_AddressLookupIPV6(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Look up the addresses
+	cases := map[string]string{
+		"2607002040050808000000000000200e.addr.consul.": "2607:20:4005:808::200e",
+		"2607112040051808ffffffffffff200e.addr.consul.": "2607:1120:4005:1808:ffff:ffff:ffff:200e",
+	}
+	for question, answer := range cases {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aaaaRec, ok := in.Answer[0].(*dns.AAAA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aaaaRec.AAAA.To16().String() != answer {
+			t.Fatalf("Bad: %#v", aaaaRec)
+		}
+		if aaaaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+}
+
 func TestDNS_NonExistingLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -3080,7 +3746,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	confFn := func(c *DNSConfig) {
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)
@@ -3164,5 +3830,615 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+	}
+}
+
+func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	m := MockPreparedQuery{}
+	if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		// Check that the agent inserted its self-name and datacenter to
+		// the RPC request body.
+		if args.Agent.Datacenter != srv.agent.config.Datacenter ||
+			args.Agent.Node != srv.agent.config.NodeName {
+			t.Fatalf("bad: %#v", args.Agent)
+		}
+		return nil
+	}
+
+	{
+		m := new(dns.Msg)
+		m.SetQuestion("foo.query.consul.", dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		if _, _, err := c.Exchange(m, addr.String()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
+
+func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
+	resp := &dns.Msg{
+		Answer: []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+		},
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+		},
+	}
+
+	config := &DefaultConfig().DNSConfig
+	if trimmed := trimUDPResponse(config, resp); trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+
+	expected := &dns.Msg{
+		Answer: []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+		},
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+		},
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	resp, expected := &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < config.UDPAnswerLimit+1; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		if i < config.UDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+
+	if trimmed := trimUDPResponse(config, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	resp := &dns.Msg{}
+	for i := 0; i < 100; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	// We don't know the exact trim, but we know the resulting answer
+	// data should match its extra data.
+	if trimmed := trimUDPResponse(config, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	for i, _ := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Fatalf("should be SRV")
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Fatalf("should be A")
+		}
+
+		if srv.Target != a.Header().Name {
+			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
+	}
+}
+
+func TestDNS_syncExtra(t *testing.T) {
+	resp := &dns.Msg{
+		Answer: []dns.RR{
+			// These two are on the same host so the redundant extra
+			// records should get deduplicated.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1002,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			// This one isn't in the Consul domain so it will get a
+			// CNAME and then an A record from the recursor.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1003,
+				Target: "demo.consul.io.",
+			},
+			// This one isn't in the Consul domain and it will get
+			// a CNAME and A record from a recursor that alters the
+			// case of the name. This proves we look up in the index
+			// in a case-insensitive way.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "insensitive.consul.io.",
+			},
+			// This is also a CNAME, but it'll be set up to loop to
+			// make sure we don't crash.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "deadly.consul.io.",
+			},
+			// This is also a CNAME, but it won't have another record.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "nope.consul.io.",
+			},
+		},
+		Extra: []dns.RR{
+			// These should get deduplicated.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			// This is a normal CNAME followed by an A record but we
+			// have flipped the order. The algorithm should emit them
+			// in the opposite order.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			// These differ in case to test case insensitivity.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			// This doesn't appear in the answer, so should get
+			// dropped.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-186.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.186"),
+			},
+			// These two test edge cases with CNAME handling.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+
+	index := make(map[string]dns.RR)
+	indexRRs(resp.Extra, index)
+	syncExtra(index, resp)
+
+	expected := &dns.Msg{
+		Answer: resp.Answer,
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_Compression_trimUDPResponse(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	m := dns.Msg{}
+	trimUDPResponse(config, &m)
+	if m.Compress {
+		t.Fatalf("compression should be off")
+	}
+
+	// The trim function temporarily turns off compression, so we need to
+	// make sure the setting gets restored properly.
+	m.Compress = true
+	trimUDPResponse(config, &m)
+	if !m.Compress {
+		t.Fatalf("compression should be on")
+	}
+}
+
+func TestDNS_Compression_Query(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"db.service.consul.",
+		id + ".query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		conn, err := dns.Dial("udp", addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Do a manual exchange with compression on (the default).
+		srv.config.DisableCompression = false
+		if err := conn.WriteMsg(m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		p := make([]byte, dns.MaxMsgSize)
+		compressed, err := conn.Read(p)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Disable compression and try again.
+		srv.config.DisableCompression = true
+		if err := conn.WriteMsg(m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		unc, err := conn.Read(p)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// We can't see the compressed status given the DNS API, so we
+		// just make sure the message is smaller to see if it's
+		// respecting the flag.
+		if compressed == 0 || unc == 0 || compressed >= unc {
+			t.Fatalf("'%s' doesn't look compressed: %d vs. %d", question, compressed, unc)
+		}
+	}
+}
+
+func TestDNS_Compression_ReverseLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node.
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo2",
+		Address:    "127.0.0.2",
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	conn, err := dns.Dial("udp", addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a manual exchange with compression on (the default).
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	p := make([]byte, dns.MaxMsgSize)
+	compressed, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Disable compression and try again.
+	srv.config.DisableCompression = true
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	unc, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We can't see the compressed status given the DNS API, so we just make
+	// sure the message is smaller to see if it's respecting the flag.
+	if compressed == 0 || unc == 0 || compressed >= unc {
+		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
+	}
+}
+
+func TestDNS_Compression_Recurse(t *testing.T) {
+	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServerConfig(t, func(c *Config) {
+		c.DNSRecursor = recursor.Addr
+	}, nil)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	conn, err := dns.Dial("udp", addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a manual exchange with compression on (the default).
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	p := make([]byte, dns.MaxMsgSize)
+	compressed, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Disable compression and try again.
+	srv.config.DisableCompression = true
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	unc, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We can't see the compressed status given the DNS API, so we just make
+	// sure the message is smaller to see if it's respecting the flag.
+	if compressed == 0 || unc == 0 || compressed >= unc {
+		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
 	}
 }

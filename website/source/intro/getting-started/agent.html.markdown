@@ -31,39 +31,40 @@ easily. It is **not** intended to be used in production as it does not persist
 any state.
 
 ```text
-$ consul agent -dev
+-$ consul agent -dev
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
+           Version: 'v0.7.0'
          Node name: 'Armons-MacBook-Air'
         Datacenter: 'dc1'
             Server: true (bootstrap: false)
        Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
-      Cluster Addr: 172.20.20.11 (LAN: 8301, WAN: 8302)
+      Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
     Gossip encrypt: false, RPC-TLS: false, TLS-Incoming: false
              Atlas: <disabled>
 
 ==> Log data will now stream in as it occurs:
 
-[INFO] raft: Node at 172.20.20.11:8300 [Follower] entering Follower state
-[INFO] serf: EventMemberJoin: Armons-MacBook-Air 172.20.20.11
-[INFO] consul: adding LAN server Armons-MacBook-Air (Addr: 172.20.20.11:8300) (DC: dc1)
-[INFO] serf: EventMemberJoin: Armons-MacBook-Air.dc1 172.20.20.11
-[INFO] consul: adding WAN server Armons-MacBook-Air.dc1 (Addr: 172.20.20.11:8300) (DC: dc1)
-[ERR] agent: failed to sync remote state: No cluster leader
-[WARN] raft: Heartbeat timeout reached, starting election
-[INFO] raft: Node at 172.20.20.11:8300 [Candidate] entering Candidate state
-[DEBUG] raft: Votes needed: 1
-[DEBUG] raft: Vote granted. Tally: 1
-[INFO] raft: Election won. Tally: 1
-[INFO] raft: Node at 172.20.20.11:8300 [Leader] entering Leader state
-[INFO] raft: Disabling EnableSingleNode (bootstrap)
-[INFO] consul: cluster leadership acquired
-[DEBUG] raft: Node 172.20.20.11:8300 updated peer set (2): [172.20.20.11:8300]
-[DEBUG] consul: reset tombstone GC to index 2
-[INFO] consul: New leader elected: Armons-MacBook-Air
-[INFO] consul: member 'Armons-MacBook-Air' joined, marking health alive
-[INFO] agent: Synced service 'consul'
+    2016/09/15 10:21:10 [INFO] raft: Initial configuration (index=1): [{Suffrage:Voter ID:127.0.0.1:8300 Address:127.0.0.1:8300}]
+    2016/09/15 10:21:10 [INFO] raft: Node at 127.0.0.1:8300 [Follower] entering Follower state (Leader: "")
+    2016/09/15 10:21:10 [INFO] serf: EventMemberJoin: Armons-MacBook-Air 127.0.0.1
+    2016/09/15 10:21:10 [INFO] serf: EventMemberJoin: Armons-MacBook-Air.dc1 127.0.0.1
+    2016/09/15 10:21:10 [INFO] consul: Adding LAN server Armons-MacBook-Air (Addr: tcp/127.0.0.1:8300) (DC: dc1)
+    2016/09/15 10:21:10 [INFO] consul: Adding WAN server Armons-MacBook-Air.dc1 (Addr: tcp/127.0.0.1:8300) (DC: dc1)
+    2016/09/15 10:21:13 [DEBUG] http: Request GET /v1/agent/services (180.708µs) from=127.0.0.1:52369
+    2016/09/15 10:21:13 [DEBUG] http: Request GET /v1/agent/services (15.548µs) from=127.0.0.1:52369
+    2016/09/15 10:21:17 [WARN] raft: Heartbeat timeout from "" reached, starting election
+    2016/09/15 10:21:17 [INFO] raft: Node at 127.0.0.1:8300 [Candidate] entering Candidate state in term 2
+    2016/09/15 10:21:17 [DEBUG] raft: Votes needed: 1
+    2016/09/15 10:21:17 [DEBUG] raft: Vote granted from 127.0.0.1:8300 in term 2. Tally: 1
+    2016/09/15 10:21:17 [INFO] raft: Election won. Tally: 1
+    2016/09/15 10:21:17 [INFO] raft: Node at 127.0.0.1:8300 [Leader] entering Leader state
+    2016/09/15 10:21:17 [INFO] consul: cluster leadership acquired
+    2016/09/15 10:21:17 [DEBUG] consul: reset tombstone GC to index 3
+    2016/09/15 10:21:17 [INFO] consul: New leader elected: Armons-MacBook-Air
+    2016/09/15 10:21:17 [INFO] consul: member 'Armons-MacBook-Air' joined, marking health alive
+    2016/09/15 10:21:17 [INFO] agent: Synced service 'consul'
 ```
 
 As you can see, the Consul agent has started and has output some log
@@ -101,7 +102,7 @@ request to the Consul servers:
 
 ```text
 $ curl localhost:8500/v1/catalog/nodes
-[{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","CreateIndex":3,"ModifyIndex":4}]
+[{"Node":"Armons-MacBook-Air","Address":"127.0.0.1","TaggedAddresses":{"lan":"127.0.0.1","wan":"127.0.0.1"},"CreateIndex":4,"ModifyIndex":110}]
 ```
 
 In addition to the HTTP API, the [DNS interface](/docs/agent/dns.html) can
@@ -118,7 +119,7 @@ $ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
 ;Armons-MacBook-Air.node.consul.	IN	A
 
 ;; ANSWER SECTION:
-Armons-MacBook-Air.node.consul.	0 IN	A	172.20.20.11
+Armons-MacBook-Air.node.consul.	0 IN	A	127.0.0.1
 ```
 
 ## <a name="stopping"></a>Stopping the Agent

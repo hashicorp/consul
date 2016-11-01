@@ -80,6 +80,9 @@ type QueryMeta struct {
 
 	// How long did the request take
 	RequestTime time.Duration
+
+	// Is address translation enabled for HTTP responses on this agent
+	AddressTranslationEnabled bool
 }
 
 // WriteMeta is used to return meta data about a write
@@ -330,6 +333,7 @@ type request struct {
 	url    *url.URL
 	params url.Values
 	body   io.Reader
+	header http.Header
 	obj    interface{}
 }
 
@@ -355,7 +359,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		r.params.Set("wait", durToMsec(q.WaitTime))
 	}
 	if q.Token != "" {
-		r.params.Set("token", q.Token)
+		r.header.Set("X-Consul-Token", q.Token)
 	}
 	if q.Near != "" {
 		r.params.Set("near", q.Near)
@@ -399,7 +403,7 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 		r.params.Set("dc", q.Datacenter)
 	}
 	if q.Token != "" {
-		r.params.Set("token", q.Token)
+		r.header.Set("X-Consul-Token", q.Token)
 	}
 }
 
@@ -426,6 +430,7 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req.URL.Host = r.url.Host
 	req.URL.Scheme = r.url.Scheme
 	req.Host = r.url.Host
+	req.Header = r.header
 
 	// Setup auth
 	if r.config.HttpAuth != nil {
@@ -446,6 +451,7 @@ func (c *Client) newRequest(method, path string) *request {
 			Path:   path,
 		},
 		params: make(map[string][]string),
+		header: make(http.Header),
 	}
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
@@ -454,7 +460,7 @@ func (c *Client) newRequest(method, path string) *request {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))
 	}
 	if c.config.Token != "" {
-		r.params.Set("token", r.config.Token)
+		r.header.Set("X-Consul-Token", r.config.Token)
 	}
 	return r
 }
@@ -539,6 +545,15 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	default:
 		q.KnownLeader = false
 	}
+
+	// Parse X-Consul-Translate-Addresses
+	switch header.Get("X-Consul-Translate-Addresses") {
+	case "true":
+		q.AddressTranslationEnabled = true
+	default:
+		q.AddressTranslationEnabled = false
+	}
+
 	return nil
 }
 

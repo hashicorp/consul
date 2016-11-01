@@ -17,6 +17,15 @@ const (
 	DefaultDC          = "dc1"
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
+
+	// DefaultRaftMultiplier is used as a baseline Raft configuration that
+	// will be reliable on a very basic server. See docs/guides/performance.html
+	// for information on how this value was obtained.
+	DefaultRaftMultiplier uint = 5
+
+	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
+	// amount of performance detuning that's possible.
+	MaxRaftMultiplier uint = 10
 )
 
 var (
@@ -173,6 +182,24 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
+	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
+	// order to replicate them locally. Setting this to a non-empty value
+	// also enables replication. Replication is only available in datacenters
+	// other than the ACLDatacenter.
+	ACLReplicationToken string
+
+	// ACLReplicationInterval is the interval at which replication passes
+	// will occur. Queries to the ACLDatacenter may block, so replication
+	// can happen less often than this, but the interval forms the upper
+	// limit to how fast we will go if there was constant ACL churn on the
+	// remote end.
+	ACLReplicationInterval time.Duration
+
+	// ACLReplicationApplyLimit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ACLReplicationApplyLimit int
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
@@ -224,6 +251,13 @@ type Config struct {
 	// are willing to apply in one period. After this limit we will issue a
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
+
+	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
+	// This is used to paper over a loss of leadership by instead holding RPCs,
+	// so that the caller experiences a slow response rather than an error.
+	// This period is meant to be long enough for a leader election to take
+	// place, and a small jitter is applied to avoid a thundering herd.
+	RPCHoldTimeout time.Duration
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -264,21 +298,23 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:              DefaultDC,
-		NodeName:                hostname,
-		RPCAddr:                 DefaultRPCAddr,
-		RaftConfig:              raft.DefaultConfig(),
-		SerfLANConfig:           serf.DefaultConfig(),
-		SerfWANConfig:           serf.DefaultConfig(),
-		ReconcileInterval:       60 * time.Second,
-		ProtocolVersion:         ProtocolVersion2Compatible,
-		ACLTTL:                  30 * time.Second,
-		ACLDefaultPolicy:        "allow",
-		ACLDownPolicy:           "extend-cache",
-		TombstoneTTL:            15 * time.Minute,
-		TombstoneTTLGranularity: 30 * time.Second,
-		SessionTTLMin:           10 * time.Second,
-		DisableCoordinates:      false,
+		Datacenter:               DefaultDC,
+		NodeName:                 hostname,
+		RPCAddr:                  DefaultRPCAddr,
+		RaftConfig:               raft.DefaultConfig(),
+		SerfLANConfig:            serf.DefaultConfig(),
+		SerfWANConfig:            serf.DefaultConfig(),
+		ReconcileInterval:        60 * time.Second,
+		ProtocolVersion:          ProtocolVersion2Compatible,
+		ACLTTL:                   30 * time.Second,
+		ACLDefaultPolicy:         "allow",
+		ACLDownPolicy:            "extend-cache",
+		ACLReplicationInterval:   30 * time.Second,
+		ACLReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:             15 * time.Minute,
+		TombstoneTTLGranularity:  30 * time.Second,
+		SessionTTLMin:            10 * time.Second,
+		DisableCoordinates:       false,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-
@@ -286,6 +322,12 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
+
+		// This holds RPCs during leader elections. For the default Raft
+		// config the election timeout is 5 seconds, so we set this a
+		// bit longer to try to cover that period. This should be more
+		// than enough when running in the high performance mode.
+		RPCHoldTimeout: 7 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -300,10 +342,28 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
+	// Enable interoperability with unversioned Raft library, and don't
+	// start using new ID-based features yet.
+	conf.RaftConfig.ProtocolVersion = 1
+	conf.ScaleRaft(DefaultRaftMultiplier)
+
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 
 	return conf
+}
+
+// ScaleRaft sets the config to have Raft timing parameters scaled by the given
+// performance multiplier. This is done in an idempotent way so it's not tricky
+// to call this when composing configurations and potentially calling this
+// multiple times on the same structure.
+func (c *Config) ScaleRaft(raftMultRaw uint) {
+	raftMult := time.Duration(raftMultRaw)
+
+	def := raft.DefaultConfig()
+	c.RaftConfig.HeartbeatTimeout = raftMult * def.HeartbeatTimeout
+	c.RaftConfig.ElectionTimeout = raftMult * def.ElectionTimeout
+	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 
 func (c *Config) tlsConfig() *tlsutil.Config {

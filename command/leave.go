@@ -33,6 +33,12 @@ func (c *LeaveCommand) Run(args []string) int {
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
+	nonFlagArgs := cmdFlags.Args()
+	if len(nonFlagArgs) > 0 {
+		c.Ui.Error(fmt.Sprintf("Error found unexpected args: %v", nonFlagArgs))
+		c.Ui.Output(c.Help())
+		return 1
+	}
 
 	client, err := RPCClient(*rpcAddr)
 	if err != nil {

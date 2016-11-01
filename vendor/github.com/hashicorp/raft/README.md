@@ -24,7 +24,7 @@ go version
 
 For complete documentation, see the associated [Godoc](http://godoc.org/github.com/hashicorp/raft).
 
-To prevent complications with cgo, the primary backend `MDBStore` is in a separate repositoy,
+To prevent complications with cgo, the primary backend `MDBStore` is in a separate repository,
 called [raft-mdb](http://github.com/hashicorp/raft-mdb). That is the recommended implementation
 for the `LogStore` and `StableStore`.
 

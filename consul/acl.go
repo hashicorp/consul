@@ -37,14 +37,14 @@ const (
 	redactedToken = "<hidden>"
 
 	// Maximum number of cached ACL entries
-	aclCacheSize = 256
+	aclCacheSize = 10 * 1024
 )
 
 var (
 	permissionDeniedErr = errors.New(permissionDenied)
 )
 
-// aclCacheEntry is used to cache non-authoritative ACL's
+// aclCacheEntry is used to cache non-authoritative ACLs
 // If non-authoritative, then we must respect a TTL
 type aclCacheEntry struct {
 	ACL     acl.ACL
@@ -52,9 +52,14 @@ type aclCacheEntry struct {
 	ETag    string
 }
 
-// aclFault is used to fault in the rules for an ACL if we take a miss
-func (s *Server) aclFault(id string) (string, string, error) {
+// aclLocalFault is used by the authoritative ACL cache to fault in the rules
+// for an ACL if we take a miss. This goes directly to the state store, so it
+// assumes its running in the ACL datacenter, or in a non-ACL datacenter when
+// using its replicated ACLs during an outage.
+func (s *Server) aclLocalFault(id string) (string, string, error) {
 	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
+
+	// Query the state store.
 	state := s.fsm.State()
 	_, acl, err := state.ACLGet(id)
 	if err != nil {
@@ -64,19 +69,23 @@ func (s *Server) aclFault(id string) (string, string, error) {
 		return "", "", errors.New(aclNotFound)
 	}
 
-	// Management tokens have no policy and inherit from the
-	// 'manage' root policy
+	// Management tokens have no policy and inherit from the 'manage' root
+	// policy.
 	if acl.Type == structs.ACLTypeManagement {
 		return "manage", "", nil
 	}
 
-	// Otherwise use the base policy
+	// Otherwise use the default policy.
 	return s.config.ACLDefaultPolicy, acl.Rules, nil
 }
 
-// resolveToken is used to resolve an ACL is any is appropriate
+// resolveToken is the primary interface used by ACL-checkers (such as an
+// endpoint handling a request) to resolve a token. If ACLs aren't enabled
+// then this will return a nil token, otherwise it will attempt to use local
+// cache and ultimately the ACL datacenter to get the policy associated with the
+// token.
 func (s *Server) resolveToken(id string) (acl.ACL, error) {
-	// Check if there is no ACL datacenter (ACL's disabled)
+	// Check if there is no ACL datacenter (ACLs disabled)
 	authDC := s.config.ACLDatacenter
 	if len(authDC) == 0 {
 		return nil, nil
@@ -103,38 +112,45 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 // rpcFn is used to make an RPC call to the client or server.
 type rpcFn func(string, interface{}, interface{}) error
 
-// aclCache is used to cache ACL's and policies.
+// aclCache is used to cache ACLs and policies.
 type aclCache struct {
 	config *Config
 	logger *log.Logger
 
-	// acls is a non-authoritative ACL cache
-	acls *lru.Cache
+	// acls is a non-authoritative ACL cache.
+	acls *lru.TwoQueueCache
 
-	// aclPolicyCache is a policy cache
-	policies *lru.Cache
+	// aclPolicyCache is a non-authoritative policy cache.
+	policies *lru.TwoQueueCache
 
-	// The RPC function used to talk to the client/server
+	// rpc is a function used to talk to the client/server.
 	rpc rpcFn
+
+	// local is a function used to look for an ACL locally if replication is
+	// enabled. This will be nil if replication isn't enabled.
+	local acl.FaultFunc
 }
 
-// newAclCache returns a new cache layer for ACLs and policies
-func newAclCache(conf *Config, logger *log.Logger, rpc rpcFn) (*aclCache, error) {
+// newAclCache returns a new non-authoritative cache for ACLs. This is used for
+// performance, and is used inside the ACL datacenter on non-leader servers, and
+// outside the ACL datacenter everywhere.
+func newAclCache(conf *Config, logger *log.Logger, rpc rpcFn, local acl.FaultFunc) (*aclCache, error) {
 	var err error
 	cache := &aclCache{
 		config: conf,
 		logger: logger,
 		rpc:    rpc,
+		local:  local,
 	}
 
 	// Initialize the non-authoritative ACL cache
-	cache.acls, err = lru.New(aclCacheSize)
+	cache.acls, err = lru.New2Q(aclCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
 	}
 
 	// Initialize the ACL policy cache
-	cache.policies, err = lru.New(aclCacheSize)
+	cache.policies, err = lru.New2Q(aclCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
@@ -142,17 +158,16 @@ func newAclCache(conf *Config, logger *log.Logger, rpc rpcFn) (*aclCache, error)
 	return cache, nil
 }
 
-// lookupACL is used when we are non-authoritative, and need
-// to resolve an ACL
+// lookupACL is used when we are non-authoritative, and need to resolve an ACL.
 func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
-	// Check the cache for the ACL
+	// Check the cache for the ACL.
 	var cached *aclCacheEntry
 	raw, ok := c.acls.Get(id)
 	if ok {
 		cached = raw.(*aclCacheEntry)
 	}
 
-	// Check for live cache
+	// Check for live cache.
 	if cached != nil && time.Now().Before(cached.Expires) {
 		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		return cached.ACL, nil
@@ -160,7 +175,7 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	}
 
-	// Attempt to refresh the policy
+	// Attempt to refresh the policy from the ACL datacenter via an RPC.
 	args := structs.ACLPolicyRequest{
 		Datacenter: authDC,
 		ACL:        id,
@@ -168,22 +183,69 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	if cached != nil {
 		args.ETag = cached.ETag
 	}
-	var out structs.ACLPolicy
-	err := c.rpc("ACL.GetPolicy", &args, &out)
-
-	// Handle the happy path
+	var reply structs.ACLPolicy
+	err := c.rpc("ACL.GetPolicy", &args, &reply)
 	if err == nil {
-		return c.useACLPolicy(id, authDC, cached, &out)
+		return c.useACLPolicy(id, authDC, cached, &reply)
 	}
 
-	// Check for not-found
+	// Check for not-found, which will cause us to bail immediately. For any
+	// other error we report it in the logs but can continue.
 	if strings.Contains(err.Error(), aclNotFound) {
 		return nil, errors.New(aclNotFound)
 	} else {
-		c.logger.Printf("[ERR] consul.acl: Failed to get policy for '%s': %v", id, err)
+		c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 	}
 
-	// Unable to refresh, apply the down policy
+	// TODO (slackpad) - We could do a similar thing *within* the ACL
+	// datacenter if the leader isn't available. We have a local state
+	// store of the ACLs, so by populating the local member in this cache,
+	// it would fall back to the state store if there was a leader loss and
+	// the extend-cache policy was true. This feels subtle to explain and
+	// configure, and leader blips should be paved over by cache already, so
+	// we won't do this for now but should consider for the future. This is
+	// a lot different than the replication story where you might be cut off
+	// from the ACL datacenter for an extended period of time and need to
+	// carry on operating with the full set of ACLs as they were known
+	// before the partition.
+
+	// At this point we might have an expired cache entry and we know that
+	// there was a problem getting the ACL from the ACL datacenter. If a
+	// local ACL fault function is registered to query replicated ACL data,
+	// and the user's policy allows it, we will try locally before we give
+	// up.
+	if c.local != nil && c.config.ACLDownPolicy == "extend-cache" {
+		parent, rules, err := c.local(id)
+		if err != nil {
+			// We don't make an exception here for ACLs that aren't
+			// found locally. It seems more robust to use an expired
+			// cached entry (if we have one) rather than ignore it
+			// for the case that replication was a bit behind and
+			// didn't have the ACL yet.
+			c.logger.Printf("[DEBUG] consul.acl: Failed to get policy from replicated ACLs: %v", err)
+			goto ACL_DOWN
+		}
+
+		policy, err := acl.Parse(rules)
+		if err != nil {
+			c.logger.Printf("[DEBUG] consul.acl: Failed to parse policy for replicated ACL: %v", err)
+			goto ACL_DOWN
+		}
+		policy.ID = acl.RuleID(rules)
+
+		// Fake up an ACL datacenter reply and inject it into the cache.
+		// Note we use the local TTL here, so this'll be used for that
+		// amount of time even once the ACL datacenter becomes available.
+		metrics.IncrCounter([]string{"consul", "acl", "replication_hit"}, 1)
+		reply.ETag = makeACLETag(parent, policy)
+		reply.TTL = c.config.ACLTTL
+		reply.Parent = parent
+		reply.Policy = policy
+		return c.useACLPolicy(id, authDC, cached, &reply)
+	}
+
+ACL_DOWN:
+	// Unable to refresh, apply the down policy.
 	switch c.config.ACLDownPolicy {
 	case "allow":
 		return acl.AllowAll(), nil

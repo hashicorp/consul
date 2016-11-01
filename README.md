@@ -1,7 +1,7 @@
-# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
+# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.svg?branch=master)](https://travis-ci.org/hashicorp/consul) [![Join the chat at https://gitter.im/hashicorp-consul/Lobby](https://badges.gitter.im/hashicorp-consul/Lobby.svg)](https://gitter.im/hashicorp-consul/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 * Website: https://www.consul.io
-* IRC: `#consul` on Freenode
+* Chat: [Gitter](https://gitter.im/hashicorp-consul/Lobby)
 * Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
 
 Consul is a tool for service discovery and configuration. Consul is
@@ -25,12 +25,11 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
-Consul runs on Linux, Mac OS X, and Windows. It is recommended to run the
-Consul servers only on Linux, however.
+Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows.
 
 ## Quick Start
 
-An extensive quick quick start is viewable on the Consul website:
+An extensive quick start is viewable on the Consul website:
 
 https://www.consul.io/intro/getting-started/install.html
 
@@ -56,7 +55,7 @@ $ bin/consul
 ...
 ```
 
-*note: `make` will also place a copy of the binary in the first part of your $GOPATH*
+*Note: `make` will also place a copy of the binary in the first part of your `$GOPATH`.*
 
 You can run tests by typing `make test`.
 
@@ -82,3 +81,7 @@ See also [golang/winstrap](https://github.com/golang/winstrap) and
 for more information of how to set up a general Go build environment on Windows
 with MinGW.
 
+## Vendoring
+
+Consul currently uses [govendor](https://github.com/kardianos/govendor) for
+vendoring.

@@ -247,8 +247,8 @@ func TestSetQueryOptions(t *testing.T) {
 	if r.params.Get("wait") != "100000ms" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	if r.params.Get("token") != "12345" {
-		t.Fatalf("bad: %v", r.params)
+	if r.header.Get("X-Consul-Token") != "12345" {
+		t.Fatalf("bad: %v", r.header)
 	}
 	if r.params.Get("near") != "nodex" {
 		t.Fatalf("bad: %v", r.params)
@@ -270,8 +270,8 @@ func TestSetWriteOptions(t *testing.T) {
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	if r.params.Get("token") != "23456" {
-		t.Fatalf("bad: %v", r.params)
+	if r.header.Get("X-Consul-Token") != "23456" {
+		t.Fatalf("bad: %v", r.header)
 	}
 }
 
@@ -306,6 +306,7 @@ func TestParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-Index", "12345")
 	resp.Header.Set("X-Consul-LastContact", "80")
 	resp.Header.Set("X-Consul-KnownLeader", "true")
+	resp.Header.Set("X-Consul-Translate-Addresses", "true")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -319,6 +320,9 @@ func TestParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if !qm.KnownLeader {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if !qm.AddressTranslationEnabled {
 		t.Fatalf("Bad: %v", qm)
 	}
 }

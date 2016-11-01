@@ -20,7 +20,7 @@ const (
 // TwoQueueCache is a thread-safe fixed size 2Q cache.
 // 2Q is an enhancement over the standard LRU cache
 // in that it tracks both frequently and recently used
-// entries seperately. This avoids a burst in access to new
+// entries separately. This avoids a burst in access to new
 // entries from evicting frequently used entries. It adds some
 // additional tracking overhead to the standard LRU cache, and is
 // computationally about 2x the cost, and adds some metadata over

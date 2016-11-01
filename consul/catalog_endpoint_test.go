@@ -34,7 +34,7 @@ func TestCatalogRegister(t *testing.T) {
 	var out struct{}
 
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -198,7 +198,7 @@ func TestCatalogDeregister(t *testing.T) {
 	var out struct{}
 
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -302,7 +302,7 @@ func TestCatalogListNodes(t *testing.T) {
 	}
 	var out structs.IndexedNodes
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -621,7 +621,7 @@ func TestCatalogListServices(t *testing.T) {
 	}
 	var out structs.IndexedServices
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -810,7 +810,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	}
 	var out structs.IndexedServiceNodes
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -857,7 +857,7 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	}
 	var out structs.IndexedServiceNodes
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -944,7 +944,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	}
 	var out structs.IndexedNodeServices
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1001,7 +1001,7 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	var out struct{}
 
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-	if err == nil || err.Error() != "No cluster leader" {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

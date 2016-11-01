@@ -14,25 +14,12 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
 )
 
-// muxSession is used to provide an interface for either muxado or yamux
+// muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
 	Open() (net.Conn, error)
 	Close() error
-}
-
-type muxadoWrapper struct {
-	m muxado.Session
-}
-
-func (w *muxadoWrapper) Open() (net.Conn, error) {
-	return w.m.Open()
-}
-
-func (w *muxadoWrapper) Close() error {
-	return w.m.Close()
 }
 
 // streamClient is used to wrap a stream with an RPC client
@@ -261,18 +248,29 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	return nil, fmt.Errorf("rpc error: lead thread didn't get connection")
 }
 
-// getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+// HalfCloser is an interface that exposes a TCP half-close. We need this
+// because we want to expose the raw TCP connection underlying a TLS one in a
+// way that's hard to screw up and use for anything else. There's a change
+// brewing that will allow us to use the TLS connection for this instead -
+// https://go-review.googlesource.com/#/c/25159/.
+type HalfCloser interface {
+	CloseWrite() error
+}
+
+// Dial is used to establish a raw connection to the given server.
+func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
 	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Cast to TCPConn
+	var hc HalfCloser
 	if tcp, ok := conn.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetNoDelay(true)
+		hc = tcp
 	}
 
 	// Check if TLS is enabled
@@ -280,30 +278,34 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
 			conn.Close()
-			return nil, err
+			return nil, nil, err
 		}
 
 		// Wrap the connection in a TLS client
 		tlsConn, err := p.tlsWrap(dc, conn)
 		if err != nil {
 			conn.Close()
-			return nil, err
+			return nil, nil, err
 		}
 		conn = tlsConn
+	}
+
+	return conn, hc, nil
+}
+
+// getNewConn is used to return a new connection
+func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+	// Get a new, raw connection.
+	conn, _, err := p.Dial(dc, addr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Switch the multiplexing based on version
 	var session muxSession
 	if version < 2 {
-		// Write the Consul multiplex byte to set the mode
-		if _, err := conn.Write([]byte{byte(rpcMultiplex)}); err != nil {
-			conn.Close()
-			return nil, err
-		}
-
-		// Create a multiplexed session
-		session = &muxadoWrapper{muxado.Client(conn)}
-
+		conn.Close()
+		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
 	} else {
 		// Write the Consul multiplex byte to set the mode
 		if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {

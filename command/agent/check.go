@@ -16,6 +16,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -34,12 +35,11 @@ const (
 	HttpUserAgent = "Consul Health Check"
 )
 
-// CheckType is used to create either the CheckMonitor
-// or the CheckTTL.
-// Five types are supported: Script, HTTP, TCP, Docker and TTL
-// Script, HTTP, Docker and TCP all require Interval
-// Only one of the types needs to be provided
-// TTL or Script/Interval or HTTP/Interval or TCP/Interval or Docker/Interval
+// CheckType is used to create either the CheckMonitor or the CheckTTL.
+// Five types are supported: Script, HTTP, TCP, Docker and TTL. Script, HTTP,
+// Docker and TCP all require Interval. Only one of the types may to be
+// provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
+// Docker/Interval.
 type CheckType struct {
 	Script            string
 	HTTP              string
@@ -50,6 +50,11 @@ type CheckType struct {
 
 	Timeout time.Duration
 	TTL     time.Duration
+
+	// DeregisterCriticalServiceAfter, if >0, will cause the associated
+	// service, if any, to be deregistered if this check is critical for
+	// longer than this duration.
+	DeregisterCriticalServiceAfter time.Duration
 
 	Status string
 
@@ -90,7 +95,7 @@ func (c *CheckType) IsDocker() bool {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID, status, output string)
+	UpdateCheck(checkID types.CheckID, status, output string)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -98,7 +103,7 @@ type CheckNotifier interface {
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	Script   string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -231,7 +236,7 @@ func (c *CheckMonitor) check() {
 // automatically set to critical.
 type CheckTTL struct {
 	Notify  CheckNotifier
-	CheckID string
+	CheckID types.CheckID
 	TTL     time.Duration
 	Logger  *log.Logger
 
@@ -322,7 +327,7 @@ type persistedCheck struct {
 // expiration timestamp which is used to determine staleness on later
 // agent restarts.
 type persistedCheckState struct {
-	CheckID string
+	CheckID types.CheckID
 	Output  string
 	Status  string
 	Expires int64
@@ -336,7 +341,7 @@ type persistedCheckState struct {
 // or if the request returns an error
 type CheckHTTP struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	HTTP     string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -462,7 +467,7 @@ func (c *CheckHTTP) check() {
 // The check is critical if the connection returns an error
 type CheckTCP struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	TCP      string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -553,7 +558,7 @@ type DockerClient interface {
 // with nagios plugins and expects the output in the same format.
 type CheckDocker struct {
 	Notify            CheckNotifier
-	CheckID           string
+	CheckID           types.CheckID
 	Script            string
 	DockerContainerID string
 	Shell             string

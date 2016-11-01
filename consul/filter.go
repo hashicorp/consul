@@ -50,6 +50,35 @@ func FilterKeys(acl acl.ACL, keys []string) []string {
 	return keys[:FilterEntries(&kf)]
 }
 
+type txnResultsFilter struct {
+	acl     acl.ACL
+	results structs.TxnResults
+}
+
+func (t *txnResultsFilter) Len() int {
+	return len(t.results)
+}
+
+func (t *txnResultsFilter) Filter(i int) bool {
+	result := t.results[i]
+	if result.KV != nil {
+		return !t.acl.KeyRead(result.KV.Key)
+	} else {
+		return false
+	}
+}
+
+func (t *txnResultsFilter) Move(dst, src, span int) {
+	copy(t.results[dst:dst+span], t.results[src:src+span])
+}
+
+// FilterTxnResults is used to filter a list of transaction results by
+// applying an ACL policy.
+func FilterTxnResults(acl acl.ACL, results structs.TxnResults) structs.TxnResults {
+	rf := txnResultsFilter{acl: acl, results: results}
+	return results[:FilterEntries(&rf)]
+}
+
 // Filter interface is used with FilterEntries to do an
 // in-place filter of a slice.
 type Filter interface {

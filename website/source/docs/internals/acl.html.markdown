@@ -39,14 +39,24 @@ prior versions do not provide a token. This is handled by the special "anonymous
 token. If no token is provided, the rules associated with the anonymous token are
 automatically applied: this allows policy to be enforced on legacy clients.
 
+ACLs can also act in either a whitelist or blacklist mode depending
+on the configuration of
+[`acl_default_policy`](/docs/agent/options.html#acl_default_policy). If the
+default policy is to deny all actions, then token rules can be set to whitelist
+specific actions. In the inverse, the allow all default behavior is a blacklist
+where rules are used to prohibit actions. By default, Consul will allow all
+actions.
+
+#### ACL Datacenter
+
 Enforcement is always done by the server nodes. All servers must be configured
 to provide an [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) which
-enables ACL enforcement but also specifies the authoritative datacenter. Consul does not
-replicate data cross-WAN and instead relies on [RPC forwarding](/docs/internals/architecture.html)
-to support Multi-Datacenter configurations. However, because requests can be made
+enables ACL enforcement but also specifies the authoritative datacenter. Consul
+relies on [RPC forwarding](/docs/internals/architecture.html) to support
+Multi-Datacenter configurations. However, because requests can be made
 across datacenter boundaries, ACL tokens must be valid globally. To avoid
-replication issues, a single datacenter is considered authoritative and stores
-all the tokens.
+consistency issues, a single datacenter is considered authoritative and stores
+the canonical set of tokens.
 
 When a request is made to a server in a non-authoritative datacenter server, it
 must be resolved into the appropriate policy. This is done by reading the token
@@ -55,7 +65,9 @@ from the authoritative server and caching the result for a configurable
 of caching is that the cache TTL is an upper bound on the staleness of policy
 that is enforced. It is possible to set a zero TTL, but this has adverse
 performance impacts, as every request requires refreshing the policy via a
-cross-datacenter WAN call.
+cross-datacenter WAN RPC call.
+
+#### Outages and ACL Replication
 
 The Consul ACL system is designed with flexible rules to accommodate for an outage
 of the [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) or networking
@@ -66,114 +78,46 @@ choices to tune behavior. It is possible to deny or permit all actions or to ign
 cache TTLs and enter a fail-safe mode. The default is to ignore cache TTLs
 for any previously resolved tokens and to deny any uncached tokens.
 
-ACLs can also act in either a whitelist or blacklist mode depending
-on the configuration of
-[`acl_default_policy`](/docs/agent/options.html#acl_default_policy). If the
-default policy is to deny all actions, then token rules can be set to whitelist
-specific actions. In the inverse, the allow all default behavior is a blacklist
-where rules are used to prohibit actions. By default, Consul will allow all
-actions.
+<a name="replication"></a>
+Consul 0.7 added an ACL Replication capability that can allow non-authoritative
+datacenter servers to resolve even uncached tokens. This is enabled by setting an
+[`acl_replication_token`](/docs/agent/options.html#acl_replication_token) in the
+configuration on the servers in the non-authoritative datacenters. With replication
+enabled, the servers will maintain a replica of the authoritative datacenter's full
+set of ACLs on the non-authoritative servers.
 
-### Blacklist mode and `consul exec`
+Replication occurs with a background process that looks for new ACLs approximately
+every 30 seconds. Replicated changes are written at a rate that's throttled to
+100 updates/second, so it may take several minutes to perform the initial sync of
+a large set of ACLs.
 
-If you set [`acl_default_policy`](/docs/agent/options.html#acl_default_policy)
-to `deny`, the `anonymous` token won't have permission to read the default
-`_rexec` prefix; therefore, Consul agents using the `anonymous` token
-won't be able to perform [`consul exec`](/docs/commands/exec.html) actions.
+If there's a partition or other outage affecting the authoritative datacenter,
+and the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
+is set to "extend-cache", tokens will be resolved during the outage using the
+replicated set of ACLs. An [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
+endpoint is available to monitor the health of the replication process.
 
-Here's why: the agents need read/write permission to the `_rexec` prefix for
-[`consul exec`](/docs/commands/exec.html) to work properly. They use that prefix
-as the transport for most data.
+Locally-resolved ACLs will be cached using the [`acl_ttl`](/docs/agent/options.html#acl_ttl)
+setting of the non-authoritative datacenter, so these entries may persist in the
+cache for up to the TTL, even after the authoritative datacenter comes back online.
 
-You can enable [`consul exec`](/docs/commands/exec.html) from agents that are not
-configured with a token by allowing the `anonymous` token to access that prefix.
-This can be done by giving this rule to the `anonymous` token:
+ACL replication can also be used to migrate ACLs from one datacenter to another
+using a process like this:
 
-```javascript
-key "_rexec/" {
-    policy = "write"
-}
-```
+1. Enable ACL replication in all datacenters to allow continuation of service
+during the migration, and to populate the target datacenter. Verify replication
+is healthy and caught up to the current ACL index in the target datacenter
+using the [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
+endpoint.
+2. Turn down the old authoritative datacenter servers.
+3. Rolling restart the servers in the target datacenter and change the
+`acl_datacenter` configuration to itself. This will automatically turn off
+replication and will enable the datacenter to start acting as the authoritative
+datacenter, using its replicated ACLs from before.
+3. Rolling restart the servers in other datacenters and change their `acl_datacenter`
+configuration to the target datacenter.
 
-Alternatively, you can, of course, add an explicit
-[`acl_token`](/docs/agent/options.html#acl_token) to each agent, giving it access
-to that prefix.
-
-### Blacklist mode and Service Discovery
-
-If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
-set to `deny`, the `anonymous` token will be unable to read any service
-information. This will cause the service discovery mechanisms in the REST API
-and the DNS interface to return no results for any service queries. This is
-because internally the API's and DNS interface consume the RPC interface, which
-will filter results for services the token has no access to.
-
-You can allow all services to be discovered, mimicing the behavior of pre-0.6.0
-releases, by configuring this ACL rule for the `anonymous` token:
-
-```
-service "" {
-    policy = "read"
-}
-```
-
-Note that the above will allow access for reading service information only. This
-level of access allows discovering other services in the system, but is not
-enough to allow the agent to sync its services and checks into the global
-catalog during [anti-entropy](/docs/internals/anti-entropy.html).
-
-The most secure way of handling service registration and discovery is to run
-Consul 0.6+ and issue tokens with explicit access for the services or service
-prefixes which are expected to run on each agent.
-
-### Blacklist mode and Events
-
-Similar to the above, if your
-[`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is set to
-`deny`, the `anonymous` token will have no access to allow firing user events.
-This deviates from pre-0.6.0 builds, where user events were completely
-unrestricted.
-
-Events have their own first-class expression in the ACL syntax. To restore
-access to user events from arbitrary agents, configure an ACL rule like the
-following for the `anonymous` token:
-
-```
-event "" {
-    policy = "write"
-}
-```
-
-As always, the more secure way to handle user events is to explicitly grant
-access to each API token based on the events they should be able to fire.
-
-### Blacklist mode and Prepared Queries
-
-After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
-incuding a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
-
-### Blacklist mode and Keyring Operations
-
-Consul 0.6 and later supports securing the encryption keyring operations using
-ACL's. Encryption is an optional component of the gossip layer. More information
-about Consul's keyring operations can be found on the [keyring
-command](/docs/commands/keyring.html) documentation page.
-
-If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
-set to `deny`, then the `anonymous` token will not have access to read or write
-to the encryption keyring. The keyring policy is yet another first-class citizen
-in the ACL syntax. You can configure the anonymous token to have free reign over
-the keyring using a policy like the following:
-
-```
-keyring = "write"
-```
-
-Encryption keyring operations are sensitive and should be properly secured. It
-is recommended that instead of configuring a wide-open policy like above, a
-per-token policy is applied to maximize security.
-
-### Bootstrapping ACLs
+#### Bootstrapping ACLs
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
 configuration](/docs/agent/options.html#acl_master_token) which will be created
@@ -187,8 +131,7 @@ for all servers. Once this is done, restart the current leader to force a leader
 ## Rule Specification
 
 A core part of the ACL system is a rule language which is used to describe the policy
-that must be enforced. Consul supports ACLs for both [K/Vs](/intro/getting-started/kv.html)
-and [services](/intro/getting-started/services.html).
+that must be enforced.
 
 Key policies are defined by coupling a prefix with a policy. The rules are enforced
 using a longest-prefix match policy: Consul picks the most specific policy possible. The
@@ -267,6 +210,9 @@ query "" {
 
 # Read-only mode for the encryption keyring by default (list only)
 keyring = "read"
+
+# Read-only mode for Consul operator interfaces (list only)
+operator = "read"
 ```
 
 This is equivalent to the following JSON input:
@@ -305,11 +251,135 @@ This is equivalent to the following JSON input:
       "policy": "read"
     }
   },
-  "keyring": "read"
+  "keyring": "read",
+  "operator": "read"
 }
 ```
 
-## Services and Checks with ACLs
+## Building ACL Policies
+
+#### Blacklist Mode and `consul exec`
+
+If you set [`acl_default_policy`](/docs/agent/options.html#acl_default_policy)
+to `deny`, the `anonymous` token won't have permission to read the default
+`_rexec` prefix; therefore, Consul agents using the `anonymous` token
+won't be able to perform [`consul exec`](/docs/commands/exec.html) actions.
+
+Here's why: the agents need read/write permission to the `_rexec` prefix for
+[`consul exec`](/docs/commands/exec.html) to work properly. They use that prefix
+as the transport for most data.
+
+You can enable [`consul exec`](/docs/commands/exec.html) from agents that are not
+configured with a token by allowing the `anonymous` token to access that prefix.
+This can be done by giving this rule to the `anonymous` token:
+
+```javascript
+key "_rexec/" {
+    policy = "write"
+}
+```
+
+Alternatively, you can, of course, add an explicit
+[`acl_token`](/docs/agent/options.html#acl_token) to each agent, giving it access
+to that prefix.
+
+#### Blacklist Mode and Service Discovery
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, the `anonymous` token will be unable to read any service
+information. This will cause the service discovery mechanisms in the REST API
+and the DNS interface to return no results for any service queries. This is
+because internally the API's and DNS interface consume the RPC interface, which
+will filter results for services the token has no access to.
+
+You can allow all services to be discovered, mimicing the behavior of pre-0.6.0
+releases, by configuring this ACL rule for the `anonymous` token:
+
+```
+service "" {
+    policy = "read"
+}
+```
+
+Note that the above will allow access for reading service information only. This
+level of access allows discovering other services in the system, but is not
+enough to allow the agent to sync its services and checks into the global
+catalog during [anti-entropy](/docs/internals/anti-entropy.html).
+
+The most secure way of handling service registration and discovery is to run
+Consul 0.6+ and issue tokens with explicit access for the services or service
+prefixes which are expected to run on each agent.
+
+#### Blacklist mode and Events
+
+Similar to the above, if your
+[`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is set to
+`deny`, the `anonymous` token will have no access to allow firing user events.
+This deviates from pre-0.6.0 builds, where user events were completely
+unrestricted.
+
+Events have their own first-class expression in the ACL syntax. To restore
+access to user events from arbitrary agents, configure an ACL rule like the
+following for the `anonymous` token:
+
+```
+event "" {
+    policy = "write"
+}
+```
+
+As always, the more secure way to handle user events is to explicitly grant
+access to each API token based on the events they should be able to fire.
+
+#### Blacklist Mode and Prepared Queries
+
+After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
+including a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
+
+#### Blacklist Mode and Keyring Operations
+
+Consul 0.6 and later supports securing the encryption keyring operations using
+ACL's. Encryption is an optional component of the gossip layer. More information
+about Consul's keyring operations can be found on the [keyring
+command](/docs/commands/keyring.html) documentation page.
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, then the `anonymous` token will not have access to read or write
+to the encryption keyring. The keyring policy is yet another first-class citizen
+in the ACL syntax. You can configure the anonymous token to have free reign over
+the keyring using a policy like the following:
+
+```
+keyring = "write"
+```
+
+Encryption keyring operations are sensitive and should be properly secured. It
+is recommended that instead of configuring a wide-open policy like above, a
+per-token policy is applied to maximize security.
+
+<a name="operator"></a>
+#### Blacklist Mode and Consul Operator Actions
+
+Consul 0.7 added special Consul operator actions which are protected by a new
+`operator` ACL policy. The operator actions cover:
+
+* [Operator HTTP endpoint](/docs/agent/http/operator.html)
+* [Operator CLI command](/docs/commands/operator.html)
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, then the `anonymous` token will not have access to Consul operator
+actions. Granting `read` access allows reading information for diagnostic purposes
+without making any changes to state. Granting `write` access allows reading
+information and changing state. Here's an example policy:
+
+```
+operator = "write"
+```
+
+~> Grant `write` access to operator actions with extreme caution, as improper use
+   could lead to a Consul outage and even loss of data.
+
+#### Services and Checks with ACLs
 
 Consul allows configuring ACL policies which may control access to service and
 check registration. In order to successfully register a service or check with
@@ -330,7 +400,7 @@ methods of configuring ACL tokens to use for registration events:
    [HTTP API](/docs/agent/http.html) for operations that require them.
 
 <a name="discovery_acls"></a>
-## Restricting service discovery with ACLs
+#### Restricting service discovery with ACLs
 
 In Consul 0.6, the ACL system was extended to support restricting read access to
 service registrations. This allows tighter access control and limits the ability
@@ -405,7 +475,7 @@ check:
 In the common case, the ACL Token of the invoker is used
 to test the ability to look up a service. If a `Token` was specified when the
 prepared query was created, the behavior changes and now the captured
-ACL Token set by the definer of the query is used when lookup up a service.
+ACL Token set by the definer of the query is used when looking up a service.
 
 Capturing ACL Tokens is analogous to
 [PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
@@ -413,7 +483,7 @@ Capturing ACL Tokens is analogous to
 Token is similar to the complementary `SECURITY INVOKER` attribute.
 
 <a name="prepared_query_acl_changes"></a>
-#### ACL Implementation Changes
+#### ACL Implementation Changes for Prepared Queries
 
 Prepared queries were originally introduced in Consul 0.6.0, and ACL behavior remained
 unchanged through version 0.6.3, but was then changed to allow better management of the

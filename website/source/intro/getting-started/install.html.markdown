@@ -32,13 +32,7 @@ If you are using [homebrew](http://brew.sh/#install) as a package manager,
 you can install consul with:
 
 ```text
-$ brew cask install consul
-```
-
-if you are missing the [cask plugin](http://caskroom.io/), you can install it with:
-
-```text
-$ brew install caskroom/cask/brew-cask
+$ brew install consul
 ```
 
 ## Verifying the Installation

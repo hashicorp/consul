@@ -73,11 +73,22 @@ type ACL interface {
 	// KeyringWrite determines if the keyring can be manipulated
 	KeyringWrite() bool
 
+	// OperatorRead determines if the read-only Consul operator functions
+	// can be used.
+	OperatorRead() bool
+
+	// OperatorWrite determines if the state-changing Consul operator
+	// functions can be used.
+	OperatorWrite() bool
+
 	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
 
 	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
+
+	// Snapshot checks for permission to take and restore snapshots.
+	Snapshot() bool
 }
 
 // StaticACL is used to implement a base ACL policy. It either
@@ -132,11 +143,23 @@ func (s *StaticACL) KeyringWrite() bool {
 	return s.defaultAllow
 }
 
+func (s *StaticACL) OperatorRead() bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) OperatorWrite() bool {
+	return s.defaultAllow
+}
+
 func (s *StaticACL) ACLList() bool {
 	return s.allowManage
 }
 
 func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) Snapshot() bool {
 	return s.allowManage
 }
 
@@ -188,10 +211,13 @@ type PolicyACL struct {
 	// preparedQueryRules contains the prepared query policies
 	preparedQueryRules *radix.Tree
 
-	// keyringRules contains the keyring policies. The keyring has
+	// keyringRule contains the keyring policies. The keyring has
 	// a very simple yes/no without prefix matching, so here we
 	// don't need to use a radix tree.
 	keyringRule string
+
+	// operatorRule contains the operator policies.
+	operatorRule string
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -227,6 +253,9 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 
 	// Load the keyring policy
 	p.keyringRule = policy.Keyring
+
+	// Load the operator policy
+	p.operatorRule = policy.Operator
 
 	return p, nil
 }
@@ -422,6 +451,27 @@ func (p *PolicyACL) KeyringWrite() bool {
 	return p.parent.KeyringWrite()
 }
 
+// OperatorRead determines if the read-only operator functions are allowed.
+func (p *PolicyACL) OperatorRead() bool {
+	switch p.operatorRule {
+	case PolicyRead, PolicyWrite:
+		return true
+	case PolicyDeny:
+		return false
+	default:
+		return p.parent.OperatorRead()
+	}
+}
+
+// OperatorWrite determines if the state-changing operator functions are
+// allowed.
+func (p *PolicyACL) OperatorWrite() bool {
+	if p.operatorRule == PolicyWrite {
+		return true
+	}
+	return p.parent.OperatorWrite()
+}
+
 // ACLList checks if listing of ACLs is allowed
 func (p *PolicyACL) ACLList() bool {
 	return p.parent.ACLList()
@@ -430,4 +480,9 @@ func (p *PolicyACL) ACLList() bool {
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
 	return p.parent.ACLModify()
+}
+
+// Snapshot checks if taking and restoring snapshots is allowed.
+func (p *PolicyACL) Snapshot() bool {
+	return p.parent.Snapshot()
 }

@@ -89,7 +89,7 @@ func (t *Txn) writeNode(n *Node) *Node {
 	}
 
 	// Mark this node as modified
-	t.modified.Add(n, nil)
+	t.modified.Add(nc, nil)
 	return nc
 }
 

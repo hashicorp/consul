@@ -81,8 +81,8 @@ func newTCPTransport(bindAddr string,
 }
 
 // Dial implements the StreamLayer interface.
-func (t *TCPStreamLayer) Dial(address string, timeout time.Duration) (net.Conn, error) {
-	return net.DialTimeout("tcp", address, timeout)
+func (t *TCPStreamLayer) Dial(address ServerAddress, timeout time.Duration) (net.Conn, error) {
+	return net.DialTimeout("tcp", string(address), timeout)
 }
 
 // Accept implements the net.Listener interface.

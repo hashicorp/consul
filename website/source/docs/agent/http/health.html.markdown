@@ -129,6 +129,7 @@ It returns a JSON body like this:
       "Node": "foobar",
       "Address": "10.1.10.12",
       "TaggedAddresses": {
+        "lan": "10.1.10.12",
         "wan": "10.1.10.12"
       }
     },
@@ -178,7 +179,7 @@ the node list in ascending order based on the estimated round trip
 time from that node. Passing "?near=_agent" will use the agent's
 node for the sort.
 
-The supported states are `any`, `unknown`, `passing`, `warning`, or `critical`.
+The supported states are `any`, `passing`, `warning`, or `critical`.
 The `any` state is a wildcard that can be used to return all checks.
 
 It returns a JSON body like this:

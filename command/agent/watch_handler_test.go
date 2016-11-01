@@ -3,7 +3,6 @@ package agent
 import (
 	"io/ioutil"
 	"os"
-	"sync"
 	"testing"
 )
 
@@ -26,7 +25,7 @@ func TestMakeWatchHandler(t *testing.T) {
 	defer os.Remove("handler_out")
 	defer os.Remove("handler_index_out")
 	script := "echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out"
-	handler := makeWatchHandler(os.Stderr, script, &sync.RWMutex{})
+	handler := makeWatchHandler(os.Stderr, script)
 	handler(100, []string{"foo", "bar", "baz"})
 	raw, err := ioutil.ReadFile("handler_out")
 	if err != nil {

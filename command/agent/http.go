@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/mapstructure"
@@ -42,6 +43,10 @@ type HTTPServer struct {
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
 func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
+	if logOutput == nil {
+		return nil, fmt.Errorf("Please provide a valid logOutput(io.Writer)")
+	}
+
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
@@ -191,89 +196,120 @@ func (s *HTTPServer) Shutdown() {
 	}
 }
 
+// handleFuncMetrics takes the given pattern and handler and wraps to produce
+// metrics based on the pattern and request.
+func (s *HTTPServer) handleFuncMetrics(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	// Get the parts of the pattern. We omit any initial empty for the
+	// leading slash, and put an underscore as a "thing" placeholder if we
+	// see a trailing slash, which means the part after is parsed. This lets
+	// us distinguish from things like /v1/query and /v1/query/<query id>.
+	var parts []string
+	for i, part := range strings.Split(pattern, "/") {
+		if part == "" {
+			if i == 0 {
+				continue
+			} else {
+				part = "_"
+			}
+		}
+		parts = append(parts, part)
+	}
+
+	// Register the wrapper, which will close over the expensive-to-compute
+	// parts from above.
+	wrapper := func(resp http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		handler(resp, req)
+
+		key := append([]string{"consul", "http", req.Method}, parts...)
+		metrics.MeasureSince(key, start)
+	}
+	s.mux.HandleFunc(pattern, wrapper)
+}
+
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/", s.Index)
 
-	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
-	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
-
-	s.mux.HandleFunc("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	s.mux.HandleFunc("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	s.mux.HandleFunc("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
-	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
-
-	if !s.agent.config.DisableCoordinates {
-		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
-	} else {
-		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
-	}
-
-	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	s.mux.HandleFunc("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	s.mux.HandleFunc("/v1/health/service/", s.wrap(s.HealthServiceNodes))
-
-	s.mux.HandleFunc("/v1/agent/self", s.wrap(s.AgentSelf))
-	s.mux.HandleFunc("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	s.mux.HandleFunc("/v1/agent/services", s.wrap(s.AgentServices))
-	s.mux.HandleFunc("/v1/agent/checks", s.wrap(s.AgentChecks))
-	s.mux.HandleFunc("/v1/agent/members", s.wrap(s.AgentMembers))
-	s.mux.HandleFunc("/v1/agent/join/", s.wrap(s.AgentJoin))
-	s.mux.HandleFunc("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
-
-	s.mux.HandleFunc("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	s.mux.HandleFunc("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	s.mux.HandleFunc("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	s.mux.HandleFunc("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	s.mux.HandleFunc("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
-
-	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	s.mux.HandleFunc("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	s.mux.HandleFunc("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
-
-	s.mux.HandleFunc("/v1/event/fire/", s.wrap(s.EventFire))
-	s.mux.HandleFunc("/v1/event/list", s.wrap(s.EventList))
-
-	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
-
-	s.mux.HandleFunc("/v1/session/create", s.wrap(s.SessionCreate))
-	s.mux.HandleFunc("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	s.mux.HandleFunc("/v1/session/renew/", s.wrap(s.SessionRenew))
-	s.mux.HandleFunc("/v1/session/info/", s.wrap(s.SessionGet))
-	s.mux.HandleFunc("/v1/session/node/", s.wrap(s.SessionsForNode))
-	s.mux.HandleFunc("/v1/session/list", s.wrap(s.SessionList))
-
+	// API V1.
 	if s.agent.config.ACLDatacenter != "" {
-		s.mux.HandleFunc("/v1/acl/create", s.wrap(s.ACLCreate))
-		s.mux.HandleFunc("/v1/acl/update", s.wrap(s.ACLUpdate))
-		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
-		s.mux.HandleFunc("/v1/acl/info/", s.wrap(s.ACLGet))
-		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(s.ACLClone))
-		s.mux.HandleFunc("/v1/acl/list", s.wrap(s.ACLList))
+		s.handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
+		s.handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
+		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
+		s.handleFuncMetrics("/v1/acl/info/", s.wrap(s.ACLGet))
+		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
+		s.handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
+		s.handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 	} else {
-		s.mux.HandleFunc("/v1/acl/create", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/update", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/info/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/create", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/update", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/info/", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/list", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/replication", s.wrap(aclDisabled))
 	}
+	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
+	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
+	s.handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
+	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
+	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
+	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
+	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
+	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
+	s.handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
+	s.handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
+	s.handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
+	s.handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
+	s.handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
+	s.handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
+	s.handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
+	s.handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
+	s.handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
+	s.handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
+	s.handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
+	s.handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
+	s.handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
+	s.handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+	if !s.agent.config.DisableCoordinates {
+		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	} else {
+		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+	}
+	s.handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
+	s.handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
+	s.handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
+	s.handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
+	s.handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
+	s.handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+	s.handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	s.handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	s.handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
+	s.handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
+	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
+	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
+	s.handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
+	s.handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
+	s.handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
+	s.handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
+	s.handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
+	s.handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
+	s.handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
+	s.handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
+	s.handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
+	s.handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
+	s.handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
 
-	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
-	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
-
+	// Debug endpoints.
 	if enableDebug {
-		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
-		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		s.mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		s.handleFuncMetrics("/debug/pprof/", pprof.Index)
+		s.handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
+		s.handleFuncMetrics("/debug/pprof/profile", pprof.Profile)
+		s.handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
 	// Use the custom UI dir if provided.
@@ -283,16 +319,13 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
-	// API's are under /internal/ui/ to avoid conflict
-	s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
 }
 
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
+		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
@@ -337,31 +370,43 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
 				code = http.StatusForbidden // 403
 			}
+
 			resp.WriteHeader(code)
 			resp.Write([]byte(err.Error()))
 			return
 		}
 
-		prettyPrint := false
-		if _, ok := req.URL.Query()["pretty"]; ok {
-			prettyPrint = true
-		}
-		// Write out the JSON object
 		if obj != nil {
 			var buf []byte
-			if prettyPrint {
-				buf, err = json.MarshalIndent(obj, "", "    ")
-			} else {
-				buf, err = json.Marshal(obj)
-			}
+			buf, err = s.marshalJSON(req, obj)
 			if err != nil {
 				goto HAS_ERR
 			}
+
 			resp.Header().Set("Content-Type", "application/json")
 			resp.Write(buf)
 		}
 	}
 	return f
+}
+
+// marshalJSON marshals the object into JSON, respecting the user's pretty-ness
+// configuration.
+func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
+	if _, ok := req.URL.Query()["pretty"]; ok {
+		buf, err := json.MarshalIndent(obj, "", "    ")
+		if err != nil {
+			return nil, err
+		}
+		buf = append(buf, "\n"...)
+		return buf, nil
+	}
+
+	buf, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	return buf, err
 }
 
 // Returns true if the UI is enabled.
@@ -403,6 +448,14 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 		}
 	}
 	return mapstructure.Decode(raw, out)
+}
+
+// setTranslateAddr is used to set the address translation header. This is only
+// present if the feature is active.
+func setTranslateAddr(resp http.ResponseWriter, active bool) {
+	if active {
+		resp.Header().Set("X-Consul-Translate-Addresses", "true")
+	}
 }
 
 // setIndex is used to set the index response header

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/raft"
 )
 
 // RaftLayer implements the raft.StreamLayer interface,
@@ -80,8 +81,8 @@ func (l *RaftLayer) Addr() net.Addr {
 }
 
 // Dial is used to create a new outgoing connection
-func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", address, timeout)
+func (l *RaftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net.Conn, error) {
+	conn, err := net.DialTimeout("tcp", string(address), timeout)
 	if err != nil {
 		return nil, err
 	}

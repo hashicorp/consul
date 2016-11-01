@@ -51,6 +51,10 @@ pre {
   margin-bottom: 0;
 }
 
+tt {
+  font-size: 18px;
+  font-family: "Menlo", "Monaco", "Courier New", monospace;
+}
 
 //fixed grid below 992 to prevent smaller responsive sizes
 @media (max-width: 992px) {

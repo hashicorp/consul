@@ -17,6 +17,7 @@ The following endpoints are supported:
 * [`/v1/acl/info/<id>`](#acl_info): Queries the policy of a given token
 * [`/v1/acl/clone/<id>`](#acl_clone): Creates a new token by cloning an existing token
 * [`/v1/acl/list`](#acl_list): Lists all the active tokens
+* [`/v1/acl/replication`](#acl_replication_status): Checks status of ACL replication
 
 ### <a name="acl_create"></a> /v1/acl/create
 
@@ -85,7 +86,7 @@ body may look like:
 
 ```javascript
 {
-  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
   "Name": "my-app-token-updated",
   "Type": "client",
   "Rules": "# New Rules",
@@ -166,3 +167,56 @@ It returns a JSON body like this:
   ...
 ]
 ```
+
+### <a name="acl_replication_status"></a> /v1/acl/replication
+
+Available in Consul 0.7 and later, the endpoint must be hit with a
+GET and returns the status of the [ACL replication](/docs/internals/acl.html#replication)
+process in the datacenter. This is intended to be used by operators, or by
+automation checking the health of ACL replication.
+
+By default, the datacenter of the agent is queried; however, the dc can be provided
+using the "?dc=" query parameter.
+
+It returns a JSON body like this:
+
+```javascript
+{
+  "Enabled": true,
+  "Running": true,
+  "SourceDatacenter": "dc1",
+  "ReplicatedIndex": 1976,
+  "LastSuccess": "2016-08-05T06:28:58Z",
+  "LastError": "2016-08-05T06:28:28Z"
+}
+```
+
+`Enabled` reports whether ACL replication is enabled for the datacenter.
+
+`Running` reports whether the ACL replication process is running. The process
+may take approximately 60 seconds to begin running after a leader election occurs.
+
+`SourceDatacenter` is the authoritative ACL datacenter that ACLs are being
+replicated from, and will match the
+[`acl_datacenter`](/docs/agent/options.html#acl_datacenter) configuration.
+
+`ReplicatedIndex` is the last index that was successfully replicated. You can
+compare this to the `X-Consul-Index` header returned by the [`/v1/acl/list`](#acl_list)
+endpoint to determine if the replication process has gotten all available
+ACLs. Note that replication runs as a background process approximately every 30
+seconds, and that local updates are rate limited to 100 updates/second, so so it
+may take several minutes to perform the initial sync of a large set of ACLs.
+After the initial sync, replica lag should be on the order of about 30 seconds.
+
+`LastSuccess` is the UTC time of the last successful sync operation. Note that
+since ACL replication is done with a blocking query, this may not update for up
+to 5 minutes if there have been no ACL changes to replicate. A zero value of
+"0001-01-01T00:00:00Z" will be present if no sync has been successful.
+
+`LastError` is the UTC time of the last error encountered during a sync operation.
+If this time is later than `LastSuccess`, you can assume the replication process
+is not in a good state. A zero value of "0001-01-01T00:00:00Z" will be present if
+no sync has resulted in an error.
+
+Please see the [ACL replication](/docs/internals/acl.html#replication)
+section of the internals guide for more details.

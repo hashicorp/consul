@@ -16,14 +16,16 @@ Each endpoint manages a different aspect of Consul:
 
 * [acl](http/acl.html) - Access Control Lists
 * [agent](http/agent.html) - Consul Agent
-* [catalog](http/catalog.html) - Nodes and services
-* [coordinate](http/coordinate.html) - Network coordinates
+* [catalog](http/catalog.html) - Nodes and Services
+* [coordinate](http/coordinate.html) - Network Coordinates
 * [event](http/event.html) - User Events
-* [health](http/health.html) - Health checks
-* [kv](http/kv.html) - Key/Value store
+* [health](http/health.html) - Health Checks
+* [kv](http/kv.html) - Key/Value Store
+* [operator](http/operator.html) - Consul Operator Tools
 * [query](http/query.html) - Prepared Queries
 * [session](http/session.html) - Sessions
-* [status](http/status.html) - Consul system status
+* [snapshots](http/snapshot.html) - Consul Snapshots for Disaster Recovery
+* [status](http/status.html) - Consul System Status
 
 Each of these is documented in detail at the links above. Consul also has a number
 of internal APIs which are purposely undocumented and subject to change.
@@ -49,7 +51,7 @@ A critical note is that the return of a blocking request is **no guarantee** of 
 is possible that the timeout was reached or that there was an idempotent write that does
 not affect the result of the query.
 
-## Consistency Modes
+## <a id="consistency"></a>Consistency Modes
 
 Most of the read query endpoints support multiple levels of consistency. Since no policy will
 suit all clients' needs, these consistency modes allow the user to have the ultimate say in
@@ -96,3 +98,12 @@ configuration option. However, the token can also be specified per-request
 by using the `X-Consul-Token` request header or the `token` querystring
 parameter. The request header takes precedence over the default token, and
 the querystring parameter takes precedence over everything.
+
+
+## <a id="translate_header"></a>Translated Addresses
+
+Consul 0.7 added the ability to translate addresses in HTTP response based on the configuration
+setting for [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs). In order to
+allow clients to know if address translation is in effect, the `X-Consul-Translate-Addresses`
+header will be added if translation is enabled, and will have a value of `true`. If translation
+is not enabled then this header will not be present.

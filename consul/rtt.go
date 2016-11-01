@@ -386,12 +386,11 @@ func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
 // other things being equal (or if coordinates are disabled).
 func (s *Server) getDatacentersByDistance() ([]string, error) {
 	s.remoteLock.RLock()
-	defer s.remoteLock.RUnlock()
-
-	var dcs []string
+	dcs := make([]string, 0, len(s.remoteConsuls))
 	for dc := range s.remoteConsuls {
 		dcs = append(dcs, dc)
 	}
+	s.remoteLock.RUnlock()
 
 	// Sort by name first, since the coordinate sort is stable.
 	sort.Strings(dcs)

@@ -56,9 +56,10 @@ command-line option](/docs/agent/options.html#_node).
 We will also specify a [`bind` address](/docs/agent/options.html#_bind):
 this is the address that Consul listens on, and it *must* be accessible by
 all other nodes in the cluster. While a `bind` address is not strictly
-necessary (Consul will by default listen on the first private IP on a
-system), it's always best to provide one. Production servers often have
-multiple interfaces, so specifying a `bind` address assures that you will
+necessary, it's always best to provide one. Consul will by default attempt to
+listen on all IPv4 interfaces on a system, but will fail to start with an
+error if multiple private IPs are found. Since production servers often
+have multiple interfaces, specifying a `bind` address assures that you will
 never bind Consul to the wrong interface.
 
 The first node will act as our sole server in this cluster, and we indicate
@@ -78,9 +79,9 @@ All together, these settings yield a
 [`consul agent`](/docs/commands/agent.html) command like this:
 
 ```text
-vagrant@n1:~$ consul agent -server -bootstrap-expect 1 \
-	-data-dir /tmp/consul -node=agent-one -bind=172.20.20.10 \
-	-config-dir /etc/consul.d
+vagrant@n1:~$ consul agent -server -bootstrap-expect=1 \
+	-data-dir=/tmp/consul -node=agent-one -bind=172.20.20.10 \
+	-config-dir=/etc/consul.d
 ...
 ```
 
@@ -100,8 +101,8 @@ All together, these settings yield a
 [`consul agent`](/docs/commands/agent.html) command like this:
 
 ```text
-vagrant@n2:~$ consul agent -data-dir /tmp/consul -node=agent-two \
-	-bind=172.20.20.11 -config-dir /etc/consul.d
+vagrant@n2:~$ consul agent -data-dir=/tmp/consul -node=agent-two \
+	-bind=172.20.20.11 -config-dir=/etc/consul.d
 ...
 ```
 

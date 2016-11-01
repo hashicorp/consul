@@ -1,18 +1,16 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/cli"
 )
 
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
-	Revision          string
-	Version           string
-	VersionPrerelease string
-	Ui                cli.Ui
+	HumanVersion string
+	Ui           cli.Ui
 }
 
 func (c *VersionCommand) Help() string {
@@ -20,19 +18,17 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	var versionString bytes.Buffer
-	fmt.Fprintf(&versionString, "Consul %s", c.Version)
-	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, ".%s", c.VersionPrerelease)
+	c.Ui.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
 
-		if c.Revision != "" {
-			fmt.Fprintf(&versionString, " (%s)", c.Revision)
-		}
+	config := agent.DefaultConfig()
+	var supplement string
+	if config.Protocol < consul.ProtocolVersionMax {
+		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
+			config.Protocol)
 	}
+	c.Ui.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
+		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
 
-	c.Ui.Output(versionString.String())
-	c.Ui.Output(fmt.Sprintf("Consul Protocol: %d (Understands back to: %d)",
-		consul.ProtocolVersionMax, consul.ProtocolVersionMin))
 	return 0
 }
 

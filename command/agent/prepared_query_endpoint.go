@@ -96,6 +96,10 @@ func parseLimit(req *http.Request, limit *int) error {
 func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryExecuteRequest{
 		QueryIDOrName: id,
+		Agent: structs.QuerySource{
+			Node:       s.agent.config.NodeName,
+			Datacenter: s.agent.config.Datacenter,
+		},
 	}
 	s.parseSource(req, &args.Source)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -118,6 +122,12 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		return nil, err
 	}
 
+	// Note that we translate using the DC that the results came from, since
+	// a query can fail over to a different DC than where the execute request
+	// was sent to. That's why we use the reply's DC and not the one from
+	// the args.
+	translateAddresses(s.agent.config, reply.Datacenter, reply.Nodes)
+
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {
 		reply.Nodes = make(structs.CheckServiceNodes, 0)
@@ -131,6 +141,10 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryExecuteRequest{
 		QueryIDOrName: id,
+		Agent: structs.QuerySource{
+			Node:       s.agent.config.NodeName,
+			Datacenter: s.agent.config.Datacenter,
+		},
 	}
 	s.parseSource(req, &args.Source)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {

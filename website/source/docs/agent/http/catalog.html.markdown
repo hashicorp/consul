@@ -20,7 +20,7 @@ The following endpoints are supported:
 * [`/v1/catalog/nodes`](#catalog_nodes) : Lists nodes in a given DC
 * [`/v1/catalog/services`](#catalog_services) : Lists services in a given DC
 * [`/v1/catalog/service/<service>`](#catalog_service) : Lists the nodes in a given service
-* [`/v1/catalog/node/<node>`](#catalog_nodes) : Lists the services provided by a node
+* [`/v1/catalog/node/<node>`](#catalog_node) : Lists the services provided by a node
 
 The `nodes` and `services` endpoints support blocking queries and
 tunable consistency modes.
@@ -40,6 +40,10 @@ body must look something like:
   "Datacenter": "dc1",
   "Node": "foobar",
   "Address": "192.168.10.10",
+  "TaggedAddresses": {
+    "lan": "192.168.10.10",
+    "wan": "10.0.10.10"
+  },
   "Service": {
     "ID": "redis1",
     "Service": "redis",
@@ -48,9 +52,6 @@ body must look something like:
       "v1"
     ],
     "Address": "127.0.0.1",
-    "TaggedAddresses": {
-      "wan": "127.0.0.1"
-    },
     "Port": 8000
   },
   "Check": {
@@ -69,7 +70,8 @@ requires `Node` and `Address` to be provided while `Datacenter` will be defaulte
 to match that of the agent. If only those are provided, the endpoint will register
 the node with the catalog. `TaggedAddresses` can be used in conjunction with the
 [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
-option. Currently only the "wan" tag is supported.
+option and the "wan" address. The "lan" address was added in Consul 0.7 to help find
+the LAN address if address translation is enabled.
 
 If the `Service` key is provided, the service will also be registered. If
 `ID` is not provided, it will be defaulted to the value of the `Service.Service` property.
@@ -86,9 +88,10 @@ The `CheckID` can be omitted and will default to the value of `Name`. As with `S
 the `CheckID` must be unique on this node. `Notes` is an opaque field that is meant to
 hold human-readable text. If a `ServiceID` is provided that matches the `ID`
 of a service on that node, the check is treated as a service level health
-check, instead of a node level health check. The `Status` must be one of
-`unknown`, `passing`, `warning`, or `critical`. The `unknown` status is used
-to indicate that the initial check has not been performed yet.
+check, instead of a node level health check. The `Status` must be one of `passing`, `warning`, or `critical`.
+
+Multiple checks can be provided by replacing `Check` with `Checks` and sending
+an array of `Check` objects.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
@@ -195,8 +198,9 @@ It returns a JSON body like this:
 [
   {
     "Node": "baz",
-    "Address": "10.1.10.11"
+    "Address": "10.1.10.11",
     "TaggedAddresses": {
+      "lan": "10.1.10.11",
       "wan": "10.1.10.11"
     }
   },
@@ -204,6 +208,7 @@ It returns a JSON body like this:
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {
+      "lan": "10.1.10.11",
       "wan": "10.1.10.12"
     }
   }
@@ -284,6 +289,7 @@ It returns a JSON body like this:
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {
+      "lan": "10.1.10.12",
       "wan": "10.1.10.12"
     }
   },

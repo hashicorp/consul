@@ -78,8 +78,8 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: expected nil SkipLeaveOnInt")
 	}
 
-	if config.LeaveOnTerm != DefaultConfig().LeaveOnTerm {
-		t.Fatalf("bad: %#v", config)
+	if config.LeaveOnTerm != nil {
+		t.Fatalf("bad: expected nil LeaveOnTerm")
 	}
 
 	// Server bootstrap
@@ -279,7 +279,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.LeaveOnTerm != true {
+	if *config.LeaveOnTerm != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -544,13 +544,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS node ttl, max stale
-	input = `{"dns_config": {"allow_stale": true, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6}}`
+	input = `{"dns_config": {"allow_stale": false, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6, "recursor_timeout": "7s"}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !config.DNSConfig.AllowStale {
+	if *config.DNSConfig.AllowStale {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSConfig.EnableTruncate {
@@ -566,6 +566,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSConfig.UDPAnswerLimit != 6 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSConfig.RecursorTimeout != 7*time.Second {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -608,6 +611,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// DNS disable compression
+	input = `{"dns_config": {"disable_compression": true}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.DNSConfig.DisableCompression {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// CheckUpdateInterval
 	input = `{"check_update_interval": "10m"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -622,7 +636,8 @@ func TestDecodeConfig(t *testing.T) {
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
-	"acl_default_policy": "deny", "acl_master_token": "2345"}`
+	"acl_default_policy": "deny", "acl_master_token": "2345",
+	"acl_replication_token": "8675309"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -644,6 +659,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLDefaultPolicy != "deny" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLReplicationToken != "8675309" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -722,6 +740,51 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if config.Telemetry.StatsitePrefix != "my_prefix" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Circonus settings
+	input = `{"telemetry": {"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
+    "circonus_api_url": "https://api.host.foo/v2", "circonus_submission_interval": "15s",
+    "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
+	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
+    "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
+    "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"} }`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Telemetry.CirconusAPIToken != "12345678-1234-1234-12345678" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusAPIApp != "testApp" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusAPIURL != "https://api.host.foo/v2" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusSubmissionInterval != "15s" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckSubmissionURL != "https://submit.host.bar:123/one/two/three" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckID != "12345" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckForceMetricActivation != "true" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckInstanceID != "a:b" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckSearchTag != "c:d" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusBrokerID != "6789" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusBrokerSelectTag != "e:f" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -866,27 +929,6 @@ func TestDecodeConfig(t *testing.T) {
 	if config.SessionTTLMin != 5*time.Second {
 		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
 	}
-
-	// Reap
-	input = `{"reap": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Reap == nil || *config.Reap != true {
-		t.Fatalf("bad: reap not enabled: %#v", config)
-	}
-
-	input = `{}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Reap != nil {
-		t.Fatalf("bad: reap not tri-stated: %#v", config)
-	}
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
@@ -894,6 +936,23 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 	_, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err == nil || !strings.Contains(err.Error(), "invalid keys") {
 		t.Fatalf("should have rejected invalid config keys")
+	}
+}
+
+func TestDecodeConfig_Performance(t *testing.T) {
+	input := `{"performance": { "raft_multiplier": 3 }}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Performance.RaftMultiplier != 3 {
+		t.Fatalf("bad: multiplier isn't set: %#v", config)
+	}
+
+	input = `{"performance": { "raft_multiplier": 11 }}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err == nil || !strings.Contains(err.Error(), "Performance.RaftMultiplier must be <=") {
+		t.Fatalf("bad: %v", err)
 	}
 }
 
@@ -1198,7 +1257,7 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 
 func TestDecodeConfig_Service(t *testing.T) {
 	// Basics
-	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`
+	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "DeregisterCriticalServiceAfter": "90m" }}}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1236,11 +1295,15 @@ func TestDecodeConfig_Service(t *testing.T) {
 	if serv.Check.TTL != 15*time.Second {
 		t.Fatalf("bad: %v", serv)
 	}
+
+	if serv.Check.DeregisterCriticalServiceAfter != 90*time.Minute {
+		t.Fatalf("bad: %v", serv)
+	}
 }
 
 func TestDecodeConfig_Check(t *testing.T) {
 	// Basics
-	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis" }}`
+	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis", "deregister_critical_service_after": "90s" }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1282,6 +1345,10 @@ func TestDecodeConfig_Check(t *testing.T) {
 	if chk.DockerContainerID != "redis" {
 		t.Fatalf("bad: %v", chk)
 	}
+
+	if chk.DeregisterCriticalServiceAfter != 90*time.Second {
+		t.Fatalf("bad: %v", chk)
+	}
 }
 
 func TestMergeConfig(t *testing.T) {
@@ -1297,7 +1364,7 @@ func TestMergeConfig(t *testing.T) {
 		BindAddr:               "127.0.0.1",
 		AdvertiseAddr:          "127.0.0.1",
 		Server:                 false,
-		LeaveOnTerm:            false,
+		LeaveOnTerm:            new(bool),
 		SkipLeaveOnInt:         new(bool),
 		EnableDebug:            false,
 		CheckUpdateIntervalRaw: "8m",
@@ -1314,20 +1381,25 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
+		Performance: Performance{
+			RaftMultiplier: 99,
+		},
 		Bootstrap:       true,
 		BootstrapExpect: 3,
 		Datacenter:      "dc2",
 		DataDir:         "/tmp/bar",
 		DNSRecursors:    []string{"127.0.0.2:1001"},
 		DNSConfig: DNSConfig{
-			AllowStale:     false,
-			EnableTruncate: true,
-			MaxStale:       30 * time.Second,
-			NodeTTL:        10 * time.Second,
+			AllowStale:         Bool(false),
+			EnableTruncate:     true,
+			DisableCompression: true,
+			MaxStale:           30 * time.Second,
+			NodeTTL:            10 * time.Second,
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
-			UDPAnswerLimit: 4,
+			UDPAnswerLimit:  4,
+			RecursorTimeout: 30 * time.Second,
 		},
 		Domain:           "other",
 		LogLevel:         "info",
@@ -1352,8 +1424,8 @@ func TestMergeConfig(t *testing.T) {
 			HTTPS: "127.0.0.4",
 		},
 		Server:                 true,
-		LeaveOnTerm:            true,
-		SkipLeaveOnInt:         new(bool),
+		LeaveOnTerm:            Bool(true),
+		SkipLeaveOnInt:         Bool(true),
 		EnableDebug:            true,
 		VerifyIncoming:         true,
 		VerifyOutgoing:         true,
@@ -1387,6 +1459,7 @@ func TestMergeConfig(t *testing.T) {
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
+		ACLReplicationToken:    "8765309",
 		Watches: []map[string]interface{}{
 			map[string]interface{}{
 				"type":    "keyprefix",
@@ -1429,9 +1502,7 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
-		Reap: Bool(true),
 	}
-	*b.SkipLeaveOnInt = true
 
 	c := MergeConfig(a, b)
 

@@ -73,13 +73,21 @@ running `consul -v`. You'll see output similar to that below:
 
 ```
 $ consul -v
-Consul v0.1.0
-Consul Protocol: 1 (Understands back to: 1)
+Consul v0.7.0
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
 ```
 
-This says the version of Consul as well as the latest protocol version (1,
-in this case). It also says the earliest protocol version that this Consul
-agent can understand (0, in this case).
+This says the version of Consul as well as the protocol versions this
+agent speaks and can understand.
+
+Note that sometimes Consul will default to speak a lower protocol version
+than it understands, in order to ease compatibility with older agents. For
+example, Consul agents that understand version 3 claim to speak version 2,
+and only send version 3 messages to agents that understand version 3. This
+allows features to upshift automatically as agents are upgraded, and is the
+strategy used whenever possible. If this is not possible, then you will need
+to do a backward incompatible upgrade using the instructions above, and such
+a requirement will be clearly outlined in the notes for a given release.
 
 By specifying the `-protocol` flag on `consul agent`, you can tell the
 Consul agent to speak any protocol version that it can understand. This

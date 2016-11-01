@@ -104,6 +104,9 @@ App.DcRoute = App.BaseRoute.extend({
         });
 
         return objs;
+      }),
+      coordinates: Ember.$.getJSON(formatUrl(consulHost + '/v1/coordinate/nodes', params.dc, token)).then(function(data) {
+        return data;
       })
     });
   },
@@ -112,6 +115,7 @@ App.DcRoute = App.BaseRoute.extend({
     controller.set('content', models.dc);
     controller.set('nodes', models.nodes);
     controller.set('dcs', models.dcs);
+    controller.set('coordinates', models.coordinates);
     controller.set('isDropdownVisible', false);
   },
 });
@@ -257,19 +261,85 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   }
 });
 
+function distance(a, b) {
+    a = a.Coord;
+    b = b.Coord;
+    var sum = 0;
+    for (var i = 0; i < a.Vec.length; i++) {
+        var diff = a.Vec[i] - b.Vec[i];
+        sum += diff * diff;
+    }
+    var rtt = Math.sqrt(sum) + a.Height + b.Height;
+
+    var adjusted = rtt + a.Adjustment + b.Adjustment;
+    if (adjusted > 0.0) {
+        rtt = adjusted;
+    }
+
+    return Math.round(rtt * 100000.0) / 100.0;
+}
+
 App.NodesShowRoute = App.BaseRoute.extend({
   model: function(params) {
-    var dc = this.modelFor('dc').dc;
+    var dc = this.modelFor('dc');
     var token = App.get('settings.token');
+
+    var min = 999999999;
+    var max = -999999999;
+    var sum = 0;
+    var distances = [];
+    dc.coordinates.forEach(function (node) {
+      if (params.name == node.Node) {
+        dc.coordinates.forEach(function (other) {
+          if (node.Node != other.Node) {
+            var dist = distance(node, other);
+            distances.push({ node: other.Node, distance: dist });
+            sum += dist;
+            if (dist < min) {
+              min = dist;
+            }
+            if (dist > max) {
+              max = dist;
+            }
+          }
+        });
+        distances.sort(function (a, b) {
+          return a.distance - b.distance;
+        });
+      }
+    });
+    var n = distances.length;
+    var halfN = Math.floor(n / 2);
+    var median;
+
+    if (n > 0) {
+      if (n % 2) {
+        // odd
+        median = distances[halfN].distance;
+      } else {
+        median = (distances[halfN - 1].distance + distances[halfN].distance) / 2;
+      }
+    } else {
+      median = 0;
+      min = 0;
+      max = 0;
+    }
 
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
-      dc: dc,
+      dc: dc.dc,
       token: token,
-      node: Ember.$.getJSON(formatUrl(consulHost + '/v1/internal/ui/node/' + params.name, dc, token)).then(function(data) {
+      tomography: {
+        distances: distances,
+        n: distances.length,
+        min: parseInt(min * 100) / 100,
+        median: parseInt(median * 100) / 100,
+        max: parseInt(max * 100) / 100
+      },
+      node: Ember.$.getJSON(formatUrl(consulHost + '/v1/internal/ui/node/' + params.name, dc.dc, token)).then(function(data) {
         return App.Node.create(data);
       }),
-      nodes: Ember.$.getJSON(formatUrl(consulHost + '/v1/internal/ui/node/' + params.name, dc, token)).then(function(data) {
+      nodes: Ember.$.getJSON(formatUrl(consulHost + '/v1/internal/ui/node/' + params.name, dc.dc, token)).then(function(data) {
         return App.Node.create(data);
       })
     });
@@ -286,6 +356,7 @@ App.NodesShowRoute = App.BaseRoute.extend({
   setupController: function(controller, models) {
       controller.set('content', models.node);
       controller.set('sessions', models.sessions);
+      controller.set('tomography', models.tomography);
       //
       // Since we have 2 column layout, we need to also display the
       // list of nodes on the left. Hence setting the attribute

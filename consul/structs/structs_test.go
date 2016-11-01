@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/types"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -56,11 +58,61 @@ func TestStructs_Implements(t *testing.T) {
 	)
 }
 
+func TestStructs_ACL_IsSame(t *testing.T) {
+	acl := &ACL{
+		ID:    "guid",
+		Name:  "An ACL for testing",
+		Type:  "client",
+		Rules: "service \"\" { policy = \"read\" }",
+	}
+	if !acl.IsSame(acl) {
+		t.Fatalf("should be equal to itself")
+	}
+
+	other := &ACL{
+		ID:    "guid",
+		Name:  "An ACL for testing",
+		Type:  "client",
+		Rules: "service \"\" { policy = \"read\" }",
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	if !acl.IsSame(other) || !other.IsSame(acl) {
+		t.Fatalf("should not care about Raft fields")
+	}
+
+	check := func(twiddle, restore func()) {
+		if !acl.IsSame(other) || !other.IsSame(acl) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if acl.IsSame(other) || other.IsSame(acl) {
+			t.Fatalf("should not be the same")
+		}
+
+		restore()
+		if !acl.IsSame(other) || !other.IsSame(acl) {
+			t.Fatalf("should be the same")
+		}
+	}
+
+	check(func() { other.ID = "nope" }, func() { other.ID = "guid" })
+	check(func() { other.Name = "nope" }, func() { other.Name = "An ACL for testing" })
+	check(func() { other.Type = "management" }, func() { other.Type = "client" })
+	check(func() { other.Rules = "" }, func() { other.Rules = "service \"\" { policy = \"read\" }" })
+}
+
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{
-		Node:                     "node1",
-		Address:                  "127.0.0.1",
+		Node:    "node1",
+		Address: "127.0.0.1",
+		TaggedAddresses: map[string]string{
+			"hello": "world",
+		},
 		ServiceID:                "service1",
 		ServiceName:              "dogs",
 		ServiceTags:              []string{"prod", "v1"},
@@ -74,10 +126,20 @@ func testServiceNode() *ServiceNode {
 	}
 }
 
-func TestStructs_ServiceNode_Clone(t *testing.T) {
+func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn := testServiceNode()
 
-	clone := sn.Clone()
+	clone := sn.PartialClone()
+
+	// Make sure the parts that weren't supposed to be cloned didn't get
+	// copied over, then zero-value them out so we can do a DeepEqual() on
+	// the rest of the contents.
+	if clone.Address != "" || len(clone.TaggedAddresses) != 0 {
+		t.Fatalf("bad: %v", clone)
+	}
+
+	sn.Address = ""
+	sn.TaggedAddresses = nil
 	if !reflect.DeepEqual(sn, clone) {
 		t.Fatalf("bad: %v", clone)
 	}
@@ -91,7 +153,12 @@ func TestStructs_ServiceNode_Clone(t *testing.T) {
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn := testServiceNode()
 
-	sn2 := sn.ToNodeService().ToServiceNode("node1", "127.0.0.1")
+	sn2 := sn.ToNodeService().ToServiceNode("node1")
+
+	// These two fields get lost in the conversion, so we have to zero-value
+	// them out before we do the compare.
+	sn.Address = ""
+	sn.TaggedAddresses = nil
 	if !reflect.DeepEqual(sn, sn2) {
 		t.Fatalf("bad: %v", sn2)
 	}
@@ -184,7 +251,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		t.Fatalf("should not care about Raft fields")
 	}
 
-	check := func(field *string) {
+	checkCheckIDField := func(field *types.CheckID) {
 		if !hc.IsSame(other) || !other.IsSame(hc) {
 			t.Fatalf("should be the same")
 		}
@@ -201,14 +268,31 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		}
 	}
 
-	check(&other.Node)
-	check(&other.CheckID)
-	check(&other.Name)
-	check(&other.Status)
-	check(&other.Notes)
-	check(&other.Output)
-	check(&other.ServiceID)
-	check(&other.ServiceName)
+	checkStringField := func(field *string) {
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+
+		old := *field
+		*field = "XXX"
+		if hc.IsSame(other) || other.IsSame(hc) {
+			t.Fatalf("should not be the same")
+		}
+		*field = old
+
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+	}
+
+	checkStringField(&other.Node)
+	checkCheckIDField(&other.CheckID)
+	checkStringField(&other.Name)
+	checkStringField(&other.Status)
+	checkStringField(&other.Notes)
+	checkStringField(&other.Output)
+	checkStringField(&other.ServiceID)
+	checkStringField(&other.ServiceName)
 }
 
 func TestStructs_HealthCheck_Clone(t *testing.T) {

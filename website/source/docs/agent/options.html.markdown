@@ -29,7 +29,7 @@ are documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
-## Command-line Options
+## <a name="commandline_options"></a>Command-line Options
 
 The options below are all specified on the command-line.
 
@@ -92,8 +92,14 @@ The options below are all specified on the command-line.
 * <a name="_bind"></a><a href="#_bind">`-bind`</a> - The address that should be bound to
   for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
-  By default, this is "0.0.0.0", meaning Consul will use the first available private
-  IPv4 address. If you specify "[::]", Consul will use the first available public IPv6 address.
+  By default, this is "0.0.0.0", meaning Consul will bind to all addresses on 
+the local machine and will [advertise](/docs/agent/options.html#_advertise)
+the first available private IPv4 address to the rest of the cluster. If there
+are multiple private IPv4 addresses available, Consul will exit with an error
+at startup. If you specify "[::]", Consul will 
+[advertise](/docs/agent/options.html#_advertise) the first available public
+IPv6 address. If there are multiple public IPv6 addresses available, Consul
+will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
@@ -116,7 +122,7 @@ The options below are all specified on the command-line.
   configuration files to load. Consul will
   load all files in this directory with the suffix ".json". The load order
   is alphabetical, and the the same merge routine is used as with the
-  [`config-file`](#_config_file) option above. This option can be specified mulitple times
+  [`config-file`](#_config_file) option above. This option can be specified multiple times
   to load multiple directories. Sub-directories of the config directory are not loaded.
   For more information on the format of the configuration files, see the
   [Configuration Files](#configuration_files) section.
@@ -135,11 +141,14 @@ The options below are all specified on the command-line.
   prototyping or developing against the API. This mode is **not** intended for
   production use as it does not write any data to disk.
 
-* <a name="_dc"></a><a href="#_dc">`-dc`</a> - This flag controls the datacenter in
+* <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple datacenters, but
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
+
+* <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
+  This overrides the default port 8600. This is available in Consul 0.7 and later.
 
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
@@ -171,8 +180,10 @@ The options below are all specified on the command-line.
 
 * <a name="_retry_join"></a><a href="#_retry_join">`-retry-join`</a> - Similar
   to [`-join`](#_join) but allows retrying a join if the first
-  attempt fails. This is useful for cases where we know the address will become
-  available eventually.
+  attempt fails. The list should contain IPv4 addresses with optional Serf
+  LAN port number also specified or bracketed IPv6 addresses with optional
+  port number — for example: `[::1]:8301`. This is useful for cases where we
+  know the address will become available eventually.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
@@ -306,7 +317,7 @@ definitions support being updated during a reload.
 }
 ```
 
-Note that the use of `port`:
+Note the use of `ports`:
 
 ```javascript
 "ports": {
@@ -351,6 +362,17 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
   the same as the other tokens, but isn't strictly necessary.
 
+* <a name="acl_replication_token"></a><a href="#acl_replication_token">`acl_replication_token`</a> -
+  Only used for servers outside the [`acl_datacenter`](#acl_datacenter) running Consul 0.7 or later.
+  When provided, this will enable [ACL replication](/docs/internals/acl.html#replication) using this
+  token to retrieve and replicate the ACLs to the non-authoritative local datacenter.
+  <br><br>
+  If there's a partition or other outage affecting the authoritative datacenter, and the
+  [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
+  in the cache can be resolved during the outage using the replicated set of ACLs. Please see the
+  [ACL replication](/docs/internals/acl.html#replication) section of the internals guide for more
+  details.
+
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request
   basis by providing the "?token" query parameter. When not provided, the empty token, which maps to
@@ -375,9 +397,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
   environment variables.
   <br><br>
-  For TCP addresses, these should simply be an IP address without the port. For
-  example: `10.0.0.1`, not `10.0.0.1:8500`. Ports are set separately in the
-  <a href="#ports">`ports`</a> structure.
+  For TCP addresses, the variable values should be an IP address with the port. For
+  example: `10.0.0.1:8500` and not `10.0.0.1`. However, ports are set separately in the
+  <a href="#ports">`ports`</a> structure when defining them in a configuration file.
   <br><br>
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
@@ -402,7 +424,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 * <a name="atlas_acl_token"></a><a href="#atlas_acl_token">`atlas_acl_token`</a> When provided,
-  any requests made by Atlas will use this ACL token unless explicitly overriden. When not provided
+  any requests made by Atlas will use this ACL token unless explicitly overridden. When not provided
   the [`acl_token`](#acl_token) is used. This can be set to 'anonymous' to reduce permission below
   that of [`acl_token`](#acl_token).
 
@@ -449,7 +471,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-client` command-line flag](#_client).
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
-  [`-dc` command-line flag](#_dc).
+  [`-datacenter` command-line flag](#_datacenter).
 
 * <a name="data_dir"></a><a href="#data_dir">`data_dir`</a> Equivalent to the
   [`-data-dir` command-line flag](#_data_dir).
@@ -474,8 +496,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
   for DNS information. This allows any Consul server, rather than only the leader, to service
   the request. The advantage of this is you get linear read scalability with Consul servers.
-  By default, this is false, meaning all requests are serviced by the leader, providing stronger
-  consistency but less throughput and higher latency.
+  In versions of Consul prior to 0.7, this defaulted to false, meaning all requests are serviced
+  by the leader, providing stronger consistency but less throughput and higher latency. In Consul
+  0.7 and later, this defaults to true for better utilization of available servers.
 
   * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> When [`allow_stale`](#allow_stale)
   is specified, this is used to limit how
@@ -504,6 +527,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   service lookups, the health checks of the node itself, as well as the service-specific checks
   are considered. For example, if a node has a health check that is critical then all services on
   that node will be excluded because they are also considered critical.
+
+  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> Timeout used
+  by Consul when recursively querying an upstream DNS server. See <a href="#recursors">`recursors`</a>
+  for more details. Default is 2s. This is available in Consul 0.7 and later.
+
+  * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
+  set to true, DNS responses will not be compressed. Compression was added and enabled by default
+  in Consul 0.7.
 
   * <a name="udp_answer_limit"></a><a
   href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
@@ -551,15 +582,37 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     ```
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
-  enabled, when the agent receives a TERM signal,
-  it will send a `Leave` message to the rest of the cluster and gracefully
-  leave. Defaults to false.
+  enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest
+  of the cluster and gracefully leave. The default behavior for this feature varies based on
+  whether or not the agent is running as a client or a server (prior to Consul 0.7 the default
+  value was unconditionally set to `false`). On agents in client-mode, this defaults to `true`
+  and for agents in server-mode, this defaults to `false`.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
 
 * <a name="node_name"></a><a href="#node_name">`node_name`</a> Equivalent to the
   [`-node` command-line flag](#_node).
+
+* <a name="performance"></a><a href="#performance">`performance`</a> Available in Consul 0.7 and
+  later, this is a nested object that allows tuning the performance of different subsystems in
+  Consul. See the [Server Performance](/docs/guides/performance.html) guide for more details. The
+  following parameters are available:
+
+* <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
+  multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
+  or setting it to 0 uses default timing described below. Lower values are used to tighten
+  timing and increase sensitivity while higher values relax timings and reduce sensitivity.
+  Tuning this affects the time it takes Consul to detect leader failures and to perform
+  leader elections, at the expense of requiring more network and CPU resources for better
+  performance.<br><br>By default, Consul will use a lower-performance timing that's suitable
+  for [minimal Consul servers](/docs/guides/performance.html#minumum), currently equivalent
+  to setting this to a value of 5 (this default may be changed in future versions of Consul,
+  depending if the target minimum server profile changes). Setting this to a value of 1 will
+  configure Raft to its highest-performance mode, equivalent to the default timing of Consul
+  prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
+  See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
+  details on tuning this parameter. The maximum allowed value is 10.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
@@ -577,7 +630,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
   automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
-  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively).
+  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively). This option was removed
+  in Consul 0.7.1. For later versions of Consul, you will need to reap processes using a wrapper, please see the
+  [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
+  for an example.
 
 * <a name="reconnect_timeout"></a><a href="#reconnect_timeout">`reconnect_timeout`</a> This controls
   how long it takes for a failed node to be completely removed from the cluster. This defaults to
@@ -598,7 +654,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="recursors"></a><a href="#recursors">`recursors`</a> This flag provides addresses of
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
-  domain for consul. For example, a node can use Consul directly as a DNS server, and if the record is
+  domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
   outside of the "consul." domain, the query will be resolved upstream.
 
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent
@@ -607,7 +663,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="retry_join"></a><a href="#retry_join">`retry_join`</a> Equivalent to the
   [`-retry-join` command-line flag](#_retry_join). Takes a list
   of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one
-  [`-join`](#_join) works.
+  [`-join`](#_join) works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).
@@ -656,12 +712,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sends its runtime telemetry, and contains the following keys:
 
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
-    address of a statsd instance.  If provided, Consul will send various telemetry information to that instance for
+    address of a statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
     statsd or statsite.
 
   * <a name="telemetry-statsite_address"></a><a href="#telemetry-statsite_address">`statsite_address`</a> This provides
-    the address of a statsite instance. If provided, Consul will stream various telemetry information to that instance
+    the address of a statsite instance in the format `host:port`. If provided, Consul will stream various telemetry information to that instance
     for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
     statsite.
 
@@ -680,6 +736,39 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
   * <a name="telemetry-disable_hostname"></a><a href="#telemetry-disable_hostname">`disable_hostname`</a>
     This controls whether or not to prepend runtime telemetry with the machine's hostname, defaults to false.
+
+  * <a name="telemetry-circonus_api_token"></a><a href="#telemetry-circonus_api_token">`circonus_api_token`</a>
+    A valid API Token used to create/manage check. If provided, metric management is enabled.
+
+  * <a name="telemetry-circonus_api_app"></a><a href="#telemetry-circonus_api_app">`circonus_api_app`</a>
+    A valid app name associated with the API token. By default, this is set to "consul".
+
+  * <a name="telemetry-circonus_api_url"></a><a href="#telemetry-circonus_api_url">`circonus_api_url`</a>
+    The base URL to use for contacting the Circonus API. By default, this is set to "https://api.circonus.com/v2".
+
+  * <a name="telemetry-circonus_submission_interval"></a><a href="#telemetry-circonus_submission_interval">`circonus_submission_interval`</a>
+    The interval at which metrics are submitted to Circonus. By default, this is set to "10s" (ten seconds).
+
+  * <a name="telemetry-circonus_submission_url"></a><a href="#telemetry-circonus_submission_url">`circonus_submission_url`</a>
+    The `check.config.submission_url` field, of a Check API object, from a previously created HTTPTRAP check.
+
+  * <a name="telemetry-circonus_check_id"></a><a href="#telemetry-circonus_check_id">`circonus_check_id`</a>
+    The Check ID (not **check bundle**) from a previously created HTTPTRAP check. The numeric portion of the `check._cid` field in the Check API object.
+
+  * <a name="telemetry-circonus_check_force_metric_activation"></a><a href="#telemetry-circonus_check_force_metric_activation">`circonus_check_force_metric_activation`</a>
+    Force activation of metrics which already exist and are not currently active. If check management is enabled, the default behavior is to add new metrics as they are encoutered. If the metric already exists in the check, it will **not** be activated. This setting overrides that behavior. By default, this is set to false.
+
+  * <a name="telemetry-circonus_check_instance_id"></a><a href="#telemetry-circonus_check_instance_id">`circonus_check_instance_id`</a>
+    Uniquely identifies the metrics coming from this *instance*.  It can be used to maintain metric continuity with transient or ephemeral instances as they move around within an infrastructure. By default, this is set to hostname:application name (e.g. "host123:consul").
+
+  * <a name="telemetry-circonus_check_search_tag"></a><a href="#telemetry-circonus_check_search_tag">`circonus_check_search_tag`</a>
+    A special tag which, when coupled with the instance id, helps to narrow down the search results when neither a Submission URL or Check ID is provided. By default, this is set to service:application name (e.g. "service:consul").
+
+  * <a name="telemetry-circonus_broker_id"></a><a href="#telemetry-circonus_broker_id">`circonus_broker_id`</a>
+    The ID of a specific Circonus Broker to use when creating a new check. The numeric portion of `broker._cid` field in a Broker API object. If metric management is enabled and neither a Submission URL nor Check ID is provided, an attempt will be made to search for an existing check using Instance ID and Search Tag. If one is not found, a new HTTPTRAP check will be created. By default, this is not used and a random Enterprise Broker is selected, or the default Circonus Public Broker.
+
+  * <a name="telemetry-circonus_broker_select_tag"></a><a href="#telemetry-circonus_broker_select_tag">`circonus_broker_select_tag`</a>
+    A special tag which will be used to select a Circonus Broker when a Broker ID is not provided. The best use of this is to as a hint for which broker should be used based on *where* this particular instance is running (e.g. a specific geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
 * <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> Deprecated, see
   the <a href="#telemetry">telemetry</a> structure
@@ -702,10 +791,26 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
   set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>
-  when servicing DNS requests for a node in a remote datacenter. This allows the node to be
-  reached within its own datacenter using its local address, and reached from other datacenters
-  using its WAN address, which is useful in hybrid setups with mixed networks. This is disabled
-  by default.
+  when servicing DNS and HTTP requests for a node in a remote datacenter. This allows the node to
+  be reached within its own datacenter using its local address, and reached from other datacenters
+  using its WAN address, which is useful in hybrid setups with mixed networks. This is disabled by
+  default.
+  <br>
+  <br>
+  Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
+  node's configured <a href="#_advertise-wan">WAN address</a> when querying for a node in a remote
+  datacenter. An [`X-Consul-Translate-Addresses`](/docs/agent/http.html#translate_header) header
+  will be present on all responses when translation is enabled to help clients know that the addresses
+  may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that
+  need knowledge of that address, regardless of translation.
+  <br>
+  <br>The following endpoints translate addresses:
+  <br>
+  * [`/v1/catalog/nodes`](/docs/agent/http/catalog.html#catalog_nodes)
+  * [`/v1/catalog/node/<node>`](/docs/agent/http/catalog.html#catalog_node)
+  * [`/v1/catalog/service/<service>`](/docs/agent/http/catalog.html#catalog_service)
+  * [`/v1/health/service/<service>`](/docs/agent/http/health.html#health_service)
+  * [`/v1/query/<query or name>/execute`](/docs/agent/http/query.html#execute)
 
 * <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
   command-line flag.
@@ -716,20 +821,23 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="unix_sockets"></a><a href="#unix_sockets">`unix_sockets`</a> - This
   allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
-  the HTTP or RPC addresses are configured with the `unix://` prefix. The
-  following options are valid within this construct and apply globally to all
-  sockets created by Consul:
+  the HTTP or RPC addresses are configured with the `unix://` prefix.
   <br>
-  * `user` - The name or ID of the user who will own the socket file.
-  * `group` - The group ID ownership of the socket file. Note that this option
-    currently only supports numeric IDs.
-  * `mode` - The permission bits to set on the file.
   <br>
   It is important to note that this option may have different effects on
   different operating systems. Linux generally observes socket file permissions
   while many BSD variants ignore permissions on the socket file itself. It is
   important to test this feature on your specific distribution. This feature is
   currently not functional on Windows hosts.
+  <br>
+  <br>
+  The following options are valid within this construct and apply globally to all
+  sockets created by Consul:
+  <br>
+  * `user` - The name or ID of the user who will own the socket file.
+  * `group` - The group ID ownership of the socket file. Note that this option
+    currently only supports numeric IDs.
+  * `mode` - The permission bits to set on the file.
 
 * <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> - If
   set to true, Consul requires that all incoming
@@ -749,7 +857,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="verify_server_hostname"></a><a href="#verify_server_hostname">`verify_server_hostname`</a> - If set to
   true, Consul verifies for all outgoing connections that the TLS certificate presented by the servers
-  matches "server.<datacenter>.<domain>" hostname. This implies `verify_outgoing`.
+  matches "server.&lt;datacenter&gt;.&lt;domain&gt;" hostname. This implies `verify_outgoing`.
   By default, this is false, and Consul does not verify the hostname of the certificate, only
   that it is signed by a trusted CA. This setting is important to prevent a compromised
   client from being restarted as a server, and thus being able to perform a MITM attack

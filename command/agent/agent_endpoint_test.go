@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -61,7 +62,7 @@ func TestHTTPAgentChecks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
-	val := obj.(map[string]*structs.HealthCheck)
+	val := obj.(map[types.CheckID]*structs.HealthCheck)
 	if len(val) != 1 {
 		t.Fatalf("bad checks: %v", obj)
 	}
@@ -188,9 +189,15 @@ func TestHTTPAgentJoin(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if len(a2.LANMembers()) != 2 {
+	if len(srv.agent.LANMembers()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(a2.LANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 members")
+	})
 }
 
 func TestHTTPAgentJoin_WAN(t *testing.T) {
@@ -215,6 +222,10 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 	}
 	if obj != nil {
 		t.Fatalf("Err: %v", obj)
+	}
+
+	if len(srv.agent.WANMembers()) != 2 {
+		t.Fatalf("should have 2 members")
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
@@ -294,21 +305,22 @@ func TestHTTPAgentRegisterCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := srv.agent.state.Checks()["test"]; !ok {
+	checkID := types.CheckID("test")
+	if _, ok := srv.agent.state.Checks()[checkID]; !ok {
 		t.Fatalf("missing test check")
 	}
 
-	if _, ok := srv.agent.checkTTLs["test"]; !ok {
+	if _, ok := srv.agent.checkTTLs[checkID]; !ok {
 		t.Fatalf("missing test check ttl")
 	}
 
 	// Ensure the token was configured
-	if token := srv.agent.state.CheckToken("test"); token == "" {
+	if token := srv.agent.state.CheckToken(checkID); token == "" {
 		t.Fatalf("missing token")
 	}
 
 	// By default, checks start in critical state.
-	state := srv.agent.state.Checks()["test"]
+	state := srv.agent.state.Checks()[checkID]
 	if state.Status != structs.HealthCritical {
 		t.Fatalf("bad: %v", state)
 	}
@@ -343,15 +355,16 @@ func TestHTTPAgentRegisterCheckPassing(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := srv.agent.state.Checks()["test"]; !ok {
+	checkID := types.CheckID("test")
+	if _, ok := srv.agent.state.Checks()[checkID]; !ok {
 		t.Fatalf("missing test check")
 	}
 
-	if _, ok := srv.agent.checkTTLs["test"]; !ok {
+	if _, ok := srv.agent.checkTTLs[checkID]; !ok {
 		t.Fatalf("missing test check ttl")
 	}
 
-	state := srv.agent.state.Checks()["test"]
+	state := srv.agent.state.Checks()[checkID]
 	if state.Status != structs.HealthPassing {
 		t.Fatalf("bad: %v", state)
 	}

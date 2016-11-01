@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 )
@@ -860,7 +861,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		Session: structs.Session{
 			ID:     generateUUID(),
 			Node:   "foo",
-			Checks: []string{"web"},
+			Checks: []types.CheckID{"web"},
 		},
 	}
 	buf, err := structs.Encode(structs.SessionRequestType, req)
@@ -1238,6 +1239,47 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	}
 	if stones.Next() != nil {
 		t.Fatalf("unexpected extra tombstones")
+	}
+}
+
+func TestFSM_Txn(t *testing.T) {
+	fsm, err := NewFSM(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set a key using a transaction.
+	req := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "/test/path",
+						Flags: 0,
+						Value: []byte("test"),
+					},
+				},
+			},
+		},
+	}
+	buf, err := structs.Encode(structs.TxnRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if _, ok := resp.(structs.TxnResponse); !ok {
+		t.Fatalf("bad response type: %T", resp)
+	}
+
+	// Verify key is set directly in the state store.
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
 	}
 }
 

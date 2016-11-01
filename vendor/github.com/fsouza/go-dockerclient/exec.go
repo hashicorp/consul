@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"golang.org/x/net/context"
 )
 
 // Exec is the type representing a `docker exec` instance and containing the
@@ -23,13 +25,14 @@ type Exec struct {
 //
 // See https://goo.gl/1KSIb7 for more details
 type CreateExecOptions struct {
-	AttachStdin  bool     `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty"`
-	AttachStdout bool     `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty"`
-	AttachStderr bool     `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty"`
-	Tty          bool     `json:"Tty,omitempty" yaml:"Tty,omitempty"`
-	Cmd          []string `json:"Cmd,omitempty" yaml:"Cmd,omitempty"`
-	Container    string   `json:"Container,omitempty" yaml:"Container,omitempty"`
-	User         string   `json:"User,omitempty" yaml:"User,omitempty"`
+	AttachStdin  bool            `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty"`
+	AttachStdout bool            `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty"`
+	AttachStderr bool            `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty"`
+	Tty          bool            `json:"Tty,omitempty" yaml:"Tty,omitempty"`
+	Cmd          []string        `json:"Cmd,omitempty" yaml:"Cmd,omitempty"`
+	Container    string          `json:"Container,omitempty" yaml:"Container,omitempty"`
+	User         string          `json:"User,omitempty" yaml:"User,omitempty"`
+	Context      context.Context `json:"-"`
 }
 
 // CreateExec sets up an exec instance in a running container `id`, returning the exec
@@ -38,7 +41,7 @@ type CreateExecOptions struct {
 // See https://goo.gl/1KSIb7 for more details
 func (c *Client) CreateExec(opts CreateExecOptions) (*Exec, error) {
 	path := fmt.Sprintf("/containers/%s/exec", opts.Container)
-	resp, err := c.do("POST", path, doOptions{data: opts})
+	resp, err := c.do("POST", path, doOptions{data: opts, context: opts.Context})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, &NoSuchContainer{ID: opts.Container}
@@ -75,6 +78,8 @@ type StartExecOptions struct {
 	// It must be an unbuffered channel. Using a buffered channel can lead
 	// to unexpected behavior.
 	Success chan struct{} `json:"-"`
+
+	Context context.Context `json:"-"`
 }
 
 // StartExec starts a previously set up exec instance id. If opts.Detach is
@@ -106,7 +111,7 @@ func (c *Client) StartExecNonBlocking(id string, opts StartExecOptions) (CloseWa
 	path := fmt.Sprintf("/exec/%s/start", id)
 
 	if opts.Detach {
-		resp, err := c.do("POST", path, doOptions{data: opts})
+		resp, err := c.do("POST", path, doOptions{data: opts, context: opts.Context})
 		if err != nil {
 			if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 				return nil, &NoSuchExec{ID: id}

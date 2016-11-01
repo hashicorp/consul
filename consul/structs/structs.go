@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -36,6 +37,7 @@ const (
 	TombstoneRequestType
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
+	TxnRequestType
 )
 
 const (
@@ -51,7 +53,6 @@ const (
 	// HealthAny is special, and is used as a wild card,
 	// not as a specific state.
 	HealthAny      = "any"
-	HealthUnknown  = "unknown"
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
@@ -180,7 +181,7 @@ type DeregisterRequest struct {
 	Datacenter string
 	Node       string
 	ServiceID  string
-	CheckID    string
+	CheckID    types.CheckID
 	WriteRequest
 }
 
@@ -258,10 +259,15 @@ type Nodes []*Node
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNode represents a node that is part of a service
+// ServiceNode represents a node that is part of a service. Address and
+// TaggedAddresses are node-related fields that are always empty in the state
+// store and are filled in on the way out by parseServiceNodes(). This is also
+// why PartialClone() skips them, because we know they are blank already so it
+// would be a waste of time to copy them.
 type ServiceNode struct {
 	Node                     string
 	Address                  string
+	TaggedAddresses          map[string]string
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -272,14 +278,16 @@ type ServiceNode struct {
 	RaftIndex
 }
 
-// Clone returns a clone of the given service node.
-func (s *ServiceNode) Clone() *ServiceNode {
+// PartialClone() returns a clone of the given service node, minus the node-
+// related fields that get filled in later, Address and TaggedAddresses.
+func (s *ServiceNode) PartialClone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
 
 	return &ServiceNode{
-		Node:                     s.Node,
-		Address:                  s.Address,
+		Node: s.Node,
+		// Skip Address, see above.
+		// Skip TaggedAddresses, see above.
 		ServiceID:                s.ServiceID,
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
@@ -341,10 +349,11 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 }
 
 // ToServiceNode converts the given node service to a service node.
-func (s *NodeService) ToServiceNode(node, address string) *ServiceNode {
+func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 	return &ServiceNode{
-		Node:                     node,
-		Address:                  address,
+		Node: node,
+		// Skip Address, see ServiceNode definition.
+		// Skip TaggedAddresses, see ServiceNode definition.
 		ServiceID:                s.ID,
 		ServiceName:              s.Service,
 		ServiceTags:              s.Tags,
@@ -366,13 +375,13 @@ type NodeServices struct {
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
 	Node        string
-	CheckID     string // Unique per-node ID
-	Name        string // Check name
-	Status      string // The current check status
-	Notes       string // Additional notes with the status
-	Output      string // Holds output of script runs
-	ServiceID   string // optional associated service
-	ServiceName string // optional service name
+	CheckID     types.CheckID // Unique per-node ID
+	Name        string        // Check name
+	Status      string        // The current check status
+	Notes       string        // Additional notes with the status
+	Output      string        // Holds output of script runs
+	ServiceID   string        // optional associated service
+	ServiceName string        // optional service name
 
 	RaftIndex
 }
@@ -533,7 +542,25 @@ const (
 	KVSCAS              = "cas"    // Check-and-set
 	KVSLock             = "lock"   // Lock a key
 	KVSUnlock           = "unlock" // Unlock a key
+
+	// The following operations are only available inside of atomic
+	// transactions via the Txn request.
+	KVSGet          = "get"           // Read the key during the transaction.
+	KVSGetTree      = "get-tree"      // Read all keys with the given prefix during the transaction.
+	KVSCheckSession = "check-session" // Check the session holds the key.
+	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
+
+// IsWrite returns true if the given operation alters the state store.
+func (op KVSOp) IsWrite() bool {
+	switch op {
+	case KVSGet, KVSGetTree, KVSCheckSession, KVSCheckIndex:
+		return false
+
+	default:
+		return true
+	}
+}
 
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {
@@ -598,7 +625,7 @@ type Session struct {
 	ID        string
 	Name      string
 	Node      string
-	Checks    []string
+	Checks    []types.CheckID
 	LockDelay time.Duration
 	Behavior  SessionBehavior // What to do when session is invalidated
 	TTL       string
@@ -642,7 +669,7 @@ type IndexedSessions struct {
 	QueryMeta
 }
 
-// ACL is used to represent a token and it's rules
+// ACL is used to represent a token and its rules
 type ACL struct {
 	ID    string
 	Name  string
@@ -661,6 +688,21 @@ const (
 	ACLDelete         = "delete"
 )
 
+// IsSame checks if one ACL is the same as another, without looking
+// at the Raft information (that's why we didn't call it IsEqual). This is
+// useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+func (a *ACL) IsSame(other *ACL) bool {
+	if a.ID != other.ID ||
+		a.Name != other.Name ||
+		a.Type != other.Type ||
+		a.Rules != other.Rules {
+		return false
+	}
+
+	return true
+}
+
 // ACLRequest is used to create, update or delete an ACL
 type ACLRequest struct {
 	Datacenter string
@@ -672,6 +714,9 @@ type ACLRequest struct {
 func (r *ACLRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
+
+// ACLRequests is a list of ACL change requests.
+type ACLRequests []*ACLRequest
 
 // ACLSpecificRequest is used to request an ACL by ID
 type ACLSpecificRequest struct {
@@ -708,6 +753,17 @@ type ACLPolicy struct {
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
+}
+
+// ACLReplicationStatus provides information about the health of the ACL
+// replication system.
+type ACLReplicationStatus struct {
+	Enabled          bool
+	Running          bool
+	SourceDatacenter string
+	ReplicatedIndex  uint64
+	LastSuccess      time.Time
+	LastError        time.Time
 }
 
 // Coordinate stores a node name with its associated network coordinate.

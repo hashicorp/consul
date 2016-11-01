@@ -139,7 +139,7 @@ func TestLock_DeleteKey(t *testing.T) {
 			// Should loose leadership
 			select {
 			case <-leaderCh:
-			case <-time.After(time.Second):
+			case <-time.After(10 * time.Second):
 				t.Fatalf("should not be leader")
 			}
 		}()

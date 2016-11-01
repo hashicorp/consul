@@ -14,6 +14,108 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 0.7
+
+Consul version 0.7 is a very large release with many important changes. Changes
+to be aware of during an upgrade are categorized below.
+
+#### Performance Timing Defaults and Tuning
+
+Consul 0.7 now defaults the DNS configuration to allow for stale queries by defaulting
+[`allow_stale`](/docs/agent/options.html#allow_stale) to true for better utilization
+of available servers. If you want to retain the previous behavior, set the following
+configuration:
+
+```javascript
+{
+  "dns_config": {
+    "allow_stale": false
+  }
+}
+```
+
+Consul also 0.7 introduced support for tuning Raft performance using a new
+[performance configuration block](/docs/agent/options.html#performance). Also,
+the default Raft timing is set to a lower-performance mode suitable for
+[minimal Consul servers](/docs/guides/performance.html#minumum).
+
+To continue to use the high-performance settings that were the default prior to
+Consul 0.7 (recommended for production servers), add the following configuration
+to all Consul servers when upgrading:
+
+```javascript
+{
+  "performance": {
+    "raft_multiplier": 1
+  }
+}
+```
+
+See the [Server Performance](/docs/guides/performance.html) guide for more details.
+
+#### Leave-Related Configuration Defaults
+
+The default behavior of [`leave_on_terminate`](/docs/agent/options.html#leave_on_terminate)
+and [`skip_leave_on_interrupt`](/docs/agent/options.html#skip_leave_on_interrupt)
+are now dependent on whether or not the agent is acting as a server or client:
+
+* For servers, `leave_on_terminate` defaults to "false" and `skip_leave_on_interrupt`
+defaults to "true".
+
+* For clients, `leave_on_terminate` defaults to "true" and `skip_leave_on_interrupt`
+defaults to "false".
+
+These defaults are designed to be safer for servers so that you must explicitly
+configure them to leave the cluster. This also results in a better experience for
+clients, especially in cloud environments where they may be created and destroyed
+often and users prefer not to wait for the 72 hour reap time for cleanup.
+
+#### Dropped Support for Protocol Version 1
+
+Consul version 0.7 dropped support for protocol version 1, which means it
+is no longer compatible with versions of Consul prior to 0.3. You will need
+to upgrade all agents to a newer version of Consul before upgrading to Consul
+0.7.
+
+#### Prepared Query Changes
+
+Consul version 0.7 adds a feature which allows prepared queries to store a
+[`Near` parameter](/docs/agent/http/query.html#near) in the query definition
+itself. This feature enables using the distance sorting features of prepared
+queries without explicitly providing the node to sort near in requests, but
+requires the agent servicing a request to send additional information about
+itself to the Consul servers when executing the prepared query. Agents prior
+to 0.7 do not send this information, which means they are unable to properly
+execute prepared queries configured with a `Near` parameter. Similarly, any
+server nodes prior to version 0.7 are unable to store the `Near` parameter,
+making them unable to properly serve requests for prepared queries using the
+feature. It is recommended that all agents be running version 0.7 prior to
+using this feature.
+
+#### WAN Address Translation in HTTP Endpoints
+
+Consul version 0.7 added support for translating WAN addresses in certain
+[HTTP endpoints](/docs/agent/options.html#translate_wan_addrs). The servers
+and the agents need to be running version 0.7 or later in order to use this
+feature.
+
+These translated addresses could break HTTP endpoint consumers that are
+expecting local addresses, so a new [`X-Consul-Translate-Addresses`](/docs/agent/http.html#translate_header)
+header was added to allow clients to detect if translation is enabled for HTTP
+responses. A "lan" tag was added to `TaggedAddresses` for clients that need
+the local address regardless of translation.
+
+#### Outage Recovery and `peers.json` Changes
+
+The `peers.json` file is no longer present by default and is only used when
+performing recovery. This file will be deleted after Consul starts and ingests
+the file. Consul 0.7 also uses a new, automatically-created raft/peers.info file
+to avoid ingesting the `peers.json` file on the first start after upgrading (the
+`peers.json` file is simply deleted on the first start after upgrading).
+
+Please be sure to review the [Outage Recovery Guide](/docs/guides/outage.html)
+before upgrading for more details.
+
 ## Consul 0.6.4
 
 Consul 0.6.4 made some substantial changes to how ACLs work with prepared
@@ -33,7 +135,7 @@ previous versions of Consul.
 Consul version 0.6 is a very large release with many enhancements and
 optimizations. Changes to be aware of during an upgrade are categorized below.
 
-#### Data store changes
+#### Data Store Changes
 
 Consul changed the format used to store data on the server nodes in version 0.5
 (see 0.5.1 notes below for details). Previously, Consul would automatically

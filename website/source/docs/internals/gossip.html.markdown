@@ -10,10 +10,10 @@ description: |-
 
 Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol)
 to manage membership and broadcast messages to the cluster. All of this is provided
-through the use of the [Serf library](https://www.serfdom.io/). The gossip protocol
+through the use of the [Serf library](https://www.serf.io/). The gossip protocol
 used by Serf is based on
 ["SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol"](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf),
-with a few minor adaptations. There are more details about [Serf's protocol here](https://www.serfdom.io/docs/internals/gossip.html).
+with a few minor adaptations. There are more details about [Serf's protocol here](https://www.serf.io/docs/internals/gossip.html).
 
 ~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
@@ -37,7 +37,22 @@ servers to perform cross datacenter requests. The integrated failure detection
 allows Consul to gracefully handle an entire datacenter losing connectivity, or just
 a single server in a remote datacenter.
 
-All of these features are provided by leveraging [Serf](https://www.serfdom.io/). It
+All of these features are provided by leveraging [Serf](https://www.serf.io/). It
 is used as an embedded library to provide these features. From a user perspective,
 this is not important, since the abstraction should be masked by Consul. It can be useful
 however as a developer to understand how this library is leveraged.
+
+<a name="lifeguard"></a>
+## Lifeguard Enhancements
+
+SWIM makes the assumption that the local node is healthy in the sense
+that soft real-time processing of packets is possible. However, in cases
+where the local node is experiencing CPU or network exhaustion this assumption
+can be violated. The result is that the `serfHealth` check status can
+occassionally flap, resulting in false monitoring alarms, adding noise to
+telemetry, and simply causing the overall cluster to waste CPU and network
+resources diagnosing a failure that may not truly exist.
+
+Lifeguard completely resolves this issue with novel enhancements to SWIM.
+Please see the [Serf's gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
+section on Lifeguard for more details.

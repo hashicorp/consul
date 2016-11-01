@@ -99,6 +99,21 @@
 					<a href="/docs/commands/keyring.html">keyring</a>
 					</li>
 
+					<li<%= sidebar_current("docs-commands-kv") %>>
+					<a href="/docs/commands/kv.html">kv</a>
+					<ul class="subnav">
+						<li<%= sidebar_current("docs-commands-kv-delete") %>>
+							<a href="/docs/commands/kv/delete.html">delete</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-kv-get") %>>
+							<a href="/docs/commands/kv/get.html">get</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-kv-put") %>>
+							<a href="/docs/commands/kv/put.html">put</a>
+						</li>
+					</ul>
+					</li>
+
 					<li<%= sidebar_current("docs-commands-leave") %>>
 					<a href="/docs/commands/leave.html">leave</a></li>
 
@@ -118,6 +133,10 @@
 					<a href="/docs/commands/monitor.html">monitor</a>
 					</li>
 
+					<li<%= sidebar_current("docs-commands-operator") %>>
+					<a href="/docs/commands/operator.html">operator</a>
+					</li>
+
 					<li<%= sidebar_current("docs-commands-info") %>>
 					<a href="/docs/commands/info.html">info</a>
 					</li>
@@ -128,6 +147,21 @@
 
 					<li<%= sidebar_current("docs-commands-rtt") %>>
 					<a href="/docs/commands/rtt.html">rtt</a>
+					</li>
+
+					<li<%= sidebar_current("docs-commands-snapshot") %>>
+					<a href="/docs/commands/snapshot.html">snapshot</a>
+					<ul class="subnav">
+						<li<%= sidebar_current("docs-commands-snapshot-inspect") %>>
+							<a href="/docs/commands/snapshot/inspect.html">inspect</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-snapshot-restore") %>>
+							<a href="/docs/commands/snapshot/restore.html">restore</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-snapshot-save") %>>
+							<a href="/docs/commands/snapshot/save.html">save</a>
+						</li>
+					</ul>
 					</li>
 
 					<li<%= sidebar_current("docs-commands-watch") %>>
@@ -171,11 +205,15 @@
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-kv") %>>
-						<a href="/docs/agent/http/kv.html">Key/Value store</a>
+						<a href="/docs/agent/http/kv.html">Key/Value Store</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-coordinate") %>>
 						<a href="/docs/agent/http/coordinate.html">Network Coordinates</a>
+						</li>
+
+						<li<%= sidebar_current("docs-agent-http-operator") %>>
+						<a href="/docs/agent/http/operator.html">Operator</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-query") %>>
@@ -184,6 +222,10 @@
 
 						<li<%= sidebar_current("docs-agent-http-session") %>>
 						<a href="/docs/agent/http/session.html">Sessions</a>
+						</li>
+
+						<li<%= sidebar_current("docs-agent-http-snapshot") %>>
+						<a href="/docs/agent/http/snapshot.html">Snapshots</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-status") %>>
@@ -258,12 +300,16 @@
 
 					<li<%= sidebar_current("docs-guides-outage") %>>
 					<a href="/docs/guides/outage.html">Outage Recovery</a>
-                    </li>
+                                        </li>
 
-                    <li<%= sidebar_current("docs-guides-semaphore") %>>
+                                        <li<%= sidebar_current("docs-guides-semaphore") %>>
 					<a href="/docs/guides/semaphore.html">Semaphore</a>
-                    </li>
-                </ul>
+                                        </li>
+
+					<li<%= sidebar_current("docs-guides-performance") %>>
+					<a href="/docs/guides/performance.html">Server Performance</a>
+					</li>
+                                 </ul>
 
 				<li<%= sidebar_current("docs-faq") %>>
 				<a href="/docs/faq.html">Frequently Asked Questions</a>

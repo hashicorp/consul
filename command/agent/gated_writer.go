@@ -29,13 +29,26 @@ func (w *GatedWriter) Flush() {
 }
 
 func (w *GatedWriter) Write(p []byte) (n int, err error) {
+	// Once we flush we no longer synchronize writers since there's
+	// no use of the internal buffer. This is the happy path.
 	w.lock.RLock()
-	defer w.lock.RUnlock()
+	if w.flush {
+		w.lock.RUnlock()
+		return w.Writer.Write(p)
+	}
+	w.lock.RUnlock()
 
+	// Now take the write lock.
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	// Things could have changed between the locking operations, so we
+	// have to check one more time.
 	if w.flush {
 		return w.Writer.Write(p)
 	}
 
+	// Buffer up the written data.
 	p2 := make([]byte, len(p))
 	copy(p2, p)
 	w.buf = append(w.buf, p2)

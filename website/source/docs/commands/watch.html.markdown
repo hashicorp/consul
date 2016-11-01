@@ -37,12 +37,15 @@ The list of available flags are:
 
 * `-token` - ACL token to use. Defaults to that of agent.
 
+* `-stale=[true|false]` - Specifies if watch data is permitted to be stale. Defaults
+  to false.
+
 * `-key` - Key to watch. Only for `key` type.
 
 * `-name`- Event name to watch. Only for `event` type.
 
-* `-passingonly=[true|false]` - Should only passing entries be returned. Default false.
-  only for `service` type.
+* `-passingonly=[true|false]` - Should only passing entries be returned. Defaults to
+   false and only applies for `service` type.
 
 * `-prefix` - Key prefix to watch. Only for `keyprefix` type.
 

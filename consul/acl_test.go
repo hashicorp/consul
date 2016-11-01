@@ -223,8 +223,8 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -275,8 +275,8 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -351,8 +351,8 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -408,8 +408,8 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -482,8 +482,8 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -558,8 +558,8 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -611,6 +611,128 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	}
 	if aclR2 != aclR {
 		t.Fatalf("bad acl: %#v", aclR)
+	}
+}
+
+func TestACL_Replication(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLDownPolicy = "extend-cache"
+		c.ACLReplicationToken = "root"
+		c.ACLReplicationInterval = 0
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc3"
+		c.ACLDatacenter = "dc1"
+		c.ACLDownPolicy = "deny"
+		c.ACLReplicationToken = "root"
+		c.ACLReplicationInterval = 0
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc2")
+	testutil.WaitForLeader(t, s1.RPC, "dc3")
+
+	// Create a new token.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testACLPolicy,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for replication to occur.
+	testutil.WaitForResult(func() (bool, error) {
+		_, acl, err := s2.fsm.State().ACLGet(id)
+		if err != nil {
+			return false, err
+		}
+		if acl == nil {
+			return false, nil
+		}
+		_, acl, err = s3.fsm.State().ACLGet(id)
+		if err != nil {
+			return false, err
+		}
+		if acl == nil {
+			return false, nil
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("ACLs didn't converge")
+	})
+
+	// Kill the ACL datacenter.
+	s1.Shutdown()
+
+	// Token should resolve on s2, which has replication + extend-cache.
+	acl, err := s2.resolveToken(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing acl")
+	}
+
+	// Check the policy
+	if acl.KeyRead("bar") {
+		t.Fatalf("unexpected read")
+	}
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("unexpected failed read")
+	}
+
+	// Although s3 has replication, and we verified that the ACL is there,
+	// it can not be used because of the down policy.
+	acl, err = s3.resolveToken(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing acl")
+	}
+
+	// Check the policy.
+	if acl.KeyRead("bar") {
+		t.Fatalf("unexpected read")
+	}
+	if acl.KeyRead("foo/test") {
+		t.Fatalf("unexpected read")
 	}
 }
 

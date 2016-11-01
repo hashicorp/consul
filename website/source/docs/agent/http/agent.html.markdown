@@ -121,7 +121,9 @@ This endpoint is hit with a GET and returns a JSON body like:
 
 ### <a name="agent_self"></a> /v1/agent/self
 
-This endpoint is used to return the configuration and member information of the local agent.
+This endpoint is used to return the configuration and member information of the local agent under the `Config` key.
+
+Consul 0.7.0 and later also includes a snapshot of various operating statistics under the `Stats` key. These statistics are intended to help human operators for debugging and may change over time, so this part of the interface should not be consumed programatically.
 
 It returns a JSON body like this:
 
@@ -241,6 +243,7 @@ body must look like:
   "ID": "mem",
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
+  "DeregisterCriticalServiceAfter": "90m",
   "Script": "/usr/local/bin/check_mem.py",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
@@ -258,6 +261,16 @@ If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 `ID` entries per agent, so it may be necessary to provide an `ID`.
 
 The `Notes` field is not used internally by Consul and is meant to be human-readable.
+
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go
+time format as `Interval` and `TTL`. If a check is in the critical state for more than
+this configured value, then its associated service (and all of its associated checks)
+will automatically be deregistered. The minimum timeout is 1 minute, and the
+process that reaps critical services runs every 30 seconds, so it may take slightly
+longer than the configured timeout to trigger the deregistration. This should
+generally be configured with a timeout that's much, much longer than any expected
+recoverable outage for the given service.
 
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
@@ -385,7 +398,9 @@ body must look like:
   ],
   "Address": "127.0.0.1",
   "Port": 8000,
+  "EnableTagOverride": false, 
   "Check": {
+    "DeregisterCriticalServiceAfter": "90m",
     "Script": "/usr/local/bin/check_redis.py",
     "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
@@ -394,11 +409,11 @@ body must look like:
 }
 ```
 
-The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
+The `Name` field is mandatory.  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID
 in the case of a collision.
 
-`Tags`, `Address`, `Port` and `Check` are optional.
+`Tags`, `Address`, `Port`, `Check` and `EnableTagOverride` are optional.
 
 If `Address` is not provided or left empty, then the agent's address will be used
 as the address for the service during DNS queries. When querying for services using
@@ -408,9 +423,39 @@ an empty `Address` field for a service, use the `Address` field of the agent nod
 associated with that instance of the service, which is returned alongside the service
 information.
 
-If `Check` is provided, only one of `Script`, `HTTP`, or `TTL` should be specified.
+If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
+
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
+format as `Interval` and `TTL`. If a check is in the critical state for more than this
+configured value, then its associated service (and all of its associated checks)
+will automatically be deregistered. The minimum timeout is 1 minute, and the
+process that reaps critical services runs every 30 seconds, so it may take slightly
+longer than the configured timeout to trigger the deregistration. This should
+generally be configured with a timeout that's much, much longer than any expected
+recoverable outage for the given service.
+
 There is more information about checks [here](/docs/agent/checks.html).
+
+`EnableTagOverride` can optionally be specified to disable the anti-entropy
+feature for this service's tags. If `EnableTagOverride` is set to `true` then external
+agents can update this service in the [catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+local sync operations by this agent will ignore the updated tags. For instance, if an external agent
+modified both the tags and the port for this service and `EnableTagOverride`
+was set to `true` then after the next sync cycle the service's port would revert
+to the original value but the tags would maintain the updated value. As a
+counter example, if an external agent modified both the tags and port for this
+service and `EnableTagOverride` was set to `false` then after the next sync
+cycle the service's port _and_ the tags would revert to the original value and
+all modifications would be lost. It's important to note that this applies only
+to the locally registered service. If you have multiple nodes all registering
+the same service their `EnableTagOverride` configuration and all other service
+configuration items are independent of one another. Updating the tags for
+the service registered on one node is independent of the same service (by name)
+registered on another node. If `EnableTagOverride` is not specified the default
+value is `false`.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
+for more info.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
@@ -436,7 +481,7 @@ The service maintenance endpoint allows placing a given service into
 "maintenance mode". During maintenance mode, the service will be marked as
 unavailable and will not be present in DNS or API queries. This API call is
 idempotent. Maintenance mode is persistent and will be automatically restored
-on agent restart.
+on agent restart. The maintenance endpoint expects a PUT request.
 
 The `?enable` flag is required.  Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).

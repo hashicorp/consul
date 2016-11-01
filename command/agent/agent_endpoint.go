@@ -2,18 +2,21 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 )
 
 type AgentSelf struct {
 	Config *Config
 	Coord  *coordinate.Coordinate
 	Member serf.Member
+	Stats  map[string]map[string]string
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -29,6 +32,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		Config: s.agent.config,
 		Coord:  c,
 		Member: s.agent.LocalMember(),
+		Stats:  s.agent.Stats(),
 	}, nil
 }
 
@@ -129,7 +133,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
+	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/"))
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
 		return nil, err
 	}
@@ -138,9 +142,9 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/")
+	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/"))
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthPassing, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, structs.HealthPassing, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -148,9 +152,9 @@ func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/")
+	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/"))
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthWarning, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, structs.HealthWarning, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -158,9 +162,9 @@ func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/")
+	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/"))
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthCritical, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, structs.HealthCritical, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -211,8 +215,8 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 			update.Output[:CheckBufSize], CheckBufSize, total)
 	}
 
-	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/")
-	if err := s.agent.UpdateCheck(checkID, update.Status, update.Output); err != nil {
+	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))
+	if err := s.agent.updateTTLCheck(checkID, update.Status, update.Output); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -269,7 +273,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
 			resp.WriteHeader(400)
-			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical', 'unknown'"))
+			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical'"))
 			return nil, nil
 		}
 		if !check.Valid() {

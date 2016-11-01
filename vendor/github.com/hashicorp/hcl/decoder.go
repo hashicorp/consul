@@ -21,6 +21,17 @@ var (
 	nodeType reflect.Type = findNodeType()
 )
 
+// Unmarshal accepts a byte slice as input and writes the
+// data to the value pointed to by v.
+func Unmarshal(bs []byte, v interface{}) error {
+	root, err := parse(bs)
+	if err != nil {
+		return err
+	}
+
+	return DecodeObject(v, root)
+}
+
 // Decode reads the given input and decodes it into the structure
 // given by `out`.
 func Decode(out interface{}, in string) error {
@@ -326,6 +337,14 @@ func (d *decoder) decodeMap(name string, node ast.Node, result reflect.Value) er
 			continue
 		}
 
+		// github.com/hashicorp/terraform/issue/5740
+		if len(item.Keys) == 0 {
+			return &parser.PosError{
+				Pos: node.Pos(),
+				Err: fmt.Errorf("%s: map must have string keys", name),
+			}
+		}
+
 		// Get the key we're dealing with, which is the first item
 		keyStr := item.Keys[0].Token.Value().(string)
 
@@ -466,6 +485,14 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		node = ot.List
 	}
 
+	// Handle the special case where the object itself is a literal. Previously
+	// the yacc parser would always ensure top-level elements were arrays. The new
+	// parser does not make the same guarantees, thus we need to convert any
+	// top-level literal elements into a list.
+	if _, ok := node.(*ast.LiteralType); ok {
+		node = &ast.ObjectList{Items: []*ast.ObjectItem{item}}
+	}
+
 	list, ok := node.(*ast.ObjectList)
 	if !ok {
 		return &parser.PosError{
@@ -490,6 +517,12 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		structType := structVal.Type()
 		for i := 0; i < structType.NumField(); i++ {
 			fieldType := structType.Field(i)
+			tagParts := strings.Split(fieldType.Tag.Get(tagName), ",")
+
+			// Ignore fields with tag name "-"
+			if tagParts[0] == "-" {
+				continue
+			}
 
 			if fieldType.Anonymous {
 				fieldKind := fieldType.Type.Kind()
@@ -504,7 +537,6 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 				// We have an embedded field. We "squash" the fields down
 				// if specified in the tag.
 				squash := false
-				tagParts := strings.Split(fieldType.Tag.Get(tagName), ",")
 				for _, tag := range tagParts[1:] {
 					if tag == "squash" {
 						squash = true

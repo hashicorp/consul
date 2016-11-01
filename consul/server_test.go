@@ -7,18 +7,17 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
 )
 
-var nextPort = 15000
+var nextPort int32 = 15000
 
 func getPort() int {
-	p := nextPort
-	nextPort++
-	return p
+	return int(atomic.AddInt32(&nextPort, 1))
 }
 
 func tmpDir(t *testing.T) string {
@@ -336,19 +335,19 @@ func TestServer_LeaveLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p2, _ = s2.numPeers()
+		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -366,8 +365,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 	// Should lose a peer
 	for _, s := range []*Server{s1, s2} {
 		testutil.WaitForResult(func() (bool, error) {
-			p1, _ = s.raftPeers.Peers()
-			return len(p1) == 1, nil
+			p1, _ = s.numPeers()
+			return p1 == 1, nil
 		}, func(err error) {
 			t.Fatalf("should have 1 peer: %v", p1)
 		})
@@ -391,19 +390,19 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p2, _ = s2.numPeers()
+		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -421,8 +420,8 @@ func TestServer_Leave(t *testing.T) {
 	// Should lose a peer
 	for _, s := range []*Server{s1, s2} {
 		testutil.WaitForResult(func() (bool, error) {
-			p1, _ = s.raftPeers.Peers()
-			return len(p1) == 1, nil
+			p1, _ = s.numPeers()
+			return p1 == 1, nil
 		}, func(err error) {
 			t.Fatalf("should have 1 peer: %v", p1)
 		})
@@ -486,20 +485,24 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Verify Raft has established a peer
 	testutil.WaitForResult(func() (bool, error) {
-		return s1.Stats()["raft"]["num_peers"] == "1", nil
+		peers, _ := s1.numPeers()
+		return peers == 2, nil
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		return s2.Stats()["raft"]["num_peers"] == "1", nil
+		peers, _ := s2.numPeers()
+		return peers == 2, nil
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})
 }
 
 func TestServer_Expect(t *testing.T) {
-	// all test servers should be in expect=3 mode
+	// All test servers should be in expect=3 mode, except for the 3rd one,
+	// but one with expect=0 can cause a bootstrap to occur from the other
+	// servers as currently implemented.
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -512,62 +515,88 @@ func TestServer_Expect(t *testing.T) {
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
-	// Try to join
+	dir4, s4 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	// Join the first two servers.
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
-	// should have no peers yet
+	// Should have no peers yet since the bootstrap didn't occur.
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
-	// join the third node
+	// Join the third node.
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []string
+	var p3 int
 
-	// should now have all three peers
+	// Now we have three servers so we should bootstrap.
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 3, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 3, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 3, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 3, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 3, errors.New(fmt.Sprintf("%v", p3))
+		p3, _ = s3.numPeers()
+		return p3 == 3, errors.New(fmt.Sprintf("%d", p3))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
-	// check if there is one leader now
+	// Make sure a leader is elected, grab the current term and then add in
+	// the fourth server.
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	termBefore := s1.raft.Stats()["last_log_term"]
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the new server to see itself added to the cluster.
+	var p4 int
+	testutil.WaitForResult(func() (bool, error) {
+		p4, _ = s4.numPeers()
+		return p4 == 4, errors.New(fmt.Sprintf("%d", p4))
+	}, func(err error) {
+		t.Fatalf("should have 4 peers: %v", err)
+	})
+
+	// Make sure there's still a leader and that the term didn't change,
+	// so we know an election didn't occur.
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	termAfter := s1.raft.Stats()["last_log_term"]
+	if termAfter != termBefore {
+		t.Fatalf("looks like an election took place")
+	}
 }
 
 func TestServer_BadExpect(t *testing.T) {
@@ -593,20 +622,20 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	// should have no peers yet
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
@@ -616,26 +645,26 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []string
+	var p3 int
 
 	// should still have no peers (because s2 is in expect=2 mode)
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 0, errors.New(fmt.Sprintf("%v", p3))
+		p3, _ = s3.numPeers()
+		return p3 == 0, errors.New(fmt.Sprintf("%d", p3))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})

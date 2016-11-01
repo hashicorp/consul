@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Forwarding"
 sidebar_current: "docs-guides-forwarding"
 description: |-
-  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server.
+  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
 ---
 
 # Forwarding DNS
@@ -11,12 +11,13 @@ description: |-
 By default, DNS is served from port 53.  On most operating systems, this
 requires elevated privileges. Instead of running Consul with an administrative
 or root account, it is possible to instead forward appropriate queries to Consul,
-running on an unprivileged port, from another DNS server.
+running on an unprivileged port, from another DNS server or port redirect.
 
 In this guide, we will demonstrate forwarding from [BIND](https://www.isc.org/downloads/bind/)
-as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html).
-For the sake of simplicity, BIND and Consul are running on the same machine in this example,
-but this is not required.
+as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and [iptables](http://www.netfilter.org/).
+For the sake of simplicity, BIND and Consul are running on the same machine in this example. For iptables the
+rules must be set on the same host as the Consul instance and relay hosts should not be on the same host or 
+the redirects will intercept the traffic. 
 
 It is worth mentioning that, by default, Consul does not resolve DNS
 records outside the `.consul.` zone unless the
@@ -26,7 +27,7 @@ suppose a Consul DNS reply includes a CNAME record pointing outside
 the `.consul` TLD. The DNS reply will only include CNAME records by
 default. By contrast, when `recursors` is set and the upstream resolver is
 functioning correctly, Consul will try to resolve CNAMEs and include
-any records (e.g. A, AAAA, PTR) for them in its DNS reply.
+any records (e.g. A, AAAA, PTR) for them in its DNS reply. 
 
 You can either do one of the following:
 
@@ -124,6 +125,25 @@ for additional details):
 # Set the size of dnsmasq's cache. The default is 150 names. Setting the
 # cache size to zero disables caching.
 #cache-size=65536
+```
+
+### iptables Setup
+
+On Linux systems that support it, incoming requests and requests to localhost can use `iptables`
+to forward ports on the same machine without a secondary service.  Since Consul, by default, only
+resolves the `.consul` TDL, it is especially important to use the `recursors` option if you wish the
+`iptables` setup to resolve for other domains. The recursors should not include the localhost as the 
+redirects would just intercept the requests. The iptables method is suited for situations where an
+external DNS service is already running in your infrastructure and is used as the recursor or if you want 
+to use an existing DNS server as your query endpoint and forward requests for the consul domain to the 
+consul server. In both of those cases you may want to query the consul server but not need the overhead
+of a separate service on the consul host.
+
+```
+[root@localhost ~]# iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
 ### Testing
