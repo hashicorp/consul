@@ -21,6 +21,7 @@ BUG FIXES:
 * dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * dns: Fixed an issue with SRV lookups where the service address was different from the node's. [GH-832]
 * server: Fixed the port numbers in the sample JSON inside peers.info. [GH-2391]
+* ui: Fixed an XSS issue with the display of sessions and ACLs in the web UI. [GH-2456]
 
 ## 0.7.0 (September 14, 2016)
 
