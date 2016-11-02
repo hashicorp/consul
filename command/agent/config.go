@@ -118,8 +118,8 @@ type DNSConfig struct {
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
-// EC2Discovery is used to configure discovery of instances via Amazon's EC2 api
-type EC2Discovery struct {
+// RetryJoinEC2 is used to configure discovery of instances via Amazon's EC2 api
+type RetryJoinEC2 struct {
 	// The AWS region to look for instances in
 	Region string `mapstructure:"region"`
 
@@ -399,6 +399,9 @@ type Config struct {
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
 
+	// RetryJoinEC2 configuration
+	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
+
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
 
@@ -543,9 +546,6 @@ type Config struct {
 	// AtlasEndpoint is the SCADA endpoint used for Atlas integration. If
 	// empty, the defaults from the provider are used.
 	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
-
-	// EC2Discovery configuration
-	EC2Discovery EC2Discovery `mapstructure:"ec2_discovery"`
 
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
@@ -1339,6 +1339,21 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
 	}
+	if b.RetryJoinEC2.AccessKeyID != "" {
+		result.RetryJoinEC2.AccessKeyID = b.RetryJoinEC2.AccessKeyID
+	}
+	if b.RetryJoinEC2.SecretAccessKey != "" {
+		result.RetryJoinEC2.SecretAccessKey = b.RetryJoinEC2.SecretAccessKey
+	}
+	if b.RetryJoinEC2.Region != "" {
+		result.RetryJoinEC2.Region = b.RetryJoinEC2.Region
+	}
+	if b.RetryJoinEC2.TagKey != "" {
+		result.RetryJoinEC2.TagKey = b.RetryJoinEC2.TagKey
+	}
+	if b.RetryJoinEC2.TagValue != "" {
+		result.RetryJoinEC2.TagValue = b.RetryJoinEC2.TagValue
+	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
 	}
@@ -1451,21 +1466,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasEndpoint != "" {
 		result.AtlasEndpoint = b.AtlasEndpoint
-	}
-	if b.EC2Discovery.AccessKeyID != "" {
-		result.EC2Discovery.AccessKeyID = b.EC2Discovery.AccessKeyID
-	}
-	if b.EC2Discovery.SecretAccessKey != "" {
-		result.EC2Discovery.SecretAccessKey = b.EC2Discovery.SecretAccessKey
-	}
-	if b.EC2Discovery.Region != "" {
-		result.EC2Discovery.Region = b.EC2Discovery.Region
-	}
-	if b.EC2Discovery.TagKey != "" {
-		result.EC2Discovery.TagKey = b.EC2Discovery.TagKey
-	}
-	if b.EC2Discovery.TagValue != "" {
-		result.EC2Discovery.TagValue = b.EC2Discovery.TagValue
 	}
 	if b.DisableCoordinates {
 		result.DisableCoordinates = true

@@ -939,8 +939,8 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 	}
 }
 
-func TestDecodeConfig_EC2Discovery(t *testing.T) {
-	input := `{"ec2_discovery": {
+func TestRetryJoinEC2(t *testing.T) {
+	input := `{"retry_join_ec2": {
 	  "region": "us-east-1",
 		"tag_key": "ConsulRole",
 		"tag_value": "Server",
@@ -952,19 +952,19 @@ func TestDecodeConfig_EC2Discovery(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.EC2Discovery.Region != "us-east-1" {
+	if config.RetryJoinEC2.Region != "us-east-1" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.EC2Discovery.TagKey != "ConsulRole" {
+	if config.RetryJoinEC2.TagKey != "ConsulRole" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.EC2Discovery.TagValue != "Server" {
+	if config.RetryJoinEC2.TagValue != "Server" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.EC2Discovery.AccessKeyID != "asdf" {
+	if config.RetryJoinEC2.AccessKeyID != "asdf" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.EC2Discovery.SecretAccessKey != "qwerty" {
+	if config.RetryJoinEC2.SecretAccessKey != "qwerty" {
 		t.Fatalf("bad: %#v", config)
 	}
 }
@@ -1400,7 +1400,7 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
 		RetryIntervalWanRaw:    "10s",
-		EC2Discovery: EC2Discovery{
+		RetryJoinEC2: RetryJoinEC2{
 			Region:          "us-east-1",
 			TagKey:          "Key1",
 			TagValue:        "Value1",
@@ -1529,7 +1529,7 @@ func TestMergeConfig(t *testing.T) {
 		AtlasToken:          "123456789",
 		AtlasACLToken:       "abcdefgh",
 		AtlasJoin:           true,
-		EC2Discovery: EC2Discovery{
+		RetryJoinEC2: RetryJoinEC2{
 			Region:          "us-east-2",
 			TagKey:          "Key2",
 			TagValue:        "Value2",

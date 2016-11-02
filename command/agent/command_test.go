@@ -280,14 +280,14 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 	}
 
 	c := &Config{
-		EC2Discovery: EC2Discovery{
+		RetryJoinEC2: RetryJoinEC2{
 			Region:   os.Getenv("AWS_REGION"),
 			TagKey:   "ConsulRole",
 			TagValue: "Server",
 		},
 	}
 
-	servers, err := c.discoverEc2Hosts()
+	servers, err := c.discoverEc2Hosts(&log.Logger{})
 	if err != nil {
 		t.Fatal(err)
 	}
