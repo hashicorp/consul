@@ -20,7 +20,7 @@ import (
 	"github.com/armon/go-metrics/datadog"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -410,9 +410,7 @@ func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
 				},
 				&credentials.EnvProvider{},
 				&credentials.SharedCredentialsProvider{},
-				&ec2rolecreds.EC2RoleProvider{
-					Client: ec2meta,
-				},
+				defaults.RemoteCredProvider(*(defaults.Config()), defaults.Handlers()),
 			}),
 	}
 

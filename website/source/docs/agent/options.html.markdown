@@ -201,7 +201,8 @@ will exit with an error at startup.
   - Static credentials (from the config file)
   - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
   - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
-  - EC2 Role instance metadata.
+  - ECS task role metadata (container-specific).
+  - EC2 instance role metadata.
 
 * <a name="_retry_join_ec2_tag_value"></a><a href="#_retry_join_ec2_tag_value">`-retry-join-ec2-tag-value`
   </a> - The Amazon EC2 instance tag value to filter on.
@@ -706,7 +707,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     [`-retry-join-ec2-tag-value` command-line flag](#_retry_join_ec2_tag_value).
   * `access_key_id` - The AWS access key ID to use for authentication.
   * `secret_access_key` - The AWS secret access key to use for authentication.
-
 
 * <a name="retry_interval_wan"></a><a href="#retry_interval_wan">`retry_interval_wan`</a> Equivalent to the
   [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
