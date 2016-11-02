@@ -281,11 +281,9 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 
 	c := &Config{
 		EC2Discovery: EC2Discovery{
-			Region:          os.Getenv("AWS_REGION"),
-			AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			TagKey:          "ConsulRole",
-			TagValue:        "Server",
+			Region:   os.Getenv("AWS_REGION"),
+			TagKey:   "ConsulRole",
+			TagValue: "Server",
 		},
 	}
 

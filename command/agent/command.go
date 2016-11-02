@@ -19,6 +19,8 @@ import (
 	"github.com/armon/go-metrics/datadog"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/consul/lib"
@@ -196,15 +198,6 @@ func (c *Command) readConfig() *Config {
 		config.SkipLeaveOnInt = Bool(config.Server)
 	}
 
-	// Load AWS creds for discovery from the environment (if present)
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
-		config.EC2Discovery.AccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-	}
-
-	if os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
-		config.EC2Discovery.SecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	}
-
 	// Ensure we have a data directory
 	if config.DataDir == "" && !dev {
 		c.Ui.Error("Must specify data directory using -data-dir")
@@ -344,6 +337,7 @@ func (c *Command) readConfig() *Config {
 			c.Ui.Error(fmt.Sprintf("Unable to query EC2 insances: %s", err))
 			return nil
 		}
+		c.Ui.Info(fmt.Sprintf("Discovered %d servers from EC2...", len(ec2servers)))
 		config.StartJoin = append(config.StartJoin, ec2servers...)
 	}
 
@@ -404,8 +398,21 @@ func (config *Config) verifyUniqueListeners() error {
 func (c *Config) discoverEc2Hosts() ([]string, error) {
 	config := c.EC2Discovery
 	awsConfig := &aws.Config{
-		Region:      aws.String(config.Region),
-		Credentials: credentials.NewStaticCredentials(config.AccessKeyID, config.SecretAccessKey, ""),
+		Region: aws.String(config.Region),
+		Credentials: credentials.NewChainCredentials(
+			[]credentials.Provider{
+				&credentials.StaticProvider{
+					Value: credentials.Value{
+						AccessKeyID:     config.AccessKeyID,
+						SecretAccessKey: config.SecretAccessKey,
+					},
+				},
+				&credentials.EnvProvider{},
+				&credentials.SharedCredentialsProvider{},
+				&ec2rolecreds.EC2RoleProvider{
+					Client: ec2metadata.New(session.New()),
+				},
+			}),
 	}
 
 	svc := ec2.New(session.New(), awsConfig)
@@ -428,7 +435,10 @@ func (c *Config) discoverEc2Hosts() ([]string, error) {
 	servers := make([]string, 0)
 	for i := range resp.Reservations {
 		for _, instance := range resp.Reservations[i].Instances {
-			servers = append(servers, *instance.PrivateIpAddress)
+			// Terminated instances don't have the PrivateIpAddress field
+			if instance.PrivateIpAddress != nil {
+				servers = append(servers, *instance.PrivateIpAddress)
+			}
 		}
 	}
 
