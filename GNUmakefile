@@ -59,6 +59,10 @@ vet:
 		echo "and fix them if necessary before submitting the code for reviewal."; \
 	fi
 
+# build the static web ui
+ui:
+	@sh -c "'$(CURDIR)/scripts/ui.sh'"
+
 # generates the static web ui that's compiled into the binary
 static-assets:
 	@echo "--> Generating static assets"
@@ -69,4 +73,4 @@ static-assets:
 tools:
 	go get -u -v $(GOTOOLS)
 
-.PHONY: all ci bin dev dist cov test cover format vet static-assets tools
+.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools

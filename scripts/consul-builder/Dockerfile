@@ -27,4 +27,3 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 
 RUN mkdir -p $GOPATH/src/github.com/hashicorp/consul
 WORKDIR $GOPATH/src/github.com/hashicorp/consul
-CMD ./scripts/dist_build.sh
