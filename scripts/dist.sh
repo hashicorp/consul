@@ -28,7 +28,7 @@ fi
 # Do a hermetic build inside a Docker container.
 if [ -z $NOBUILD ]; then
     docker build -t hashicorp/consul-builder scripts/consul-builder/
-    docker run --rm -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder
+    docker run --rm -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder ./scripts/dist_build.sh
 fi
 
 # Zip all the files.
