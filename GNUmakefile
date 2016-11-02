@@ -7,7 +7,7 @@ GOTOOLS = \
 PACKAGES=$(shell go list ./... | grep -v '^github.com/hashicorp/consul/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
-VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
+BUILD_TAGS?=consul
 
 # all builds binaries for all targets
 all: bin
@@ -20,15 +20,15 @@ ci:
 
 bin: tools
 	@mkdir -p bin/
-	@sh -c "'$(CURDIR)/scripts/build.sh'"
+	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: format
-	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@CONSUL_DEV=1 BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
+	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
 
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
@@ -37,7 +37,7 @@ cov:
 test: format
 	@$(MAKE) vet
 	@./scripts/verify_no_uuid.sh
-	@./scripts/test.sh
+	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/test.sh'"
 
 cover:
 	go list ./... | xargs -n1 go test --cover
@@ -49,7 +49,7 @@ format:
 vet:
 	@echo "--> Running go tool vet $(VETARGS) ."
 	@go list ./... \
-		| grep -v ^github.com/hashicorp/consul/vendor/ \
+		| grep -v /vendor/ \
 		| cut -d '/' -f 4- \
 		| xargs -n1 \
 			go tool vet $(VETARGS) ;\
