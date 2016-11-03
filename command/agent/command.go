@@ -96,6 +96,8 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
+	cmdFlags.StringVar(&cmdConfig.SerfWanBindAddr, "serf-wan-bind", "", "address to bind Serf WAN listeners to")
+	cmdFlags.StringVar(&cmdConfig.SerfLanBindAddr, "serf-lan-bind", "", "address to bind Serf LAN listeners to")
 	cmdFlags.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "http port to use")
 	cmdFlags.IntVar(&cmdConfig.Ports.DNS, "dns-port", 0, "DNS port to use")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")

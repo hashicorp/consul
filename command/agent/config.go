@@ -293,6 +293,18 @@ type Config struct {
 	// services (Gossip, Server RPC)
 	BindAddr string `mapstructure:"bind_addr"`
 
+	// SerfWanBindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip) Serf
+	SerfWanBindAddr string `mapstructure:"serf_wan_bind"`
+
+	// SerfLanBindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip) Serf
+	SerfLanBindAddr string `mapstructure:"serf_lan_bind"`
+
 	// AdvertiseAddr is the address we use for advertising our Serf,
 	// and Consul RPC IP. If not specified, bind address is used.
 	AdvertiseAddr string `mapstructure:"advertise_addr"`
@@ -1179,6 +1191,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
+	}
+	if b.SerfWanBindAddr != "" {
+		result.SerfWanBindAddr = b.SerfWanBindAddr
+	}
+	if b.SerfLanBindAddr != "" {
+		result.SerfLanBindAddr = b.SerfLanBindAddr
 	}
 	if b.TranslateWanAddrs == true {
 		result.TranslateWanAddrs = true

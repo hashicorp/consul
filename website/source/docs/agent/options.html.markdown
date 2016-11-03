@@ -103,6 +103,14 @@ will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
+* <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> - The address that should be bound to for Serf WAN gossip communications.
+  By default, the value follows the same rules as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This
+  is available in Consul 0.7.1 and later.
+
+* <a name="_serf_lan_bind"></a><a href="#_serf_lan_bind">`-serf-lan-bind`</a> - The address that should be bound to for Serf LAN gossip communications.
+  This is an IP address that should be reachable by all other LAN nodes in the cluster. By default, the value follows the same rules as
+  [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces,
   including the HTTP, DNS, and RPC servers. By default, this is "127.0.0.1",
@@ -427,6 +435,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * `rpc` - The CLI RPC endpoint. Defaults to `client_addr`
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
+
+* <a name="serf_wan_bind"></a><a href="#serf_wan_bind">`serf_wan_bind`</a> Equivalent to
+  the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
+
+* <a name="serf_lan_bind"></a><a href="#serf_lan_bind">`serf_lan_bind`</a> Equivalent to
+  the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
 * <a name="advertise_addrs"></a><a href="#advertise_addrs">`advertise_addrs`</a> Allows to set
   the advertised addresses for SerfLan, SerfWan and RPC together with the port. This gives

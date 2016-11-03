@@ -126,6 +126,8 @@ func TestReadCliConfig(t *testing.T) {
 				"-data-dir", tmpDir,
 				"-node", `"a"`,
 				"-advertise-wan", "1.2.3.4",
+				"-serf-wan-bind", "4.3.2.1",
+				"-serf-lan-bind", "4.3.2.2",
 			},
 			ShutdownCh: shutdownCh,
 			Ui:         new(cli.MockUi),
@@ -134,6 +136,12 @@ func TestReadCliConfig(t *testing.T) {
 		config := cmd.readConfig()
 		if config.AdvertiseAddrWan != "1.2.3.4" {
 			t.Fatalf("expected -advertise-addr-wan 1.2.3.4 got %s", config.AdvertiseAddrWan)
+		}
+		if config.SerfWanBindAddr != "4.3.2.1" {
+			t.Fatalf("expected -serf-wan-bind 4.3.2.1 got %s", config.SerfWanBindAddr)
+		}
+		if config.SerfLanBindAddr != "4.3.2.2" {
+			t.Fatalf("expected -serf-lan-bind 4.3.2.2 got %s", config.SerfLanBindAddr)
 		}
 	}
 

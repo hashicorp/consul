@@ -268,10 +268,6 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
 	}
-	if a.config.BindAddr != "" {
-		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
-	}
 	if a.config.Ports.SerfLan != 0 {
 		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.Ports.SerfLan
 		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfLan
@@ -286,6 +282,17 @@ func (a *Agent) consulConfig() *consul.Config {
 			Port: a.config.Ports.Server,
 		}
 		base.RPCAddr = bindAddr
+
+		// Set the Serf configs using the old default behavior, we may
+		// override these in the code right below.
+		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
+		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
+	}
+	if a.config.SerfLanBindAddr != "" {
+		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfLanBindAddr
+	}
+	if a.config.SerfWanBindAddr != "" {
+		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfWanBindAddr
 	}
 	if a.config.AdvertiseAddr != "" {
 		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
