@@ -19,6 +19,7 @@ BUG FIXES:
 * agent: Fixed a panic during anti-entropy sync for services and checks. [GH-2125]
 * agent: Fixed an issue on Windows where "wsarecv" errors were logged when CLI commands accessed the RPC interface. [GH-2356]
 * agent: Syslog initialization will now retry on errors for up to 60 seconds to avoid a race condition at system startup. [GH-1610]
+* agent: Fixed a panic when both -dev and -bootstrap-expect flags were provided. [GH-2464]
 * dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * dns: Fixed an issue with SRV lookups where the service address was different from the node's. [GH-832]
 * server: Fixed the port numbers in the sample JSON inside peers.info. [GH-2391]
