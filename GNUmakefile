@@ -4,7 +4,7 @@ GOTOOLS = \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer
-PACKAGES=$(shell go list ./... | grep -v '^github.com/hashicorp/consul/vendor/')
+PACKAGES=$(shell go list ./... | grep -v '/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 BUILD_TAGS?=consul
