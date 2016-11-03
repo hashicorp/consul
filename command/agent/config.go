@@ -118,6 +118,20 @@ type DNSConfig struct {
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
+// RetryJoinEC2 is used to configure discovery of instances via Amazon's EC2 api
+type RetryJoinEC2 struct {
+	// The AWS region to look for instances in
+	Region string `mapstructure:"region"`
+
+	// The tag key and value to use when filtering instances
+	TagKey   string `mapstructure:"tag_key"`
+	TagValue string `mapstructure:"tag_value"`
+
+	// The AWS credentials to use for making requests to EC2
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -384,6 +398,9 @@ type Config struct {
 	// the default is 30s.
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
+
+	// RetryJoinEC2 configuration
+	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -1321,6 +1338,21 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
+	}
+	if b.RetryJoinEC2.AccessKeyID != "" {
+		result.RetryJoinEC2.AccessKeyID = b.RetryJoinEC2.AccessKeyID
+	}
+	if b.RetryJoinEC2.SecretAccessKey != "" {
+		result.RetryJoinEC2.SecretAccessKey = b.RetryJoinEC2.SecretAccessKey
+	}
+	if b.RetryJoinEC2.Region != "" {
+		result.RetryJoinEC2.Region = b.RetryJoinEC2.Region
+	}
+	if b.RetryJoinEC2.TagKey != "" {
+		result.RetryJoinEC2.TagKey = b.RetryJoinEC2.TagKey
+	}
+	if b.RetryJoinEC2.TagValue != "" {
+		result.RetryJoinEC2.TagValue = b.RetryJoinEC2.TagValue
 	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan

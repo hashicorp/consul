@@ -92,11 +92,11 @@ The options below are all specified on the command-line.
 * <a name="_bind"></a><a href="#_bind">`-bind`</a> - The address that should be bound to
   for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
-  By default, this is "0.0.0.0", meaning Consul will bind to all addresses on 
+  By default, this is "0.0.0.0", meaning Consul will bind to all addresses on
 the local machine and will [advertise](/docs/agent/options.html#_advertise)
 the first available private IPv4 address to the rest of the cluster. If there
 are multiple private IPv4 addresses available, Consul will exit with an error
-at startup. If you specify "[::]", Consul will 
+at startup. If you specify "[::]", Consul will
 [advertise](/docs/agent/options.html#_advertise) the first available public
 IPv6 address. If there are multiple public IPv6 addresses available, Consul
 will exit with an error at startup.
@@ -184,6 +184,25 @@ will exit with an error at startup.
   LAN port number also specified or bracketed IPv6 addresses with optional
   port number — for example: `[::1]:8301`. This is useful for cases where we
   know the address will become available eventually.
+
+* <a name="_retry_join_ec2_tag_key"></a><a href="#_retry_join_ec2_tag_key">`-retry-join-ec2-tag-key`
+  </a> - The Amazon EC2 instance tag key to filter on. When used with
+  [`-retry-join-ec2-tag-value`](#_retry_join_ec2_tag_value), Consul will attempt to join EC2
+  instances with the given tag key and value on startup.
+  </br></br>For AWS authentication the following methods are supported, in order:
+  - Static credentials (from the config file)
+  - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
+  - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
+  - ECS task role metadata (container-specific).
+  - EC2 instance role metadata.
+
+* <a name="_retry_join_ec2_tag_value"></a><a href="#_retry_join_ec2_tag_value">`-retry-join-ec2-tag-value`
+  </a> - The Amazon EC2 instance tag value to filter on.
+
+* <a name="_retry_join_ec2_region"></a><a href="#_retry_join_ec2_region">`-retry-join-ec2-region`
+  </a> - (Optional) The Amazon EC2 region to use. If not specified, Consul
+   will use the local instance's [EC2 metadata endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html)
+   to discover the region.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
@@ -440,6 +459,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
   [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
+* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
+  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
+
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
 
@@ -664,6 +686,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-retry-join` command-line flag](#_retry_join). Takes a list
   of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one
   [`-join`](#_join) works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
+
+* <a name="retry_join_ec2"></a><a href="#retry_join_ec2">`retry_join_ec2`</a> - This is a nested object
+  that allows the setting of EC2-related [`-retry-join`](#_retry_join) options.
+  <br><br>
+  The following keys are valid:
+  * `region` - The AWS region. Equivalent to the
+    [`-retry-join-ec2-region` command-line flag](#_retry_join_ec2_region).
+  * `tag_key` - The EC2 instance tag key to filter on. Equivalent to the</br>
+    [`-retry-join-ec2-tag-key` command-line flag](#_retry_join_ec2_tag_key).
+  * `tag_value` - The EC2 instance tag value to filter on. Equivalent to the</br>
+    [`-retry-join-ec2-tag-value` command-line flag](#_retry_join_ec2_tag_value).
+  * `access_key_id` - The AWS access key ID to use for authentication.
+  * `secret_access_key` - The AWS secret access key to use for authentication.
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).

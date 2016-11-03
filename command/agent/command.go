@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -17,6 +18,12 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
@@ -115,6 +122,12 @@ func (c *Command) readConfig() *Config {
 		"number of retries for joining")
 	cmdFlags.StringVar(&retryInterval, "retry-interval", "",
 		"interval between join attempts")
+	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.Region, "retry-join-ec2-region", "",
+		"EC2 Region to discover servers in")
+	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "",
+		"EC2 tag key to filter on for server discovery")
+	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "",
+		"EC2 tag value to filter on for server discovery")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
 		"address of agent to join -wan on startup with retry")
 	cmdFlags.IntVar(&cmdConfig.RetryMaxAttemptsWan, "retry-max-wan", 0,
@@ -316,6 +329,14 @@ func (c *Command) readConfig() *Config {
 		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
 	}
 
+	// Need both tag key and value for EC2 discovery
+	if config.RetryJoinEC2.TagKey != "" || config.RetryJoinEC2.TagValue != "" {
+		if config.RetryJoinEC2.TagKey == "" || config.RetryJoinEC2.TagValue == "" {
+			c.Ui.Error("tag key and value are both required for EC2 retry-join")
+			return nil
+		}
+	}
+
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
@@ -366,6 +387,67 @@ func (config *Config) verifyUniqueListeners() error {
 		m[k] = l.descr
 	}
 	return nil
+}
+
+// discoverEc2Hosts searches an AWS region, returning a list of instance ips
+// where EC2TagKey = EC2TagValue
+func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
+	config := c.RetryJoinEC2
+
+	ec2meta := ec2metadata.New(session.New())
+	if config.Region == "" {
+		logger.Printf("[INFO] agent: No EC2 region provided, querying instance metadata endpoint...")
+		identity, err := ec2meta.GetInstanceIdentityDocument()
+		if err != nil {
+			return nil, err
+		}
+		config.Region = identity.Region
+	}
+
+	awsConfig := &aws.Config{
+		Region: &config.Region,
+		Credentials: credentials.NewChainCredentials(
+			[]credentials.Provider{
+				&credentials.StaticProvider{
+					Value: credentials.Value{
+						AccessKeyID:     config.AccessKeyID,
+						SecretAccessKey: config.SecretAccessKey,
+					},
+				},
+				&credentials.EnvProvider{},
+				&credentials.SharedCredentialsProvider{},
+				defaults.RemoteCredProvider(*(defaults.Config()), defaults.Handlers()),
+			}),
+	}
+
+	svc := ec2.New(session.New(), awsConfig)
+
+	resp, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + config.TagKey),
+				Values: []*string{
+					aws.String(config.TagValue),
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var servers []string
+	for i := range resp.Reservations {
+		for _, instance := range resp.Reservations[i].Instances {
+			// Terminated instances don't have the PrivateIpAddress field
+			if instance.PrivateIpAddress != nil {
+				servers = append(servers, *instance.PrivateIpAddress)
+			}
+		}
+	}
+
+	return servers, nil
 }
 
 // setupLoggers is used to setup the logGate, logWriter, and our logOutput
@@ -587,7 +669,9 @@ func (c *Command) startupJoinWan(config *Config) error {
 // retryJoin is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
-	if len(config.RetryJoin) == 0 {
+	ec2Enabled := config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != ""
+
+	if len(config.RetryJoin) == 0 && !ec2Enabled {
 		return
 	}
 
@@ -596,10 +680,25 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 
 	attempt := 0
 	for {
-		n, err := c.agent.JoinLAN(config.RetryJoin)
-		if err == nil {
-			logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
-			return
+		var servers []string
+		var err error
+		if ec2Enabled {
+			servers, err = config.discoverEc2Hosts(logger)
+			if err != nil {
+				logger.Printf("[ERROR] agent: Unable to query EC2 insances: %s", err)
+			}
+			logger.Printf("[INFO] agent: Discovered %d servers from EC2...", len(servers))
+		}
+
+		servers = append(servers, config.RetryJoin...)
+		if len(servers) == 0 {
+			err = fmt.Errorf("No servers to join")
+		} else {
+			n, err := c.agent.JoinLAN(servers)
+			if err == nil {
+				logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
+				return
+			}
 		}
 
 		attempt++
@@ -1085,54 +1184,57 @@ Usage: consul agent [options]
 
 Options:
 
-  -advertise=addr          Sets the advertise address to use
-  -advertise-wan=addr      Sets address to advertise on wan instead of advertise addr
-  -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
-  -atlas-join              Enables auto-joining the Atlas cluster
-  -atlas-token=token       Provides the Atlas API token
-  -atlas-endpoint=1.2.3.4  The address of the endpoint for Atlas integration.
-  -bootstrap               Sets server to bootstrap mode
-  -bind=0.0.0.0            Sets the bind address for cluster communication
-  -http-port=8500          Sets the HTTP API port to listen on
-  -bootstrap-expect=0      Sets server to expect bootstrap mode.
-  -client=127.0.0.1        Sets the address to bind for client access.
-                           This includes RPC, DNS, HTTP and HTTPS (if configured)
-  -config-file=foo         Path to a JSON file to read configuration from.
-                           This can be specified multiple times.
-  -config-dir=foo          Path to a directory to read configuration files
-                           from. This will read every file ending in ".json"
-                           as configuration in this directory in alphabetical
-                           order. This can be specified multiple times.
-  -data-dir=path           Path to a data directory to store agent state
-  -dev                     Starts the agent in development mode.
-  -recursor=1.2.3.4        Address of an upstream DNS server.
-                           Can be specified multiple times.
-  -dc=east-aws             Datacenter of the agent (deprecated: use 'datacenter' instead).
-  -datacenter=east-aws     Datacenter of the agent.
-  -encrypt=key             Provides the gossip encryption key
-  -join=1.2.3.4            Address of an agent to join at start time.
-                           Can be specified multiple times.
-  -join-wan=1.2.3.4        Address of an agent to join -wan at start time.
-                           Can be specified multiple times.
-  -retry-join=1.2.3.4      Address of an agent to join at start time with
-                           retries enabled. Can be specified multiple times.
-  -retry-interval=30s      Time to wait between join attempts.
-  -retry-max=0             Maximum number of join attempts. Defaults to 0, which
-                           will retry indefinitely.
-  -retry-join-wan=1.2.3.4  Address of an agent to join -wan at start time with
-                           retries enabled. Can be specified multiple times.
-  -retry-interval-wan=30s  Time to wait between join -wan attempts.
-  -retry-max-wan=0         Maximum number of join -wan attempts. Defaults to 0, which
-                           will retry indefinitely.
-  -log-level=info          Log level of the agent.
-  -node=hostname           Name of this node. Must be unique in the cluster
-  -protocol=N              Sets the protocol version. Defaults to latest.
-  -rejoin                  Ignores a previous leave and attempts to rejoin the cluster.
-  -server                  Switches agent to server mode.
-  -syslog                  Enables logging to syslog
-  -ui                      Enables the built-in static web UI server
-  -ui-dir=path             Path to directory containing the Web UI resources
-  -pid-file=path           Path to file to store agent PID
+  -advertise=addr           Sets the advertise address to use
+  -advertise-wan=addr       Sets address to advertise on wan instead of advertise addr
+  -atlas=org/name           Sets the Atlas infrastructure name, enables SCADA.
+  -atlas-join               Enables auto-joining the Atlas cluster
+  -atlas-token=token        Provides the Atlas API token
+  -atlas-endpoint=1.2.3.4   The address of the endpoint for Atlas integration.
+  -bootstrap                Sets server to bootstrap mode
+  -bind=0.0.0.0             Sets the bind address for cluster communication
+  -http-port=8500           Sets the HTTP API port to listen on
+  -bootstrap-expect=0       Sets server to expect bootstrap mode.
+  -client=127.0.0.1         Sets the address to bind for client access.
+                            This includes RPC, DNS, HTTP and HTTPS (if configured)
+  -config-file=foo          Path to a JSON file to read configuration from.
+                            This can be specified multiple times.
+  -config-dir=foo           Path to a directory to read configuration files
+                            from. This will read every file ending in ".json"
+                            as configuration in this directory in alphabetical
+                            order. This can be specified multiple times.
+  -data-dir=path            Path to a data directory to store agent state
+  -dev                      Starts the agent in development mode.
+  -recursor=1.2.3.4         Address of an upstream DNS server.
+                            Can be specified multiple times.
+  -dc=east-aws              Datacenter of the agent (deprecated: use 'datacenter' instead).
+  -datacenter=east-aws      Datacenter of the agent.
+  -encrypt=key              Provides the gossip encryption key
+  -join=1.2.3.4             Address of an agent to join at start time.
+                            Can be specified multiple times.
+  -join-wan=1.2.3.4         Address of an agent to join -wan at start time.
+                            Can be specified multiple times.
+  -retry-join=1.2.3.4       Address of an agent to join at start time with
+                            retries enabled. Can be specified multiple times.
+  -retry-interval=30s       Time to wait between join attempts.
+  -retry-max=0              Maximum number of join attempts. Defaults to 0, which
+                            will retry indefinitely.
+  -retry-join-ec2-region    EC2 Region to use for discovering servers to join.
+  -retry-join-ec2-tag-key   EC2 tag key to filter on for server discovery
+  -retry-join-ec2-tag-value EC2 tag value to filter on for server discovery
+  -retry-join-wan=1.2.3.4   Address of an agent to join -wan at start time with
+                            retries enabled. Can be specified multiple times.
+  -retry-interval-wan=30s   Time to wait between join -wan attempts.
+  -retry-max-wan=0          Maximum number of join -wan attempts. Defaults to 0, which
+                            will retry indefinitely.
+  -log-level=info           Log level of the agent.
+  -node=hostname            Name of this node. Must be unique in the cluster
+  -protocol=N               Sets the protocol version. Defaults to latest.
+  -rejoin                   Ignores a previous leave and attempts to rejoin the cluster.
+  -server                   Switches agent to server mode.
+  -syslog                   Enables logging to syslog
+  -ui                       Enables the built-in static web UI server
+  -ui-dir=path              Path to directory containing the Web UI resources
+  -pid-file=path            Path to file to store agent PID
 
  `
 	return strings.TrimSpace(helpText)

@@ -939,6 +939,36 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 	}
 }
 
+func TestRetryJoinEC2(t *testing.T) {
+	input := `{"retry_join_ec2": {
+	  "region": "us-east-1",
+		"tag_key": "ConsulRole",
+		"tag_value": "Server",
+		"access_key_id": "asdf",
+		"secret_access_key": "qwerty"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinEC2.Region != "us-east-1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.TagKey != "ConsulRole" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.TagValue != "Server" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.AccessKeyID != "asdf" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.SecretAccessKey != "qwerty" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Performance(t *testing.T) {
 	input := `{"performance": { "raft_multiplier": 3 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1370,6 +1400,13 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
 		RetryIntervalWanRaw:    "10s",
+		RetryJoinEC2: RetryJoinEC2{
+			Region:          "us-east-1",
+			TagKey:          "Key1",
+			TagValue:        "Value1",
+			AccessKeyID:     "nope",
+			SecretAccessKey: "nope",
+		},
 		Telemetry: Telemetry{
 			DisableHostname: false,
 			StatsdAddr:      "nope",
@@ -1492,8 +1529,15 @@ func TestMergeConfig(t *testing.T) {
 		AtlasToken:          "123456789",
 		AtlasACLToken:       "abcdefgh",
 		AtlasJoin:           true,
-		SessionTTLMinRaw:    "1000s",
-		SessionTTLMin:       1000 * time.Second,
+		RetryJoinEC2: RetryJoinEC2{
+			Region:          "us-east-2",
+			TagKey:          "Key2",
+			TagValue:        "Value2",
+			AccessKeyID:     "foo",
+			SecretAccessKey: "bar",
+		},
+		SessionTTLMinRaw: "1000s",
+		SessionTTLMin:    1000 * time.Second,
 		AdvertiseAddrs: AdvertiseAddrsConfig{
 			SerfLan:    &net.TCPAddr{},
 			SerfLanRaw: "127.0.0.5:1231",
