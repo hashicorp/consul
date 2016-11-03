@@ -86,6 +86,25 @@ func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
 	return server
 }
 
+func makeRecursorWithMessage(t *testing.T, answer dns.Msg) *dns.Server {
+	dnsConf := nextConfig()
+	dnsAddr := fmt.Sprintf("%s:%d", dnsConf.Addresses.DNS, dnsConf.Ports.DNS)
+	mux := dns.NewServeMux()
+	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
+		answer.SetReply(msg)
+		if err := resp.WriteMsg(&answer); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	server := &dns.Server{
+		Addr:    dnsAddr,
+		Net:     "udp",
+		Handler: mux,
+	}
+	go server.ListenAndServe()
+	return server
+}
+
 // dnsCNAME returns a DNS CNAME record struct
 func dnsCNAME(src, dest string) *dns.CNAME {
 	return &dns.CNAME{
@@ -1817,6 +1836,41 @@ func TestDNS_Recurse(t *testing.T) {
 
 	if len(in.Answer) == 0 {
 		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
+	}
+}
+
+func TestDNS_Recurse_Truncation(t *testing.T) {
+	answerMessage := dns.Msg{
+		MsgHdr: dns.MsgHdr{Truncated: true},
+		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
+	}
+
+	recursor := makeRecursorWithMessage(t, answerMessage)
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServerConfig(t, func(c *Config) {
+		c.DNSRecursor = recursor.Addr
+	}, nil)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err == nil || err != dns.ErrTruncated {
+		t.Fatalf("err: %v", err)
+	}
+	if in.Truncated != true {
+		t.Fatalf("err: message should have been truncated %v", in)
+	}
+	if len(in.Answer) == 0 {
+		t.Fatalf("Bad: Truncated message ignored, expected some reply %#v", in)
 	}
 	if in.Rcode != dns.RcodeSuccess {
 		t.Fatalf("Bad: %#v", in)
