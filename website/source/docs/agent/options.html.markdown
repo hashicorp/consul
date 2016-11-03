@@ -699,7 +699,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="retry_join"></a><a href="#retry_join">`retry_join`</a> Equivalent to the
   [`-retry-join` command-line flag](#_retry_join). Takes a list
   of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one
-  [`-join`](#_join) works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
+  join works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
 
 * <a name="retry_join_ec2"></a><a href="#retry_join_ec2">`retry_join_ec2`</a> - This is a nested object
   that allows the setting of EC2-related [`-retry-join`](#_retry_join) options.
@@ -720,7 +720,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="retry_join_wan"></a><a href="#retry_join_wan">`retry_join_wan`</a> Equivalent to the
   [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list
   of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one
-  [`-join-wan`](#_join_wan) works.
+  join works.
 
 * <a name="retry_interval_wan"></a><a href="#retry_interval_wan">`retry_interval_wan`</a> Equivalent to the
   [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
