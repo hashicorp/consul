@@ -6,12 +6,12 @@ BACKWARDS INCOMPATIBILITIES:
 
 FEATURES:
 
+* **AWS auto-discovery:** New `-retry-join-ec2` configuration options added to allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup. [GH-2459]
 * **Key/Value Store Command Line Interface:** New `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
 * **Snapshot/Restore:** A new /v1/snapshot HTTP endpoint and corresponding set of `consul snapshot` commands were added for easy point-in-time snapshots for disaster recovery. Snapshots include all state managed by Consul's Raft [consensus protocol](/docs/internals/consensus.html), including Key/Value Entries, Service Catalog, Prepared Queries, Sessions, and ACLs. Snapshots can be restored on the fly into a completely fresh cluster. [GH-2396]
 
 IMPROVEMENTS:
 
-* agent: New `-retry-join-ec2` options added to allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup. [GH-2459]
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
 
 BUG FIXES:
