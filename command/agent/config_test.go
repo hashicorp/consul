@@ -1175,6 +1175,23 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"interval": "10s",
 				"timeout": "100ms",
 				"service_id": "elasticsearch"
+			},
+			{
+				"id": "chk5",
+				"name": "service:sslservice",
+				"HTTP": "https://sslservice/status",
+				"interval": "10s",
+				"timeout": "100ms",
+				"service_id": "sslservice"
+			},
+			{
+				"id": "chk6",
+				"name": "service:insecure-sslservice",
+				"HTTP": "https://insecure-sslservice/status",
+				"interval": "10s",
+				"timeout": "100ms",
+				"service_id": "insecure-sslservice",
+				"tls_skip_verify": true
 			}
 		]
 	}`
@@ -1219,6 +1236,28 @@ func TestDecodeConfig_Checks(t *testing.T) {
 					HTTP:     "http://localhost:9200/_cluster_health",
 					Interval: 10 * time.Second,
 					Timeout:  100 * time.Millisecond,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk5",
+				Name:      "service:sslservice",
+				ServiceID: "sslservice",
+				CheckType: CheckType{
+					HTTP:          "https://sslservice/status",
+					Interval:      10 * time.Second,
+					Timeout:       100 * time.Millisecond,
+					TLSSkipVerify: false,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk6",
+				Name:      "service:insecure-sslservice",
+				ServiceID: "insecure-sslservice",
+				CheckType: CheckType{
+					HTTP:          "https://insecure-sslservice/status",
+					Interval:      10 * time.Second,
+					Timeout:       100 * time.Millisecond,
+					TLSSkipVerify: true,
 				},
 			},
 		},

@@ -250,7 +250,8 @@ body must look like:
   "HTTP": "http://example.com",
   "TCP": "example.com:22",
   "Interval": "10s",
-  "TTL": "15s"
+  "TTL": "15s",
+  "TLSSkipVerify": true
 }
 ```
 
@@ -282,9 +283,13 @@ evaluate the script every `Interval` in the given container using the specified
 An `HTTP` check will perform an HTTP GET request against the value of `HTTP` (expected to
 be a URL) every `Interval`. If the response is any `2xx` code, the check is `passing`.
 If the response is `429 Too Many Requests`, the check is `warning`. Otherwise, the check
-is `critical`.
+is `critical`. HTTP checks also support SSL. By default, a valid SSL certificate is expected.
+Certificate verification can be controlled using the `TLSSkipVerify`.
 
-An `TCP` check will perform an TCP connection attempt against the value of `TCP`
+If `TLSSkipVerify` is set to `true`, certificate verification will be disabled. By default,
+certificate verification is enabled.
+
+A `TCP` check will perform an TCP connection attempt against the value of `TCP`
 (expected to be an IP/hostname and port combination) every `Interval`.  If the
 connection attempt is successful, the check is `passing`.  If the connection
 attempt is unsuccessful, the check is `critical`.  In the case of a hostname

@@ -982,12 +982,13 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			http := &CheckHTTP{
-				Notify:   &a.state,
-				CheckID:  check.CheckID,
-				HTTP:     chkType.HTTP,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:        &a.state,
+				CheckID:       check.CheckID,
+				HTTP:          chkType.HTTP,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				TLSSkipVerify: chkType.TLSSkipVerify,
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
