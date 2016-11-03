@@ -13,6 +13,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
+* agent: Added the ability to bind Serf WAN and LAN to different interfaces than the general bind address. [GH-2007]
 
 BUG FIXES:
 
