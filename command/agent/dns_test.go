@@ -1863,7 +1863,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	c := new(dns.Client)
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
 	in, _, err := c.Exchange(m, addr.String())
-	if err == nil || err != dns.ErrTruncated {
+	if err != dns.ErrTruncated {
 		t.Fatalf("err: %v", err)
 	}
 	if in.Truncated != true {
