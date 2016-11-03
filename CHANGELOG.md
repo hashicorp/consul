@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES:
 
 * Child process reaping support has been removed, along with the `reap` configuration option. Reaping is also done via [dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker image](https://github.com/hashicorp/docker-consul), so removing it from Consul itself simplifies the code and eases future maintainence for Consul. If you are running Consul as PID 1 in a container you will need to arrange for a wrapper process to reap child processes. [GH-1988]
+* The api package's PreparedQuery.Delete() method now takes WriteOptions instead of QueryOptions. [GH-2417]
 
 FEATURES:
 
