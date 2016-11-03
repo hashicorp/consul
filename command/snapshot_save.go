@@ -83,7 +83,6 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 
 	// Take the snapshot.
 	snap, qm, err := client.Snapshot().Save(&api.QueryOptions{
-		Datacenter: *datacenter,
 		AllowStale: *stale,
 	})
 	if err != nil {
