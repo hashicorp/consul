@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/armon/circbuf"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -363,6 +365,20 @@ func (c *CheckHTTP) Start() {
 		// Create the transport. We disable HTTP Keep-Alive's to prevent
 		// failing checks due to the keepalive interval.
 		trans := cleanhttp.DefaultTransport()
+
+		// Check if TLS config is required
+		if strings.HasPrefix(c.HTTP, "https://") {
+			tlsClientConfig, err := api.SetupTLSConfig(&api.TLSConfig{
+				InsecureSkipVerify: true,
+			})
+
+			if err != nil {
+				c.Logger.Printf("[WARN] agent: Unable to configure TLS for CheckHTTP client: %s", err)
+			} else {
+				trans.TLSClientConfig = tlsClientConfig
+			}
+		}
+
 		trans.DisableKeepAlives = true
 
 		// Create the HTTP client.
