@@ -72,6 +72,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
+	conf.Datacenter = *datacenter
 	conf.Address = *httpAddr
 	conf.Token = *token
 	client, err := api.NewClient(conf)
