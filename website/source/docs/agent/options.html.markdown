@@ -104,11 +104,12 @@ will exit with an error at startup.
   have any firewalls, be sure to allow both protocols.
 
 * <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> - The address that should be bound to for Serf WAN gossip communications.
-  By default, the value follows the same rules as [`-bind` command-line flag](#_bind)
+  By default, the value follows the same rules as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This
+  is available in Consul 0.7.1 and later.
 
 * <a name="_serf_lan_bind"></a><a href="#_serf_lan_bind">`-serf-lan-bind`</a> - The address that should be bound to for Serf LAN gossip communications.
-  This is an IP address that should be reachable by all other LAN nodes in the cluster.
-  By default, the value follows the same rules as [`-bind` command-line flag](#_bind)
+  This is an IP address that should be reachable by all other LAN nodes in the cluster. By default, the value follows the same rules as
+  [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
 
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces,

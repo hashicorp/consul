@@ -126,21 +126,19 @@ func makeAgent(t *testing.T, conf *Config) (string, *Agent) {
 	return makeAgentLog(t, conf, nil)
 }
 
-func externalIp() (string, error) {
+func externalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		fmt.Errorf("Unable to lookup network interfaces: %v", err)
-		return "", err
+		return "", fmt.Errorf("Unable to lookup network interfaces: %v", err)
 	}
-	var extIp string
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				extIp = ipnet.IP.String()
+				return ipnet.IP.String(), nil
 			}
 		}
 	}
-	return extIp, nil
+	return "", fmt.Errorf("Unable to find a non-loopback interface")
 }
 
 func TestAgentStartStop(t *testing.T) {
@@ -175,23 +173,23 @@ func TestAgent_RPCPing(t *testing.T) {
 
 func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
 	c := nextConfig()
-	eIp, err := externalIp()
+	ip, err := externalIP()
 	if err != nil {
 		t.Fatalf("Unable to get a non-loopback IP: %v", err)
 	}
-	c.SerfLanBindAddr = eIp
-	c.SerfWanBindAddr = eIp
+	c.SerfLanBindAddr = ip
+	c.SerfWanBindAddr = ip
 	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
 	serfWanBind := agent.consulConfig().SerfWANConfig.MemberlistConfig.BindAddr
-	if serfWanBind == "127.0.0.1" {
+	if serfWanBind != ip {
 		t.Fatalf("SerfWanBindAddr is should be a non-loopback IP not %s", serfWanBind)
 	}
 
 	serfLanBind := agent.consulConfig().SerfLANConfig.MemberlistConfig.BindAddr
-	if serfLanBind == "127.0.0.1" {
+	if serfLanBind != ip {
 		t.Fatalf("SerfLanBindAddr is should be a non-loopback IP not %s", serfWanBind)
 	}
 }

@@ -282,7 +282,9 @@ func (a *Agent) consulConfig() *consul.Config {
 			Port: a.config.Ports.Server,
 		}
 		base.RPCAddr = bindAddr
-		// Set the SERF configs as a default, check later for overrides via Config
+
+		// Set the Serf configs using the old default behavior, we may
+		// override these in the code right below.
 		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
 	}
