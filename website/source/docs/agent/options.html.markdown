@@ -185,14 +185,6 @@ will exit with an error at startup.
   port number — for example: `[::1]:8301`. This is useful for cases where we
   know the address will become available eventually.
 
-* <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
-  to wait between join attempts. Defaults to 30s.
-
-* <a name="_retry_max"></a><a href="#_retry_max">`-retry-max`</a> - The maximum number
-  of [`-join`](#_join) attempts to be made before exiting
-  with return code 1. By default, this is set to 0 which is interpreted as infinite
-  retries.
-
 * <a name="_retry_join_ec2_tag_key"></a><a href="#_retry_join_ec2_tag_key">`-retry-join-ec2-tag-key`
   </a> - The Amazon EC2 instance tag key to filter on. When used with
   [`-retry-join-ec2-tag-value`](#_retry_join_ec2_tag_value), Consul will attempt to join EC2
@@ -211,6 +203,14 @@ will exit with an error at startup.
   </a> - (Optional) The Amazon EC2 region to use. If not specified, Consul
    will use the local instance's [EC2 metadata endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html)
    to discover the region.
+
+* <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
+  to wait between join attempts. Defaults to 30s.
+
+* <a name="_retry_max"></a><a href="#_retry_max">`-retry-max`</a> - The maximum number
+  of [`-join`](#_join) attempts to be made before exiting
+  with return code 1. By default, this is set to 0 which is interpreted as infinite
+  retries.
 
 * <a name="_join_wan"></a><a href="#_join_wan">`-join-wan`</a> - Address of another
   wan agent to join upon starting up. This can be
@@ -687,14 +687,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one
   [`-join`](#_join) works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
 
-* <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
-  [`-retry-interval` command-line flag](#_retry_interval).
-
-* <a name="retry_join_wan"></a><a href="#retry_join_wan">`retry_join_wan`</a> Equivalent to the
-  [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list
-  of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one
-  [`-join-wan`](#_join_wan) works.
-
 * <a name="retry_join_ec2"></a><a href="#retry_join_ec2">`retry_join_ec2`</a> - This is a nested object
   that allows the setting of EC2-related [`-retry-join`](#_retry_join) options.
   <br><br>
@@ -707,6 +699,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     [`-retry-join-ec2-tag-value` command-line flag](#_retry_join_ec2_tag_value).
   * `access_key_id` - The AWS access key ID to use for authentication.
   * `secret_access_key` - The AWS secret access key to use for authentication.
+
+* <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
+  [`-retry-interval` command-line flag](#_retry_interval).
+
+* <a name="retry_join_wan"></a><a href="#retry_join_wan">`retry_join_wan`</a> Equivalent to the
+  [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list
+  of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one
+  [`-join-wan`](#_join_wan) works.
 
 * <a name="retry_interval_wan"></a><a href="#retry_interval_wan">`retry_interval_wan`</a> Equivalent to the
   [`-retry-interval-wan` command-line flag](#_retry_interval_wan).

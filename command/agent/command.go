@@ -431,7 +431,7 @@ func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
 		return nil, err
 	}
 
-	servers := make([]string, 0)
+	var servers []string
 	for i := range resp.Reservations {
 		for _, instance := range resp.Reservations[i].Instances {
 			// Terminated instances don't have the PrivateIpAddress field
@@ -684,7 +684,7 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 			logger.Printf("[INFO] agent: Discovered %d servers from EC2...", len(servers))
 		}
 
-		servers = append(config.RetryJoin, servers...)
+		servers = append(servers, config.RetryJoin...)
 		if len(servers) == 0 {
 			err = fmt.Errorf("No servers to join")
 		} else {
