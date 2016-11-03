@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -19,10 +20,10 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
 			return &agent.Command{
-				Revision:          GitCommit,
-				Version:           Version,
-				VersionPrerelease: VersionPrerelease,
-				HumanVersion:      GetHumanVersion(),
+				Revision:          version.GitCommit,
+				Version:           version.Version,
+				VersionPrerelease: version.VersionPrerelease,
+				HumanVersion:      version.GetHumanVersion(),
 				Ui:                ui,
 				ShutdownCh:        make(chan struct{}),
 			}, nil
@@ -177,7 +178,7 @@ func init() {
 
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
-				HumanVersion: GetHumanVersion(),
+				HumanVersion: version.GetHumanVersion(),
 				Ui:           ui,
 			}, nil
 		},

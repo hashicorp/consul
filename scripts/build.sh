@@ -3,7 +3,6 @@
 # This script builds the application from source for multiple platforms.
 set -e
 
-export GO15VENDOREXPERIMENT=1
 export CGO_ENABLED=0
 
 # Get the parent directory of where this script is.
@@ -43,6 +42,7 @@ echo "==> Building..."
     -osarch="!darwin/arm" \
     -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X main.GitDescribe='${GIT_DESCRIBE}'" \
     -output "pkg/{{.OS}}_{{.Arch}}/consul" \
+    -tags="${BUILD_TAGS}" \
     .
 
 # Move all the compiled things to the $GOPATH/bin
