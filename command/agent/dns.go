@@ -913,7 +913,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var err error
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
-		if err == nil {
+		if err == nil || err == dns.ErrTruncated {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.
