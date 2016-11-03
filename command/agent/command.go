@@ -271,6 +271,12 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// Expect can only work when dev mode is off
+	if config.BootstrapExpect > 0 && config.DevMode {
+		c.Ui.Error("Expect mode cannot be enabled when dev mode is enabled")
+		return nil
+	}
+
 	// Expect & Bootstrap are mutually exclusive
 	if config.BootstrapExpect != 0 && config.Bootstrap {
 		c.Ui.Error("Bootstrap cannot be provided with an expected server count")
