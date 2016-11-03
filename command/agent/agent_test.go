@@ -47,8 +47,6 @@ func nextConfig() *Config {
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
-	conf.SerfLanBindAddr = "127.0.0.1"
-	conf.SerfWanBindAddr = "127.0.0.1"
 	conf.Ports.DNS = basePortNumber + idx + portOffsetDNS
 	conf.Ports.HTTP = basePortNumber + idx + portOffsetHTTP
 	conf.Ports.RPC = basePortNumber + idx + portOffsetRPC
