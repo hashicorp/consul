@@ -11,6 +11,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: New `-retry-join-ec2` options added to allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup. [GH-2459]
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
 
 BUG FIXES:
