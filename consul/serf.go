@@ -154,7 +154,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 			s.localLock.Unlock()
 		}
 
-		// If we still expecting to bootstrap, may need to handle this.
+		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
 			s.maybeBootstrap()
 		}
