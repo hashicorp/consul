@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/consul/snapshot"
+	"github.com/hashicorp/consul/snapshot"
 	"github.com/mitchellh/cli"
 )
 
