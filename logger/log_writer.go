@@ -1,4 +1,4 @@
-package agent
+package logger
 
 import (
 	"sync"
@@ -10,19 +10,19 @@ type LogHandler interface {
 	HandleLog(string)
 }
 
-// logWriter implements io.Writer so it can be used as a log sink.
+// LogWriter implements io.Writer so it can be used as a log sink.
 // It maintains a circular buffer of logs, and a set of handlers to
 // which it can stream the logs to.
-type logWriter struct {
+type LogWriter struct {
 	sync.Mutex
 	logs     []string
 	index    int
 	handlers map[LogHandler]struct{}
 }
 
-// NewLogWriter creates a logWriter with the given buffer capacity
-func NewLogWriter(buf int) *logWriter {
-	return &logWriter{
+// NewLogWriter creates a LogWriter with the given buffer capacity
+func NewLogWriter(buf int) *LogWriter {
+	return &LogWriter{
 		logs:     make([]string, buf),
 		index:    0,
 		handlers: make(map[LogHandler]struct{}),
@@ -31,7 +31,7 @@ func NewLogWriter(buf int) *logWriter {
 
 // RegisterHandler adds a log handler to receive logs, and sends
 // the last buffered logs to the handler
-func (l *logWriter) RegisterHandler(lh LogHandler) {
+func (l *LogWriter) RegisterHandler(lh LogHandler) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -55,14 +55,14 @@ func (l *logWriter) RegisterHandler(lh LogHandler) {
 }
 
 // DeregisterHandler removes a LogHandler and prevents more invocations
-func (l *logWriter) DeregisterHandler(lh LogHandler) {
+func (l *LogWriter) DeregisterHandler(lh LogHandler) {
 	l.Lock()
 	defer l.Unlock()
 	delete(l.handlers, lh)
 }
 
 // Write is used to accumulate new logs
-func (l *logWriter) Write(p []byte) (n int, err error) {
+func (l *LogWriter) Write(p []byte) (n int, err error) {
 	l.Lock()
 	defer l.Unlock()
 

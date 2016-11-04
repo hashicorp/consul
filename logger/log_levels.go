@@ -1,8 +1,9 @@
-package agent
+package logger
 
 import (
-	"github.com/hashicorp/logutils"
 	"io/ioutil"
+
+	"github.com/hashicorp/logutils"
 )
 
 // LevelFilter returns a LevelFilter that is configured with the log

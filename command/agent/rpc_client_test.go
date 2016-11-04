@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 )
@@ -38,7 +39,7 @@ func testRPCClient(t *testing.T) *rpcParts {
 }
 
 func testRPCClientWithConfig(t *testing.T, cb func(c *Config)) *rpcParts {
-	lw := NewLogWriter(512)
+	lw := logger.NewLogWriter(512)
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	configTry := 0

@@ -32,6 +32,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/serf"
@@ -171,7 +172,7 @@ type AgentRPC struct {
 	clients   map[string]*rpcClient
 	listener  net.Listener
 	logger    *log.Logger
-	logWriter *logWriter
+	logWriter *logger.LogWriter
 	reloadCh  chan struct{}
 	stop      bool
 	stopCh    chan struct{}
@@ -218,7 +219,7 @@ func (c *rpcClient) String() string {
 
 // NewAgentRPC is used to create a new Agent RPC handler
 func NewAgentRPC(agent *Agent, listener net.Listener,
-	logOutput io.Writer, logWriter *logWriter) *AgentRPC {
+	logOutput io.Writer, logWriter *logger.LogWriter) *AgentRPC {
 	if logOutput == nil {
 		logOutput = os.Stderr
 	}
@@ -513,9 +514,9 @@ func (i *AgentRPC) handleMonitor(client *rpcClient, seq uint64) error {
 	req.LogLevel = strings.ToUpper(req.LogLevel)
 
 	// Create a level filter
-	filter := LevelFilter()
+	filter := logger.LevelFilter()
 	filter.MinLevel = logutils.LogLevel(req.LogLevel)
-	if !ValidateLevelFilter(filter.MinLevel, filter) {
+	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
 		resp.Error = fmt.Sprintf("Unknown log level: %s", filter.MinLevel)
 		goto SEND
 	}
