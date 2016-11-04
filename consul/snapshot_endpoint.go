@@ -15,8 +15,8 @@ import (
 	"io/ioutil"
 	"net"
 
-	"github.com/hashicorp/consul/consul/snapshot"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
