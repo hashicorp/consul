@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
@@ -337,7 +338,7 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 		Ui:         new(cli.MockUi),
 	}
 
-	logWriter := NewLogWriter(512)
+	logWriter := logger.NewLogWriter(512)
 	logOutput := new(bytes.Buffer)
 
 	// Ensure the server is created

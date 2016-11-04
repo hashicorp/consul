@@ -1,7 +1,8 @@
-package agent
+package logger
 
 import (
 	"bytes"
+
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 )

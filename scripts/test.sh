@@ -11,4 +11,4 @@ go build -tags="${BUILD_TAGS}" -o $TEMPDIR/consul || exit 1
 
 # Run the tests
 echo "--> Running tests"
-go list ./... | grep -v '^/vendor/' | PATH=$TEMPDIR:$PATH xargs -n1 go test -tags="${BUILD_TAGS}" ${GOTEST_FLAGS:--cover -timeout=360s}
+go list ./... | grep -v '/vendor/' | PATH=$TEMPDIR:$PATH xargs -n1 go test -tags="${BUILD_TAGS}" ${GOTEST_FLAGS:--cover -timeout=360s}

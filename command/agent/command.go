@@ -25,9 +25,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
@@ -452,63 +452,8 @@ func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
 	return servers, nil
 }
 
-// setupLoggers is used to setup the logGate, logWriter, and our logOutput
-func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Writer) {
-	// Setup logging. First create the gated log writer, which will
-	// store logs until we're ready to show them. Then create the level
-	// filter, filtering logs of the specified level.
-	logGate := &GatedWriter{
-		Writer: &cli.UiWriter{Ui: c.Ui},
-	}
-
-	c.logFilter = LevelFilter()
-	c.logFilter.MinLevel = logutils.LogLevel(strings.ToUpper(config.LogLevel))
-	c.logFilter.Writer = logGate
-	if !ValidateLevelFilter(c.logFilter.MinLevel, c.logFilter) {
-		c.Ui.Error(fmt.Sprintf(
-			"Invalid log level: %s. Valid log levels are: %v",
-			c.logFilter.MinLevel, c.logFilter.Levels))
-		return nil, nil, nil
-	}
-
-	// Check if syslog is enabled
-	var syslog io.Writer
-	retries := 12
-	delay := 5 * time.Second
-	if config.EnableSyslog {
-		for i := 0; i <= retries; i++ {
-			l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Syslog setup error: %v", err))
-				if i == retries {
-					timeout := time.Duration(retries) * delay
-					c.Ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
-					return nil, nil, nil
-				} else {
-					c.Ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
-					time.Sleep(delay)
-				}
-			} else {
-				syslog = &SyslogWrapper{l, c.logFilter}
-				break
-			}
-		}
-	}
-
-	// Create a log writer, and wrap a logOutput around it
-	logWriter := NewLogWriter(512)
-	var logOutput io.Writer
-	if syslog != nil {
-		logOutput = io.MultiWriter(c.logFilter, logWriter, syslog)
-	} else {
-		logOutput = io.MultiWriter(c.logFilter, logWriter)
-	}
-	c.logOutput = logOutput
-	return logGate, logWriter, logOutput
-}
-
 // setupAgent is used to start the agent and various interfaces
-func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logWriter) error {
+func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) error {
 	c.Ui.Output("Starting Consul agent...")
 	agent, err := Create(config, logOutput)
 	if err != nil {
@@ -779,10 +724,17 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Setup the log outputs
-	logGate, logWriter, logOutput := c.setupLoggers(config)
-	if logWriter == nil {
+	logConfig := &logger.Config{
+		LogLevel:       config.LogLevel,
+		EnableSyslog:   config.EnableSyslog,
+		SyslogFacility: config.SyslogFacility,
+	}
+	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.Ui)
+	if !ok {
 		return 1
 	}
+	c.logFilter = logFilter
+	c.logOutput = logOutput
 
 	/* Setup telemetry
 	Aggregate on 10 second intervals for 1 minute. Expose the
@@ -1055,7 +1007,7 @@ func (c *Command) handleReload(config *Config) *Config {
 
 	// Change the log level
 	minLevel := logutils.LogLevel(strings.ToUpper(newConf.LogLevel))
-	if ValidateLevelFilter(minLevel, c.logFilter) {
+	if logger.ValidateLevelFilter(minLevel, c.logFilter) {
 		c.logFilter.SetMinLevel(minLevel)
 	} else {
 		c.Ui.Error(fmt.Sprintf(
