@@ -431,14 +431,19 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 
 	check.Start()
 	defer check.Stop()
-	time.Sleep(50 * time.Millisecond)
+
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
 
-	if mock.state["skipverify_true"] != structs.HealthPassing {
-		t.Fatalf("should be passing %v", mock.state)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		if mock.state["skipverify_true"] != structs.HealthPassing {
+			return false, fmt.Errorf("should be passing %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
@@ -461,15 +466,19 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	}
 	check.Start()
 	defer check.Stop()
-	time.Sleep(50 * time.Millisecond)
 
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
 
-	if mock.state["skipverify_true"] != structs.HealthCritical {
-		t.Fatalf("should be critical %v", mock.state)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		if mock.state["skipverify_true"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
@@ -493,19 +502,24 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 
 	check.Start()
 	defer check.Stop()
-	time.Sleep(150 * time.Millisecond)
+
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be false")
 	}
 
-	// This should fail due to an invalid SSL cert
-	if mock.state["skipverify_false"] != structs.HealthCritical {
-		t.Fatalf("should be critical %v", mock.state)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		// This should fail due to an invalid SSL cert
+		if mock.state["skipverify_false"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
 
-	if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
-		t.Fatalf("should fail with certificate error %v", mock.output)
-	}
+		if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
+			return false, fmt.Errorf("should fail with certificate error %v", mock.output)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func mockTCPServer(network string) net.Listener {
