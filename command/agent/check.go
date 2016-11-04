@@ -49,6 +49,7 @@ type CheckType struct {
 	DockerContainerID string
 	Shell             string
 	TLSSkipVerify     bool
+	Head              bool
 
 	Timeout time.Duration
 	TTL     time.Duration
@@ -342,6 +343,7 @@ type CheckHTTP struct {
 	Timeout       time.Duration
 	Logger        *log.Logger
 	TLSSkipVerify bool
+	Head          bool
 
 	httpClient *http.Client
 	stop       bool
@@ -420,7 +422,11 @@ func (c *CheckHTTP) run() {
 
 // check is invoked periodically to perform the HTTP check
 func (c *CheckHTTP) check() {
-	req, err := http.NewRequest("GET", c.HTTP, nil)
+	method := http.MethodGet
+	if c.Head {
+		method = http.MethodHead
+	}
+	req, err := http.NewRequest(method, c.HTTP, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())

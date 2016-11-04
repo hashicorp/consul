@@ -291,7 +291,8 @@ body must look like:
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",
-  "TLSSkipVerify": true
+  "TLSSkipVerify": true,
+  "Head": true,
 }
 ```
 

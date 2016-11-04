@@ -1158,6 +1158,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,
 				TLSSkipVerify: chkType.TLSSkipVerify,
+				Head:          chkType.Head,
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
