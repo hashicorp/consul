@@ -143,6 +143,8 @@ func TestResetSessionTimerLocked(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
 	s1.sessionTimersLock.Unlock()
