@@ -46,6 +46,11 @@ func (e *Etcd) Services(state request.Request, exact bool, opt middleware.Option
 	return
 }
 
+// Reverse implements the ServiceBackend interface.
+func (e *Etcd) Reverse(state request.Request, exact bool, opt middleware.Options) (services, debug []msg.Service, err error) {
+	return e.Services(state, exact, opt)
+}
+
 // Lookup implements the ServiceBackend interface.
 func (e *Etcd) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
 	return e.Proxy.Lookup(state, name, typ)

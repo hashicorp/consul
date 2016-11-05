@@ -18,13 +18,13 @@ import (
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
+	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
-	"k8s.io/client-go/1.5/kubernetes"
+	"k8s.io/client-go/1.5/pkg/labels"
 	"k8s.io/client-go/1.5/rest"
 	"k8s.io/client-go/1.5/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/1.5/tools/clientcmd/api"
-	"k8s.io/client-go/1.5/pkg/labels"
 )
 
 // Kubernetes implements a middleware that connects to a Kubernetes cluster.
@@ -48,6 +48,17 @@ type Kubernetes struct {
 func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
 	s, e := k.Records(state.Name(), exact)
 	return s, nil, e // Haven't implemented debug queries yet.
+}
+
+// Reverse implements the ServiceBackend interface.
+func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
+	ip := dnsutil.ExtractAddressFromReverse(state.Name())
+	if ip == "" {
+		return nil, nil, nil
+	}
+
+	records := k.getServiceRecordForIP(ip, state.Name())
+	return records, nil, nil
 }
 
 // Lookup implements the ServiceBackend interface.
@@ -156,13 +167,6 @@ func (k *Kubernetes) getZoneForName(name string) (string, []string) {
 // just this name. This is used when find matches when completing SRV lookups
 // for instance.
 func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
-	// TODO: refactor this.
-	// Right now NamespaceFromSegmentArray do not supports PRE queries
-	ip := dnsutil.ExtractAddressFromReverse(name)
-	if ip != "" {
-		records := k.getServiceRecordForIP(ip, name)
-		return records, nil
-	}
 	var (
 		serviceName string
 		namespace   string
@@ -223,7 +227,7 @@ func (k *Kubernetes) getRecordsForServiceItems(serviceItems []*api.Service, zone
 		key = strings.Replace(key, ".", "/", -1)
 
 		for i, p := range item.Spec.Ports {
-			s := msg.Service{Key: msg.Path(strconv.Itoa(i) + "." + key, "coredns"), Host: clusterIP, Port: int(p.Port)}
+			s := msg.Service{Key: msg.Path(strconv.Itoa(i)+"."+key, "coredns"), Host: clusterIP, Port: int(p.Port)}
 			records = append(records, s)
 		}
 	}

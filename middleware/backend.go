@@ -9,9 +9,13 @@ import (
 
 // ServiceBackend defines a (dynamic) backend that returns a slice of service definitions.
 type ServiceBackend interface {
-	// Services communitates with the backend to retrieve the service defintion. Exact indicates
+	// Services communicates with the backend to retrieve the service defintion. Exact indicates
 	// on exact much are that we are allowed to recurs.
 	Services(state request.Request, exact bool, opt Options) ([]msg.Service, []msg.Service, error)
+
+	// Reverse communicates with the backend to retrieve service definition based on a IP address
+	// instead of a name. I.e. a reverse DNS lookup.
+	Reverse(state request.Request, exact bool, opt Options) ([]msg.Service, []msg.Service, error)
 
 	// Lookup is used to find records else where.
 	Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error)

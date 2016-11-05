@@ -330,9 +330,8 @@ func TXT(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 }
 
 // PTR returns the PTR records from the backend, only services that have a domain name as host are included.
-// TODO(miek|infoblox): move k8s to this as well.
 func PTR(b ServiceBackend, zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
-	services, debug, err := b.Services(state, true, opt)
+	services, debug, err := b.Reverse(state, true, opt)
 	if err != nil {
 		return nil, debug, err
 	}

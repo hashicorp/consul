@@ -5,13 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/api"
 	"k8s.io/client-go/1.5/pkg/api/v1"
-	"k8s.io/client-go/1.5/tools/cache"
-	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/pkg/labels"
 	"k8s.io/client-go/1.5/pkg/runtime"
 	"k8s.io/client-go/1.5/pkg/watch"
+	"k8s.io/client-go/1.5/tools/cache"
 )
 
 var (
@@ -36,11 +36,11 @@ type dnsController struct {
 
 	selector *labels.Selector
 
-	svcController  *cache.Controller
-	nsController   *cache.Controller
+	svcController *cache.Controller
+	nsController  *cache.Controller
 
-	svcLister  cache.StoreToServiceLister
-	nsLister   storeToNamespaceLister
+	svcLister cache.StoreToServiceLister
+	nsLister  storeToNamespaceLister
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and

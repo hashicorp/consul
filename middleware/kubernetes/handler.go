@@ -22,24 +22,6 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.SetReply(r)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 
-	// TODO: find an alternative to this block
-	// TODO(miek): Why is this even here, why does the path Etcd takes not work?
-	// Should be a "case PTR" below. I would also like to use middleware.PTR for this.
-	ip := dnsutil.ExtractAddressFromReverse(state.Name())
-	if ip != "" {
-		records := k.getServiceRecordForIP(ip, state.Name())
-		if len(records) > 0 {
-			srvPTR := &records[0]
-			m.Answer = append(m.Answer, srvPTR.NewPTR(state.QName(), ip))
-
-			m = dnsutil.Dedup(m)
-			state.SizeAndDo(m)
-			m, _ = state.Scrub(m)
-			w.WriteMsg(m)
-			return dns.RcodeSuccess, nil
-		}
-	}
-
 	// Check that query matches one of the zones served by this middleware,
 	// otherwise delegate to the next in the pipeline.
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
@@ -63,6 +45,8 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		records, _, err = middleware.TXT(&k, zone, state, middleware.Options{})
 	case "CNAME":
 		records, _, err = middleware.CNAME(&k, zone, state, middleware.Options{})
+	case "PTR":
+		records, _, err = middleware.PTR(&k, zone, state, middleware.Options{})
 	case "MX":
 		records, extra, _, err = middleware.MX(&k, zone, state, middleware.Options{})
 	case "SRV":
