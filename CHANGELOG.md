@@ -24,6 +24,8 @@ BUG FIXES:
 * agent: Fixed an issue on Windows where "wsarecv" errors were logged when CLI commands accessed the RPC interface. [GH-2356]
 * agent: Syslog initialization will now retry on errors for up to 60 seconds to avoid a race condition at system startup. [GH-1610]
 * agent: Fixed a panic when both -dev and -bootstrap-expect flags were provided. [GH-2464]
+* agent: Retry with backoff when a session fails to invalidate. [GH-2435]
+* api: Trim leading slashes from keys/prefixes when querying KV endpoints to avoid a bug with redirects in Go 1.7 (golang/go#4800). [GH-2403]
 * dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * dns: Fixed an issue with SRV lookups where the service address was different from the node's. [GH-832]
 * dns: Fixed an issue where truncated records from a recursor query were improperly reported as errors. [GH-2384]
