@@ -23,7 +23,7 @@ deps:
 
 .PHONY: test
 test: deps
-	go test -race $(TEST_VERBOSE) ./...
+	go test -race $(TEST_VERBOSE) ./test ./middleware/...
 
 .PHONY: testk8s
 testk8s: deps
