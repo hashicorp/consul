@@ -1434,7 +1434,7 @@ func MergeConfig(a, b *Config) *Config {
 		result.ACLMasterToken = b.ACLMasterToken
 	}
 	if b.ACLDatacenter != "" {
-		result.ACLDatacenter = b.ACLDatacenter
+		result.ACLDatacenter = strings.ToLower(b.ACLDatacenter)
 	}
 	if b.ACLTTLRaw != "" {
 		result.ACLTTL = b.ACLTTL
