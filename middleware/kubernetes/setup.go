@@ -11,7 +11,7 @@ import (
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 
 	"github.com/mholt/caddy"
-	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
+	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
 )
 
 func init() {
