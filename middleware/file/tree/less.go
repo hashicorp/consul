@@ -11,7 +11,7 @@ import (
 // The function orders names in DNSSEC canonical order: RFC 4034s section-6.1
 //
 // See http://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
-// for a blog article on this implementation.
+// for a blog article on this implementation, although here we still go label by label.
 //
 // The values of a and b are *not* lowercased before the comparison!
 func less(a, b string) int {
@@ -24,6 +24,7 @@ func less(a, b string) int {
 		if oka && okb {
 			return 0
 		}
+
 		// sadly this []byte will allocate... TODO(miek): check if this is needed
 		// for a name, otherwise compare the strings.
 		ab := []byte(a[ai:aj])

@@ -13,25 +13,11 @@
 // Heavily modified by Miek Gieben for use in DNS zones.
 package tree
 
-// TODO(miek): locking? lockfree would be nice. Will probably go for fine grained locking on the name level.
-// TODO(miek): fix docs
-
 import "github.com/miekg/dns"
 
 const (
 	td234 = iota
 	bu23
-)
-
-// Result is a result of a Search.
-type Result int
-
-// Various constants that indicated the type a resource returned.
-const (
-	Found Result = iota
-	NameError
-	EmptyNonTerminal
-	Delegation
 )
 
 // Operation mode of the LLRB tree.
@@ -151,77 +137,32 @@ func (t *Tree) Len() int {
 	return t.Count
 }
 
-// Search returns the first match of qname/qtype in the Tree.
-func (t *Tree) Search(qname string, qtype uint16) (*Elem, Result) {
+// Search returns the first match of qname in the Tree.
+func (t *Tree) Search(qname string) (*Elem, bool) {
 	if t.Root == nil {
-		return nil, NameError
+		return nil, false
 	}
-	n, res := t.Root.search(qname, qtype, false)
+	n, res := t.Root.search(qname)
 	if n == nil {
 		return nil, res
 	}
 	return n.Elem, res
 }
 
-// SearchGlue returns the first match of qname/(A/AAAA) in the Tree.
-func (t *Tree) SearchGlue(qname string) (*Elem, Result) {
-	// TODO(miek): shouldn't need this, because when we *find* the delegation, we
-	// know for sure that any glue is under it. Should change the return values
-	// to return the node, so we can resume from those.
-	if t.Root == nil {
-		return nil, NameError
-	}
-	n, res := t.Root.search(qname, dns.TypeA, true)
-	if n == nil {
-		return nil, res
-	}
-	return n.Elem, res
-}
-
-// search searches the tree for qname and type. If glue is true the search *does* not
-// stop when hitting NS records, but descends in search of glue. The qtype for this
-// kind of search can only be AAAA or A.
-func (n *Node) search(qname string, qtype uint16, glue bool) (*Node, Result) {
-	old := n
-
-	var wild *Node
-
+// search searches the tree for qname and type.
+func (n *Node) search(qname string) (*Node, bool) {
 	for n != nil {
-
-		// Is this a wildcard that applies to us
-		if n.Elem.IsWildcard() {
-			if dns.IsSubDomain(n.Elem.Name()[2:], qname) {
-				wild = n
-			}
-		}
-
 		switch c := Less(n.Elem, qname); {
 		case c == 0:
-			return n, Found
+			return n, true
 		case c < 0:
-			old = n
 			n = n.Left
 		default:
-			if !glue && n.Elem.Types(dns.TypeNS) != nil {
-				return n, Delegation
-
-			}
-			old = n
 			n = n.Right
 		}
 	}
 
-	// If we have seen a wildcard "on-the-way-to-here", we should return this wildcard
-	// instead. This is to be able to have a more specific RR defined *under* the wildcard.
-	if wild != nil {
-		return wild, Found
-	}
-
-	if dns.CountLabel(qname) < dns.CountLabel(old.Elem.Name()) {
-		return n, EmptyNonTerminal
-	}
-
-	return n, NameError
+	return n, false
 }
 
 // Insert inserts rr into the Tree at the first match found
@@ -233,6 +174,7 @@ func (t *Tree) Insert(rr dns.RR) {
 	t.Root.Color = black
 }
 
+// insert inserts rr in to the tree.
 func (n *Node) insert(rr dns.RR) (root *Node, d int) {
 	if n == nil {
 		return &Node{Elem: newElem(rr)}, 1
@@ -339,21 +281,21 @@ func (t *Tree) Delete(rr dns.RR) {
 		return
 	}
 
-	el, _ := t.Search(rr.Header().Name, rr.Header().Rrtype)
+	el, _ := t.Search(rr.Header().Name)
 	if el == nil {
-		t.DeleteNode(rr)
+		t.deleteNode(rr)
 		return
 	}
 	// Delete from this element.
 	empty := el.Delete(rr)
 	if empty {
-		t.DeleteNode(rr)
+		t.deleteNode(rr)
 		return
 	}
 }
 
 // DeleteNode deletes the node that matches rr according to Less().
-func (t *Tree) DeleteNode(rr dns.RR) {
+func (t *Tree) deleteNode(rr dns.RR) {
 	if t.Root == nil {
 		return
 	}
@@ -427,15 +369,16 @@ func (n *Node) max() *Node {
 }
 
 // Prev returns the greatest value equal to or less than the qname according to Less().
-func (t *Tree) Prev(qname string) *Elem {
+func (t *Tree) Prev(qname string) (*Elem, bool) {
 	if t.Root == nil {
-		return nil
+		return nil, false
 	}
+
 	n := t.Root.floor(qname)
 	if n == nil {
-		return nil
+		return nil, false
 	}
-	return n.Elem
+	return n.Elem, true
 }
 
 func (n *Node) floor(qname string) *Node {
@@ -445,7 +388,7 @@ func (n *Node) floor(qname string) *Node {
 	switch c := Less(n.Elem, qname); {
 	case c == 0:
 		return n
-	case c < 0:
+	case c <= 0:
 		return n.Left.floor(qname)
 	default:
 		if r := n.Right.floor(qname); r != nil {
@@ -456,15 +399,15 @@ func (n *Node) floor(qname string) *Node {
 }
 
 // Next returns the smallest value equal to or greater than the qname according to Less().
-func (t *Tree) Next(qname string) *Elem {
+func (t *Tree) Next(qname string) (*Elem, bool) {
 	if t.Root == nil {
-		return nil
+		return nil, false
 	}
 	n := t.Root.ceil(qname)
 	if n == nil {
-		return nil
+		return nil, false
 	}
-	return n.Elem
+	return n.Elem, true
 }
 
 func (n *Node) ceil(qname string) *Node {

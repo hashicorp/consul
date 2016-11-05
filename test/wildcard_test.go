@@ -40,7 +40,7 @@ func TestLookupWildcard(t *testing.T) {
 	p := proxy.New([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
-	for _, lookup := range []string{"w.example.org.", "a.w.example.org.", "a.a.w.example.org."} {
+	for _, lookup := range []string{"a.w.example.org.", "a.a.w.example.org."} {
 		resp, err := p.Lookup(state, lookup, dns.TypeTXT)
 		if err != nil || resp == nil {
 			t.Fatalf("Expected to receive reply, but didn't for %s", lookup)

@@ -31,7 +31,7 @@ var entTestCases = []test.Case{
 	},
 }
 
-func TestLookupENT(t *testing.T) {
+func TestLookupEnt(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekENTNL), testzone, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
@@ -73,6 +73,7 @@ func TestLookupENT(t *testing.T) {
 	}
 }
 
+// fdjfdjkf
 const dbMiekENTNL = `; File written on Sat Apr  2 16:43:11 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 miek.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

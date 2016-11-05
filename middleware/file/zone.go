@@ -17,8 +17,9 @@ import (
 
 // Zone defines a structure that contains all data related to a DNS zone.
 type Zone struct {
-	origin string
-	file   string
+	origin  string
+	origLen int
+	file    string
 	*tree.Tree
 	Apex Apex
 
@@ -44,12 +45,14 @@ type Apex struct {
 func NewZone(name, file string) *Zone {
 	z := &Zone{
 		origin:         dns.Fqdn(name),
+		origLen:        dns.CountLabel(dns.Fqdn(name)),
 		file:           path.Clean(file),
 		Tree:           &tree.Tree{},
 		Expired:        new(bool),
 		ReloadShutdown: make(chan bool),
 	}
 	*z.Expired = false
+
 	return z
 }
 
@@ -102,6 +105,7 @@ func (z *Zone) Insert(r dns.RR) error {
 	case dns.TypeSRV:
 		r.(*dns.SRV).Target = strings.ToLower(r.(*dns.SRV).Target)
 	}
+
 	z.Tree.Insert(r)
 	return nil
 }
@@ -165,7 +169,7 @@ func (z *Zone) Reload() error {
 			select {
 			case event := <-watcher.Events:
 				// Looks for Write and Create events. Write is obvious, Create is used when
-				// a file in mv-ed into this place.
+				// a file is mv-ed into this place.
 				if (event.Op == fsnotify.Write || event.Op == fsnotify.Create) && path.Clean(event.Name) == z.file {
 
 					reader, err := os.Open(z.file)
@@ -195,4 +199,34 @@ func (z *Zone) Reload() error {
 		}
 	}()
 	return nil
+}
+
+// Print prints the zone's tree to stdout.
+func (z *Zone) Print() {
+	z.Tree.Print()
+}
+
+// NameFromRight returns the labels from the right, staring with the
+// origin and then i labels extra. When we are overshooting the name
+// the returned boolean is set to true.
+func (z *Zone) nameFromRight(qname string, i int) (string, bool) {
+	if i <= 0 {
+		return z.origin, false
+	}
+
+	for j := 1; j <= z.origLen; j++ {
+		if _, shot := dns.PrevLabel(qname, j); shot {
+			return qname, shot
+		}
+	}
+
+	k := 0
+	shot := false
+	for j := 1; j <= i; j++ {
+		k, shot = dns.PrevLabel(qname, j+z.origLen)
+		if shot {
+			return qname, shot
+		}
+	}
+	return qname[k:], false
 }

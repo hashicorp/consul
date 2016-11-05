@@ -52,13 +52,10 @@ func (e *Elem) Name() string {
 	return ""
 }
 
-// IsWildcard returns true if this name starts with a wildcard label (*.)
-func (e *Elem) IsWildcard() bool {
-	n := e.Name()
-	if len(n) < 2 {
-		return false
-	}
-	return n[0] == '*' && n[1] == '.'
+// Empty returns true is e does not contain any RRs, i.e. is an
+// empty-non-terminal.
+func (e *Elem) Empty() bool {
+	return len(e.m) == 0
 }
 
 // Insert inserts rr into e. If rr is equal to existing rrs this is a noop.

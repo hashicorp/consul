@@ -25,165 +25,233 @@ const (
 // Lookup looks up qname and qtype in the zone. When do is true DNSSEC records are included.
 // Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
 func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	if qtype == dns.TypeSOA {
-		if !z.NoReload {
-			z.reloadMu.RLock()
-		}
-
-		r1, r2, r3, res := z.lookupSOA(do)
-
-		if !z.NoReload {
-			z.reloadMu.RUnlock()
-		}
-		return r1, r2, r3, res
-	}
-	if qtype == dns.TypeNS && qname == z.origin {
-		if !z.NoReload {
-			z.reloadMu.RLock()
-		}
-
-		r1, r2, r3, res := z.lookupNS(do)
-
-		if !z.NoReload {
-			z.reloadMu.RUnlock()
-		}
-		return r1, r2, r3, res
-	}
-
 	if !z.NoReload {
 		z.reloadMu.RLock()
 	}
-
-	elem, res := z.Tree.Search(qname, qtype)
-	if !z.NoReload {
-		z.reloadMu.RUnlock()
-	}
-
-	if elem == nil {
-		if res == tree.EmptyNonTerminal {
-			return z.emptyNonTerminal(qname, do)
+	defer func() {
+		if !z.NoReload {
+			z.reloadMu.RUnlock()
 		}
-		return z.nameError(qname, qtype, do)
+	}()
+
+	if qtype == dns.TypeSOA {
+		soa := z.soa(do)
+		return soa, nil, nil, Success
 	}
-	if res == tree.Delegation {
-		rrs := elem.Types(dns.TypeNS)
-		glue := []dns.RR{}
-		for _, ns := range rrs {
-			if dns.IsSubDomain(ns.Header().Name, ns.(*dns.NS).Ns) {
-				// Even with Do, this should be unsigned.
-				elem, res := z.Tree.SearchGlue(ns.(*dns.NS).Ns)
-				if res == tree.Found {
-					glue = append(glue, elem.Types(dns.TypeAAAA)...)
-					glue = append(glue, elem.Types(dns.TypeA)...)
+	if qtype == dns.TypeNS && qname == z.origin {
+		nsrrs := z.ns(do)
+		glue := z.Glue(nsrrs)
+		return nsrrs, nil, glue, Success
+	}
+
+	var (
+		found, shot    bool
+		parts          string
+		i              int
+		elem, wildElem *tree.Elem
+	)
+
+	// Lookup:
+	// * Per label from the right, look if it exists. We do this to find potential
+	//   delegation records.
+	// * If the per-label search finds nothing, we will look for the wildcard at the
+	//   level. If found we keep it around. If we don't find the complete name we will
+	//   use the wildcard.
+	//
+	// Main for-loop handles delegation and finding or not finding the qname.
+	// If found we check if it is a CNAME and do CNAME processing (DNAME should be added as well)
+	// We also check if we have type and do a nodata resposne.
+	//
+	// If not found, we check the potential wildcard, and use that for further processing.
+	// If not found and no wildcard we will process this as an NXDOMAIN response.
+	//
+	for {
+		parts, shot = z.nameFromRight(qname, i)
+		// We overshot the name, break and check if we previously found something.
+		if shot {
+			break
+		}
+
+		elem, found = z.Tree.Search(parts)
+		if !found {
+			// Apex will always be found, when we are here we can search for a wildcard
+			// and save the result of that search. So when nothing match, but we have a
+			// wildcard we should expand the wildcard. There can only be one wildcard,
+			// so when we found one, we won't look for another.
+
+			if wildElem == nil {
+				wildcard := replaceWithAsteriskLabel(parts)
+				wildElem, _ = z.Tree.Search(wildcard)
+			}
+
+			// Keep on searching, because maybe we hit an empty-non-terminal (which aren't
+			// stored in the tree. Only when we have match the full qname (and possible wildcard
+			// we can be confident that we didn't find anything.
+			i++
+			continue
+		}
+
+		// If we see NS records, it means the name as been delegated, and we should return the delegation.
+		if nsrrs := elem.Types(dns.TypeNS); nsrrs != nil {
+			glue := z.Glue(nsrrs)
+			// If qtype == NS, we should returns success to put RRs in answer.
+			if qtype == dns.TypeNS {
+				return nsrrs, nil, glue, Success
+			}
+
+			if do {
+				dss := z.typeFromElem(elem, dns.TypeDS, do)
+				nsrrs = append(nsrrs, dss...)
+			}
+
+			return nil, nsrrs, glue, Delegation
+		}
+
+		i++
+	}
+
+	// What does found and !shot mean - do we ever hit it?
+	if found && !shot {
+		return nil, nil, nil, ServerFailure
+	}
+
+	// Found entire name.
+	if found && shot {
+
+		if rrs := elem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
+			return z.searchCNAME(rrs, qtype, do)
+		}
+
+		rrs := elem.Types(qtype, qname)
+
+		// NODATA
+		if len(rrs) == 0 {
+			ret := z.soa(do)
+			if do {
+				nsec := z.typeFromElem(elem, dns.TypeNSEC, do)
+				ret = append(ret, nsec...)
+			}
+			return nil, ret, nil, NoData
+		}
+
+		if do {
+			sigs := elem.Types(dns.TypeRRSIG)
+			sigs = signatureForSubType(sigs, qtype)
+			rrs = append(rrs, sigs...)
+		}
+
+		return rrs, nil, nil, Success
+
+	}
+
+	// Haven't found the original name.
+
+	if wildElem != nil {
+
+		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
+			return z.searchCNAME(rrs, qtype, do)
+		}
+
+		rrs := wildElem.Types(qtype, qname)
+
+		// NODATA
+		if len(rrs) == 0 {
+			ret := z.soa(do)
+			if do {
+				// Do we need to add closest encloser here as well.
+				// closest encloser
+				//				ce, _ := z.ClosestEncloser(qname)
+				//				println("CLOSEST ENCLOSER", ce.Name()) // need to add this too.
+				nsec := z.typeFromElem(wildElem, dns.TypeNSEC, do)
+				ret = append(ret, nsec...)
+			}
+			return nil, ret, nil, Success
+		}
+		if do {
+			sigs := wildElem.Types(dns.TypeRRSIG, qname)
+			sigs = signatureForSubType(sigs, qtype)
+			rrs = append(rrs, sigs...)
+
+		}
+		return rrs, nil, nil, Success
+	}
+
+	rcode := NameError
+
+	// Hacky way to get around empty-non-terminals. If a longer name does exist, but this qname, does not, it
+	// must be an empty-non-terminal. If so, we do the proper NXDOMAIN handling, but the the rcode to be success.
+	if x, found := z.Tree.Next(qname); found {
+		if dns.IsSubDomain(qname, x.Name()) {
+			rcode = Success
+		}
+	}
+
+	ret := z.soa(do)
+	if do {
+		deny, found := z.Tree.Prev(qname)
+		nsec := z.typeFromElem(deny, dns.TypeNSEC, do)
+		ret = append(ret, nsec...)
+
+		if rcode != NameError {
+			goto Out
+		}
+
+		ce, found := z.ClosestEncloser(qname)
+
+		// wildcard denial only for NXDOMAIN
+		if found {
+			// wildcard denial
+			wildcard := "*." + ce.Name()
+			if ss, found := z.Tree.Prev(wildcard); found {
+				// Only add this nsec if it is different than the one already added
+				if ss.Name() != deny.Name() {
+					nsec := z.typeFromElem(ss, dns.TypeNSEC, do)
+					ret = append(ret, nsec...)
 				}
 			}
 		}
-		return nil, rrs, glue, Delegation
-	}
 
-	rrs := elem.Types(dns.TypeCNAME, qname)
-	if len(rrs) > 0 { // should only ever be 1 actually; TODO(miek) check for this?
-		return z.lookupCNAME(rrs, qtype, do)
 	}
-
-	rrs = elem.Types(qtype, qname)
-	if len(rrs) == 0 {
-		return z.noData(elem, do)
-	}
-
-	if do {
-		sigs := elem.Types(dns.TypeRRSIG, qname)
-		sigs = signatureForSubType(sigs, qtype)
-		rrs = append(rrs, sigs...)
-	}
-
-	return rrs, nil, nil, Success
+Out:
+	return nil, ret, nil, rcode
 }
 
-func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	soa, _, _, _ := z.lookupSOA(do)
-	nsec := z.lookupNSEC(elem, do)
-	return nil, append(soa, nsec...), nil, Success
-}
-
-func (z *Zone) emptyNonTerminal(qname string, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	soa, _, _, _ := z.lookupSOA(do)
-
-	elem := z.Tree.Prev(qname)
-	nsec := z.lookupNSEC(elem, do)
-	return nil, append(soa, nsec...), nil, Success
-}
-
-func (z *Zone) nameError(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	// Is there a wildcard?
-	ce := z.ClosestEncloser(qname, qtype)
-	elem, _ := z.Tree.Search("*."+ce, qtype) // use result here?
-
-	if elem != nil {
-		ret := elem.Types(qtype) // there can only be one of these (or zero)
-		switch {
-		case ret != nil:
-			if do {
-				sigs := elem.Types(dns.TypeRRSIG)
-				sigs = signatureForSubType(sigs, qtype)
-				ret = append(ret, sigs...)
-			}
-			ret = wildcardReplace(qname, ce, ret)
-			return ret, nil, nil, Success
-		case ret == nil:
-			// nodata, nsec from the wildcard - type does not exist
-			// nsec proof that name does not exist
-			// TODO(miek)
-		}
-	}
-
-	// name error
-	ret := []dns.RR{z.Apex.SOA}
-	if do {
-		ret = append(ret, z.Apex.SIGSOA...)
-		ret = append(ret, z.nameErrorProof(qname, qtype)...)
-	}
-	return nil, ret, nil, NameError
-}
-
-func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	if do {
-		ret := append([]dns.RR{z.Apex.SOA}, z.Apex.SIGSOA...)
-		return ret, nil, nil, Success
-	}
-	return []dns.RR{z.Apex.SOA}, nil, nil, Success
-}
-
-func (z *Zone) lookupNS(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	if do {
-		ret := append(z.Apex.NS, z.Apex.SIGNS...)
-		return ret, nil, nil, Success
-	}
-	return z.Apex.NS, nil, nil, Success
-}
-
-// lookupNSEC looks up nsec and sigs.
-func (z *Zone) lookupNSEC(elem *tree.Elem, do bool) []dns.RR {
-	if !do {
-		return nil
-	}
-	nsec := elem.Types(dns.TypeNSEC)
+// Return type tp from e and add signatures (if they exists) and do is true.
+func (z *Zone) typeFromElem(elem *tree.Elem, tp uint16, do bool) []dns.RR {
+	rrs := elem.Types(tp)
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
-		sigs = signatureForSubType(sigs, dns.TypeNSEC)
+		sigs = signatureForSubType(sigs, tp)
 		if len(sigs) > 0 {
-			nsec = append(nsec, sigs...)
+			rrs = append(rrs, sigs...)
 		}
 	}
-	return nsec
+	return rrs
 }
 
-func (z *Zone) lookupCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	elem, _ := z.Tree.Search(rrs[0].(*dns.CNAME).Target, qtype)
+func (z *Zone) soa(do bool) []dns.RR {
+	if do {
+		ret := append([]dns.RR{z.Apex.SOA}, z.Apex.SIGSOA...)
+		return ret
+	}
+	return []dns.RR{z.Apex.SOA}
+}
+
+func (z *Zone) ns(do bool) []dns.RR {
+	if do {
+		ret := append(z.Apex.NS, z.Apex.SIGNS...)
+		return ret
+	}
+	return z.Apex.NS
+}
+
+func (z *Zone) searchCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	elem, _ := z.Tree.Search(rrs[0].(*dns.CNAME).Target)
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}
 
+	// RECURSIVE SEARCH, up to 8 deep. Also: tests.
 	targets := cnameForType(elem.All(), qtype)
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
@@ -205,8 +273,7 @@ func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
 	return ret
 }
 
-// signatureForSubType range through the signature and return the correct
-// ones for the subtype.
+// signatureForSubType range through the signature and return the correct ones for the subtype.
 func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 	sigs := []dns.RR{}
 	for _, sig := range rrs {
@@ -219,13 +286,29 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 	return sigs
 }
 
-// wildcardReplace replaces the ownername with the original query name.
-func wildcardReplace(qname, ce string, rrs []dns.RR) []dns.RR {
-	// need to copy here, otherwise we change in zone stuff
-	ret := make([]dns.RR, len(rrs))
-	for i, r := range rrs {
-		ret[i] = dns.Copy(r)
-		ret[i].Header().Name = qname
+// Glue returns any potential glue records for nsrrs.
+func (z *Zone) Glue(nsrrs []dns.RR) []dns.RR {
+	glue := []dns.RR{}
+	for _, ns := range nsrrs {
+		if dns.IsSubDomain(ns.Header().Name, ns.(*dns.NS).Ns) {
+			glue = append(glue, z.searchGlue(ns.(*dns.NS).Ns)...)
+		}
 	}
-	return ret
+	return glue
+}
+
+// searchGlue looks up A and AAAA for name.
+func (z *Zone) searchGlue(name string) []dns.RR {
+	glue := []dns.RR{}
+
+	// A
+	if elem, found := z.Tree.Search(name); found {
+		glue = append(glue, elem.Types(dns.TypeA)...)
+	}
+
+	// AAAA
+	if elem, found := z.Tree.Search(name); found {
+		glue = append(glue, elem.Types(dns.TypeAAAA)...)
+	}
+	return glue
 }

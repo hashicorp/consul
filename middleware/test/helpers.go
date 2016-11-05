@@ -88,6 +88,9 @@ func NSEC(rr string) *dns.NSEC { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
 // DNSKEY returns a DNSKEY record from rr. It panics on errors.
 func DNSKEY(rr string) *dns.DNSKEY { r, _ := dns.NewRR(rr); return r.(*dns.DNSKEY) }
 
+// DS returns a DS record from rr. It panics on errors.
+func DS(rr string) *dns.DS { r, _ := dns.NewRR(rr); return r.(*dns.DS) }
+
 // OPT returns an OPT record with UDP buffer size set to bufsize and the DO bit set to do.
 func OPT(bufsize int, do bool) *dns.OPT {
 	o := new(dns.OPT)

@@ -51,6 +51,7 @@ var wildcardTestCases = []test.Case{
 	{
 		Qname: "wild.dnssex.nl.", Qtype: dns.TypeSRV, Do: true,
 		Ns: []dns.RR{
+			// TODO(miek): needs closest encloser proof as well? This is the wrong answer
 			test.NSEC(`*.dnssex.nl.	14400	IN	NSEC	a.dnssex.nl. TXT RRSIG NSEC`),
 			test.RRSIG(`*.dnssex.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160428190224 20160329190224 14460 dnssex.nl. os6INm6q2eXknD5z8TpfbK00uxVbQefMvHcR/RNX/kh0xXvzAaaDOV+Ge/Ko+2dXnKP+J1LYG9ffXNpdbaQy5ygzH5F041GJst4566GdG/jt7Z7vLHYxEBTpZfxo+PLsXQXH3VTemZyuWyDfqJzafXJVH1F0nDrcXmMlR6jlBHA=`),
 			test.RRSIG(`dnssex.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. CA/Y3m9hCOiKC/8ieSOv8SeP964BUdG/8MC3WtKljUosK9Z9bBGrVizDjjqgq++lyH8BZJcTaabAsERs4xj5PRtcxicwQXZACX5VYjXHQeZmCyytFU5wq2gcXSmvUH86zZzftx3RGPvn1aOoTlcvoC3iF8fYUCpROlUS0YR8Cdw=`),
@@ -63,7 +64,7 @@ var wildcardTestCases = []test.Case{
 func TestLookupWildcard(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbDnssexNLSigned), testzone1, "stdin")
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone1: zone}, Names: []string{testzone1}}}
@@ -75,7 +76,7 @@ func TestLookupWildcard(t *testing.T) {
 		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
@@ -131,7 +132,7 @@ var wildcardDoubleTestCases = []test.Case{
 func TestLookupDoubleWildcard(t *testing.T) {
 	zone, err := Parse(strings.NewReader(exampleOrg), "example.org.", "stdin")
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{"example.org.": zone}, Names: []string{"example.org."}}}
@@ -143,7 +144,7 @@ func TestLookupDoubleWildcard(t *testing.T) {
 		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
@@ -164,6 +165,23 @@ func TestLookupDoubleWildcard(t *testing.T) {
 		}
 		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
+		}
+	}
+}
+
+func TestReplaceWithAsteriskLabel(t *testing.T) {
+	tests := []struct {
+		in, out string
+	}{
+		{".", ""},
+		{"miek.nl.", "*.nl."},
+		{"www.miek.nl.", "*.miek.nl."},
+	}
+
+	for _, tc := range tests {
+		got := replaceWithAsteriskLabel(tc.in)
+		if got != tc.out {
+			t.Errorf("Expected to be %s, got %s", tc.out, got)
 		}
 	}
 }
