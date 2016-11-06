@@ -31,6 +31,10 @@ var wildcardTestCases = []test.Case{
 			test.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
 			test.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 		},
+		Ns: []dns.RR{
+			test.NSEC("a.dnssex.nl.	14400	IN	NSEC	www.dnssex.nl. A AAAA RRSIG NSEC"),
+			test.RRSIG("a.dnssex.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160428190224 20160329190224 14460 dnssex.nl. S+UMs2ySgRaaRY"),
+		},
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
@@ -38,6 +42,10 @@ var wildcardTestCases = []test.Case{
 		Answer: []dns.RR{
 			test.RRSIG("a.wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
 			test.TXT(`a.wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+		},
+		Ns: []dns.RR{
+			test.NSEC("a.dnssex.nl.	14400	IN	NSEC	www.dnssex.nl. A AAAA RRSIG NSEC"),
+			test.RRSIG("a.dnssex.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160428190224 20160329190224 14460 dnssex.nl. S+UMs2ySgRaaRY"),
 		},
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},

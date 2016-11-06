@@ -30,6 +30,17 @@ var dnssecTestCases = []test.Case{
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
+		Qname: "miek.nl.", Qtype: dns.TypeNS, Do: true,
+		Answer: []dns.RR{
+			test.NS("miek.nl.	1800	IN	NS	ext.ns.whyscream.net."),
+			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
+			test.NS("miek.nl.	1800	IN	NS	ns-ext.nlnetlabs.nl."),
+			test.NS("miek.nl.	1800	IN	NS	omval.tednet.nl."),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	NS 8 2 1800 20160426031301 20160327031301 12051 miek.nl. ZLtsQhwaz+lHfNpztFoR1Vxs="),
+		},
+		Extra: []dns.RR{test.OPT(4096, true)},
+	},
+	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX, Do: true,
 		Answer: []dns.RR{
 			test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),

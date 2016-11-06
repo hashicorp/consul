@@ -146,7 +146,9 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 
 	// Haven't found the original name.
 
+	// Found wildcard.
 	if wildElem != nil {
+		auth := []dns.RR{}
 
 		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
 			return z.searchCNAME(rrs, qtype, do)
@@ -154,26 +156,29 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 
 		rrs := wildElem.Types(qtype, qname)
 
-		// NODATA
+		// NODATA response.
 		if len(rrs) == 0 {
 			ret := z.soa(do)
 			if do {
-				// Do we need to add closest encloser here as well.
-				// closest encloser
-				//				ce, _ := z.ClosestEncloser(qname)
-				//				println("CLOSEST ENCLOSER", ce.Name()) // need to add this too.
 				nsec := z.typeFromElem(wildElem, dns.TypeNSEC, do)
 				ret = append(ret, nsec...)
 			}
 			return nil, ret, nil, Success
 		}
+
 		if do {
+			// An NSEC is needed to say no longer name exists under this wildcard.
+			if deny, found := z.Tree.Prev(qname); found {
+				nsec := z.typeFromElem(deny, dns.TypeNSEC, do)
+				auth = append(auth, nsec...)
+			}
+
 			sigs := wildElem.Types(dns.TypeRRSIG, qname)
 			sigs = signatureForSubType(sigs, qtype)
 			rrs = append(rrs, sigs...)
 
 		}
-		return rrs, nil, nil, Success
+		return rrs, auth, nil, Success
 	}
 
 	rcode := NameError
@@ -289,9 +294,9 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 // Glue returns any potential glue records for nsrrs.
 func (z *Zone) Glue(nsrrs []dns.RR) []dns.RR {
 	glue := []dns.RR{}
-	for _, ns := range nsrrs {
-		if dns.IsSubDomain(ns.Header().Name, ns.(*dns.NS).Ns) {
-			glue = append(glue, z.searchGlue(ns.(*dns.NS).Ns)...)
+	for _, rr := range nsrrs {
+		if ns, ok := rr.(*dns.NS); ok && dns.IsSubDomain(ns.Header().Name, ns.Ns) {
+			glue = append(glue, z.searchGlue(ns.Ns)...)
 		}
 	}
 	return glue
