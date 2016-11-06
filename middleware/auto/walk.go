@@ -23,7 +23,7 @@ func (a Auto) Walk() error {
 	}
 
 	filepath.Walk(a.loader.directory, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+		if info == nil || info.IsDir() {
 			return nil
 		}
 

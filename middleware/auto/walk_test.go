@@ -52,6 +52,25 @@ func TestWalk(t *testing.T) {
 	}
 }
 
+func TestWalkNonExistent(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+
+	nonExistingDir := "highly_unlikely_to_exist_dir"
+
+	ldr := loader{
+		directory: nonExistingDir,
+		re:        regexp.MustCompile(`db\.(.*)`),
+		template:  `${1}`,
+	}
+
+	a := Auto{
+		loader: ldr,
+		Zones:  &Zones{},
+	}
+
+	a.Walk()
+}
+
 func createFiles() (string, error) {
 	dir, err := ioutil.TempDir(os.TempDir(), "coredns")
 	if err != nil {
