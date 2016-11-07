@@ -14,11 +14,15 @@ const (
 	NoError Type = iota
 	// NameError is a NXDOMAIN in header, SOA in auth.
 	NameError
-	// NoData indicated name found, but not the type: NOERROR in header, SOA in auth.
+	// NoData indicates name found, but not the type: NOERROR in header, SOA in auth.
 	NoData
 	// Delegation is a msg with a pointer to another nameserver: NOERROR in header, NS in auth, optionally fluff in additional (not checked).
 	Delegation
-	// OtherError indicated any other error: don't cache these.
+	// Meta indicates a meta message, NOTIFY, or a transfer:  qType is IXFR or AXFR.
+	Meta
+	// Update is an dynamic update message.
+	Update
+	// OtherError indicates any other error: don't cache these.
 	OtherError
 )
 
@@ -32,6 +36,10 @@ func (t Type) String() string {
 		return "NODATA"
 	case Delegation:
 		return "DELEGATION"
+	case Meta:
+		return "META"
+	case Update:
+		return "UPDATE"
 	case OtherError:
 		return "OTHERERROR"
 	}
@@ -50,6 +58,10 @@ func TypeFromString(s string) (Type, error) {
 		return NoData, nil
 	case "DELEGATION":
 		return Delegation, nil
+	case "META":
+		return Meta, nil
+	case "UPDATE":
+		return Update, nil
 	case "OTHERERROR":
 		return OtherError, nil
 	}
@@ -61,8 +73,22 @@ func Typify(m *dns.Msg) (Type, *dns.OPT) {
 	if m == nil {
 		return OtherError, nil
 	}
-
 	opt := m.IsEdns0()
+
+	if m.Opcode == dns.OpcodeUpdate {
+		return Update, opt
+	}
+
+	// Check transfer and update first
+	if m.Opcode == dns.OpcodeNotify {
+		return Meta, opt
+	}
+
+	if len(m.Question) > 0 {
+		if m.Question[0].Qtype == dns.TypeAXFR || m.Question[0].Qtype == dns.TypeIXFR {
+			return Meta, opt
+		}
+	}
 
 	if len(m.Answer) > 0 && m.Rcode == dns.RcodeSuccess {
 		return NoError, opt

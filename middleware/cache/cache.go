@@ -29,13 +29,16 @@ type Cache struct {
 	pttl   time.Duration
 }
 
-// Return key under which we store the item.
+// Return key under which we store the item. The empty string is returned
+// when we don't want to cache the message. Currently we do not cache Truncated, errors
+// zone transfers or dynamic update messages.
 func key(m *dns.Msg, t response.Type, do bool) string {
+	// We don't store truncated responses.
 	if m.Truncated {
-		// TODO(miek): wise to store truncated responses?
 		return ""
 	}
-	if t == response.OtherError {
+	// Nor errors or Meta or Update
+	if t == response.OtherError || t == response.Meta || t == response.Update {
 		return ""
 	}
 
@@ -65,6 +68,7 @@ func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		do = opt.Do()
 	}
 
+	// key returns empty string for anything we don't want to cache.
 	key := key(res, mt, do)
 
 	duration := c.pttl
