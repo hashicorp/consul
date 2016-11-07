@@ -677,7 +677,7 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			AllowStale:      Bool(true),
 			UDPAnswerLimit:  3,
-			MaxStale:        5 * time.Second,
+			MaxStale:        10 * 365 * 24 * time.Hour,
 			RecursorTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
