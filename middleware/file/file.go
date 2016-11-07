@@ -43,11 +43,9 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		}
 		return dns.RcodeServerFailure, errors.New("no next middleware found")
 	}
+
 	z, ok := f.Zones.Z[zone]
-	if !ok {
-		return f.Next.ServeDNS(ctx, w, r)
-	}
-	if z == nil {
+	if !ok || z == nil {
 		return dns.RcodeServerFailure, nil
 	}
 

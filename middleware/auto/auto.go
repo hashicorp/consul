@@ -64,10 +64,7 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	z, ok := a.Zones.Z[zone]
 	a.Zones.RUnlock()
 
-	if !ok {
-		return a.Next.ServeDNS(ctx, w, r)
-	}
-	if z == nil {
+	if !ok || z == nil {
 		return dns.RcodeServerFailure, nil
 	}
 
