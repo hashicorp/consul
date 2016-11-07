@@ -13,45 +13,53 @@ func TestAutoParse(t *testing.T) {
 		expectedDirectory string
 		expectedTempl     string
 		expectedRe        string
-		expectedTo        string
+		expectedTo        []string
 	}{
 		{
 			`auto example.org {
 				directory /tmp
 				transfer to 127.0.0.1
 			}`,
-			false, "/tmp", "${1}", `db\.(.*)`, "127.0.0.1:53",
+			false, "/tmp", "${1}", `db\.(.*)`, []string{"127.0.0.1:53"},
 		},
 		{
 			`auto {
 				directory /tmp
 			}`,
-			false, "/tmp", "${1}", `db\.(.*)`, "",
+			false, "/tmp", "${1}", `db\.(.*)`, nil,
 		},
 		{
 			`auto {
 				directory /tmp (.*) bliep
 			}`,
-			false, "/tmp", "bliep", `(.*)`, "",
+			false, "/tmp", "bliep", `(.*)`, nil,
+		},
+		{
+			`auto {
+				directory /tmp (.*) bliep
+				transfer to 127.0.0.1
+				transfer to 127.0.0.2
+			}`,
+			false, "/tmp", "bliep", `(.*)`, []string{"127.0.0.1:53", "127.0.0.2:53"},
 		},
 		// errors
 		{
 			`auto example.org {
 				directory
 			}`,
-			true, "", "${1}", `db\.(.*)`, "",
+			true, "", "${1}", `db\.(.*)`, nil,
 		},
 		{
 			`auto example.org {
 				directory /tmp * {1}
 			}`,
-			true, "", "${1}", ``, "",
+			true, "", "${1}", ``, nil,
 		},
 		{
 			`auto example.org {
 				directory /tmp .* {1}
 			}`,
-			true, "", "${1}", ``, "",
+			true, "", "${1}", ``, nil,
 		},
 	}
 
@@ -73,8 +81,12 @@ func TestAutoParse(t *testing.T) {
 			if a.loader.re.String() != test.expectedRe {
 				t.Fatalf("Test %d expected %v, got %v", i, test.expectedRe, a.loader.re)
 			}
-			if test.expectedTo != "" && a.loader.transferTo[0] != test.expectedTo {
-				t.Fatalf("Test %d expected %v, got %v", i, test.expectedTo, a.loader.transferTo[0])
+			if test.expectedTo != nil {
+				for j, got := range a.loader.transferTo {
+					if got != test.expectedTo[j] {
+						t.Fatalf("Test %d expected %v, got %v", i, test.expectedTo[j], got)
+					}
+				}
 			}
 		}
 	}

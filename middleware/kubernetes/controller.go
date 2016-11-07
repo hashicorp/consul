@@ -97,28 +97,28 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 	}
 }
 
-func v1ToApiFilter(in watch.Event) (out watch.Event, keep bool) {
+func v1ToAPIFilter(in watch.Event) (out watch.Event, keep bool) {
 	if in.Type == watch.Error {
 		return in, true
 	}
 
 	switch v1Obj := in.Object.(type) {
-		case *v1.Service:
-			var apiObj api.Service
-			err := v1.Convert_v1_Service_To_api_Service(v1Obj, &apiObj, nil)
-			if err != nil {
-				log.Printf("[ERROR] Could not convert v1.Service: %s", err)
-				return in, true
-			}
-			return watch.Event{Type: in.Type, Object: &apiObj}, true
-		case *v1.Namespace:
-			var apiObj api.Namespace
-			err := v1.Convert_v1_Namespace_To_api_Namespace(v1Obj, &apiObj, nil)
-			if err != nil {
-				log.Printf("[ERROR] Could not convert v1.Namespace: %s", err)
-				return in, true
-			}
-			return watch.Event{Type: in.Type, Object: &apiObj}, true
+	case *v1.Service:
+		var apiObj api.Service
+		err := v1.Convert_v1_Service_To_api_Service(v1Obj, &apiObj, nil)
+		if err != nil {
+			log.Printf("[ERROR] Could not convert v1.Service: %s", err)
+			return in, true
+		}
+		return watch.Event{Type: in.Type, Object: &apiObj}, true
+	case *v1.Namespace:
+		var apiObj api.Namespace
+		err := v1.Convert_v1_Namespace_To_api_Namespace(v1Obj, &apiObj, nil)
+		if err != nil {
+			log.Printf("[ERROR] Could not convert v1.Namespace: %s", err)
+			return in, true
+		}
+		return watch.Event{Type: in.Type, Object: &apiObj}, true
 	}
 
 	log.Printf("[WARN] Unhandled v1 type in event: %v", in)
@@ -134,7 +134,7 @@ func serviceWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fu
 		if err != nil {
 			return nil, err
 		}
-		return watch.Filter(w, v1ToApiFilter), nil
+		return watch.Filter(w, v1ToAPIFilter), nil
 	}
 }
 
@@ -165,7 +165,7 @@ func namespaceWatchFunc(c *kubernetes.Clientset, s *labels.Selector) func(option
 		if err != nil {
 			return nil, err
 		}
-		return watch.Filter(w, v1ToApiFilter), nil
+		return watch.Filter(w, v1ToAPIFilter), nil
 	}
 }
 

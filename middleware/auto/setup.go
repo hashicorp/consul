@@ -127,7 +127,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 						a.loader.template = rewriteToExpand(c.Val())
 					}
 
-					// template
+					// duration
 					if c.NextArg() {
 						i, err := strconv.Atoi(c.Val())
 						if err != nil {
@@ -147,7 +147,9 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					if e != nil {
 						return a, e
 					}
-					a.loader.transferTo = t
+					if t != nil {
+						a.loader.transferTo = append(a.loader.transferTo, t...)
+					}
 				}
 			}
 

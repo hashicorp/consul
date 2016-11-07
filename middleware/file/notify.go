@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/rcode"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -49,21 +50,23 @@ func notify(zone string, to []string) error {
 		if err := notifyAddr(c, m, t); err != nil {
 			log.Printf("[ERROR] " + err.Error())
 		} else {
-			log.Printf("[INFO] Sent notify for zone %s to %s", zone, t)
+			log.Printf("[INFO] Sent notify for zone %q to %q", zone, t)
 		}
 	}
 	return nil
 }
 
 func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
+	code := dns.RcodeSuccess
 	for i := 0; i < 3; i++ {
 		ret, _, err := c.Exchange(m, s)
 		if err != nil {
 			continue
 		}
-		if ret.Rcode == dns.RcodeSuccess || ret.Rcode == dns.RcodeNotImplemented {
+		code = ret.Rcode
+		if code == dns.RcodeSuccess {
 			return nil
 		}
 	}
-	return fmt.Errorf("Failed to send notify for zone '%s' to '%s'", m.Question[0].Name, s)
+	return fmt.Errorf("Notify for zone %q was not accepted by %q: rcode was %q", m.Question[0].Name, s, rcode.ToString(code))
 }
