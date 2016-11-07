@@ -11,20 +11,20 @@ func (t *Tree) Print() {
 }
 
 func (n *Node) print() {
-	q := NewQueue()
-	q.Push(n)
+	q := newQueue()
+	q.push(n)
 
 	nodesInCurrentLevel := 1
 	nodesInNextLevel := 0
 
-	for !q.Empty() {
-		do := q.Pop()
+	for !q.empty() {
+		do := q.pop()
 		nodesInCurrentLevel--
 
 		if do != nil {
 			fmt.Print(do.Elem.Name(), " ")
-			q.Push(do.Left)
-			q.Push(do.Right)
+			q.push(do.Left)
+			q.push(do.Right)
 			nodesInNextLevel += 2
 		}
 		if nodesInCurrentLevel == 0 {
@@ -38,21 +38,25 @@ func (n *Node) print() {
 
 type queue []*Node
 
-func NewQueue() queue {
+// newQueue returns a new queue.
+func newQueue() queue {
 	q := queue([]*Node{})
 	return q
 }
 
-func (q *queue) Push(n *Node) {
+// push pushes n to the end of the queue.
+func (q *queue) push(n *Node) {
 	*q = append(*q, n)
 }
 
-func (q *queue) Pop() *Node {
+// pop pops the first element off the queue.
+func (q *queue) pop() *Node {
 	n := (*q)[0]
 	*q = (*q)[1:]
 	return n
 }
 
-func (q *queue) Empty() bool {
+// empty returns true when the queue containes zero nodes.
+func (q *queue) empty() bool {
 	return len(*q) == 0
 }

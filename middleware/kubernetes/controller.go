@@ -83,12 +83,12 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 		if s != nil {
 			opts.LabelSelector = *s
 		}
-		list_v1, err := c.Core().Services(ns).List(opts)
+		listV1, err := c.Core().Services(ns).List(opts)
 		if err != nil {
 			return nil, err
 		}
-		var list_api api.ServiceList
-		err = v1.Convert_v1_ServiceList_To_api_ServiceList(list_v1, &list_api, nil)
+		var listAPI api.ServiceList
+		err = v1.Convert_v1_ServiceList_To_api_ServiceList(listV1, &listAPI, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -110,12 +110,12 @@ func namespaceListFunc(c *kubernetes.Clientset, s *labels.Selector) func(api.Lis
 		if s != nil {
 			opts.LabelSelector = *s
 		}
-		list_v1, err := c.Core().Namespaces().List(opts)
+		listV1, err := c.Core().Namespaces().List(opts)
 		if err != nil {
 			return nil, err
 		}
-		var list_api api.NamespaceList
-		err = v1.Convert_v1_NamespaceList_To_api_NamespaceList(list_v1, &list_api, nil)
+		var listAPI api.NamespaceList
+		err = v1.Convert_v1_NamespaceList_To_api_NamespaceList(listV1, &listAPI, nil)
 		if err != nil {
 			return nil, err
 		}

@@ -30,7 +30,7 @@ covered.
 
 ### Proposals, suggestions, ideas, new features
 
-First, please [search](https://github.com/miekg/dns/search?q=&type=Issues&utf8=%E2%9C%93)
+First, please [search](https://github.com/miekg/coredns/search?q=&type=Issues&utf8=%E2%9C%93)
 with a variety of keywords to ensure your suggestion/proposal is new.
 
 If so, you may open either an issue or a pull request for discussion and
@@ -51,9 +51,37 @@ a lot of time.
 
 ### Vulnerabilities
 
-If you've found a vulnerability that is serious, please email me: miek@miek.nl
+If you've found a vulnerability that is serious, please email me: <miek@miek.nl>.
 If it's not a big deal, a pull request will probably be faster.
 
 ## Thank you
 
 Thanks for your help! CoreDNS would not be what it is today without your contributions.
+
+## Git Hook
+
+We use `golint` and `go vet` as tools to warn use about things (noted golint is obnoxious sometimes,
+but still helpful). Add the following script as a git `post-commit` in `.git/hooks/post-commit` and
+make it executable.
+
+~~~ sh
+#!/bin/bash
+
+# <https://git-scm.com/docs/githooks>:
+# The script takes no parameters and its exit status does not affect the commit in any way.  You can
+# use git # rev-parse HEAD to get the new commit’s SHA1 hash, or you can use git log -l HEAD to get
+# all of its # information.
+
+for d in *; do
+    if [[ "$d" == "vendor" ]]; then
+        continue
+    fi
+    if [[ "$d" == "logo" ]]; then
+        continue
+    fi
+    if [[ ! -d "$d" ]]; then
+        continue
+    fi
+    golint "$d"/...
+done
+~~~
