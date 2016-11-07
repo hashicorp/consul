@@ -92,7 +92,7 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 		if err != nil {
 			return nil, err
 		}
-		return &list_api, err
+		return &listAPI, err
 	}
 }
 
@@ -119,7 +119,7 @@ func namespaceListFunc(c *kubernetes.Clientset, s *labels.Selector) func(api.Lis
 		if err != nil {
 			return nil, err
 		}
-		return &list_api, err
+		return &listAPI, err
 	}
 }
 
