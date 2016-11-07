@@ -36,10 +36,10 @@ func TestWatcher(t *testing.T) {
 
 	// example.org and example.com should exist
 	if x := len(a.Zones.Z["example.org."].All()); x != 4 {
-		t.Fatalf("expected 4 RRs, got %d", x)
+		t.Fatalf("Expected 4 RRs, got %d", x)
 	}
 	if x := len(a.Zones.Z["example.com."].All()); x != 4 {
-		t.Fatalf("expected 4 RRs, got %d", x)
+		t.Fatalf("Expected 4 RRs, got %d", x)
 	}
 
 	// Now remove one file, rescan and see if it's gone.
@@ -48,5 +48,11 @@ func TestWatcher(t *testing.T) {
 	}
 
 	a.Walk()
-	// TODO(miek): check
+
+	if _, ok := a.Zones.Z["example.com."]; ok {
+		t.Errorf("Expected %q to be gone.", "example.com.")
+	}
+	if _, ok := a.Zones.Z["example.org."]; !ok {
+		t.Errorf("Expected %q to still be there.", "example.org.")
+	}
 }
