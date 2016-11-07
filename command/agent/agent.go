@@ -1100,6 +1100,7 @@ func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error 
 	// Create temp file in same dir, to make more likely atomic
 	tempFile := file + ".tmp"
 
+	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
 	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
 	}
