@@ -3,6 +3,7 @@ BUILD_VERBOSE := -v
 TEST_VERBOSE := -v
 
 DOCKER_IMAGE_NAME := $$USER/coredns
+DOCKER_VERSION := $(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 
 all: coredns
 
@@ -16,6 +17,7 @@ coredns: deps
 docker: deps
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
 	docker build -t $(DOCKER_IMAGE_NAME) .
+	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(DOCKER_VERSION)
 
 .PHONY: deps
 deps:
@@ -51,7 +53,7 @@ distclean: clean
 	# Clean all dependencies and build artifacts
 	find $(GOPATH)/pkg -maxdepth 1 -mindepth 1 | xargs rm -rf
 	find $(GOPATH)/bin -maxdepth 1 -mindepth 1 | xargs rm -rf
-	
+
 	find $(GOPATH)/src -maxdepth 1 -mindepth 1 | grep -v github | xargs rm -rf
 	find $(GOPATH)/src -maxdepth 2 -mindepth 2 | grep -v miekg | xargs rm -rf
 	find $(GOPATH)/src/github.com/miekg -maxdepth 1 -mindepth 1 \! -name \*coredns\* | xargs rm -rf
