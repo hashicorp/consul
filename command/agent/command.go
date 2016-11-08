@@ -274,6 +274,17 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// If 'acl_datacenter' is set, ensure it is lowercased.
+	if config.ACLDatacenter != "" {
+		config.ACLDatacenter = strings.ToLower(config.ACLDatacenter)
+
+		// Verify 'acl_datacenter' is valid
+		if !validDatacenter.MatchString(config.ACLDatacenter) {
+			c.Ui.Error("ACL datacenter must be alpha-numeric with underscores and hypens only")
+			return nil
+		}
+	}
+
 	// Only allow bootstrap mode when acting as a server
 	if config.Bootstrap && !config.Server {
 		c.Ui.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
