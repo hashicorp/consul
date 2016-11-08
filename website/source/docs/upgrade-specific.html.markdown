@@ -14,6 +14,16 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 0.7.1
+
+#### Child Process Reaping
+
+Child process reaping support has been removed, along with the `reap` configuration option. Reaping is also done via [dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker image](https://github.com/hashicorp/docker-consul), so removing it from Consul itself simplifies the code and eases future maintainence for Consul. If you are running Consul as PID 1 in a container you will need to arrange for a wrapper process to reap child processes.
+
+#### DNS Resiliency Defaults
+
+The default for [`max_stale`](/docs/agent/options.html#max_stale) has been increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event of a long outage with no leader. A new telemetry counter has also been added at `consul.dns.stale_queries` to track when agents serve DNS queries that are over a certain staleness (>5 seconds).
+
 ## Consul 0.7
 
 Consul version 0.7 is a very large release with many important changes. Changes
