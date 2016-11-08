@@ -59,7 +59,8 @@ vet:
 		echo "and fix them if necessary before submitting the code for reviewal."; \
 	fi
 
-# build the static web ui
+# build the static web ui and build static assets inside a Docker container, the
+# same way a release build works
 ui:
 	@sh -c "'$(CURDIR)/scripts/ui.sh'"
 
