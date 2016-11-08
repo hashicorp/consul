@@ -207,6 +207,7 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 			errc <- err
 		}
 		close(errc)
+
 		// Because net.Pipe() is unbuffered, if both sides
 		// Close() simultaneously, we will deadlock as they
 		// both send an alert and then block. So we make the
@@ -276,12 +277,11 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
@@ -309,12 +309,11 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
