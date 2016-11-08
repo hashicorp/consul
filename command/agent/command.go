@@ -280,7 +280,7 @@ func (c *Command) readConfig() *Config {
 
 		// Verify 'acl_datacenter' is valid
 		if !validDatacenter.MatchString(config.ACLDatacenter) {
-			c.Ui.Error("'acl_datacenter' must be alpha-numeric with underscores and hypens only")
+			c.Ui.Error("ACL datacenter must be alpha-numeric with underscores and hypens only")
 			return nil
 		}
 	}
