@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Symantec/Dominator/lib/logbuf"
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
@@ -137,9 +138,12 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
 		"interval between join -wan attempts")
 
+	logbuf.UseFlagSet(cmdFlags)
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}
+	// Initialize the log buffer after command flags get parsed
+	logbuf.Get()
 
 	if retryInterval != "" {
 		dur, err := time.ParseDuration(retryInterval)
