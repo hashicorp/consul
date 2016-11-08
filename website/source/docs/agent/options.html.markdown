@@ -536,39 +536,42 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   by the leader, providing stronger consistency but less throughput and higher latency. In Consul
   0.7 and later, this defaults to true for better utilization of available servers.
 
-  * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> When [`allow_stale`](#allow_stale)
-  is specified, this is used to limit how
-  stale results are allowed to be. By default, this is set to "5s":
-  if a Consul server is more than 5 seconds behind the leader, the query will be
-  re-evaluated on the leader to get more up-to-date results.
+  * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> - When [`allow_stale`](#allow_stale)
+  is specified, this is used to limit how stale results are allowed to be. If a Consul server is
+  behind the leader by more than `max_stale`, the query will be re-evaluated on the leader to get
+  more up-to-date results. Prior to Consul 0.7.1 this defaulted to 5 seconds; in Consul 0.7.1
+  and later this defaults to 10 years ("87600h") which effectively allows DNS queries to be answered
+  by any server, no matter how stale. In practice, servers are usually only milliseconds behind the
+  leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
+  be elected.
 
-  * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> By default, this is "0s", so all
+  * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
   node lookups are served with a 0 TTL value. DNS caching for node lookups can be enabled by
   setting this value. This should be specified with the "s" suffix for second or "m" for minute.
 
-  * <a name="service_ttl"></a><a href="#service_ttl">`service_ttl`</a> This is a sub-object
+  * <a name="service_ttl"></a><a href="#service_ttl">`service_ttl`</a> - This is a sub-object
   which allows for setting a TTL on service lookups with a per-service policy. The "*" wildcard
   service can be used when there is no specific policy available for a service. By default, all
   services are served with a 0 TTL value. DNS caching for service lookups can be enabled by
   setting this value.
 
-  * <a name="enable_truncate"></a><a href="#enable_truncate">`enable_truncate`</a> If set to
+  * <a name="enable_truncate"></a><a href="#enable_truncate">`enable_truncate`</a> - If set to
   true, a UDP DNS query that would return more than 3 records, or more than would fit into a valid
   UDP response, will set the truncated flag, indicating to clients that they should re-query
   using TCP to get the full set of records.
 
-  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> If set to true, any
+  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> - If set to true, any
   nodes whose health checks are warning or critical will be excluded from DNS results. If false,
   the default, only nodes whose healthchecks are failing as critical will be excluded. For
   service lookups, the health checks of the node itself, as well as the service-specific checks
   are considered. For example, if a node has a health check that is critical then all services on
   that node will be excluded because they are also considered critical.
 
-  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> Timeout used
+  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> - Timeout used
   by Consul when recursively querying an upstream DNS server. See <a href="#recursors">`recursors`</a>
   for more details. Default is 2s. This is available in Consul 0.7 and later.
 
-  * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
+  * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> - If
   set to true, DNS responses will not be compressed. Compression was added and enabled by default
   in Consul 0.7.
 
