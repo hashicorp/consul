@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/yamux"
 )
@@ -203,7 +202,6 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 	serverConn, _ := serverSession.Accept()
 
 	go func() {
-		serverConn.SetReadDeadline(time.Now().Add(time.Second))
 		tlsServer := tls.Server(serverConn, tlsConfigServer)
 		if err := tlsServer.Handshake(); err != nil {
 			errc <- err
@@ -279,12 +277,11 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
@@ -312,12 +309,11 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
