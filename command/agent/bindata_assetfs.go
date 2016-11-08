@@ -91,7 +91,7 @@ func web_uiIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/index.html", size: 29230, mode: os.FileMode(420), modTime: time.Unix(1478127279, 0)}
+	info := bindataFileInfo{name: "web_ui/index.html", size: 29230, mode: os.FileMode(420), modTime: time.Unix(1478643734, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -111,7 +111,7 @@ func web_uiStaticApplicationMinJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/application.min.js", size: 770679, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/application.min.js", size: 770679, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -131,7 +131,7 @@ func web_uiStaticBaseCss() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/base.css", size: 39903, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/base.css", size: 39903, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -151,7 +151,7 @@ func web_uiStaticBaseCssMap() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/base.css.map", size: 18514, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/base.css.map", size: 18514, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -171,7 +171,7 @@ func web_uiStaticBootstrapMinCss() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/bootstrap.min.css", size: 99962, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/bootstrap.min.css", size: 99962, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -191,7 +191,7 @@ func web_uiStaticConsulLogoPng() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/consul-logo.png", size: 38387, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/consul-logo.png", size: 38387, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -211,7 +211,7 @@ func web_uiStaticFaviconPng() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/favicon.png", size: 3657, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/favicon.png", size: 3657, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -231,7 +231,7 @@ func web_uiStaticLoadingCylonPurpleSvg() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "web_ui/static/loading-cylon-purple.svg", size: 983, mode: os.FileMode(420), modTime: time.Unix(1478127278, 0)}
+	info := bindataFileInfo{name: "web_ui/static/loading-cylon-purple.svg", size: 983, mode: os.FileMode(420), modTime: time.Unix(1478643732, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
