@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
 * agent: Added the ability to bind Serf WAN and LAN to different interfaces than the general bind address. [GH-2007]
 * agent: Added a new `tls_skip_verify` configuration option for HTTP checks. [GH-1984]
+* agent: Consul is now built with Go 1.7.3. [GH-2281]
 
 BUG FIXES:
 
@@ -26,6 +27,7 @@ BUG FIXES:
 * agent: Fixed a panic when both -dev and -bootstrap-expect flags were provided. [GH-2464]
 * agent: Retry with backoff when a session fails to invalidate. [GH-2435]
 * agent: Fixed an issue where Consul would fail to start because of leftover malformed check/service state files. [GH-1221]
+* agent: Fixed agent crashes on macOS Sierra by upgrading Go. [GH-2407, GH-2281]
 * api: Trim leading slashes from keys/prefixes when querying KV endpoints to avoid a bug with redirects in Go 1.7 (golang/go#4800). [GH-2403]
 * dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * dns: Fixed an issue with SRV lookups where the service address was different from the node's. [GH-832]
