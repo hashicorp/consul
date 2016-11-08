@@ -56,10 +56,12 @@ func notify(zone string, to []string) error {
 	return nil
 }
 
-func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
-	code := dns.RcodeSuccess
+func notifyAddr(c *dns.Client, m *dns.Msg, s string) (err error) {
+	ret := new(dns.Msg)
+
+	code := dns.RcodeServerFailure
 	for i := 0; i < 3; i++ {
-		ret, _, err := c.Exchange(m, s)
+		ret, _, err = c.Exchange(m, s)
 		if err != nil {
 			continue
 		}
@@ -67,6 +69,9 @@ func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
 		if code == dns.RcodeSuccess {
 			return nil
 		}
+	}
+	if err != nil {
+		return err
 	}
 	return fmt.Errorf("Notify for zone %q was not accepted by %q: rcode was %q", m.Question[0].Name, s, rcode.ToString(code))
 }
