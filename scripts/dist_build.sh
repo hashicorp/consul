@@ -9,7 +9,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 # Change into that dir because we expect that.
 cd $DIR
 
-# Make sure build tools are abailable.
+# Make sure build tools are available.
 make tools
 
 # Build the standalone version of the web assets for the sanity check.
