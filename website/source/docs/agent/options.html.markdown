@@ -539,10 +539,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> - When [`allow_stale`](#allow_stale)
   is specified, this is used to limit how stale results are allowed to be. If a Consul server is
   behind the leader by more than `max_stale`, the query will be re-evaluated on the leader to get
-  more up-to-date results. By default, this is set to 10 years ("87600h") which effectively allows
-  DNS queries to be answered by any server, no matter how stale. In practice, servers are usually
-  only milliseconds behind the leader, so this lets Consul continue serving requests in long
-  outage scenarios where no leader can be elected.
+  more up-to-date results. Prior to Consul 0.7.1 this defaulted to 5 seconds; in Consul 0.7.1
+  and later this defaults to 10 years ("87600h") which effectively allows DNS queries to be answered
+  by any server, no matter how stale. In practice, servers are usually only milliseconds behind the
+  leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
+  be elected.
 
   * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
   node lookups are served with a 0 TTL value. DNS caching for node lookups can be enabled by

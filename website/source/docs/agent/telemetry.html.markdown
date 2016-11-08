@@ -179,7 +179,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
     <td>`consul.dns.stale_queries`</td>
-    <td>This increments when an agent serves a DNS query based on information from a server that is more than 5 seconds out of date.</td>
+    <td>Available in Consul 0.7.1 and later, this increments when an agent serves a DNS query based on information from a server that is more than 5 seconds out of date.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>
