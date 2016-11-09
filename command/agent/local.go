@@ -174,10 +174,14 @@ func (l *localState) RemoveService(serviceID string) {
 	l.Lock()
 	defer l.Unlock()
 
-	delete(l.services, serviceID)
-	delete(l.serviceTokens, serviceID)
-	l.serviceStatus[serviceID] = syncStatus{inSync: false}
-	l.changeMade()
+	if _, ok := l.services[serviceID]; ok {
+		delete(l.services, serviceID)
+		delete(l.serviceTokens, serviceID)
+		l.serviceStatus[serviceID] = syncStatus{inSync: false}
+		l.changeMade()
+	} else {
+		l.logger.Printf("[WARN] agent: Tried to deregister nonexistent service '%s'", serviceID)
+	}
 }
 
 // Services returns the locally registered services that the
