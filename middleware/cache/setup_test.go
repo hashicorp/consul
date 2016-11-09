@@ -44,6 +44,11 @@ func TestSetup(t *testing.T) {
 			positive 15
 			negative aaa
 		}`, true, defaultCap, defaultCap, maxTTL, maxTTL},
+		{`cache 0 example.nl`, true, defaultCap, defaultCap, maxTTL, maxTTL},
+		{`cache -1 example.nl`, true, defaultCap, defaultCap, maxTTL, maxTTL},
+		{`cache 1 example.nl {
+			positive 0
+		}`, true, defaultCap, defaultCap, maxTTL, maxTTL},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)

@@ -63,9 +63,6 @@ func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1.Extra = i.Extra
 
 	ttl := int(i.origTTL) - int(time.Now().UTC().Sub(i.stored).Seconds())
-	if ttl < int(minTTL.Seconds()) {
-		ttl = int(minTTL.Seconds())
-	}
 	setMsgTTL(m1, uint32(ttl))
 	return m1
 }
@@ -75,8 +72,13 @@ func (i *item) expired(now time.Time) bool {
 	return ttl < 0
 }
 
-// setMsgTTL sets the ttl on all RRs in all sections.
+// setMsgTTL sets the ttl on all RRs in all sections. If ttl is smaller than minTTL
+// that value is used.
 func setMsgTTL(m *dns.Msg, ttl uint32) {
+	if ttl < minTTL {
+		ttl = minTTL
+	}
+
 	for _, r := range m.Answer {
 		r.Header().Ttl = ttl
 	}

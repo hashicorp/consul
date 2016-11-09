@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -49,6 +50,10 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 			// first args may be just a number, then it is the ttl, if not it is a zone
 			ttl, err := strconv.Atoi(args[0])
 			if err == nil {
+				// Reserve 0 (and smaller for future things)
+				if ttl <= 0 {
+					return nil, fmt.Errorf("cache TTL can not be zero or negative: %d", ttl)
+				}
 				ca.pttl = time.Duration(ttl) * time.Second
 				ca.nttl = time.Duration(ttl) * time.Second
 				args = args[1:]
@@ -77,6 +82,10 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 					if err != nil {
 						return nil, err
 					}
+					// Reserve 0 (and smaller for future things)
+					if pttl <= 0 {
+						return nil, fmt.Errorf("cache TTL can not be zero or negative: %d", pttl)
+					}
 					ca.pttl = time.Duration(pttl) * time.Second
 				}
 			case Denial:
@@ -93,6 +102,10 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 					nttl, err := strconv.Atoi(args[1])
 					if err != nil {
 						return nil, err
+					}
+					// Reserve 0 (and smaller for future things)
+					if nttl <= 0 {
+						return nil, fmt.Errorf("cache TTL can not be zero or negative: %d", nttl)
 					}
 					ca.nttl = time.Duration(nttl) * time.Second
 				}

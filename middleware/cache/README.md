@@ -14,7 +14,7 @@ cache [TTL] [ZONES...]
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
 For the negative cache, the SOA's MinTTL value is used. A cache can contain up to 10,000 items by
-default.
+default. A TTL of zero is not allowed.
 
 If you want more control:
 

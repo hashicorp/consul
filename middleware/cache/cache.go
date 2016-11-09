@@ -125,7 +125,8 @@ func (c *ResponseWriter) Write(buf []byte) (int, error) {
 const (
 	maxTTL  = 1 * time.Hour
 	maxNTTL = 30 * time.Minute
-	minTTL  = 5 * time.Second
+
+	minTTL = 5 // seconds
 
 	defaultCap = 10000 // default capacity of the cache.
 
