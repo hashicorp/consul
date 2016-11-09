@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -794,7 +795,12 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 // writeFileAtomic writes the given contents to a temporary file in the same
 // directory, does an fsync and then renames the file to its real path
 func writeFileAtomic(path string, contents []byte) error {
-	tempPath := path + ".tmp"
+	uuid, err := uuid.GenerateUUID()
+	if err != nil {
+		return err
+	}
+	tempPath := fmt.Sprintf("%s-%s.tmp", path, uuid)
+
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
