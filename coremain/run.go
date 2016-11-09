@@ -21,6 +21,20 @@ import (
 )
 
 func init() {
+	// Reset flag.CommandLine to get rid of unwanted flags for instance from glog (used in kubernetes).
+	// And readd the once we want to keep.
+	flag.VisitAll(func(f *flag.Flag) {
+		if _, ok := flagsBlacklist[f.Name]; ok {
+			return
+		}
+		flagsToKeep = append(flagsToKeep, f)
+	})
+
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	for _, f := range flagsToKeep {
+		flag.Var(f.Value, f.Name, f.Usage)
+	}
+
 	caddy.TrapSignals()
 	caddy.DefaultConfigFile = "Corefile"
 	caddy.Quiet = true // don't show init stuff from caddy
@@ -40,6 +54,7 @@ func init() {
 
 // Run is CoreDNS's main() function.
 func Run() {
+
 	flag.Parse()
 
 	caddy.AppName = coreName
@@ -230,3 +245,16 @@ var (
 	gitShortStat     string // git diff-index --shortstat
 	gitFilesModified string // git diff-index --name-only HEAD
 )
+
+// flagsBlacklist removes flags with these names from our flagset.
+var flagsBlacklist = map[string]bool{
+	"logtostderr":      true,
+	"alsologtostderr":  true,
+	"v":                true,
+	"stderrthreshold":  true,
+	"vmodule":          true,
+	"log_backtrace_at": true,
+	"log_dir":          true,
+}
+
+var flagsToKeep []*flag.Flag
