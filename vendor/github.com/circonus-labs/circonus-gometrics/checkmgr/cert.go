@@ -1,3 +1,7 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package checkmgr
 
 import (
@@ -70,8 +74,7 @@ func (cm *CheckManager) fetchCert() ([]byte, error) {
 	}
 
 	cadata := new(CACert)
-	err = json.Unmarshal(response, cadata)
-	if err != nil {
+	if err := json.Unmarshal(response, cadata); err != nil {
 		return nil, err
 	}
 
