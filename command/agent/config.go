@@ -213,6 +213,13 @@ type Telemetry struct {
 	// narrow down the search results when neither a Submission URL or Check ID is provided.
 	// Default: service:app (e.g. service:consul)
 	CirconusCheckSearchTag string `mapstructure:"circonus_check_search_tag"`
+	// CirconusCheckTags is a comma separated list of tags to apply to the check. Note that
+	// the value of CirconusCheckSearchTag will always be added to the check.
+	// Default: none
+	CirconusCheckTags string `mapstructure:"circonus_check_tags"`
+	// CirconusCheckDisplayName is the name for the check which will be displayed in the Circonus UI.
+	// Default: value of CirconusCheckInstanceID
+	CirconusCheckDisplayName string `mapstructure:"circonus_check_display_name"`
 	// CirconusBrokerID is an explicit broker to use when creating a new check. The numeric portion
 	// of broker._cid. If metric management is enabled and neither a Submission URL nor Check ID
 	// is provided, an attempt will be made to search for an existing check using Instance ID and
@@ -1269,6 +1276,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Telemetry.CirconusCheckSearchTag != "" {
 		result.Telemetry.CirconusCheckSearchTag = b.Telemetry.CirconusCheckSearchTag
+	}
+	if b.Telemetry.CirconusCheckDisplayName != "" {
+		result.Telemetry.CirconusCheckDisplayName = b.Telemetry.CirconusCheckDisplayName
+	}
+	if b.Telemetry.CirconusCheckTags != "" {
+		result.Telemetry.CirconusCheckTags = b.Telemetry.CirconusCheckTags
 	}
 	if b.Telemetry.CirconusBrokerID != "" {
 		result.Telemetry.CirconusBrokerID = b.Telemetry.CirconusBrokerID
