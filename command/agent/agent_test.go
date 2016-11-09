@@ -935,6 +935,11 @@ func TestAgent_PurgeService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Re-add the service
+	if err := agent.AddService(svc, nil, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Removed
 	if err := agent.RemoveService(svc.ID, true); err != nil {
 		t.Fatalf("err: %s", err)

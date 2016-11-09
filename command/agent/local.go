@@ -170,7 +170,7 @@ func (l *localState) AddService(service *structs.NodeService, token string) {
 
 // RemoveService is used to remove a service entry from the local state.
 // The agent will make a best effort to ensure it is deregistered
-func (l *localState) RemoveService(serviceID string) {
+func (l *localState) RemoveService(serviceID string) error {
 	l.Lock()
 	defer l.Unlock()
 
@@ -180,8 +180,10 @@ func (l *localState) RemoveService(serviceID string) {
 		l.serviceStatus[serviceID] = syncStatus{inSync: false}
 		l.changeMade()
 	} else {
-		l.logger.Printf("[WARN] agent: Tried to deregister nonexistent service '%s'", serviceID)
+		return fmt.Errorf("Service does not exist")
 	}
+
+	return nil
 }
 
 // Services returns the locally registered services that the
