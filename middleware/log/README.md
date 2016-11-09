@@ -37,11 +37,11 @@ classes have the following meaning:
 
 * `success`: successful response
 * `denial`: either NXDOMAIN or NODATA (name exists, type does not)
-* `error`: SERVFAIL, NOTIMP, REFUSED, etc. Any that indicated the remove server is not willing to
+* `error`: SERVFAIL, NOTIMP, REFUSED, etc. Anything that indicates the remote server is not willing to
     resolve the request.
-* `all`: the default is nothing is specified.
+* `all`: the default - nothing is specified.
 
-If no class is specified it defaults to *all*.
+If no class is specified, it defaults to *all*.
 
 ## Log File
 
