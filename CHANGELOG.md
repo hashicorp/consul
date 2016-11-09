@@ -30,6 +30,7 @@ BUG FIXES:
 * agent: Retry with backoff when a session fails to invalidate. [GH-2435]
 * agent: Fixed an issue where Consul would fail to start because of leftover malformed check/service state files. [GH-1221]
 * agent: Fixed agent crashes on macOS Sierra by upgrading Go. [GH-2407, GH-2281]
+* agent: Log a warning instead of success when attempting to deregister a nonexistent service. [GH-2492]
 * api: Trim leading slashes from keys/prefixes when querying KV endpoints to avoid a bug with redirects in Go 1.7 (golang/go#4800). [GH-2403]
 * dns: Fixed external services that pointed to consul addresses (CNAME records) not resolving to A-records. [GH-1228]
 * dns: Fixed an issue with SRV lookups where the service address was different from the node's. [GH-832]
