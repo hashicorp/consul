@@ -48,7 +48,7 @@ This is the default kubernetes setup, with everything specified in full:
         # The tls cert, key and the CA cert filenames
         tls cert key cacert
         # Assemble k8s record names with the template
-        template {service}.{namespace}.{zone}
+        template {service}.{namespace}.{type}.{zone}
         # Only expose the k8s namespace "demo"
         namespaces demo
         # Only expose the records for kubernetes objects
@@ -67,7 +67,7 @@ This is the default kubernetes setup, with everything specified in full:
 
 Defaults:
 * If the `namespaces` keyword is omitted, all kubernetes namespaces are exposed.
-* If the `template` keyword is omitted, the default template of "{service}.{namespace}.{zone}" is used.
+* If the `template` keyword is omitted, the default template of "{service}.{namespace}.{type}.{zone}" is used.
 * If the `resyncperiod` keyword is omitted, the default resync period is 5 minutes.
 * The `labels` keyword is only used when filtering results based on kubernetes label selector syntax
   is required. The label selector syntax is described in the kubernetes API documentation at:
@@ -130,7 +130,7 @@ Build CoreDNS and launch using this configuration file:
     kubernetes coredns.local {
         resyncperiod 5m
         endpoint http://localhost:8080
-        template {service}.{namespace}.{zone}
+        template {service}.{namespace}.{type}.{zone}
         namespaces demo
         # Only expose the records for kubernetes objects
         # that matches this label selector. 
