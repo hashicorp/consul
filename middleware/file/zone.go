@@ -168,9 +168,7 @@ func (z *Zone) Reload() error {
 		for {
 			select {
 			case event := <-watcher.Events:
-				// Looks for Write and Create events. Write is obvious, Create is used when
-				// a file is mv-ed into this place.
-				if (event.Op == fsnotify.Write || event.Op == fsnotify.Create) && path.Clean(event.Name) == z.file {
+				if path.Clean(event.Name) == z.file {
 
 					reader, err := os.Open(z.file)
 					if err != nil {
