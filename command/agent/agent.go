@@ -906,7 +906,14 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	// Remove service immediately
-	a.state.RemoveService(serviceID)
+	err := a.state.RemoveService(serviceID)
+
+	// TODO: Return the error instead of just logging here in Consul 0.8
+	// For now, keep the current idempotent behavior on deleting a nonexistent service
+	if err != nil {
+		a.logger.Printf("[WARN] agent: Failed to deregister service %q: %s", serviceID, err)
+		return nil
+	}
 
 	// Remove the service from the data dir
 	if persist {

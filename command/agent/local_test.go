@@ -1074,6 +1074,10 @@ func TestAgent_serviceTokens(t *testing.T) {
 	l := new(localState)
 	l.Init(config, nil)
 
+	l.AddService(&structs.NodeService{
+		ID: "redis",
+	}, "")
+
 	// Returns default when no token is set
 	if token := l.ServiceToken("redis"); token != "default" {
 		t.Fatalf("bad: %s", token)
