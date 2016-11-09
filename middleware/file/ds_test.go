@@ -54,7 +54,7 @@ var dsTestCases = []test.Case{
 func TestLookupDS(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekNLDelegation), testzone, "stdin")
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
@@ -66,7 +66,7 @@ func TestLookupDS(t *testing.T) {
 		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 

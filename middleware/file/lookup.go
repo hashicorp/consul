@@ -118,8 +118,9 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	// Found entire name.
 	if found && shot {
 
-		if rrs := elem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
-			return z.searchCNAME(rrs, qtype, do)
+		// DNAME...
+		if rrs := elem.Types(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
+			return z.searchCNAME(elem, rrs, qtype, do)
 		}
 
 		rrs := elem.Types(qtype, qname)
@@ -151,7 +152,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		auth := []dns.RR{}
 
 		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
-			return z.searchCNAME(rrs, qtype, do)
+			return z.searchCNAME(wildElem, rrs, qtype, do)
 		}
 
 		rrs := wildElem.Types(qtype, qname)
@@ -250,22 +251,61 @@ func (z *Zone) ns(do bool) []dns.RR {
 	return z.Apex.NS
 }
 
-func (z *Zone) searchCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	elem, _ := z.Tree.Search(rrs[0].(*dns.CNAME).Target)
+func (z *Zone) searchCNAME(elem *tree.Elem, rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	if do {
+		sigs := elem.Types(dns.TypeRRSIG)
+		sigs = signatureForSubType(sigs, dns.TypeCNAME)
+		if len(sigs) > 0 {
+			rrs = append(rrs, sigs...)
+		}
+	}
+
+	elem, _ = z.Tree.Search(rrs[0].(*dns.CNAME).Target)
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}
 
-	// RECURSIVE SEARCH, up to 8 deep. Also: tests.
+	i := 0
+
+Redo:
+	cname := elem.Types(dns.TypeCNAME)
+	if len(cname) > 0 {
+		rrs = append(rrs, cname...)
+
+		if do {
+			sigs := elem.Types(dns.TypeRRSIG)
+			sigs = signatureForSubType(sigs, dns.TypeCNAME)
+			if len(sigs) > 0 {
+				rrs = append(rrs, sigs...)
+			}
+		}
+		elem, _ = z.Tree.Search(cname[0].(*dns.CNAME).Target)
+		if elem == nil {
+			return rrs, nil, nil, Success
+		}
+
+		i++
+		if i > maxChain {
+			return rrs, nil, nil, Success
+		}
+
+		goto Redo
+	}
+
 	targets := cnameForType(elem.All(), qtype)
-	if do {
-		sigs := elem.Types(dns.TypeRRSIG)
-		sigs = signatureForSubType(sigs, qtype)
-		if len(sigs) > 0 {
-			targets = append(targets, sigs...)
+	if len(targets) > 0 {
+		rrs = append(rrs, targets...)
+
+		if do {
+			sigs := elem.Types(dns.TypeRRSIG)
+			sigs = signatureForSubType(sigs, qtype)
+			if len(sigs) > 0 {
+				rrs = append(rrs, sigs...)
+			}
 		}
 	}
-	return append(rrs, targets...), nil, nil, Success
+
+	return rrs, nil, nil, Success
 }
 
 func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
@@ -317,3 +357,5 @@ func (z *Zone) searchGlue(name string) []dns.RR {
 	}
 	return glue
 }
+
+const maxChain = 8

@@ -58,6 +58,7 @@ var dnssecTestCases = []test.Case{
 			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 			test.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
+			test.RRSIG("www.miek.nl. 1800	RRSIG	CNAME 8 3 1800 20160426031301 20160327031301 12051 miek.nl.  NVZmMJaypS+wDL2Lar4Zw1zF"),
 		},
 
 		Extra: []dns.RR{
@@ -118,7 +119,7 @@ var dnssecTestCases = []test.Case{
 func TestLookupDNSSEC(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekNLSigned), testzone, "stdin")
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
@@ -130,7 +131,7 @@ func TestLookupDNSSEC(t *testing.T) {
 		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
