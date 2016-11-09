@@ -4,7 +4,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 * Child process reaping support has been removed, along with the `reap` configuration option. Reaping is also done via [dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker image](https://github.com/hashicorp/docker-consul), so removing it from Consul itself simplifies the code and eases future maintainence for Consul. If you are running Consul as PID 1 in a container you will need to arrange for a wrapper process to reap child processes. [GH-1988]
 * The default for `max_stale` has been increased to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event of a long outage with no leader. A new telemetry counter has also been added at `consul.dns.stale_queries` to track when agents serve DNS queries that are over a certain staleness (>5 seconds). [GH-2481]
-* The api package's PreparedQuery.Delete() method now takes WriteOptions instead of QueryOptions. [GH-2417]
+* The api package's `PreparedQuery.Delete()` method now takes `WriteOptions` instead of `QueryOptions`. [GH-2417]
 
 FEATURES:
 
@@ -27,7 +27,7 @@ BUG FIXES:
 * agent: Fixed an issue on Windows where "wsarecv" errors were logged when CLI commands accessed the RPC interface. [GH-2356]
 * agent: Syslog initialization will now retry on errors for up to 60 seconds to avoid a race condition at system startup. [GH-1610]
 * agent: Fixed a panic when both -dev and -bootstrap-expect flags were provided. [GH-2464]
-* agent: Retry with backoff when a session fails to invalidate. [GH-2435]
+* agent: Added a retry with backoff when a session fails to invalidate after expiring. [GH-2435]
 * agent: Fixed an issue where Consul would fail to start because of leftover malformed check/service state files. [GH-1221]
 * agent: Fixed agent crashes on macOS Sierra by upgrading Go. [GH-2407, GH-2281]
 * agent: Log a warning instead of success when attempting to deregister a nonexistent service. [GH-2492]
