@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
 	"github.com/miekg/coredns/middleware/metrics"
+	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -33,6 +34,7 @@ type (
 		// In the future this should be something like ZoneMeta that contains all this stuff.
 		transferTo []string
 		noReload   bool
+		Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
 
 		duration time.Duration
 	}

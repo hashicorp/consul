@@ -2,6 +2,7 @@ package file
 
 import (
 	"github.com/miekg/coredns/middleware/file/tree"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -118,7 +119,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	// Found entire name.
 	if found && shot {
 
-		// DNAME...
+		// DNAME...?
 		if rrs := elem.Types(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
 			return z.searchCNAME(elem, rrs, qtype, do)
 		}
@@ -260,8 +261,16 @@ func (z *Zone) searchCNAME(elem *tree.Elem, rrs []dns.RR, qtype uint16, do bool)
 		}
 	}
 
-	elem, _ = z.Tree.Search(rrs[0].(*dns.CNAME).Target)
+	targetName := rrs[0].(*dns.CNAME).Target
+	elem, _ = z.Tree.Search(targetName)
+	println(targetName)
 	if elem == nil {
+		if !dns.IsSubDomain(z.origin, targetName) {
+			println(targetName, "is not a child of", z.origin)
+		}
+		st := request.Request{}
+		z.Proxy.Lookup(st, targetName, qtype)
+
 		return rrs, nil, nil, Success
 	}
 
@@ -279,8 +288,12 @@ Redo:
 				rrs = append(rrs, sigs...)
 			}
 		}
-		elem, _ = z.Tree.Search(cname[0].(*dns.CNAME).Target)
+		targetName := cname[0].(*dns.CNAME).Target
+		elem, _ = z.Tree.Search(targetName)
 		if elem == nil {
+			if !dns.IsSubDomain(z.origin, targetName) {
+				println(targetName, "is not a child of", z.origin)
+			}
 			return rrs, nil, nil, Success
 		}
 

@@ -35,8 +35,8 @@ etcd [ZONES...] {
     under the *first* zone specified.
 * **PATH** the path inside etcd. Defaults to "/skydns".
 * **ENDPOINT** the etcd endpoints. Defaults to "http://localhost:2397".
-* `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
-  pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
+* `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
+  pointing to external names. If you want CoreDNS also to act as a proxy for clients, you'll need to add
   the proxy middleware.
 * `tls` followed the cert, key and the CA's cert filenames.
 * `debug` allows for debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
