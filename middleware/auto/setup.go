@@ -155,7 +155,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 							args[i] = h + ":53"
 						}
 					}
-					a.loader.Proxy = proxy.New(args)
+					a.loader.proxy = proxy.New(args)
 
 				default:
 					t, _, e := file.TransferParse(c, false)

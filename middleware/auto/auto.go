@@ -34,7 +34,7 @@ type (
 		// In the future this should be something like ZoneMeta that contains all this stuff.
 		transferTo []string
 		noReload   bool
-		Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
+		proxy      proxy.Proxy // Proxy for looking up names during the resolution process
 
 		duration time.Duration
 	}
