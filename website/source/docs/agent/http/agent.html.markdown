@@ -22,7 +22,7 @@ The following endpoints are supported:
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
 * [`/v1/agent/maintenance`](#agent_maintenance) : Manages node maintenance mode
 * [`/v1/agent/join/<address>`](#agent_join) : Triggers the local agent to join a node
-* [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Forces removal of a node
+* [`/v1/agent/force-leave/<node>`](#agent_force_leave): Forces removal of a node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
 * [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregisters a local check
 * [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Marks a local check as passing
