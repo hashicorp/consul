@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 )
 
 // InmemSnapshotStore implements the SnapshotStore interface and
@@ -12,6 +13,7 @@ import (
 type InmemSnapshotStore struct {
 	latest      *InmemSnapshotSink
 	hasSnapshot bool
+	sync.RWMutex
 }
 
 // InmemSnapshotSink implements SnapshotSink in memory
@@ -39,24 +41,32 @@ func (m *InmemSnapshotStore) Create(version SnapshotVersion, index, term uint64,
 
 	name := snapshotName(term, index)
 
-	sink := m.latest
-	sink.meta = SnapshotMeta{
-		Version:            version,
-		ID:                 name,
-		Index:              index,
-		Term:               term,
-		Peers:              encodePeers(configuration, trans),
-		Configuration:      configuration,
-		ConfigurationIndex: configurationIndex,
+	m.Lock()
+	defer m.Unlock()
+
+	sink := &InmemSnapshotSink{
+		meta: SnapshotMeta{
+			Version:            version,
+			ID:                 name,
+			Index:              index,
+			Term:               term,
+			Peers:              encodePeers(configuration, trans),
+			Configuration:      configuration,
+			ConfigurationIndex: configurationIndex,
+		},
+		contents: &bytes.Buffer{},
 	}
-	sink.contents = &bytes.Buffer{}
 	m.hasSnapshot = true
+	m.latest = sink
 
 	return sink, nil
 }
 
 // List returns the latest snapshot taken
 func (m *InmemSnapshotStore) List() ([]*SnapshotMeta, error) {
+	m.RLock()
+	defer m.RUnlock()
+
 	if !m.hasSnapshot {
 		return []*SnapshotMeta{}, nil
 	}
@@ -65,6 +75,9 @@ func (m *InmemSnapshotStore) List() ([]*SnapshotMeta, error) {
 
 // Open wraps an io.ReadCloser around the snapshot contents
 func (m *InmemSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error) {
+	m.RLock()
+	defer m.RUnlock()
+
 	if m.latest.meta.ID != id {
 		return nil, nil, fmt.Errorf("[ERR] snapshot: failed to open snapshot id: %s", id)
 	}
