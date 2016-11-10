@@ -1,7 +1,7 @@
 # CoreDNS
 
  [![Documentation](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/miekg/coredns)
- [![Build Status](https://img.shields.io/travis/miekg/coredns.svg?style=flat-square&label=build)](https://travis-ci.org/miekg/coredns)
+ [![Build Status](https://img.shields.io/travis/miekg/coredns.svg?style=flat-square&label=build?branch=master)](https://travis-ci.org/miekg/coredns)
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware. In fact it's so similar that CoreDNS is now a server type plugin for
