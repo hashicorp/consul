@@ -42,7 +42,12 @@ which limits how stale results are allowed to be.
 Starting from Consul 0.7, [`allow_stale`](/docs/agent/options.html#allow_stale)
 is enabled by default, using a [`max_stale`](/docs/agent/options.html#max_stale)
 value that defaults to 5 seconds, meaning that we will use data from
-any Consul server that is within 5 seconds of the leader.
+any Consul server that is within 5 seconds of the leader. In Consul 0.7.1, the
+default for `max_stale` was been increased from 5 seconds to a near-indefinite
+threshold (10 years) to allow DNS queries to continue to be served in the event
+of a long outage with no leader. A new telemetry counter has also been added at
+`consul.dns.stale_queries` to track when agents serve DNS queries that are stale
+by more than 5 seconds.
 
 ## Negative Response Caching
 
