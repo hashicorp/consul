@@ -22,7 +22,7 @@ Child process reaping support has been removed, along with the `reap` configurat
 
 #### DNS Resiliency Defaults
 
-The default for [`max_stale`](/docs/agent/options.html#max_stale) has been increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event of a long outage with no leader. A new telemetry counter has also been added at `consul.dns.stale_queries` to track when agents serve DNS queries that are over a certain staleness (>5 seconds).
+The default for [`max_stale`](/docs/agent/options.html#max_stale) was been increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event of a long outage with no leader. A new telemetry counter was added at `consul.dns.stale_queries` to track when agents serve DNS queries that are stale by more than 5 seconds.
 
 ## Consul 0.7
 
