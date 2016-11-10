@@ -1,7 +1,3 @@
-// Copyright 2016 Circonus, Inc. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // Package checkmgr provides a check management interace to circonus-gometrics
 package checkmgr
 
@@ -16,7 +12,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -59,7 +54,7 @@ type CheckConfig struct {
 	// used to search for a check to use
 	// used as check.target when creating a check
 	InstanceID string
-	// unique check searching tag (or tags)
+	// unique check searching tag
 	// used to search for a check to use (combined with instanceid)
 	// used as a regular tag when creating a check
 	SearchTag string
@@ -69,7 +64,7 @@ type CheckConfig struct {
 	Secret string
 	// additional tags to add to a check (when creating a check)
 	// these tags will not be added to an existing check
-	Tags string
+	Tags []string
 	// max amount of time to to hold on to a submission url
 	// when a given submission fails (due to retries) if the
 	// time the url was last updated is > than this, the trap
@@ -88,8 +83,8 @@ type CheckConfig struct {
 type BrokerConfig struct {
 	// a specific broker id (numeric portion of cid)
 	ID string
-	// one or more tags used to select 1-n brokers from which to select
-	// when creating a new check (e.g. datacenter:abc or loc:dfw,dc:abc)
+	// a tag that can be used to select 1-n brokers from which to select
+	// when creating a new check (e.g. datacenter:abc)
 	SelectTag string
 	// for a broker to be considered viable it must respond to a
 	// connection attempt within this amount of time e.g. 200ms, 2s, 1m
@@ -119,7 +114,7 @@ type CheckInstanceIDType string
 type CheckSecretType string
 
 // CheckTagsType check tags
-type CheckTagsType string
+type CheckTagsType []string
 
 // CheckDisplayNameType check display name
 type CheckDisplayNameType string
@@ -138,27 +133,20 @@ type CheckManager struct {
 	checkType             CheckTypeType
 	checkID               api.IDType
 	checkInstanceID       CheckInstanceIDType
-	checkTarget           string
-	checkSearchTag        api.TagType
+	checkSearchTag        api.SearchTagType
 	checkSecret           CheckSecretType
-	checkTags             api.TagType
+	checkTags             CheckTagsType
 	checkSubmissionURL    api.URLType
 	checkDisplayName      CheckDisplayNameType
 	forceMetricActivation bool
-	forceCheckUpdate      bool
-
-	// metric tags
-	metricTags map[string][]string
-	mtmu       sync.Mutex
 
 	// broker
 	brokerID              api.IDType
-	brokerSelectTag       api.TagType
+	brokerSelectTag       api.SearchTagType
 	brokerMaxResponseTime time.Duration
 
 	// state
 	checkBundle      *api.CheckBundle
-	cbmu             sync.Mutex
 	availableMetrics map[string]bool
 	trapURL          api.URLType
 	trapCN           BrokerCNType
@@ -186,12 +174,14 @@ func NewCheckManager(cfg *Config) (*CheckManager, error) {
 	}
 
 	cm.Debug = cfg.Debug
+
 	cm.Log = cfg.Log
-	if cm.Debug && cm.Log == nil {
-		cm.Log = log.New(os.Stderr, "", log.LstdFlags)
-	}
 	if cm.Log == nil {
-		cm.Log = log.New(ioutil.Discard, "", log.LstdFlags)
+		if cm.Debug {
+			cm.Log = log.New(os.Stderr, "", log.LstdFlags)
+		} else {
+			cm.Log = log.New(ioutil.Discard, "", log.LstdFlags)
+		}
 	}
 
 	if cfg.Check.SubmissionURL != "" {
@@ -239,7 +229,9 @@ func NewCheckManager(cfg *Config) (*CheckManager, error) {
 
 	cm.checkInstanceID = CheckInstanceIDType(cfg.Check.InstanceID)
 	cm.checkDisplayName = CheckDisplayNameType(cfg.Check.DisplayName)
+	cm.checkSearchTag = api.SearchTagType(cfg.Check.SearchTag)
 	cm.checkSecret = CheckSecretType(cfg.Check.Secret)
+	cm.checkTags = cfg.Check.Tags
 
 	fma := defaultForceMetricActivation
 	if cfg.Check.ForceMetricActivation != "" {
@@ -259,20 +251,13 @@ func NewCheckManager(cfg *Config) (*CheckManager, error) {
 	if cm.checkInstanceID == "" {
 		cm.checkInstanceID = CheckInstanceIDType(fmt.Sprintf("%s:%s", hn, an))
 	}
-	cm.checkTarget = hn
 
-	if cfg.Check.SearchTag == "" {
-		cm.checkSearchTag = []string{fmt.Sprintf("service:%s", an)}
-	} else {
-		cm.checkSearchTag = strings.Split(strings.Replace(cfg.Check.SearchTag, " ", "", -1), ",")
-	}
-
-	if cfg.Check.Tags != "" {
-		cm.checkTags = strings.Split(strings.Replace(cfg.Check.Tags, " ", "", -1), ",")
+	if cm.checkSearchTag == "" {
+		cm.checkSearchTag = api.SearchTagType(fmt.Sprintf("service:%s", an))
 	}
 
 	if cm.checkDisplayName == "" {
-		cm.checkDisplayName = CheckDisplayNameType(fmt.Sprintf("%s", string(cm.checkInstanceID)))
+		cm.checkDisplayName = CheckDisplayNameType(fmt.Sprintf("%s /cgm", string(cm.checkInstanceID)))
 	}
 
 	dur := cfg.Check.MaxURLAge
@@ -297,9 +282,7 @@ func NewCheckManager(cfg *Config) (*CheckManager, error) {
 	}
 	cm.brokerID = api.IDType(id)
 
-	if cfg.Broker.SelectTag != "" {
-		cm.brokerSelectTag = strings.Split(strings.Replace(cfg.Broker.SelectTag, " ", "", -1), ",")
-	}
+	cm.brokerSelectTag = api.SearchTagType(cfg.Broker.SelectTag)
 
 	dur = cfg.Broker.MaxResponseTime
 	if dur == "" {
@@ -313,7 +296,6 @@ func NewCheckManager(cfg *Config) (*CheckManager, error) {
 
 	// metrics
 	cm.availableMetrics = make(map[string]bool)
-	cm.metricTags = make(map[string][]string)
 
 	if err := cm.initializeTrapURL(); err != nil {
 		return nil, err

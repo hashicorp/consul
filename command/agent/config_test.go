@@ -758,7 +758,6 @@ func TestDecodeConfig(t *testing.T) {
     "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
 	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
     "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
-    "circonus_check_display_name": "node1:consul", "circonus_check_tags": "cat1:tag1,cat2:tag2",
     "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"} }`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
@@ -789,12 +788,6 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Telemetry.CirconusCheckSearchTag != "c:d" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckDisplayName != "node1:consul" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckTags != "cat1:tag1,cat2:tag2" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Telemetry.CirconusBrokerID != "6789" {
