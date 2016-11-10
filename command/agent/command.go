@@ -805,13 +805,15 @@ func (c *Command) Run(args []string) int {
 		cfg.CheckManager.Check.ForceMetricActivation = config.Telemetry.CirconusCheckForceMetricActivation
 		cfg.CheckManager.Check.InstanceID = config.Telemetry.CirconusCheckInstanceID
 		cfg.CheckManager.Check.SearchTag = config.Telemetry.CirconusCheckSearchTag
-		cfg.CheckManager.Check.DisplayName = config.Telemetry.CirconusCheckDisplayName
-		cfg.CheckManager.Check.Tags = config.Telemetry.CirconusCheckTags
 		cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
 		cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
 
 		if cfg.CheckManager.API.TokenApp == "" {
 			cfg.CheckManager.API.TokenApp = "consul"
+		}
+
+		if cfg.CheckManager.Check.InstanceID == "" {
+			cfg.CheckManager.Check.InstanceID = fmt.Sprintf("%s:%s", config.NodeName, config.Datacenter)
 		}
 
 		if cfg.CheckManager.Check.SearchTag == "" {

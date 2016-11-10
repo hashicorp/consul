@@ -1,7 +1,3 @@
-// Copyright 2016 Circonus, Inc. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package circonusgometrics
 
 import (
@@ -29,20 +25,19 @@ func (m *CirconusMetrics) RecordValue(metric string, val float64) {
 
 // SetHistogramValue adds a value to a histogram
 func (m *CirconusMetrics) SetHistogramValue(metric string, val float64) {
-	hist := m.NewHistogram(metric)
+	m.NewHistogram(metric)
 
-	m.hm.Lock()
-	hist.rw.Lock()
-	hist.hist.RecordValue(val)
-	hist.rw.Unlock()
-	m.hm.Unlock()
+	m.histograms[metric].rw.Lock()
+	defer m.histograms[metric].rw.Unlock()
+
+	m.histograms[metric].hist.RecordValue(val)
 }
 
 // RemoveHistogram removes a histogram
 func (m *CirconusMetrics) RemoveHistogram(metric string) {
 	m.hm.Lock()
+	defer m.hm.Unlock()
 	delete(m.histograms, metric)
-	m.hm.Unlock()
 }
 
 // NewHistogram returns a histogram instance.
@@ -72,6 +67,7 @@ func (h *Histogram) Name() string {
 // RecordValue records the given value to a histogram instance
 func (h *Histogram) RecordValue(v float64) {
 	h.rw.Lock()
+	defer h.rw.Unlock()
+
 	h.hist.RecordValue(v)
-	h.rw.Unlock()
 }

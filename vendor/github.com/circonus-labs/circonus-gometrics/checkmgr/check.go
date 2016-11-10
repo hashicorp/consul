@@ -1,7 +1,3 @@
-// Copyright 2016 Circonus, Inc. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package checkmgr
 
 import (
@@ -16,68 +12,6 @@ import (
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 )
-
-// UpdateCheck determines if the check needs to be updated (new metrics, tags, etc.)
-func (cm *CheckManager) UpdateCheck(newMetrics map[string]*api.CheckBundleMetric) {
-	// only if check manager is enabled
-	if !cm.enabled {
-		return
-	}
-
-	// only if checkBundle has been populated
-	if cm.checkBundle == nil {
-		return
-	}
-
-	// only if there is *something* to update
-	if !cm.forceCheckUpdate && len(newMetrics) == 0 && len(cm.metricTags) == 0 {
-		return
-	}
-
-	// refresh check bundle (in case there were changes made by other apps or in UI)
-	checkBundle, err := cm.apih.FetchCheckBundleByCID(api.CIDType(cm.checkBundle.Cid))
-	if err != nil {
-		cm.Log.Printf("[ERROR] unable to fetch up-to-date check bundle %v", err)
-		return
-	}
-	cm.cbmu.Lock()
-	cm.checkBundle = checkBundle
-	cm.cbmu.Unlock()
-
-	cm.addNewMetrics(newMetrics)
-
-	if len(cm.metricTags) > 0 {
-		// note: if a tag has been added (queued) for a metric which never gets sent
-		//       the tags will be discarded. (setting tags does not *create* metrics.)
-		for metricName, metricTags := range cm.metricTags {
-			for metricIdx, metric := range cm.checkBundle.Metrics {
-				if metric.Name == metricName {
-					cm.checkBundle.Metrics[metricIdx].Tags = metricTags
-					break
-				}
-			}
-			cm.mtmu.Lock()
-			delete(cm.metricTags, metricName)
-			cm.mtmu.Unlock()
-		}
-		cm.forceCheckUpdate = true
-	}
-
-	if cm.forceCheckUpdate {
-		newCheckBundle, err := cm.apih.UpdateCheckBundle(cm.checkBundle)
-		if err != nil {
-			cm.Log.Printf("[ERROR] updating check bundle %v", err)
-			return
-		}
-
-		cm.forceCheckUpdate = false
-		cm.cbmu.Lock()
-		cm.checkBundle = newCheckBundle
-		cm.cbmu.Unlock()
-		cm.inventoryMetrics()
-	}
-
-}
 
 // Initialize CirconusMetrics instance. Attempt to find a check otherwise create one.
 // use cases:
@@ -94,8 +28,6 @@ func (cm *CheckManager) initializeTrapURL() error {
 	cm.trapmu.Lock()
 	defer cm.trapmu.Unlock()
 
-	// special case short-circuit: just send to a url, no check management
-	// up to user to ensure that if url is https that it will work (e.g. not self-signed)
 	if cm.checkSubmissionURL != "" {
 		if !cm.enabled {
 			cm.trapURL = cm.checkSubmissionURL
@@ -118,9 +50,6 @@ func (cm *CheckManager) initializeTrapURL() error {
 		if err != nil {
 			return err
 		}
-		if !check.Active {
-			return fmt.Errorf("[ERROR] Check ID %v is not active", check.Cid)
-		}
 		// extract check id from check object returned from looking up using submission url
 		// set m.CheckId to the id
 		// set m.SubmissionUrl to "" to prevent trying to search on it going forward
@@ -142,13 +71,10 @@ func (cm *CheckManager) initializeTrapURL() error {
 		if err != nil {
 			return err
 		}
-		if !check.Active {
-			return fmt.Errorf("[ERROR] Check ID %v is not active", check.Cid)
-		}
 	} else {
 		searchCriteria := fmt.Sprintf(
-			"(active:1)(host:\"%s\")(type:\"%s\")(tags:%s)(notes:%s)",
-			cm.checkTarget, cm.checkType, strings.Join(cm.checkSearchTag, ","), fmt.Sprintf("cgm_instanceid=%s", cm.checkInstanceID))
+			"(active:1)(host:\"%s\")(type:\"%s\")(tags:%s)",
+			cm.checkInstanceID, cm.checkType, cm.checkSearchTag)
 		checkBundle, err = cm.checkBundleSearch(searchCriteria)
 		if err != nil {
 			return err
@@ -186,19 +112,8 @@ func (cm *CheckManager) initializeTrapURL() error {
 	cm.checkBundle = checkBundle
 	cm.inventoryMetrics()
 
-	// determine the trap url to which metrics should be PUT
-	if checkBundle.Type == "httptrap" {
-		cm.trapURL = api.URLType(checkBundle.Config.SubmissionURL)
-	} else {
-		// build a submission_url for non-httptrap checks out of mtev_reverse url
-		if len(checkBundle.ReverseConnectURLs) == 0 {
-			return fmt.Errorf("%s is not an HTTPTRAP check and no reverse connection urls found", checkBundle.Checks[0])
-		}
-		mtevURL := checkBundle.ReverseConnectURLs[0]
-		mtevURL = strings.Replace(mtevURL, "mtev_reverse", "https", 1)
-		mtevURL = strings.Replace(mtevURL, "check", "module/httptrap", 1)
-		cm.trapURL = api.URLType(fmt.Sprintf("%s/%s", mtevURL, checkBundle.Config.ReverseSecret))
-	}
+	// url to which metrics should be PUT
+	cm.trapURL = api.URLType(checkBundle.Config.SubmissionURL)
 
 	// used when sending as "ServerName" get around certs not having IP SANS
 	// (cert created with server name as CN but IP used in trap url)
@@ -263,11 +178,11 @@ func (cm *CheckManager) createNewCheck() (*api.CheckBundle, *api.Broker, error) 
 		DisplayName: string(cm.checkDisplayName),
 		Metrics:     []api.CheckBundleMetric{},
 		MetricLimit: 0,
-		Notes:       fmt.Sprintf("cgm_instanceid=%s", cm.checkInstanceID),
+		Notes:       "",
 		Period:      60,
 		Status:      statusActive,
-		Tags:        append(cm.checkSearchTag, cm.checkTags...),
-		Target:      cm.checkTarget,
+		Tags:        append([]string{string(cm.checkSearchTag)}, cm.checkTags...),
+		Target:      string(cm.checkInstanceID),
 		Timeout:     10,
 		Type:        string(cm.checkType),
 	}

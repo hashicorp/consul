@@ -1,7 +1,3 @@
-// Copyright 2016 Circonus, Inc. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package api
 
 import (
@@ -40,9 +36,7 @@ func (a *API) FetchCheckByCID(cid CIDType) (*Check, error) {
 	}
 
 	check := new(Check)
-	if err := json.Unmarshal(result, check); err != nil {
-		return nil, err
-	}
+	json.Unmarshal(result, check)
 
 	return check, nil
 }
@@ -58,20 +52,21 @@ func (a *API) FetchCheckBySubmissionURL(submissionURL URLType) (*Check, error) {
 	// valid trap url: scheme://host[:port]/module/httptrap/UUID/secret
 
 	// does it smell like a valid trap url path
-	if !strings.Contains(u.Path, "/module/httptrap/") {
+	if u.Path[:17] != "/module/httptrap/" {
 		return nil, fmt.Errorf("[ERROR] Invalid submission URL '%s', unrecognized path", submissionURL)
 	}
 
-	// extract uuid
-	pathParts := strings.Split(strings.Replace(u.Path, "/module/httptrap/", "", 1), "/")
+	// extract uuid/secret
+	pathParts := strings.Split(u.Path[17:len(u.Path)], "/")
 	if len(pathParts) != 2 {
 		return nil, fmt.Errorf("[ERROR] Invalid submission URL '%s', UUID not where expected", submissionURL)
 	}
+
 	uuid := pathParts[0]
 
-	filter := SearchFilterType(fmt.Sprintf("f__check_uuid=%s", uuid))
+	query := SearchQueryType(fmt.Sprintf("f__check_uuid=%s", uuid))
 
-	checks, err := a.CheckFilterSearch(filter)
+	checks, err := a.CheckSearch(query)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +93,9 @@ func (a *API) FetchCheckBySubmissionURL(submissionURL URLType) (*Check, error) {
 
 }
 
-// CheckSearch returns a list of checks matching a search query
+// CheckSearch returns a list of checks matching a query/filter
 func (a *API) CheckSearch(query SearchQueryType) ([]Check, error) {
-	queryURL := fmt.Sprintf("/check?search=%s", string(query))
+	queryURL := fmt.Sprintf("/check?%s", string(query))
 
 	result, err := a.Get(queryURL)
 	if err != nil {
@@ -108,26 +103,7 @@ func (a *API) CheckSearch(query SearchQueryType) ([]Check, error) {
 	}
 
 	var checks []Check
-	if err := json.Unmarshal(result, &checks); err != nil {
-		return nil, err
-	}
-
-	return checks, nil
-}
-
-// CheckFilterSearch returns a list of checks matching a filter
-func (a *API) CheckFilterSearch(filter SearchFilterType) ([]Check, error) {
-	filterURL := fmt.Sprintf("/check?%s", string(filter))
-
-	result, err := a.Get(filterURL)
-	if err != nil {
-		return nil, err
-	}
-
-	var checks []Check
-	if err := json.Unmarshal(result, &checks); err != nil {
-		return nil, err
-	}
+	json.Unmarshal(result, &checks)
 
 	return checks, nil
 }
