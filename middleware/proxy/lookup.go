@@ -75,6 +75,7 @@ func (p Proxy) lookup(state request.Request, r *dns.Msg) (*dns.Msg, error) {
 		// hosts until timeout (or until we get a nil host).
 		for time.Now().Sub(start) < tryDuration {
 			host := upstream.Select()
+			println(host.Name)
 			if host == nil {
 				return nil, errUnreachable
 			}

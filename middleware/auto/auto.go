@@ -75,7 +75,7 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return xfr.ServeDNS(ctx, w, r)
 	}
 
-	answer, ns, extra, result := z.Lookup(qname, state.QType(), state.Do())
+	answer, ns, extra, result := z.Lookup(state, qname)
 
 	m := new(dns.Msg)
 	m.SetReply(r)

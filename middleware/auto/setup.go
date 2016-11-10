@@ -147,7 +147,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 				case "upstream":
 					args := c.RemainingArgs()
 					if len(args) == 0 {
-						return a, false, c.ArgErr()
+						return a, c.ArgErr()
 					}
 					for i := 0; i < len(args); i++ {
 						h, p, e := net.SplitHostPort(args[i])

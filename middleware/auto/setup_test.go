@@ -39,6 +39,7 @@ func TestAutoParse(t *testing.T) {
 				directory /tmp (.*) bliep
 				transfer to 127.0.0.1
 				transfer to 127.0.0.2
+				upstream 8.8.8.8
 			}`,
 			false, "/tmp", "bliep", `(.*)`, []string{"127.0.0.1:53", "127.0.0.2:53"},
 		},

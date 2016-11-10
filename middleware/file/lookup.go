@@ -339,10 +339,12 @@ func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
 
 func (z *Zone) externalLookup(state request.Request, target string, qtype uint16) []dns.RR {
 	m, e := z.Proxy.Lookup(state, target, qtype)
-	if e != nil || m == nil {
+	if e != nil {
+		println(e.Error())
 		// TODO(miek): debugMsg for this as well? Log?
 		return nil
 	}
+	println(m.String())
 	return m.Answer
 }
 

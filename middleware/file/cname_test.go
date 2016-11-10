@@ -136,6 +136,8 @@ var exernalTestCases = []test.Case{
 		Qname: "external.example.org.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
 			test.CNAME("external.example.org. 1800	CNAME	www.example.net."),
+			// magic 303 TTL that says: don't check TTL.
+			test.A("www.example.net.	303	IN	A	93.184.216.34"),
 		},
 	},
 }
