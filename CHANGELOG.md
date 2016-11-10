@@ -18,7 +18,6 @@ IMPROVEMENTS:
 * agent: Added the ability to bind Serf WAN and LAN to different interfaces than the general bind address. [GH-2007]
 * agent: Added a new `tls_skip_verify` configuration option for HTTP checks. [GH-1984]
 * agent: Consul is now built with Go 1.7.3. [GH-2281]
-* agent: Updated Circonus client library and added support for new display name and tag options. [GH-2491]
 
 BUG FIXES:
 
