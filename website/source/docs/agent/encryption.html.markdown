@@ -61,7 +61,7 @@ Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents, as in
 [this tutorial on generating both a CA and signing keys](http://russellsimpkins.blogspot.com/2015/10/consul-adding-tls-using-self-signed.html)
 using OpenSSL. Note: client certificates must have
-[Extended Key Usage](https://www.openssl.org/docs/apps/x509v3_config.html#extended_key_usage_) enabled
+[Extended Key Usage](https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Extended-Key-Usage) enabled
 for client and server authentication.
 
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
