@@ -238,10 +238,10 @@
 			"revisionTime": "2016-11-09T19:23:37Z"
 		},
 		{
-			"checksumSHA1": "eYWKyMvUWZpmuXjDEIGy9lBddK0=",
+			"checksumSHA1": "C4Z7+l5GOpOCW5DcvNYzheGvQRE=",
 			"path": "github.com/circonus-labs/circonusllhist",
-			"revision": "f3bb61c09a65a1bb5833219937fe4e7042dadab4",
-			"revisionTime": "2016-11-09T20:01:07Z"
+			"revision": "365d370cc1459bdcaceda3499453668373dea1d0",
+			"revisionTime": "2016-11-10T00:26:50Z"
 		},
 		{
 			"checksumSHA1": "fXAinpJ5bOcborK7AiO1rnW60BI=",
