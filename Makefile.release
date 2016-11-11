@@ -20,20 +20,27 @@
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
 # * Up the version in coremain/version.go
-# * Commit -am'releasing <version>
 # * Run: make -f Makefile.release
+#   * will commit your change with 'Release $VERSION'
+#   * push to github
+#   * build the release and do all that fluff.
 
 NAME=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 ARCH=$(shell uname -m)
 GITHUB=miekg
 
-all:	push build release
+all:	commit push build release
 
 .PHONY: push
 push:
 	@echo Pushing release to master
 	git push
+
+.PHONY: commit
+commit:
+	@echo Committing
+	git commit -am"Release $(VERSION)"
 
 .PHONY: build
 build:
