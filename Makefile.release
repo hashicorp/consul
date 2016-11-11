@@ -11,6 +11,11 @@
 # We use https://github.com/progrium/gh-release to automate github stuff
 # be sure to have that binary in your path.
 #
+# Get a list of authors for this release with:
+#
+# git log --pretty=format:'%an' v001..master | sort -u
+# (where v001 is the previous release, obviously you'll need to adjust this)
+#
 # Steps:
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
