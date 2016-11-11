@@ -8,7 +8,7 @@ sudo apt-get install -y unzip curl
 
 echo Fetching Consul...
 cd /tmp/
-curl https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip -o consul.zip
+curl https://releases.hashicorp.com/consul/0.7.1/consul_0.7.1_linux_amd64.zip -o consul.zip
 
 echo Installing Consul...
 unzip consul.zip
