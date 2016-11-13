@@ -14,9 +14,9 @@ const (
 // Map of format string :: expected locations of name symbols in the format.
 // -1 value indicates that symbol does not exist in format.
 var exampleTemplates = map[string][]int{
-	"{service}.{namespace}.{type}.{zone}": []int{3, 1, 0}, // service symbol expected @ position 0, namespace @ 1, zone @ 3
-	"{namespace}.{type}.{zone}":           []int{2, 0, -1},
-	"":                             []int{-1, -1, -1},
+	"{service}.{namespace}.{type}.{zone}": {3, 1, 0}, // service symbol expected @ position 0, namespace @ 1, zone @ 3
+	"{namespace}.{type}.{zone}":           {2, 0, -1},
+	"": {-1, -1, -1},
 }
 
 func TestSetTemplate(t *testing.T) {

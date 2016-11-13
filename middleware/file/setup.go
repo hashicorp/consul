@@ -126,7 +126,7 @@ func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, er
 			for i := range tos {
 				if tos[i] != "*" {
 					if x := net.ParseIP(tos[i]); x == nil {
-						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", tos[i])
+						return nil, nil, fmt.Errorf("must specify an IP address: `%s'", tos[i])
 					}
 					tos[i] = middleware.Addr(tos[i]).Normalize()
 				}
@@ -140,7 +140,7 @@ func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, er
 			for i := range froms {
 				if froms[i] != "*" {
 					if x := net.ParseIP(froms[i]); x == nil {
-						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", froms[i])
+						return nil, nil, fmt.Errorf("must specify an IP address: `%s'", froms[i])
 					}
 					froms[i] = middleware.Addr(froms[i]).Normalize()
 				} else {

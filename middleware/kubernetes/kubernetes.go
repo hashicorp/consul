@@ -286,7 +286,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 	}
 	for _, service := range svcList {
 		if service.Spec.ClusterIP == ip {
-			return []msg.Service{msg.Service{Host: ip}}
+			return []msg.Service{{Host: ip}}
 		}
 	}
 

@@ -35,7 +35,7 @@ func TestAuto(t *testing.T) {
 
 	udp, _ := CoreDNSServerPorts(i, 0)
 	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
+		t.Fatal("Could not get UDP listening port")
 	}
 	defer i.Stop()
 
@@ -102,7 +102,7 @@ func TestAutoNonExistentZone(t *testing.T) {
 
 	udp, _ := CoreDNSServerPorts(i, 0)
 	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
+		t.Fatal("Could not get UDP listening port")
 	}
 	defer i.Stop()
 
@@ -141,7 +141,7 @@ func TestAutoAXFR(t *testing.T) {
 
 	udp, _ := CoreDNSServerPorts(i, 0)
 	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
+		t.Fatal("Could not get UDP listening port")
 	}
 	defer i.Stop()
 
@@ -162,7 +162,7 @@ func TestAutoAXFR(t *testing.T) {
 		t.Fatal("Expected to receive reply, but didn't")
 	}
 	if len(resp.Answer) != 5 {
-		t.Fatal("Expected response with %d RRs, got %d", 5, len(resp.Answer))
+		t.Fatalf("Expected response with %d RRs, got %d", 5, len(resp.Answer))
 	}
 }
 

@@ -1,4 +1,4 @@
-// Package edns provides function usefull for adding/inspecting OPT records to/in messages.
+// Package edns provides function useful for adding/inspecting OPT records to/in messages.
 package edns
 
 import (

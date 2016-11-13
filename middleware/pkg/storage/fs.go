@@ -24,7 +24,7 @@ type dir http.Dir
 // Dexample.org/...
 // Db.example.org/...
 //
-// CoreDir will default to "$HOME/.coredns" on Unix, but it's location can be overriden with the COREDNSPATH
+// CoreDir will default to "$HOME/.coredns" on Unix, but it's location can be overridden with the COREDNSPATH
 // environment variable.
 var CoreDir = dir(fsPath())
 

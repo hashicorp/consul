@@ -130,7 +130,7 @@ const (
 
 	defaultCap = 10000 // default capacity of the cache.
 
-	// Success is the class for caching postive caching.
+	// Success is the class for caching positive caching.
 	Success = "success"
 	// Denial is the class defined for negative caching.
 	Denial = "denial"

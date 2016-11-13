@@ -56,7 +56,7 @@ func (q *queue) pop() *Node {
 	return n
 }
 
-// empty returns true when the queue containes zero nodes.
+// empty returns true when the queue contains zero nodes.
 func (q *queue) empty() bool {
 	return len(*q) == 0
 }
