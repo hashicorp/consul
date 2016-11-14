@@ -26,7 +26,7 @@ cache [TTL] [ZONES...] {
 ~~~
 
 * **TTL**  and **ZONES** as above.
-* `success`, override the settings for caching succesful responses, **CAPACITY** indicates the maximum
+* `success`, override the settings for caching successful responses, **CAPACITY** indicates the maximum
   number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.
 * `denial`, override the settings for caching denial of existence responses, **CAPACITY** indicates the maximum
   number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.

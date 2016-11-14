@@ -16,7 +16,7 @@ The record name format can be changed by specifying a name template in the Coref
 kubernetes [ZONES...]
 ~~~
 
-* `ZONES` zones kubernetes should be authorative for. Overlapping zones are ignored.
+* `ZONES` zones kubernetes should be authoritative for. Overlapping zones are ignored.
 
 
 Or if you want to specify an endpoint:
