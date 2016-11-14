@@ -17,144 +17,175 @@ import (
 
 var dnsTestCases = []test.Case{
 	{
-		Qname: "mynginx.demo.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
 		},
 	},
 	{
-		Qname: "bogusservice.demo.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "mynginx.*.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
 		},
 	},
 	{
-		Qname: "mynginx.any.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "svc-1-a.any.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
 		},
 	},
 	{
-		Qname: "bogusservice.*.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "bogusservice.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "bogusservice.any.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "bogusservice.any.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.demo.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "*.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
 		},
 	},
 	{
-		Qname: "any.demo.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "any.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
 		},
 	},
 	{
-		Qname: "any.test.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "any.test-2.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.test.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "*.test-2.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.*.svc.coredns.local.", Qtype: dns.TypeA,
+		Qname: "*.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
 		},
 	},
 	//TODO: Fix below to all use test.SRV not test.A!
 	{
-		Qname: "mynginx.demo.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "bogusservice.demo.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "mynginx.*.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "mynginx.any.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "svc-1-a.any.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "bogusservice.*.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "bogusservice.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "bogusservice.any.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "bogusservice.any.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.demo.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "*.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_http._tcp.svc-1-b.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-b.test-1.svc.cluster.local."),
+			test.SRV("_c-port._udp.svc-c.test-1.svc.cluster.local.      303    IN    SRV 10 100 1234 svc-c.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "any.demo.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "any.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_http._tcp.svc-1-b.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-b.test-1.svc.cluster.local."),
+			test.SRV("_c-port._udp.svc-c.test-1.svc.cluster.local.      303    IN    SRV 10 100 1234 svc-c.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "any.test.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "any.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.test.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "*.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "*.*.svc.coredns.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("mynginx.demo.svc.coredns.local.      1800    IN      A       10.3.0.10"),
-			test.A("webserver.demo.svc.coredns.local.      1800    IN      A       10.3.0.20"),
+			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_https._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 443 svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("_http._tcp.svc-1-b.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-b.test-1.svc.cluster.local."),
+			test.SRV("_c-port._udp.svc-c.test-1.svc.cluster.local.      303    IN    SRV 10 100 1234 svc-c.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "123.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "100.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("100.0.3.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "115.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("115.0.3.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
 		},
 	},
 }
@@ -176,12 +207,12 @@ func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 func TestKubernetesIntegration(t *testing.T) {
 	corefile :=
 		`.:0 {
-    kubernetes coredns.local {
+    kubernetes cluster.local 0.3.10.in-addr.arpa {
                 endpoint http://localhost:8080
-		#endpoint https://kubernetes/ admin.pem admin-key.pem ca.pem
 		#endpoint https://kubernetes/ 
+		#tls admin.pem admin-key.pem ca.pem
 		#tls k8s_auth/client2.crt k8s_auth/client2.key k8s_auth/ca2.crt
-		namespaces demo
+		namespaces test-1
     }
 `
 	server, udp := createTestServer(t, corefile)

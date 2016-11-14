@@ -71,6 +71,19 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 				return nil, errors.New("Zone name must be provided for kubernetes middleware.")
 			}
 
+			k8s.primaryZone = -1
+			for i, z := range k8s.Zones {
+				if strings.HasSuffix(z, "in-addr.arpa.") || strings.HasSuffix(z, "ip6.arpa.") {
+					continue
+				}
+				k8s.primaryZone = i
+				break
+			}
+
+			if k8s.primaryZone == -1 {
+				return nil, errors.New("A non-reverse zone name must be given for Kubernetes.")
+			}
+
 			for c.NextBlock() {
 				switch c.Val() {
 				case "template":
