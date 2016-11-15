@@ -336,6 +336,7 @@ access to each API token based on the events they should be able to fire.
 After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
 including a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
 
+<a name="keyring"></a>
 #### Blacklist Mode and Keyring Operations
 
 Consul 0.6 and later supports securing the encryption keyring operations using
