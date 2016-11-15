@@ -45,12 +45,6 @@
 			"revisionTime": "2016-01-15T23:47:25Z"
 		},
 		{
-			"checksumSHA1": "cFpKkRqSacWTuz24u7i4K8xy/hA=",
-			"path": "github.com/aws/aws-sdk-go//service/ec2",
-			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
-			"revisionTime": "2016-10-31T21:52:18Z"
-		},
-		{
 			"checksumSHA1": "NeKH+twA+3z7EzaKQQdN5FIhJP4=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
@@ -185,6 +179,12 @@
 		{
 			"checksumSHA1": "Eo9yODN5U99BK0pMzoqnBm7PCrY=",
 			"path": "github.com/aws/aws-sdk-go/private/waiter",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
+			"checksumSHA1": "6h4tJ9wVtbYb9wG4srtUxyPoAYM=",
+			"path": "github.com/aws/aws-sdk-go/service/ec2",
 			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
 			"revisionTime": "2016-10-31T21:52:18Z"
 		},
