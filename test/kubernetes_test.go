@@ -20,7 +20,7 @@ var dnsTestCases = []test.Case{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
 		},
 	},
 	{
@@ -32,14 +32,14 @@ var dnsTestCases = []test.Case{
 		Qname: "svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
 		},
 	},
 	{
 		Qname: "svc-1-a.any.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
 		},
 	},
 	{
@@ -56,18 +56,18 @@ var dnsTestCases = []test.Case{
 		Qname: "*.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
-			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
-			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.0.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 		},
 	},
 	{
 		Qname: "any.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
-			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
-			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.0.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 		},
 	},
 	{
@@ -84,9 +84,9 @@ var dnsTestCases = []test.Case{
 		Qname: "*.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.3.0.100"),
-			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.3.0.110"),
-			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.3.0.115"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+			test.A("svc-1-b.test-1.svc.cluster.local.      303    IN      A       10.0.0.110"),
+			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 		},
 	},
 	//TODO: Fix below to all use test.SRV not test.A!
@@ -170,22 +170,22 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "123.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Qname: "123.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Rcode:  dns.RcodeSuccess,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "100.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Qname: "100.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Rcode:  dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.PTR("100.0.3.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
+			test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
 		},
 	},
 	{
-		Qname: "115.0.3.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Qname: "115.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Rcode:  dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.PTR("115.0.3.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
+			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
 		},
 	},
 }

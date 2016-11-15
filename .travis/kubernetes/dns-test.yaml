@@ -99,7 +99,7 @@ metadata:
 spec:
   selector:
     app: app-1-a
-  clusterIP: 10.3.0.100
+  clusterIP: 10.0.0.100
   ports:
   - name: http
     port: 80
@@ -116,7 +116,7 @@ metadata:
 spec:
   selector:
     app: app-1-b
-  clusterIP: 10.3.0.110
+  clusterIP: 10.0.0.110
   ports:
   - name: http
     port: 80
@@ -130,7 +130,7 @@ metadata:
 spec:
   selector:
     app: app-c
-  clusterIP: 10.3.0.115
+  clusterIP: 10.0.0.115
   ports:
   - name: c-port
     port: 1234
@@ -144,7 +144,7 @@ metadata:
 spec:
   selector:
     app: app-c
-  clusterIP: 10.3.0.120
+  clusterIP: 10.0.0.120
   ports:
   - name: c-port
     port: 1234
