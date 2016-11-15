@@ -906,10 +906,10 @@ func (r *KeyringRequest) RequestDatacenter() string {
 type KeyringResponse struct {
 	WAN        bool
 	Datacenter string
-	Messages   map[string]string
+	Messages   map[string]string `json:",omitempty"`
 	Keys       map[string]int
 	NumNodes   int
-	Error      string
+	Error      string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

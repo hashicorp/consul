@@ -43,6 +43,26 @@ type RaftConfiguration struct {
 	Index uint64
 }
 
+// KeyringOpts is used for performing Keyring operations
+type KeyringOpts struct {
+	Key string `json:",omitempty"`
+}
+
+// KeyringResponse is returned when listing the gossip encryption keys
+type KeyringResponse struct {
+	// Whether this response is for a WAN ring
+	WAN bool
+
+	// The datacenter name this request corresponds to
+	Datacenter string
+
+	// A map of the encryption keys to the number of nodes they're installed on
+	Keys map[string]int
+
+	// The total number of nodes in this ring
+	NumNodes int
+}
+
 // RaftGetConfiguration is used to query the current Raft peer set.
 func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/raft/configuration")
@@ -76,6 +96,64 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 		return err
 	}
 
+	resp.Body.Close()
+	return nil
+}
+
+// KeyringInstall is used to install a new gossip encryption key into the cluster
+func (op *Operator) KeyringInstall(key string) error {
+	r := op.c.newRequest("PUT", "/v1/operator/keyring/install")
+	r.obj = KeyringOpts{
+		Key: key,
+	}
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// KeyringList is used to list the gossip keys installed in the cluster
+func (op *Operator) KeyringList() ([]*KeyringResponse, error) {
+	r := op.c.newRequest("GET", "/v1/operator/keyring/list")
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out []*KeyringResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// KeyringRemove is used to remove a gossip encryption key from the cluster
+func (op *Operator) KeyringRemove(key string) error {
+	r := op.c.newRequest("DELETE", "/v1/operator/keyring/remove")
+	r.obj = KeyringOpts{
+		Key: key,
+	}
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// KeyringUse is used to change the active gossip encryption key
+func (op *Operator) KeyringUse(key string) error {
+	r := op.c.newRequest("PUT", "/v1/operator/keyring/use")
+	r.obj = KeyringOpts{
+		Key: key,
+	}
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
 	resp.Body.Close()
 	return nil
 }
