@@ -207,7 +207,7 @@ func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 func TestKubernetesIntegration(t *testing.T) {
 	corefile :=
 		`.:0 {
-    kubernetes cluster.local 0.3.10.in-addr.arpa {
+    kubernetes cluster.local 0.0.10.in-addr.arpa {
                 endpoint http://localhost:8080
 		#endpoint https://kubernetes/ 
 		#tls admin.pem admin-key.pem ca.pem
