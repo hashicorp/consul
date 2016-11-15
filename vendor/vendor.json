@@ -171,6 +171,12 @@
 			"revisionTime": "2016-10-31T21:52:18Z"
 		},
 		{
+			"checksumSHA1": "ODo+ko8D6unAxZuN1jGzMcN4QCc=",
+			"path": "github.com/aws/aws-sdk-go/private/protocol/restxml",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
 			"checksumSHA1": "eUEkjyMPAuekKBE4ou+nM9tXEas=",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
@@ -185,6 +191,24 @@
 		{
 			"checksumSHA1": "6h4tJ9wVtbYb9wG4srtUxyPoAYM=",
 			"path": "github.com/aws/aws-sdk-go/service/ec2",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
+			"checksumSHA1": "HtKiIAPKsBg2s1c5ytRkdZ/lqO8=",
+			"path": "github.com/aws/aws-sdk-go/service/s3",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
+			"checksumSHA1": "ktJRP1a52UPPS37vGAZ35U4yYSY=",
+			"path": "github.com/aws/aws-sdk-go/service/s3/s3iface",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
+			"checksumSHA1": "bbIJnY2OhOT5GcyW8aySsRBNPlQ=",
+			"path": "github.com/aws/aws-sdk-go/service/s3/s3manager",
 			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
 			"revisionTime": "2016-10-31T21:52:18Z"
 		},
