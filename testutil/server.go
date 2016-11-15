@@ -70,6 +70,7 @@ type TestServerConfig struct {
 	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
 	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
+	Encrypt           string                 `json:"encrypt,omitempty"`
 	Stdout, Stderr    io.Writer              `json:"-"`
 }
 
