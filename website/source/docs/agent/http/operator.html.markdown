@@ -27,6 +27,10 @@ The following endpoints are supported:
 
 * [`/v1/operator/raft/configuration`](#raft-configuration): Inspects the Raft configuration
 * [`/v1/operator/raft/peer`](#raft-peer): Operates on Raft peers
+* [`/v1/operator/keyring/install`](#keyring-install): Installs a new key into the keyring
+* [`/v1/operator/keyring/list`](#keyring-list): Lists the installed gossip encryption keys
+* [`/v1/operator/keyring/remove`](#keyring-remove): Removes a gossip key from the cluster
+* [`/v1/operator/keyring/use`](#keyring-use): Changes the active encryption key
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -130,3 +134,136 @@ If ACLs are enabled, the client will need to supply an ACL Token with
 
 The return code will indicate success or failure.
 
+### <a name="keyring-install"></a> /v1/operator/keyring/install
+
+The keyring install endpoint supports the `PUT` method.
+
+#### PUT Method
+
+Using the `PUT` method, this endpoint will install a new gossip encryption key
+into the cluster. There is more information on gossip encryption available
+[here](/docs/agent/encryption.html#gossip-encryption).
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+```javascript
+{
+  "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+}
+```
+
+The `Key` field is mandatory and provides the encryption key to install into the
+cluster.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`keyring`](/docs/internals/acl.html#keyring) write privileges.
+
+The return code will indicate success or failure.
+
+### <a name="keyring-list"></a> /v1/operator/keyring/list
+
+The keyring install endpoint supports the `GET` method.
+
+#### GET Method
+
+Using the `GET` method, this endpoint will list the gossip encryption keys
+installed on both the WAN and LAN rings of every known datacenter. There is more
+information on gossip encryption available
+[here](/docs/agent/encryption.html#gossip-encryption).
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`keyring`](/docs/internals/acl.html#keyring) read privileges.
+
+A JSON body is returned that looks like this:
+
+```javascript
+[
+    {
+        "WAN": true,
+        "Datacenter": "dc1",
+        "Keys": {
+            "0eK8RjnsGC/+I1fJErQsBA==": 1,
+            "G/3/L4yOw3e5T7NTvuRi9g==": 1,
+            "z90lFx3sZZLtTOkutXcwYg==": 1
+        },
+        "NumNodes": 1
+    },
+    {
+        "WAN": false,
+        "Datacenter": "dc1",
+        "Keys": {
+            "0eK8RjnsGC/+I1fJErQsBA==": 1,
+            "G/3/L4yOw3e5T7NTvuRi9g==": 1,
+            "z90lFx3sZZLtTOkutXcwYg==": 1
+        },
+        "NumNodes": 1
+    }
+]
+```
+
+`WAN` is true if the block refers to the WAN ring of that datacenter (rather than
+ LAN).
+
+`Datacenter` is the datacenter the block refers to.
+
+`Keys` is a map of each gossip key to the number of nodes it's currently installed
+ on.
+
+`NumNodes` is the total number of nodes in the datacenter.
+
+### <a name="keyring-remove"></a> /v1/operator/keyring/remove
+
+The keyring remove endpoint supports the `PUT` method.
+
+#### PUT Method
+
+Using the `PUT` method, this endpoint will remove a gossip encryption key from
+the cluster. This operation may only be performed on keys which are not currently
+the primary key. There is more information on gossip encryption available
+[here](/docs/agent/encryption.html#gossip-encryption).
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+```javascript
+{
+ "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+}
+```
+
+The `Key` field is mandatory and provides the encryption key to remove from the
+cluster.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`keyring`](/docs/internals/acl.html#keyring) write privileges.
+
+The return code will indicate success or failure.
+
+### <a name="keyring-use"></a> /v1/operator/keyring/use
+
+The keyring use endpoint supports the `PUT` method.
+
+#### PUT Method
+
+Using the `PUT` method, this endpoint will change the primary gossip encryption
+key. The key must already be installed before this operation can succeed. There
+is more information on gossip encryption available
+[here](/docs/agent/encryption.html#gossip-encryption).
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+```javascript
+{
+ "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+}
+```
+
+The `Key` field is mandatory and provides the primary encryption key to begin
+using.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`keyring`](/docs/internals/acl.html#keyring) write privileges.
+
+The return code will indicate success or failure.
