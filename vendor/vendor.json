@@ -3,10 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "context",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "JhyS/zIicgtrSasHSZ6WtXGWJVk=",
 			"path": "github.com/DataDog/datadog-go/statsd",
 			"revision": "cc2f4770f4d61871e19bfee967bc767fe730b0d9",
@@ -47,12 +43,6 @@
 			"path": "github.com/armon/go-radix",
 			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2",
 			"revisionTime": "2016-01-15T23:47:25Z"
-		},
-		{
-			"checksumSHA1": "cFpKkRqSacWTuz24u7i4K8xy/hA=",
-			"path": "github.com/aws/aws-sdk-go//service/ec2",
-			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
-			"revisionTime": "2016-10-31T21:52:18Z"
 		},
 		{
 			"checksumSHA1": "NeKH+twA+3z7EzaKQQdN5FIhJP4=",
@@ -189,6 +179,12 @@
 		{
 			"checksumSHA1": "Eo9yODN5U99BK0pMzoqnBm7PCrY=",
 			"path": "github.com/aws/aws-sdk-go/private/waiter",
+			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
+			"revisionTime": "2016-10-31T21:52:18Z"
+		},
+		{
+			"checksumSHA1": "6h4tJ9wVtbYb9wG4srtUxyPoAYM=",
+			"path": "github.com/aws/aws-sdk-go/service/ec2",
 			"revision": "ed981a1d5ee78d20547091d0697a711e5185d07f",
 			"revisionTime": "2016-10-31T21:52:18Z"
 		},
@@ -382,8 +378,10 @@
 			"revisionTime": "2016-03-01T23:01:42Z"
 		},
 		{
+			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
 			"path": "github.com/hashicorp/go-msgpack/codec",
-			"revision": "fa3f63826f7c23912c15263591e65d54d080b458"
+			"revision": "fa3f63826f7c23912c15263591e65d54d080b458",
+			"revisionTime": "2015-05-18T23:42:57Z"
 		},
 		{
 			"checksumSHA1": "lrSl49G23l6NhfilxPM0XFs5rZo=",
@@ -506,7 +504,7 @@
 			"revisionTime": "2015-11-16T02:03:38Z"
 		},
 		{
-			"checksumSHA1": "hwvKyyRujRkxMtrdwigHuE5SIyo=",
+			"checksumSHA1": "wpirHJV/6VEbbD+HyAP2/6Xc0ek=",
 			"path": "github.com/hashicorp/raft",
 			"revision": "aaad9f10266e089bd401e7a6487651a69275641b",
 			"revisionTime": "2016-11-10T00:52:40Z"
