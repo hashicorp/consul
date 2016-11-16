@@ -832,7 +832,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the <a href="#telemetry">telemetry</a> structure
 
 * <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> Deprecated, see
-  he <a href="#telemetry">telemetry</a> structure
+  the <a href="#telemetry">telemetry</a> structure
 
 * <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> Deprecated, see
   the <a href="#telemetry">telemetry</a> structure
