@@ -31,6 +31,7 @@ import (
 type Kubernetes struct {
 	Next          middleware.Handler
 	Zones         []string
+	primaryZone   int
 	Proxy         proxy.Proxy // Proxy for looking up names during the resolution process
 	APIEndpoint   string
 	APICertAuth   string
@@ -51,6 +52,11 @@ var errNsNotExposed = errors.New("namespace is not exposed")
 func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
 	s, e := k.Records(state.Name(), exact)
 	return s, nil, e // Haven't implemented debug queries yet.
+}
+
+// PrimaryZone will return the first non-reverse zone being handled by this middleware
+func (k *Kubernetes) PrimaryZone() (string) {
+	return k.Zones[k.primaryZone]
 }
 
 // Reverse implements the ServiceBackend interface.
@@ -286,7 +292,8 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 	}
 	for _, service := range svcList {
 		if service.Spec.ClusterIP == ip {
-			return []msg.Service{{Host: ip}}
+			name := k.NameTemplate.RecordNameFromNameValues(nametemplate.NameValues{TypeName: "svc", ServiceName: service.ObjectMeta.Name, Namespace: service.ObjectMeta.Namespace, Zone: k.PrimaryZone()})
+			return []msg.Service{msg.Service{Host: name}}
 		}
 	}
 

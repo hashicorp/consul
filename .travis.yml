@@ -30,7 +30,7 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
-  - docker run -d --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --net=host --pid=host --privileged --name=hyperkube gcr.io/google_containers/hyperkube-amd64:v$K8S_VERSION /hyperkube kubelet --containerized --hostname-override=127.0.0.1 --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests $DNS_ARGUMENTS --allow-privileged --v=2
+  - docker run -d --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --volume=`pwd`/.travis:/travis --net=host --pid=host --privileged --name=hyperkube gcr.io/google_containers/hyperkube-amd64:v$K8S_VERSION /hyperkube kubelet --containerized --hostname-override=127.0.0.1 --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests $DNS_ARGUMENTS --allow-privileged --v=2
   # Wait until kubectl is ready
   - for i in {1..10}; do $KUBECTL version && break || sleep 5; done
   - $KUBECTL version
@@ -39,7 +39,7 @@ before_script:
   - $KUBECTL config use-context test-doc
   # Wait until k8s is ready
   - for i in {1..30}; do $KUBECTL get nodes && break || sleep 5; done
-  - .travis/kubernetes/setup_k8s_services.sh
+  - $KUBECTL create -f /travis/kubernetes/dns-test.yaml
   - docker ps -a
 
 script:

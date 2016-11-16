@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-1
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-2
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: de-1-a
+  namespace: test-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-1-a
+    spec:
+      containers:
+      - name: app-1-a-c
+        image: gcr.io/google_containers/pause-amd64:3.0
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: de-1-b
+  namespace: test-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-1-b
+    spec:
+      containers:
+      - name: app-1-b-c
+        image: gcr.io/google_containers/pause-amd64:3.0
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: de-c
+  namespace: test-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-c
+    spec:
+      containers:
+      - name: app-c-c
+        image: gcr.io/google_containers/pause-amd64:3.0
+        ports:
+        - containerPort: 1234
+          name: c-port
+          protocol: UDP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: de-c
+  namespace: test-2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-c
+    spec:
+      containers:
+      - name: app-c-c
+        image: gcr.io/google_containers/pause-amd64:3.0
+        ports:
+        - containerPort: 1234
+          name: c-port
+          protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1-a
+  namespace: test-1
+spec:
+  selector:
+    app: app-1-a
+  clusterIP: 10.0.0.100
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1-b
+  namespace: test-1
+spec:
+  selector:
+    app: app-1-b
+  clusterIP: 10.0.0.110
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-c
+  namespace: test-1
+spec:
+  selector:
+    app: app-c
+  clusterIP: 10.0.0.115
+  ports:
+  - name: c-port
+    port: 1234
+    protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-c
+  namespace: test-2
+spec:
+  selector:
+    app: app-c
+  clusterIP: 10.0.0.120
+  ports:
+  - name: c-port
+    port: 1234
+    protocol: UDP
