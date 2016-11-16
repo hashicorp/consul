@@ -43,6 +43,7 @@ func (a Auto) Walk() error {
 			log.Printf("[WARNING] Opening %s failed: %s", path, err)
 			return nil
 		}
+		defer reader.Close()
 
 		zo, err := file.Parse(reader, origin, path)
 		if err != nil {
