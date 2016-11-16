@@ -14,7 +14,7 @@ as interacting with the Raft subsystem. This was added in Consul 0.7.
 ~> Use this interface with extreme caution, as improper use could lead to a Consul
    outage and even loss of data.
 
-If ACLs are enabled then a token with operator privileges may required in
+If ACLs are enabled then a token with operator privileges may be required in
 order to use this interface. See the [ACL](/docs/internals/acl.html#operator)
 internals guide for more information.
 

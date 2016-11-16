@@ -24,7 +24,7 @@ Usage: consul operator <subcommand> [common options] [action] [options]
   the Raft subsystem. NOTE: Use this command with extreme caution, as improper
   use could lead to a Consul outage and even loss of data.
 
-  If ACLs are enabled then a token with operator privileges may required in
+  If ACLs are enabled then a token with operator privileges may be required in
   order to use this command. Requests are forwarded internally to the leader
   if required, so this can be run from any Consul node in a cluster.
 
