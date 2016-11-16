@@ -136,7 +136,8 @@ The return code will indicate success or failure.
 
 ### <a name="keyring-install"></a> /v1/operator/keyring/install
 
-The keyring install endpoint supports the `PUT` method.
+Available in Consul 0.7.2 and later, the keyring install endpoint supports the
+`PUT` method.
 
 #### PUT Method
 
@@ -163,7 +164,8 @@ The return code will indicate success or failure.
 
 ### <a name="keyring-list"></a> /v1/operator/keyring/list
 
-The keyring install endpoint supports the `GET` method.
+Available in Consul 0.7.2 and later, the keyring install endpoint supports the
+`GET` method.
 
 #### GET Method
 
@@ -214,7 +216,8 @@ A JSON body is returned that looks like this:
 
 ### <a name="keyring-remove"></a> /v1/operator/keyring/remove
 
-The keyring remove endpoint supports the `PUT` method.
+Available in Consul 0.7.2 and later, the keyring remove endpoint supports the
+`PUT` method.
 
 #### PUT Method
 
@@ -242,7 +245,8 @@ The return code will indicate success or failure.
 
 ### <a name="keyring-use"></a> /v1/operator/keyring/use
 
-The keyring use endpoint supports the `PUT` method.
+Available in Consul 0.7.2 and later, the keyring use endpoint supports the `PUT`
+method.
 
 #### PUT Method
 
