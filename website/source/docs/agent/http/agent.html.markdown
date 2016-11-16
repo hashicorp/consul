@@ -21,6 +21,7 @@ The following endpoints are supported:
 * [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
 * [`/v1/agent/maintenance`](#agent_maintenance) : Manages node maintenance mode
+* [`/v1/agent/monitor`](#agent_monitor) : Streams logs from the local agent
 * [`/v1/agent/join/<address>`](#agent_join) : Triggers the local agent to join a node
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave): Forces removal of a node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
@@ -208,6 +209,17 @@ maintenance mode) or `false` (to resume normal operation).
 The `?reason` flag is optional.  If provided, its value should be a text string
 explaining the reason for placing the node into maintenance mode. This is simply
 to aid human operators. If no reason is provided, a default value will be used instead.
+
+The return code is 200 on success.
+
+### <a name="agent_monitor"></a> /v1/agent/monitor
+
+Added in Consul 0.7.2, This endpoint is hit with a GET and will stream logs from the
+local agent until the connection is closed.
+
+The `?loglevel` flag is optional.  If provided, its value should be a text string
+containing a log level to filter on, such as `info`. If no loglevel is provided, 
+`info` will be used as a default.
 
 The return code is 200 on success.
 
@@ -403,7 +415,7 @@ body must look like:
   ],
   "Address": "127.0.0.1",
   "Port": 8000,
-  "EnableTagOverride": false, 
+  "EnableTagOverride": false,
   "Check": {
     "DeregisterCriticalServiceAfter": "90m",
     "Script": "/usr/local/bin/check_redis.py",
