@@ -28,6 +28,10 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 }
 
 func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPServer) {
+	return makeHTTPServerWithConfigLog(t, cb, nil)
+}
+
+func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer) (string, *HTTPServer) {
 	configTry := 0
 RECONF:
 	configTry += 1
@@ -36,7 +40,7 @@ RECONF:
 		cb(conf)
 	}
 
-	dir, agent := makeAgent(t, conf)
+	dir, agent := makeAgentLog(t, conf, l)
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		if configTry < 3 {

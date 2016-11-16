@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
@@ -65,6 +66,9 @@ type Agent struct {
 
 	// Output sink for logs
 	logOutput io.Writer
+
+	// Used for streaming logs to
+	logWriter *logger.LogWriter
 
 	// We have one of a client or a server, depending
 	// on our configuration

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bufio"
 	"fmt"
 )
 
@@ -410,4 +411,38 @@ func (a *Agent) DisableNodeMaintenance() error {
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// Monitor returns a channel which will receive streaming logs from the agent
+// Providing a non-nil stopCh can be used to close the connection and stop the
+// log stream
+func (a *Agent) Monitor(loglevel string, stopCh chan struct{}) (chan string, error) {
+	r := a.c.newRequest("GET", "/v1/agent/monitor")
+	if loglevel != "" {
+		r.params.Add("loglevel", loglevel)
+	}
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+
+	logCh := make(chan string, 64)
+	go func() {
+		defer resp.Body.Close()
+
+		scanner := bufio.NewScanner(resp.Body)
+		for {
+			select {
+			case <-stopCh:
+				close(logCh)
+				return
+			default:
+			}
+			if scanner.Scan() {
+				logCh <- scanner.Text()
+			}
+		}
+	}()
+
+	return logCh, nil
 }

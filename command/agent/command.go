@@ -471,6 +471,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return err
 	}
+	agent.logWriter = logWriter
 	c.agent = agent
 
 	// Setup the RPC listener

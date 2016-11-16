@@ -3,6 +3,7 @@ package api
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAgent_Self(t *testing.T) {
@@ -555,6 +556,29 @@ func TestAgent_ForceLeave(t *testing.T) {
 	err := agent.ForceLeave("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Monitor(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	logCh, err := agent.Monitor("info", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the first log message and validate it
+	select {
+	case log := <-logCh:
+		if !strings.Contains(log, "[INFO] raft: Initial configuration") {
+			t.Fatalf("bad: %q", log)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("failed to get a log message")
 	}
 }
 
