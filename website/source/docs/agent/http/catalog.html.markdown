@@ -290,9 +290,9 @@ The returned fields are as follows:
 - `CreateIndex`: Internal index value representing when the service was created
 - `ModifyIndex`: Last index that modified the service
 - `Node`: Node name of the Consul node on which the service is registered
-- `ServiceAddress`: IP address of the service host
+- `ServiceAddress`: IP address of the service host — if empty, node address should be used
 - `ServiceEnableTagOverride`: Whether service tags can be overridden on this service
-- `ServiceID`: A unique service instance identifier comprised of UUID, hostname and port
+- `ServiceID`: A unique service instance identifier
 - `ServiceName`: Name of the service
 - `ServicePort`: Port number of the service
 - `ServiceTags`: List of tags for the service
