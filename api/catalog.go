@@ -7,8 +7,6 @@ type Node struct {
 }
 
 type CatalogService struct {
-	CreateIndex		 uint64
-	ModifyIndex		 uint64
 	Node                     string
 	Address                  string
 	TaggedAddresses          map[string]string
@@ -18,6 +16,8 @@ type CatalogService struct {
 	ServiceTags              []string
 	ServicePort              int
 	ServiceEnableTagOverride bool
+	CreateIndex		 uint64
+	ModifyIndex		 uint64
 }
 
 type CatalogNode struct {
