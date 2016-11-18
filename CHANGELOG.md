@@ -1,5 +1,9 @@
 ## 0.7.2 (UNRELEASED)
 
+IMPROVEMENTS:
+
+* agent: Defaults to `?pretty` JSON for HTTP API requests when in `-dev` mode. [GH-2518]
+
 BUG FIXES:
 
 * api: Added missing Raft index fields to `CatalogService` structure. [GH-2366]
