@@ -250,7 +250,9 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   setupController: function(controller, model) {
     var tags = [];
     model.map(function(obj){
-      tags = tags.concat(obj.Service.Tags);
+      if (obj.Service.Tags !== null) {
+        tags = tags.concat(obj.Service.Tags);
+      }
     });
 
     tags = tags.filter(function(n){ return n !== undefined; });
