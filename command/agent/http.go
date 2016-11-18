@@ -393,7 +393,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
 func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
-	if _, ok := req.URL.Query()["pretty"]; ok {
+	if _, ok := req.URL.Query()["pretty"]; ok || s.agent.config.DevMode {
 		buf, err := json.MarshalIndent(obj, "", "    ")
 		if err != nil {
 			return nil, err
