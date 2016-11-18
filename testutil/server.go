@@ -71,6 +71,7 @@ type TestServerConfig struct {
 	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
 	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
 	Stdout, Stderr    io.Writer              `json:"-"`
+	Args              []string               `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -200,7 +201,9 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Start the server
-	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
+	args := []string{"agent", "-config-file", configFile.Name()}
+	args = append(args, consulConfig.Args...)
+	cmd := exec.Command("consul", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {

@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
@@ -472,6 +473,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 	c.agent = agent
+	agent.command = c
 
 	// Setup the RPC listener
 	rpcAddr, err := config.ClientListener(config.Addresses.RPC, config.Ports.RPC)
@@ -966,8 +968,12 @@ WAIT:
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
-		if conf := c.handleReload(config); conf != nil {
+		conf, err := c.handleReload(config)
+		if conf != nil {
 			config = conf
+		}
+		if err != nil {
+			c.Ui.Error(err.Error())
 		}
 		goto WAIT
 	}
@@ -1008,12 +1014,13 @@ WAIT:
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (c *Command) handleReload(config *Config) *Config {
+func (c *Command) handleReload(config *Config) (*Config, error) {
 	c.Ui.Output("Reloading configuration...")
+	var errs error
 	newConf := c.readConfig()
 	if newConf == nil {
-		c.Ui.Error(fmt.Sprintf("Failed to reload configs"))
-		return config
+		errs = multierror.Append(errs, fmt.Errorf("Failed to reload configs"))
+		return config, errs
 	}
 
 	// Change the log level
@@ -1021,7 +1028,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	if logger.ValidateLevelFilter(minLevel, c.logFilter) {
 		c.logFilter.SetMinLevel(minLevel)
 	} else {
-		c.Ui.Error(fmt.Sprintf(
+		errs = multierror.Append(fmt.Errorf(
 			"Invalid log level: %s. Valid log levels are: %v",
 			minLevel, c.logFilter.Levels))
 
@@ -1040,28 +1047,28 @@ func (c *Command) handleReload(config *Config) *Config {
 	// First unload all checks and services. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed unloading services: %s", err))
-		return nil
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
+		return nil, errs
 	}
 	if err := c.agent.unloadChecks(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed unloading checks: %s", err))
-		return nil
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
+		return nil, errs
 	}
 
 	// Reload services and check definitions.
 	if err := c.agent.loadServices(newConf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed reloading services: %s", err))
-		return nil
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
+		return nil, errs
 	}
 	if err := c.agent.loadChecks(newConf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed reloading checks: %s", err))
-		return nil
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return nil, errs
 	}
 
 	// Get the new client listener addr
 	httpAddr, err := newConf.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
 	}
 
 	// Deregister the old watches
@@ -1075,7 +1082,7 @@ func (c *Command) handleReload(config *Config) *Config {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
+				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
 			}
 		}(wp)
 	}
@@ -1085,12 +1092,12 @@ func (c *Command) handleReload(config *Config) *Config {
 		newConf.AtlasToken != config.AtlasToken ||
 		newConf.AtlasEndpoint != config.AtlasEndpoint {
 		if err := c.setupScadaConn(newConf); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
-			return nil
+			errs = multierror.Append(errs, fmt.Errorf("Failed reloading SCADA client: %s", err))
+			return nil, errs
 		}
 	}
 
-	return newConf
+	return newConf, errs
 }
 
 // startScadaClient is used to start a new SCADA provider and listener,

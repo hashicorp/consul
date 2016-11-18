@@ -1,8 +1,11 @@
 package api
 
 import (
+	"io/ioutil"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestAgent_Self(t *testing.T) {
@@ -20,6 +23,51 @@ func TestAgent_Self(t *testing.T) {
 	name := info["Config"]["NodeName"]
 	if name == "" {
 		t.Fatalf("bad: %v", info)
+	}
+}
+
+func TestAgent_Reload(t *testing.T) {
+	t.Parallel()
+
+	// Create our initial empty config file, to be overwritten later
+	configFile, err := ioutil.TempFile("", "reload")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := configFile.Write([]byte("{}")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	configFile.Close()
+
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Args = []string{"-config-file", configFile.Name()}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Update the config file with a service definition
+	config := `{"service":{"name":"redis", "port":1234}}`
+	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err = agent.Reload(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	service, ok := services["redis"]
+	if !ok {
+		t.Fatalf("bad: %v", ok)
+	}
+	if service.Port != 1234 {
+		t.Fatalf("bad: %v", service.Port)
 	}
 }
 

@@ -116,6 +116,17 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	return out, nil
 }
 
+// Reload triggers a configuration reload for the agent we are connected to.
+func (a *Agent) Reload() error {
+	r := a.c.newRequest("PUT", "/v1/agent/reload")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // NodeName is used to get the node name of the agent
 func (a *Agent) NodeName() (string, error) {
 	if a.nodeName != "" {

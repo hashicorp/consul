@@ -36,6 +36,11 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	_, err := s.agent.command.handleReload(s.agent.config)
+	return nil, err
+}
+
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	services := s.agent.state.Services()
 	return services, nil
