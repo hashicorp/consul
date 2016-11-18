@@ -33,7 +33,7 @@ only contain server nodes. Client nodes send requests to a datacenter-local serv
 so they do not participate in WAN gossip. Client requests are forwarded by local
 servers to a server in the target datacenter as necessary.
 
-The next step is to ensure that all the server nodes join the WAN gossip pool:
+The next step is to ensure that all the server nodes join the WAN gossip pool (include all the servers in all the datacenters):
 
 ```text
 $ consul join -wan <server 1> <server 2> ...
@@ -63,6 +63,16 @@ As a simple test, you can try to query the nodes in each datacenter:
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc1
 ...
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc2
+...
+```
+In order to persist the `join` information, the following can be added to the `consul` configuration in each of the `server` nodes in the cluster. For example, in `dc1` server nodes:
+```
+...
+  "retry_join_wan":[
+    "dc2-server-1",
+    ...
+    "dc2-server-N"
+  ],
 ...
 ```
 
