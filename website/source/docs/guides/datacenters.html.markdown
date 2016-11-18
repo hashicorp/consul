@@ -71,7 +71,7 @@ In order to persist the `join` information, the following can be added to the `c
   "retry_join_wan":[
     "dc2-server-1",
     ...
-   "dc2-server-N", 
+    "dc2-server-N"
   ],
 ...
 ```
