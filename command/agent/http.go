@@ -256,6 +256,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
 	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
 	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
+	s.handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
 	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
 	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
 	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))

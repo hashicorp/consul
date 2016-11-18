@@ -358,6 +358,17 @@ func (a *Agent) Join(addr string, wan bool) error {
 	return nil
 }
 
+// Leave is used to have the agent gracefully leave the cluster and shutdown
+func (a *Agent) Leave() error {
+	r := a.c.newRequest("PUT", "/v1/agent/leave")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)

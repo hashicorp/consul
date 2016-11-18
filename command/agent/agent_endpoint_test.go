@@ -235,6 +235,49 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 	})
 }
 
+func TestHTTPAgentLeave(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	dir2, srv2 := makeHTTPServerWithConfig(t, func(c *Config) {
+		c.Server = false
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+
+	// Join first
+	addr := fmt.Sprintf("127.0.0.1:%d", srv2.agent.config.Ports.SerfLan)
+	_, err := srv.agent.JoinLAN([]string{addr})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Graceful leave now
+	req, err := http.NewRequest("PUT", "/v1/agent/leave", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv2.AgentLeave(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("Err: %v", obj)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		m := srv.agent.LANMembers()
+		success := m[1].Status == serf.StatusLeft
+		return success, errors.New(m[1].Status.String())
+	}, func(err error) {
+		t.Fatalf("member status is %v, should be left", err)
+	})
+}
+
 func TestHTTPAgentForceLeave(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)

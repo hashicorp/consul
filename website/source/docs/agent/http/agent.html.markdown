@@ -23,6 +23,7 @@ The following endpoints are supported:
 * [`/v1/agent/reload`](#agent_reload) : Causes the local agent to reload its configuration
 * [`/v1/agent/maintenance`](#agent_maintenance) : Manages node maintenance mode
 * [`/v1/agent/join/<address>`](#agent_join) : Triggers the local agent to join a node
+* [`/v1/agent/leave`](#agent_leave): Triggers the local agent to gracefully shutdown and leave the cluster
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave): Forces removal of a node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
 * [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregisters a local check
@@ -229,6 +230,19 @@ The return code is 200 on success.
 This endpoint is hit with a GET and is used to instruct the agent to attempt to
 connect to a given address.  For agents running in server mode, providing a "?wan=1"
 query parameter causes the agent to attempt to join using the WAN pool.
+
+The return code is 200 on success.
+
+### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
+
+This endpoint is hit with a GET and is used to trigger a graceful leave and shutdown
+of the agent. It is used to ensure other nodes see the agent as "left" instead of
+"failed". Nodes that leave will not attempt to re-join the cluster on restarting
+with a snapshot.
+
+For nodes in server mode, the node is removed from the Raft peer set in a graceful
+manner. This is critical, as in certain situations a non-graceful leave can affect
+cluster availability.
 
 The return code is 200 on success.
 

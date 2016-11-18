@@ -82,6 +82,13 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	}
 }
 
+func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if err := s.agent.Leave(); err != nil {
+		return nil, err
+	}
+	return nil, s.agent.Shutdown()
+}
+
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	return nil, s.agent.ForceLeave(addr)

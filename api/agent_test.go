@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestAgent_Self(t *testing.T) {
@@ -589,6 +590,39 @@ func TestAgent_Join(t *testing.T) {
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Leave(t *testing.T) {
+	t.Parallel()
+	c1, s1 := makeClient(t)
+	defer s1.Stop()
+
+	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Server = false
+		conf.Bootstrap = false
+	})
+	defer s2.Stop()
+
+	if err := c2.Agent().Join(s1.LANAddr, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := c2.Agent().Leave(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the second agent's status is 'Left'
+	members, err := c1.Agent().Members(false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	member := members[0]
+	if member.Name == s1.Config.NodeName {
+		member = members[1]
+	}
+	if member.Status != int(serf.StatusLeft) {
+		t.Fatalf("bad: %v", *member)
 	}
 }
 
