@@ -261,18 +261,41 @@ It returns a JSON body like this:
 ```javascript
 [
   {
+    "Address": "192.168.10.10",
+    "TaggedAddresses": {
+      "lan": "192.168.10.10",
+      "wan": "10.0.10.10"
+    },
+    "CreateIndex": 51,
+    "ModifyIndex": 51,
     "Node": "foobar",
-    "Address": "10.1.10.12",
-    "ServiceID": "redis",
-    "ServiceName": "redis",
-    "ServiceTags": null,
-    "ServiceAddress": "",
-    "ServicePort": 8000
+    "ServiceAddress": "172.17.0.3",
+    "ServiceEnableTagOverride": false,
+    "ServiceID": "32a2a47f7992:nodea:5000",
+    "ServiceName": "foobar",
+    "ServicePort": 5000,
+    "ServiceTags": [
+      "tacos"
+    ]
   }
 ]
 ```
 
 This endpoint supports blocking queries and all consistency modes.
+
+The returned fields are as follows:
+
+- `Address`: IP address of the Consul node on which the service is registered 
+- `TaggedAddresses`: List of explicit LAN and WAN IP addresses for the agent
+- `CreateIndex`: Internal index value representing when the service was created
+- `ModifyIndex`: Last index that modified the service
+- `Node`: Node name of the Consul node on which the service is registered
+- `ServiceAddress`: IP address of the service host
+- `ServiceEnableTagOverride`: Whether service tags can be overridden on this service
+- `ServiceID`: A unique service instance identifier comprised of UUID, hostname and port
+- `ServiceName`: Name of the service
+- `ServicePort`: Port number of the service
+- `ServiceTags`: List of tags for the service
 
 ### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
