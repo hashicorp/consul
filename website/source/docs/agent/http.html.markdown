@@ -24,7 +24,7 @@ Each endpoint manages a different aspect of Consul:
 * [operator](http/operator.html) - Consul Operator Tools
 * [query](http/query.html) - Prepared Queries
 * [session](http/session.html) - Sessions
-* [snapshots](http/snapshot.html) - Consul Snapshots for Disaster Recovery
+* [snapshot](http/snapshot.html) - Consul Snapshots for Disaster Recovery
 * [status](http/status.html) - Consul System Status
 
 Each of these is documented in detail at the links above. Consul also has a number
