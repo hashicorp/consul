@@ -62,6 +62,59 @@ Usage: `consul snapshot agent [options]`
 
 <%= partial "docs/commands/http_api_options" %>
 
+#### Config File Options:
+
+* `-config-dir` - Directory to look for JSON config files. Files will be read in
+  alphabetical order and must end with the extension ".json". This won't
+  recursively descend directories. This can be specified multiple times on the
+  command line.
+
+* `-config-file` - File to read JSON configuration from. Files must end with the
+  extension ".json". This can be specified multiple times on the command line.
+
+  Config files referenced using `-config-dir` and `-config-file` have the following
+  format (shown populated with default values):
+
+```javascript
+  {
+    "snapshot_agent": {
+      "http_addr": "127.0.0.1:8500",
+      "token": "",
+      "datacenter": "",
+      "log": {
+        "level": "INFO",
+        "enable_syslog": false,
+        "syslog_facility": "LOCAL0"
+      },
+      "snapshot": {
+        "interval": "1h",
+        "retain": 30,
+        "stale": false,
+        "service": "consul-snapshot",
+        "deregister_after": "72h",
+        "lock_key": "consul-snapshot/lock",
+        "max_failures": 3
+      },
+      "local_storage": {
+        "path": "."
+      },
+      "aws_storage": {
+        "access_key_id": "",
+        "secret_access_key": "",
+        "s3_region": "",
+        "s3_bucket": "",
+        "s3_key_prefix": "consul-snapshot"
+      }
+    }
+  }
+```
+
+All fields are optional, and config files without a `snapshot_agent` object will
+be ignored. At least one config file needs to have a `snapshot_agent` object, or the
+snapshot agent will fail to start. The Consul agent is set up to ignore any
+`snapshot_agent` object, so it's safe to use common config directories for both agents
+if desired.
+
 #### Snapshot Options
 
 * <a name="interval">`-interval`</a> - Interval at which to perform snapshots
