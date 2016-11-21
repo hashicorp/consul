@@ -29,6 +29,7 @@ Usage: consul snapshot <subcommand> [options] [args]
 
 Subcommands:
 
+    agent      Periodically saves snapshots of Consul server state
     inspect    Displays information about a Consul snapshot file
     restore    Restores snapshot of Consul server state
     save       Saves snapshot of Consul server state
@@ -37,6 +38,7 @@ Subcommands:
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
+- [agent] (/docs/commands/snapshot/agent.html) (Consul Enterprise only)
 - [inspect] (/docs/commands/snapshot/inspect.html)
 - [restore](/docs/commands/snapshot/restore.html)
 - [save](/docs/commands/snapshot/save.html)
@@ -66,6 +68,12 @@ Size         667
 Index        5
 Term         2
 Version      1
+```
+
+To run a daemon process that periodically saves snapshots (Consul Enterprise only):
+
+```
+$ consul snapshot agent
 ```
 
 For more examples, ask for subcommand help or view the subcommand documentation
