@@ -27,10 +27,7 @@ The following endpoints are supported:
 
 * [`/v1/operator/raft/configuration`](#raft-configuration): Inspects the Raft configuration
 * [`/v1/operator/raft/peer`](#raft-peer): Operates on Raft peers
-* [`/v1/operator/keyring/install`](#keyring-install): Installs a new key into the keyring
-* [`/v1/operator/keyring/list`](#keyring-list): Lists the installed gossip encryption keys
-* [`/v1/operator/keyring/remove`](#keyring-remove): Removes a gossip key from the cluster
-* [`/v1/operator/keyring/use`](#keyring-use): Changes the active encryption key
+* [`/v1/operator/keyring`](#keyring): Operates on gossip keyring
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -134,38 +131,13 @@ If ACLs are enabled, the client will need to supply an ACL Token with
 
 The return code will indicate success or failure.
 
-### <a name="keyring-install"></a> /v1/operator/keyring/install
+### <a name="keyring"></a> /v1/operator/keyring
 
-Available in Consul 0.7.2 and later, the keyring install endpoint supports the
-`PUT` method.
+Available in Consul 0.7.2 and later, the keyring endpoint supports the
+`GET`, `POST`, `PUT` and `DELETE` methods.
 
-#### PUT Method
-
-Using the `PUT` method, this endpoint will install a new gossip encryption key
-into the cluster. There is more information on gossip encryption available
-[here](/docs/agent/encryption.html#gossip-encryption).
-
-The register endpoint expects a JSON request body to be PUT. The request
-body must look like:
-
-```javascript
-{
-  "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
-}
-```
-
-The `Key` field is mandatory and provides the encryption key to install into the
-cluster.
-
-If ACLs are enabled, the client will need to supply an ACL Token with
-[`keyring`](/docs/internals/acl.html#keyring) write privileges.
-
-The return code will indicate success or failure.
-
-### <a name="keyring-list"></a> /v1/operator/keyring/list
-
-Available in Consul 0.7.2 and later, the keyring install endpoint supports the
-`GET` method.
+This endpoint supports the use of ACL tokens using either the `X-CONSUL-TOKEN`
+header or the "?token=" query parameter.
 
 #### GET Method
 
@@ -214,16 +186,10 @@ A JSON body is returned that looks like this:
 
 `NumNodes` is the total number of nodes in the datacenter.
 
-### <a name="keyring-remove"></a> /v1/operator/keyring/remove
+#### POST Method
 
-Available in Consul 0.7.2 and later, the keyring remove endpoint supports the
-`PUT` method.
-
-#### PUT Method
-
-Using the `PUT` method, this endpoint will remove a gossip encryption key from
-the cluster. This operation may only be performed on keys which are not currently
-the primary key. There is more information on gossip encryption available
+Using the `POST` method, this endpoint will install a new gossip encryption key
+into the cluster. There is more information on gossip encryption available
 [here](/docs/agent/encryption.html#gossip-encryption).
 
 The register endpoint expects a JSON request body to be PUT. The request
@@ -231,22 +197,17 @@ body must look like:
 
 ```javascript
 {
- "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+  "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
 }
 ```
 
-The `Key` field is mandatory and provides the encryption key to remove from the
+The `Key` field is mandatory and provides the encryption key to install into the
 cluster.
 
 If ACLs are enabled, the client will need to supply an ACL Token with
 [`keyring`](/docs/internals/acl.html#keyring) write privileges.
 
 The return code will indicate success or failure.
-
-### <a name="keyring-use"></a> /v1/operator/keyring/use
-
-Available in Consul 0.7.2 and later, the keyring use endpoint supports the `PUT`
-method.
 
 #### PUT Method
 
@@ -266,6 +227,30 @@ body must look like:
 
 The `Key` field is mandatory and provides the primary encryption key to begin
 using.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`keyring`](/docs/internals/acl.html#keyring) write privileges.
+
+The return code will indicate success or failure.
+
+#### DELETE Method
+
+Using the `DELETE` method, this endpoint will remove a gossip encryption key from
+the cluster. This operation may only be performed on keys which are not currently
+the primary key. There is more information on gossip encryption available
+[here](/docs/agent/encryption.html#gossip-encryption).
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+```javascript
+{
+ "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+}
+```
+
+The `Key` field is mandatory and provides the encryption key to remove from the
+cluster.
 
 If ACLs are enabled, the client will need to supply an ACL Token with
 [`keyring`](/docs/internals/acl.html#keyring) write privileges.

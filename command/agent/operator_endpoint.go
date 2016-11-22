@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/consul/consul/structs"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 )
 
@@ -57,109 +58,85 @@ func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Reques
 	return nil, nil
 }
 
-// OperatorKeyringInstall is used to install a new gossip encryption key into the cluster
-func (s *HTTPServer) OperatorKeyringInstall(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
-	}
+type keyringArgs struct {
+	Key   string
+	Token string
+}
 
-	var args structs.KeyringRequest
-	if err := decodeBody(req, &args, nil); err != nil {
-		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
-		return nil, nil
+// OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
+func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args keyringArgs
+	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
+		if err := decodeBody(req, &args, nil); err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+			return nil, nil
+		}
 	}
 	s.parseToken(req, &args.Token)
 
+	// Switch on the method
+	switch req.Method {
+	case "GET":
+		return s.KeyringList(resp, req, &args)
+	case "POST":
+		return s.KeyringInstall(resp, req, &args)
+	case "PUT":
+		return s.KeyringUse(resp, req, &args)
+	case "DELETE":
+		return s.KeyringRemove(resp, req, &args)
+	default:
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+}
+
+// KeyringInstall is used to install a new gossip encryption key into the cluster
+func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.InstallKey(args.Key, args.Token)
 	if err != nil {
 		return nil, err
 	}
-	for _, response := range responses.Responses {
-		if response.Error != "" {
-			return nil, fmt.Errorf(response.Error)
-		}
-	}
 
-	return nil, nil
+	return nil, keyringErrorsOrNil(responses.Responses)
 }
 
-// OperatorKeyringList is used to list the keys installed in the cluster
-func (s *HTTPServer) OperatorKeyringList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
-	}
-
-	var token string
-	s.parseToken(req, &token)
-
-	responses, err := s.agent.ListKeys(token)
+// KeyringList is used to list the keys installed in the cluster
+func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+	responses, err := s.agent.ListKeys(args.Token)
 	if err != nil {
 		return nil, err
 	}
-	for _, response := range responses.Responses {
-		if response.Error != "" {
-			return nil, fmt.Errorf(response.Error)
-		}
-	}
 
-	return responses.Responses, nil
+	return responses.Responses, keyringErrorsOrNil(responses.Responses)
 }
 
-// OperatorKeyringRemove is used to list the keys installed in the cluster
-func (s *HTTPServer) OperatorKeyringRemove(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "DELETE" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
-	}
-
-	var args structs.KeyringRequest
-	if err := decodeBody(req, &args, nil); err != nil {
-		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
-		return nil, nil
-	}
-	s.parseToken(req, &args.Token)
-
+// KeyringRemove is used to list the keys installed in the cluster
+func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.RemoveKey(args.Key, args.Token)
 	if err != nil {
 		return nil, err
 	}
-	for _, response := range responses.Responses {
-		if response.Error != "" {
-			return nil, fmt.Errorf(response.Error)
-		}
-	}
 
-	return nil, nil
+	return nil, keyringErrorsOrNil(responses.Responses)
 }
 
-// OperatorKeyringUse is used to change the primary gossip encryption key
-func (s *HTTPServer) OperatorKeyringUse(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
-	}
-
-	var args structs.KeyringRequest
-	if err := decodeBody(req, &args, nil); err != nil {
-		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
-		return nil, nil
-	}
-	s.parseToken(req, &args.Token)
-
+// KeyringUse is used to change the primary gossip encryption key
+func (s *HTTPServer) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.UseKey(args.Key, args.Token)
 	if err != nil {
 		return nil, err
 	}
-	for _, response := range responses.Responses {
+
+	return nil, keyringErrorsOrNil(responses.Responses)
+}
+
+func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
+	var errs error
+	for _, response := range responses {
 		if response.Error != "" {
-			return nil, fmt.Errorf(response.Error)
+			errs = multierror.Append(errs, fmt.Errorf(response.Error))
 		}
 	}
-
-	return nil, nil
+	return errs
 }
