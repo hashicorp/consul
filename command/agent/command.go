@@ -209,6 +209,12 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	if finfo, _ := os.Stat(config.DataDir); !finfo.IsDir() {
+		c.Ui.Error(fmt.Sprintf("CRITICAL: The data-dir specified at %q is not a directory", config.DataDir))
+		c.Ui.Error("Consul will refuse to boot without a valid data directory")
+		c.Ui.Error("Please provide a valid directory and try starting again.")
+	}
+
 	// Ensure all endpoints are unique
 	if err := config.verifyUniqueListeners(); err != nil {
 		c.Ui.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
