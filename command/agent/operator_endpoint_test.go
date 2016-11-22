@@ -66,13 +66,13 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
-		req, err := http.NewRequest("PUT", "/v1/operator/keyring/install", body)
+		req, err := http.NewRequest("POST", "/v1/operator/keyring", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringInstall(resp, req)
+		_, err = srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -80,6 +80,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 		listResponse, err := srv.agent.ListKeys("")
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+		if len(listResponse.Responses) != 2 {
+			t.Fatalf("bad: %d", len(listResponse.Responses))
 		}
 
 		for _, response := range listResponse.Responses {
@@ -100,13 +103,13 @@ func TestOperator_KeyringList(t *testing.T) {
 		c.EncryptKey = key
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/operator/keyring/list", nil)
+		req, err := http.NewRequest("GET", "/v1/operator/keyring", nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		resp := httptest.NewRecorder()
-		r, err := srv.OperatorKeyringList(resp, req)
+		r, err := srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -120,13 +123,27 @@ func TestOperator_KeyringList(t *testing.T) {
 		if len(responses) != 2 {
 			t.Fatalf("bad: %d", len(responses))
 		}
-		for _, response := range responses {
-			if len(response.Keys) != 1 {
-				t.Fatalf("bad: %d", len(response.Keys))
-			}
-			if _, ok := response.Keys[key]; !ok {
-				t.Fatalf("bad: %v", ok)
-			}
+
+		// WAN
+		if len(responses[0].Keys) != 1 {
+			t.Fatalf("bad: %d", len(responses[0].Keys))
+		}
+		if !responses[0].WAN {
+			t.Fatalf("bad: %v", responses[0].WAN)
+		}
+		if _, ok := responses[0].Keys[key]; !ok {
+			t.Fatalf("bad: %v", ok)
+		}
+
+		// LAN
+		if len(responses[1].Keys) != 1 {
+			t.Fatalf("bad: %d", len(responses[1].Keys))
+		}
+		if responses[1].WAN {
+			t.Fatalf("bad: %v", responses[1].WAN)
+		}
+		if _, ok := responses[1].Keys[key]; !ok {
+			t.Fatalf("bad: %v", ok)
 		}
 	}, configFunc)
 }
@@ -162,13 +179,13 @@ func TestOperator_KeyringRemove(t *testing.T) {
 		}
 
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", tempKey))
-		req, err := http.NewRequest("DELETE", "/v1/operator/keyring/remove", body)
+		req, err := http.NewRequest("DELETE", "/v1/operator/keyring", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringRemove(resp, req)
+		_, err = srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -205,13 +222,13 @@ func TestOperator_KeyringUse(t *testing.T) {
 		}
 
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
-		req, err := http.NewRequest("PUT", "/v1/operator/keyring/use", body)
+		req, err := http.NewRequest("PUT", "/v1/operator/keyring", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringUse(resp, req)
+		_, err = srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

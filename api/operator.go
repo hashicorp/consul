@@ -43,8 +43,8 @@ type RaftConfiguration struct {
 	Index uint64
 }
 
-// KeyringOpts is used for performing Keyring operations
-type KeyringOpts struct {
+// keyringRequest is used for performing Keyring operations
+type keyringRequest struct {
 	Key string `json:",omitempty"`
 }
 
@@ -101,9 +101,10 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 }
 
 // KeyringInstall is used to install a new gossip encryption key into the cluster
-func (op *Operator) KeyringInstall(key string) error {
-	r := op.c.newRequest("PUT", "/v1/operator/keyring/install")
-	r.obj = KeyringOpts{
+func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
+	r := op.c.newRequest("POST", "/v1/operator/keyring")
+	r.setWriteOptions(q)
+	r.obj = keyringRequest{
 		Key: key,
 	}
 	_, resp, err := requireOK(op.c.doRequest(r))
@@ -115,8 +116,9 @@ func (op *Operator) KeyringInstall(key string) error {
 }
 
 // KeyringList is used to list the gossip keys installed in the cluster
-func (op *Operator) KeyringList() ([]*KeyringResponse, error) {
-	r := op.c.newRequest("GET", "/v1/operator/keyring/list")
+func (op *Operator) KeyringList(q *QueryOptions) ([]*KeyringResponse, error) {
+	r := op.c.newRequest("GET", "/v1/operator/keyring")
+	r.setQueryOptions(q)
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
@@ -131,9 +133,10 @@ func (op *Operator) KeyringList() ([]*KeyringResponse, error) {
 }
 
 // KeyringRemove is used to remove a gossip encryption key from the cluster
-func (op *Operator) KeyringRemove(key string) error {
-	r := op.c.newRequest("DELETE", "/v1/operator/keyring/remove")
-	r.obj = KeyringOpts{
+func (op *Operator) KeyringRemove(key string, q *WriteOptions) error {
+	r := op.c.newRequest("DELETE", "/v1/operator/keyring")
+	r.setWriteOptions(q)
+	r.obj = keyringRequest{
 		Key: key,
 	}
 	_, resp, err := requireOK(op.c.doRequest(r))
@@ -145,9 +148,10 @@ func (op *Operator) KeyringRemove(key string) error {
 }
 
 // KeyringUse is used to change the active gossip encryption key
-func (op *Operator) KeyringUse(key string) error {
-	r := op.c.newRequest("PUT", "/v1/operator/keyring/use")
-	r.obj = KeyringOpts{
+func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
+	r := op.c.newRequest("PUT", "/v1/operator/keyring")
+	r.setWriteOptions(q)
+	r.obj = keyringRequest{
 		Key: key,
 	}
 	_, resp, err := requireOK(op.c.doRequest(r))

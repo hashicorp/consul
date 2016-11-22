@@ -49,11 +49,11 @@ func TestOperator_KeyringInstallListPutRemove(t *testing.T) {
 	defer s.Stop()
 
 	operator := c.Operator()
-	if err := operator.KeyringInstall(newKey); err != nil {
+	if err := operator.KeyringInstall(newKey, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	listResponses, err := operator.KeyringList()
+	listResponses, err := operator.KeyringList(nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -75,15 +75,15 @@ func TestOperator_KeyringInstallListPutRemove(t *testing.T) {
 	}
 
 	// Switch the primary to the new key
-	if err := operator.KeyringUse(newKey); err != nil {
+	if err := operator.KeyringUse(newKey, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := operator.KeyringRemove(oldKey); err != nil {
+	if err := operator.KeyringRemove(oldKey, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	listResponses, err = operator.KeyringList()
+	listResponses, err = operator.KeyringList(nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
