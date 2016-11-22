@@ -24,7 +24,7 @@ A service definition that is a script looks like:
   "service": {
     "name": "redis",
     "tags": ["master"],
-    "address": "127.0.0.1",
+    "address": "",
     "port": 8000,
     "enableTagOverride": false,
     "checks": [
@@ -113,7 +113,7 @@ Multiple services definitions can be provided at once using the `services`
       "tags": [
         "master"
       ],
-      "address": "127.0.0.1",
+      "address": "",
       "port": 6000,
       "checks": [
         {
@@ -130,7 +130,7 @@ Multiple services definitions can be provided at once using the `services`
         "delayed",
         "slave"
       ],
-      "address": "127.0.0.1",
+      "address": "",
       "port": 7000,
       "checks": [
         {
