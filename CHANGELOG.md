@@ -13,6 +13,7 @@ BUG FIXES:
 * api: Added missing Raft index fields to `CatalogService` structure. [GH-2366]
 * api: Added missing notes field to `AgentServiceCheck` structure. [GH-2336]
 * ui: Fixed an issue where extra commas would be shown around service tags. [GH-2340]
+* ui: Customized Bootstrap config to avoid missing font file references. [GH-2485]
 
 ## 0.7.1 (November 10, 2016)
 
