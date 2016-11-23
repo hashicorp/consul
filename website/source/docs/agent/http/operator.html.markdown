@@ -192,7 +192,7 @@ Using the `POST` method, this endpoint will install a new gossip encryption key
 into the cluster. There is more information on gossip encryption available
 [here](/docs/agent/encryption.html#gossip-encryption).
 
-The register endpoint expects a JSON request body to be PUT. The request
+The POST method expects a JSON request body to be submitted. The request
 body must look like:
 
 ```javascript
@@ -216,7 +216,7 @@ key. The key must already be installed before this operation can succeed. There
 is more information on gossip encryption available
 [here](/docs/agent/encryption.html#gossip-encryption).
 
-The register endpoint expects a JSON request body to be PUT. The request
+The PUT method expects a JSON request body to be submitted. The request
 body must look like:
 
 ```javascript
@@ -240,7 +240,7 @@ the cluster. This operation may only be performed on keys which are not currentl
 the primary key. There is more information on gossip encryption available
 [here](/docs/agent/encryption.html#gossip-encryption).
 
-The register endpoint expects a JSON request body to be PUT. The request
+The DELETE method expects a JSON request body to be submitted. The request
 body must look like:
 
 ```javascript
