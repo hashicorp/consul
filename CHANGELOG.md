@@ -1,5 +1,9 @@
 ## 0.7.2 (UNRELEASED)
 
+FEATURES:
+
+* **Keyring API:** A new `/v1/operator/keyring` API was added that allows for performing operations such as list, install, use and remove on the encryption keys in the gossip keyring. See the [Keyring Endpoint](https://www.consul.io/docs/agent/http/operator.html#keyring) for more details. [GH-2509]
+
 IMPROVEMENTS:
 
 * agent: Defaults to `?pretty` JSON for HTTP API requests when in `-dev` mode. [GH-2518]
