@@ -45,7 +45,7 @@ type RaftConfiguration struct {
 
 // keyringRequest is used for performing Keyring operations
 type keyringRequest struct {
-	Key string `json:",omitempty"`
+	Key string
 }
 
 // KeyringResponse is returned when listing the gossip encryption keys
