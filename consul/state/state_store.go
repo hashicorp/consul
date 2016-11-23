@@ -1417,6 +1417,9 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 	sess.CreateIndex = idx
 	sess.ModifyIndex = idx
 
+	// Setting time
+	sess.Renew()
+
 	// Check that the node exists
 	node, err := tx.First("nodes", "id", sess.Node)
 	if err != nil {
@@ -1483,7 +1486,9 @@ func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, err
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
 	if session != nil {
-		return idx, session.(*structs.Session), nil
+		s := session.(*structs.Session)
+		s.RecalcTimeLeft()
+		return idx, s, nil
 	}
 	return idx, nil, nil
 }
@@ -1505,7 +1510,9 @@ func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
 	// Go over the sessions and create a slice of them.
 	var result structs.Sessions
 	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		result = append(result, session.(*structs.Session))
+		s := session.(*structs.Session)
+		s.RecalcTimeLeft()
+		result = append(result, s)
 	}
 	return idx, result, nil
 }
@@ -1529,7 +1536,9 @@ func (s *StateStore) NodeSessions(nodeID string) (uint64, structs.Sessions, erro
 	// Go over all of the sessions and return them as a slice
 	var result structs.Sessions
 	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		result = append(result, session.(*structs.Session))
+		s := session.(*structs.Session)
+		s.RecalcTimeLeft()
+		result = append(result, s)
 	}
 	return idx, result, nil
 }

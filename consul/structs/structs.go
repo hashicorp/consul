@@ -629,10 +629,28 @@ type Session struct {
 	LockDelay time.Duration
 	Behavior  SessionBehavior // What to do when session is invalidated
 	TTL       string
+	TimeLeft  string
 
 	RaftIndex
+
+	lastRenew time.Time
 }
 type Sessions []*Session
+
+func (s *Session) RecalcTimeLeft() error {
+	dur, err := time.ParseDuration(s.TTL)
+	if err != nil {
+		return err
+	}
+
+	s.TimeLeft = (dur*2 - time.Since(s.lastRenew)).String()
+	return nil
+}
+
+func (s *Session) Renew() error {
+	s.lastRenew = time.Now().UTC()
+	return s.RecalcTimeLeft()
+}
 
 type SessionOp string
 

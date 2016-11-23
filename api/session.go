@@ -29,6 +29,7 @@ type SessionEntry struct {
 	LockDelay   time.Duration
 	Behavior    string
 	TTL         string
+	TimeLeft    string
 }
 
 // Session can be used to query the Session endpoints
