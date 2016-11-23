@@ -65,13 +65,9 @@ func (c *client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, err
 		return ret, e
 	})
 
-	rtt := time.Since(start)
-	if err != nil {
-		return &dns.Msg{}, rtt, err
-	}
-
 	r1 := r.(dns.Msg)
-	return &r1, rtt, nil
+	rtt := time.Since(start)
+	return &r1, rtt, err
 }
 
 // exchange does *not* return a pointer to dns.Msg because that leads to buffer reuse when
