@@ -2,12 +2,14 @@ package file
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path"
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/mholt/caddy"
 )
@@ -90,6 +92,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			}
 
 			noReload := false
+			prxy := proxy.Proxy{}
 			for c.NextBlock() {
 				t, _, e := TransferParse(c, false)
 				if e != nil {
@@ -98,6 +101,19 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				switch c.Val() {
 				case "no_reload":
 					noReload = true
+
+				case "upstream":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return Zones{}, c.ArgErr()
+					}
+					for i := 0; i < len(args); i++ {
+						h, p, e := net.SplitHostPort(args[i])
+						if e != nil && p == "" {
+							args[i] = h + ":53"
+						}
+					}
+					prxy = proxy.New(args)
 				}
 
 				for _, origin := range origins {
@@ -105,6 +121,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 						z[origin].TransferTo = append(z[origin].TransferTo, t...)
 					}
 					z[origin].NoReload = noReload
+					z[origin].Proxy = prxy
 				}
 			}
 		}

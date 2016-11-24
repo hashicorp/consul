@@ -27,6 +27,7 @@ TSIG key information, something like `transfer out [ADDRESS...] key [NAME[:ALG]]
 file DBFILE [ZONES... ] {
     transfer to ADDRESS...
     no_reload
+    upstream ADDRESS...
 }
 ~~~
 
@@ -36,6 +37,8 @@ file DBFILE [ZONES... ] {
   When an address is specified a notify message will be send whenever the zone is reloaded.
 * `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
   file. This option disables that behavior.
+* `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
+  pointing to external names.
 
 ## Examples
 

@@ -13,6 +13,8 @@ zonefile. New zones or changed zone are automatically picked up from disk.
 ~~~
 auto [ZONES...] {
     directory DIR [REGEXP ORIGIN_TEMPLATE [TIMEOUT]]
+    no_reload
+    upstream ADDRESS...
 }
 ~~~
 
@@ -26,6 +28,10 @@ are used.
   name `db.example.com`, the extracted origin will be `example.com`. **TIMEOUT** specifies how often
   CoreDNS should scan the directory, the default is every 60 seconds. This value is in seconds.
   The minimum value is 1 second.
+* `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
+  file. This option disables that behavior.
+* `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
+  pointing to external names.
 
 All directives from the *file* middleware are supported. Note that *auto* will load all zones found,
 even though the directive might only receive queries for a specific zone. I.e:

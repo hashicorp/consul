@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
 	"github.com/miekg/coredns/middleware/metrics"
+	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -33,6 +34,7 @@ type (
 		// In the future this should be something like ZoneMeta that contains all this stuff.
 		transferTo []string
 		noReload   bool
+		proxy      proxy.Proxy // Proxy for looking up names during the resolution process
 
 		duration time.Duration
 	}
@@ -73,7 +75,7 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return xfr.ServeDNS(ctx, w, r)
 	}
 
-	answer, ns, extra, result := z.Lookup(qname, state.QType(), state.Do())
+	answer, ns, extra, result := z.Lookup(state, qname)
 
 	m := new(dns.Msg)
 	m.SetReply(r)

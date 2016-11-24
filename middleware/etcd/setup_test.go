@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mholt/caddy"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
@@ -17,6 +16,7 @@ import (
 	"github.com/miekg/coredns/middleware/test"
 
 	etcdc "github.com/coreos/etcd/client"
+	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )

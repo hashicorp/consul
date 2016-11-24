@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
+	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -69,6 +70,12 @@ var cnameTestCases = []test.Case{
 		},
 	},
 	{
+		Qname: "dangling.example.org.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.CNAME("dangling.example.org. 1800	IN	CNAME foo.example.org."),
+		},
+	},
+	{
 		Qname: "www3.example.org.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
 			test.A("a.example.org. 1800	IN	A 127.0.0.1"),
@@ -76,6 +83,61 @@ var cnameTestCases = []test.Case{
 			test.CNAME("www1.example.org. 1800	IN	CNAME www.example.org."),
 			test.CNAME("www2.example.org. 1800	IN	CNAME www1.example.org."),
 			test.CNAME("www3.example.org. 1800	IN	CNAME www2.example.org."),
+		},
+	},
+}
+
+func TestLookupCNAMEExternal(t *testing.T) {
+	name := "example.org."
+	zone, err := Parse(strings.NewReader(dbExampleCNAME), name, "stdin")
+	if err != nil {
+		t.Fatalf("Expected no error when reading zone, got %q", err)
+	}
+	zone.Proxy = proxy.New([]string{"8.8.8.8:53"}) // TODO(miek): point to local instance
+
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{name: zone}, Names: []string{name}}}
+	ctx := context.TODO()
+
+	for _, tc := range exernalTestCases {
+		m := tc.Msg()
+
+		rec := dnsrecorder.New(&test.ResponseWriter{})
+		_, err := fm.ServeDNS(ctx, rec, m)
+		if err != nil {
+			t.Errorf("Expected no error, got %v\n", err)
+			return
+		}
+
+		resp := rec.Msg
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
+
+		if !test.Header(t, tc, resp) {
+			t.Logf("%v\n", resp)
+			continue
+		}
+
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
+			t.Logf("%v\n", resp)
+
+		}
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
+			t.Logf("%v\n", resp)
+		}
+	}
+}
+
+var exernalTestCases = []test.Case{
+	{
+		Qname: "external.example.org.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.CNAME("external.example.org. 1800	CNAME	www.example.net."),
+			// magic 303 TTL that says: don't check TTL.
+			test.A("www.example.net.	303	IN	A	93.184.216.34"),
 		},
 	},
 }
@@ -95,4 +157,5 @@ www3            IN      CNAME   www2
 www2            IN      CNAME   www1
 www1            IN      CNAME   www
 www             IN      CNAME   a
-dangling        IN      CNAME   foo`
+dangling        IN      CNAME   foo
+external        IN      CNAME   www.example.net.`

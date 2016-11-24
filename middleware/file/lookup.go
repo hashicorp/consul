@@ -2,6 +2,7 @@ package file
 
 import (
 	"github.com/miekg/coredns/middleware/file/tree"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -24,7 +25,11 @@ const (
 
 // Lookup looks up qname and qtype in the zone. When do is true DNSSEC records are included.
 // Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
-func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+
+	qtype := state.QType()
+	do := state.Do()
+
 	if !z.NoReload {
 		z.reloadMu.RLock()
 	}
@@ -118,9 +123,9 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	// Found entire name.
 	if found && shot {
 
-		// DNAME...
+		// DNAME...?
 		if rrs := elem.Types(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
-			return z.searchCNAME(elem, rrs, qtype, do)
+			return z.searchCNAME(state, elem, rrs)
 		}
 
 		rrs := elem.Types(qtype, qname)
@@ -152,7 +157,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		auth := []dns.RR{}
 
 		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
-			return z.searchCNAME(wildElem, rrs, qtype, do)
+			return z.searchCNAME(state, wildElem, rrs)
 		}
 
 		rrs := wildElem.Types(qtype, qname)
@@ -251,7 +256,11 @@ func (z *Zone) ns(do bool) []dns.RR {
 	return z.Apex.NS
 }
 
-func (z *Zone) searchCNAME(elem *tree.Elem, rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+func (z *Zone) searchCNAME(state request.Request, elem *tree.Elem, rrs []dns.RR) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+
+	qtype := state.QType()
+	do := state.Do()
+
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, dns.TypeCNAME)
@@ -260,8 +269,12 @@ func (z *Zone) searchCNAME(elem *tree.Elem, rrs []dns.RR, qtype uint16, do bool)
 		}
 	}
 
-	elem, _ = z.Tree.Search(rrs[0].(*dns.CNAME).Target)
+	targetName := rrs[0].(*dns.CNAME).Target
+	elem, _ = z.Tree.Search(targetName)
 	if elem == nil {
+		if !dns.IsSubDomain(z.origin, targetName) {
+			rrs = append(rrs, z.externalLookup(state, targetName, qtype)...)
+		}
 		return rrs, nil, nil, Success
 	}
 
@@ -279,8 +292,14 @@ Redo:
 				rrs = append(rrs, sigs...)
 			}
 		}
-		elem, _ = z.Tree.Search(cname[0].(*dns.CNAME).Target)
+		targetName := cname[0].(*dns.CNAME).Target
+		elem, _ = z.Tree.Search(targetName)
 		if elem == nil {
+			if !dns.IsSubDomain(z.origin, targetName) {
+				if !dns.IsSubDomain(z.origin, targetName) {
+					rrs = append(rrs, z.externalLookup(state, targetName, qtype)...)
+				}
+			}
 			return rrs, nil, nil, Success
 		}
 
@@ -316,6 +335,15 @@ func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
 		}
 	}
 	return ret
+}
+
+func (z *Zone) externalLookup(state request.Request, target string, qtype uint16) []dns.RR {
+	m, e := z.Proxy.Lookup(state, target, qtype)
+	if e != nil {
+		// TODO(miek): debugMsg for this as well? Log?
+		return nil
+	}
+	return m.Answer
 }
 
 // signatureForSubType range through the signature and return the correct ones for the subtype.
