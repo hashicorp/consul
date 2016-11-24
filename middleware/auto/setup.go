@@ -2,7 +2,6 @@ package auto
 
 import (
 	"log"
-	"net"
 	"os"
 	"path"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
 	"github.com/miekg/coredns/middleware/metrics"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/mholt/caddy"
@@ -149,13 +149,11 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					if len(args) == 0 {
 						return a, c.ArgErr()
 					}
-					for i := 0; i < len(args); i++ {
-						h, p, e := net.SplitHostPort(args[i])
-						if e != nil && p == "" {
-							args[i] = h + ":53"
-						}
+					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					if err != nil {
+						return a, err
 					}
-					a.loader.proxy = proxy.New(args)
+					a.loader.proxy = proxy.New(ups)
 
 				default:
 					t, _, e := file.TransferParse(c, false)

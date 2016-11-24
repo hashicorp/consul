@@ -2,7 +2,6 @@ package file
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path"
 
@@ -107,13 +106,11 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 					if len(args) == 0 {
 						return Zones{}, c.ArgErr()
 					}
-					for i := 0; i < len(args); i++ {
-						h, p, e := net.SplitHostPort(args[i])
-						if e != nil && p == "" {
-							args[i] = h + ":53"
-						}
+					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					if err != nil {
+						return Zones{}, err
 					}
-					prxy = proxy.New(args)
+					prxy = proxy.New(ups)
 				}
 
 				for _, origin := range origins {
