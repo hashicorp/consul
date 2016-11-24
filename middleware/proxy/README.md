@@ -10,7 +10,7 @@
 In its most basic form, a simple reverse proxy uses this syntax:
 
 ~~~
-proxy FROM To
+proxy FROM TO
 ~~~
 
 * **FROM** is the base path to match for the request to be proxied
@@ -68,13 +68,13 @@ proxy example.org localhost:9005
 Load-balance all requests between three backends (using random policy):
 
 ~~~
-proxy . web1.local:53 web2.local:1053 web3.local
+proxy . dns1.local:53 dns2.local:1053 dns3.local
 ~~~
 
 Same as above, but round-robin style:
 
 ~~~
-proxy . web1.local:53 web2.local:1053 web3.local {
+proxy . dns1.local:53 dns2.local:1053 dns3.local {
 	policy round_robin
 }
 ~~~
@@ -82,7 +82,7 @@ proxy . web1.local:53 web2.local:1053 web3.local {
 With health checks and proxy headers to pass hostname, IP, and scheme upstream:
 
 ~~~
-proxy . web1.local:53 web2.local:53 web3.local:53 {
+proxy . dns1.local:53 dns2.local:53 dns3.local:53 {
 	policy round_robin
 	health_check /health:8080
 }

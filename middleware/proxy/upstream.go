@@ -1,18 +1,17 @@
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 
 	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"
@@ -68,26 +67,9 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		}
 
 		// process the host list, substituting in any nameservers in files
-		var toHosts []string
-		for _, host := range to {
-			h, _, err := net.SplitHostPort(host)
-			if err != nil {
-				h = host
-			}
-			if x := net.ParseIP(h); x == nil {
-				// it's a file, parse as resolv.conf
-				c, err := dns.ClientConfigFromFile(host)
-				if err == os.ErrNotExist {
-					return upstreams, fmt.Errorf("not an IP address or file: `%s'", h)
-				} else if err != nil {
-					return upstreams, err
-				}
-				for _, s := range c.Servers {
-					toHosts = append(toHosts, net.JoinHostPort(s, c.Port))
-				}
-			} else {
-				toHosts = append(toHosts, host)
-			}
+		toHosts, err := dnsutil.ParseHostPortOrFile(to...)
+		if err != nil {
+			return upstreams, err
 		}
 
 		for c.NextBlock() {
@@ -99,7 +81,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		upstream.Hosts = make([]*UpstreamHost, len(toHosts))
 		for i, host := range toHosts {
 			uh := &UpstreamHost{
-				Name:        defaultHostPort(host),
+				Name:        host,
 				Conns:       0,
 				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
@@ -296,12 +278,4 @@ func (u *staticUpstream) IsAllowedPath(name string) bool {
 		}
 	}
 	return true
-}
-
-func defaultHostPort(s string) string {
-	_, _, e := net.SplitHostPort(s)
-	if e == nil {
-		return s
-	}
-	return net.JoinHostPort(s, "53")
 }

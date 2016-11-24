@@ -2,12 +2,12 @@ package file
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path"
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 
 	"github.com/mholt/caddy"
 )
@@ -125,24 +125,26 @@ func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, er
 			tos = c.RemainingArgs()
 			for i := range tos {
 				if tos[i] != "*" {
-					if x := net.ParseIP(tos[i]); x == nil {
-						return nil, nil, fmt.Errorf("must specify an IP address: `%s'", tos[i])
+					normalized, err := dnsutil.ParseHostPort(tos[i], "53")
+					if err != nil {
+						return nil, nil, err
 					}
-					tos[i] = middleware.Addr(tos[i]).Normalize()
+					tos[i] = normalized
 				}
 			}
 		}
 		if value == "from" {
 			if !secondary {
-				return nil, nil, fmt.Errorf("can't use `transfer from` when not being a seconary")
+				return nil, nil, fmt.Errorf("can't use `transfer from` when not being a secondary")
 			}
 			froms = c.RemainingArgs()
 			for i := range froms {
 				if froms[i] != "*" {
-					if x := net.ParseIP(froms[i]); x == nil {
-						return nil, nil, fmt.Errorf("must specify an IP address: `%s'", froms[i])
+					normalized, err := dnsutil.ParseHostPort(froms[i], "53")
+					if err != nil {
+						return nil, nil, err
 					}
-					froms[i] = middleware.Addr(froms[i]).Normalize()
+					froms[i] = normalized
 				} else {
 					return nil, nil, fmt.Errorf("can't use '*' in transfer from")
 				}
