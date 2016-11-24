@@ -71,7 +71,7 @@ func notifyAddr(c *dns.Client, m *dns.Msg, s string) (err error) {
 		}
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("Notify for zone %q was not accepted by %q: %q", m.Question[0].Name, s, err)
 	}
 	return fmt.Errorf("Notify for zone %q was not accepted by %q: rcode was %q", m.Question[0].Name, s, rcode.ToString(code))
 }
