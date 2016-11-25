@@ -17,8 +17,7 @@ cover all the possible methods. Instead, we will focus on using Consul's support
 [sessions](/docs/internals/sessions.html). Sessions allow us to build a system that
 can gracefully handle failures.
 
-Note that JSON output in this guide has been pretty-printed for easier
-reading.  Actual values returned from the API will not be formatted.
+-> **Note:** JSON output in this guide has been pretty-printed for easier reading. Actual values returned from the API will not be formatted.
 
 ## Contending Nodes
 
@@ -50,7 +49,7 @@ This will return a JSON object containing the session ID:
 
 The next step is to acquire a session for a given key from this node
 using the PUT method on a [KV entry](/docs/agent/http/kv.html) with the
-"?acquire=\<session\>" query parameter. The `<body>` of the PUT should be a
+`?acquire=<session>` query parameter. The `<body>` of the PUT should be a
 JSON object representing the local node. This value is opaque to
 Consul, but it should contain whatever information clients require to
 communicate with your application (e.g., it could be a JSON object
@@ -73,7 +72,7 @@ on `<key>`. This is because the lock may be released, the node may fail, etc.
 The leader must also watch for changes since its lock may be released by an operator
 or automatically released due to a false positive in the failure detector.
 
-Note that the session by default makes use of only the gossip failure detector. That
+By default, the session makes use of only the gossip failure detector. That
 is, the session is considered held by a node as long as the default Serf health check
 has not declared the node unhealthy. Additional checks can be specified if desired.
 
@@ -115,12 +114,14 @@ curl  http://localhost:8500/v1/kv/<key>
 ]
 ```
 
-If the key has no associated `Session`, then there is no leader. Otherwise, the value of
-the key will provide all the application-dependent information required as a Base64 encoded
-blob in the `Value` field.
+If the key has no associated `Session`, then there is no leader.
+Otherwise, the value of the key will provide all the
+application-dependent information required as a Base64 encoded blob in
+the `Value` field.
 
-You can query the [`/v1/session/info`](/docs/agent/http/session.html#session_info) endpoint
-to get details about the session:
+You can query the
+[`/v1/session/info`](/docs/agent/http/session.html#session_info)
+endpoint to get details about the session:
 
 ```text
 curl http://localhost:8500/v1/session/info/4ca8e74b-6350-7587-addf-a18084928f3c
@@ -130,7 +131,7 @@ curl http://localhost:8500/v1/session/info/4ca8e74b-6350-7587-addf-a18084928f3c
     "Checks": [
       "serfHealth"
     ],
-    "Node": "consul-master-bjsiobmvdij6-node-lhe5ihreel7y",
+    "Node": "consul-primary-bjsiobmvdij6-node-lhe5ihreel7y",
     "Name": "dbservice",
     "ID": "4ca8e74b-6350-7587-addf-a18084928f3c",
     "CreateIndex": 28
@@ -138,6 +139,7 @@ curl http://localhost:8500/v1/session/info/4ca8e74b-6350-7587-addf-a18084928f3c
 ]
 ```
 
-Clients should also watch the key using a blocking query for any changes. If the leader
-steps down or fails, the `Session` associated with the key will be cleared. When
-a new leader is elected, the key value will also be updated.
+Clients should also watch the key using a blocking query for any
+changes. If the leader steps down or fails, the `Session` associated
+with the key will be cleared. When a new leader is elected, the key
+value will also be updated.

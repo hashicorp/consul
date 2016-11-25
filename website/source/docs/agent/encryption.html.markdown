@@ -60,9 +60,9 @@ Consul requires that all clients and servers have key pairs that are generated b
 Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents, as in
 [this tutorial on generating both a CA and signing keys](http://russellsimpkins.blogspot.com/2015/10/consul-adding-tls-using-self-signed.html)
-using OpenSSL. Note: client certificates must have
-[Extended Key Usage](https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Extended-Key-Usage) enabled
-for client and server authentication.
+using OpenSSL. 
+
+-> **Note:** Client certificates must have [Extended Key Usage](https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Extended-Key-Usage) enabled for client and server authentication.
 
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
 These modes are controlled by the [`verify_outgoing`](/docs/agent/options.html#verify_outgoing),
@@ -78,9 +78,9 @@ appropriate key pair set using [`cert_file`](/docs/agent/options.html#cert_file)
 
 If [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname) is set, then
 outgoing connections perform hostname verification. All servers must have a certificate
-valid for "server.\<datacenter\>.\<domain\>" or the client will reject the handshake. This is
+valid for `server.<datacenter>.<domain>` or the client will reject the handshake. This is
 a new configuration as of 0.5.1, and it is used to prevent a compromised client from being
-able to restart in server mode and perform a MITM attack. New deployments should set this
+able to restart in server mode and perform a MITM (Man-In-The-Middle) attack. New deployments should set this
 to true, and generate the proper certificates, but this is defaulted to false to avoid breaking
 existing deployments.
 

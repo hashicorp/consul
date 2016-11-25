@@ -56,10 +56,10 @@ the agent's own node name is used.
 `Name` can be used to provide a human-readable name for the Session.
 
 `Checks` is used to provide a list of associated health checks. It is highly recommended
-that, if you override this list, you include the default "serfHealth".
+that, if you override this list, you include the default `serfHealth`.
 
 `Behavior` can be set to either `release` or `delete`. This controls
-the behavior when a session is invalidated. By default, this is `release`, 
+the behavior when a session is invalidated. By default, this is `release`,
 causing any locks that are held to be released. Changing this to `delete`
 causes any locks that are held to be deleted. `delete` is useful for creating ephemeral
 key/value entries.
@@ -84,7 +84,7 @@ The return code is 200 on success and returns the ID of the created session:
 ### <a name="session_destroy"></a> /v1/session/destroy/\<session\>
 
 The destroy endpoint is hit with a PUT and destroys the given session.
-By default, the local datacenter is used, but the "?dc=" query parameter
+By default, the local datacenter is used, but the `?dc=` query parameter
 can be used to specify the datacenter.
 
 The session being destroyed must be provided on the path.
@@ -95,7 +95,7 @@ The return code is 200 on success.
 
 This endpoint is hit with a GET and returns the requested session information
 within a given datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the dc can be provided using the `?dc=` query parameter.
 The session being queried must be provided on the path.
 
 It returns a JSON body like this:
@@ -121,7 +121,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a GET and returns the active sessions
 for a given node and datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the dc can be provided using the `?dc=` query parameter.
 
 The node being queried must be provided on the path.
 
@@ -148,7 +148,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a GET and returns the active sessions
 for a given datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the dc can be provided using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 
@@ -173,7 +173,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 The renew endpoint is hit with a PUT and renews the given session.
 This is used with sessions that have a TTL, and it extends the
-expiration by the TTL. By default, the local datacenter is used, but the "?dc="
+expiration by the TTL. By default, the local datacenter is used, but the `?dc=`
 query parameter can be used to specify the datacenter.
 
 The session being renewed must be provided on the path.
@@ -198,6 +198,5 @@ The return code is 200 on success.  The response JSON body looks like this:
 
 The response body includes the current session.
 
-Note: Consul MAY return a TTL value higher than the one specified during session creation.
-This indicates the server is under high load and is requesting clients renew less
-often.
+-> **Note:** Consul MAY return a TTL value higher than the one specified during session creation. This indicates the server is under high load and is requesting clients renew less often.
+

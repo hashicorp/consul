@@ -121,7 +121,7 @@ configuration to the target datacenter.
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
 configuration](/docs/agent/options.html#acl_master_token) which will be created
-as a "management" type token if it does not exist. Note that the [`acl_master_token`
+as a "management" type token if it does not exist. The [`acl_master_token`
 ](/docs/agent/options.html#acl_master_token) is only installed when a server acquires
 cluster leadership. If you would like to install or change the
 [`acl_master_token`](/docs/agent/options.html#acl_master_token), set the new value for
@@ -301,7 +301,7 @@ service "" {
 }
 ```
 
-Note that the above will allow access for reading service information only. This
+The above will allow access for reading service information only. This
 level of access allows discovering other services in the system, but is not
 enough to allow the agent to sync its services and checks into the global
 catalog during [anti-entropy](/docs/internals/anti-entropy.html).

@@ -241,7 +241,7 @@ will exit with an error at startup.
 
 * <a name="_log_level"></a><a href="#_log_level">`-log-level`</a> - The level of logging to
   show after the Consul agent has started. This defaults to "info". The available log levels are
-  "trace", "debug", "info", "warn", and "err". Note that you can always connect to an
+  "trace", "debug", "info", "warn", and "err". You can always connect to an
   agent via [`consul monitor`](/docs/commands/monitor.html) and use any log level. Also, the
   log level can be changed during a config reload.
 
@@ -344,7 +344,7 @@ definitions support being updated during a reload.
 }
 ```
 
-Note the use of `ports`:
+See, especially, the use of the `ports` setting:
 
 ```javascript
 "ports": {
@@ -382,10 +382,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   permissions if it does not exist. It allows operators to bootstrap the ACL system
   with a token ID that is well-known.
   <br><br>
-  Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
+  The `acl_master_token` is only installed when a server acquires cluster leadership. If
   you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
-  leader election. If the acl_master_token is not supplied, then the servers do not create a master
+  leader election. If the `acl_master_token` is not supplied, then the servers do not create a master
   token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
   the same as the other tokens, but isn't strictly necessary.
 
@@ -887,7 +887,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sockets created by Consul:
   <br>
   * `user` - The name or ID of the user who will own the socket file.
-  * `group` - The group ID ownership of the socket file. Note that this option
+  * `group` - The group ID ownership of the socket file. This option
     currently only supports numeric IDs.
   * `mode` - The permission bits to set on the file.
 
@@ -896,7 +896,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
-  applies to both server RPC and to the HTTPS API. Note: to enable the HTTPS API, you
+  applies to both server RPC and to the HTTPS API. To enable the HTTPS API, you
   must define an HTTPS port via the [`ports`](#ports) configuration. By default, HTTPS
   is disabled.
 

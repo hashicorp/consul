@@ -21,8 +21,7 @@ cover all the possible methods. Instead, we will focus on using Consul's support
 [sessions](/docs/internals/sessions.html). Sessions allow us to build a system that
 can gracefully handle failures.
 
-Note that JSON output in this guide has been pretty-printed for easier
-reading.  Actual values returned from the API will not be formatted.
+-> **Note:** JSON output in this guide has been pretty-printed for easier reading.  Actual values returned from the API will not be formatted.
 
 ## Contending Nodes
 
