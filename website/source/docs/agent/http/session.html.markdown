@@ -26,7 +26,7 @@ The create endpoint is used to initialize a new session.
 There is more documentation on sessions [here](/docs/internals/sessions.html).
 Sessions must be associated with a node and may be associated with any number of checks.
 
-The create endpoint expects a JSON request body to be PUT. The request
+The create endpoint expects a JSON request body to be `PUT`. The request
 body must look like:
 
 ```javascript
@@ -44,10 +44,10 @@ None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used.
 
 By default, the agent's local datacenter is used; another datacenter
-can be specified using the "?dc=" query parameter. However, it is not recommended
+can be specified using the `?dc=` query parameter. However, it is not recommended
 to use cross-datacenter sessions.
 
-`LockDelay` can be specified as a duration string using a "s" suffix for
+`LockDelay` can be specified as a duration string using an `s` suffix for
 seconds. The default is 15s.
 
 `Node` must refer to a node that is already registered, if specified. By default,
@@ -64,7 +64,7 @@ causing any locks that are held to be released. Changing this to `delete`
 causes any locks that are held to be deleted. `delete` is useful for creating ephemeral
 key/value entries.
 
-The `TTL` field is a duration string, and like `LockDelay` it can use "s" as
+The `TTL` field is a duration string, and like `LockDelay` it can use `s` as
 a suffix for seconds. If specified, it must be between 10s and 86400s currently.
 When provided, the session is invalidated if it is not renewed before the TTL
 expires. The lowest practical TTL should be used to keep the number of managed
@@ -83,7 +83,7 @@ The return code is 200 on success and returns the ID of the created session:
 
 ### <a name="session_destroy"></a> /v1/session/destroy/\<session\>
 
-The destroy endpoint is hit with a PUT and destroys the given session.
+The destroy endpoint is hit with a `PUT` and destroys the given session.
 By default, the local datacenter is used, but the `?dc=` query parameter
 can be used to specify the datacenter.
 
@@ -93,7 +93,7 @@ The return code is 200 on success.
 
 ### <a name="session_info"></a> /v1/session/info/\<session\>
 
-This endpoint is hit with a GET and returns the requested session information
+This endpoint is hit with a `GET` and returns the requested session information
 within a given datacenter. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the `?dc=` query parameter.
 The session being queried must be provided on the path.
@@ -119,7 +119,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="session_node"></a> /v1/session/node/\<node\>
 
-This endpoint is hit with a GET and returns the active sessions
+This endpoint is hit with a `GET` and returns the active sessions
 for a given node and datacenter. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the `?dc=` query parameter.
 
@@ -146,7 +146,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="session_list"></a> /v1/session/list
 
-This endpoint is hit with a GET and returns the active sessions
+This endpoint is hit with a `GET` and returns the active sessions
 for a given datacenter. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the `?dc=` query parameter.
 
@@ -171,7 +171,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="session_renew"></a> /v1/session/renew/\<session\>
 
-The renew endpoint is hit with a PUT and renews the given session.
+The renew endpoint is hit with a `PUT` and renews the given session.
 This is used with sessions that have a TTL, and it extends the
 expiration by the TTL. By default, the local datacenter is used, but the `?dc=`
 query parameter can be used to specify the datacenter.
