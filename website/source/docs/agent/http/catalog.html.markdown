@@ -184,7 +184,7 @@ used as a simple check to see if any Consul servers are routable.
 
 This endpoint is hit with a `GET` and returns the nodes registered
 in a given DC. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 Adding the optional `?near=` parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
@@ -220,7 +220,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a `GET` and returns the services registered
 in a given DC. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 
@@ -244,7 +244,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a `GET` and returns the nodes providing a service
 in a given DC. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 The service being queried must be provided on the path. By default
 all nodes in that service are returned. However, the list can be filtered
@@ -300,7 +300,7 @@ The returned fields are as follows:
 
 This endpoint is hit with a `GET` and returns the node's registered services.
 By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 The node being queried must be provided on the path.
 
 It returns a JSON body like this:

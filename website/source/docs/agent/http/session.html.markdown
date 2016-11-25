@@ -95,7 +95,7 @@ The return code is 200 on success.
 
 This endpoint is hit with a `GET` and returns the requested session information
 within a given datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 The session being queried must be provided on the path.
 
 It returns a JSON body like this:
@@ -121,7 +121,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a `GET` and returns the active sessions
 for a given node and datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 The node being queried must be provided on the path.
 
@@ -148,7 +148,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 This endpoint is hit with a `GET` and returns the active sessions
 for a given datacenter. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the `?dc=` query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 
