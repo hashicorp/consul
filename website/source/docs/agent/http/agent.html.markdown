@@ -439,7 +439,7 @@ information.
 
 If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL`
 should be specified. `Script` and `HTTP` also require `Interval`. The
-created check will be named "service:\<ServiceId\>".
+created check will be named `service:<ServiceId>`.
 
 In Consul 0.7 and later, checks that are associated with a service may
 also contain an optional `DeregisterCriticalServiceAfter` field, which
