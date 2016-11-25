@@ -276,7 +276,7 @@ only a single catch-all template can be registered at any time.
 
 #### GET Method
 
-When using the GET method, Consul will provide a listing of all prepared queries.
+When using the `GET` method, Consul will provide a listing of all prepared queries.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the `?dc=` query parameter. This endpoint supports blocking

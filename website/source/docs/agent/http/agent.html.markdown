@@ -43,7 +43,7 @@ due to changes being made while there is no leader elected. The agent performs a
 [anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
 be in sync within a few seconds.
 
-This endpoint is hit with a GET and returns a JSON body like this:
+This endpoint is hit with a `GET` and returns a JSON body like this:
 
 ```javascript
 {
@@ -70,7 +70,7 @@ due to changes being made while there is no leader elected. The agent performs a
 [anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
 be in sync within a few seconds.
 
-This endpoint is hit with a GET and returns a JSON body like this:
+This endpoint is hit with a `GET` and returns a JSON body like this:
 
 ```javascript
 {
@@ -89,12 +89,12 @@ This endpoint is hit with a GET and returns a JSON body like this:
 This endpoint is used to return the members the agent sees in the
 cluster gossip pool. Due to the nature of gossip, this is eventually consistent: the
 results may differ by agent. The strongly consistent view of nodes is
-instead provided by "/v1/catalog/nodes".
+instead provided by `/v1/catalog/nodes`.
 
 For agents running in server mode, providing a `?wan=1` query parameter returns
 the list of WAN members instead of the LAN members returned by default.
 
-This endpoint is hit with a GET and returns a JSON body like:
+This endpoint is hit with a `GET` and returns a JSON body like:
 
 ```javascript
 [
@@ -213,7 +213,7 @@ The return code is 200 on success.
 
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
-This endpoint is hit with a GET and is used to instruct the agent to attempt to
+This endpoint is hit with a `GET` and is used to instruct the agent to attempt to
 connect to a given address.  For agents running in server mode, providing a `?wan=1`
 query parameter causes the agent to attempt to join using the WAN pool.
 
@@ -221,7 +221,7 @@ The return code is 200 on success.
 
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
-This endpoint is hit with a GET and is used to instruct the agent to
+This endpoint is hit with a `GET` and is used to instruct the agent to
 force a node into the `left` state.  If a node fails unexpectedly, then
 it will be in a `failed` state. Once in the `failed` state, Consul will
 attempt to reconnect, and the services and checks belonging to that node
@@ -237,7 +237,7 @@ There is more documentation on checks [here](/docs/agent/checks.html).
 Checks may be of script, HTTP, TCP, or TTL type. The agent is responsible for
 managing the status of the check and keeping the Catalog in sync.
 
-The register endpoint expects a JSON request body to be PUT. The request
+The register endpoint expects a JSON request body to be `PUT`. The request
 body must look like:
 
 ```javascript
@@ -282,7 +282,7 @@ If a `DockerContainerID` is provided, the check is a Docker check, and Consul wi
 evaluate the script every `Interval` in the given container using the specified
 `Shell`. Note that `Shell` is currently only supported for Docker checks.
 
-An `HTTP` check will perform an HTTP GET request against the value of
+An `HTTP` check will perform an HTTP `GET` request against the value of
 `HTTP` (expected to be a URL) every `Interval`. If the response is any
 `2xx` code, the check is `passing`.  If the response is `429 Too Many
 Requests`, the check is `warning`. Otherwise, the check is `critical`.
@@ -330,7 +330,7 @@ The return code is 200 on success.
 ### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed via a GET, the status of the check is set to `passing`
+When this endpoint is accessed via a `GET`, the status of the check is set to `passing`
 and the TTL clock is reset.
 
 The optional `?note=` query parameter can be used to associate a
@@ -342,7 +342,7 @@ The return code is 200 on success.
 ### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed via a GET, the status of the check is set to `warning`,
+When this endpoint is accessed via a `GET`, the status of the check is set to `warning`,
 and the TTL clock is reset.
 
 The optional `?note=` query parameter can be used to associate a
@@ -355,7 +355,7 @@ The return code is 200 on success.
 
 This endpoint is used with a check that is of the [TTL
 type](/docs/agent/checks.html).  When this endpoint is accessed via a
-GET, the status of the check is set to `critical`, and the TTL clock is
+`GET`, the status of the check is set to `critical`, and the TTL clock is
 reset.
 
 The optional `?note=` query parameter can be used to associate a
@@ -367,7 +367,7 @@ The return code is 200 on success.
 ### <a name="agent_check_update"></a> /v1/agent/check/update/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed with a PUT, the status and output of the check are
+When this endpoint is accessed with a `PUT`, the status and output of the check are
 updated and the TTL clock is reset.
 
 This endpoint expects a JSON request body to be put. The request body must look like:
@@ -399,7 +399,7 @@ for managing the status of its local services, and for sending updates
 about its local services to the servers to keep the global Catalog in
 sync.
 
-The register endpoint expects a JSON request body to be PUT. The request
+The register endpoint expects a JSON request body to be `PUT`. The request
 body must look like:
 
 ```javascript
@@ -502,7 +502,7 @@ The service maintenance endpoint allows placing a given service into
 "maintenance mode". During maintenance mode, the service will be marked as
 unavailable and will not be present in DNS or API queries. This API call is
 idempotent. Maintenance mode is persistent and will be automatically restored
-on agent restart. The maintenance endpoint expects a PUT request.
+on agent restart. The maintenance endpoint expects a `PUT` request.
 
 The `?enable` flag is required.  Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
