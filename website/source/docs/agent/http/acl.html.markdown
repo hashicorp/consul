@@ -32,7 +32,7 @@ to a root user and has the ability to perform any action including
 creating, modifying, and deleting ACLs.
 
 By contrast, a client token can only perform actions as permitted by the
-rules associated. Client tokens can never manage ACLs.  Given this limitation,
+rules associated. Client tokens can never manage ACLs. Given this limitation,
 only a management token can be used to make requests to the `/v1/acl/create`
 endpoint.
 
@@ -99,7 +99,7 @@ The format of `Rules` is [documented here](/docs/internals/acl.html).
 
 ### <a name="acl_destroy"></a> /v1/acl/destroy/\<id\>
 
-The destroy endpoint must be hit with a `PUT`.  This endpoint destroys the ACL
+The destroy endpoint must be hit with a `PUT`. This endpoint destroys the ACL
 token identified by the `id` portion of the path.
 
 The request is automatically routed to the authoritative ACL datacenter.
@@ -107,7 +107,7 @@ Requests to this endpoint must be made with a management token.
 
 ### <a name="acl_info"></a> /v1/acl/info/\<id\>
 
-The info endpoint must be hit with a `GET`.  This endpoint returns the ACL
+The info endpoint must be hit with a `GET`. This endpoint returns the ACL
 token information identified by the `id` portion of the path.
 
 It returns a JSON body like this:

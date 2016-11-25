@@ -10,7 +10,7 @@ description: >
 
 The Agent endpoints are used to interact with the local Consul agent. Usually,
 services and checks are registered with an agent which then takes on the
-burden of keeping that data synchronized with the cluster.  For example, the
+burden of keeping that data synchronized with the cluster. For example, the
 agent registers services and checks with the Catalog and performs
 [anti-entropy](/docs/internals/anti-entropy.html) to recover from outages.
 
@@ -202,10 +202,10 @@ During maintenance mode, the node will be marked as unavailable and will not be
 present in DNS or API queries. This API call is idempotent. Maintenance mode is
 persistent and will be automatically restored on agent restart.
 
-The `?enable` flag is required.  Acceptable values are either `true` (to enter
+The `?enable` flag is required. Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
 
-The `?reason` flag is optional.  If provided, its value should be a text string
+The `?reason` flag is optional. If provided, its value should be a text string
 explaining the reason for placing the node into maintenance mode. This is simply
 to aid human operators. If no reason is provided, a default value will be used instead.
 
@@ -214,7 +214,7 @@ The return code is 200 on success.
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
 This endpoint is hit with a `GET` and is used to instruct the agent to attempt to
-connect to a given address.  For agents running in server mode, providing a `?wan=1`
+connect to a given address. For agents running in server mode, providing a `?wan=1`
 query parameter causes the agent to attempt to join using the WAN pool.
 
 The return code is 200 on success.
@@ -222,7 +222,7 @@ The return code is 200 on success.
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
 This endpoint is hit with a `GET` and is used to instruct the agent to
-force a node into the `left` state.  If a node fails unexpectedly, then
+force a node into the `left` state. If a node fails unexpectedly, then
 it will be in a `failed` state. Once in the `failed` state, Consul will
 attempt to reconnect, and the services and checks belonging to that node
 will not be cleaned up. Forcing a node into the `left` state allows its
@@ -284,10 +284,10 @@ evaluate the script every `Interval` in the given container using the specified
 
 An `HTTP` check will perform an HTTP `GET` request against the value of
 `HTTP` (expected to be a URL) every `Interval`. If the response is any
-`2xx` code, the check is `passing`.  If the response is `429 Too Many
+`2xx` code, the check is `passing`. If the response is `429 Too Many
 Requests`, the check is `warning`. Otherwise, the check is `critical`.
 HTTP checks also support SSL. By default, a valid SSL certificate is
-expected.  Certificate verification can be controlled using the
+expected. Certificate verification can be controlled using the
 `TLSSkipVerify`.
 
 If `TLSSkipVerify` is set to `true`, certificate verification will be
@@ -295,8 +295,8 @@ disabled. By default, certificate verification is enabled.
 
 A `TCP` check will perform an TCP connection attempt against the value of `TCP`
 (expected to be an IP or hostname plus port combination) every `Interval`. If the
-connection attempt is successful, the check is `passing`.  If the connection
-attempt is unsuccessful, the check is `critical`.  In the case of a hostname
+connection attempt is successful, the check is `passing`. If the connection
+attempt is unsuccessful, the check is `critical`. In the case of a hostname
 that resolves to both IPv4 and IPv6 addresses, an attempt will be made to both
 addresses, and the first successful connection attempt will result in a
 successful check.
@@ -354,7 +354,7 @@ The return code is 200 on success.
 ### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL
-type](/docs/agent/checks.html).  When this endpoint is accessed via a
+type](/docs/agent/checks.html). When this endpoint is accessed via a
 `GET`, the status of the check is set to `critical`, and the TTL clock is
 reset.
 
@@ -394,7 +394,7 @@ The return code is 200 on success.
 
 The register endpoint is used to add a new service, with an optional
 health check, to the local agent. There is more documentation on
-services [here](/docs/agent/services.html).  The agent is responsible
+services [here](/docs/agent/services.html). The agent is responsible
 for managing the status of its local services, and for sending updates
 about its local services to the servers to keep the global Catalog in
 sync.
@@ -423,8 +423,8 @@ body must look like:
 }
 ```
 
-The `Name` field is mandatory.  If an `ID` is not provided, it is set to
-`Name`.  You cannot have duplicate `ID` entries per agent, so it may be
+The `Name` field is mandatory. If an `ID` is not provided, it is set to
+`Name`. You cannot have duplicate `ID` entries per agent, so it may be
 necessary to provide an ID in the case of a collision.
 
 `Tags`, `Address`, `Port`, `Check` and `EnableTagOverride` are optional.
@@ -474,8 +474,8 @@ service. If you have multiple nodes all registering the same service
 their `EnableTagOverride` configuration and all other service
 configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
-service (by name) registered on another node.  If `EnableTagOverride` is
-not specified the default value is `false`.  See [anti-entropy
+service (by name) registered on another node. If `EnableTagOverride` is
+not specified the default value is `false`. See [anti-entropy
 syncs](/docs/internals/anti-entropy.html) for more info.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
@@ -504,10 +504,10 @@ unavailable and will not be present in DNS or API queries. This API call is
 idempotent. Maintenance mode is persistent and will be automatically restored
 on agent restart. The maintenance endpoint expects a `PUT` request.
 
-The `?enable` flag is required.  Acceptable values are either `true` (to enter
+The `?enable` flag is required. Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
 
-The `?reason` flag is optional.  If provided, its value should be a text string
+The `?reason` flag is optional. If provided, its value should be a text string
 explaining the reason for placing the service into maintenance mode. This is simply
 to aid human operators. If no reason is provided, a default value will be used instead.
 

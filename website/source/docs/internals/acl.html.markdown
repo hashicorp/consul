@@ -17,7 +17,7 @@ on tokens to which fine grained rules can be applied. It is very similar to
 ## Scope
 
 When the ACL system was launched in Consul 0.4, it was only possible to specify
-policies for the KV store.  In Consul 0.5, ACL policies were extended to service
+policies for the KV store. In Consul 0.5, ACL policies were extended to service
 registrations. In Consul 0.6, ACL's were further extended to restrict service
 discovery mechanisms, user events, and encryption keyring operations.
 

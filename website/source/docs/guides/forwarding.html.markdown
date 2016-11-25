@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Forwarding"
 sidebar_current: "docs-guides-forwarding"
 description: |-
-  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
+  By default, DNS is served from port 53. On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
 ---
 
 # Forwarding DNS
@@ -16,7 +16,7 @@ running on an unprivileged port, from another DNS server or port redirect.
 In this guide, we will demonstrate forwarding from
 [BIND](https://www.isc.org/downloads/bind/) as well as
 [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and
-[iptables](http://www.netfilter.org/).  For the sake of simplicity, BIND
+[iptables](http://www.netfilter.org/). For the sake of simplicity, BIND
 and Consul are running on the same machine in this example. For iptables
 the rules must be set on the same host as the Consul instance and relay
 hosts should not be on the same host or the redirects will intercept the
@@ -80,7 +80,7 @@ DNS on port 8600.
 ### Dnsmasq Setup
 
 Dnsmasq is typically configured via a `dnsmasq.conf` or a series of files in
-the `/etc/dnsmasq.d` directory.  In Dnsmasq's configuration file
+the `/etc/dnsmasq.d` directory. In Dnsmasq's configuration file
 (e.g. `/etc/dnsmasq.d/10-consul`), add the following:
 
 ```text
@@ -118,8 +118,8 @@ for additional details):
 #no-resolv
 
 # Specify IP address(es) of other DNS servers for queries not handled
-# directly by consul.  There is normally one 'server' entry set for every
-# 'nameserver' parameter found in '/etc/resolv.conf'.  See dnsmasq(8)'s
+# directly by consul. There is normally one 'server' entry set for every
+# 'nameserver' parameter found in '/etc/resolv.conf'. See dnsmasq(8)'s
 # 'server' configuration option for details.
 #server=1.2.3.4
 #server=208.67.222.222

@@ -178,7 +178,7 @@ you may supply the `?stale` or `?consistent` query parameters with the
 request to control consistency. To support bounding the acceptable
 staleness of data, read-only transaction responses provide the
 `X-Consul-LastContact` header containing the time in milliseconds that a
-server was last contacted by the leader node.  The
+server was last contacted by the leader node. The
 `X-Consul-KnownLeader` header also indicates if there is a known leader.
 These won't be present if the transaction contains any write operations,
 and any consistency query parameters will be ignored, since writes are
@@ -213,7 +213,7 @@ available verbs.
 
 * `Key` is simply the full path of the entry.
 
-* `Value` is a Base64-encoded blob of data.  Values cannot be larger than
+* `Value` is a Base64-encoded blob of data. Values cannot be larger than
 512kB.
 
 * `Flags` is an opaque unsigned integer that can be attached to each entry. Clients

@@ -72,7 +72,7 @@ Since a join operation is symmetric, it does not matter which node initiates it.
 
 As a sanity check, the [`consul info`](/docs/commands/info.html) command
 is a useful tool. It can be used to verify `raft.num_peers` is now 2,
-and you can view the latest log index under `raft.last_log_index`.  When
+and you can view the latest log index under `raft.last_log_index`. When
 running [`consul info`](/docs/commands/info.html) on the followers, you
 should see `raft.last_log_index` converge to the same value once the
 leader begins replication. That value represents the last log entry that
@@ -80,7 +80,7 @@ has been stored on disk.
 
 Now that the servers are all started and replicating to each other, all
 the remaining clients can be joined. Clients are much easier as they can
-join against any existing node.  All nodes participate in a gossip
+join against any existing node. All nodes participate in a gossip
 protocol to perform basic discovery, so once joined to any member of the
 cluster, new clients will automatically find the servers and register
 themselves.

@@ -18,7 +18,7 @@ Enabling gossip encryption only requires that you set an encryption key when
 starting the Consul agent. The key can be set via the `encrypt` parameter: the
 value of this setting is a configuration file containing the encryption key.
 
-The key must be 16-bytes, Base64 encoded.  As a convenience, Consul provides the
+The key must be 16-bytes, Base64 encoded. As a convenience, Consul provides the
 [`consul keygen`](/docs/commands/keygen.html) command to generate a
 cryptographically suitable key:
 

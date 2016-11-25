@@ -38,7 +38,7 @@ A service definition that is a script looks like:
 ```
 
 A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`.  The
+`id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`. The
 `id` is set to the `name` if not provided. It is required that all
 services have a unique ID per node, so if names might conflict then
 unique IDs should be provided.
@@ -92,10 +92,10 @@ modifications would be lost.
 It's important to note that this applies only to the locally registered
 service. If you have multiple nodes all registering the same service
 their `enableTagOverride` configuration and all other service
-configuration items are independent of one another.  Updating the tags
+configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
 service (by name) registered on another node. If `enableTagOverride` is
-not specified the default value is false.  See [anti-entropy
+not specified the default value is false. See [anti-entropy
 syncs](/docs/internals/anti-entropy.html) for more info.
 
 To configure a service, either provide it as a `-config-file` option to

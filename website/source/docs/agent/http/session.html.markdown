@@ -178,7 +178,7 @@ query parameter can be used to specify the datacenter.
 
 The session being renewed must be provided on the path.
 
-The return code is 200 on success.  The response JSON body looks like this:
+The return code is 200 on success. The response JSON body looks like this:
 
 ```javascript
 [
