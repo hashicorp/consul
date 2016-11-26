@@ -13,7 +13,7 @@ In its most basic form, a simple reverse proxy uses this syntax:
 proxy FROM TO
 ~~~
 
-* **FROM** is the base path to match for the request to be proxied
+* **FROM** is the base domain to match for the request to be proxied
 * **TO** is the destination endpoint to proxy to
 
 However, advanced features including load balancing can be utilized with an expanded syntax:
