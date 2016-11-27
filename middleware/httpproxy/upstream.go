@@ -22,7 +22,7 @@ func newSimpleUpstream(hosts []string) (*simpleUpstream, error) {
 	upstream := &simpleUpstream{
 		Hosts:       nil,
 		Policy:      &proxy.Random{},
-		FailTimeout: 10 * time.Second,
+		FailTimeout: 3 * time.Second,
 		MaxFails:    3,
 	}
 

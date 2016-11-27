@@ -73,7 +73,7 @@ func (g *google) Exchange(req *dns.Msg) (*dns.Msg, error) {
 
 		timeout := addr.FailTimeout
 		if timeout == 0 {
-			timeout = 10 * time.Second
+			timeout = 5 * time.Second
 		}
 		atomic.AddInt32(&addr.Fails, 1)
 		go func(host *proxy.UpstreamHost, timeout time.Duration) {
@@ -185,7 +185,7 @@ func (g *google) lookup(r *dns.Msg) ([]string, error) {
 
 		timeout := host.FailTimeout
 		if timeout == 0 {
-			timeout = 10 * time.Second
+			timeout = 7 * time.Second
 		}
 		atomic.AddInt32(&host.Fails, 1)
 		go func(host *proxy.UpstreamHost, timeout time.Duration) {
