@@ -25,12 +25,12 @@
 #   * push to github
 #   * build the release and do all that fluff.
 
-NAME=coredns
+NAME:=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
-ARCH=$(shell uname -m)
-GITHUB=miekg
+ARCH:=$(shell uname -m)
+GITHUB:=miekg
 
-all:	commit push build release
+all:	commit push build tar release
 
 .PHONY: push
 push:
@@ -44,16 +44,22 @@ commit:
 
 .PHONY: build
 build:
-	@echo Releasing: $(VERSION)
-	mkdir -p build/Darwin && CGO_ENABLED=0 GOOS=darwin go build -ldflags="-s -w" -o build/Darwin/$(NAME)
-	mkdir -p build/Linux  && CGO_ENABLED=0 GOOS=linux  go build -ldflags="-s -w" -o build/Linux/$(NAME)
+	@echo Building: $(VERSION)
+	mkdir -p build/Darwin     && CGO_ENABLED=0 GOOS=darwin            go build -ldflags="-s -w" -o build/Darwin/$(NAME)
+	mkdir -p build/Linux/Arm  && CGO_ENABLED=0 GOOS=linux GOARCH=arm  go build -ldflags="-s -w" -o build/Linux/Arm/$(NAME)
+	mkdir -p build/Linux      && CGO_ENABLED=0 GOOS=linux             go build -ldflags="-s -w" -o build/Linux/$(NAME)
 
+
+.PHONY: tar
+tar:
+	rm -rf release && mkdir release
+	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/Linux $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_armv6l.tgz -C build/Linux/Arm $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/Darwin $(NAME)
 
 .PHONY: release
 release:
-	rm -rf release && mkdir release
-	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/Linux $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/Darwin $(NAME)
+	@echo Releasing: $(VERSION)
 	gh-release create $(GITHUB)/$(NAME) $(VERSION)
 
 .PHONY: clean
