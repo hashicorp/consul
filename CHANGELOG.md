@@ -3,6 +3,7 @@
 FEATURES:
 
 * **Keyring API:** A new `/v1/operator/keyring` API was added that allows for performing operations such as list, install, use, and remove on the encryption keys in the gossip keyring. See the [Keyring Endpoint](https://www.consul.io/docs/agent/http/operator.html#keyring) for more details. [GH-2509]
+* **Monitor API:** A new `/v1/agent/monitor` API was added to allow for viewing streaming log output from the agent, similar to the `consul monitor` command. See the [Monitor Endpoint](https://www.consul.io/docs/agent/http/agent.html#agent_monitor) for more details. [GH-2511]
 
 IMPROVEMENTS:
 
