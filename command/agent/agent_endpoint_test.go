@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1028,23 +1029,53 @@ func TestHTTPAgent_Monitor(t *testing.T) {
 	expectedLogs := bytes.Buffer{}
 	logger := io.MultiWriter(os.Stdout, &expectedLogs, logWriter)
 
-	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger)
+	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger, logWriter)
 	srv.agent.logWriter = logWriter
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Begin streaming logs from the monitor endpoint
-	req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+	// Try passing an invalid log level
+	req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=invalid", nil)
 	resp := newClosableRecorder()
+	if _, err := srv.AgentMonitor(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != 400 {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	if !strings.Contains(string(body), "Unknown log level") {
+		t.Fatalf("bad: %s", body)
+	}
+
+	// Begin streaming logs from the monitor endpoint
+	req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+	resp = newClosableRecorder()
 	go func() {
 		if _, err := srv.AgentMonitor(resp, req); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}()
 
-	// Write the incoming logs to a channel for reading
-	logCh := make(chan string, 0)
+	// Write the incoming logs from http to a channel for comparison
+	logCh := make(chan string, 5)
+
+	// Block until the first log entry from http
+	testutil.WaitForResult(func() (bool, error) {
+		line, err := resp.Body.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		if line == "" {
+			return false, fmt.Errorf("blank line")
+		}
+		logCh <- line
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
+
 	go func() {
 		for {
 			line, err := resp.Body.ReadString('\n')

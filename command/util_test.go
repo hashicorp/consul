@@ -74,7 +74,7 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 	}
 	conf.DataDir = dir
 
-	a, err := agent.Create(conf, lw)
+	a, err := agent.Create(conf, lw, nil)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))

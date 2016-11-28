@@ -466,12 +466,11 @@ func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
 // setupAgent is used to start the agent and various interfaces
 func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) error {
 	c.Ui.Output("Starting Consul agent...")
-	agent, err := Create(config, logOutput)
+	agent, err := Create(config, logOutput, logWriter)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return err
 	}
-	agent.logWriter = logWriter
 	c.agent = agent
 
 	// Setup the RPC listener

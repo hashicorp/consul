@@ -403,6 +403,15 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		return nil, nil
 	}
 
+	var args structs.DCSpecificRequest
+	args.Datacenter = s.agent.config.Datacenter
+	s.parseToken(req, &args.Token)
+	// Validate that the given token has operator permissions
+	var reply structs.RaftConfigurationResponse
+	if err := s.agent.RPC("Operator.RaftGetConfiguration", &args, &reply); err != nil {
+		return nil, err
+	}
+
 	// Get the provided loglevel
 	logLevel := req.URL.Query().Get("loglevel")
 	if logLevel == "" {
@@ -441,6 +450,10 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	for {
 		select {
 		case <-notify:
+			s.agent.logWriter.DeregisterHandler(handler)
+			if handler.droppedCount > 0 {
+				s.agent.logger.Printf("[WARN] agent: Dropped %d logs during monitor request", handler.droppedCount)
+			}
 			return nil, nil
 		case log := <-handler.logCh:
 			resp.Write([]byte(log + "\n"))
@@ -461,9 +474,10 @@ func (s *HTTPServer) syncChanges() {
 }
 
 type httpLogHandler struct {
-	filter *logutils.LevelFilter
-	logCh  chan string
-	logger *log.Logger
+	filter       *logutils.LevelFilter
+	logCh        chan string
+	logger       *log.Logger
+	droppedCount int
 }
 
 func (h *httpLogHandler) HandleLog(log string) {
@@ -476,10 +490,8 @@ func (h *httpLogHandler) HandleLog(log string) {
 	select {
 	case h.logCh <- log:
 	default:
-		// We can't log synchronously, since we are already being invoked
-		// from the logWriter, and a log will need to invoke Write() which
-		// already holds the lock. We must therefor do the log async, so
-		// as to not deadlock
-		go h.logger.Printf("[WARN] Dropping logs to monitor http endpoint")
+		// Just increment a counter for dropped logs to this handler; we can't log now
+		// because the lock is already held by the LogWriter invoking this
+		h.droppedCount += 1
 	}
 }
