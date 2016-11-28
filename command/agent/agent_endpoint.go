@@ -2,12 +2,15 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -405,11 +408,102 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	return nil, nil
 }
 
+func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Only GET supported
+	if req.Method != "GET" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	var args structs.DCSpecificRequest
+	args.Datacenter = s.agent.config.Datacenter
+	s.parseToken(req, &args.Token)
+	// Validate that the given token has operator permissions
+	var reply structs.RaftConfigurationResponse
+	if err := s.agent.RPC("Operator.RaftGetConfiguration", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	// Get the provided loglevel
+	logLevel := req.URL.Query().Get("loglevel")
+	if logLevel == "" {
+		logLevel = "INFO"
+	}
+
+	// Upper case the log level
+	logLevel = strings.ToUpper(logLevel)
+
+	// Create a level filter
+	filter := logger.LevelFilter()
+	filter.MinLevel = logutils.LogLevel(logLevel)
+	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
+		resp.WriteHeader(400)
+		resp.Write([]byte(fmt.Sprintf("Unknown log level: %s", filter.MinLevel)))
+		return nil, nil
+	}
+
+	flusher, ok := resp.(http.Flusher)
+	if !ok {
+		return nil, fmt.Errorf("Streaming not supported")
+	}
+
+	// Set up a log handler
+	handler := &httpLogHandler{
+		filter: filter,
+		logCh:  make(chan string, 512),
+		logger: s.logger,
+	}
+	s.agent.logWriter.RegisterHandler(handler)
+	defer s.agent.logWriter.DeregisterHandler(handler)
+
+	notify := resp.(http.CloseNotifier).CloseNotify()
+
+	// Stream logs until the connection is closed
+	for {
+		select {
+		case <-notify:
+			s.agent.logWriter.DeregisterHandler(handler)
+			if handler.droppedCount > 0 {
+				s.agent.logger.Printf("[WARN] agent: Dropped %d logs during monitor request", handler.droppedCount)
+			}
+			return nil, nil
+		case log := <-handler.logCh:
+			resp.Write([]byte(log + "\n"))
+			flusher.Flush()
+		}
+	}
+
+	return nil, nil
+}
+
 // syncChanges is a helper function which wraps a blocking call to sync
 // services and checks to the server. If the operation fails, we only
 // only warn because the write did succeed and anti-entropy will sync later.
 func (s *HTTPServer) syncChanges() {
 	if err := s.agent.state.syncChanges(); err != nil {
 		s.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+	}
+}
+
+type httpLogHandler struct {
+	filter       *logutils.LevelFilter
+	logCh        chan string
+	logger       *log.Logger
+	droppedCount int
+}
+
+func (h *httpLogHandler) HandleLog(log string) {
+	// Check the log level
+	if !h.filter.Check([]byte(log)) {
+		return
+	}
+
+	// Do a non-blocking send
+	select {
+	case h.logCh <- log:
+	default:
+		// Just increment a counter for dropped logs to this handler; we can't log now
+		// because the lock is already held by the LogWriter invoking this
+		h.droppedCount += 1
 	}
 }

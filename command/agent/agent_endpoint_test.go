@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
@@ -1061,4 +1065,100 @@ func TestHTTPAgentRegisterServiceCheck(t *testing.T) {
 	if result["memcache_check2"].ServiceID != "memcache" {
 		t.Fatalf("bad: %#v", result["memcached_check2"])
 	}
+}
+
+func TestHTTPAgent_Monitor(t *testing.T) {
+	logWriter := logger.NewLogWriter(512)
+	expectedLogs := bytes.Buffer{}
+	logger := io.MultiWriter(os.Stdout, &expectedLogs, logWriter)
+
+	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger, logWriter)
+	srv.agent.logWriter = logWriter
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try passing an invalid log level
+	req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=invalid", nil)
+	resp := newClosableRecorder()
+	if _, err := srv.AgentMonitor(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != 400 {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	if !strings.Contains(string(body), "Unknown log level") {
+		t.Fatalf("bad: %s", body)
+	}
+
+	// Begin streaming logs from the monitor endpoint
+	req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+	resp = newClosableRecorder()
+	go func() {
+		if _, err := srv.AgentMonitor(resp, req); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
+
+	// Write the incoming logs from http to a channel for comparison
+	logCh := make(chan string, 5)
+
+	// Block until the first log entry from http
+	testutil.WaitForResult(func() (bool, error) {
+		line, err := resp.Body.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		if line == "" {
+			return false, fmt.Errorf("blank line")
+		}
+		logCh <- line
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
+
+	go func() {
+		for {
+			line, err := resp.Body.ReadString('\n')
+			if err != nil && err != io.EOF {
+				t.Fatalf("err: %v", err)
+			}
+			if line != "" {
+				logCh <- line
+			}
+		}
+	}()
+
+	// Verify that the first 5 logs we get match the expected stream
+	for i := 0; i < 5; i++ {
+		select {
+		case log := <-logCh:
+			expected, err := expectedLogs.ReadString('\n')
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if log != expected {
+				t.Fatalf("bad: %q %q", expected, log)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("failed to get log within timeout")
+		}
+	}
+}
+
+type closableRecorder struct {
+	*httptest.ResponseRecorder
+	closer chan bool
+}
+
+func newClosableRecorder() *closableRecorder {
+	r := httptest.NewRecorder()
+	closer := make(chan bool)
+	return &closableRecorder{r, closer}
+}
+
+func (r *closableRecorder) CloseNotify() <-chan bool {
+	return r.closer
 }

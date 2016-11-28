@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/raft"
 )
@@ -79,14 +80,14 @@ func nextConfig() *Config {
 	return conf
 }
 
-func makeAgentLog(t *testing.T, conf *Config, l io.Writer) (string, *Agent) {
+func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWriter) (string, *Agent) {
 	dir, err := ioutil.TempDir("", "agent")
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("err: %v", err))
 	}
 
 	conf.DataDir = dir
-	agent, err := Create(conf, l)
+	agent, err := Create(conf, l, writer)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
@@ -112,7 +113,7 @@ func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
 		t.Fatalf("err: %s", err)
 	}
 
-	agent, err := Create(conf, nil)
+	agent, err := Create(conf, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -121,7 +122,7 @@ func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
 }
 
 func makeAgent(t *testing.T, conf *Config) (string, *Agent) {
-	return makeAgentLog(t, conf, nil)
+	return makeAgentLog(t, conf, nil, nil)
 }
 
 func externalIP() (string, error) {
@@ -845,7 +846,7 @@ func TestAgent_PersistService(t *testing.T) {
 	agent.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := Create(config, nil)
+	agent2, err := Create(config, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -979,7 +980,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 
 	config.Services = []*ServiceDefinition{svc2}
-	agent2, err := Create(config, nil)
+	agent2, err := Create(config, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1072,7 +1073,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	agent.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := Create(config, nil)
+	agent2, err := Create(config, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1165,7 +1166,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 
 	config.Checks = []*CheckDefinition{check2}
-	agent2, err := Create(config, nil)
+	agent2, err := Create(config, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

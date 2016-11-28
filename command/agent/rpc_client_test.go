@@ -61,7 +61,7 @@ RECONF:
 		t.Fatalf("err: %s", err)
 	}
 
-	dir, agent := makeAgentLog(t, conf, mult)
+	dir, agent := makeAgentLog(t, conf, mult, lw)
 	rpc := NewAgentRPC(agent, l, mult, lw)
 
 	rpcClient, err := NewRPCClient(l.Addr().String())
