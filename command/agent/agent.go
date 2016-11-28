@@ -125,7 +125,7 @@ type Agent struct {
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config, logOutput io.Writer) (*Agent, error) {
+func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) (*Agent, error) {
 	// Ensure we have a log sink
 	if logOutput == nil {
 		logOutput = os.Stderr
@@ -179,6 +179,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config:         config,
 		logger:         log.New(logOutput, "", log.LstdFlags),
 		logOutput:      logOutput,
+		logWriter:      logWriter,
 		checkReapAfter: make(map[types.CheckID]time.Duration),
 		checkMonitors:  make(map[types.CheckID]*CheckMonitor),
 		checkTTLs:      make(map[types.CheckID]*CheckTTL),
