@@ -416,8 +416,9 @@ func (a *Agent) DisableNodeMaintenance() error {
 // Monitor returns a channel which will receive streaming logs from the agent
 // Providing a non-nil stopCh can be used to close the connection and stop the
 // log stream
-func (a *Agent) Monitor(loglevel string, stopCh chan struct{}) (chan string, error) {
+func (a *Agent) Monitor(loglevel string, stopCh chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
+	r.setQueryOptions(q)
 	if loglevel != "" {
 		r.params.Add("loglevel", loglevel)
 	}

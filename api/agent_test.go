@@ -566,7 +566,7 @@ func TestAgent_Monitor(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.Monitor("info", nil)
+	logCh, err := agent.Monitor("info", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
