@@ -74,6 +74,10 @@ type QueryOptions struct {
 	// that node. Setting this to "_agent" will use the agent's node
 	// for the sort.
 	Near string
+
+	// Regexp is used to filter results when querying the services in a DC.
+	// All returned service names match the given regexp.
+	Regexp string
 }
 
 // WriteOptions are used to parameterize a write
@@ -385,6 +389,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.Near != "" {
 		r.params.Set("near", q.Near)
+	}
+	if q.Regexp != "" {
+		r.params.Set("regexp", q.Regexp)
 	}
 }
 

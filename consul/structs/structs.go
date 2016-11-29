@@ -116,6 +116,9 @@ type QueryOptions struct {
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
+
+	// If set, when querying catalog, all returned service names match the given regexp.
+	Regexp string
 }
 
 // QueryOption only applies to reads, so always true

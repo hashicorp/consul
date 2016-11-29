@@ -1612,3 +1612,65 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 		t.Fatalf("bad: %#v", reply.NodeServices)
 	}
 }
+
+func TestCatalog_ListServices_Regexp(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.IndexedServices
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Just add two services
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db-foobar", Service: "db-foobar", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureService(3, "foo", &structs.NodeService{ID: "web-foobar", Service: "web-foobar", Tags: []string{"secondary"}, Address: "127.0.0.1", Port: 5001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check there is three registered services
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out.Services) != 3 {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Consul service should auto-register
+	if _, ok := out.Services["consul"]; !ok {
+		t.Fatalf("bad consul auto-register: %v", out)
+	}
+
+	// Use regexp in query options should works
+	argsRegexp := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Regexp: "foobar",
+		},
+	}
+	var outRegexp structs.IndexedServices
+
+	// Check there is two services that match "foobar" (consul service doesn't match)
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &argsRegexp, &outRegexp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(outRegexp.Services) != 2 {
+		t.Fatalf("bad regexp query: %v", out)
+	}
+}

@@ -570,6 +570,17 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.config.ACLToken
 }
 
+// parseRegexp is used to parse the ?regexp query param
+func (s *HTTPServer) parseRegexp(req *http.Request, regexp *string) {
+	if other := req.URL.Query().Get("regexp"); other != "" {
+		*regexp = other
+		return
+	}
+
+	// Set the default regexp
+	*regexp = ""
+}
+
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
@@ -589,6 +600,7 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
+	s.parseRegexp(req, &b.Regexp)
 	if parseConsistency(resp, req, b) {
 		return true
 	}
