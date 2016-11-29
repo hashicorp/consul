@@ -97,7 +97,7 @@ well. If no tag is provided, no filtering is done on tag. If no
 datacenter is provided, the datacenter of this Consul agent is assumed.
 
 If we want to find any redis service providers in our local datacenter,
-we could query 1redis.service.consul.1 If we want to find the PostgreSQL
+we could query `redis.service.consul.` If we want to find the PostgreSQL
 primary in a particular datacenter, we could query
 `primary.postgresql.service.dc2.consul.`
 
