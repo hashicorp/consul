@@ -5,6 +5,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/debug"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/request"
 
@@ -21,10 +22,10 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 	name := state.Name()
 	if e.Debugging {
-		if debug := isDebug(name); debug != "" {
+		if bug := debug.IsDebug(name); bug != "" {
 			opt.Debug = r.Question[0].Name
 			state.Clear()
-			state.Req.Question[0].Name = debug
+			state.Req.Question[0].Name = bug
 		}
 	}
 

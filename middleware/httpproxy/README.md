@@ -48,3 +48,24 @@ proxy . dns.google.com {
     upstream /etc/resolv.conf
 }
 ~~~
+
+## Debug queries
+
+Debug queries are enabled by default and currently there is no way to turn them off. When CoreDNS
+receives a debug queries (i.e. the name is prefixed with `o-o.debug.` a TXT record with Comment from
+`dns.google.com` is added. Note this is not always set, but sometimes you'll see:
+
+`dig @localhost -p 1053 mx o-o.debug.example.org`:
+
+~~~ txt
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;o-o.debug.example.org.		IN	MX
+
+;; AUTHORITY SECTION:
+example.org.		1799	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016110711 7200 3600 1209600 3600
+
+;; ADDITIONAL SECTION:
+.			0	CH	TXT	"Response from 199.43.133.53"
+~~~

@@ -3,6 +3,7 @@ package root
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,8 @@ import (
 )
 
 func TestRoot(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+
 	// Predefined error substrings
 	parseErrContent := "Parse error:"
 	unableToAccessErrContent := "Unable to access root path"

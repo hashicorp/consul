@@ -12,7 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/miekg/coredns/middleware/pkg/debug"
 	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -30,11 +32,17 @@ type google struct {
 
 func newGoogle() *google { return &google{client: newClient(ghost), quit: make(chan bool)} }
 
-func (g *google) Exchange(req *dns.Msg) (*dns.Msg, error) {
+func (g *google) Exchange(state request.Request) (*dns.Msg, error) {
 	v := url.Values{}
 
-	v.Set("name", req.Question[0].Name)
-	v.Set("type", fmt.Sprintf("%d", req.Question[0].Qtype))
+	v.Set("name", state.Name())
+	v.Set("type", fmt.Sprintf("%d", state.QType()))
+
+	optDebug := false
+	if bug := debug.IsDebug(state.Name()); bug != "" {
+		optDebug = true
+		v.Set("name", bug)
+	}
 
 	start := time.Now()
 
@@ -60,12 +68,20 @@ func (g *google) Exchange(req *dns.Msg) (*dns.Msg, error) {
 				return nil, err
 			}
 
-			m, err := toMsg(gm)
+			m, debug, err := toMsg(gm)
 			if err != nil {
 				return nil, err
 			}
 
-			m.Id = req.Id
+			if optDebug {
+				// reset question
+				m.Question[0].Name = state.QName()
+				// prepend debug RR to the additional section
+				m.Extra = append([]dns.RR{debug}, m.Extra...)
+
+			}
+
+			m.Id = state.Req.Id
 			return m, nil
 		}
 
@@ -223,8 +239,11 @@ func (g *google) do(addr, json string) ([]byte, error) {
 	return buf, nil
 }
 
-func toMsg(g *googleMsg) (*dns.Msg, error) {
+// toMsg converts a googleMsg into the dns message. The returned RR is the comment disquised as a TXT
+// record.
+func toMsg(g *googleMsg) (*dns.Msg, dns.RR, error) {
 	m := new(dns.Msg)
+	m.Response = true
 	m.Rcode = g.Status
 	m.Truncated = g.TC
 	m.RecursionDesired = g.RD
@@ -243,23 +262,24 @@ func toMsg(g *googleMsg) (*dns.Msg, error) {
 	for i := 0; i < len(m.Answer); i++ {
 		m.Answer[i], err = toRR(g.Answer[i])
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	for i := 0; i < len(m.Ns); i++ {
 		m.Ns[i], err = toRR(g.Authority[i])
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	for i := 0; i < len(m.Extra); i++ {
 		m.Extra[i], err = toRR(g.Additional[i])
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return m, nil
+	txt, _ := dns.NewRR(". 0 CH TXT " + g.Comment)
+	return m, txt, nil
 }
 
 func toRR(g googleRR) (dns.RR, error) {
