@@ -38,16 +38,18 @@ func init() {
 		"GetDefaultInterfaces": sockaddr.GetDefaultInterfaces,
 
 		// GetPrivateInterfaces - Returns one IfAddr for every IP that
-		// matches RFC 6890and attached to the interface with the
-		// default route.  NOTE: RFC 6890 is a moreexhaustive version of
-		// RFC1918 because it spans IPv4 and IPv6, however it doespermit
-		// the inclusion of likely undesired addresses such as
-		// multicast, therefore it may be prudent to use this in
-		// conjunction with additional filtering.
+		// matches RFC 6890, are attached to the interface with the
+		// default route, and are forwardable IP addresses.  NOTE: RFC
+		// 6890 is a more exhaustive version of RFC1918 because it spans
+		// IPv4 and IPv6, however it doespermit the inclusion of likely
+		// undesired addresses such as multicast, therefore our
+		// definition of a "private" address also excludes
+		// non-forwardable IP addresses (as defined by the IETF).
 		"GetPrivateInterfaces": sockaddr.GetPrivateInterfaces,
 
 		// GetPublicInterfaces - Returns a list of IfAddr that do not
-		// match RFC 6890 and is attached to the default route.
+		// match RFC 6890, are attached to the default route, and are
+		// forwardable.
 		"GetPublicInterfaces": sockaddr.GetPublicInterfaces,
 	}
 
@@ -69,11 +71,11 @@ func init() {
 		"unique": sockaddr.UniqueIfAddrsBy,
 
 		// Return a Private RFC 6890 IP address string that is attached
-		// to the default route.
+		// to the default route and a forwardable address.
 		"GetPrivateIP": sockaddr.GetPrivateIP,
 
 		// Return a Public RFC 6890 IP address string that is attached
-		// to the default route.
+		// to the default route and a forwardable address.
 		"GetPublicIP": sockaddr.GetPublicIP,
 	}
 }

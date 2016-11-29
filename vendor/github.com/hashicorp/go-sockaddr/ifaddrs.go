@@ -238,7 +238,7 @@ func GetDefaultInterfaces() (IfAddrs, error) {
 // the `eval` equivilant of:
 //
 // ```
-// $ sockaddr eval -r '{{GetDefaultInterfaces | sort "type,size" | include "RFC" "6890" }}'
+// $ sockaddr eval -r '{{GetDefaultInterfaces | include "type" "ip" | include "flags" "forwardable|up" | sort "type,size" | include "RFC" "6890" }}'
 /// ```
 func GetPrivateInterfaces() (IfAddrs, error) {
 	privateIfs, err := GetDefaultInterfaces()
@@ -250,6 +250,14 @@ func GetPrivateInterfaces() (IfAddrs, error) {
 	}
 
 	privateIfs, _ = FilterIfByType(privateIfs, TypeIP)
+	if len(privateIfs) == 0 {
+		return IfAddrs{}, nil
+	}
+
+	privateIfs, _, err = IfByFlag("forwardable|up", privateIfs)
+	if err != nil {
+		return IfAddrs{}, err
+	}
 	if len(privateIfs) == 0 {
 		return IfAddrs{}, nil
 	}
@@ -272,7 +280,7 @@ func GetPrivateInterfaces() (IfAddrs, error) {
 // function is the `eval` equivilant of:
 //
 // ```
-// $ sockaddr eval -r '{{GetDefaultInterfaces | sort "type,size" | exclude "RFC" "6890" }}'
+// $ sockaddr eval -r '{{GetDefaultInterfaces | include "type" "ip" | include "flags" "forwardable|up" | sort "type,size" | exclude "RFC" "6890" }}'
 /// ```
 func GetPublicInterfaces() (IfAddrs, error) {
 	publicIfs, err := GetDefaultInterfaces()
@@ -284,6 +292,14 @@ func GetPublicInterfaces() (IfAddrs, error) {
 	}
 
 	publicIfs, _ = FilterIfByType(publicIfs, TypeIP)
+	if len(publicIfs) == 0 {
+		return IfAddrs{}, nil
+	}
+
+	publicIfs, _, err = IfByFlag("forwardable|up", publicIfs)
+	if err != nil {
+		return IfAddrs{}, err
+	}
 	if len(publicIfs) == 0 {
 		return IfAddrs{}, nil
 	}
