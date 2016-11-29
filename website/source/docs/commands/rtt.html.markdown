@@ -21,8 +21,8 @@ for more information on how these coordinates are computed.
 Usage: `consul rtt [options] node1 [node2]`
 
 At least one node name is required. If the second node name isn't given, it
-is set to the agent's node name. Note that these are node names as known to
-Consul as `consul members` would show, not IP addresses.
+is set to the agent's node name. These are the node names as known to
+Consul as the `consul members` command would show, not IP addresses.
 
 The list of available flags are:
 

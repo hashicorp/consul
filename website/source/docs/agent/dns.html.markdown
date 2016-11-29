@@ -14,16 +14,16 @@ discovery without any high-touch integration with Consul.
 
 For example, instead of making HTTP API requests to Consul,
 a host can use the DNS server directly via name lookups
-like "redis.service.east-aws.consul". This query automatically
-translates to a lookup of nodes that provide the redis service,
-are located in the "east-aws" datacenter, and have no failing health checks.
+like `redis.service.us-east-1.consul`. This query automatically
+translates to a lookup of nodes that provide the `redis` service,
+are located in the `us-east-1` datacenter, and have no failing health checks.
 It's that simple!
 
 There are a number of configuration options that are important for the DNS interface,
 specifically [`client_addr`](/docs/agent/options.html#client_addr),
 [`ports.dns`](/docs/agent/options.html#dns_port), [`recursors`](/docs/agent/options.html#recursors),
 [`domain`](/docs/agent/options.html#domain), and [`dns_config`](/docs/agent/options.html#dns_config).
-By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the "consul."
+By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the `consul.`
 domain, without support for further DNS recursion. Please consult the
 [documentation on configuration options](/docs/agent/options.html),
 specifically the configuration items linked above, for more details.
@@ -39,8 +39,7 @@ You can experiment with Consul's DNS server on the command line using tools such
 
     $ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
 
-Note that in DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul`
-will find all nodes named `postgresql`.
+-> **Note:** In DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
 
 ## Node Lookups
 
@@ -50,15 +49,16 @@ A node lookup, a simple query for the address of a named node, looks like this:
 
     <node>.node[.datacenter].<domain>
 
-For example, if we have a "foo" node with default settings, we could look for
-"foo.node.dc1.consul." The datacenter is an optional part of the FQDN: if not
-provided, it defaults to the datacenter of the agent. If we know "foo" is running in 
-the same datacenter as our local agent, we can instead use "foo.node.consul." This
-convention allows for terse syntax where appropriate while supporting queries of
-nodes in remote datacenters as necessary.
+For example, if we have a `foo` node with default settings, we could
+look for `foo.node.dc1.consul.` The datacenter is an optional part of
+the FQDN: if not provided, it defaults to the datacenter of the agent.
+If we know `foo` is running in the same datacenter as our local agent,
+we can instead use `foo.node.consul.` This convention allows for terse
+syntax where appropriate while supporting queries of nodes in remote
+datacenters as necessary.
 
-For a node lookup, the only records returned are A records containing the IP address of
-the node.
+For a node lookup, the only records returned are A records containing
+the IP address of the node.
 
 ```text
 $ dig @127.0.0.1 -p 8600 foo.node.consul ANY
@@ -83,7 +83,7 @@ consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 
 ## Service Lookups
 
-A service lookup is used to query for service providers.  Service queries support
+A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 ### Standard Lookup
@@ -92,13 +92,14 @@ The format of a standard service lookup is:
 
     [tag.]<service>.service[.datacenter].<domain>
 
-The `tag` is optional, and, as with node lookups, the `datacenter` is as well. If no tag is
-provided, no filtering is done on tag. If no datacenter is provided, the datacenter of
-this Consul agent is assumed.
+The `tag` is optional, and, as with node lookups, the `datacenter` is as
+well. If no tag is provided, no filtering is done on tag. If no
+datacenter is provided, the datacenter of this Consul agent is assumed.
 
-If we want to find any redis service providers in our local datacenter, we could query
-"redis.service.consul." If we want to find the PostgreSQL master in a particular datacenter,
-we could query "master.postgresql.service.dc2.consul."
+If we want to find any redis service providers in our local datacenter,
+we could query `redis.service.consul.` If we want to find the PostgreSQL
+primary in a particular datacenter, we could query
+`primary.postgresql.service.dc2.consul.`
 
 The DNS query system makes use of health check information to prevent routing
 to unhealthy nodes. When a service query is made, any services failing their health
@@ -140,16 +141,16 @@ The format for RFC 2782 SRV lookups is:
     _<service>._<protocol>.service[.datacenter][.domain]
 
 Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries should use
-underscores (_) as a prefix to the `service` and `protocol` values in a query to
+underscores, `_`, as a prefix to the `service` and `protocol` values in a query to
 prevent DNS collisions. The `protocol` value can be any of the tags for a
-service. If the service has no tags, "tcp" should be used. If "tcp"
+service. If the service has no tags, `tcp` should be used. If `tcp`
 is specified as the protocol, the query will not perform any tag filtering.
 
-Other than the query format and default "tcp" protocol/tag value, the behavior
+Other than the query format and default `tcp` protocol/tag value, the behavior
 of the RFC style lookup is the same as the standard style of lookup.
 
-If you registered the service "rabbitmq" on port 5672 and tagged it with "amqp",
-you could make an RFC 2782 query for its SRV record as "_rabbitmq._amqp.service.consul":
+If you registered the service `rabbitmq` on port 5672 and tagged it with `amqp`,
+you could make an RFC 2782 query for its SRV record as `_rabbitmq._amqp.service.consul`:
 
 ```text
 $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV

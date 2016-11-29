@@ -24,11 +24,11 @@ needs a `name`, provided on the path. The endpoint also supports several
 optional parameters on the query string.
 
 By default, the agent's local datacenter is used, but another datacenter
-can be specified using the "?dc=" query parameter.
+can be specified using the `?dc=` query parameter.
 
-The fire endpoint expects a PUT request with an optional body.
+The fire endpoint expects a `PUT` request with an optional body.
 The body contents are opaque to Consul and become the "payload"
-of the event. Names starting with the "_" prefix should be considered
+of the event. Names starting with the `_` prefix should be considered
 reserved for Consul's internal use.
 
 The `?node=`, `?service=`, and `?tag=` query parameters may optionally
@@ -54,7 +54,7 @@ The `ID` field uniquely identifies the newly fired event.
 
 ### <a name="event_list"></a> /v1/event/list
 
-This endpoint is hit with a GET and returns the most recent
+This endpoint is hit with a `GET` and returns the most recent
 events known by the agent. As a consequence of how the
 [event command](/docs/commands/event.html) works, each agent
 may have a different view of the events. Events are broadcast using

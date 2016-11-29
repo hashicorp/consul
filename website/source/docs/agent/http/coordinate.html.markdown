@@ -25,7 +25,7 @@ The following endpoints are supported:
 
 ### <a name="coordinate_datacenters"></a> /v1/coordinate/datacenters
 
-This endpoint is hit with a GET and returns the WAN network coordinates for
+This endpoint is hit with a `GET` and returns the WAN network coordinates for
 all Consul servers, organized by DCs.
 
 It returns a JSON body like this:
@@ -55,9 +55,9 @@ cluster. Also, it does not support blocking queries or any consistency modes.
 
 ### <a name=""coordinate_nodes></a> /v1/coordinate/nodes
 
-This endpoint is hit with a GET and returns the LAN network coordinates for
+This endpoint is hit with a `GET` and returns the LAN network coordinates for
 all nodes in a given DC. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 

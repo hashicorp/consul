@@ -10,7 +10,7 @@ description: >
 
 The Agent endpoints are used to interact with the local Consul agent. Usually,
 services and checks are registered with an agent which then takes on the
-burden of keeping that data synchronized with the cluster.  For example, the
+burden of keeping that data synchronized with the cluster. For example, the
 agent registers services and checks with the Catalog and performs
 [anti-entropy](/docs/internals/anti-entropy.html) to recover from outages.
 
@@ -44,7 +44,7 @@ due to changes being made while there is no leader elected. The agent performs a
 [anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
 be in sync within a few seconds.
 
-This endpoint is hit with a GET and returns a JSON body like this:
+This endpoint is hit with a `GET` and returns a JSON body like this:
 
 ```javascript
 {
@@ -71,7 +71,7 @@ due to changes being made while there is no leader elected. The agent performs a
 [anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
 be in sync within a few seconds.
 
-This endpoint is hit with a GET and returns a JSON body like this:
+This endpoint is hit with a `GET` and returns a JSON body like this:
 
 ```javascript
 {
@@ -90,12 +90,12 @@ This endpoint is hit with a GET and returns a JSON body like this:
 This endpoint is used to return the members the agent sees in the
 cluster gossip pool. Due to the nature of gossip, this is eventually consistent: the
 results may differ by agent. The strongly consistent view of nodes is
-instead provided by "/v1/catalog/nodes".
+instead provided by `/v1/catalog/nodes`.
 
-For agents running in server mode, providing a "?wan=1" query parameter returns
+For agents running in server mode, providing a `?wan=1` query parameter returns
 the list of WAN members instead of the LAN members returned by default.
 
-This endpoint is hit with a GET and returns a JSON body like:
+This endpoint is hit with a `GET` and returns a JSON body like:
 
 ```javascript
 [
@@ -124,7 +124,7 @@ This endpoint is hit with a GET and returns a JSON body like:
 
 This endpoint is used to return the configuration and member information of the local agent under the `Config` key.
 
-Consul 0.7.0 and later also includes a snapshot of various operating statistics under the `Stats` key. These statistics are intended to help human operators for debugging and may change over time, so this part of the interface should not be consumed programatically.
+Consul 0.7.0 and later also includes a snapshot of various operating statistics under the `Stats` key. These statistics are intended to help human operators for debugging and may change over time, so this part of the interface should not be consumed programmatically.
 
 It returns a JSON body like this:
 
@@ -203,10 +203,10 @@ During maintenance mode, the node will be marked as unavailable and will not be
 present in DNS or API queries. This API call is idempotent. Maintenance mode is
 persistent and will be automatically restored on agent restart.
 
-The `?enable` flag is required.  Acceptable values are either `true` (to enter
+The `?enable` flag is required. Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
 
-The `?reason` flag is optional.  If provided, its value should be a text string
+The `?reason` flag is optional. If provided, its value should be a text string
 explaining the reason for placing the node into maintenance mode. This is simply
 to aid human operators. If no reason is provided, a default value will be used instead.
 
@@ -225,18 +225,20 @@ The return code is 200 on success.
 
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
-This endpoint is hit with a GET and is used to instruct the agent to attempt to
-connect to a given address.  For agents running in server mode, providing a "?wan=1"
+This endpoint is hit with a `GET` and is used to instruct the agent to attempt to
+connect to a given address. For agents running in server mode, providing a `?wan=1`
 query parameter causes the agent to attempt to join using the WAN pool.
 
 The return code is 200 on success.
 
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
-This endpoint is hit with a GET and is used to instruct the agent to force a node into the `left` state.
-If a node fails unexpectedly, then it will be in a `failed` state. Once in the `failed` state, Consul will
-attempt to reconnect, and the services and checks belonging to that node will not be
-cleaned up. Forcing a node into the `left` state allows its old entries to be removed.
+This endpoint is hit with a `GET` and is used to instruct the agent to
+force a node into the `left` state. If a node fails unexpectedly, then
+it will be in a `failed` state. Once in the `failed` state, Consul will
+attempt to reconnect, and the services and checks belonging to that node
+will not be cleaned up. Forcing a node into the `left` state allows its
+old entries to be removed.
 
 The endpoint always returns 200.
 
@@ -247,7 +249,7 @@ There is more documentation on checks [here](/docs/agent/checks.html).
 Checks may be of script, HTTP, TCP, or TTL type. The agent is responsible for
 managing the status of the check and keeping the Catalog in sync.
 
-The register endpoint expects a JSON request body to be PUT. The request
+The register endpoint expects a JSON request body to be `PUT`. The request
 body must look like:
 
 ```javascript
@@ -292,25 +294,27 @@ If a `DockerContainerID` is provided, the check is a Docker check, and Consul wi
 evaluate the script every `Interval` in the given container using the specified
 `Shell`. Note that `Shell` is currently only supported for Docker checks.
 
-An `HTTP` check will perform an HTTP GET request against the value of `HTTP` (expected to
-be a URL) every `Interval`. If the response is any `2xx` code, the check is `passing`.
-If the response is `429 Too Many Requests`, the check is `warning`. Otherwise, the check
-is `critical`. HTTP checks also support SSL. By default, a valid SSL certificate is expected.
-Certificate verification can be controlled using the `TLSSkipVerify`.
+An `HTTP` check will perform an HTTP `GET` request against the value of
+`HTTP` (expected to be a URL) every `Interval`. If the response is any
+`2xx` code, the check is `passing`. If the response is `429 Too Many
+Requests`, the check is `warning`. Otherwise, the check is `critical`.
+HTTP checks also support SSL. By default, a valid SSL certificate is
+expected. Certificate verification can be controlled using the
+`TLSSkipVerify`.
 
-If `TLSSkipVerify` is set to `true`, certificate verification will be disabled. By default,
-certificate verification is enabled.
+If `TLSSkipVerify` is set to `true`, certificate verification will be
+disabled. By default, certificate verification is enabled.
 
 A `TCP` check will perform an TCP connection attempt against the value of `TCP`
-(expected to be an IP/hostname and port combination) every `Interval`.  If the
-connection attempt is successful, the check is `passing`.  If the connection
-attempt is unsuccessful, the check is `critical`.  In the case of a hostname
+(expected to be an IP or hostname plus port combination) every `Interval`. If the
+connection attempt is successful, the check is `passing`. If the connection
+attempt is unsuccessful, the check is `critical`. In the case of a hostname
 that resolves to both IPv4 and IPv6 addresses, an attempt will be made to both
 addresses, and the first successful connection attempt will result in a
 successful check.
 
-If a `TTL` type is used, then the TTL update endpoint must be used periodically to update
-the state of the check.
+If a `TTL` type is used, then the TTL update endpoint must be used
+periodically to update the state of the check.
 
 The `ServiceID` field can be provided to associate the registered check with an
 existing service provided by the agent.
@@ -338,43 +342,44 @@ The return code is 200 on success.
 ### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed via a GET, the status of the check is set to `passing`
+When this endpoint is accessed via a `GET`, the status of the check is set to `passing`
 and the TTL clock is reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message
-with the status of the check. This will be passed through to the check's `Output` field
-in the check endpoints.
+The optional `?note=` query parameter can be used to associate a
+human-readable message with the status of the check. This will be passed
+through to the check's `Output` field in the check endpoints.
 
 The return code is 200 on success.
 
 ### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed via a GET, the status of the check is set to `warning`,
+When this endpoint is accessed via a `GET`, the status of the check is set to `warning`,
 and the TTL clock is reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message
-with the status of the check. This will be passed through to the check's `Output` field
-in the check endpoints.
+The optional `?note=` query parameter can be used to associate a
+human-readable message with the status of the check. This will be passed
+through to the check's `Output` field in the check endpoints.
 
 The return code is 200 on success.
 
 ### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<checkId\>
 
-This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed via a GET, the status of the check is set to `critical`,
-and the TTL clock is reset.
+This endpoint is used with a check that is of the [TTL
+type](/docs/agent/checks.html). When this endpoint is accessed via a
+`GET`, the status of the check is set to `critical`, and the TTL clock is
+reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message
-with the status of the check. This will be passed through to the check's `Output` field
-in the check endpoints.
+The optional `?note=` query parameter can be used to associate a
+human-readable message with the status of the check. This will be passed
+through to the check's `Output` field in the check endpoints.
 
 The return code is 200 on success.
 
 ### <a name="agent_check_update"></a> /v1/agent/check/update/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed with a PUT, the status and output of the check are
+When this endpoint is accessed with a `PUT`, the status and output of the check are
 updated and the TTL clock is reset.
 
 This endpoint expects a JSON request body to be put. The request body must look like:
@@ -386,23 +391,27 @@ This endpoint expects a JSON request body to be put. The request body must look 
 }
 ```
 
-The `Status` field is mandatory, and must be set to "passing", "warning", or "critical".
+The `Status` field is mandatory, and must be set to `passing`,
+`warning`, or `critical`.
 
-`Output` is an optional field that will associate a human-readable message with the status
-of the check, such as the output of the checking script or process. This will be truncated
-if it exceeds 4KB in size. This will be passed through to the check's `Output` field in the
-check endpoints.
+`Output` is an optional field that will associate a human-readable
+message with the status of the check, such as the output of the checking
+script or process. This will be truncated if it exceeds 4KB in size.
+This will be passed through to the check's `Output` field in the check
+endpoints.
 
 The return code is 200 on success.
 
 ### <a name="agent_service_register"></a> /v1/agent/service/register
 
-The register endpoint is used to add a new service, with an optional health check,
-to the local agent. There is more documentation on services [here](/docs/agent/services.html).
-The agent is responsible for managing the status of its local services, and for sending updates
-about its local services to the servers to keep the global Catalog in sync.
+The register endpoint is used to add a new service, with an optional
+health check, to the local agent. There is more documentation on
+services [here](/docs/agent/services.html). The agent is responsible
+for managing the status of its local services, and for sending updates
+about its local services to the servers to keep the global Catalog in
+sync.
 
-The register endpoint expects a JSON request body to be PUT. The request
+The register endpoint expects a JSON request body to be `PUT`. The request
 body must look like:
 
 ```javascript
@@ -410,7 +419,7 @@ body must look like:
   "ID": "redis1",
   "Name": "redis",
   "Tags": [
-    "master",
+    "primary",
     "v1"
   ],
   "Address": "127.0.0.1",
@@ -426,9 +435,9 @@ body must look like:
 }
 ```
 
-The `Name` field is mandatory.  If an `ID` is not provided, it is set to `Name`.
-You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID
-in the case of a collision.
+The `Name` field is mandatory. If an `ID` is not provided, it is set to
+`Name`. You cannot have duplicate `ID` entries per agent, so it may be
+necessary to provide an ID in the case of a collision.
 
 `Tags`, `Address`, `Port`, `Check` and `EnableTagOverride` are optional.
 
@@ -440,39 +449,46 @@ an empty `Address` field for a service, use the `Address` field of the agent nod
 associated with that instance of the service, which is returned alongside the service
 information.
 
-If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
-`Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
+If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL`
+should be specified. `Script` and `HTTP` also require `Interval`. The
+created check will be named `service:<ServiceId>`.
 
-In Consul 0.7 and later, checks that are associated with a service may also contain
-an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
-format as `Interval` and `TTL`. If a check is in the critical state for more than this
-configured value, then its associated service (and all of its associated checks)
-will automatically be deregistered. The minimum timeout is 1 minute, and the
-process that reaps critical services runs every 30 seconds, so it may take slightly
-longer than the configured timeout to trigger the deregistration. This should
-generally be configured with a timeout that's much, much longer than any expected
+In Consul 0.7 and later, checks that are associated with a service may
+also contain an optional `DeregisterCriticalServiceAfter` field, which
+is a timeout in the same [Go time format](https://golang.org/pkg/time/)
+as `Interval` and `TTL`. If a check is in the critical state for more
+than this configured value, then its associated service (and all of its
+associated checks) will automatically be deregistered. The minimum
+timeout is 1 minute, and the process that reaps critical services runs
+every 30 seconds, so it may take slightly longer than the configured
+timeout to trigger the deregistration. This should generally be
+configured with a timeout that is much, much longer than any expected
 recoverable outage for the given service.
 
 There is more information about checks [here](/docs/agent/checks.html).
 
-`EnableTagOverride` can optionally be specified to disable the anti-entropy
-feature for this service's tags. If `EnableTagOverride` is set to `true` then external
-agents can update this service in the [catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
-local sync operations by this agent will ignore the updated tags. For instance, if an external agent
-modified both the tags and the port for this service and `EnableTagOverride`
-was set to `true` then after the next sync cycle the service's port would revert
-to the original value but the tags would maintain the updated value. As a
-counter example, if an external agent modified both the tags and port for this
-service and `EnableTagOverride` was set to `false` then after the next sync
-cycle the service's port _and_ the tags would revert to the original value and
-all modifications would be lost. It's important to note that this applies only
-to the locally registered service. If you have multiple nodes all registering
-the same service their `EnableTagOverride` configuration and all other service
-configuration items are independent of one another. Updating the tags for
-the service registered on one node is independent of the same service (by name)
-registered on another node. If `EnableTagOverride` is not specified the default
-value is `false`.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
-for more info.
+The `EnableTagOverride` option can be specified to disable the
+anti-entropy feature for this service's tags. If `EnableTagOverride` is
+set to `true` then external agents can update this service in the
+[catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+local sync operations by this agent will ignore the updated tags. For
+instance, if an external agent modified both the tags and the port for
+this service and `EnableTagOverride` was set to `true` then after the
+next sync cycle the service's port would revert to the original value
+but the tags would maintain the updated value. As a counter example, if
+an external agent modified both the tags and port for this service and
+`EnableTagOverride` was set to `false` then after the next sync cycle
+the service's port _and_ the tags would revert to the original value and
+all modifications would be lost.
+
+It's important to note that this applies only to the locally registered
+service. If you have multiple nodes all registering the same service
+their `EnableTagOverride` configuration and all other service
+configuration items are independent of one another. Updating the tags
+for the service registered on one node is independent of the same
+service (by name) registered on another node. If `EnableTagOverride` is
+not specified the default value is `false`. See [anti-entropy
+syncs](/docs/internals/anti-entropy.html) for more info.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
@@ -486,7 +502,7 @@ The return code is 200 on success.
 ### <a name="agent_service_deregister"></a> /v1/agent/service/deregister/\<serviceId\>
 
 The deregister endpoint is used to remove a service from the local agent.
-The ServiceID must be passed after the slash. The agent will take care
+The `ServiceID` must be passed after the slash. The agent will take care
 of deregistering the service with the Catalog. If there is an associated
 check, that is also deregistered.
 
@@ -498,12 +514,12 @@ The service maintenance endpoint allows placing a given service into
 "maintenance mode". During maintenance mode, the service will be marked as
 unavailable and will not be present in DNS or API queries. This API call is
 idempotent. Maintenance mode is persistent and will be automatically restored
-on agent restart. The maintenance endpoint expects a PUT request.
+on agent restart. The maintenance endpoint expects a `PUT` request.
 
-The `?enable` flag is required.  Acceptable values are either `true` (to enter
+The `?enable` flag is required. Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
 
-The `?reason` flag is optional.  If provided, its value should be a text string
+The `?reason` flag is optional. If provided, its value should be a text string
 explaining the reason for placing the service into maintenance mode. This is simply
 to aid human operators. If no reason is provided, a default value will be used instead.
 

@@ -13,7 +13,7 @@ Command: `consul watch`
 The `watch` command provides a mechanism to watch for changes in a particular
 data view (list of nodes, service members, key value, etc) and to invoke
 a process with the latest values of the view. If no process is specified,
-the current values are dumped to stdout which can be a useful way to inspect
+the current values are dumped to STDOUT which can be a useful way to inspect
 data in Consul.
 
 There is more [documentation on watches here](/docs/agent/watches.html).
@@ -33,9 +33,9 @@ The list of available flags are:
   to send this command. If this isn't specified, the command will contact
   "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
 
-* `-datacenter` - Datacenter to query. Defaults to that of agent.
+* `-datacenter` - Datacenter to query. Defaults to that of the agent.
 
-* `-token` - ACL token to use. Defaults to that of agent.
+* `-token` - ACL token to use. Defaults to that of the agent.
 
 * `-stale=[true|false]` - Specifies if watch data is permitted to be stale. Defaults
   to false.
@@ -45,7 +45,7 @@ The list of available flags are:
 * `-name`- Event name to watch. Only for `event` type.
 
 * `-passingonly=[true|false]` - Should only passing entries be returned. Defaults to
-   false and only applies for `service` type.
+   `false` and only applies for `service` type.
 
 * `-prefix` - Key prefix to watch. Only for `keyprefix` type.
 
@@ -55,6 +55,6 @@ The list of available flags are:
 
 * `-tag` - Service tag to filter on. Optional for `service` type.
 
-* `-type` - Watch type. Required, one of "key", "keyprefix", "services",
-  "nodes", "service", "checks", or "event".
+* `-type` - Watch type. Required, one of "`key`, `keyprefix`, `services`,
+  `nodes`, `service`, `checks`, or `event`.
 

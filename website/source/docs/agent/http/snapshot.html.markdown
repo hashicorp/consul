@@ -51,11 +51,11 @@ internal to Consul and not intended to be used other than for restore operations
 In particular, the archives are not designed to be modified before a restore.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter.
+provided using the `?dc=` query parameter.
 
 By default, snapshots use consistent mode which means the request is internally
 forwarded to the cluster leader, and leadership is checked before performing the
-snapshot. If `stale` is specified using the "?stale" query parameter, then any
+snapshot. If `stale` is specified using the `?stale` query parameter, then any
 server can handle the request and the results may be arbitrarily stale. To support
 bounding the acceptable staleness of snapshots, responses provide the `X-Consul-LastContact`
 header containing the time in milliseconds that a server was last contacted by
@@ -83,7 +83,7 @@ intended to be used when recovering from a disaster, restoring into a fresh
 cluster of Consul servers.
 
 By default, the datacenter of the agent is targeted; however, the `dc` can be
-provided using the "?dc=" query parameter.
+provided using the `?dc=` query parameter.
 
 If ACLs are enabled, the client will need to supply an ACL Token with management
 privileges.

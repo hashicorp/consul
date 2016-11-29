@@ -241,7 +241,7 @@ will exit with an error at startup.
 
 * <a name="_log_level"></a><a href="#_log_level">`-log-level`</a> - The level of logging to
   show after the Consul agent has started. This defaults to "info". The available log levels are
-  "trace", "debug", "info", "warn", and "err". Note that you can always connect to an
+  "trace", "debug", "info", "warn", and "err". You can always connect to an
   agent via [`consul monitor`](/docs/commands/monitor.html) and use any log level. Also, the
   log level can be changed during a config reload.
 
@@ -344,7 +344,7 @@ definitions support being updated during a reload.
 }
 ```
 
-Note the use of `ports`:
+See, especially, the use of the `ports` setting:
 
 ```javascript
 "ports": {
@@ -382,10 +382,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   permissions if it does not exist. It allows operators to bootstrap the ACL system
   with a token ID that is well-known.
   <br><br>
-  Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
+  The `acl_master_token` is only installed when a server acquires cluster leadership. If
   you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
-  leader election. If the acl_master_token is not supplied, then the servers do not create a master
+  leader election. If the `acl_master_token` is not supplied, then the servers do not create a master
   token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
   the same as the other tokens, but isn't strictly necessary.
 
@@ -578,9 +578,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="udp_answer_limit"></a><a
   href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
   resource records contained in the answer section of a UDP-based DNS
-  response.  When answering a question, Consul will use the complete list of
+  response. When answering a question, Consul will use the complete list of
   matching hosts, shuffle the list randomly, and then limit the number of
-  answers to `udp_answer_limit` (default `3`).  In environments where
+  answers to `udp_answer_limit` (default `3`). In environments where
   [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
   is implemented and enforced (i.e. DNS answers are always sorted and
   therefore never random), clients may need to set this value to `1` to
@@ -744,12 +744,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="skip_leave_on_interrupt"></a><a
   href="#skip_leave_on_interrupt">`skip_leave_on_interrupt`</a> This is
   similar to [`leave_on_terminate`](#leave_on_terminate) but only affects
-  interrupt handling.  When Consul receives an interrupt signal (such as
+  interrupt handling. When Consul receives an interrupt signal (such as
   hitting Control-C in a terminal), Consul will gracefully leave the cluster.
-  Setting this to `true` disables that behavior.  The default behavior for
+  Setting this to `true` disables that behavior. The default behavior for
   this feature varies based on whether or not the agent is running as a
   client or a server (prior to Consul 0.7 the default value was
-  unconditionally set to `false`).  On agents in client-mode, this defaults
+  unconditionally set to `false`). On agents in client-mode, this defaults
   to `false` and for agents in server-mode, this defaults to `true`
   (i.e. Ctrl-C on a server will keep the server in the cluster and therefore
   quorum, and Ctrl-C on a client will gracefully leave).
@@ -764,7 +764,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sends its runtime telemetry, and contains the following keys:
 
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
-    address of a statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information to that instance for
+    address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
     statsd or statsite.
 
@@ -811,7 +811,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     Force activation of metrics which already exist and are not currently active. If check management is enabled, the default behavior is to add new metrics as they are encoutered. If the metric already exists in the check, it will **not** be activated. This setting overrides that behavior. By default, this is set to false.
 
   * <a name="telemetry-circonus_check_instance_id"></a><a href="#telemetry-circonus_check_instance_id">`circonus_check_instance_id`</a>
-    Uniquely identifies the metrics coming from this *instance*.  It can be used to maintain metric continuity with transient or ephemeral instances as they move around within an infrastructure. By default, this is set to hostname:application name (e.g. "host123:consul").
+    Uniquely identifies the metrics coming from this *instance*. It can be used to maintain metric continuity with transient or ephemeral instances as they move around within an infrastructure. By default, this is set to hostname:application name (e.g. "host123:consul").
 
   * <a name="telemetry-circonus_check_search_tag"></a><a href="#telemetry-circonus_check_search_tag">`circonus_check_search_tag`</a>
     A special tag which, when coupled with the instance id, helps to narrow down the search results when neither a Submission URL or Check ID is provided. By default, this is set to service:application name (e.g. "service:consul").
@@ -887,7 +887,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sockets created by Consul:
   <br>
   * `user` - The name or ID of the user who will own the socket file.
-  * `group` - The group ID ownership of the socket file. Note that this option
+  * `group` - The group ID ownership of the socket file. This option
     currently only supports numeric IDs.
   * `mode` - The permission bits to set on the file.
 
@@ -896,7 +896,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
-  applies to both server RPC and to the HTTPS API. Note: to enable the HTTPS API, you
+  applies to both server RPC and to the HTTPS API. To enable the HTTPS API, you
   must define an HTTPS port via the [`ports`](#ports) configuration. By default, HTTPS
   is disabled.
 
