@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -63,7 +62,6 @@ func (c HealthChecks) AggregatedStatus() string {
 		case HealthCritical:
 			critical = true
 		default:
-			log.Printf("[WARN] unknown status %q", check.Status)
 			return ""
 		}
 	}
