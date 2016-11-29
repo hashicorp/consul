@@ -42,6 +42,12 @@ an `id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`.  The `id` 
 set to the `name` if not provided. It is required that all services have a unique 
 ID per node, so if names might conflict then unique IDs should be provided.
 
+The `name` property must translate to a valid DNS name therefore `name` is
+required to begin and end with an alphanumeric character, may contain
+hyphens, and must be shorter than 64 characters in length.  NOTE: Before
+Consul 0.8 (not yet released) this restriction was not enforced, however,
+starting with Consul 0.8 this warning will become an error.
+
 The `tags` property is a list of values that are opaque to Consul but can be used to
 distinguish between "master" or "slave" nodes, different versions, or any other service
 level labels.
