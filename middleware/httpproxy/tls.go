@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/miekg/coredns/request"
 	"github.com/miekg/dns"
 )
 
 // Exchanger is an interface that specifies a type implementing a DNS resolver that
 // uses a HTTPS server.
 type Exchanger interface {
-	Exchange(*dns.Msg) (*dns.Msg, error)
+	Exchange(request.Request) (*dns.Msg, error)
 
 	SetUpstream(*simpleUpstream) error
 	OnStartup() error

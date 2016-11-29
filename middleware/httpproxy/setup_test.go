@@ -2,6 +2,7 @@ package httpproxy
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -9,7 +10,9 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func TestSetupChaos(t *testing.T) {
+func TestSetupHttpproxy(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+
 	tests := []struct {
 		input              string
 		shouldErr          bool
@@ -55,7 +58,6 @@ func TestSetupChaos(t *testing.T) {
 		}
 
 		if err != nil {
-			t.Logf("%q", err)
 			if !test.shouldErr {
 				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
 			}

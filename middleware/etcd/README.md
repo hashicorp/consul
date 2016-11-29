@@ -37,7 +37,7 @@ etcd [ZONES...] {
 * **ENDPOINT** the etcd endpoints. Defaults to "http://localhost:2397".
 * `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
   pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
-  the proxy middleware. **ADDRESS* can be an IP address, and IP:port or a string pointing to a file
+  the proxy middleware. **ADDRESS** can be an IP address, and IP:port or a string pointing to a file
   that is structured as /etc/resolv.conf.
 * `tls` followed the cert, key and the CA's cert filenames.
 * `debug` allows for debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
@@ -127,7 +127,7 @@ Or with *debug* queries enabled:
 When debug queries are enabled CoreDNS will return errors and etcd records encountered during the resolution
 process in the response. The general form looks like this:
 
-    skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
+    skydns.test.skydns.dom.a.	0	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
 
 This shows the complete key as the owername, the rdata of the TXT record has:
 `host:port(priority,weight,txt content,mail)[targetstrip,group]`.

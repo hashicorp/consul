@@ -25,7 +25,7 @@ func (m *Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	rw := dnsrecorder.New(w)
 	status, err := m.Next.ServeDNS(ctx, rw, r)
 
-	vars.Report(state, zone, rcode.ToString(rw.Rcode), rw.Size, rw.Start)
+	vars.Report(state, zone, rcode.ToString(rw.Rcode), rw.Len, rw.Start)
 
 	return status, err
 }

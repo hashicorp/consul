@@ -27,9 +27,9 @@ func (p *Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	start := time.Now()
 	state := request.Request{W: w, Req: r}
 
-	reply, backendErr := p.e.Exchange(r)
+	reply, backendErr := p.e.Exchange(state)
 
-	if backendErr == nil {
+	if backendErr == nil && reply != nil {
 		state.SizeAndDo(reply)
 
 		w.WriteMsg(reply)
