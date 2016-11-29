@@ -1,13 +1,14 @@
 Consul Benchmark
 ================
 
-This repo contains the Packer automation necessary for the Consul benchmarks.
+This repo contains the automation necessary for the Consul benchmarks.
 
 There is a single main Packer file `bench.json`. To use it, the variables
-for `do_client_id` and `do_api_key` must be provided. There correspond to
-your DigitalOcean client id and API key.
+for `do_client_id` and `do_api_key` must be provided. These correspond to
+your DigitalOcean client ID and API key.
 
 When Packer runs, it will generate 3 images:
+
 * bench-bootstrap - Consul server in bootstrap mode
 * bench-server - Consul server
 * bench-worker - Worker node
