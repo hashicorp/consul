@@ -10,7 +10,7 @@ import (
 
 // Report reports the metrics data associcated with request.
 func Report(req request.Request, zone, rcode string, size int, start time.Time) {
-	// Proto and Family
+	// Proto and Family.
 	net := req.Proto()
 	fam := "1"
 	if req.Family() == 2 {
@@ -33,7 +33,7 @@ func Report(req request.Request, zone, rcode string, size int, start time.Time) 
 	}
 
 	ResponseSize.WithLabelValues(zone, net).Observe(float64(size))
-	RequestSize.WithLabelValues(zone, net).Observe(float64(req.Size()))
+	RequestSize.WithLabelValues(zone, net).Observe(float64(req.Len()))
 
 	ResponseRcode.WithLabelValues(zone, rcode).Inc()
 }

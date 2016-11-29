@@ -53,7 +53,7 @@ func New(r *dns.Msg, rr *dnsrecorder.Recorder, emptyValue string) Replacer {
 			rcode = strconv.Itoa(rr.Rcode)
 		}
 		rep.replacements["{rcode}"] = rcode
-		rep.replacements["{size}"] = strconv.Itoa(rr.Size)
+		rep.replacements["{size}"] = strconv.Itoa(rr.Len)
 		rep.replacements["{duration}"] = time.Since(rr.Start).String()
 	}
 
