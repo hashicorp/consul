@@ -38,6 +38,139 @@ func TestHealth_Node(t *testing.T) {
 	})
 }
 
+func TestHealthChecks_AggregatedStatus(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		checks HealthChecks
+		exp    string
+	}{
+		{
+			"empty",
+			nil,
+			HealthPassing,
+		},
+		{
+			"passing",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+			},
+			HealthPassing,
+		},
+		{
+			"warning",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthWarning,
+				},
+			},
+			HealthWarning,
+		},
+		{
+			"critical",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthCritical,
+				},
+			},
+			HealthCritical,
+		},
+		{
+			"node_maintenance",
+			HealthChecks{
+				&HealthCheck{
+					CheckID: NodeMaint,
+				},
+			},
+			HealthMaint,
+		},
+		{
+			"service_maintenance",
+			HealthChecks{
+				&HealthCheck{
+					CheckID: ServiceMaintPrefix + "service",
+				},
+			},
+			HealthMaint,
+		},
+		{
+			"unknown",
+			HealthChecks{
+				&HealthCheck{
+					Status: "nope-nope-noper",
+				},
+			},
+			"",
+		},
+		{
+			"maintenance_over_critical",
+			HealthChecks{
+				&HealthCheck{
+					CheckID: NodeMaint,
+				},
+				&HealthCheck{
+					Status: HealthCritical,
+				},
+			},
+			HealthMaint,
+		},
+		{
+			"critical_over_warning",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthCritical,
+				},
+				&HealthCheck{
+					Status: HealthWarning,
+				},
+			},
+			HealthCritical,
+		},
+		{
+			"warning_over_passing",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthWarning,
+				},
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+			},
+			HealthWarning,
+		},
+		{
+			"lots",
+			HealthChecks{
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+				&HealthCheck{
+					Status: HealthWarning,
+				},
+			},
+			HealthWarning,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			act := tc.checks.AggregatedStatus()
+			if tc.exp != act {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.exp, act)
+			}
+		})
+	}
+}
+
 func TestHealth_Checks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
