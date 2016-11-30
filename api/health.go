@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -11,6 +12,15 @@ const (
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
+	HealthMaint    = "maintenance"
+)
+
+const (
+	// NodeMaint is the special key set by a node in maintenance mode.
+	NodeMaint = "_node_maintenance"
+
+	// ServiceMaintPrefix is the prefix for a service in maintenance mode.
+	ServiceMaintPrefix = "_service_maintenance:"
 )
 
 // HealthCheck is used to represent a single check
@@ -23,6 +33,51 @@ type HealthCheck struct {
 	Output      string
 	ServiceID   string
 	ServiceName string
+}
+
+// HealthChecks is a collection of HealthCheck structs.
+type HealthChecks []*HealthCheck
+
+// AggregatedStatus returns the "best" status for the list of health checks.
+// Because a given entry may have many service and node-level health checks
+// attached, this function determines the best representative of the status as
+// as single string using the following heuristic:
+//
+//  maintenance > critical > warning > passing
+//
+func (c HealthChecks) AggregatedStatus() string {
+	var passing, warning, critical, maintenance bool
+	for _, check := range c {
+		id := string(check.CheckID)
+		if id == NodeMaint || strings.HasPrefix(id, ServiceMaintPrefix) {
+			maintenance = true
+			continue
+		}
+
+		switch check.Status {
+		case HealthPassing:
+			passing = true
+		case HealthWarning:
+			warning = true
+		case HealthCritical:
+			critical = true
+		default:
+			return ""
+		}
+	}
+
+	switch {
+	case maintenance:
+		return HealthMaint
+	case critical:
+		return HealthCritical
+	case warning:
+		return HealthWarning
+	case passing:
+		return HealthPassing
+	default:
+		return HealthPassing
+	}
 }
 
 // ServiceEntry is used for the health service endpoint

@@ -926,13 +926,13 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	check, ok := srv.agent.state.Checks()[nodeMaintCheckID]
+	check, ok := srv.agent.state.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered maintenance check")
 	}
 
 	// Check that the token was used
-	if token := srv.agent.state.CheckToken(nodeMaintCheckID); token != "mytoken" {
+	if token := srv.agent.state.CheckToken(structs.NodeMaint); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got '%s'", token)
 	}
 
@@ -962,7 +962,7 @@ func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was removed
-	if _, ok := srv.agent.state.Checks()[nodeMaintCheckID]; ok {
+	if _, ok := srv.agent.state.Checks()[structs.NodeMaint]; ok {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
