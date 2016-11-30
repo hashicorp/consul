@@ -109,13 +109,8 @@ func (g *google) OnStartup() error {
 	if err != nil {
 		return err
 	}
-	r.SetQuestion(dns.Fqdn(ghost), dns.TypeAAAA)
-	new6, err := g.lookup(r)
-	if err != nil {
-		return err
-	}
 
-	up, _ := newSimpleUpstream(append(new, new6...))
+	up, _ := newSimpleUpstream(new)
 	g.Lock()
 	g.addr = up
 	g.Unlock()
@@ -133,14 +128,8 @@ func (g *google) OnStartup() error {
 					log.Printf("[WARNING] Failed to lookup A records %q: %s", ghost, err)
 					continue
 				}
-				r.SetQuestion(dns.Fqdn(ghost), dns.TypeAAAA)
-				new6, err := g.lookup(r)
-				if err != nil {
-					log.Printf("[WARNING] Failed to lookup AAAA records %q: %s", ghost, err)
-					continue
-				}
 
-				up, _ := newSimpleUpstream(append(new, new6...))
+				up, _ := newSimpleUpstream(new)
 				g.Lock()
 				g.addr = up
 				g.Unlock()
@@ -187,9 +176,6 @@ func (g *google) lookup(r *dns.Msg) ([]string, error) {
 			for _, an := range m.Answer {
 				if a, ok := an.(*dns.A); ok {
 					ret = append(ret, net.JoinHostPort(a.A.String(), "443"))
-				}
-				if a, ok := an.(*dns.AAAA); ok {
-					ret = append(ret, net.JoinHostPort(a.AAAA.String(), "443"))
 				}
 			}
 			if len(ret) > 0 {
