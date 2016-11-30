@@ -20,9 +20,11 @@ The following endpoints are supported:
 * [`/v1/agent/services`](#agent_services) : Returns the services the local agent is managing
 * [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
+* [`/v1/agent/reload`](#agent_reload) : Causes the local agent to reload its configuration
 * [`/v1/agent/maintenance`](#agent_maintenance) : Manages node maintenance mode
 * [`/v1/agent/monitor`](#agent_monitor) : Streams logs from the local agent
 * [`/v1/agent/join/<address>`](#agent_join) : Triggers the local agent to join a node
+* [`/v1/agent/leave`](#agent_leave): Triggers the local agent to gracefully shutdown and leave the cluster
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave): Forces removal of a node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
 * [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregisters a local check
@@ -196,6 +198,18 @@ It returns a JSON body like this:
 }
 ```
 
+### <a name="agent_reload"></a> /v1/agent/reload
+
+Added in Consul 0.7.2, this endpoint is hit with a `PUT` and is used to instruct
+the agent to reload its configuration. Any errors encountered during this process
+will be returned.
+
+Not all configuration options are reloadable. See the
+[Reloadable Configuration](/docs/agent/options.html#reloadable-configuration)
+section on the agent options page for details on which options are supported.
+
+The return code is 200 on success.
+
 ### <a name="agent_maintenance"></a> /v1/agent/maintenance
 
 The node maintenance endpoint can place the agent into "maintenance mode".
@@ -218,7 +232,7 @@ Added in Consul 0.7.2, This endpoint is hit with a GET and will stream logs from
 local agent until the connection is closed.
 
 The `?loglevel` flag is optional.  If provided, its value should be a text string
-containing a log level to filter on, such as `info`. If no loglevel is provided, 
+containing a log level to filter on, such as `info`. If no loglevel is provided,
 `info` will be used as a default.
 
 The return code is 200 on success.
@@ -231,14 +245,26 @@ query parameter causes the agent to attempt to join using the WAN pool.
 
 The return code is 200 on success.
 
+### <a name="agent_leave"></a> /v1/agent/leave
+
+Added in Consul 0.7.2, this endpoint is hit with a `PUT` and is used to trigger a
+graceful leave and shutdown of the agent. It is used to ensure other nodes see the
+agent as "left" instead of "failed". Nodes that leave will not attempt to re-join
+the cluster on restarting with a snapshot.
+
+For nodes in server mode, the node is removed from the Raft peer set in a graceful
+manner. This is critical, as in certain situations a non-graceful leave can affect
+cluster availability.
+
+The return code is 200 on success.
+
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
-This endpoint is hit with a `GET` and is used to instruct the agent to
-force a node into the `left` state. If a node fails unexpectedly, then
-it will be in a `failed` state. Once in the `failed` state, Consul will
-attempt to reconnect, and the services and checks belonging to that node
-will not be cleaned up. Forcing a node into the `left` state allows its
-old entries to be removed.
+This endpoint is hit with a `PUT` and is used to instruct the agent to force a node
+into the `left` state. If a node fails unexpectedly, then it will be in a `failed`
+state. Once in the `failed` state, Consul will attempt to reconnect, and the
+services and checks belonging to that node will not be cleaned up. Forcing a node
+into the `left` state allows its old entries to be removed.
 
 The endpoint always returns 200.
 

@@ -39,6 +39,30 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
+
+	errCh := make(chan error, 0)
+
+	// Trigger the reload
+	select {
+	case <-s.agent.ShutdownCh():
+		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
+	case s.agent.reloadCh <- errCh:
+	}
+
+	// Wait for the result of the reload, or for the agent to shutdown
+	select {
+	case <-s.agent.ShutdownCh():
+		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
+	case err := <-errCh:
+		return nil, err
+	}
+}
+
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	services := s.agent.state.Services()
 	return services, nil
@@ -78,6 +102,18 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 		_, err := s.agent.JoinLAN([]string{addr})
 		return nil, err
 	}
+}
+
+func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
+
+	if err := s.agent.Leave(); err != nil {
+		return nil, err
+	}
+	return nil, s.agent.Shutdown()
 }
 
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
