@@ -750,7 +750,7 @@ func (c *Command) Run(args []string) int {
 	c.logOutput = logOutput
 
 	// Setup the channel for triggering config reloads
-	c.configReloadCh = make(chan chan error, 0)
+	c.configReloadCh = make(chan chan error)
 
 	/* Setup telemetry
 	Aggregate on 10 second intervals for 1 minute. Expose the

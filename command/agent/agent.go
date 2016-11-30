@@ -71,9 +71,6 @@ type Agent struct {
 	server *consul.Server
 	client *consul.Client
 
-	// The command used to launch this agent
-	command *Command
-
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	state localState

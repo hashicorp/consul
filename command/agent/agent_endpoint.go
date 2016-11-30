@@ -46,9 +46,21 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	errCh := make(chan error, 0)
-	s.agent.reloadCh <- errCh
 
-	return nil, <-errCh
+	// Trigger the reload
+	select {
+	case <-s.agent.ShutdownCh():
+		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
+	case s.agent.reloadCh <- errCh:
+	}
+
+	// Wait for the result of the reload, or for the agent to shutdown
+	select {
+	case <-s.agent.ShutdownCh():
+		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
+	case err := <-errCh:
+		return nil, err
+	}
 }
 
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

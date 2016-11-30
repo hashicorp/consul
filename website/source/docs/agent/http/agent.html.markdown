@@ -200,7 +200,7 @@ It returns a JSON body like this:
 
 ### <a name="agent_reload"></a> /v1/agent/reload
 
-Added in Consul 0.7.2, this endpoint is hit with a PUT and is used to instruct
+Added in Consul 0.7.2, this endpoint is hit with a `PUT` and is used to instruct
 the agent to reload its configuration. Any errors encountered during this process
 will be returned.
 
@@ -247,7 +247,7 @@ The return code is 200 on success.
 
 ### <a name="agent_leave"></a> /v1/agent/leave
 
-Added in Consul 0.7.2, this endpoint is hit with a PUT and is used to trigger a
+Added in Consul 0.7.2, this endpoint is hit with a `PUT` and is used to trigger a
 graceful leave and shutdown of the agent. It is used to ensure other nodes see the
 agent as "left" instead of "failed". Nodes that leave will not attempt to re-join
 the cluster on restarting with a snapshot.
@@ -260,7 +260,7 @@ The return code is 200 on success.
 
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
-This endpoint is hit with a PUT and is used to instruct the agent to force a node 
+This endpoint is hit with a `PUT` and is used to instruct the agent to force a node
 into the `left` state. If a node fails unexpectedly, then it will be in a `failed`
 state. Once in the `failed` state, Consul will attempt to reconnect, and the
 services and checks belonging to that node will not be cleaned up. Forcing a node
