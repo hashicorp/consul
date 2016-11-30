@@ -869,3 +869,67 @@ func parseDefaultIfNameFromIPCmd(routeOut string) (string, error) {
 
 	return "", errors.New("No default interface found")
 }
+
+// parseDefaultIfNameWindows parses the default interface from `netstat -rn` and
+// `ipconfig` on Windows.
+func parseDefaultIfNameWindows(routeOut, ipconfigOut string) (string, error) {
+	defaultIPAddr, err := parseDefaultIPAddrWindowsRoute(routeOut)
+	if err != nil {
+		return "", err
+	}
+
+	ifName, err := parseDefaultIfNameWindowsIPConfig(defaultIPAddr, ipconfigOut)
+	if err != nil {
+		return "", err
+	}
+
+	return ifName, nil
+}
+
+// parseDefaultIPAddrWindowsRoute parses the IP address on the default interface
+// `netstat -rn`.
+//
+// NOTES(sean): Only IPv4 addresses are parsed at this time.  If you have an
+// IPv6 connected host, submit an issue on github.com/hashicorp/go-sockaddr with
+// the output from `netstat -rn`, `ipconfig`, and version of Windows to see IPv6
+// support added.
+func parseDefaultIPAddrWindowsRoute(routeOut string) (string, error) {
+	lines := strings.Split(routeOut, "\n")
+	re := regexp.MustCompile(`[\s]+`)
+	for _, line := range lines {
+		kvs := re.Split(strings.TrimSpace(line), -1)
+		if len(kvs) < 3 {
+			continue
+		}
+
+		if kvs[0] == "0.0.0.0" && kvs[1] == "0.0.0.0" {
+			defaultIPAddr := strings.TrimSpace(kvs[3])
+			return defaultIPAddr, nil
+		}
+	}
+
+	return "", errors.New("No IP on default interface found")
+}
+
+// parseDefaultIfNameWindowsIPConfig parses the output of `ipconfig` to find the
+// interface name forwarding traffic to the default gateway.
+func parseDefaultIfNameWindowsIPConfig(defaultIPAddr, routeOut string) (string, error) {
+	lines := strings.Split(routeOut, "\n")
+	ifNameRE := regexp.MustCompile(`^Ethernet adapter ([^\s:]+):`)
+	ipAddrRE := regexp.MustCompile(`^   IPv[46] Address\. \. \. \. \. \. \. \. \. \. \. : ([^\s]+)`)
+	var ifName string
+	for _, line := range lines {
+		switch ifNameMatches := ifNameRE.FindStringSubmatch(line); {
+		case len(ifNameMatches) > 1:
+			ifName = ifNameMatches[1]
+			continue
+		}
+
+		switch ipAddrMatches := ipAddrRE.FindStringSubmatch(line); {
+		case len(ipAddrMatches) > 1 && ipAddrMatches[1] == defaultIPAddr:
+			return ifName, nil
+		}
+	}
+
+	return "", errors.New("No default interface found with matching IP")
+}
