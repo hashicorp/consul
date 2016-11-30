@@ -943,6 +943,7 @@ func (c *Command) Run(args []string) int {
 func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	// Wait for a signal
 WAIT:
@@ -963,6 +964,11 @@ WAIT:
 		return 0
 	}
 	c.Ui.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+	// Skip SIGPIPE signals
+	if sig == syscall.SIGPIPE {
+		goto WAIT
+	}
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
