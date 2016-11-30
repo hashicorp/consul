@@ -55,4 +55,12 @@ For more details on the specifics of upgrading, see the [upgrading page](/docs/u
     <td>0.5</td>
     <td>1, 2. 0.5.X servers cannot be mixed with older servers.</td>
   </tr>
+  <tr>
+    <td>0.6</td>
+    <td>1, 2, 3</td>
+  </tr>
+  <tr>
+    <td>0.7</td>
+    <td>2, 3. Will automatically use protocol > 2 when speaking to compatible agents</td>
+  </tr>
 </table>
