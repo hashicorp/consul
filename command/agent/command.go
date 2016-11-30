@@ -51,6 +51,7 @@ type Command struct {
 	HumanVersion      string
 	Ui                cli.Ui
 	ShutdownCh        <-chan struct{}
+	configReloadCh    chan chan error
 	args              []string
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
@@ -467,13 +468,12 @@ func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
 // setupAgent is used to start the agent and various interfaces
 func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) error {
 	c.Ui.Output("Starting Consul agent...")
-	agent, err := Create(config, logOutput, logWriter)
+	agent, err := Create(config, logOutput, logWriter, c.configReloadCh)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return err
 	}
 	c.agent = agent
-	agent.command = c
 
 	// Setup the RPC listener
 	rpcAddr, err := config.ClientListener(config.Addresses.RPC, config.Ports.RPC)
@@ -749,6 +749,9 @@ func (c *Command) Run(args []string) int {
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 
+	// Setup the channel for triggering config reloads
+	c.configReloadCh = make(chan chan error, 0)
+
 	/* Setup telemetry
 	Aggregate on 10 second intervals for 1 minute. Expose the
 	metrics over stderr when there is a SIGUSR1 received.
@@ -949,11 +952,15 @@ func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retry
 	// Wait for a signal
 WAIT:
 	var sig os.Signal
+	var reloadErrCh chan error
 	select {
 	case s := <-signalCh:
 		sig = s
 	case <-c.rpcServer.ReloadCh():
 		sig = syscall.SIGHUP
+	case ch := <-c.configReloadCh:
+		sig = syscall.SIGHUP
+		reloadErrCh = ch
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
 	case <-retryJoin:
@@ -974,6 +981,10 @@ WAIT:
 		}
 		if err != nil {
 			c.Ui.Error(err.Error())
+		}
+		// Send result back if reload was called via HTTP
+		if reloadErrCh != nil {
+			reloadErrCh <- err
 		}
 		goto WAIT
 	}

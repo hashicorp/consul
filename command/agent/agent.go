@@ -116,6 +116,8 @@ type Agent struct {
 	eventLock   sync.RWMutex
 	eventNotify state.NotifyGroup
 
+	reloadCh chan chan error
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -128,7 +130,8 @@ type Agent struct {
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) (*Agent, error) {
+func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
+	reloadCh chan chan error) (*Agent, error) {
 	// Ensure we have a log sink
 	if logOutput == nil {
 		logOutput = os.Stderr
@@ -191,6 +194,7 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) (*
 		checkDockers:   make(map[types.CheckID]*CheckDocker),
 		eventCh:        make(chan serf.UserEvent, 1024),
 		eventBuf:       make([]*UserEvent, 256),
+		reloadCh:       reloadCh,
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 	}

@@ -232,7 +232,7 @@ Added in Consul 0.7.2, This endpoint is hit with a GET and will stream logs from
 local agent until the connection is closed.
 
 The `?loglevel` flag is optional.  If provided, its value should be a text string
-containing a log level to filter on, such as `info`. If no loglevel is provided, 
+containing a log level to filter on, such as `info`. If no loglevel is provided,
 `info` will be used as a default.
 
 The return code is 200 on success.
@@ -245,12 +245,12 @@ query parameter causes the agent to attempt to join using the WAN pool.
 
 The return code is 200 on success.
 
-### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
+### <a name="agent_leave"></a> /v1/agent/leave
 
-This endpoint is hit with a GET and is used to trigger a graceful leave and shutdown
-of the agent. It is used to ensure other nodes see the agent as "left" instead of
-"failed". Nodes that leave will not attempt to re-join the cluster on restarting
-with a snapshot.
+Added in Consul 0.7.2, this endpoint is hit with a PUT and is used to trigger a
+graceful leave and shutdown of the agent. It is used to ensure other nodes see the
+agent as "left" instead of "failed". Nodes that leave will not attempt to re-join
+the cluster on restarting with a snapshot.
 
 For nodes in server mode, the node is removed from the Raft peer set in a graceful
 manner. This is critical, as in certain situations a non-graceful leave can affect
@@ -260,7 +260,7 @@ The return code is 200 on success.
 
 ### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
-This endpoint is hit with a GET and is used to instruct the agent to force a node into the `left` state.
+This endpoint is hit with a PUT and is used to instruct the agent to force a node into the `left` state.
 If a node fails unexpectedly, then it will be in a `failed` state. Once in the `failed` state, Consul will
 attempt to reconnect, and the services and checks belonging to that node will not be
 cleaned up. Forcing a node into the `left` state allows its old entries to be removed.

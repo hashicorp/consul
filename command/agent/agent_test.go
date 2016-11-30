@@ -87,7 +87,7 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWri
 	}
 
 	conf.DataDir = dir
-	agent, err := Create(conf, l, writer)
+	agent, err := Create(conf, l, writer, nil)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
@@ -113,7 +113,7 @@ func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
 		t.Fatalf("err: %s", err)
 	}
 
-	agent, err := Create(conf, nil, nil)
+	agent, err := Create(conf, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -846,7 +846,7 @@ func TestAgent_PersistService(t *testing.T) {
 	agent.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := Create(config, nil, nil)
+	agent2, err := Create(config, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -980,7 +980,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 
 	config.Services = []*ServiceDefinition{svc2}
-	agent2, err := Create(config, nil, nil)
+	agent2, err := Create(config, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1073,7 +1073,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	agent.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := Create(config, nil, nil)
+	agent2, err := Create(config, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1166,7 +1166,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 
 	config.Checks = []*CheckDefinition{check2}
-	agent2, err := Create(config, nil, nil)
+	agent2, err := Create(config, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
