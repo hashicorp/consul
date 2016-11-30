@@ -34,20 +34,20 @@ could make the cluster unavailable.
 Usage: `consul exec [options] [-|command...]`
 
 The only required option is a command to execute. This is either given
-as trailing arguments, or by specifying '-'; stdin will be read to
+as trailing arguments, or by specifying `-`; STDIN will be read to
 completion as a script to evaluate.
 
 The list of available flags are:
 
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
+  `127.0.0.1:8500` which is the default HTTP address of a Consul agent.
 
 * `-datacenter` - Datacenter to query. Defaults to that of agent. In version
   0.4, that is the only supported value.
 
 * `-prefix` - Key prefix in the KV store to use for storing request data.
-  Defaults to "_rexec".
+  Defaults to `_rexec`.
 
 * `-node` - Regular expression to filter nodes which should evaluate the event.
 
@@ -55,7 +55,7 @@ The list of available flags are:
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may
-  do "-service mysql -tag slave".
+  do `-service mysql -tag secondary`.
 
 * `-wait` - Specifies the period of time in which no agent's respond before considering
   the job finished. This is basically the quiescent time required to assume completion.
@@ -64,10 +64,10 @@ The list of available flags are:
 
 * `-wait-repl` - Period to wait after writing the job specification for replication.
   This is a heuristic value and enables agents to do a stale read of the job. Defaults
-  to 200msec.
+  to 200 msec.
 
 * `-verbose` - Enables verbose output.
 
 * `-token` - The ACL token to use during requests. This token must have access
-  to the prefix in the KV store as well as exec "write" access for the _rexec
+  to the prefix in the KV store as well as exec "write" access for the `_rexec`
   event. Defaults to that of the agent.

@@ -21,8 +21,7 @@ cover all the possible methods. Instead, we will focus on using Consul's support
 [sessions](/docs/internals/sessions.html). Sessions allow us to build a system that
 can gracefully handle failures.
 
-Note that JSON output in this guide has been pretty-printed for easier
-reading.  Actual values returned from the API will not be formatted.
+-> **Note:** JSON output in this guide has been pretty-printed for easier reading. Actual values returned from the API will not be formatted.
 
 ## Contending Nodes
 
@@ -130,7 +129,7 @@ has not declared the node unhealthy. Additional checks can be specified if desir
 
 Watching for changes is done via a blocking query against `<prefix>`. If a contender
 holds a slot, then on any change the `<lock>` should be re-checked to ensure the slot is
-still held.  If no slot is held, then the same acquisition logic is triggered to check
+still held. If no slot is held, then the same acquisition logic is triggered to check
 and potentially re-attempt acquisition. This allows a contender to steal the slot from
 a failed contender or one that has voluntarily released its slot.
 

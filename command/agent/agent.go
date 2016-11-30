@@ -34,10 +34,6 @@ const (
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
 
-	// The ID of the faux health checks for maintenance mode
-	serviceMaintCheckPrefix = "_service_maintenance"
-	nodeMaintCheckID        = "_node_maintenance"
-
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
 		"but no reason was provided. This is a default message."
@@ -1539,7 +1535,7 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
 func serviceMaintCheckID(serviceID string) types.CheckID {
-	return types.CheckID(fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID))
+	return types.CheckID(structs.ServiceMaintPrefix + serviceID)
 }
 
 // EnableServiceMaintenance will register a false health check against the given
@@ -1600,7 +1596,7 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 // EnableNodeMaintenance places a node into maintenance mode.
 func (a *Agent) EnableNodeMaintenance(reason, token string) {
 	// Ensure node maintenance is not already enabled
-	if _, ok := a.state.Checks()[nodeMaintCheckID]; ok {
+	if _, ok := a.state.Checks()[structs.NodeMaint]; ok {
 		return
 	}
 
@@ -1612,7 +1608,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 	// Create and register the node maintenance check
 	check := &structs.HealthCheck{
 		Node:    a.config.NodeName,
-		CheckID: nodeMaintCheckID,
+		CheckID: structs.NodeMaint,
 		Name:    "Node Maintenance Mode",
 		Notes:   reason,
 		Status:  structs.HealthCritical,
@@ -1623,10 +1619,10 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 
 // DisableNodeMaintenance removes a node from maintenance mode
 func (a *Agent) DisableNodeMaintenance() {
-	if _, ok := a.state.Checks()[nodeMaintCheckID]; !ok {
+	if _, ok := a.state.Checks()[structs.NodeMaint]; !ok {
 		return
 	}
-	a.RemoveCheck(nodeMaintCheckID, true)
+	a.RemoveCheck(structs.NodeMaint, true)
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 

@@ -187,9 +187,10 @@ which require it:
         policy = "read"
     }
 
-Note that the agent's [`acl_token`](/docs/agent/options.html#acl_token) is used
-when the DNS interface is queried, so be sure that token has sufficient
-privileges to return the DNS records you expect to retrieve from it.
+When the DNS interface is queried, the agent's
+[`acl_token`](/docs/agent/options.html#acl_token) is used, so be sure
+that token has sufficient privileges to return the DNS records you
+expect to retrieve from it.
 
 * Event and keyring ACLs
 

@@ -1577,13 +1577,13 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	agent.EnableNodeMaintenance("broken", "mytoken")
 
 	// Make sure the critical health check was added
-	check, ok := agent.state.Checks()[nodeMaintCheckID]
+	check, ok := agent.state.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered critical node check")
 	}
 
 	// Check that the token was used to register the check
-	if token := agent.state.CheckToken(nodeMaintCheckID); token != "mytoken" {
+	if token := agent.state.CheckToken(structs.NodeMaint); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got: '%s'", token)
 	}
 
@@ -1596,7 +1596,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	agent.DisableNodeMaintenance()
 
 	// Ensure the check was deregistered
-	if _, ok := agent.state.Checks()[nodeMaintCheckID]; ok {
+	if _, ok := agent.state.Checks()[structs.NodeMaint]; ok {
 		t.Fatalf("should have deregistered critical node check")
 	}
 
@@ -1604,7 +1604,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	agent.EnableNodeMaintenance("", "")
 
 	// Make sure the check was registered with the default note
-	check, ok = agent.state.Checks()[nodeMaintCheckID]
+	check, ok = agent.state.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered critical node check")
 	}

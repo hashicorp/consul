@@ -61,6 +61,6 @@ You can view a live demo of the Consul Web UI
 
 ## Next Steps
 
-This concludes our Getting Started guide.  See the
+This concludes our Getting Started guide. See the
 [next steps](next-steps.html) page to learn more about how to continue
 your journey with Consul!
