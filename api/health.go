@@ -84,7 +84,7 @@ func (c HealthChecks) AggregatedStatus() string {
 type ServiceEntry struct {
 	Node    *Node
 	Service *AgentService
-	Checks  []*HealthCheck
+	Checks  HealthChecks
 }
 
 // Health can be used to query the Health endpoints
@@ -98,7 +98,7 @@ func (c *Client) Health() *Health {
 }
 
 // Node is used to query for checks belonging to a given node
-func (h *Health) Node(node string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
+func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/node/"+node)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
@@ -111,7 +111,7 @@ func (h *Health) Node(node string, q *QueryOptions) ([]*HealthCheck, *QueryMeta,
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var out []*HealthCheck
+	var out HealthChecks
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
@@ -119,7 +119,7 @@ func (h *Health) Node(node string, q *QueryOptions) ([]*HealthCheck, *QueryMeta,
 }
 
 // Checks is used to return the checks associated with a service
-func (h *Health) Checks(service string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
+func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
@@ -132,7 +132,7 @@ func (h *Health) Checks(service string, q *QueryOptions) ([]*HealthCheck, *Query
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var out []*HealthCheck
+	var out HealthChecks
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
@@ -170,7 +170,7 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 
 // State is used to retrieve all the checks in a given state.
 // The wildcard "any" state can also be used for all checks.
-func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
+func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	switch state {
 	case HealthAny:
 	case HealthWarning:
@@ -191,7 +191,7 @@ func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMet
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var out []*HealthCheck
+	var out HealthChecks
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
