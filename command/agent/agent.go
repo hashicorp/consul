@@ -155,16 +155,16 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		var err error
 		var ip net.IP
 		if config.BindAddr == "[::]" {
-			out, err := template.Parse(`GetAllInterfaces | include "type" "IPv6" | sort "size" | include "flag" "forwardable" | join "address" " "`)
+			out, err := template.Parse(`{{ GetAllInterfaces | include "type" "IPv6" | sort "size,address" | include "flag" "forwardable|up" | join "address" " " }}`)
 			if err != nil {
 				return nil, fmt.Errorf("Unable to automatically detect an IPv6 address.  Please consider setting an IPv6 BindAddr address manually: %v", err)
 			}
 
 			ips := strings.Split(out, " ")
-			switch len(ips) {
-			case 0:
+			switch numIPs := len(ips); {
+			case numIPs == 0:
 				return nil, errors.New("No forwardable IPv6 addresses found.  Please configure one.")
-			case 1:
+			case numIPs >= 1:
 				if ip = net.ParseIP(ips[0]); ip == nil {
 					return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
 				}
@@ -172,16 +172,16 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 				return nil, fmt.Errorf("Multiple forwardable IPv6 addresses found (%s).  Please configure one.", strings.Join(ips, ", "))
 			}
 		} else {
-			out, err := template.Parse(`GetAllInterfaces | sort "type,size" | include "flag" "forwardable" | join "address" "|"`)
+			out, err := template.Parse(`{{ GetAllInterfaces | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`)
 			if err != nil {
 				return nil, fmt.Errorf("Unable to automatically detect an IP address.  Please consider setting an IP BindAddr address manually: %v", err)
 			}
 
-			ips := strings.Split(out, "|")
-			switch len(ips) {
-			case 0:
+			ips := strings.Split(out, " ")
+			switch numIPs := len(ips); {
+			case numIPs == 0:
 				return nil, errors.New("No forwardable IP addresses found.  Please configure one.")
-			case 1:
+			case numIPs >= 1:
 				if ip = net.ParseIP(ips[0]); ip == nil {
 					return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
 				}
@@ -202,7 +202,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 			return nil, fmt.Errorf("Unable to render an AdvertiseAddrWan address: %v", err)
 		}
 
-		ips := strings.Split(out, "|")
+		ips := strings.Split(out, " ")
 		switch len(ips) {
 		case 0:
 			return nil, errors.New("No AdvertiseAddrWan addresses found.  Please configure one.")
