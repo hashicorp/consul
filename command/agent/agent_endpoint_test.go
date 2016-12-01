@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,9 +15,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/cli"
 )
 
 func TestHTTPAgentServices(t *testing.T) {
@@ -112,6 +117,81 @@ func TestHTTPAgentSelf(t *testing.T) {
 	val = obj.(AgentSelf)
 	if val.Coord != nil {
 		t.Fatalf("should have been nil: %v", val.Coord)
+	}
+}
+
+func TestHTTPAgentReload(t *testing.T) {
+	conf := nextConfig()
+	tmpDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Write initial config, to be reloaded later
+	tmpFile, err := ioutil.TempFile(tmpDir, "config")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	_, err = tmpFile.WriteString(`{"service":{"name":"redis"}}`)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	tmpFile.Close()
+
+	doneCh := make(chan struct{})
+	shutdownCh := make(chan struct{})
+
+	defer func() {
+		close(shutdownCh)
+		<-doneCh
+	}()
+
+	cmd := &Command{
+		ShutdownCh: shutdownCh,
+		Ui:         new(cli.MockUi),
+	}
+
+	args := []string{
+		"-server",
+		"-data-dir", tmpDir,
+		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
+		"-config-file", tmpFile.Name(),
+	}
+
+	go func() {
+		cmd.Run(args)
+		close(doneCh)
+	}()
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(cmd.httpServers) == 1, nil
+	}, func(err error) {
+		t.Fatalf("should have an http server")
+	})
+
+	if _, ok := cmd.agent.state.services["redis"]; !ok {
+		t.Fatalf("missing redis service")
+	}
+
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(`{"service":{"name":"redis-reloaded"}}`), 0644)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	srv := cmd.httpServers[0]
+	req, err := http.NewRequest("PUT", "/v1/agent/reload", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = srv.AgentReload(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+
+	if _, ok := cmd.agent.state.services["redis-reloaded"]; !ok {
+		t.Fatalf("missing redis-reloaded service")
 	}
 }
 
@@ -232,6 +312,49 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 		return len(a2.WANMembers()) == 2, nil
 	}, func(err error) {
 		t.Fatalf("should have 2 members")
+	})
+}
+
+func TestHTTPAgentLeave(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	dir2, srv2 := makeHTTPServerWithConfig(t, func(c *Config) {
+		c.Server = false
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+
+	// Join first
+	addr := fmt.Sprintf("127.0.0.1:%d", srv2.agent.config.Ports.SerfLan)
+	_, err := srv.agent.JoinLAN([]string{addr})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Graceful leave now
+	req, err := http.NewRequest("PUT", "/v1/agent/leave", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv2.AgentLeave(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("Err: %v", obj)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		m := srv.agent.LANMembers()
+		success := m[1].Status == serf.StatusLeft
+		return success, errors.New(m[1].Status.String())
+	}, func(err error) {
+		t.Fatalf("member status is %v, should be left", err)
 	})
 }
 
@@ -922,13 +1045,13 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	check, ok := srv.agent.state.Checks()[nodeMaintCheckID]
+	check, ok := srv.agent.state.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered maintenance check")
 	}
 
 	// Check that the token was used
-	if token := srv.agent.state.CheckToken(nodeMaintCheckID); token != "mytoken" {
+	if token := srv.agent.state.CheckToken(structs.NodeMaint); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got '%s'", token)
 	}
 
@@ -958,7 +1081,7 @@ func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was removed
-	if _, ok := srv.agent.state.Checks()[nodeMaintCheckID]; ok {
+	if _, ok := srv.agent.state.Checks()[structs.NodeMaint]; ok {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
@@ -1018,4 +1141,99 @@ func TestHTTPAgentRegisterServiceCheck(t *testing.T) {
 	if result["memcache_check2"].ServiceID != "memcache" {
 		t.Fatalf("bad: %#v", result["memcached_check2"])
 	}
+}
+
+func TestHTTPAgent_Monitor(t *testing.T) {
+	logWriter := logger.NewLogWriter(512)
+	expectedLogs := bytes.Buffer{}
+	logger := io.MultiWriter(os.Stdout, &expectedLogs, logWriter)
+
+	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger, logWriter)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try passing an invalid log level
+	req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=invalid", nil)
+	resp := newClosableRecorder()
+	if _, err := srv.AgentMonitor(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != 400 {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	if !strings.Contains(string(body), "Unknown log level") {
+		t.Fatalf("bad: %s", body)
+	}
+
+	// Begin streaming logs from the monitor endpoint
+	req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+	resp = newClosableRecorder()
+	go func() {
+		if _, err := srv.AgentMonitor(resp, req); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
+
+	// Write the incoming logs from http to a channel for comparison
+	logCh := make(chan string, 5)
+
+	// Block until the first log entry from http
+	testutil.WaitForResult(func() (bool, error) {
+		line, err := resp.Body.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		if line == "" {
+			return false, fmt.Errorf("blank line")
+		}
+		logCh <- line
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
+
+	go func() {
+		for {
+			line, err := resp.Body.ReadString('\n')
+			if err != nil && err != io.EOF {
+				t.Fatalf("err: %v", err)
+			}
+			if line != "" {
+				logCh <- line
+			}
+		}
+	}()
+
+	// Verify that the first 5 logs we get match the expected stream
+	for i := 0; i < 5; i++ {
+		select {
+		case log := <-logCh:
+			expected, err := expectedLogs.ReadString('\n')
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if log != expected {
+				t.Fatalf("bad: %q %q", expected, log)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("failed to get log within timeout")
+		}
+	}
+}
+
+type closableRecorder struct {
+	*httptest.ResponseRecorder
+	closer chan bool
+}
+
+func newClosableRecorder() *closableRecorder {
+	r := httptest.NewRecorder()
+	closer := make(chan bool)
+	return &closableRecorder{r, closer}
+}
+
+func (r *closableRecorder) CloseNotify() <-chan bool {
+	return r.closer
 }

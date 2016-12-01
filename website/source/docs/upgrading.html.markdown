@@ -80,7 +80,7 @@ Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use p
 This says the version of Consul as well as the protocol versions this
 agent speaks and can understand.
 
-Note that sometimes Consul will default to speak a lower protocol version
+Sometimes Consul will default to speak a lower protocol version
 than it understands, in order to ease compatibility with older agents. For
 example, Consul agents that understand version 3 claim to speak version 2,
 and only send version 3 messages to agents that understand version 3. This

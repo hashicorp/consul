@@ -12,7 +12,7 @@ One of the primary roles of the agent is management of system-level and applicat
 checks. A health check is considered to be application-level if it is associated with a
 service. If not associated with a service, the check monitors the health of the entire node.
 
-A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
+A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
 
 There are five different kinds of checks:

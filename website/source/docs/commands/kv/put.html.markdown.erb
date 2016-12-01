@@ -110,7 +110,7 @@ $ consul kv put -flags=42 redis/config/password s3cr3t
 Success! Data written to: redis/config/password
 ```
 
-To create or tune a lock, use the `-acquire` and `-session` flags. Note that the session must already exist (this command will not create it or manage it):
+To create or tune a lock, use the `-acquire` and `-session` flags. The session must already exist (this command will not create it or manage it):
 
 ```
 $ consul kv put -acquire -session=abc123 redis/lock/update

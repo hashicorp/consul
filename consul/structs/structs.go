@@ -56,6 +56,15 @@ const (
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
+	HealthMaint    = "maintenance"
+)
+
+const (
+	// NodeMaint is the special key set by a node in maintenance mode.
+	NodeMaint = "_node_maintenance"
+
+	// ServiceMaintPrefix is the prefix for a service in maintenance mode.
+	ServiceMaintPrefix = "_service_maintenance:"
 )
 
 func ValidStatus(s string) bool {
@@ -412,6 +421,7 @@ func (c *HealthCheck) Clone() *HealthCheck {
 	return clone
 }
 
+// HealthChecks is a collection of HealthCheck structs.
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service
@@ -460,7 +470,7 @@ type NodeInfo struct {
 	Address         string
 	TaggedAddresses map[string]string
 	Services        []*NodeService
-	Checks          []*HealthCheck
+	Checks          HealthChecks
 }
 
 // NodeDump is used to dump all the nodes with all their
@@ -906,10 +916,10 @@ func (r *KeyringRequest) RequestDatacenter() string {
 type KeyringResponse struct {
 	WAN        bool
 	Datacenter string
-	Messages   map[string]string
+	Messages   map[string]string `json:",omitempty"`
 	Keys       map[string]int
 	NumNodes   int
-	Error      string
+	Error      string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

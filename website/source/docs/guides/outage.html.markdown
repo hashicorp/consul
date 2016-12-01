@@ -15,18 +15,19 @@ Depending on your
 may take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but the process is straightforward.
 
-~>  This guide is for recovery from a Consul outage due to a majority
+~> This guide is for recovery from a Consul outage due to a majority
 of server nodes in a datacenter being lost. If you are just looking to
 add or remove a server, [see this guide](/docs/guides/servers.html).
 
 ## Failure of a Single Server Cluster
 
-If you had only a single server and it has failed, simply restart it.
-Note that a single server configuration requires the
+If you had only a single server and it has failed, simply restart it. A
+single server configuration requires the
 [`-bootstrap`](/docs/agent/options.html#_bootstrap) or
-[`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect) flag. If
-the server cannot be recovered, you need to bring up a new server.
-See the [bootstrapping guide](/docs/guides/bootstrapping.html) for more detail.
+[`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect)
+flag. If the server cannot be recovered, you need to bring up a new
+server. See the [bootstrapping guide](/docs/guides/bootstrapping.html)
+for more detail.
 
 In the case of an unrecoverable server failure in a single server cluster, data
 loss is inevitable since data was not replicated to any other servers. This is
@@ -54,8 +55,7 @@ server if it's still a member of the cluster.
 If [`consul force-leave`](/docs/commands/force-leave.html) isn't able to remove the
 server, you have two methods available to remove it, depending on your version of Consul:
 
-* In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer)
-command to remove the stale peer server on the fly with no downtime.
+* In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer) command to remove the stale peer server on the fly with no downtime.
 
 * In versions of Consul prior to 0.7, you can manually remove the stale peer
 server using the `raft/peers.json` recovery file on all remaining servers. See
@@ -94,7 +94,7 @@ In extreme cases, it should be possible to recover with just a single remaining
 server by starting that single server with itself as the only peer in the
 `raft/peers.json` recovery file.
 
-Note that prior to Consul 0.7 it wasn't always possible to recover from certain
+Prior to Consul 0.7 it wasn't always possible to recover from certain
 types of outages with `raft/peers.json` because this was ingested before any Raft
 log entries were played back. In Consul 0.7 and later, the `raft/peers.json`
 recovery file is final, and a snapshot is taken after it is ingested, so you are
@@ -109,19 +109,18 @@ To begin, stop all remaining servers. You can attempt a graceful leave,
 but it will not work in most cases. Do not worry if the leave exits with an
 error. The cluster is in an unhealthy state, so this is expected.
 
-~> Note that in Consul 0.7 and later, the peers.json file is no longer present
+In Consul 0.7 and later, the `peers.json` file is no longer present
 by default and is only used when performing recovery. This file will be deleted
 after Consul starts and ingests this file. Consul 0.7 also uses a new, automatically-
 created `raft/peers.info` file to avoid ingesting the `raft/peers.json` file on the
 first start after upgrading. Be sure to leave `raft/peers.info` in place for proper
 operation.
-<br>
-<br>
+
 Using `raft/peers.json` for recovery can cause uncommitted Raft log entries to be
 implicitly committed, so this should only be used after an outage where no
 other option is available to recover a lost server. Make sure you don't have
-any automated processes that will put the peers file in place on a periodic basis,
-for example.
+any automated processes that will put the peers file in place on a
+periodic basis.
 
 The next step is to go to the [`-data-dir`](/docs/agent/options.html#_data_dir)
 of each Consul server. Inside that directory, there will be a `raft/`

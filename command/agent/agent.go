@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
@@ -35,10 +36,6 @@ const (
 	// Path to save local agent checks
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
-
-	// The ID of the faux health checks for maintenance mode
-	serviceMaintCheckPrefix = "_service_maintenance"
-	nodeMaintCheckID        = "_node_maintenance"
 
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
@@ -68,6 +65,9 @@ type Agent struct {
 
 	// Output sink for logs
 	logOutput io.Writer
+
+	// Used for streaming logs to
+	logWriter *logger.LogWriter
 
 	// We have one of a client or a server, depending
 	// on our configuration
@@ -112,6 +112,8 @@ type Agent struct {
 	eventLock   sync.RWMutex
 	eventNotify state.NotifyGroup
 
+	reloadCh chan chan error
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -124,7 +126,8 @@ type Agent struct {
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config, logOutput io.Writer) (*Agent, error) {
+func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
+	reloadCh chan chan error) (*Agent, error) {
 	// Ensure we have a log sink
 	if logOutput == nil {
 		logOutput = os.Stderr
@@ -243,6 +246,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config:         config,
 		logger:         log.New(logOutput, "", log.LstdFlags),
 		logOutput:      logOutput,
+		logWriter:      logWriter,
 		checkReapAfter: make(map[types.CheckID]time.Duration),
 		checkMonitors:  make(map[types.CheckID]*CheckMonitor),
 		checkTTLs:      make(map[types.CheckID]*CheckTTL),
@@ -251,6 +255,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		checkDockers:   make(map[types.CheckID]*CheckDocker),
 		eventCh:        make(chan serf.UserEvent, 1024),
 		eventBuf:       make([]*UserEvent, 256),
+		reloadCh:       reloadCh,
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 	}
@@ -1595,7 +1600,7 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
 func serviceMaintCheckID(serviceID string) types.CheckID {
-	return types.CheckID(fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID))
+	return types.CheckID(structs.ServiceMaintPrefix + serviceID)
 }
 
 // EnableServiceMaintenance will register a false health check against the given
@@ -1656,7 +1661,7 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 // EnableNodeMaintenance places a node into maintenance mode.
 func (a *Agent) EnableNodeMaintenance(reason, token string) {
 	// Ensure node maintenance is not already enabled
-	if _, ok := a.state.Checks()[nodeMaintCheckID]; ok {
+	if _, ok := a.state.Checks()[structs.NodeMaint]; ok {
 		return
 	}
 
@@ -1668,7 +1673,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 	// Create and register the node maintenance check
 	check := &structs.HealthCheck{
 		Node:    a.config.NodeName,
-		CheckID: nodeMaintCheckID,
+		CheckID: structs.NodeMaint,
 		Name:    "Node Maintenance Mode",
 		Notes:   reason,
 		Status:  structs.HealthCritical,
@@ -1679,10 +1684,10 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 
 // DisableNodeMaintenance removes a node from maintenance mode
 func (a *Agent) DisableNodeMaintenance() {
-	if _, ok := a.state.Checks()[nodeMaintCheckID]; !ok {
+	if _, ok := a.state.Checks()[structs.NodeMaint]; !ok {
 		return
 	}
-	a.RemoveCheck(nodeMaintCheckID, true)
+	a.RemoveCheck(structs.NodeMaint, true)
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 

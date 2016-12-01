@@ -17,7 +17,7 @@ on tokens to which fine grained rules can be applied. It is very similar to
 ## Scope
 
 When the ACL system was launched in Consul 0.4, it was only possible to specify
-policies for the KV store.  In Consul 0.5, ACL policies were extended to service
+policies for the KV store. In Consul 0.5, ACL policies were extended to service
 registrations. In Consul 0.6, ACL's were further extended to restrict service
 discovery mechanisms, user events, and encryption keyring operations.
 
@@ -121,7 +121,7 @@ configuration to the target datacenter.
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
 configuration](/docs/agent/options.html#acl_master_token) which will be created
-as a "management" type token if it does not exist. Note that the [`acl_master_token`
+as a "management" type token if it does not exist. The [`acl_master_token`
 ](/docs/agent/options.html#acl_master_token) is only installed when a server acquires
 cluster leadership. If you would like to install or change the
 [`acl_master_token`](/docs/agent/options.html#acl_master_token), set the new value for
@@ -301,7 +301,7 @@ service "" {
 }
 ```
 
-Note that the above will allow access for reading service information only. This
+The above will allow access for reading service information only. This
 level of access allows discovering other services in the system, but is not
 enough to allow the agent to sync its services and checks into the global
 catalog during [anti-entropy](/docs/internals/anti-entropy.html).
@@ -336,6 +336,7 @@ access to each API token based on the events they should be able to fire.
 After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
 including a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
 
+<a name="keyring"></a>
 #### Blacklist Mode and Keyring Operations
 
 Consul 0.6 and later supports securing the encryption keyring operations using

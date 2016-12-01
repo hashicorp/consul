@@ -4,8 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/mitchellh/cli"
 	"strings"
+
+	"github.com/mitchellh/cli"
 )
 
 // KeygenCommand is a Command implementation that generates an encryption

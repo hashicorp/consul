@@ -13,6 +13,12 @@ import (
 	"sync/atomic"
 )
 
+const (
+	// RPCAddrEnvName defines an environment variable name which sets
+	// an RPC address if there is no -rpc-addr specified.
+	RPCAddrEnvName = "CONSUL_RPC_ADDR"
+)
+
 var (
 	clientClosed = fmt.Errorf("client closed")
 )
@@ -84,7 +90,7 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 	var conn net.Conn
 	var err error
 
-	if envAddr := os.Getenv("CONSUL_RPC_ADDR"); envAddr != "" {
+	if envAddr := os.Getenv(RPCAddrEnvName); envAddr != "" {
 		addr = envAddr
 	}
 

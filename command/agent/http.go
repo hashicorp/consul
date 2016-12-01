@@ -251,10 +251,13 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	}
 	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
 	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
+	s.handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
+	s.handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
 	s.handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
 	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
 	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
 	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
+	s.handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
 	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
 	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
 	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
@@ -291,6 +294,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
 	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
 	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
+	s.handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
 	s.handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
 	s.handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
 	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
@@ -393,7 +397,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
 func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
-	if _, ok := req.URL.Query()["pretty"]; ok {
+	if _, ok := req.URL.Query()["pretty"]; ok || s.agent.config.DevMode {
 		buf, err := json.MarshalIndent(obj, "", "    ")
 		if err != nil {
 			return nil, err
