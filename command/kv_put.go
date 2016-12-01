@@ -228,11 +228,15 @@ func (c *KVPutCommand) dataFromArgs(args []string) (string, string, error) {
 		}
 		return key, string(data), nil
 	case '-':
-		var b bytes.Buffer
-		if _, err := io.Copy(&b, stdin); err != nil {
-			return "", "", fmt.Errorf("Failed to read stdin: %s", err)
+		if len(data) > 1 {
+			return key, data, nil
+		} else {
+			var b bytes.Buffer
+			if _, err := io.Copy(&b, stdin); err != nil {
+				return "", "", fmt.Errorf("Failed to read stdin: %s", err)
+			}
+			return key, b.String(), nil
 		}
-		return key, b.String(), nil
 	default:
 		return key, data, nil
 	}
