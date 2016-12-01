@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -1145,8 +1144,7 @@ func TestHTTPAgentRegisterServiceCheck(t *testing.T) {
 
 func TestHTTPAgent_Monitor(t *testing.T) {
 	logWriter := logger.NewLogWriter(512)
-	expectedLogs := bytes.Buffer{}
-	logger := io.MultiWriter(os.Stdout, &expectedLogs, logWriter)
+	logger := io.MultiWriter(os.Stdout, logWriter)
 
 	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger, logWriter)
 	defer os.RemoveAll(dir)
@@ -1206,21 +1204,21 @@ func TestHTTPAgent_Monitor(t *testing.T) {
 		}
 	}()
 
-	// Verify that the first 5 logs we get match the expected stream
-	for i := 0; i < 5; i++ {
+	// Wait until we see the expected log line
+	expected := "raft: Initial configuration (index=1)"
+	testutil.WaitForResult(func() (bool, error) {
 		select {
 		case log := <-logCh:
-			expected, err := expectedLogs.ReadString('\n')
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if log != expected {
-				t.Fatalf("bad: %q %q", expected, log)
+			if !strings.Contains(log, expected) {
+				return false, fmt.Errorf("Log message does not match expected")
 			}
 		case <-time.After(10 * time.Second):
-			t.Fatalf("failed to get log within timeout")
+			return false, fmt.Errorf("failed to get log within timeout")
 		}
-	}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
 }
 
 type closableRecorder struct {
