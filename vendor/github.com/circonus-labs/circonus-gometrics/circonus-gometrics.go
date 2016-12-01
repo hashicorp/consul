@@ -1,3 +1,7 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Package circonusgometrics provides instrumentation for your applications in the form
 // of counters, gauges and histograms and allows you to publish them to
 // Circonus
@@ -30,6 +34,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -43,8 +48,12 @@ const (
 
 // Config options for circonus-gometrics
 type Config struct {
-	Log   *log.Logger
-	Debug bool
+	Log             *log.Logger
+	Debug           bool
+	ResetCounters   string // reset/delete counters on flush (default true)
+	ResetGauges     string // reset/delete gauges on flush (default true)
+	ResetHistograms string // reset/delete histograms on flush (default true)
+	ResetText       string // reset/delete text on flush (default true)
 
 	// API, Check and Broker configuration options
 	CheckManager checkmgr.Config
@@ -55,12 +64,16 @@ type Config struct {
 
 // CirconusMetrics state
 type CirconusMetrics struct {
-	Log           *log.Logger
-	Debug         bool
-	flushInterval time.Duration
-	flushing      bool
-	flushmu       sync.Mutex
-	check         *checkmgr.CheckManager
+	Log             *log.Logger
+	Debug           bool
+	resetCounters   bool
+	resetGauges     bool
+	resetHistograms bool
+	resetText       bool
+	flushInterval   time.Duration
+	flushing        bool
+	flushmu         sync.Mutex
+	check           *checkmgr.CheckManager
 
 	counters map[string]uint64
 	cm       sync.Mutex
@@ -102,12 +115,10 @@ func NewCirconusMetrics(cfg *Config) (*CirconusMetrics, error) {
 	}
 
 	cm.Debug = cfg.Debug
-	if cm.Debug {
-		if cfg.Log == nil {
-			cm.Log = log.New(os.Stderr, "", log.LstdFlags)
-		} else {
-			cm.Log = cfg.Log
-		}
+	cm.Log = cfg.Log
+
+	if cm.Debug && cfg.Log == nil {
+		cm.Log = log.New(os.Stderr, "", log.LstdFlags)
 	}
 	if cm.Log == nil {
 		cm.Log = log.New(ioutil.Discard, "", log.LstdFlags)
@@ -123,6 +134,36 @@ func NewCirconusMetrics(cfg *Config) (*CirconusMetrics, error) {
 		return nil, err
 	}
 	cm.flushInterval = dur
+
+	var setting bool
+
+	cm.resetCounters = true
+	if cfg.ResetCounters != "" {
+		if setting, err = strconv.ParseBool(cfg.ResetCounters); err == nil {
+			cm.resetCounters = setting
+		}
+	}
+
+	cm.resetGauges = true
+	if cfg.ResetGauges != "" {
+		if setting, err = strconv.ParseBool(cfg.ResetGauges); err == nil {
+			cm.resetGauges = setting
+		}
+	}
+
+	cm.resetHistograms = true
+	if cfg.ResetHistograms != "" {
+		if setting, err = strconv.ParseBool(cfg.ResetHistograms); err == nil {
+			cm.resetHistograms = setting
+		}
+	}
+
+	cm.resetText = true
+	if cfg.ResetText != "" {
+		if setting, err = strconv.ParseBool(cfg.ResetText); err == nil {
+			cm.resetText = setting
+		}
+	}
 
 	cfg.CheckManager.Debug = cm.Debug
 	cfg.CheckManager.Log = cm.Log
@@ -242,7 +283,13 @@ func (m *CirconusMetrics) Flush() {
 		}
 	}
 
-	m.submit(output, newMetrics)
+	if len(output) > 0 {
+		m.submit(output, newMetrics)
+	} else {
+		if m.Debug {
+			m.Log.Println("[DEBUG] No metrics to send, skipping")
+		}
+	}
 
 	m.flushmu.Lock()
 	m.flushing = false

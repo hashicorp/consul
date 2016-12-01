@@ -1,3 +1,7 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Package api provides methods for interacting with the Circonus API
 package api
 
@@ -20,9 +24,9 @@ const (
 	// a few sensible defaults
 	defaultAPIURL = "https://api.circonus.com/v2"
 	defaultAPIApp = "circonus-gometrics"
-	minRetryWait  = 10 * time.Millisecond
-	maxRetryWait  = 50 * time.Millisecond
-	maxRetries    = 3
+	minRetryWait  = 1 * time.Second
+	maxRetryWait  = 15 * time.Second
+	maxRetries    = 4 // equating to 1 + maxRetries total attempts
 )
 
 // TokenKeyType - Circonus API Token key
@@ -43,8 +47,11 @@ type URLType string
 // SearchQueryType search query
 type SearchQueryType string
 
-// SearchTagType search/select tag type
-type SearchTagType string
+// SearchFilterType search filter
+type SearchFilterType string
+
+// TagType search/select/custom tag(s) type
+type TagType []string
 
 // Config options for Circonus API
 type Config struct {
@@ -99,12 +106,13 @@ func NewAPI(ac *Config) (*API, error) {
 
 	a := &API{apiURL, key, app, ac.Debug, ac.Log}
 
+	a.Debug = ac.Debug
+	a.Log = ac.Log
+	if a.Debug && a.Log == nil {
+		a.Log = log.New(os.Stderr, "", log.LstdFlags)
+	}
 	if a.Log == nil {
-		if a.Debug {
-			a.Log = log.New(os.Stderr, "", log.LstdFlags)
-		} else {
-			a.Log = log.New(ioutil.Discard, "", log.LstdFlags)
-		}
+		a.Log = log.New(ioutil.Discard, "", log.LstdFlags)
 	}
 
 	return a, nil
@@ -152,40 +160,56 @@ func (a *API) apiCall(reqMethod string, reqPath string, data []byte) ([]byte, er
 	req.Header.Add("X-Circonus-Auth-Token", string(a.key))
 	req.Header.Add("X-Circonus-App-Name", string(a.app))
 
+	// keep last HTTP error in the event of retry failure
+	var lastHTTPError error
+	retryPolicy := func(resp *http.Response, err error) (bool, error) {
+		if err != nil {
+			lastHTTPError = err
+			return true, err
+		}
+		// Check the response code. We retry on 500-range responses to allow
+		// the server time to recover, as 500's are typically not permanent
+		// errors and may relate to outages on the server side. This will catch
+		// invalid response codes as well, like 0 and 999.
+		// Retry on 429 (rate limit) as well.
+		if resp.StatusCode == 0 || resp.StatusCode >= 500 || resp.StatusCode == 429 {
+			body, readErr := ioutil.ReadAll(resp.Body)
+			if readErr != nil {
+				lastHTTPError = fmt.Errorf("- last HTTP error: %d %+v", resp.StatusCode, readErr)
+			} else {
+				lastHTTPError = fmt.Errorf("- last HTTP error: %d %s", resp.StatusCode, string(body))
+			}
+			return true, nil
+		}
+		return false, nil
+	}
+
 	client := retryablehttp.NewClient()
 	client.RetryWaitMin = minRetryWait
 	client.RetryWaitMax = maxRetryWait
 	client.RetryMax = maxRetries
-	client.Logger = a.Log
+	// retryablehttp only groks log or no log
+	// but, outputs everything as [DEBUG] messages
+	if a.Debug {
+		client.Logger = a.Log
+	} else {
+		client.Logger = log.New(ioutil.Discard, "", log.LstdFlags)
+	}
+
+	client.CheckRetry = retryPolicy
 
 	resp, err := client.Do(req)
 	if err != nil {
-		stdClient := &http.Client{}
-		dataReader.Seek(0, 0)
-		stdRequest, _ := http.NewRequest(reqMethod, reqURL, dataReader)
-		stdRequest.Header.Add("Accept", "application/json")
-		stdRequest.Header.Add("X-Circonus-Auth-Token", string(a.key))
-		stdRequest.Header.Add("X-Circonus-App-Name", string(a.app))
-		res, errSC := stdClient.Do(stdRequest)
-		if errSC != nil {
-			return nil, fmt.Errorf("[ERROR] fetching %s: %s", reqURL, errSC)
+		if lastHTTPError != nil {
+			return nil, lastHTTPError
 		}
-
-		if res != nil && res.Body != nil {
-			defer res.Body.Close()
-			body, _ := ioutil.ReadAll(res.Body)
-			if a.Debug {
-				a.Log.Printf("[DEBUG] %v\n", string(body))
-			}
-			return nil, fmt.Errorf("[ERROR] %s", string(body))
-		}
-
-		return nil, fmt.Errorf("[ERROR] fetching %s: %s", reqURL, err)
+		return nil, fmt.Errorf("[ERROR] %s: %+v", reqURL, err)
 	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] reading body %+v", err)
+		return nil, fmt.Errorf("[ERROR] reading response %+v", err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
