@@ -18,6 +18,7 @@ BUG FIXES:
 * api: Added missing notes field to `AgentServiceCheck` structure. [GH-2336]
 * api: Changed type of `AgentServiceCheck.TLSSkipVerify` from `string` to `bool`. [GH-2530]
 * api: Added new `HealthChecks.AggregatedStatus()` method that makes it easy get an overall health status from a list of checks. [GH-2544]
+* api: Changed type of `KVTxnOp.Verb` from `string` to `KVOp`. [GH-2531]
 * cli: Fixed an issue with the `consul kv put` command where a negative value would be interpreted as an argument to read from standard input. [GH-2526]
 * ui: Fixed an issue where extra commas would be shown around service tags. [GH-2340]
 * ui: Customized Bootstrap config to avoid missing font file references. [GH-2485]
