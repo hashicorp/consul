@@ -10,6 +10,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Defaults to `?pretty` JSON for HTTP API requests when in `-dev` mode. [GH-2518]
+* agent: Updated Circonus metrics library and added new Circonus configration options for Consul for customizing check display name and tags. [GH-2555]
 
 BUG FIXES:
 
