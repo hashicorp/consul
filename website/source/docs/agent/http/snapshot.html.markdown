@@ -32,7 +32,7 @@ consistent mode by default and stale mode is supported.
 
 The endpoints support the use of ACL Tokens. Because snapshots contain all
 server state, including ACLs, a management token is required to perform snapshot
-operations is ACLs are enabled.
+operations if ACLs are enabled.
 
 ### <a name="snapshot"></a> /v1/snapshot
 
