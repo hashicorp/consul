@@ -19,6 +19,7 @@ BUG FIXES:
 * api: Added new `HealthChecks.AggregatedStatus()` method that makes it easy get an overall health status from a list of checks. [GH-2544]
 * ui: Fixed an issue where extra commas would be shown around service tags. [GH-2340]
 * ui: Customized Bootstrap config to avoid missing font file references. [GH-2485]
+* ui: Removed "Deregister" button as removing nodes from the catalog isn't a common operation and leads to lots of user confusion. [GH-2541]
 
 ## 0.7.1 (November 10, 2016)
 
