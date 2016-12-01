@@ -133,9 +133,46 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		logOutput = os.Stderr
 	}
 
-	var bindIPs []string
+	// Handle the default IPs
+	var ipTmpl string
+	switch {
+	case config.BindAddr == "0.0.0.0":
+		ipTmpl = `{{ GetPrivateInterfaces | include "type" "IP" | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`
+	case config.BindAddr == "[::]":
+		ipTmpl = `{{ GetAllInterfaces | include "type" "IPv6" | sort "size,address" | include "flag" "forwardable|up" | join "address" " " }}`
+	case config.BindAddr == "":
+		ipTmpl = `{{ GetAllInterfaces | include "type" "IP" | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`
+	}
+
+	if ipTmpl != "" {
+		out, err := template.Parse(ipTmpl)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to automatically detect an IP address.  Please consider setting an IP BindAddr address manually: %v", err)
+		}
+
+		ips := strings.Split(out, " ")
+		switch len(ips) {
+		case 0:
+			return nil, errors.New("No forwardable IP addresses found.  Please configure one.")
+		case 1:
+			if ip := net.ParseIP(ips[0]); ip == nil {
+				return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
+			}
+
+			// Only save the result if the bind addr is not the
+			// default value.
+			if config.BindAddr != "0.0.0.0" {
+				config.BindAddr = ips[0]
+			}
+			if config.AdvertiseAddr == "" {
+				config.AdvertiseAddr = ips[0]
+			}
+		default:
+			return nil, fmt.Errorf("Multiple forwardable IP addresses found (%s).  Please configure one.", strings.Join(ips, ", "))
+		}
+	}
+
 	if config.AdvertiseAddr != "" {
-		// Parse config.AdvertiseAddr to resolve an IP address
 		out, err := template.Parse(config.AdvertiseAddr)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse advertise address template %q: %v", config.AdvertiseAddr, err)
@@ -144,58 +181,11 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		if ip := net.ParseIP(out); ip == nil {
 			return nil, fmt.Errorf("Failed to parse advertise address %v", out)
 		}
-	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" && config.BindAddr != "[::]" {
-		out, err := template.Parse(config.BindAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to parse bind address template %q: %v", config.BindAddr, err)
-		}
 
-		bindIPs = strings.Split(out, " ")
-		if len(bindIPs) > 0 {
-			config.AdvertiseAddr = bindIPs[0]
-		}
-	} else {
-		var err error
-		var ip net.IP
-		if config.BindAddr == "[::]" {
-			out, err := template.Parse(`{{ GetAllInterfaces | include "type" "IPv6" | sort "size,address" | include "flag" "forwardable|up" | join "address" " " }}`)
-			if err != nil {
-				return nil, fmt.Errorf("Unable to automatically detect an IPv6 address.  Please consider setting an IPv6 BindAddr address manually: %v", err)
-			}
+	}
 
-			ips := strings.Split(out, " ")
-			switch numIPs := len(ips); {
-			case numIPs == 0:
-				return nil, errors.New("No forwardable IPv6 addresses found.  Please configure one.")
-			case numIPs >= 1:
-				if ip = net.ParseIP(ips[0]); ip == nil {
-					return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
-				}
-			default:
-				return nil, fmt.Errorf("Multiple forwardable IPv6 addresses found (%s).  Please configure one.", strings.Join(ips, ", "))
-			}
-		} else {
-			out, err := template.Parse(`{{ GetAllInterfaces | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`)
-			if err != nil {
-				return nil, fmt.Errorf("Unable to automatically detect an IP address.  Please consider setting an IP BindAddr address manually: %v", err)
-			}
-
-			ips := strings.Split(out, " ")
-			switch numIPs := len(ips); {
-			case numIPs == 0:
-				return nil, errors.New("No forwardable IP addresses found.  Please configure one.")
-			case numIPs >= 1:
-				if ip = net.ParseIP(ips[0]); ip == nil {
-					return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
-				}
-			default:
-				return nil, fmt.Errorf("Multiple forwardable IP addresses found (%s).  Please configure one.", strings.Join(ips, ", "))
-			}
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
-		}
-		config.AdvertiseAddr = ip.String()
+	if config.AdvertiseAddr == "" {
+		config.AdvertiseAddr = config.BindAddr
 	}
 
 	// Try to get an advertise address for the wan
