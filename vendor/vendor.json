@@ -240,28 +240,28 @@
 			"versionExact": "v1.2.1"
 		},
 		{
-			"checksumSHA1": "b5zgHT9TxBAVh/KP9kQi7QVoz9w=",
+			"checksumSHA1": "szvY4u7TlXkrQ3PW8wmyJaIFy0U=",
 			"path": "github.com/circonus-labs/circonus-gometrics",
-			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
-			"revisionTime": "2016-07-22T17:27:10Z"
+			"revision": "d17a8420c36e800fcb46bbd4d2a15b93c68605ea",
+			"revisionTime": "2016-11-09T19:23:37Z"
 		},
 		{
-			"checksumSHA1": "IFiYTxu8jshL4A8BCttUaDhp1m4=",
+			"checksumSHA1": "WUE6oF152uN5FcLmmq+nO3Yl7pU=",
 			"path": "github.com/circonus-labs/circonus-gometrics/api",
-			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
-			"revisionTime": "2016-07-22T17:27:10Z"
+			"revision": "d17a8420c36e800fcb46bbd4d2a15b93c68605ea",
+			"revisionTime": "2016-11-09T19:23:37Z"
 		},
 		{
-			"checksumSHA1": "+9vcRzlTdvEjH/Uf8fKC5MXdjNw=",
+			"checksumSHA1": "beRBHHy2+V6Ht4cACIMmZOCnzgg=",
 			"path": "github.com/circonus-labs/circonus-gometrics/checkmgr",
-			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
-			"revisionTime": "2016-07-22T17:27:10Z"
+			"revision": "d17a8420c36e800fcb46bbd4d2a15b93c68605ea",
+			"revisionTime": "2016-11-09T19:23:37Z"
 		},
 		{
 			"checksumSHA1": "C4Z7+l5GOpOCW5DcvNYzheGvQRE=",
 			"path": "github.com/circonus-labs/circonusllhist",
-			"revision": "d724266ae5270ae8b87a5d2e8081f04e307c3c18",
-			"revisionTime": "2016-05-26T04:38:13Z"
+			"revision": "365d370cc1459bdcaceda3499453668373dea1d0",
+			"revisionTime": "2016-11-10T00:26:50Z"
 		},
 		{
 			"checksumSHA1": "fXAinpJ5bOcborK7AiO1rnW60BI=",
@@ -414,10 +414,10 @@
 			"revisionTime": "2015-09-16T20:57:42Z"
 		},
 		{
-			"checksumSHA1": "bfVGm7xZ2VFpddJp3KEPUZ8Y9Po=",
+			"checksumSHA1": "ErJHGU6AVPZM9yoY/xV11TwSjQs=",
 			"path": "github.com/hashicorp/go-retryablehttp",
-			"revision": "886ce0458bc81ccca0fb7044c1be0e9ab590bed7",
-			"revisionTime": "2016-07-18T23:34:41Z"
+			"revision": "6e85be8fee1dcaa02c0eaaac2df5a8fbecf94145",
+			"revisionTime": "2016-09-30T03:51:02Z"
 		},
 		{
 			"checksumSHA1": "xZ7Ban1x//6uUIU1xtrTbCYNHBc=",
