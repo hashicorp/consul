@@ -35,17 +35,11 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("expected static")
 	}
 
-	if !all.KeyRead("foobar") {
-		t.Fatalf("should allow")
+	if all.ACLList() {
+		t.Fatalf("should not allow")
 	}
-	if !all.KeyWrite("foobar") {
-		t.Fatalf("should allow")
-	}
-	if !all.ServiceRead("foobar") {
-		t.Fatalf("should allow")
-	}
-	if !all.ServiceWrite("foobar") {
-		t.Fatalf("should allow")
+	if all.ACLModify() {
+		t.Fatalf("should not allow")
 	}
 	if !all.EventRead("foobar") {
 		t.Fatalf("should allow")
@@ -53,10 +47,10 @@ func TestStaticACL(t *testing.T) {
 	if !all.EventWrite("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !all.PreparedQueryRead("foobar") {
+	if !all.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !all.PreparedQueryWrite("foobar") {
+	if !all.KeyWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !all.KeyringRead() {
@@ -71,26 +65,26 @@ func TestStaticACL(t *testing.T) {
 	if !all.OperatorWrite() {
 		t.Fatalf("should allow")
 	}
-	if all.ACLList() {
-		t.Fatalf("should not allow")
+	if !all.PreparedQueryRead("foobar") {
+		t.Fatalf("should allow")
 	}
-	if all.ACLModify() {
-		t.Fatalf("should not allow")
+	if !all.PreparedQueryWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.ServiceRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.ServiceWrite("foobar") {
+		t.Fatalf("should allow")
 	}
 	if all.Snapshot() {
 		t.Fatalf("should not allow")
 	}
 
-	if none.KeyRead("foobar") {
+	if none.ACLList() {
 		t.Fatalf("should not allow")
 	}
-	if none.KeyWrite("foobar") {
-		t.Fatalf("should not allow")
-	}
-	if none.ServiceRead("foobar") {
-		t.Fatalf("should not allow")
-	}
-	if none.ServiceWrite("foobar") {
+	if none.ACLModify() {
 		t.Fatalf("should not allow")
 	}
 	if none.EventRead("foobar") {
@@ -105,10 +99,10 @@ func TestStaticACL(t *testing.T) {
 	if none.EventWrite("") {
 		t.Fatalf("should not allow")
 	}
-	if none.PreparedQueryRead("foobar") {
+	if none.KeyRead("foobar") {
 		t.Fatalf("should not allow")
 	}
-	if none.PreparedQueryWrite("foobar") {
+	if none.KeyWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
 	if none.KeyringRead() {
@@ -123,26 +117,26 @@ func TestStaticACL(t *testing.T) {
 	if none.OperatorWrite() {
 		t.Fatalf("should not allow")
 	}
-	if none.ACLList() {
+	if none.PreparedQueryRead("foobar") {
 		t.Fatalf("should not allow")
 	}
-	if none.ACLModify() {
+	if none.PreparedQueryWrite("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.ServiceRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.ServiceWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
 	if none.Snapshot() {
 		t.Fatalf("should not allow")
 	}
 
-	if !manage.KeyRead("foobar") {
+	if !manage.ACLList() {
 		t.Fatalf("should allow")
 	}
-	if !manage.KeyWrite("foobar") {
-		t.Fatalf("should allow")
-	}
-	if !manage.ServiceRead("foobar") {
-		t.Fatalf("should allow")
-	}
-	if !manage.ServiceWrite("foobar") {
+	if !manage.ACLModify() {
 		t.Fatalf("should allow")
 	}
 	if !manage.EventRead("foobar") {
@@ -151,10 +145,10 @@ func TestStaticACL(t *testing.T) {
 	if !manage.EventWrite("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.PreparedQueryRead("foobar") {
+	if !manage.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.PreparedQueryWrite("foobar") {
+	if !manage.KeyWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyringRead() {
@@ -169,10 +163,16 @@ func TestStaticACL(t *testing.T) {
 	if !manage.OperatorWrite() {
 		t.Fatalf("should allow")
 	}
-	if !manage.ACLList() {
+	if !manage.PreparedQueryRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.ACLModify() {
+	if !manage.PreparedQueryWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.ServiceRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.ServiceWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.Snapshot() {
@@ -183,6 +183,20 @@ func TestStaticACL(t *testing.T) {
 func TestPolicyACL(t *testing.T) {
 	all := AllowAll()
 	policy := &Policy{
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: PolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: PolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: PolicyDeny,
+			},
+		},
 		Keys: []*KeyPolicy{
 			&KeyPolicy{
 				Prefix: "foo/",
@@ -201,38 +215,6 @@ func TestPolicyACL(t *testing.T) {
 				Policy: PolicyRead,
 			},
 		},
-		Services: []*ServicePolicy{
-			&ServicePolicy{
-				Name:   "",
-				Policy: PolicyWrite,
-			},
-			&ServicePolicy{
-				Name:   "foo",
-				Policy: PolicyRead,
-			},
-			&ServicePolicy{
-				Name:   "bar",
-				Policy: PolicyDeny,
-			},
-			&ServicePolicy{
-				Name:   "barfoo",
-				Policy: PolicyWrite,
-			},
-		},
-		Events: []*EventPolicy{
-			&EventPolicy{
-				Event:  "",
-				Policy: PolicyRead,
-			},
-			&EventPolicy{
-				Event:  "foo",
-				Policy: PolicyWrite,
-			},
-			&EventPolicy{
-				Event:  "bar",
-				Policy: PolicyDeny,
-			},
-		},
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
 				Prefix: "",
@@ -248,6 +230,24 @@ func TestPolicyACL(t *testing.T) {
 			},
 			&PreparedQueryPolicy{
 				Prefix: "zoo",
+				Policy: PolicyWrite,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: PolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: PolicyRead,
+			},
+			&ServicePolicy{
+				Name:   "bar",
+				Policy: PolicyDeny,
+			},
+			&ServicePolicy{
+				Name:   "barfoo",
 				Policy: PolicyWrite,
 			},
 		},
@@ -369,16 +369,6 @@ func TestPolicyACL_Parent(t *testing.T) {
 				Policy: PolicyRead,
 			},
 		},
-		Services: []*ServicePolicy{
-			&ServicePolicy{
-				Name:   "other",
-				Policy: PolicyWrite,
-			},
-			&ServicePolicy{
-				Name:   "foo",
-				Policy: PolicyRead,
-			},
-		},
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
 				Prefix: "other",
@@ -386,6 +376,16 @@ func TestPolicyACL_Parent(t *testing.T) {
 			},
 			&PreparedQueryPolicy{
 				Prefix: "foo",
+				Policy: PolicyRead,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "other",
+				Policy: PolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
 				Policy: PolicyRead,
 			},
 		},
@@ -410,15 +410,15 @@ func TestPolicyACL_Parent(t *testing.T) {
 				Policy: PolicyRead,
 			},
 		},
-		Services: []*ServicePolicy{
-			&ServicePolicy{
-				Name:   "bar",
-				Policy: PolicyDeny,
-			},
-		},
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
 				Prefix: "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "bar",
 				Policy: PolicyDeny,
 			},
 		},

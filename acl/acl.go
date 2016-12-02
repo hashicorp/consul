@@ -35,6 +35,18 @@ func init() {
 
 // ACL is the interface for policy enforcement.
 type ACL interface {
+	// ACLList checks for permission to list all the ACLs
+	ACLList() bool
+
+	// ACLModify checks for permission to manipulate ACLs
+	ACLModify() bool
+
+	// EventRead determines if a specific event can be queried.
+	EventRead(string) bool
+
+	// EventWrite determines if a specific event may be fired.
+	EventWrite(string) bool
+
 	// KeyRead checks for permission to read a given key
 	KeyRead(string) bool
 
@@ -45,26 +57,6 @@ type ACL interface {
 	// entire key prefix. This means there must be no sub-policies
 	// that deny a write.
 	KeyWritePrefix(string) bool
-
-	// ServiceWrite checks for permission to read a given service
-	ServiceWrite(string) bool
-
-	// ServiceRead checks for permission to read a given service
-	ServiceRead(string) bool
-
-	// EventRead determines if a specific event can be queried.
-	EventRead(string) bool
-
-	// EventWrite determines if a specific event may be fired.
-	EventWrite(string) bool
-
-	// PrepardQueryRead determines if a specific prepared query can be read
-	// to show its contents (this is not used for execution).
-	PreparedQueryRead(string) bool
-
-	// PreparedQueryWrite determines if a specific prepared query can be
-	// created, modified, or deleted.
-	PreparedQueryWrite(string) bool
 
 	// KeyringRead determines if the encryption keyring used in
 	// the gossip layer can be read.
@@ -81,11 +73,19 @@ type ACL interface {
 	// functions can be used.
 	OperatorWrite() bool
 
-	// ACLList checks for permission to list all the ACLs
-	ACLList() bool
+	// PrepardQueryRead determines if a specific prepared query can be read
+	// to show its contents (this is not used for execution).
+	PreparedQueryRead(string) bool
 
-	// ACLModify checks for permission to manipulate ACLs
-	ACLModify() bool
+	// PreparedQueryWrite determines if a specific prepared query can be
+	// created, modified, or deleted.
+	PreparedQueryWrite(string) bool
+
+	// ServiceRead checks for permission to read a given service
+	ServiceRead(string) bool
+
+	// ServiceWrite checks for permission to read a given service
+	ServiceWrite(string) bool
 
 	// Snapshot checks for permission to take and restore snapshots.
 	Snapshot() bool
@@ -99,24 +99,12 @@ type StaticACL struct {
 	defaultAllow bool
 }
 
-func (s *StaticACL) KeyRead(string) bool {
-	return s.defaultAllow
+func (s *StaticACL) ACLList() bool {
+	return s.allowManage
 }
 
-func (s *StaticACL) KeyWrite(string) bool {
-	return s.defaultAllow
-}
-
-func (s *StaticACL) KeyWritePrefix(string) bool {
-	return s.defaultAllow
-}
-
-func (s *StaticACL) ServiceRead(string) bool {
-	return s.defaultAllow
-}
-
-func (s *StaticACL) ServiceWrite(string) bool {
-	return s.defaultAllow
+func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
 }
 
 func (s *StaticACL) EventRead(string) bool {
@@ -127,11 +115,15 @@ func (s *StaticACL) EventWrite(string) bool {
 	return s.defaultAllow
 }
 
-func (s *StaticACL) PreparedQueryRead(string) bool {
+func (s *StaticACL) KeyRead(string) bool {
 	return s.defaultAllow
 }
 
-func (s *StaticACL) PreparedQueryWrite(string) bool {
+func (s *StaticACL) KeyWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyWritePrefix(string) bool {
 	return s.defaultAllow
 }
 
@@ -151,12 +143,20 @@ func (s *StaticACL) OperatorWrite() bool {
 	return s.defaultAllow
 }
 
-func (s *StaticACL) ACLList() bool {
-	return s.allowManage
+func (s *StaticACL) PreparedQueryRead(string) bool {
+	return s.defaultAllow
 }
 
-func (s *StaticACL) ACLModify() bool {
-	return s.allowManage
+func (s *StaticACL) PreparedQueryWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) ServiceRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) ServiceWrite(string) bool {
+	return s.defaultAllow
 }
 
 func (s *StaticACL) Snapshot() bool {
@@ -260,6 +260,50 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	return p, nil
 }
 
+// ACLList checks if listing of ACLs is allowed
+func (p *PolicyACL) ACLList() bool {
+	return p.parent.ACLList()
+}
+
+// ACLModify checks if modification of ACLs is allowed
+func (p *PolicyACL) ACLModify() bool {
+	return p.parent.ACLModify()
+}
+
+// Snapshot checks if taking and restoring snapshots is allowed.
+func (p *PolicyACL) Snapshot() bool {
+	return p.parent.Snapshot()
+}
+
+// EventRead is used to determine if the policy allows for a
+// specific user event to be read.
+func (p *PolicyACL) EventRead(name string) bool {
+	// Longest-prefix match on event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// Nothing matched, use parent
+	return p.parent.EventRead(name)
+}
+
+// EventWrite is used to determine if new events can be created
+// (fired) by the policy.
+func (p *PolicyACL) EventWrite(name string) bool {
+	// Longest-prefix match event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		return rule == PolicyWrite
+	}
+
+	// No match, use parent
+	return p.parent.EventWrite(name)
+}
+
 // KeyRead returns if a key is allowed to be read
 func (p *PolicyACL) KeyRead(key string) bool {
 	// Look for a matching rule
@@ -327,109 +371,6 @@ func (p *PolicyACL) KeyWritePrefix(prefix string) bool {
 	return p.parent.KeyWritePrefix(prefix)
 }
 
-// ServiceRead checks if reading (discovery) of a service is allowed
-func (p *PolicyACL) ServiceRead(name string) bool {
-	// Check for an exact rule or catch-all
-	_, rule, ok := p.serviceRules.LongestPrefix(name)
-
-	if ok {
-		switch rule {
-		case PolicyRead, PolicyWrite:
-			return true
-		default:
-			return false
-		}
-	}
-
-	// No matching rule, use the parent.
-	return p.parent.ServiceRead(name)
-}
-
-// ServiceWrite checks if writing (registering) a service is allowed
-func (p *PolicyACL) ServiceWrite(name string) bool {
-	// Check for an exact rule or catch-all
-	_, rule, ok := p.serviceRules.LongestPrefix(name)
-
-	if ok {
-		switch rule {
-		case PolicyWrite:
-			return true
-		default:
-			return false
-		}
-	}
-
-	// No matching rule, use the parent.
-	return p.parent.ServiceWrite(name)
-}
-
-// EventRead is used to determine if the policy allows for a
-// specific user event to be read.
-func (p *PolicyACL) EventRead(name string) bool {
-	// Longest-prefix match on event names
-	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
-		switch rule {
-		case PolicyRead, PolicyWrite:
-			return true
-		default:
-			return false
-		}
-	}
-
-	// Nothing matched, use parent
-	return p.parent.EventRead(name)
-}
-
-// EventWrite is used to determine if new events can be created
-// (fired) by the policy.
-func (p *PolicyACL) EventWrite(name string) bool {
-	// Longest-prefix match event names
-	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
-		return rule == PolicyWrite
-	}
-
-	// No match, use parent
-	return p.parent.EventWrite(name)
-}
-
-// PreparedQueryRead checks if reading (listing) of a prepared query is
-// allowed - this isn't execution, just listing its contents.
-func (p *PolicyACL) PreparedQueryRead(prefix string) bool {
-	// Check for an exact rule or catch-all
-	_, rule, ok := p.preparedQueryRules.LongestPrefix(prefix)
-
-	if ok {
-		switch rule {
-		case PolicyRead, PolicyWrite:
-			return true
-		default:
-			return false
-		}
-	}
-
-	// No matching rule, use the parent.
-	return p.parent.PreparedQueryRead(prefix)
-}
-
-// PreparedQueryWrite checks if writing (creating, updating, or deleting) of a
-// prepared query is allowed.
-func (p *PolicyACL) PreparedQueryWrite(prefix string) bool {
-	// Check for an exact rule or catch-all
-	_, rule, ok := p.preparedQueryRules.LongestPrefix(prefix)
-
-	if ok {
-		switch rule {
-		case PolicyWrite:
-			return true
-		default:
-			return false
-		}
-	}
-
-	// No matching rule, use the parent.
-	return p.parent.PreparedQueryWrite(prefix)
-}
-
 // KeyringRead is used to determine if the keyring can be
 // read by the current ACL token.
 func (p *PolicyACL) KeyringRead() bool {
@@ -472,17 +413,76 @@ func (p *PolicyACL) OperatorWrite() bool {
 	return p.parent.OperatorWrite()
 }
 
-// ACLList checks if listing of ACLs is allowed
-func (p *PolicyACL) ACLList() bool {
-	return p.parent.ACLList()
+// PreparedQueryRead checks if reading (listing) of a prepared query is
+// allowed - this isn't execution, just listing its contents.
+func (p *PolicyACL) PreparedQueryRead(prefix string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.preparedQueryRules.LongestPrefix(prefix)
+
+	if ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.PreparedQueryRead(prefix)
 }
 
-// ACLModify checks if modification of ACLs is allowed
-func (p *PolicyACL) ACLModify() bool {
-	return p.parent.ACLModify()
+// PreparedQueryWrite checks if writing (creating, updating, or deleting) of a
+// prepared query is allowed.
+func (p *PolicyACL) PreparedQueryWrite(prefix string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.preparedQueryRules.LongestPrefix(prefix)
+
+	if ok {
+		switch rule {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.PreparedQueryWrite(prefix)
 }
 
-// Snapshot checks if taking and restoring snapshots is allowed.
-func (p *PolicyACL) Snapshot() bool {
-	return p.parent.Snapshot()
+// ServiceRead checks if reading (discovery) of a service is allowed
+func (p *PolicyACL) ServiceRead(name string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.serviceRules.LongestPrefix(name)
+
+	if ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.ServiceRead(name)
+}
+
+// ServiceWrite checks if writing (registering) a service is allowed
+func (p *PolicyACL) ServiceWrite(name string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.serviceRules.LongestPrefix(name)
+
+	if ok {
+		switch rule {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.ServiceWrite(name)
 }
