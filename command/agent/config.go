@@ -967,6 +967,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfLanRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfLanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("Serf Advertise LAN address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.SerfLanRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfLanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.SerfLan is invalid: %v", err)
@@ -975,6 +981,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfWanRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfWanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("Serf Advertise WAN address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.SerfWanRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfWanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.SerfWan is invalid: %v", err)
@@ -983,6 +995,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.RPCRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.RPCRaw)
+		if err != nil {
+			return nil, fmt.Errorf("RPC Advertise address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.RPCRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.RPCRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.RPC is invalid: %v", err)
