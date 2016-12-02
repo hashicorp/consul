@@ -70,13 +70,13 @@ query, like this example:
   "Name": "my-query",
   "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
   "Token": "",
-  "Near": "node1",
   "Service": {
     "Service": "redis",
     "Failover": {
       "NearestN": 3,
       "Datacenters": ["dc1", "dc2"]
     },
+    "Near": "node1",
     "OnlyPassing": false,
     "Tags": ["primary", "!experimental"]
   },
