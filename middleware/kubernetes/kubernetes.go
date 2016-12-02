@@ -55,7 +55,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 }
 
 // PrimaryZone will return the first non-reverse zone being handled by this middleware
-func (k *Kubernetes) PrimaryZone() (string) {
+func (k *Kubernetes) PrimaryZone() string {
 	return k.Zones[k.primaryZone]
 }
 
@@ -228,15 +228,38 @@ func (k *Kubernetes) getRecordsForServiceItems(serviceItems []*api.Service, zone
 	var records []msg.Service
 
 	for _, item := range serviceItems {
-		clusterIP := item.Spec.ClusterIP
 
-		// Create records for each exposed port...
 		key := k.NameTemplate.RecordNameFromNameValues(nametemplate.NameValues{TypeName: "svc", ServiceName: item.ObjectMeta.Name, Namespace: item.ObjectMeta.Namespace, Zone: zone})
+
 		key = strings.Replace(key, ".", "/", -1)
 
-		for i, p := range item.Spec.Ports {
-			s := msg.Service{Key: msg.Path(strconv.Itoa(i)+"."+key, "coredns"), Host: clusterIP, Port: int(p.Port)}
-			records = append(records, s)
+		clusterIP := item.Spec.ClusterIP
+		if clusterIP == api.ClusterIPNone {
+			// This is a headless service, create records for each pod
+			epList, _ := k.APIConn.epLister.List()
+			for _, ep := range epList.Items {
+				if ep.ObjectMeta.Name == item.ObjectMeta.Name && ep.ObjectMeta.Namespace == item.ObjectMeta.Namespace {
+					for _, eps := range ep.Subsets {
+						for i, port := range eps.Ports {
+							for j, addr := range eps.Addresses {
+								refid := strconv.Itoa(j*1024 + i)
+								s := msg.Service{
+									Key:  msg.Path(strings.ToLower(refid+"._"+port.Name+"._"+string(port.Protocol)+"."+key), "coredns"),
+									Host: addr.IP, Port: int(port.Port),
+								}
+								records = append(records, s)
+							}
+						}
+					}
+				}
+			}
+		} else {
+			// Create records for each exposed port...
+
+			for _, p := range item.Spec.Ports {
+				s := msg.Service{Key: msg.Path(strings.ToLower("_"+p.Name+"._"+string(p.Protocol)+"."+key), "coredns"), Host: clusterIP, Port: int(p.Port)}
+				records = append(records, s)
+			}
 		}
 	}
 
@@ -265,6 +288,7 @@ func (k *Kubernetes) getServices(namespace string, nsWildcard bool, servicename 
 			if nsWildcard && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(item.Namespace, k.Namespaces)) {
 				continue
 			}
+
 			resultItems = append(resultItems, item)
 		}
 	}

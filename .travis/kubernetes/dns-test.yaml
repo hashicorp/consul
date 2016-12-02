@@ -91,6 +91,26 @@ spec:
           name: c-port
           protocol: UDP
 ---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: de-d1
+  namespace: test-1
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: app-d
+    spec:
+      containers:
+      - name: app-d-c
+        image: gcr.io/google_containers/pause-amd64:3.0
+        ports:
+        - containerPort: 1234
+          name: c-port
+          protocol: UDP
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -145,6 +165,20 @@ spec:
   selector:
     app: app-c
   clusterIP: 10.0.0.120
+  ports:
+  - name: c-port
+    port: 1234
+    protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headless-svc
+  namespace: test-1
+spec:
+  selector:
+    app: app-d
+  clusterIP: None
   ports:
   - name: c-port
     port: 1234

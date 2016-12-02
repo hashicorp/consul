@@ -39,9 +39,11 @@ type dnsController struct {
 
 	svcController *cache.Controller
 	nsController  *cache.Controller
+	epController  *cache.Controller
 
 	svcLister cache.StoreToServiceLister
 	nsLister  storeToNamespaceLister
+	epLister  cache.StoreToEndpointsLister
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and
@@ -76,6 +78,13 @@ func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Durati
 		},
 		&api.Namespace{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
+	dns.epLister.Store, dns.epController = cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
+			WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
+		},
+		&api.Endpoints{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
+
 	return &dns
 }
 
@@ -85,6 +94,7 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 			opts.LabelSelector = *s
 		}
 		listV1, err := c.Core().Services(ns).List(opts)
+
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +126,14 @@ func v1ToAPIFilter(in watch.Event) (out watch.Event, keep bool) {
 		err := v1.Convert_v1_Namespace_To_api_Namespace(v1Obj, &apiObj, nil)
 		if err != nil {
 			log.Printf("[ERROR] Could not convert v1.Namespace: %s", err)
+			return in, true
+		}
+		return watch.Event{Type: in.Type, Object: &apiObj}, true
+	case *v1.Endpoints:
+		var apiObj api.Endpoints
+		err := v1.Convert_v1_Endpoints_To_api_Endpoints(v1Obj, &apiObj, nil)
+		if err != nil {
+			log.Printf("[ERROR] Could not convert v1.Endpoint: %s", err)
 			return in, true
 		}
 		return watch.Event{Type: in.Type, Object: &apiObj}, true
@@ -169,6 +187,38 @@ func namespaceWatchFunc(c *kubernetes.Clientset, s *labels.Selector) func(option
 	}
 }
 
+func endpointsListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(api.ListOptions) (runtime.Object, error) {
+	return func(opts api.ListOptions) (runtime.Object, error) {
+		if s != nil {
+			opts.LabelSelector = *s
+		}
+		listV1, err := c.Core().Endpoints(ns).List(opts)
+
+		if err != nil {
+			return nil, err
+		}
+		var listAPI api.EndpointsList
+		err = v1.Convert_v1_EndpointsList_To_api_EndpointsList(listV1, &listAPI, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &listAPI, err
+	}
+}
+
+func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(options api.ListOptions) (watch.Interface, error) {
+	return func(options api.ListOptions) (watch.Interface, error) {
+		if s != nil {
+			options.LabelSelector = *s
+		}
+		w, err := c.Core().Endpoints(ns).Watch(options)
+		if err != nil {
+			return nil, err
+		}
+		return watch.Filter(w, v1ToAPIFilter), nil
+	}
+}
+
 func (dns *dnsController) controllersInSync() bool {
 	return dns.svcController.HasSynced()
 }
@@ -193,6 +243,7 @@ func (dns *dnsController) Stop() error {
 func (dns *dnsController) Run() {
 	go dns.svcController.Run(dns.stopCh)
 	go dns.nsController.Run(dns.stopCh)
+	go dns.epController.Run(dns.stopCh)
 	<-dns.stopCh
 }
 
