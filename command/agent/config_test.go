@@ -674,6 +674,22 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// ACL flag for Consul version 0.8 features (broken out since we will
+	// eventually remove this). We first verify this is opt-out.
+	config = DefaultConfig()
+	if *config.ACLEnforceVersion8 != false {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	input = `{"acl_enforce_version_8": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if *config.ACLEnforceVersion8 != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Watches
 	input = `{"watches": [{"type":"keyprefix", "prefix":"foo/", "handler":"foobar"}]}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1552,6 +1568,7 @@ func TestMergeConfig(t *testing.T) {
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
 		ACLReplicationToken:    "8765309",
+		ACLEnforceVersion8:     Bool(true),
 		Watches: []map[string]interface{}{
 			map[string]interface{}{
 				"type":    "keyprefix",

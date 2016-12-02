@@ -525,6 +525,10 @@ type Config struct {
 	// other than the ACLDatacenter.
 	ACLReplicationToken string `mapstructure:"acl_replication_token" json:"-"`
 
+	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
+	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
+	ACLEnforceVersion8 *bool `mapstructure:"acl_enforce_version_8"`
+
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
@@ -705,11 +709,12 @@ func DefaultConfig() *Config {
 		SyncCoordinateRateTarget:  64.0, // updates / second
 		SyncCoordinateIntervalMin: 15 * time.Second,
 
-		ACLTTL:           30 * time.Second,
-		ACLDownPolicy:    "extend-cache",
-		ACLDefaultPolicy: "allow",
-		RetryInterval:    30 * time.Second,
-		RetryIntervalWan: 30 * time.Second,
+		ACLTTL:             30 * time.Second,
+		ACLDownPolicy:      "extend-cache",
+		ACLDefaultPolicy:   "allow",
+		ACLEnforceVersion8: Bool(false),
+		RetryInterval:      30 * time.Second,
+		RetryIntervalWan:   30 * time.Second,
 	}
 }
 
@@ -1479,6 +1484,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLReplicationToken != "" {
 		result.ACLReplicationToken = b.ACLReplicationToken
+	}
+	if b.ACLEnforceVersion8 != nil {
+		result.ACLEnforceVersion8 = b.ACLEnforceVersion8
 	}
 	if len(b.Watches) != 0 {
 		result.Watches = append(result.Watches, b.Watches...)
