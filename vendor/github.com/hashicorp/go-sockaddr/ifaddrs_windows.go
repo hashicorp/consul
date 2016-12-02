@@ -24,7 +24,7 @@ func getDefaultIfName() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	return ipAddr, nil
 }
 
 func getWindowsIPOnDefaultRoute() (string, error) {
@@ -35,7 +35,7 @@ func getWindowsIPOnDefaultRoute() (string, error) {
 	}
 
 	var defaultIPAddr string
-	if defaultIPAddr, err = parseDefaultIfNameFromWindowsNetstatRN(string(out)); err != nil {
+	if defaultIPAddr, err = parseDefaultIPAddrWindowsRoute(string(out)); err != nil {
 		return "", errors.New("No IP on default route found")
 	}
 	return defaultIPAddr, nil
