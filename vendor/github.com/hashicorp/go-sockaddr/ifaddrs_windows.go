@@ -1,9 +1,6 @@
 package sockaddr
 
-import (
-	"errors"
-	"os/exec"
-)
+import "os/exec"
 
 // defaultWindowsIfNameCmd is the comamnd to run on Windows to get the default
 // interface.
@@ -20,23 +17,22 @@ func defaultWindowsIPConfigCmd() []string {
 // getDefaultIfName is a Windows-specific function for extracting the name of
 // the interface from `netstat -rn` and `ipconfig`.
 func getDefaultIfName() (string, error) {
-	ipAddr, err := getWindowsIPOnDefaultRoute()
-	if err != nil {
-		return "", err
-	}
-	return ipAddr, nil
-}
-
-func getWindowsIPOnDefaultRoute() (string, error) {
 	var cmd []string = defaultWindowsIfNameCmd()
-	out, err := exec.Command(cmd[0], cmd[1:]...).Output()
+	ifNameOut, err := exec.Command(cmd[0], cmd[1:]...).Output()
 	if err != nil {
 		return "", err
 	}
 
-	var defaultIPAddr string
-	if defaultIPAddr, err = parseDefaultIPAddrWindowsRoute(string(out)); err != nil {
-		return "", errors.New("No IP on default route found")
+	cmd = defaultWindowsIPConfigCmd()
+	ipconfigOut, err := exec.Command(cmd[0], cmd[1:]...).Output()
+	if err != nil {
+		return "", err
 	}
-	return defaultIPAddr, nil
+
+	ifName, err := parseDefaultIfNameWindows(string(ifNameOut), string(ipconfigOut))
+	if err != nil {
+		return "", err
+	}
+
+	return ifName, nil
 }
