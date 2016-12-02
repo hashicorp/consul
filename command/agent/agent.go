@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -140,6 +143,12 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 
 	// Try to get an advertise address
 	if config.AdvertiseAddr != "" {
+		ipStr, err := parseSingleIPTemplate(config.AdvertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		config.AdvertiseAddr = ipStr
+
 		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
 			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
 		}
@@ -161,6 +170,12 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 
 	// Try to get an advertise address for the wan
 	if config.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(config.AdvertiseAddrWan)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		config.AdvertiseAddrWan = ipStr
+
 		if ip := net.ParseIP(config.AdvertiseAddrWan); ip == nil {
 			return nil, fmt.Errorf("Failed to parse advertise address for wan: %v", config.AdvertiseAddrWan)
 		}
@@ -190,6 +205,10 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		reloadCh:       reloadCh,
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
+	}
+
+	if err := agent.resolveTmplAddrs(); err != nil {
+		return nil, err
 	}
 
 	// Initialize the local state.
@@ -398,6 +417,121 @@ func (a *Agent) consulConfig() *consul.Config {
 	// Setup the loggers
 	base.LogOutput = a.logOutput
 	return base
+}
+
+// parseSingleIPTemplate is used as a helper function to parse out a single IP
+// address from a config parameter.
+func parseSingleIPTemplate(ipTmpl string) (string, error) {
+	out, err := template.Parse(ipTmpl)
+	if err != nil {
+		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
+	}
+
+	ips := strings.Split(out, " ")
+	switch len(ips) {
+	case 0:
+		return "", errors.New("No addresses found, please configure one.")
+	case 1:
+		return ips[0], nil
+	default:
+		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
+	}
+}
+
+// resolveTmplAddrs iterates over the myriad of addresses in the agent's config
+// and performs go-sockaddr/template Parse on each known address in case the
+// user specified a template config for any of their values.
+func (a *Agent) resolveTmplAddrs() error {
+	if a.config.AdvertiseAddr != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		if err != nil {
+			return fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		a.config.AdvertiseAddr = ipStr
+	}
+
+	if a.config.Addresses.DNS != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.Addresses.DNS)
+		if err != nil {
+			return fmt.Errorf("DNS address resolution failed: %v", err)
+		}
+		a.config.Addresses.DNS = ipStr
+	}
+
+	if a.config.Addresses.HTTP != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTP)
+		if err != nil {
+			return fmt.Errorf("HTTP address resolution failed: %v", err)
+		}
+		a.config.Addresses.HTTP = ipStr
+	}
+
+	if a.config.Addresses.HTTPS != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTPS)
+		if err != nil {
+			return fmt.Errorf("HTTPS address resolution failed: %v", err)
+		}
+		a.config.Addresses.HTTPS = ipStr
+	}
+
+	if a.config.Addresses.RPC != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.Addresses.RPC)
+		if err != nil {
+			return fmt.Errorf("RPC address resolution failed: %v", err)
+		}
+		a.config.Addresses.RPC = ipStr
+	}
+
+	if a.config.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		if err != nil {
+			return fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		a.config.AdvertiseAddrWan = ipStr
+	}
+
+	if a.config.BindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.BindAddr)
+		if err != nil {
+			return fmt.Errorf("Bind address resolution failed: %v", err)
+		}
+		a.config.BindAddr = ipStr
+	}
+
+	if a.config.ClientAddr != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.ClientAddr)
+		if err != nil {
+			return fmt.Errorf("Client address resolution failed: %v", err)
+		}
+		a.config.ClientAddr = ipStr
+	}
+
+	if a.config.SerfLanBindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.SerfLanBindAddr)
+		if err != nil {
+			return fmt.Errorf("Serf LAN Address resolution failed: %v", err)
+		}
+		a.config.SerfLanBindAddr = ipStr
+	}
+
+	if a.config.SerfWanBindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.SerfWanBindAddr)
+		if err != nil {
+			return fmt.Errorf("Serf WAN Address resolution failed: %v", err)
+		}
+		a.config.SerfWanBindAddr = ipStr
+	}
+
+	// Parse all tagged addresses
+	for k, v := range a.config.TaggedAddresses {
+		ipStr, err := parseSingleIPTemplate(v)
+		if err != nil {
+			return fmt.Errorf("%s address resolution failed: %v", k, err)
+		}
+		a.config.TaggedAddresses[k] = ipStr
+	}
+
+	return nil
 }
 
 // setupServer is used to initialize the Consul server
