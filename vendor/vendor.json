@@ -420,6 +420,18 @@
 			"revisionTime": "2016-09-30T03:51:02Z"
 		},
 		{
+			"checksumSHA1": "F99t+tEtZsSKgM9pZyQgJ33tsOE=",
+			"path": "github.com/hashicorp/go-sockaddr",
+			"revision": "d8c88d9f1b158655264ae6ce56644bfebaa85678",
+			"revisionTime": "2016-11-30T13:22:42Z"
+		},
+		{
+			"checksumSHA1": "JuM0U5IQcs8DqVLrH+BDdcUZQzk=",
+			"path": "github.com/hashicorp/go-sockaddr/template",
+			"revision": "c403ce7245ed06f545550eb6b80e0f2b1bd7566f",
+			"revisionTime": "2016-11-29T02:18:25Z"
+		},
+		{
 			"checksumSHA1": "xZ7Ban1x//6uUIU1xtrTbCYNHBc=",
 			"path": "github.com/hashicorp/go-syslog",
 			"revision": "42a2b573b664dbf281bd48c3cc12c086b17a39ba",

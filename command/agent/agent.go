@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -130,41 +133,96 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		logOutput = os.Stderr
 	}
 
-	// Validate the config
-	if config.Datacenter == "" {
-		return nil, fmt.Errorf("Must configure a Datacenter")
-	}
-	if config.DataDir == "" && !config.DevMode {
-		return nil, fmt.Errorf("Must configure a DataDir")
+	// Handle the default IPs
+	var ipTmpl string
+	switch {
+	case config.BindAddr == "0.0.0.0":
+		ipTmpl = `{{ GetPrivateInterfaces | include "type" "IP" | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`
+	case config.BindAddr == "[::]":
+		ipTmpl = `{{ GetAllInterfaces | include "type" "IPv6" | sort "size,address" | include "flag" "forwardable|up" | join "address" " " }}`
+	case config.BindAddr == "":
+		ipTmpl = `{{ GetAllInterfaces | include "type" "IP" | sort "type,size,address" | include "flag" "forwardable|up" | join "address" " " }}`
 	}
 
-	// Try to get an advertise address
-	if config.AdvertiseAddr != "" {
-		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
-		}
-	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" && config.BindAddr != "[::]" {
-		config.AdvertiseAddr = config.BindAddr
-	} else {
-		var err error
-		var ip net.IP
-		if config.BindAddr == "[::]" {
-			ip, err = consul.GetPublicIPv6()
-		} else {
-			ip, err = consul.GetPrivateIP()
-		}
+	if ipTmpl != "" {
+		out, err := template.Parse(ipTmpl)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
+			return nil, fmt.Errorf("Unable to automatically detect an IP address.  Please consider setting an IP BindAddr address manually: %v", err)
 		}
-		config.AdvertiseAddr = ip.String()
+
+		ips := strings.Split(out, " ")
+		switch len(ips) {
+		case 0:
+			return nil, errors.New("No forwardable IP addresses found.  Please configure one.")
+		case 1:
+			if ip := net.ParseIP(ips[0]); ip == nil {
+				return nil, fmt.Errorf("Failed to parse bind address (%q): %v", ips[0], err)
+			}
+
+			// Only save the result if the bind addr is not the
+			// default value.
+			if config.BindAddr != "0.0.0.0" {
+				config.BindAddr = ips[0]
+			}
+			if config.AdvertiseAddr == "" {
+				config.AdvertiseAddr = ips[0]
+			}
+		default:
+			return nil, fmt.Errorf("Multiple forwardable IP addresses found (%s).  Please configure one.", strings.Join(ips, ", "))
+		}
+	}
+
+	if config.AdvertiseAddr != "" {
+		out, err := template.Parse(config.AdvertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse advertise address template %q: %v", config.AdvertiseAddr, err)
+		}
+
+		if ip := net.ParseIP(out); ip == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address %v", out)
+		}
+
+	}
+
+	if config.AdvertiseAddr == "" {
+		config.AdvertiseAddr = config.BindAddr
 	}
 
 	// Try to get an advertise address for the wan
 	if config.AdvertiseAddrWan != "" {
-		if ip := net.ParseIP(config.AdvertiseAddrWan); ip == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address for wan: %v", config.AdvertiseAddrWan)
+		out, err := template.Parse(config.AdvertiseAddrWan)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to render an AdvertiseAddrWan address: %v", err)
+		}
+
+		ips := strings.Split(out, " ")
+		switch len(ips) {
+		case 0:
+			return nil, errors.New("No AdvertiseAddrWan addresses found.  Please configure one.")
+		case 1:
+			var ip net.IP
+			if ip = net.ParseIP(ips[0]); ip == nil {
+				return nil, fmt.Errorf("Failed to parse AdvertiseAddrWan (%q): %v", ips[0], err)
+			}
+			config.AdvertiseAddrWan = ip.String()
+		default:
+			return nil, fmt.Errorf("Multiple AdvertiseAddrWan addresses found (%s).  Please configure only one.", strings.Join(ips, ", "))
 		}
 	} else {
+		config.AdvertiseAddrWan = config.AdvertiseAddr
+	}
+
+	// Validate the config
+	switch {
+	case config.Datacenter == "":
+		return nil, fmt.Errorf("Must configure a Datacenter")
+	case config.DataDir == "" && !config.DevMode:
+		return nil, fmt.Errorf("Must configure a DataDir")
+	case config.AdvertiseAddr == "":
+		return nil, fmt.Errorf("Must configure an AdvertiseAddr")
+	case config.BindAddr == "":
+		return nil, fmt.Errorf("Must configure a BindAddr")
+	case config.AdvertiseAddrWan == "":
 		config.AdvertiseAddrWan = config.AdvertiseAddr
 	}
 

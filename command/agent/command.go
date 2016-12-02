@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
@@ -181,6 +182,60 @@ func (c *Command) readConfig() *Config {
 	cmdConfig.DNSRecursors = append(cmdConfig.DNSRecursors, dnsRecursors...)
 
 	config = MergeConfig(config, &cmdConfig)
+
+	if config.ClientAddr != "" {
+		rendered, err := template.Parse(config.ClientAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse client address template %q: %v", config.ClientAddr, err))
+			return nil
+		}
+		config.ClientAddr = rendered
+	}
+
+	if config.BindAddr != "" {
+		rendered, err := template.Parse(config.BindAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse bind address template %q: %v", config.BindAddr, err))
+			return nil
+		}
+		config.BindAddr = rendered
+	}
+
+	if config.SerfWanBindAddr != "" {
+		rendered, err := template.Parse(config.SerfWanBindAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse Serf WAN bind address template %q: %v", config.SerfWanBindAddr, err))
+			return nil
+		}
+		config.SerfWanBindAddr = rendered
+	}
+
+	if config.SerfLanBindAddr != "" {
+		rendered, err := template.Parse(config.SerfLanBindAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse Serf LAN bind address template %q: %v", config.SerfLanBindAddr, err))
+			return nil
+		}
+		config.SerfLanBindAddr = rendered
+	}
+
+	if config.AdvertiseAddr != "" {
+		rendered, err := template.Parse(config.AdvertiseAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse advertise address template %q: %v", config.AdvertiseAddr, err))
+			return nil
+		}
+		config.AdvertiseAddr = rendered
+	}
+
+	if config.AdvertiseAddrWan != "" {
+		rendered, err := template.Parse(config.AdvertiseAddrWan)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse advertise WAN address template %q: %v", config.AdvertiseAddrWan, err))
+			return nil
+		}
+		config.AdvertiseAddrWan = rendered
+	}
 
 	if config.NodeName == "" {
 		hostname, err := os.Hostname()
