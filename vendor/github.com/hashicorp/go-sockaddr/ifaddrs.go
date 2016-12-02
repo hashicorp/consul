@@ -486,7 +486,10 @@ func IfByType(inputTypes string, ifAddrs IfAddrs) (matched, remainder IfAddrs, e
 
 	ifTypes := strings.Split(strings.ToLower(inputTypes), "|")
 	for _, ifType := range ifTypes {
-		if ifType != "ip" && ifType != "ipv4" && ifType != "ipv6" && ifType != "unix" {
+		switch ifType {
+		case "ip", "ipv4", "ipv6", "unix":
+			// Valid types
+		default:
 			return nil, nil, fmt.Errorf("unsupported type %q %q", ifType, inputTypes)
 		}
 	}
@@ -622,6 +625,28 @@ func IfByFlag(inputFlags string, ifAddrs IfAddrs) (matched, remainder IfAddrs, e
 	return matchedAddrs, excludedAddrs, nil
 }
 
+// IfByNetwork returns an IfAddrs that are equal to or included within the
+// network passed in by selector.
+func IfByNetwork(selectorParam string, inputIfAddrs IfAddrs) (IfAddrs, IfAddrs, error) {
+	var includedIfs, excludedIfs IfAddrs
+	for _, netStr := range strings.Split(selectorParam, "|") {
+		netAddr, err := NewIPAddr(netStr)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to create an IP address from %+q: %v", netStr, err)
+		}
+
+		for _, ifAddr := range inputIfAddrs {
+			if netAddr.Contains(ifAddr.SockAddr) {
+				includedIfs = append(includedIfs, ifAddr)
+			} else {
+				excludedIfs = append(excludedIfs, ifAddr)
+			}
+		}
+	}
+
+	return includedIfs, excludedIfs, nil
+}
+
 // IncludeIfs returns an IfAddrs based on the passed in selector.
 func IncludeIfs(selectorName, selectorParam string, inputIfAddrs IfAddrs) (IfAddrs, error) {
 	var includedIfs IfAddrs
@@ -634,6 +659,8 @@ func IncludeIfs(selectorName, selectorParam string, inputIfAddrs IfAddrs) (IfAdd
 		includedIfs, _, err = IfByFlag(selectorParam, inputIfAddrs)
 	case "name":
 		includedIfs, _, err = IfByName(selectorParam, inputIfAddrs)
+	case "network":
+		includedIfs, _, err = IfByNetwork(selectorParam, inputIfAddrs)
 	case "port":
 		includedIfs, _, err = IfByPort(selectorParam, inputIfAddrs)
 	case "rfc", "rfcs":
@@ -665,6 +692,8 @@ func ExcludeIfs(selectorName, selectorParam string, inputIfAddrs IfAddrs) (IfAdd
 		_, excludedIfs, err = IfByFlag(selectorParam, inputIfAddrs)
 	case "name":
 		_, excludedIfs, err = IfByName(selectorParam, inputIfAddrs)
+	case "network":
+		_, excludedIfs, err = IfByNetwork(selectorParam, inputIfAddrs)
 	case "port":
 		_, excludedIfs, err = IfByPort(selectorParam, inputIfAddrs)
 	case "rfc", "rfcs":
