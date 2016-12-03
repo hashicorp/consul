@@ -23,6 +23,9 @@ in the K/V store.
 Querying the local agent we started in the [Run the Agent step](agent.html),
 we can first verify that there are no existing keys in the k/v store:
 
+Also check https://www.hashicorp.com/blog/consul-kv-cli.html for using the 'consul kv' from
+the commandline.
+
 ```text
 $ curl -v http://localhost:8500/v1/kv/?recurse
 * About to connect() to localhost port 8500 (#0)
@@ -121,3 +124,6 @@ These are only a few examples of what the API supports. For full documentation, 
 see [the /kv/ route of the HTTP API](/docs/agent/http/kv.html).
 
 Next, we will look at the [web UI](ui.html) options supported by Consul. 
+
+Also check https://www.hashicorp.com/blog/consul-kv-cli.html for using the 'consul kv' from
+the commandline.
