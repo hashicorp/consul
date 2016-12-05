@@ -129,7 +129,7 @@ func newMemberlist(conf *Config) (*Memberlist, error) {
 		leaveBroadcast: make(chan struct{}, 1),
 		udpListener:    udpLn,
 		tcpListener:    tcpLn,
-		handoff:        make(chan msgHandoff, 1024),
+		handoff:        make(chan msgHandoff, conf.HandoffQueueDepth),
 		nodeMap:        make(map[string]*nodeState),
 		nodeTimers:     make(map[string]*suspicion),
 		awareness:      newAwareness(conf.AwarenessMaxMultiplier),
@@ -496,7 +496,7 @@ func (m *Memberlist) SendTo(to net.Addr, msg []byte) error {
 	buf = append(buf, msg...)
 
 	// Send the message
-	return m.rawSendMsgUDP(to, buf)
+	return m.rawSendMsgUDP(to, nil, buf)
 }
 
 // SendToUDP is used to directly send a message to another node, without
@@ -513,7 +513,7 @@ func (m *Memberlist) SendToUDP(to *Node, msg []byte) error {
 
 	// Send the message
 	destAddr := &net.UDPAddr{IP: to.Addr, Port: int(to.Port)}
-	return m.rawSendMsgUDP(destAddr, buf)
+	return m.rawSendMsgUDP(destAddr, to, buf)
 }
 
 // SendToTCP is used to directly send a message to another node, without
