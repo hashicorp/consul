@@ -132,6 +132,31 @@ type RetryJoinEC2 struct {
 	SecretAccessKey string `mapstructure:"secret_access_key"`
 }
 
+// RetryJoinGCE is used to configure discovery of instances via Google Compute
+// Engine's API.
+type RetryJoinGCE struct {
+	// The name of the project the instances reside in.
+	ProjectName string `mapstructure:"project_name"`
+
+	// A regular expression (RE2) pattern for the zones you want to discover the instances in.
+	// Example: us-west1-.*, or us-(?west|east).*.
+	ZonePattern string `mapstructure:"zone_pattern"`
+
+	// The tag value to search for when filtering instances.
+	TagValue string `mapstructure:"tag_value"`
+
+	// A path to a JSON file with the service account credentials necessary to
+	// connect to GCE. If this is not defined, the following chain is respected:
+	// 1. A JSON file whose path is specified by the
+	//		GOOGLE_APPLICATION_CREDENTIALS environment variable.
+	// 2. A JSON file in a location known to the gcloud command-line tool.
+	//    On Windows, this is %APPDATA%/gcloud/application_default_credentials.json.
+	//  	On other systems, $HOME/.config/gcloud/application_default_credentials.json.
+	// 3. On Google Compute Engine, it fetches credentials from the metadata
+	//    server.  (In this final case any provided scopes are ignored.)
+	CredentialsFile string `mapstructure:"credentials_file"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -420,6 +445,9 @@ type Config struct {
 
 	// RetryJoinEC2 configuration
 	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
+
+	// The config struct for the GCE tag server discovery feature.
+	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -1405,6 +1433,18 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryJoinEC2.TagValue != "" {
 		result.RetryJoinEC2.TagValue = b.RetryJoinEC2.TagValue
+	}
+	if b.RetryJoinGCE.ProjectName != "" {
+		result.RetryJoinGCE.ProjectName = b.RetryJoinGCE.ProjectName
+	}
+	if b.RetryJoinGCE.ZonePattern != "" {
+		result.RetryJoinGCE.ZonePattern = b.RetryJoinGCE.ZonePattern
+	}
+	if b.RetryJoinGCE.TagValue != "" {
+		result.RetryJoinGCE.TagValue = b.RetryJoinGCE.TagValue
+	}
+	if b.RetryJoinGCE.CredentialsFile != "" {
+		result.RetryJoinGCE.CredentialsFile = b.RetryJoinGCE.CredentialsFile
 	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
