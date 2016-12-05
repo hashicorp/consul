@@ -23,7 +23,7 @@ The following table describes these variables:
   </tr>
   <tr>
     <td><tt>CONSUL_HTTP_ADDR</tt></td>
-    <td>The HTTP API address as a host:port pair</td>
+    <td>The HTTP API address as a host:port pair or path to Unix socket, for example <tt>127.0.0.1:8500</tt> or <tt>unix:///var/run/consul_http.sock</tt></td>
   </tr>
   <tr>
     <td><tt>CONSUL_HTTP_TOKEN</tt></td>
@@ -43,6 +43,6 @@ The following table describes these variables:
   </tr>
   <tr>
     <td><tt>CONSUL_RPC_ADDR</tt></td>
-    <td>The RPC interface address as a host:port pair</td>
+    <td>The RPC interface address as a host:port pair or path to Unix socket, for example <tt>127.0.0.1:8300</tt> or <tt>unix:///var/run/consul_rpc.sock</tt></td>
   </tr>
 </table>
