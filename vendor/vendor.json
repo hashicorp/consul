@@ -528,10 +528,10 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "AY1/cRsuWpoJMG0J821TqFo9nDE=",
+			"checksumSHA1": "F2jm1h5jRic/Q0e3UEk4aqzS7k0=",
 			"path": "github.com/hashicorp/memberlist",
-			"revision": "0c5ba075f8520c65572f001331a1a43b756e01d7",
-			"revisionTime": "2016-08-12T18:27:57Z"
+			"revision": "56f5fd70afa73f13bbe529192aeb3dc7bc4bc960",
+			"revisionTime": "2016-12-05T22:01:58Z"
 		},
 		{
 			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
