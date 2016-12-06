@@ -88,7 +88,6 @@ respect them.
 [stale consistency mode](/docs/agent/http.html#consistency) available to allow reads to scale
 across all the servers and not just be forwarded to the leader.
 
-<a name="memory-requirements"></a>
 ## Memory Requirements
 
 Consul server agents operate on a working set of data comprised of key/value
@@ -99,7 +98,7 @@ of a snapshot and log of changes since the previous snapshot for durability.
 When planning for memory requirements, you should typically allocate
 enough RAM for your server agents to contain between 2 to 4 times the working
 set size. You can determine the working set size by noting the value of
-`consul.runtime.alloc_bytes` in the [Telemetry data](https://www.consul.io/docs/agent/telemetry.html).
+`consul.runtime.alloc_bytes` in the [Telemetry data](/docs/agent/telemetry.html).
 
 > NOTE: Consul is not designed to serve as a general purpose database, and you
 > should keep this in mind when choosing what data are populated to the
