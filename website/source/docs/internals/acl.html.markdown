@@ -84,7 +84,9 @@ datacenter servers to resolve even uncached tokens. This is enabled by setting a
 [`acl_replication_token`](/docs/agent/options.html#acl_replication_token) in the
 configuration on the servers in the non-authoritative datacenters. With replication
 enabled, the servers will maintain a replica of the authoritative datacenter's full
-set of ACLs on the non-authoritative servers.
+set of ACLs on the non-authoritative servers. The ACL replication token needs to be
+a valid ACL token with management privileges, it can also be the same as the master
+ACL token.
 
 Replication occurs with a background process that looks for new ACLs approximately
 every 30 seconds. Replicated changes are written at a rate that's throttled to
