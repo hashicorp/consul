@@ -3,10 +3,13 @@ layout: "docs"
 page_title: "Environment Variables"
 sidebar_current: "docs-commands-environment-variables"
 description: |-
-  Consul's behavior can be modified by certain environment variables.
+  In addition to CLI flags, Consul reads environment variables for behavior
+defaults. CLI flags always take precedence over environment variables, but it
+is often helpful to use environment variables to configure the Consul agent,
+particularly with configuration management and init systems.
 ---
 
-# Environment variables
+# Environment Variables
 
 In addition to CLI flags, Consul reads environment variables for behavior
 defaults. CLI flags always take precedence over environment variables, but it
