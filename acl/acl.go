@@ -65,6 +65,13 @@ type ACL interface {
 	// KeyringWrite determines if the keyring can be manipulated
 	KeyringWrite() bool
 
+	// NodeRead checks for permission to read (discover) a given node.
+	NodeRead(string) bool
+
+	// NodeWrite checks for permission to create or update (register) a
+	// given node.
+	NodeWrite(string) bool
+
 	// OperatorRead determines if the read-only Consul operator functions
 	// can be used.
 	OperatorRead() bool
@@ -84,7 +91,8 @@ type ACL interface {
 	// ServiceRead checks for permission to read a given service
 	ServiceRead(string) bool
 
-	// ServiceWrite checks for permission to read a given service
+	// ServiceWrite checks for permission to create or update a given
+	// service
 	ServiceWrite(string) bool
 
 	// Snapshot checks for permission to take and restore snapshots.
@@ -132,6 +140,14 @@ func (s *StaticACL) KeyringRead() bool {
 }
 
 func (s *StaticACL) KeyringWrite() bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) NodeRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) NodeWrite(string) bool {
 	return s.defaultAllow
 }
 
@@ -202,6 +218,9 @@ type PolicyACL struct {
 	// keyRules contains the key policies
 	keyRules *radix.Tree
 
+	// nodeRules contains the node policies
+	nodeRules *radix.Tree
+
 	// serviceRules contains the service policies
 	serviceRules *radix.Tree
 
@@ -226,6 +245,7 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	p := &PolicyACL{
 		parent:             parent,
 		keyRules:           radix.New(),
+		nodeRules:          radix.New(),
 		serviceRules:       radix.New(),
 		eventRules:         radix.New(),
 		preparedQueryRules: radix.New(),
@@ -234,6 +254,11 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	// Load the key policy
 	for _, kp := range policy.Keys {
 		p.keyRules.Insert(kp.Prefix, kp.Policy)
+	}
+
+	// Load the node policy
+	for _, np := range policy.Nodes {
+		p.nodeRules.Insert(np.Name, np.Policy)
 	}
 
 	// Load the service policy
@@ -402,6 +427,42 @@ func (p *PolicyACL) OperatorRead() bool {
 	default:
 		return p.parent.OperatorRead()
 	}
+}
+
+// NodeRead checks if reading (discovery) of a node is allowed
+func (p *PolicyACL) NodeRead(name string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.nodeRules.LongestPrefix(name)
+
+	if ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.NodeRead(name)
+}
+
+// NodeWrite checks if writing (registering) a node is allowed
+func (p *PolicyACL) NodeWrite(name string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.nodeRules.LongestPrefix(name)
+
+	if ok {
+		switch rule {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.NodeWrite(name)
 }
 
 // OperatorWrite determines if the state-changing operator functions are

@@ -59,6 +59,12 @@ func TestStaticACL(t *testing.T) {
 	if !all.KeyringWrite() {
 		t.Fatalf("should allow")
 	}
+	if !all.NodeRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.NodeWrite("foobar") {
+		t.Fatalf("should allow")
+	}
 	if !all.OperatorRead() {
 		t.Fatalf("should allow")
 	}
@@ -111,6 +117,12 @@ func TestStaticACL(t *testing.T) {
 	if none.KeyringWrite() {
 		t.Fatalf("should not allow")
 	}
+	if none.NodeRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.NodeWrite("foobar") {
+		t.Fatalf("should not allow")
+	}
 	if none.OperatorRead() {
 		t.Fatalf("should now allow")
 	}
@@ -155,6 +167,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyringWrite() {
+		t.Fatalf("should allow")
+	}
+	if !manage.NodeRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.NodeWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.OperatorRead() {
@@ -557,6 +575,89 @@ func TestPolicyACL_Operator(t *testing.T) {
 		}
 		if acl.OperatorWrite() != c.write {
 			t.Fatalf("bad: %#v", c)
+		}
+	}
+}
+
+func TestPolicyACL_Node(t *testing.T) {
+	deny := DenyAll()
+	policyRoot := &Policy{
+		Nodes: []*NodePolicy{
+			&NodePolicy{
+				Name:   "root-nope",
+				Policy: PolicyDeny,
+			},
+			&NodePolicy{
+				Name:   "root-ro",
+				Policy: PolicyRead,
+			},
+			&NodePolicy{
+				Name:   "root-rw",
+				Policy: PolicyWrite,
+			},
+			&NodePolicy{
+				Name:   "override",
+				Policy: PolicyDeny,
+			},
+		},
+	}
+	root, err := New(deny, policyRoot)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	policy := &Policy{
+		Nodes: []*NodePolicy{
+			&NodePolicy{
+				Name:   "child-nope",
+				Policy: PolicyDeny,
+			},
+			&NodePolicy{
+				Name:   "child-ro",
+				Policy: PolicyRead,
+			},
+			&NodePolicy{
+				Name:   "child-rw",
+				Policy: PolicyWrite,
+			},
+			&NodePolicy{
+				Name:   "override",
+				Policy: PolicyWrite,
+			},
+		},
+	}
+	acl, err := New(root, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	type nodecase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	cases := []nodecase{
+		{"nope", false, false},
+		{"root-nope", false, false},
+		{"root-ro", true, false},
+		{"root-rw", true, true},
+		{"root-nope-prefix", false, false},
+		{"root-ro-prefix", true, false},
+		{"root-rw-prefix", true, true},
+		{"child-nope", false, false},
+		{"child-ro", true, false},
+		{"child-rw", true, true},
+		{"child-nope-prefix", false, false},
+		{"child-ro-prefix", true, false},
+		{"child-rw-prefix", true, true},
+		{"override", true, true},
+	}
+	for _, c := range cases {
+		if c.read != acl.NodeRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.NodeWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
 		}
 	}
 }

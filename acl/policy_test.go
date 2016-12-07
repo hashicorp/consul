@@ -30,6 +30,15 @@ key "foo/bar/baz" {
 	policy = "deny"
 }
 keyring = "deny"
+node "" {
+	policy = "read"
+}
+node "foo" {
+	policy = "write"
+}
+node "bar" {
+	policy = "deny"
+}
 operator = "deny"
 service "" {
 	policy = "write"
@@ -78,6 +87,20 @@ query "bar" {
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
+				Policy: PolicyDeny,
+			},
+		},
+		Nodes: []*NodePolicy{
+			&NodePolicy{
+				Name:   "",
+				Policy: PolicyRead,
+			},
+			&NodePolicy{
+				Name:   "foo",
+				Policy: PolicyWrite,
+			},
+			&NodePolicy{
+				Name:   "bar",
 				Policy: PolicyDeny,
 			},
 		},
@@ -146,6 +169,17 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 		}
 	},
 	"keyring": "deny",
+	"node": {
+		"": {
+			"policy": "read"
+		},
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	},
 	"operator": "deny",
 	"query": {
 		"": {
@@ -198,6 +232,20 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
+				Policy: PolicyDeny,
+			},
+		},
+		Nodes: []*NodePolicy{
+			&NodePolicy{
+				Name:   "",
+				Policy: PolicyRead,
+			},
+			&NodePolicy{
+				Name:   "foo",
+				Policy: PolicyWrite,
+			},
+			&NodePolicy{
+				Name:   "bar",
 				Policy: PolicyDeny,
 			},
 		},
@@ -279,6 +327,7 @@ func TestACLPolicy_Bad_Policy(t *testing.T) {
 		`event "" { policy = "nope" }`,
 		`key "" { policy = "nope" }`,
 		`keyring = "nope"`,
+		`node "" { policy = "nope" }`,
 		`operator = "nope"`,
 		`query "" { policy = "nope" }`,
 		`service "" { policy = "nope" }`,
