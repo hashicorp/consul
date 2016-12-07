@@ -43,12 +43,19 @@ var dnsTestCases = []test.Case{
 		Answer: []dns.RR{
 			test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
 		},
+		Ns: []dns.RR{
+			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
+		},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX, Do: true,
 		Answer: []dns.RR{
 			test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
 			test.RRSIG("miek.nl.	1800	IN	RRSIG	MX 13 2 3600 20160503192428 20160425162428 18512 miek.nl. 4nxuGKitXjPVA9zP1JIUvA09"),
+		},
+		Ns: []dns.RR{
+			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	NS 13 2 3600 20161217114912 20161209084912 18512 miek.nl. ad9gA8VWgF1H8ze9/0Rk2Q=="),
 		},
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},
@@ -59,6 +66,10 @@ var dnsTestCases = []test.Case{
 			test.RRSIG("a.miek.nl.	1800	IN	RRSIG	AAAA 13 3 3600 20160503193047 20160425163047 18512 miek.nl. UAyMG+gcnoXW3"),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 			test.RRSIG("www.miek.nl.	1800	IN	RRSIG	CNAME 13 3 3600 20160503193047 20160425163047 18512 miek.nl. E3qGZn"),
+		},
+		Ns: []dns.RR{
+			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	NS 13 2 3600 20161217114912 20161209084912 18512 miek.nl. ad9gA8VWgF1H8ze9/0Rk2Q=="),
 		},
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},

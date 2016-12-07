@@ -62,6 +62,7 @@ var delegationTestCases = []test.Case{
 		Answer: []dns.RR{
 			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeAAAA,
@@ -133,6 +134,13 @@ var secureDelegationTestCases = []test.Case{
 			test.AAAA("a.delegated.example.org. 1800 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
+}
+
+var miekAuth = []dns.RR{
+	test.NS("miek.nl.	1800	IN	NS	ext.ns.whyscream.net."),
+	test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
+	test.NS("miek.nl.	1800	IN	NS	ns-ext.nlnetlabs.nl."),
+	test.NS("miek.nl.	1800	IN	NS	omval.tednet.nl."),
 }
 
 func TestLookupDelegation(t *testing.T) {

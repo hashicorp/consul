@@ -40,8 +40,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	}()
 
 	if qtype == dns.TypeSOA {
-		soa := z.soa(do)
-		return soa, nil, nil, Success
+		return z.soa(do), z.ns(do), nil, Success
 	}
 	if qtype == dns.TypeNS && qname == z.origin {
 		nsrrs := z.ns(do)
@@ -146,7 +145,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 			rrs = append(rrs, sigs...)
 		}
 
-		return rrs, nil, nil, Success
+		return rrs, z.ns(do), nil, Success
 
 	}
 
@@ -154,7 +153,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 
 	// Found wildcard.
 	if wildElem != nil {
-		auth := []dns.RR{}
+		auth := z.ns(do)
 
 		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
 			return z.searchCNAME(state, wildElem, rrs)
@@ -275,7 +274,7 @@ func (z *Zone) searchCNAME(state request.Request, elem *tree.Elem, rrs []dns.RR)
 		if !dns.IsSubDomain(z.origin, targetName) {
 			rrs = append(rrs, z.externalLookup(state, targetName, qtype)...)
 		}
-		return rrs, nil, nil, Success
+		return rrs, z.ns(do), nil, Success
 	}
 
 	i := 0
@@ -300,12 +299,12 @@ Redo:
 					rrs = append(rrs, z.externalLookup(state, targetName, qtype)...)
 				}
 			}
-			return rrs, nil, nil, Success
+			return rrs, z.ns(do), nil, Success
 		}
 
 		i++
 		if i > maxChain {
-			return rrs, nil, nil, Success
+			return rrs, z.ns(do), nil, Success
 		}
 
 		goto Redo
@@ -324,7 +323,7 @@ Redo:
 		}
 	}
 
-	return rrs, nil, nil, Success
+	return rrs, z.ns(do), nil, Success
 }
 
 func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {

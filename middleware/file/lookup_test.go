@@ -19,6 +19,7 @@ var dnsTestCases = []test.Case{
 			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeAAAA,
@@ -26,24 +27,28 @@ var dnsTestCases = []test.Case{
 			test.AAAA("a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{
 			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeAAAA,
 		Answer: []dns.RR{
 			test.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "mIeK.NL.", Qtype: dns.TypeAAAA,
 		Answer: []dns.RR{
 			test.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX,
@@ -54,6 +59,7 @@ var dnsTestCases = []test.Case{
 			test.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
 			test.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
 		},
+		Ns: miekAuth,
 	},
 	{
 		Qname: "a.miek.nl.", Qtype: dns.TypeSRV,
