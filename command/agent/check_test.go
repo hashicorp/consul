@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,13 +25,42 @@ type MockNotify struct {
 	state   map[types.CheckID]string
 	updates map[types.CheckID]int
 	output  map[types.CheckID]string
+
+	// A guard to protect an access to the internal attributes
+	// of the notification mock in order to prevent panics
+	// raised by the race conditions detector.
+	mu sync.RWMutex
 }
 
 func (m *MockNotify) UpdateCheck(id types.CheckID, status, output string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.state[id] = status
 	old := m.updates[id]
 	m.updates[id] = old + 1
 	m.output[id] = output
+}
+
+// State returns the state of the specified health-check.
+func (m *MockNotify) State(id types.CheckID) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.state[id]
+}
+
+// Updates returns the count of updates of the specified health-check.
+func (m *MockNotify) Updates(id types.CheckID) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.updates[id]
+}
+
+// Output returns an output string of the specified health-check.
+func (m *MockNotify) Output(id types.CheckID) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.output[id]
 }
 
 func expectStatus(t *testing.T, script, status string) {
@@ -51,11 +81,11 @@ func expectStatus(t *testing.T, script, status string) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
-		if mock.updates["foo"] < 2 {
+		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
 		}
 
-		if mock.state["foo"] != status {
+		if mock.State("foo") != status {
 			return false, fmt.Errorf("should be %v %v", status, mock.state)
 		}
 
@@ -101,11 +131,11 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
+	if mock.Updates("foo") < 2 {
 		t.Fatalf("should have at least 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != "critical" {
+	if mock.State("foo") != "critical" {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 }
@@ -129,11 +159,11 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 1 update
-	if mock.updates["foo"] < 1 {
+	if mock.Updates("foo") < 1 {
 		t.Fatalf("should have 1 or more updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthPassing {
+	if mock.State("foo") != structs.HealthPassing {
 		t.Fatalf("should be %v %v", structs.HealthPassing, mock.state)
 	}
 }
@@ -157,7 +187,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.output["foo"]) > CheckBufSize+100 {
+	if len(mock.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 }
@@ -180,32 +210,32 @@ func TestCheckTTL(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	check.SetStatus(structs.HealthPassing, "test-output")
 
-	if mock.updates["foo"] != 1 {
+	if mock.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthPassing {
+	if mock.State("foo") != structs.HealthPassing {
 		t.Fatalf("should be passing %v", mock.state)
 	}
 
 	// Ensure we don't fail early
 	time.Sleep(75 * time.Millisecond)
-	if mock.updates["foo"] != 1 {
+	if mock.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
 	// Wait for the TTL to expire
 	time.Sleep(75 * time.Millisecond)
 
-	if mock.updates["foo"] != 2 {
+	if mock.Updates("foo") != 2 {
 		t.Fatalf("should have 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthCritical {
+	if mock.State("foo") != structs.HealthCritical {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 
-	if !strings.Contains(mock.output["foo"], "test-output") {
+	if !strings.Contains(mock.Output("foo"), "test-output") {
 		t.Fatalf("should have retained output %v", mock.output)
 	}
 }
@@ -254,16 +284,16 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
-		if mock.updates["foo"] < 2 {
+		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
 		}
 
-		if mock.state["foo"] != status {
+		if mock.State("foo") != status {
 			return false, fmt.Errorf("should be %v %v", status, mock.state)
 		}
 
 		// Allow slightly more data than CheckBufSize, for the header
-		if n := len(mock.output["foo"]); n > (CheckBufSize + 256) {
+		if n := len(mock.Output("foo")); n > (CheckBufSize + 256) {
 			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
 		}
 		return true, nil
@@ -554,11 +584,11 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
-		if mock.updates["foo"] < 2 {
+		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
 		}
 
-		if mock.state["foo"] != status {
+		if mock.State("foo") != status {
 			return false, fmt.Errorf("should be %v %v", status, mock.state)
 		}
 		return true, nil
@@ -741,15 +771,15 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
+	if mock.Updates("foo") < 2 {
 		t.Fatalf("should have 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != status {
+	if mock.State("foo") != status {
 		t.Fatalf("should be %v %v", status, mock.state)
 	}
 
-	if mock.output["foo"] != output {
+	if mock.Output("foo") != output {
 		t.Fatalf("should be %v %v", output, mock.output)
 	}
 }
@@ -851,7 +881,7 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.output["foo"]) > CheckBufSize+100 {
+	if len(mock.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 
