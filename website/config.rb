@@ -41,6 +41,8 @@ helpers do
   #
   # @return [String]
   def description_for(page)
-    return escape_html(page.data.description || "")
+    description = page.data.description || ""
+    description = description.gsub(/\n+/, " ")
+    return escape_html(description)
   end
 end
