@@ -227,6 +227,7 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 			Port:    agent.config.Ports.Server,
 			Tags:    []string{},
 		}
+		// TODO (slackpad) - Plumb the "acl_agent_token" into here.
 		agent.state.AddService(&consulService, "")
 	} else {
 		err = agent.setupClient()
@@ -380,6 +381,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.ACLReplicationToken != "" {
 		base.ACLReplicationToken = a.config.ACLReplicationToken
+	}
+	if a.config.ACLEnforceVersion8 != nil {
+		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
 	}
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin

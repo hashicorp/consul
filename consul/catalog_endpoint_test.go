@@ -46,11 +46,12 @@ func TestCatalogRegister(t *testing.T) {
 	})
 }
 
-func TestCatalogRegister_ACLDeny(t *testing.T) {
+func TestCatalogRegister_ACLDeny_Service(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -97,6 +98,21 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 	argR.Service.Service = "foo"
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try the special case for the "consul" service.
+	argR.Service.Service = "consul"
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the exception goes away when we turn on version 8 ACL
+	// enforcement.
+	s1.config.ACLEnforceVersion8 = true
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
 	}
 }

@@ -26,6 +26,12 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return fmt.Errorf("Must provide node and address")
 	}
 
+	// Fetch the ACL token, if any.
+	acl, err := c.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	if args.Service != nil {
 		// If no service id, but service name, use default
 		if args.Service.ID == "" && args.Service.Service != "" {
@@ -37,14 +43,12 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			return fmt.Errorf("Must provide service name with ID")
 		}
 
-		// Apply the ACL policy if any
-		// The 'consul' service is excluded since it is managed
-		// automatically internally.
-		if args.Service.Service != ConsulServiceName {
-			acl, err := c.srv.resolveToken(args.Token)
-			if err != nil {
-				return err
-			} else if acl != nil && !acl.ServiceWrite(args.Service.Service) {
+		// Apply the ACL policy if any. The 'consul' service is excluded
+		// since it is managed automatically internally (that behavior
+		// is going away after version 0.8).
+		if c.srv.config.ACLEnforceVersion8 ||
+			(args.Service.Service != ConsulServiceName) {
+			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
 				c.srv.logger.Printf("[WARN] consul.catalog: Register of service '%s' on '%s' denied due to ACLs",
 					args.Service.Service, args.Node)
 				return permissionDeniedErr
@@ -65,7 +69,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
+	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] consul.catalog: Register failed: %v", err)
 		return err
