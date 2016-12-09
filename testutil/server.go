@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-cleanhttp"
@@ -100,14 +101,57 @@ func defaultServerConfig() *TestServerConfig {
 	}
 }
 
+// Ports allocation state.
+//
+// We let the kernel choose random port number, so there's a good
+// chance the port is unused. But kernel could allocate the same
+// port twice, if agent did not have time to start listening on it.
+//
+// There is no obvious way to defend from the other processes in
+// the system, which will use OS-assigned ports, but at least it
+// will reduce duplicated ports shared by the agents.
+var nmap = make(map[int]struct{})
+var nmapmu sync.Mutex
+
 // randomPort asks the kernel for a random port to use.
 func randomPort() int {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		panic(err)
+	makeport := func() (int, bool) {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			panic(err)
+		}
+
+		defer l.Close()
+		port := l.Addr().(*net.TCPAddr).Port
+
+		nmapmu.Lock()
+		defer nmapmu.Unlock()
+
+		_, dup := nmap[port]
+		nmap[port] = struct{}{}
+		return port, dup
 	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
+
+	for i := 0; i < 100; i++ {
+		if port, dup := makeport(); !dup {
+			return port
+		}
+	}
+
+	panic(fmt.Errorf("no usable ports"))
+}
+
+// releasePorts removes the ports reserved by test server.
+func releasePorts(c *TestPortConfig) {
+	nmapmu.Lock()
+	defer nmapmu.Unlock()
+
+	delete(nmap, c.DNS)
+	delete(nmap, c.HTTP)
+	delete(nmap, c.RPC)
+	delete(nmap, c.SerfLan)
+	delete(nmap, c.SerfWan)
+	delete(nmap, c.Server)
 }
 
 // TestService is used to serialize a service definition.
@@ -257,6 +301,7 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 // directory once we are done.
 func (s *TestServer) Stop() {
 	defer os.RemoveAll(s.Config.DataDir)
+	defer releasePorts(s.Config.Ports)
 
 	if err := s.cmd.Process.Kill(); err != nil {
 		s.t.Errorf("err: %s", err)
