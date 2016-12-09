@@ -544,3 +544,103 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	return nil
 }
+
+// vetRegisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog register request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint.
+//
+// This is a bit racy because we have to check the state store outside of a
+// transaction. It's the best we can do because we don't want to flow ACL
+// checking down there. The node information doesn't change in practice, so this
+// will be fine. If we expose ways to change node addresses in a later version,
+// then we should split the catalog API at the node and service level so we can
+// address this race better (even then it would be super rare, and would at
+// worst let a service update revert a recent node update, so it doesn't open up
+// too much abuse).
+func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest, ns *structs.NodeServices) error {
+	// Fast path if ACLs are not enabled.
+	if acl == nil {
+		return nil
+	}
+
+	// Vet the node info. This allows service updates to re-post the required
+	// node info for each request without having to have node "write"
+	// privileges.
+	needsNode := ns == nil || subj.ChangesNode(ns.Node)
+	if needsNode && !acl.NodeWrite(subj.Node) {
+		return permissionDeniedErr
+	}
+
+	// Vet the service change. This includes making sure they can register
+	// the given service, and that we can write to any existing service that
+	// is being modified by id (if any).
+	if subj.Service != nil {
+		if !acl.ServiceWrite(subj.Service.Service) {
+			return permissionDeniedErr
+		}
+
+		if ns != nil {
+			other, ok := ns.Services[subj.Service.ID]
+			if ok && !acl.ServiceWrite(other.Service) {
+				return permissionDeniedErr
+			}
+		}
+	}
+
+	// Make sure that the member was flattened before we got there. This
+	// keeps us from having to verify this check as well.
+	if subj.Check != nil {
+		return fmt.Errorf("check member must be nil")
+	}
+
+	// Vet the checks. Node-level checks require node write, and
+	// service-level checks require service write.
+	for _, check := range subj.Checks {
+		// Make sure that the node matches - we don't allow you to mix
+		// checks from other nodes because we'd have to pull a bunch
+		// more state store data to check this. If ACLs are enabled then
+		// we simply require them to match in a given request. There's a
+		// note in state_store.go to ban this down there in Consul 0.8,
+		// but it's good to leave this here because it's required for
+		// correctness wrt. ACLs.
+		if check.Node != subj.Node {
+			return fmt.Errorf("Node '%s' for check '%s' doesn't match register request node '%s'",
+				check.Node, check.CheckID, subj.Node)
+		}
+
+		// Node-level check.
+		if check.ServiceID == "" {
+			if !acl.NodeWrite(subj.Node) {
+				return permissionDeniedErr
+			}
+			continue
+		}
+
+		// Service-level check, check the common case where it
+		// matches the service part of this request, which has
+		// already been vetted above, and might be being registered
+		// along with its checks.
+		if subj.Service != nil && subj.Service.ID == check.ServiceID {
+			continue
+		}
+
+		// Service-level check for some other service. Make sure they've
+		// got write permissions for that service.
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s' for check '%s'",
+				check.ServiceID, check.CheckID)
+		} else {
+			other, ok := ns.Services[check.ServiceID]
+			if !ok {
+				return fmt.Errorf("Unknown service '%s' for check '%s'",
+					check.ServiceID, check.CheckID)
+			}
+			if !acl.ServiceWrite(other.Service) {
+				return permissionDeniedErr
+			}
+		}
+	}
+
+	return nil
+}

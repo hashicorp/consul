@@ -30,6 +30,9 @@ func TestCatalogRegister(t *testing.T) {
 			Tags:    []string{"master"},
 			Port:    8000,
 		},
+		Check: &structs.HealthCheck{
+			ServiceID: "db",
+		},
 	}
 	var out struct{}
 
@@ -46,7 +49,7 @@ func TestCatalogRegister(t *testing.T) {
 	})
 }
 
-func TestCatalogRegister_ACLDeny_Service(t *testing.T) {
+func TestCatalogRegister_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -111,6 +114,28 @@ func TestCatalogRegister_ACLDeny_Service(t *testing.T) {
 	// Make sure the exception goes away when we turn on version 8 ACL
 	// enforcement.
 	s1.config.ACLEnforceVersion8 = true
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a db service using the root token.
+	argR.Service.Service = "db"
+	argR.Service.ID = "my-id"
+	argR.Token = "root"
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Prove that we are properly looking up the node services and passing
+	// that to the ACL helper. We can vet the helper independently in its
+	// own unit test after this. This is trying to register over the db
+	// service we created above, which is a check that depends on looking
+	// at the existing registration data with that service ID.
+	argR.Service.Service = "foo"
+	argR.Service.ID = "my-id"
+	argR.Token = id
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)

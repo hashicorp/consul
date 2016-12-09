@@ -21,7 +21,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
 
-	// Verify the args
+	// Verify the args.
 	if args.Node == "" || args.Address == "" {
 		return fmt.Errorf("Must provide node and address")
 	}
@@ -32,30 +32,31 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return err
 	}
 
+	// Handle a service registration.
 	if args.Service != nil {
 		// If no service id, but service name, use default
 		if args.Service.ID == "" && args.Service.Service != "" {
 			args.Service.ID = args.Service.Service
 		}
 
-		// Verify ServiceName provided if ID
+		// Verify ServiceName provided if ID.
 		if args.Service.ID != "" && args.Service.Service == "" {
 			return fmt.Errorf("Must provide service name with ID")
 		}
 
 		// Apply the ACL policy if any. The 'consul' service is excluded
 		// since it is managed automatically internally (that behavior
-		// is going away after version 0.8).
-		if c.srv.config.ACLEnforceVersion8 ||
-			(args.Service.Service != ConsulServiceName) {
+		// is going away after version 0.8). We check this same policy
+		// later if version 0.8 is enabled, so we can eventually just
+		// delete this and do all the ACL checks down there.
+		if args.Service.Service != ConsulServiceName {
 			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
-				c.srv.logger.Printf("[WARN] consul.catalog: Register of service '%s' on '%s' denied due to ACLs",
-					args.Service.Service, args.Node)
 				return permissionDeniedErr
 			}
 		}
 	}
 
+	// Move the old format single check into the slice, and fixup IDs.
 	if args.Check != nil {
 		args.Checks = append(args.Checks, args.Check)
 		args.Check = nil
@@ -66,6 +67,18 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 		if check.Node == "" {
 			check.Node = args.Node
+		}
+	}
+
+	// Check the complete register request against the given ACL policy.
+	if c.srv.config.ACLEnforceVersion8 {
+		state := c.srv.fsm.State()
+		_, ns, err := state.NodeServices(args.Node)
+		if err != nil {
+			return fmt.Errorf("Node lookup failed: %v", err)
+		}
+		if err := vetRegisterWithACL(acl, args, ns); err != nil {
+			return err
 		}
 	}
 
