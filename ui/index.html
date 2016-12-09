@@ -10,10 +10,11 @@
   <link rel="shortcut icon" href="static/favicon.png">
 
   <script type="text/javascript">
-    // Change this value to your consul host if you are not running
-    // the UI on the same host as a consul instance.
-    // e.g. "http://myserver.com:8500"
-    var consulHost = ''
+    // If you are not running the embedded UI, and your Consul server is
+    // running in a different location, you may need to change the below computed
+    // consulHost value to the static external endpoint of your Consul cluster.
+    // e.g. consulHost = "http://consul.example.org:8500"
+    var consulHost = window.location.origin + window.location.pathname.split("/ui/")[0]
   </script>
 
 </head>

@@ -230,6 +230,10 @@ func (s *HTTPServer) handleFuncMetrics(pattern string, handler func(http.Respons
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/", s.Index)
+	// Make sure /ui (no trailing slash) is redirected properly, using
+	// StripPrefix with http.FileServer will not send host back with a Location:
+	// header, apparently.
+	s.mux.HandleFunc("/ui", s.Index)
 
 	// API V1.
 	if s.agent.config.ACLDatacenter != "" {
@@ -420,10 +424,18 @@ func (s *HTTPServer) IsUIEnabled() bool {
 
 // Renders a simple index page
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
-	// Check if this is a non-index path
-	if req.URL.Path != "/" {
+	// Check if this is a non-index path (or not /ui without a trailing slash).
+	if req.URL.Path != "/" && req.URL.Path != "/ui" {
 		resp.WriteHeader(http.StatusNotFound) // 404
 		return
+	}
+
+	// set the protocol scheme depending on if TLS is enabled or not.
+	var scheme string
+	if req.TLS != nil {
+		scheme = "https"
+	} else {
+		scheme = "http"
 	}
 
 	// Give them something helpful if there's no UI so they at least know
@@ -434,7 +446,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, "/ui/", http.StatusMovedPermanently) // 301
+	http.Redirect(resp, req, fmt.Sprintf("%s://%s/ui/", scheme, req.Host), http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
