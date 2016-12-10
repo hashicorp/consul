@@ -96,7 +96,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// Parse the query and prep it for the state store.
 	switch args.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
-		if err := parseQuery(args.Query); err != nil {
+		if err := parseQuery(args.Query, p.srv.config.ACLEnforceVersion8); err != nil {
 			return fmt.Errorf("Invalid prepared query: %v", err)
 		}
 
@@ -125,7 +125,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 // update operation. Some of the fields are not checked or are partially
 // checked, as noted in the comments below. This also updates all the parsed
 // fields of the query.
-func parseQuery(query *structs.PreparedQuery) error {
+func parseQuery(query *structs.PreparedQuery, enforceVersion8 bool) error {
 	// We skip a few fields:
 	// - ID is checked outside this fn.
 	// - Name is optional with no restrictions, except for uniqueness which
@@ -133,9 +133,15 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   names do not overlap with IDs, which is also checked during the
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
-	// - Session is optional and checked for integrity during the transaction.
 	// - Template is checked during the transaction since that's where we
 	//   compile it.
+
+	// Anonymous queries require a session or need to be part of a template.
+	if enforceVersion8 {
+		if query.Name == "" && query.Template.Type == "" && query.Session == "" {
+			return fmt.Errorf("Must be bound to a session")
+		}
+	}
 
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
