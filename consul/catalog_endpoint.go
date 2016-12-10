@@ -71,7 +71,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if c.srv.config.ACLEnforceVersion8 {
+	if acl != nil && c.srv.config.ACLEnforceVersion8 {
 		state := c.srv.fsm.State()
 		_, ns, err := state.NodeServices(args.Node)
 		if err != nil {
@@ -84,7 +84,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] consul.catalog: Register failed: %v", err)
 		return err
 	}
 
@@ -103,9 +102,38 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 		return fmt.Errorf("Must provide node")
 	}
 
-	_, err := c.srv.raftApply(structs.DeregisterRequestType, args)
+	// Fetch the ACL token, if any.
+	acl, err := c.srv.resolveToken(args.Token)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] consul.catalog: Deregister failed: %v", err)
+		return err
+	}
+
+	// Check the complete deregister request against the given ACL policy.
+	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+		state := c.srv.fsm.State()
+
+		var ns *structs.NodeService
+		if args.ServiceID != "" {
+			_, ns, err = state.NodeService(args.Node, args.ServiceID)
+			if err != nil {
+				return fmt.Errorf("Service lookup failed: %v", err)
+			}
+		}
+
+		var nc *structs.HealthCheck
+		if args.CheckID != "" {
+			_, nc, err = state.NodeCheck(args.Node, args.CheckID)
+			if err != nil {
+				return fmt.Errorf("Check lookup failed: %v", err)
+			}
+		}
+
+		if err := vetDeregisterWithACL(acl, args, ns, nc); err != nil {
+			return err
+		}
+	}
+
+	if _, err := c.srv.raftApply(structs.DeregisterRequestType, args); err != nil {
 		return err
 	}
 	return nil

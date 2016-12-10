@@ -284,11 +284,24 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if len(out.Services) != 1 {
 			t.Fatalf("bad: %#v", out.Services)
 		}
-		s := out.Services["redis1"]
-		if s.ID != "redis1" || s.Service != "redis" ||
-			s.Address != "1.1.1.1" || s.Port != 8080 ||
-			s.CreateIndex != created || s.ModifyIndex != modified {
-			t.Fatalf("bad service returned: %#v", s)
+		r := out.Services["redis1"]
+		if r == nil || r.ID != "redis1" || r.Service != "redis" ||
+			r.Address != "1.1.1.1" || r.Port != 8080 ||
+			r.CreateIndex != created || r.ModifyIndex != modified {
+			t.Fatalf("bad service returned: %#v", r)
+		}
+
+		idx, r, err = s.NodeService("node1", "redis1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != modified {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if r == nil || r.ID != "redis1" || r.Service != "redis" ||
+			r.Address != "1.1.1.1" || r.Port != 8080 ||
+			r.CreateIndex != created || r.ModifyIndex != modified {
+			t.Fatalf("bad service returned: %#v", r)
 		}
 	}
 	verifyNode(1, 2)
@@ -317,6 +330,18 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c := out[0]
+		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
+			c.CreateIndex != created || c.ModifyIndex != modified {
+			t.Fatalf("bad check returned: %#v", c)
+		}
+
+		idx, c, err = s.NodeCheck("node1", "check1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != modified {
+			t.Fatalf("bad index: %d", idx)
+		}
 		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
 			c.CreateIndex != created || c.ModifyIndex != modified {
 			t.Fatalf("bad check returned: %#v", c)

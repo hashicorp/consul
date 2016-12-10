@@ -127,7 +127,9 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	// Either remove the service entry or the whole node
+	// Either remove the service entry or the whole node. The precedence
+	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
+	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
 		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)

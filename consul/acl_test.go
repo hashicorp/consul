@@ -1341,3 +1341,108 @@ node "node" {
 		t.Fatalf("bad: %v", err)
 	}
 }
+
+func TestACL_vetDeregisterWithACL(t *testing.T) {
+	args := &structs.DeregisterRequest{
+		Node: "nope",
+	}
+
+	// With a nil ACL, the update should be allowed.
+	if err := vetDeregisterWithACL(nil, args, nil, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a basic node policy.
+	policy, err := acl.Parse(`
+node "node" {
+  policy = "write"
+}
+service "service" {
+  policy = "write"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.New(acl.DenyAll(), policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With that policy, the update should now be blocked for node reasons.
+	err = vetDeregisterWithACL(perms, args, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now use a permitted node name.
+	args.Node = "node"
+	if err := vetDeregisterWithACL(perms, args, nil, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try an unknown check.
+	args.CheckID = "check-id"
+	err = vetDeregisterWithACL(perms, args, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now pass in a check that should be blocked.
+	nc := &structs.HealthCheck{
+		Node:        "node",
+		CheckID:     "check-id",
+		ServiceID:   "service-id",
+		ServiceName: "nope",
+	}
+	err = vetDeregisterWithACL(perms, args, nil, nc)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change it to an allowed service, which should go through.
+	nc.ServiceName = "service"
+	if err := vetDeregisterWithACL(perms, args, nil, nc); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Switch to a node check that should be blocked.
+	args.Node = "nope"
+	nc.Node = "nope"
+	nc.ServiceID = ""
+	nc.ServiceName = ""
+	err = vetDeregisterWithACL(perms, args, nil, nc)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Switch to an allowed node check, which should go through.
+	args.Node = "node"
+	nc.Node = "node"
+	if err := vetDeregisterWithACL(perms, args, nil, nc); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try an unknown service.
+	args.ServiceID = "service-id"
+	err = vetDeregisterWithACL(perms, args, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now pass in a service that should be blocked.
+	ns := &structs.NodeService{
+		ID:      "service-id",
+		Service: "nope",
+	}
+	err = vetDeregisterWithACL(perms, args, ns, nil)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change it to an allowed service, which should go through.
+	ns.Service = "service"
+	if err := vetDeregisterWithACL(perms, args, ns, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}

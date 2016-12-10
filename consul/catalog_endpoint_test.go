@@ -63,22 +63,25 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL
+	// Create the ACL.
 	arg := structs.ACLRequest{
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testRegisterRules,
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	id := out
 
 	argR := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -93,18 +96,22 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 	}
 	var outR struct{}
 
+	// This should fail since we are writing to the "db" service, which isn't
+	// allowed.
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// The "foo" service should work, though.
 	argR.Service.Service = "foo"
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Try the special case for the "consul" service.
+	// Try the special case for the "consul" service that allows it no matter
+	// what with pre-version 8 ACL enforcement.
 	argR.Service.Service = "consul"
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err != nil {
@@ -132,7 +139,8 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 	// that to the ACL helper. We can vet the helper independently in its
 	// own unit test after this. This is trying to register over the db
 	// service we created above, which is a check that depends on looking
-	// at the existing registration data with that service ID.
+	// at the existing registration data with that service ID. This is a new
+	// check for version 8.
 	argR.Service.Service = "foo"
 	argR.Service.ID = "my-id"
 	argR.Token = id
@@ -246,6 +254,217 @@ func TestCatalogDeregister(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestCatalogDeregister_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+node "node" {
+	policy = "write"
+}
+
+service "service" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a node, node check, service, and service check.
+	argR := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "node",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			Port:    8000,
+		},
+		Checks: structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:    "node",
+				CheckID: "node-check",
+			},
+			&structs.HealthCheck{
+				Node:      "node",
+				CheckID:   "service-check",
+				ServiceID: "service",
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: id},
+	}
+	var outR struct{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// First pass with version 8 ACL enforcement disabled, we should be able
+	// to deregister everything even without a token.
+	var err error
+	var out struct{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Turn on version 8 ACL enforcement and put the catalog entry back.
+	s1.config.ACLEnforceVersion8 = true
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Second pass with version 8 ACL enforcement enabled, these should all
+	// get rejected.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Third pass these should all go through with the token set.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try a few error cases.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "nope",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "nope",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1083,9 +1302,13 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testRegisterRules,
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -1230,9 +1453,3 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 		t.Fatalf("bad: %#v", reply.NodeServices)
 	}
 }
-
-var testRegisterRules = `
-service "foo" {
-	policy = "write"
-}
-`

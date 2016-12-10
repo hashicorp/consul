@@ -548,7 +548,8 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 // vetRegisterWithACL applies the given ACL's policy to the catalog update and
 // determines if it is allowed. Since the catalog register request is so
 // dynamic, this is a pretty complex algorithm and was worth breaking out of the
-// endpoint.
+// endpoint. The NodeServices record for the node must be supplied, and can be
+// nil.
 //
 // This is a bit racy because we have to check the state store outside of a
 // transaction. It's the best we can do because we don't want to flow ACL
@@ -558,7 +559,8 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 // address this race better (even then it would be super rare, and would at
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
-func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest, ns *structs.NodeServices) error {
+func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
+	ns *structs.NodeServices) error {
 	// Fast path if ACLs are not enabled.
 	if acl == nil {
 		return nil
@@ -639,6 +641,50 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest, ns *structs.
 			if !acl.ServiceWrite(other.Service) {
 				return permissionDeniedErr
 			}
+		}
+	}
+
+	return nil
+}
+
+// vetDeregisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog deregister request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint. The NodeService for the referenced service must be supplied, and can
+// be nil; similar for the HealthCheck for the referenced health check.
+func vetDeregisterWithACL(acl acl.ACL, subj *structs.DeregisterRequest,
+	ns *structs.NodeService, nc *structs.HealthCheck) error {
+	// Fast path if ACLs are not enabled.
+	if acl == nil {
+		return nil
+	}
+
+	// This order must match the code in applyRegister() in fsm.go since it
+	// also evaluates things in this order, and will ignore fields based on
+	// this precedence. This lets us also ignore them from an ACL perspective.
+	if subj.ServiceID != "" {
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
+		}
+		if !acl.ServiceWrite(ns.Service) {
+			return permissionDeniedErr
+		}
+	} else if subj.CheckID != "" {
+		if nc == nil {
+			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
+		}
+		if nc.ServiceID != "" {
+			if !acl.ServiceWrite(nc.ServiceName) {
+				return permissionDeniedErr
+			}
+		} else {
+			if !acl.NodeWrite(subj.Node) {
+				return permissionDeniedErr
+			}
+		}
+	} else {
+		if !acl.NodeWrite(subj.Node) {
+			return permissionDeniedErr
 		}
 	}
 
