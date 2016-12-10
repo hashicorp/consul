@@ -267,6 +267,21 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			if err != nil {
 				return err
 			}
+
+			// Node read access is required with version 8 ACLs. We
+			// just return the same response as if the node doesn't
+			// exist, which is consistent with how the rest of the
+			// catalog filtering works and doesn't disclose the node.
+			acl, err := c.srv.resolveToken(args.Token)
+			if err != nil {
+				return err
+			}
+			if acl != nil && c.srv.config.ACLEnforceVersion8 {
+				if !acl.NodeRead(args.Node) {
+					return permissionDeniedErr
+				}
+			}
+
 			reply.Index, reply.NodeServices = index, services
 			return c.srv.filterACL(args.Token, reply)
 		})

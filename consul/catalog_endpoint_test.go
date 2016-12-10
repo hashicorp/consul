@@ -1191,7 +1191,7 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	}
 }
 
-func TestCatalogNodeServices(t *testing.T) {
+func TestCatalog_NodeServices(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1421,6 +1421,64 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 		if sn.ServiceID == "bar" {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
+	}
+}
+
+func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Prior to version 8, the node policy should be ignored.
+	args := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       s1.config.NodeName,
+	}
+	reply := structs.IndexedNodeServices{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now turn on version 8 enforcement and try again.
+	s1.config.ACLEnforceVersion8 = true
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create an ACL that can read the node.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: fmt.Sprintf(`
+node "%s" {
+	policy = "write"
+}
+`, s1.config.NodeName),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
