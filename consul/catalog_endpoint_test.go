@@ -1369,6 +1369,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
 	})
 
 	codec = rpcClient(t, srv)
@@ -1499,6 +1500,12 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestCatalog_NodeServices_ACLDeny(t *testing.T) {

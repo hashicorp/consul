@@ -328,8 +328,16 @@ func newAclFilter(acl acl.ACL, logger *log.Logger, enforceVersion8 bool) *aclFil
 	}
 }
 
-// filterService is used to determine if a service is accessible for an ACL.
-func (f *aclFilter) filterService(service string) bool {
+// allowNode is used to determine if a node is accessible for an ACL.
+func (f *aclFilter) allowNode(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.acl.NodeRead(node)
+}
+
+// allowService is used to determine if a service is accessible for an ACL.
+func (f *aclFilter) allowService(service string) bool {
 	if service == "" || service == ConsulServiceID {
 		return true
 	}
@@ -342,7 +350,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.filterService(check.ServiceName) {
+		if f.allowService(check.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -355,7 +363,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 // filterServices is used to filter a set of services based on ACLs.
 func (f *aclFilter) filterServices(services structs.Services) {
 	for svc, _ := range services {
-		if f.filterService(svc) {
+		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -369,7 +377,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 	sn := *nodes
 	for i := 0; i < len(sn); i++ {
 		node := sn[i]
-		if f.filterService(node.ServiceName) {
+		if f.allowNode(node.Node) && f.allowService(node.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
@@ -382,7 +390,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 // filterNodeServices is used to filter services on a given node base on ACLs.
 func (f *aclFilter) filterNodeServices(services *structs.NodeServices) {
 	for svc, _ := range services.Services {
-		if f.filterService(svc) {
+		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -395,7 +403,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.filterService(node.Service.Service) {
+		if f.allowService(node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
@@ -415,7 +423,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter services
 		for i := 0; i < len(info.Services); i++ {
 			svc := info.Services[i].Service
-			if f.filterService(svc) {
+			if f.allowService(svc) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -426,7 +434,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter checks
 		for i := 0; i < len(info.Checks); i++ {
 			chk := info.Checks[i]
-			if f.filterService(chk.ServiceName) {
+			if f.allowService(chk.ServiceName) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
