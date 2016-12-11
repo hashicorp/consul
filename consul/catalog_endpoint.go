@@ -169,6 +169,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			}
 
 			reply.Index, reply.Nodes = index, nodes
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }

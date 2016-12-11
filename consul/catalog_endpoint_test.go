@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
-func TestCatalogRegister(t *testing.T) {
+func TestCatalog_Register(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -49,7 +49,7 @@ func TestCatalogRegister(t *testing.T) {
 	})
 }
 
-func TestCatalogRegister_ACLDeny(t *testing.T) {
+func TestCatalog_Register_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -150,7 +150,7 @@ service "foo" {
 	}
 }
 
-func TestCatalogRegister_ForwardLeader(t *testing.T) {
+func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -197,7 +197,7 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 	}
 }
 
-func TestCatalogRegister_ForwardDC(t *testing.T) {
+func TestCatalog_Register_ForwardDC(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -233,7 +233,7 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 	}
 }
 
-func TestCatalogDeregister(t *testing.T) {
+func TestCatalog_Deregister(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -258,7 +258,7 @@ func TestCatalogDeregister(t *testing.T) {
 	}
 }
 
-func TestCatalogDeregister_ACLDeny(t *testing.T) {
+func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -469,7 +469,7 @@ service "service" {
 	}
 }
 
-func TestCatalogListDatacenters(t *testing.T) {
+func TestCatalog_ListDatacenters(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -506,7 +506,7 @@ func TestCatalogListDatacenters(t *testing.T) {
 	}
 }
 
-func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
+func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -550,7 +550,7 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes(t *testing.T) {
+func TestCatalog_ListNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -592,7 +592,7 @@ func TestCatalogListNodes(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_StaleRaad(t *testing.T) {
+func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -660,7 +660,7 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_ConsistentRead_Fail(t *testing.T) {
+func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -710,7 +710,7 @@ func TestCatalogListNodes_ConsistentRead_Fail(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_ConsistentRead(t *testing.T) {
+func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -758,7 +758,7 @@ func TestCatalogListNodes_ConsistentRead(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_DistanceSort(t *testing.T) {
+func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -846,7 +846,84 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	}
 }
 
-func BenchmarkCatalogListNodes(t *testing.B) {
+func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// We scope the reply in each of these since msgpack won't clear out an
+	// existing slice if the incoming one is nil, so it's best to start
+	// clean each time.
+
+	// Prior to version 8, the node policy should be ignored.
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 1 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+
+	// Now turn on version 8 enforcement and try again.
+	s1.config.ACLEnforceVersion8 = true
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 0 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+
+	// Create an ACL that can read the node.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: fmt.Sprintf(`
+node "%s" {
+	policy = "read"
+}
+`, s1.config.NodeName),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 1 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+}
+
+func Benchmark_Catalog_ListNodes(t *testing.B) {
 	dir1, s1 := testServer(nil)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -869,7 +946,7 @@ func BenchmarkCatalogListNodes(t *testing.B) {
 	}
 }
 
-func TestCatalogListServices(t *testing.T) {
+func TestCatalog_ListServices(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -919,7 +996,7 @@ func TestCatalogListServices(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Blocking(t *testing.T) {
+func TestCatalog_ListServices_Blocking(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -977,7 +1054,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Timeout(t *testing.T) {
+func TestCatalog_ListServices_Timeout(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1018,7 +1095,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Stale(t *testing.T) {
+func TestCatalog_ListServices_Stale(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1055,7 +1132,7 @@ func TestCatalogListServices_Stale(t *testing.T) {
 	}
 }
 
-func TestCatalogListServiceNodes(t *testing.T) {
+func TestCatalog_ListServiceNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1104,7 +1181,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	}
 }
 
-func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
+func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1241,7 +1318,7 @@ func TestCatalog_NodeServices(t *testing.T) {
 }
 
 // Used to check for a regression against a known bug
-func TestCatalogRegister_FailedCase1(t *testing.T) {
+func TestCatalog_Register_FailedCase1(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1447,6 +1524,9 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if reply.NodeServices == nil {
+		t.Fatalf("should not be nil")
+	}
 
 	// Now turn on version 8 enforcement and try again.
 	s1.config.ACLEnforceVersion8 = true
@@ -1464,7 +1544,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 			Type: structs.ACLTypeClient,
 			Rules: fmt.Sprintf(`
 node "%s" {
-	policy = "write"
+	policy = "read"
 }
 `, s1.config.NodeName),
 		},
@@ -1479,6 +1559,9 @@ node "%s" {
 	args.Token = id
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if reply.NodeServices == nil {
+		t.Fatalf("should not be nil")
 	}
 }
 

@@ -311,16 +311,21 @@ func (c *aclCache) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *str
 // aclFilter is used to filter results from our state store based on ACL rules
 // configured for the provided token.
 type aclFilter struct {
-	acl    acl.ACL
-	logger *log.Logger
+	acl             acl.ACL
+	logger          *log.Logger
+	enforceVersion8 bool
 }
 
 // newAclFilter constructs a new aclFilter.
-func newAclFilter(acl acl.ACL, logger *log.Logger) *aclFilter {
+func newAclFilter(acl acl.ACL, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
 		logger = log.New(os.Stdout, "", log.LstdFlags)
 	}
-	return &aclFilter{acl, logger}
+	return &aclFilter{
+		acl:             acl,
+		logger:          logger,
+		enforceVersion8: enforceVersion8,
+	}
 }
 
 // filterService is used to determine if a service is accessible for an ACL.
@@ -432,6 +437,26 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	*dump = nd
 }
 
+// filterNodes is used to filter through all parts of a node list and remove
+// elements the provided ACL token cannot access.
+func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
+	if !f.enforceVersion8 {
+		return
+	}
+
+	n := *nodes
+	for i := 0; i < len(n); i++ {
+		node := n[i].Node
+		if f.acl.NodeRead(node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+		n = append(n[:i], n[i+1:]...)
+		i--
+	}
+	*nodes = n
+}
+
 // redactPreparedQueryTokens will redact any tokens unless the client has a
 // management token. This eases the transition to delegated authority over
 // prepared queries, since it was easy to capture management tokens in Consul
@@ -506,31 +531,34 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	}
 
 	// Create the filter
-	filt := newAclFilter(acl, s.logger)
+	filt := newAclFilter(acl, s.logger, s.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
+	case *structs.CheckServiceNodes:
+		filt.filterCheckServiceNodes(v)
+
+	case *structs.IndexedCheckServiceNodes:
+		filt.filterCheckServiceNodes(&v.Nodes)
+
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
 
-	case *structs.IndexedServices:
-		filt.filterServices(v.Services)
+	case *structs.IndexedNodeDump:
+		filt.filterNodeDump(&v.Dump)
 
-	case *structs.IndexedServiceNodes:
-		filt.filterServiceNodes(&v.ServiceNodes)
+	case *structs.IndexedNodes:
+		filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
 		if v.NodeServices != nil {
 			filt.filterNodeServices(v.NodeServices)
 		}
 
-	case *structs.IndexedCheckServiceNodes:
-		filt.filterCheckServiceNodes(&v.Nodes)
+	case *structs.IndexedServiceNodes:
+		filt.filterServiceNodes(&v.ServiceNodes)
 
-	case *structs.CheckServiceNodes:
-		filt.filterCheckServiceNodes(v)
-
-	case *structs.IndexedNodeDump:
-		filt.filterNodeDump(&v.Dump)
+	case *structs.IndexedServices:
+		filt.filterServices(v.Services)
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)
