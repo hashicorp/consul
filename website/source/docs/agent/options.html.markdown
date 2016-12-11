@@ -377,6 +377,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   all operations, and "extend-cache" allows any cached ACLs to be used, ignoring their TTL
   values. If a non-cached ACL is used, "extend-cache" acts like "deny".
 
+* <a name"acl_agent_token"></a><a href="#acl_agent_token">`acl_agent_token`</a> - Used for clients
+  and servers to perform internal operations to the service catalog. If this isn't specified, then
+  the <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
+  <br><br>
+  For clients, this token must at least have write access to the node name it will register as. For
+  servers, this must have write access to all nodes that are expected to join the cluster, as well
+  as write access to the "consul" service, which will be registered automatically on its behalf.
+
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   Used for clients and servers to determine if enforcement should occur for new ACL policies being
   previewed before Consul 0.8. Added in Consul 0.7.2, this will default to false in versions of

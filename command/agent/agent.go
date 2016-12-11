@@ -227,8 +227,8 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 			Port:    agent.config.Ports.Server,
 			Tags:    []string{},
 		}
-		// TODO (slackpad) - Plumb the "acl_agent_token" into here.
-		agent.state.AddService(&consulService, "")
+
+		agent.state.AddService(&consulService, agent.config.GetTokenForAgent())
 	} else {
 		err = agent.setupClient()
 		agent.state.SetIface(agent.client)
@@ -363,6 +363,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.ACLToken != "" {
 		base.ACLToken = a.config.ACLToken
+	}
+	if a.config.ACLAgentToken != "" {
+		base.ACLAgentToken = a.config.ACLAgentToken
 	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken

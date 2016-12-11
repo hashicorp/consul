@@ -400,7 +400,7 @@ func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.config.ACLToken},
+		QueryOptions: structs.QueryOptions{Token: l.config.GetTokenForAgent()},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -709,7 +709,7 @@ func (l *localState) syncNodeInfo() error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
-		WriteRequest:    structs.WriteRequest{Token: l.config.ACLToken},
+		WriteRequest:    structs.WriteRequest{Token: l.config.GetTokenForAgent()},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)

@@ -428,7 +428,7 @@ AFTER_CHECK:
 			Status:  structs.HealthPassing,
 			Output:  SerfCheckAliveOutput,
 		},
-		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Register(&req, &out)
@@ -469,7 +469,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			Status:  structs.HealthCritical,
 			Output:  SerfCheckFailedOutput,
 		},
-		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Register(&req, &out)
@@ -612,7 +612,7 @@ func (s *Server) reapTombstones(index uint64) {
 		Datacenter:   s.config.Datacenter,
 		Op:           structs.TombstoneReap,
 		ReapIndex:    index,
-		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
 	}
 	_, err := s.raftApply(structs.TombstoneRequestType, &req)
 	if err != nil {
