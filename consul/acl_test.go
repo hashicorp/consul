@@ -1012,6 +1012,41 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	}
 }
 
+func TestACL_filterCoordinates(t *testing.T) {
+	// Create some coordinates.
+	coords := structs.Coordinates{
+		&structs.Coordinate{
+			Node:  "node1",
+			Coord: generateRandomCoordinate(),
+		},
+		&structs.Coordinate{
+			Node:  "node2",
+			Coord: generateRandomCoordinate(),
+		},
+	}
+
+	// Try permissive filtering.
+	filt := newAclFilter(acl.AllowAll(), nil, false)
+	filt.filterCoordinates(&coords)
+	if len(coords) != 2 {
+		t.Fatalf("bad: %#v", coords)
+	}
+
+	// Try restrictive filtering without version 8 ACL enforcement.
+	filt = newAclFilter(acl.DenyAll(), nil, false)
+	filt.filterCoordinates(&coords)
+	if len(coords) != 2 {
+		t.Fatalf("bad: %#v", coords)
+	}
+
+	// Try restrictive filtering with version 8 ACL enforcement.
+	filt = newAclFilter(acl.DenyAll(), nil, true)
+	filt.filterCoordinates(&coords)
+	if len(coords) != 0 {
+		t.Fatalf("bad: %#v", coords)
+	}
+}
+
 func TestACL_filterNodeDump(t *testing.T) {
 	// Create a node dump
 	dump := structs.NodeDump{

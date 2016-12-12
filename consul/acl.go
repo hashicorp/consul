@@ -413,6 +413,22 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	*nodes = csn
 }
 
+// filterCoordinates is used to filter nodes in a coordinate dump based on ACL
+// rules.
+func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
+	c := *coords
+	for i := 0; i < len(c); i++ {
+		node := c[i].Node
+		if f.allowNode(node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+		c = append(c[:i], c[i+1:]...)
+		i--
+	}
+	*coords = c
+}
+
 // filterNodeDump is used to filter through all parts of a node dump and
 // remove elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
@@ -448,14 +464,10 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 // filterNodes is used to filter through all parts of a node list and remove
 // elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
-	if !f.enforceVersion8 {
-		return
-	}
-
 	n := *nodes
 	for i := 0; i < len(n); i++ {
 		node := n[i].Node
-		if f.acl.NodeRead(node) {
+		if f.allowNode(node) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -547,6 +559,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
+
+	case *structs.IndexedCoordinates:
+		filt.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
