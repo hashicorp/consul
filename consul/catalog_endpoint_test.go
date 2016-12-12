@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
-func TestCatalogRegister(t *testing.T) {
+func TestCatalog_Register(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -29,6 +29,9 @@ func TestCatalogRegister(t *testing.T) {
 			Service: "db",
 			Tags:    []string{"master"},
 			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			ServiceID: "db",
 		},
 	}
 	var out struct{}
@@ -46,11 +49,12 @@ func TestCatalogRegister(t *testing.T) {
 	})
 }
 
-func TestCatalogRegister_ACLDeny(t *testing.T) {
+func TestCatalog_Register_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -59,22 +63,25 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL
+	// Create the ACL.
 	arg := structs.ACLRequest{
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testRegisterRules,
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	id := out
 
 	argR := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -89,19 +96,61 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 	}
 	var outR struct{}
 
+	// This should fail since we are writing to the "db" service, which isn't
+	// allowed.
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// The "foo" service should work, though.
 	argR.Service.Service = "foo"
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Try the special case for the "consul" service that allows it no matter
+	// what with pre-version 8 ACL enforcement.
+	argR.Service.Service = "consul"
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the exception goes away when we turn on version 8 ACL
+	// enforcement.
+	s1.config.ACLEnforceVersion8 = true
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a db service using the root token.
+	argR.Service.Service = "db"
+	argR.Service.ID = "my-id"
+	argR.Token = "root"
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Prove that we are properly looking up the node services and passing
+	// that to the ACL helper. We can vet the helper independently in its
+	// own unit test after this. This is trying to register over the db
+	// service we created above, which is a check that depends on looking
+	// at the existing registration data with that service ID. This is a new
+	// check for version 8.
+	argR.Service.Service = "foo"
+	argR.Service.ID = "my-id"
+	argR.Token = id
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
 }
 
-func TestCatalogRegister_ForwardLeader(t *testing.T) {
+func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -148,7 +197,7 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 	}
 }
 
-func TestCatalogRegister_ForwardDC(t *testing.T) {
+func TestCatalog_Register_ForwardDC(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -184,7 +233,7 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 	}
 }
 
-func TestCatalogDeregister(t *testing.T) {
+func TestCatalog_Deregister(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -209,7 +258,218 @@ func TestCatalogDeregister(t *testing.T) {
 	}
 }
 
-func TestCatalogListDatacenters(t *testing.T) {
+func TestCatalog_Deregister_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+node "node" {
+	policy = "write"
+}
+
+service "service" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a node, node check, service, and service check.
+	argR := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "node",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "service",
+			Port:    8000,
+		},
+		Checks: structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:    "node",
+				CheckID: "node-check",
+			},
+			&structs.HealthCheck{
+				Node:      "node",
+				CheckID:   "service-check",
+				ServiceID: "service",
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: id},
+	}
+	var outR struct{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// First pass with version 8 ACL enforcement disabled, we should be able
+	// to deregister everything even without a token.
+	var err error
+	var out struct{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node"}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Turn on version 8 ACL enforcement and put the catalog entry back.
+	s1.config.ACLEnforceVersion8 = true
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Second pass with version 8 ACL enforcement enabled, these should all
+	// get rejected.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node"}, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Third pass these should all go through with the token set.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "service-check",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "node-check",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "service",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try a few error cases.
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			ServiceID:  "nope",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
+		t.Fatalf("err: %v", err)
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
+		&structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "node",
+			CheckID:    "nope",
+			WriteRequest: structs.WriteRequest{
+				Token: id,
+			}}, &out)
+	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestCatalog_ListDatacenters(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -246,7 +506,7 @@ func TestCatalogListDatacenters(t *testing.T) {
 	}
 }
 
-func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
+func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -290,7 +550,7 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes(t *testing.T) {
+func TestCatalog_ListNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -332,7 +592,7 @@ func TestCatalogListNodes(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_StaleRaad(t *testing.T) {
+func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -400,7 +660,7 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_ConsistentRead_Fail(t *testing.T) {
+func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -450,7 +710,7 @@ func TestCatalogListNodes_ConsistentRead_Fail(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_ConsistentRead(t *testing.T) {
+func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -498,7 +758,7 @@ func TestCatalogListNodes_ConsistentRead(t *testing.T) {
 	}
 }
 
-func TestCatalogListNodes_DistanceSort(t *testing.T) {
+func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -586,7 +846,84 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	}
 }
 
-func BenchmarkCatalogListNodes(t *testing.B) {
+func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// We scope the reply in each of these since msgpack won't clear out an
+	// existing slice if the incoming one is nil, so it's best to start
+	// clean each time.
+
+	// Prior to version 8, the node policy should be ignored.
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 1 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+
+	// Now turn on version 8 enforcement and try again.
+	s1.config.ACLEnforceVersion8 = true
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 0 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+
+	// Create an ACL that can read the node.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: fmt.Sprintf(`
+node "%s" {
+	policy = "read"
+}
+`, s1.config.NodeName),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	{
+		reply := structs.IndexedNodes{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(reply.Nodes) != 1 {
+			t.Fatalf("bad: %v", reply.Nodes)
+		}
+	}
+}
+
+func Benchmark_Catalog_ListNodes(t *testing.B) {
 	dir1, s1 := testServer(nil)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -609,7 +946,7 @@ func BenchmarkCatalogListNodes(t *testing.B) {
 	}
 }
 
-func TestCatalogListServices(t *testing.T) {
+func TestCatalog_ListServices(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -659,7 +996,7 @@ func TestCatalogListServices(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Blocking(t *testing.T) {
+func TestCatalog_ListServices_Blocking(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -717,7 +1054,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Timeout(t *testing.T) {
+func TestCatalog_ListServices_Timeout(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -758,7 +1095,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 }
 
-func TestCatalogListServices_Stale(t *testing.T) {
+func TestCatalog_ListServices_Stale(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -795,7 +1132,7 @@ func TestCatalogListServices_Stale(t *testing.T) {
 	}
 }
 
-func TestCatalogListServiceNodes(t *testing.T) {
+func TestCatalog_ListServiceNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -844,7 +1181,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	}
 }
 
-func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
+func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -931,7 +1268,7 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	}
 }
 
-func TestCatalogNodeServices(t *testing.T) {
+func TestCatalog_NodeServices(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -981,7 +1318,7 @@ func TestCatalogNodeServices(t *testing.T) {
 }
 
 // Used to check for a regression against a known bug
-func TestCatalogRegister_FailedCase1(t *testing.T) {
+func TestCatalog_Register_FailedCase1(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1032,6 +1369,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
 	})
 
 	codec = rpcClient(t, srv)
@@ -1042,9 +1380,13 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testRegisterRules,
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -1158,6 +1500,76 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
+}
+
+func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Prior to version 8, the node policy should be ignored.
+	args := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       s1.config.NodeName,
+	}
+	reply := structs.IndexedNodeServices{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.NodeServices == nil {
+		t.Fatalf("should not be nil")
+	}
+
+	// Now turn on version 8 enforcement and try again.
+	s1.config.ACLEnforceVersion8 = true
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create an ACL that can read the node.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: fmt.Sprintf(`
+node "%s" {
+	policy = "read"
+}
+`, s1.config.NodeName),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try with the token and it will go through.
+	args.Token = id
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.NodeServices == nil {
+		t.Fatalf("should not be nil")
+	}
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
@@ -1189,9 +1601,3 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 		t.Fatalf("bad: %#v", reply.NodeServices)
 	}
 }
-
-var testRegisterRules = `
-service "foo" {
-	policy = "write"
-}
-`

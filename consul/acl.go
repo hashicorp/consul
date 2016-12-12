@@ -311,20 +311,33 @@ func (c *aclCache) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *str
 // aclFilter is used to filter results from our state store based on ACL rules
 // configured for the provided token.
 type aclFilter struct {
-	acl    acl.ACL
-	logger *log.Logger
+	acl             acl.ACL
+	logger          *log.Logger
+	enforceVersion8 bool
 }
 
 // newAclFilter constructs a new aclFilter.
-func newAclFilter(acl acl.ACL, logger *log.Logger) *aclFilter {
+func newAclFilter(acl acl.ACL, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
 		logger = log.New(os.Stdout, "", log.LstdFlags)
 	}
-	return &aclFilter{acl, logger}
+	return &aclFilter{
+		acl:             acl,
+		logger:          logger,
+		enforceVersion8: enforceVersion8,
+	}
 }
 
-// filterService is used to determine if a service is accessible for an ACL.
-func (f *aclFilter) filterService(service string) bool {
+// allowNode is used to determine if a node is accessible for an ACL.
+func (f *aclFilter) allowNode(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.acl.NodeRead(node)
+}
+
+// allowService is used to determine if a service is accessible for an ACL.
+func (f *aclFilter) allowService(service string) bool {
 	if service == "" || service == ConsulServiceID {
 		return true
 	}
@@ -337,7 +350,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.filterService(check.ServiceName) {
+		if f.allowService(check.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -350,7 +363,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 // filterServices is used to filter a set of services based on ACLs.
 func (f *aclFilter) filterServices(services structs.Services) {
 	for svc, _ := range services {
-		if f.filterService(svc) {
+		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -364,7 +377,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 	sn := *nodes
 	for i := 0; i < len(sn); i++ {
 		node := sn[i]
-		if f.filterService(node.ServiceName) {
+		if f.allowNode(node.Node) && f.allowService(node.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
@@ -377,7 +390,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 // filterNodeServices is used to filter services on a given node base on ACLs.
 func (f *aclFilter) filterNodeServices(services *structs.NodeServices) {
 	for svc, _ := range services.Services {
-		if f.filterService(svc) {
+		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -390,7 +403,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.filterService(node.Service.Service) {
+		if f.allowService(node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
@@ -410,7 +423,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter services
 		for i := 0; i < len(info.Services); i++ {
 			svc := info.Services[i].Service
-			if f.filterService(svc) {
+			if f.allowService(svc) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -421,7 +434,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter checks
 		for i := 0; i < len(info.Checks); i++ {
 			chk := info.Checks[i]
-			if f.filterService(chk.ServiceName) {
+			if f.allowService(chk.ServiceName) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
@@ -430,6 +443,26 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		}
 	}
 	*dump = nd
+}
+
+// filterNodes is used to filter through all parts of a node list and remove
+// elements the provided ACL token cannot access.
+func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
+	if !f.enforceVersion8 {
+		return
+	}
+
+	n := *nodes
+	for i := 0; i < len(n); i++ {
+		node := n[i].Node
+		if f.acl.NodeRead(node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+		n = append(n[:i], n[i+1:]...)
+		i--
+	}
+	*nodes = n
 }
 
 // redactPreparedQueryTokens will redact any tokens unless the client has a
@@ -506,31 +539,34 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	}
 
 	// Create the filter
-	filt := newAclFilter(acl, s.logger)
+	filt := newAclFilter(acl, s.logger, s.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
+	case *structs.CheckServiceNodes:
+		filt.filterCheckServiceNodes(v)
+
+	case *structs.IndexedCheckServiceNodes:
+		filt.filterCheckServiceNodes(&v.Nodes)
+
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
 
-	case *structs.IndexedServices:
-		filt.filterServices(v.Services)
+	case *structs.IndexedNodeDump:
+		filt.filterNodeDump(&v.Dump)
 
-	case *structs.IndexedServiceNodes:
-		filt.filterServiceNodes(&v.ServiceNodes)
+	case *structs.IndexedNodes:
+		filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
 		if v.NodeServices != nil {
 			filt.filterNodeServices(v.NodeServices)
 		}
 
-	case *structs.IndexedCheckServiceNodes:
-		filt.filterCheckServiceNodes(&v.Nodes)
+	case *structs.IndexedServiceNodes:
+		filt.filterServiceNodes(&v.ServiceNodes)
 
-	case *structs.CheckServiceNodes:
-		filt.filterCheckServiceNodes(v)
-
-	case *structs.IndexedNodeDump:
-		filt.filterNodeDump(&v.Dump)
+	case *structs.IndexedServices:
+		filt.filterServices(v.Services)
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)
@@ -540,6 +576,152 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %#v", subj))
+	}
+
+	return nil
+}
+
+// vetRegisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog register request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint. The NodeServices record for the node must be supplied, and can be
+// nil.
+//
+// This is a bit racy because we have to check the state store outside of a
+// transaction. It's the best we can do because we don't want to flow ACL
+// checking down there. The node information doesn't change in practice, so this
+// will be fine. If we expose ways to change node addresses in a later version,
+// then we should split the catalog API at the node and service level so we can
+// address this race better (even then it would be super rare, and would at
+// worst let a service update revert a recent node update, so it doesn't open up
+// too much abuse).
+func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
+	ns *structs.NodeServices) error {
+	// Fast path if ACLs are not enabled.
+	if acl == nil {
+		return nil
+	}
+
+	// Vet the node info. This allows service updates to re-post the required
+	// node info for each request without having to have node "write"
+	// privileges.
+	needsNode := ns == nil || subj.ChangesNode(ns.Node)
+	if needsNode && !acl.NodeWrite(subj.Node) {
+		return permissionDeniedErr
+	}
+
+	// Vet the service change. This includes making sure they can register
+	// the given service, and that we can write to any existing service that
+	// is being modified by id (if any).
+	if subj.Service != nil {
+		if !acl.ServiceWrite(subj.Service.Service) {
+			return permissionDeniedErr
+		}
+
+		if ns != nil {
+			other, ok := ns.Services[subj.Service.ID]
+			if ok && !acl.ServiceWrite(other.Service) {
+				return permissionDeniedErr
+			}
+		}
+	}
+
+	// Make sure that the member was flattened before we got there. This
+	// keeps us from having to verify this check as well.
+	if subj.Check != nil {
+		return fmt.Errorf("check member must be nil")
+	}
+
+	// Vet the checks. Node-level checks require node write, and
+	// service-level checks require service write.
+	for _, check := range subj.Checks {
+		// Make sure that the node matches - we don't allow you to mix
+		// checks from other nodes because we'd have to pull a bunch
+		// more state store data to check this. If ACLs are enabled then
+		// we simply require them to match in a given request. There's a
+		// note in state_store.go to ban this down there in Consul 0.8,
+		// but it's good to leave this here because it's required for
+		// correctness wrt. ACLs.
+		if check.Node != subj.Node {
+			return fmt.Errorf("Node '%s' for check '%s' doesn't match register request node '%s'",
+				check.Node, check.CheckID, subj.Node)
+		}
+
+		// Node-level check.
+		if check.ServiceID == "" {
+			if !acl.NodeWrite(subj.Node) {
+				return permissionDeniedErr
+			}
+			continue
+		}
+
+		// Service-level check, check the common case where it
+		// matches the service part of this request, which has
+		// already been vetted above, and might be being registered
+		// along with its checks.
+		if subj.Service != nil && subj.Service.ID == check.ServiceID {
+			continue
+		}
+
+		// Service-level check for some other service. Make sure they've
+		// got write permissions for that service.
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s' for check '%s'",
+				check.ServiceID, check.CheckID)
+		} else {
+			other, ok := ns.Services[check.ServiceID]
+			if !ok {
+				return fmt.Errorf("Unknown service '%s' for check '%s'",
+					check.ServiceID, check.CheckID)
+			}
+			if !acl.ServiceWrite(other.Service) {
+				return permissionDeniedErr
+			}
+		}
+	}
+
+	return nil
+}
+
+// vetDeregisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog deregister request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint. The NodeService for the referenced service must be supplied, and can
+// be nil; similar for the HealthCheck for the referenced health check.
+func vetDeregisterWithACL(acl acl.ACL, subj *structs.DeregisterRequest,
+	ns *structs.NodeService, nc *structs.HealthCheck) error {
+	// Fast path if ACLs are not enabled.
+	if acl == nil {
+		return nil
+	}
+
+	// This order must match the code in applyRegister() in fsm.go since it
+	// also evaluates things in this order, and will ignore fields based on
+	// this precedence. This lets us also ignore them from an ACL perspective.
+	if subj.ServiceID != "" {
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
+		}
+		if !acl.ServiceWrite(ns.Service) {
+			return permissionDeniedErr
+		}
+	} else if subj.CheckID != "" {
+		if nc == nil {
+			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
+		}
+		if nc.ServiceID != "" {
+			if !acl.ServiceWrite(nc.ServiceName) {
+				return permissionDeniedErr
+			}
+		} else {
+			if !acl.NodeWrite(subj.Node) {
+				return permissionDeniedErr
+			}
+		}
+	} else {
+		if !acl.NodeWrite(subj.Node) {
+			return permissionDeniedErr
+		}
 	}
 
 	return nil

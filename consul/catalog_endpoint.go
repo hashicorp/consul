@@ -21,37 +21,42 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
 
-	// Verify the args
+	// Verify the args.
 	if args.Node == "" || args.Address == "" {
 		return fmt.Errorf("Must provide node and address")
 	}
 
+	// Fetch the ACL token, if any.
+	acl, err := c.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	// Handle a service registration.
 	if args.Service != nil {
 		// If no service id, but service name, use default
 		if args.Service.ID == "" && args.Service.Service != "" {
 			args.Service.ID = args.Service.Service
 		}
 
-		// Verify ServiceName provided if ID
+		// Verify ServiceName provided if ID.
 		if args.Service.ID != "" && args.Service.Service == "" {
 			return fmt.Errorf("Must provide service name with ID")
 		}
 
-		// Apply the ACL policy if any
-		// The 'consul' service is excluded since it is managed
-		// automatically internally.
+		// Apply the ACL policy if any. The 'consul' service is excluded
+		// since it is managed automatically internally (that behavior
+		// is going away after version 0.8). We check this same policy
+		// later if version 0.8 is enabled, so we can eventually just
+		// delete this and do all the ACL checks down there.
 		if args.Service.Service != ConsulServiceName {
-			acl, err := c.srv.resolveToken(args.Token)
-			if err != nil {
-				return err
-			} else if acl != nil && !acl.ServiceWrite(args.Service.Service) {
-				c.srv.logger.Printf("[WARN] consul.catalog: Register of service '%s' on '%s' denied due to ACLs",
-					args.Service.Service, args.Node)
+			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
 				return permissionDeniedErr
 			}
 		}
 	}
 
+	// Move the old format single check into the slice, and fixup IDs.
 	if args.Check != nil {
 		args.Checks = append(args.Checks, args.Check)
 		args.Check = nil
@@ -65,9 +70,20 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
+	// Check the complete register request against the given ACL policy.
+	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+		state := c.srv.fsm.State()
+		_, ns, err := state.NodeServices(args.Node)
+		if err != nil {
+			return fmt.Errorf("Node lookup failed: %v", err)
+		}
+		if err := vetRegisterWithACL(acl, args, ns); err != nil {
+			return err
+		}
+	}
+
+	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] consul.catalog: Register failed: %v", err)
 		return err
 	}
 
@@ -86,9 +102,38 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 		return fmt.Errorf("Must provide node")
 	}
 
-	_, err := c.srv.raftApply(structs.DeregisterRequestType, args)
+	// Fetch the ACL token, if any.
+	acl, err := c.srv.resolveToken(args.Token)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] consul.catalog: Deregister failed: %v", err)
+		return err
+	}
+
+	// Check the complete deregister request against the given ACL policy.
+	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+		state := c.srv.fsm.State()
+
+		var ns *structs.NodeService
+		if args.ServiceID != "" {
+			_, ns, err = state.NodeService(args.Node, args.ServiceID)
+			if err != nil {
+				return fmt.Errorf("Service lookup failed: %v", err)
+			}
+		}
+
+		var nc *structs.HealthCheck
+		if args.CheckID != "" {
+			_, nc, err = state.NodeCheck(args.Node, args.CheckID)
+			if err != nil {
+				return fmt.Errorf("Check lookup failed: %v", err)
+			}
+		}
+
+		if err := vetDeregisterWithACL(acl, args, ns, nc); err != nil {
+			return err
+		}
+	}
+
+	if _, err := c.srv.raftApply(structs.DeregisterRequestType, args); err != nil {
 		return err
 	}
 	return nil
@@ -124,6 +169,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			}
 
 			reply.Index, reply.Nodes = index, nodes
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
@@ -222,6 +270,21 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			if err != nil {
 				return err
 			}
+
+			// Node read access is required with version 8 ACLs. We
+			// just return the same response as if the node doesn't
+			// exist, which is consistent with how the rest of the
+			// catalog filtering works and doesn't disclose the node.
+			acl, err := c.srv.resolveToken(args.Token)
+			if err != nil {
+				return err
+			}
+			if acl != nil && c.srv.config.ACLEnforceVersion8 {
+				if !acl.NodeRead(args.Node) {
+					return permissionDeniedErr
+				}
+			}
+
 			reply.Index, reply.NodeServices = index, services
 			return c.srv.filterACL(args.Token, reply)
 		})

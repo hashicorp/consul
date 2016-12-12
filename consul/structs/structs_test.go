@@ -105,6 +105,44 @@ func TestStructs_ACL_IsSame(t *testing.T) {
 	check(func() { other.Rules = "" }, func() { other.Rules = "service \"\" { policy = \"read\" }" })
 }
 
+func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
+	req := &RegisterRequest{
+		Node:            "test",
+		Address:         "127.0.0.1",
+		TaggedAddresses: make(map[string]string),
+	}
+
+	node := &Node{
+		Node:            "test",
+		Address:         "127.0.0.1",
+		TaggedAddresses: make(map[string]string),
+	}
+
+	check := func(twiddle, restore func()) {
+		if req.ChangesNode(node) {
+			t.Fatalf("should not change")
+		}
+
+		twiddle()
+		if !req.ChangesNode(node) {
+			t.Fatalf("should change")
+		}
+
+		restore()
+		if req.ChangesNode(node) {
+			t.Fatalf("should not change")
+		}
+	}
+
+	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
+	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
+	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
+
+	if !req.ChangesNode(nil) {
+		t.Fatalf("should change")
+	}
+}
+
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{

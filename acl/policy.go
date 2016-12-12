@@ -17,6 +17,7 @@ const (
 type Policy struct {
 	ID              string                 `hcl:"-"`
 	Keys            []*KeyPolicy           `hcl:"key,expand"`
+	Nodes           []*NodePolicy          `hcl:"node,expand"`
 	Services        []*ServicePolicy       `hcl:"service,expand"`
 	Events          []*EventPolicy         `hcl:"event,expand"`
 	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
@@ -34,14 +35,24 @@ func (k *KeyPolicy) GoString() string {
 	return fmt.Sprintf("%#v", *k)
 }
 
+// NodePolicy represents a policy for a node
+type NodePolicy struct {
+	Name   string `hcl:",key"`
+	Policy string
+}
+
+func (n *NodePolicy) GoString() string {
+	return fmt.Sprintf("%#v", *n)
+}
+
 // ServicePolicy represents a policy for a service
 type ServicePolicy struct {
 	Name   string `hcl:",key"`
 	Policy string
 }
 
-func (k *ServicePolicy) GoString() string {
-	return fmt.Sprintf("%#v", *k)
+func (s *ServicePolicy) GoString() string {
+	return fmt.Sprintf("%#v", *s)
 }
 
 // EventPolicy represents a user event policy.
@@ -60,8 +71,8 @@ type PreparedQueryPolicy struct {
 	Policy string
 }
 
-func (e *PreparedQueryPolicy) GoString() string {
-	return fmt.Sprintf("%#v", *e)
+func (p *PreparedQueryPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *p)
 }
 
 // isPolicyValid makes sure the given string matches one of the valid policies.
@@ -100,7 +111,14 @@ func Parse(rules string) (*Policy, error) {
 		}
 	}
 
-	// Validate the service policy
+	// Validate the node policies
+	for _, np := range p.Nodes {
+		if !isPolicyValid(np.Policy) {
+			return nil, fmt.Errorf("Invalid node policy: %#v", np)
+		}
+	}
+
+	// Validate the service policies
 	for _, sp := range p.Services {
 		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
