@@ -1261,6 +1261,39 @@ func TestACL_filterCoordinates(t *testing.T) {
 	}
 }
 
+func TestACL_filterSessions(t *testing.T) {
+	// Create a session list.
+	sessions := structs.Sessions{
+		&structs.Session{
+			Node: "foo",
+		},
+		&structs.Session{
+			Node: "bar",
+		},
+	}
+
+	// Try permissive filtering.
+	filt := newAclFilter(acl.AllowAll(), nil, true)
+	filt.filterSessions(&sessions)
+	if len(sessions) != 2 {
+		t.Fatalf("bad: %#v", sessions)
+	}
+
+	// Try restrictive filtering but with version 8 enforcement turned off.
+	filt = newAclFilter(acl.DenyAll(), nil, false)
+	filt.filterSessions(&sessions)
+	if len(sessions) != 2 {
+		t.Fatalf("bad: %#v", sessions)
+	}
+
+	// Try restrictive filtering with version 8 enforcement turned on.
+	filt = newAclFilter(acl.DenyAll(), nil, true)
+	filt.filterSessions(&sessions)
+	if len(sessions) != 0 {
+		t.Fatalf("bad: %#v", sessions)
+	}
+}
+
 func TestACL_filterNodeDump(t *testing.T) {
 	// Create a node dump.
 	fill := func() structs.NodeDump {

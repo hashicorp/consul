@@ -344,6 +344,15 @@ func (f *aclFilter) allowService(service string) bool {
 	return f.acl.ServiceRead(service)
 }
 
+// allowSession is used to determine if a session for a node is accessible for
+// an ACL.
+func (f *aclFilter) allowSession(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.acl.SessionRead(node)
+}
+
 // filterHealthChecks is used to filter a set of health checks down based on
 // the configured ACL rules for a token.
 func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
@@ -420,6 +429,21 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 		i--
 	}
 	*nodes = csn
+}
+
+// filterSessions is used to filter a set of sessions based on ACLs.
+func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
+	s := *sessions
+	for i := 0; i < len(s); i++ {
+		session := s[i]
+		if f.allowSession(session.Node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping session %q from result due to ACLs", session.ID)
+		s = append(s[:i], s[i+1:]...)
+		i--
+	}
+	*sessions = s
 }
 
 // filterCoordinates is used to filter nodes in a coordinate dump based on ACL
@@ -597,6 +621,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	case *structs.IndexedServices:
 		filt.filterServices(v.Services)
+
+	case *structs.IndexedSessions:
+		filt.filterSessions(&v.Sessions)
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)
