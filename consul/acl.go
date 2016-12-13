@@ -350,7 +350,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.allowService(check.ServiceName) {
+		if f.allowNode(check.Node) && f.allowService(check.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -403,7 +403,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.allowService(node.Service.Service) {
+		if f.allowNode(node.Node.Node) && f.allowService(node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)

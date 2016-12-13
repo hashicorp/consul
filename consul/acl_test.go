@@ -808,27 +808,93 @@ func TestACL_MultiDC_Found(t *testing.T) {
 }
 
 func TestACL_filterHealthChecks(t *testing.T) {
-	// Create some health checks
-	hc := structs.HealthChecks{
-		&structs.HealthCheck{
-			Node:        "node1",
-			CheckID:     "check1",
-			ServiceName: "foo",
-		},
+	// Create some health checks.
+	fill := func() structs.HealthChecks {
+		return structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:        "node1",
+				CheckID:     "check1",
+				ServiceName: "foo",
+			},
+		}
 	}
 
-	// Try permissive filtering
-	filt := newAclFilter(acl.AllowAll(), nil, false)
-	filt.filterHealthChecks(&hc)
-	if len(hc) != 1 {
-		t.Fatalf("bad: %#v", hc)
+	// Try permissive filtering.
+	{
+		hc := fill()
+		filt := newAclFilter(acl.AllowAll(), nil, false)
+		filt.filterHealthChecks(&hc)
+		if len(hc) != 1 {
+			t.Fatalf("bad: %#v", hc)
+		}
 	}
 
-	// Try restrictive filtering
-	filt = newAclFilter(acl.DenyAll(), nil, false)
-	filt.filterHealthChecks(&hc)
-	if len(hc) != 0 {
-		t.Fatalf("bad: %#v", hc)
+	// Try restrictive filtering.
+	{
+		hc := fill()
+		filt := newAclFilter(acl.DenyAll(), nil, false)
+		filt.filterHealthChecks(&hc)
+		if len(hc) != 0 {
+			t.Fatalf("bad: %#v", hc)
+		}
+	}
+
+	// Allowed to see the service but not the node.
+	policy, err := acl.Parse(`
+service "foo" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.New(acl.DenyAll(), policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This will work because version 8 ACLs aren't being enforced.
+	{
+		hc := fill()
+		filt := newAclFilter(perms, nil, false)
+		filt.filterHealthChecks(&hc)
+		if len(hc) != 1 {
+			t.Fatalf("bad: %#v", hc)
+		}
+	}
+
+	// But with version 8 the node will block it.
+	{
+		hc := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterHealthChecks(&hc)
+		if len(hc) != 0 {
+			t.Fatalf("bad: %#v", hc)
+		}
+	}
+
+	// Chain on access to the node.
+	policy, err = acl.Parse(`
+node "node1" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.New(perms, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now it should go through.
+	{
+		hc := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterHealthChecks(&hc)
+		if len(hc) != 1 {
+			t.Fatalf("bad: %#v", hc)
+		}
 	}
 }
 
@@ -899,7 +965,7 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	/// This will work because version 8 ACLs aren't being enforced.
+	// This will work because version 8 ACLs aren't being enforced.
 	{
 		nodes := fill()
 		filt := newAclFilter(perms, nil, false)
@@ -974,41 +1040,113 @@ func TestACL_filterNodeServices(t *testing.T) {
 }
 
 func TestACL_filterCheckServiceNodes(t *testing.T) {
-	// Create some nodes
-	nodes := structs.CheckServiceNodes{
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				Node: "node1",
-			},
-			Service: &structs.NodeService{
-				ID:      "foo",
-				Service: "foo",
-			},
-			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
-					Node:        "node1",
-					CheckID:     "check1",
-					ServiceName: "foo",
+	// Create some nodes.
+	fill := func() structs.CheckServiceNodes {
+		return structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					Node: "node1",
+				},
+				Service: &structs.NodeService{
+					ID:      "foo",
+					Service: "foo",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "node1",
+						CheckID:     "check1",
+						ServiceName: "foo",
+					},
 				},
 			},
-		},
+		}
 	}
 
-	// Try permissive filtering
-	filt := newAclFilter(acl.AllowAll(), nil, false)
-	filt.filterCheckServiceNodes(&nodes)
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %#v", nodes)
-	}
-	if len(nodes[0].Checks) != 1 {
-		t.Fatalf("bad: %#v", nodes[0].Checks)
+	// Try permissive filtering.
+	{
+		nodes := fill()
+		filt := newAclFilter(acl.AllowAll(), nil, false)
+		filt.filterCheckServiceNodes(&nodes)
+		if len(nodes) != 1 {
+			t.Fatalf("bad: %#v", nodes)
+		}
+		if len(nodes[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", nodes[0].Checks)
+		}
 	}
 
-	// Try restrictive filtering
-	filt = newAclFilter(acl.DenyAll(), nil, false)
-	filt.filterCheckServiceNodes(&nodes)
-	if len(nodes) != 0 {
-		t.Fatalf("bad: %#v", nodes)
+	// Try restrictive filtering.
+	{
+		nodes := fill()
+		filt := newAclFilter(acl.DenyAll(), nil, false)
+		filt.filterCheckServiceNodes(&nodes)
+		if len(nodes) != 0 {
+			t.Fatalf("bad: %#v", nodes)
+		}
+	}
+
+	// Allowed to see the service but not the node.
+	policy, err := acl.Parse(`
+service "foo" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.New(acl.DenyAll(), policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This will work because version 8 ACLs aren't being enforced.
+	{
+		nodes := fill()
+		filt := newAclFilter(perms, nil, false)
+		filt.filterCheckServiceNodes(&nodes)
+		if len(nodes) != 1 {
+			t.Fatalf("bad: %#v", nodes)
+		}
+		if len(nodes[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", nodes[0].Checks)
+		}
+	}
+
+	// But with version 8 the node will block it.
+	{
+		nodes := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterCheckServiceNodes(&nodes)
+		if len(nodes) != 0 {
+			t.Fatalf("bad: %#v", nodes)
+		}
+	}
+
+	// Chain on access to the node.
+	policy, err = acl.Parse(`
+node "node1" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.New(perms, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now it should go through.
+	{
+		nodes := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterCheckServiceNodes(&nodes)
+		if len(nodes) != 1 {
+			t.Fatalf("bad: %#v", nodes)
+		}
+		if len(nodes[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", nodes[0].Checks)
+		}
 	}
 }
 
