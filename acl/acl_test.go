@@ -83,6 +83,12 @@ func TestStaticACL(t *testing.T) {
 	if !all.ServiceWrite("foobar") {
 		t.Fatalf("should allow")
 	}
+	if !all.SessionRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.SessionWrite("foobar") {
+		t.Fatalf("should allow")
+	}
 	if all.Snapshot() {
 		t.Fatalf("should not allow")
 	}
@@ -141,6 +147,12 @@ func TestStaticACL(t *testing.T) {
 	if none.ServiceWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
+	if none.SessionRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.SessionWrite("foobar") {
+		t.Fatalf("should not allow")
+	}
 	if none.Snapshot() {
 		t.Fatalf("should not allow")
 	}
@@ -191,6 +203,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.ServiceWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.SessionRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.SessionWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.Snapshot() {
@@ -657,6 +675,89 @@ func TestPolicyACL_Node(t *testing.T) {
 			t.Fatalf("Read fail: %#v", c)
 		}
 		if c.write != acl.NodeWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
+		}
+	}
+}
+
+func TestPolicyACL_Session(t *testing.T) {
+	deny := DenyAll()
+	policyRoot := &Policy{
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "root-nope",
+				Policy: PolicyDeny,
+			},
+			&SessionPolicy{
+				Node:   "root-ro",
+				Policy: PolicyRead,
+			},
+			&SessionPolicy{
+				Node:   "root-rw",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "override",
+				Policy: PolicyDeny,
+			},
+		},
+	}
+	root, err := New(deny, policyRoot)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	policy := &Policy{
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "child-nope",
+				Policy: PolicyDeny,
+			},
+			&SessionPolicy{
+				Node:   "child-ro",
+				Policy: PolicyRead,
+			},
+			&SessionPolicy{
+				Node:   "child-rw",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "override",
+				Policy: PolicyWrite,
+			},
+		},
+	}
+	acl, err := New(root, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	type sessioncase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	cases := []sessioncase{
+		{"nope", false, false},
+		{"root-nope", false, false},
+		{"root-ro", true, false},
+		{"root-rw", true, true},
+		{"root-nope-prefix", false, false},
+		{"root-ro-prefix", true, false},
+		{"root-rw-prefix", true, true},
+		{"child-nope", false, false},
+		{"child-ro", true, false},
+		{"child-rw", true, true},
+		{"child-nope-prefix", false, false},
+		{"child-ro-prefix", true, false},
+		{"child-rw-prefix", true, true},
+		{"override", true, true},
+	}
+	for _, c := range cases {
+		if c.read != acl.SessionRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.SessionWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 	}

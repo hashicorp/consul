@@ -19,6 +19,7 @@ type Policy struct {
 	Keys            []*KeyPolicy           `hcl:"key,expand"`
 	Nodes           []*NodePolicy          `hcl:"node,expand"`
 	Services        []*ServicePolicy       `hcl:"service,expand"`
+	Sessions        []*SessionPolicy       `hcl:"session,expand"`
 	Events          []*EventPolicy         `hcl:"event,expand"`
 	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
 	Keyring         string                 `hcl:"keyring"`
@@ -52,6 +53,17 @@ type ServicePolicy struct {
 }
 
 func (s *ServicePolicy) GoString() string {
+	return fmt.Sprintf("%#v", *s)
+}
+
+// SessionPolicy represents a policy for making sessions tied to specific node
+// name prefixes.
+type SessionPolicy struct {
+	Node   string `hcl:",key"`
+	Policy string
+}
+
+func (s *SessionPolicy) GoString() string {
 	return fmt.Sprintf("%#v", *s)
 }
 
@@ -122,6 +134,13 @@ func Parse(rules string) (*Policy, error) {
 	for _, sp := range p.Services {
 		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+	}
+
+	// Validate the session policies
+	for _, sp := range p.Sessions {
+		if !isPolicyValid(sp.Policy) {
+			return nil, fmt.Errorf("Invalid session policy: %#v", sp)
 		}
 	}
 

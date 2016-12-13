@@ -46,6 +46,12 @@ service "" {
 service "foo" {
 	policy = "read"
 }
+session "foo" {
+	policy = "write"
+}
+session "bar" {
+	policy = "deny"
+}
 query "" {
 	policy = "read"
 }
@@ -129,6 +135,16 @@ query "bar" {
 				Policy: PolicyRead,
 			},
 		},
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
 	}
 
 	out, err := Parse(inp)
@@ -198,6 +214,14 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 		},
 		"foo": {
 			"policy": "read"
+		}
+	},
+	"session": {
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
 		}
 	}
 }`
@@ -274,6 +298,16 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 				Policy: PolicyRead,
 			},
 		},
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
 	}
 
 	out, err := Parse(inp)
@@ -331,6 +365,7 @@ func TestACLPolicy_Bad_Policy(t *testing.T) {
 		`operator = "nope"`,
 		`query "" { policy = "nope" }`,
 		`service "" { policy = "nope" }`,
+		`session "" { policy = "nope" }`,
 	}
 	for _, c := range cases {
 		_, err := Parse(c)
