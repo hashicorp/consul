@@ -388,13 +388,22 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServices(services *structs.NodeServices) {
-	for svc, _ := range services.Services {
+func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
+	if *services == nil {
+		return
+	}
+
+	if !f.allowNode((*services).Node.Node) {
+		*services = nil
+		return
+	}
+
+	for svc, _ := range (*services).Services {
 		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
-		delete(services.Services, svc)
+		delete((*services).Services, svc)
 	}
 }
 
@@ -573,9 +582,7 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 		filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
-		if v.NodeServices != nil {
-			filt.filterNodeServices(v.NodeServices)
-		}
+		filt.filterNodeServices(&v.NodeServices)
 
 	case *structs.IndexedServiceNodes:
 		filt.filterServiceNodes(&v.ServiceNodes)
