@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -116,6 +117,15 @@ func TestHTTPAgentSelf(t *testing.T) {
 	val = obj.(AgentSelf)
 	if val.Coord != nil {
 		t.Fatalf("should have been nil: %v", val.Coord)
+	}
+
+	// Make sure there's nothing called "token" that's leaked.
+	raw, err := srv.marshalJSON(req, obj)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if bytes.Contains(bytes.ToLower(raw), []byte("token")) {
+		t.Fatalf("bad: %s", raw)
 	}
 }
 
