@@ -1107,7 +1107,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		services := fill()
-		filt := newAclFilter(perms, nil, false)
+		filt := newAclFilter(perms, nil, true)
 		filt.filterNodeServices(&services)
 		if len((*services).Services) != 1 {
 			t.Fatalf("bad: %#v", (*services).Services)
@@ -1262,50 +1262,128 @@ func TestACL_filterCoordinates(t *testing.T) {
 }
 
 func TestACL_filterNodeDump(t *testing.T) {
-	// Create a node dump
-	dump := structs.NodeDump{
-		&structs.NodeInfo{
-			Node: "node1",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					ID:      "foo",
-					Service: "foo",
+	// Create a node dump.
+	fill := func() structs.NodeDump {
+		return structs.NodeDump{
+			&structs.NodeInfo{
+				Node: "node1",
+				Services: []*structs.NodeService{
+					&structs.NodeService{
+						ID:      "foo",
+						Service: "foo",
+					},
+				},
+				Checks: []*structs.HealthCheck{
+					&structs.HealthCheck{
+						Node:        "node1",
+						CheckID:     "check1",
+						ServiceName: "foo",
+					},
 				},
 			},
-			Checks: []*structs.HealthCheck{
-				&structs.HealthCheck{
-					Node:        "node1",
-					CheckID:     "check1",
-					ServiceName: "foo",
-				},
-			},
-		},
+		}
 	}
 
-	// Try permissive filtering
-	filt := newAclFilter(acl.AllowAll(), nil, false)
-	filt.filterNodeDump(&dump)
-	if len(dump) != 1 {
-		t.Fatalf("bad: %#v", dump)
-	}
-	if len(dump[0].Services) != 1 {
-		t.Fatalf("bad: %#v", dump[0].Services)
-	}
-	if len(dump[0].Checks) != 1 {
-		t.Fatalf("bad: %#v", dump[0].Checks)
+	// Try permissive filtering.
+	{
+		dump := fill()
+		filt := newAclFilter(acl.AllowAll(), nil, false)
+		filt.filterNodeDump(&dump)
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+		if len(dump[0].Services) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Services)
+		}
+		if len(dump[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Checks)
+		}
 	}
 
-	// Try restrictive filtering
-	filt = newAclFilter(acl.DenyAll(), nil, false)
-	filt.filterNodeDump(&dump)
-	if len(dump) != 1 {
-		t.Fatalf("bad: %#v", dump)
+	// Try restrictive filtering.
+	{
+		dump := fill()
+		filt := newAclFilter(acl.DenyAll(), nil, false)
+		filt.filterNodeDump(&dump)
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+		if len(dump[0].Services) != 0 {
+			t.Fatalf("bad: %#v", dump[0].Services)
+		}
+		if len(dump[0].Checks) != 0 {
+			t.Fatalf("bad: %#v", dump[0].Checks)
+		}
 	}
-	if len(dump[0].Services) != 0 {
-		t.Fatalf("bad: %#v", dump[0].Services)
+
+	// Allowed to see the service but not the node.
+	policy, err := acl.Parse(`
+service "foo" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
 	}
-	if len(dump[0].Checks) != 0 {
-		t.Fatalf("bad: %#v", dump[0].Checks)
+	perms, err := acl.New(acl.DenyAll(), policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This will work because version 8 ACLs aren't being enforced.
+	{
+		dump := fill()
+		filt := newAclFilter(perms, nil, false)
+		filt.filterNodeDump(&dump)
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+		if len(dump[0].Services) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Services)
+		}
+		if len(dump[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Checks)
+		}
+	}
+
+	// But with version 8 the node will block it.
+	{
+		dump := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterNodeDump(&dump)
+		if len(dump) != 0 {
+			t.Fatalf("bad: %#v", dump)
+		}
+	}
+
+	// Chain on access to the node.
+	policy, err = acl.Parse(`
+node "node1" {
+  policy = "read"
+}
+`)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.New(perms, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now it should go through.
+	{
+		dump := fill()
+		filt := newAclFilter(perms, nil, true)
+		filt.filterNodeDump(&dump)
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+		if len(dump[0].Services) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Services)
+		}
+		if len(dump[0].Checks) != 1 {
+			t.Fatalf("bad: %#v", dump[0].Checks)
+		}
 	}
 }
 

@@ -445,26 +445,34 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	for i := 0; i < len(nd); i++ {
 		info := nd[i]
 
+		// Filter nodes
+		if node := info.Node; !f.allowNode(node) {
+			f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+			nd = append(nd[:i], nd[i+1:]...)
+			i--
+			continue
+		}
+
 		// Filter services
-		for i := 0; i < len(info.Services); i++ {
-			svc := info.Services[i].Service
+		for j := 0; j < len(info.Services); j++ {
+			svc := info.Services[j].Service
 			if f.allowService(svc) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
-			info.Services = append(info.Services[:i], info.Services[i+1:]...)
-			i--
+			info.Services = append(info.Services[:j], info.Services[j+1:]...)
+			j--
 		}
 
 		// Filter checks
-		for i := 0; i < len(info.Checks); i++ {
-			chk := info.Checks[i]
+		for j := 0; j < len(info.Checks); j++ {
+			chk := info.Checks[j]
 			if f.allowService(chk.ServiceName) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
-			info.Checks = append(info.Checks[:i], info.Checks[i+1:]...)
-			i--
+			info.Checks = append(info.Checks[:j], info.Checks[j+1:]...)
+			j--
 		}
 	}
 	*dump = nd
