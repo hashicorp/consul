@@ -354,6 +354,9 @@ func DefaultConfig() *Config {
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 
+	// Check every 5 seconds to see if there are enough new entries for a snapshot
+	conf.RaftConfig.SnapshotInterval = 5 * time.Second
+
 	return conf
 }
 
