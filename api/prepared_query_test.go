@@ -45,6 +45,7 @@ func TestPreparedQuery(t *testing.T) {
 
 	// Create a simple prepared query.
 	def := &PreparedQueryDefinition{
+		Name: "test",
 		Service: ServiceQuery{
 			Service: "redis",
 		},

@@ -1537,9 +1537,11 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 
 	// Now turn on version 8 enforcement and try again.
 	s1.config.ACLEnforceVersion8 = true
-	err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if reply.NodeServices != nil {
+		t.Fatalf("should not nil")
 	}
 
 	// Create an ACL that can read the node.
@@ -1569,6 +1571,15 @@ node "%s" {
 	}
 	if reply.NodeServices == nil {
 		t.Fatalf("should not be nil")
+	}
+
+	// Make sure an unknown node doesn't cause trouble.
+	args.Node = "nope"
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.NodeServices != nil {
+		t.Fatalf("should not nil")
 	}
 }
 

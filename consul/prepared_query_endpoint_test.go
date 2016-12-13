@@ -32,6 +32,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
+			Name: "test",
 			Service: structs.ServiceQuery{
 				Service: "redis",
 			},
@@ -515,6 +516,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
+			Name: "test",
 			Service: structs.ServiceQuery{
 				Service: "redis",
 			},
@@ -531,53 +533,77 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 func TestPreparedQuery_parseQuery(t *testing.T) {
 	query := &structs.PreparedQuery{}
 
-	err := parseQuery(query)
+	err := parseQuery(query, true)
+	if err == nil || !strings.Contains(err.Error(), "Must be bound to a session") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.Session = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+	err = parseQuery(query, true)
 	if err == nil || !strings.Contains(err.Error(), "Must provide a Service") {
 		t.Fatalf("bad: %v", err)
 	}
 
-	query.Service.Service = "foo"
-	if err := parseQuery(query); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	query.Token = redactedToken
-	err = parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "Bad Token") {
+	query.Session = ""
+	query.Template.Type = "some-kind-of-template"
+	err = parseQuery(query, true)
+	if err == nil || !strings.Contains(err.Error(), "Must provide a Service") {
 		t.Fatalf("bad: %v", err)
 	}
 
-	query.Token = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-	if err := parseQuery(query); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	query.Service.Failover.NearestN = -1
-	err = parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "Bad NearestN") {
+	query.Template.Type = ""
+	err = parseQuery(query, false)
+	if err == nil || !strings.Contains(err.Error(), "Must provide a Service") {
 		t.Fatalf("bad: %v", err)
 	}
 
-	query.Service.Failover.NearestN = 3
-	if err := parseQuery(query); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// None of the rest of these care about version 8 ACL enforcement.
+	for _, version8 := range []bool{true, false} {
+		query = &structs.PreparedQuery{}
+		query.Session = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+		query.Service.Service = "foo"
+		if err := parseQuery(query, version8); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	query.DNS.TTL = "two fortnights"
-	err = parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "Bad DNS TTL") {
-		t.Fatalf("bad: %v", err)
-	}
+		query.Token = redactedToken
+		err = parseQuery(query, version8)
+		if err == nil || !strings.Contains(err.Error(), "Bad Token") {
+			t.Fatalf("bad: %v", err)
+		}
 
-	query.DNS.TTL = "-3s"
-	err = parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "must be >=0") {
-		t.Fatalf("bad: %v", err)
-	}
+		query.Token = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+		if err := parseQuery(query, version8); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	query.DNS.TTL = "3s"
-	if err := parseQuery(query); err != nil {
-		t.Fatalf("err: %v", err)
+		query.Service.Failover.NearestN = -1
+		err = parseQuery(query, version8)
+		if err == nil || !strings.Contains(err.Error(), "Bad NearestN") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		query.Service.Failover.NearestN = 3
+		if err := parseQuery(query, version8); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		query.DNS.TTL = "two fortnights"
+		err = parseQuery(query, version8)
+		if err == nil || !strings.Contains(err.Error(), "Bad DNS TTL") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		query.DNS.TTL = "-3s"
+		err = parseQuery(query, version8)
+		if err == nil || !strings.Contains(err.Error(), "must be >=0") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		query.DNS.TTL = "3s"
+		if err := parseQuery(query, version8); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 }
 
@@ -917,9 +943,25 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 	}
 
+	// Create a session.
+	var session string
+	{
+		req := structs.SessionRequest{
+			Datacenter: "dc1",
+			Op:         structs.SessionCreate,
+			Session: structs.Session{
+				Node: s1.config.NodeName,
+			},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &req, &session); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
 	// Now update the query to take away its name.
 	query.Op = structs.PreparedQueryUpdate
 	query.Query.Name = ""
+	query.Query.Session = session
 	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1170,9 +1212,25 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 	}
 
+	// Create a session.
+	var session string
+	{
+		req := structs.SessionRequest{
+			Datacenter: "dc1",
+			Op:         structs.SessionCreate,
+			Session: structs.Session{
+				Node: s1.config.NodeName,
+			},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &req, &session); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
 	// Now take away the query name.
 	query.Op = structs.PreparedQueryUpdate
 	query.Query.Name = ""
+	query.Query.Session = session
 	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1359,6 +1417,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1451,6 +1510,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
+			Name: "test",
 			Service: structs.ServiceQuery{
 				Service: "foo",
 			},
@@ -2079,6 +2139,58 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
+	// Turn on version 8 ACLs, which will start to filter even with the exec
+	// token.
+	s1.config.ACLEnforceVersion8 = true
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(reply.Nodes) != 0 ||
+			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
+			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
+			!reply.QueryMeta.KnownLeader {
+			t.Fatalf("bad: %v", reply)
+		}
+	}
+
+	// Revert version 8 ACLs and make sure the query works again.
+	s1.config.ACLEnforceVersion8 = false
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(reply.Nodes) != 8 ||
+			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
+			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
+			!reply.QueryMeta.KnownLeader {
+			t.Fatalf("bad: %v", reply)
+		}
+		for _, node := range reply.Nodes {
+			if node.Node.Node == "node1" || node.Node.Node == "node3" {
+				t.Fatalf("bad: %v", node)
+			}
+		}
+	}
+
 	// Now fail everything in dc1 and we should get an empty list back.
 	for i := 0; i < 10; i++ {
 		setHealth(fmt.Sprintf("node%d", i+1), structs.HealthCritical)
@@ -2314,6 +2426,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
+			Name: "test",
 			Service: structs.ServiceQuery{
 				Service: "redis",
 			},
@@ -2577,6 +2690,7 @@ func (m *mockQueryServer) ForwardDC(method, dc string, args interface{}, reply i
 
 func TestPreparedQuery_queryFailover(t *testing.T) {
 	query := &structs.PreparedQuery{
+		Name: "test",
 		Service: structs.ServiceQuery{
 			Failover: structs.QueryDatacenterOptions{
 				NearestN:    0,

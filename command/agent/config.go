@@ -488,6 +488,11 @@ type Config struct {
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
 
+	// ACLAgentToken is the default token used to make requests for the agent
+	// itself, such as for registering itself with the catalog. If not
+	// configured, the 'acl_token' will be used.
+	ACLAgentToken string `mapstructure:"acl_agent_token" json:"-"`
+
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
@@ -754,6 +759,18 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 		return nil, fmt.Errorf("Failed to parse IP: %v", addr)
 	}
 	return &net.TCPAddr{IP: ip, Port: port}, nil
+}
+
+// GetTokenForAgent returns the token the agent should use for its own internal
+// operations, such as registering itself with the catalog.
+func (c *Config) GetTokenForAgent() string {
+	if c.ACLAgentToken != "" {
+		return c.ACLAgentToken
+	} else if c.ACLToken != "" {
+		return c.ACLToken
+	} else {
+		return ""
+	}
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
@@ -1465,6 +1482,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLToken != "" {
 		result.ACLToken = b.ACLToken
+	}
+	if b.ACLAgentToken != "" {
+		result.ACLAgentToken = b.ACLAgentToken
 	}
 	if b.ACLMasterToken != "" {
 		result.ACLMasterToken = b.ACLMasterToken

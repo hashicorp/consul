@@ -95,6 +95,13 @@ type ACL interface {
 	// service
 	ServiceWrite(string) bool
 
+	// SessionRead checks for permission to read sessions for a given node.
+	SessionRead(string) bool
+
+	// SessionWrite checks for permission to create sessions for a given
+	// node.
+	SessionWrite(string) bool
+
 	// Snapshot checks for permission to take and restore snapshots.
 	Snapshot() bool
 }
@@ -175,6 +182,14 @@ func (s *StaticACL) ServiceWrite(string) bool {
 	return s.defaultAllow
 }
 
+func (s *StaticACL) SessionRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) SessionWrite(string) bool {
+	return s.defaultAllow
+}
+
 func (s *StaticACL) Snapshot() bool {
 	return s.allowManage
 }
@@ -224,6 +239,9 @@ type PolicyACL struct {
 	// serviceRules contains the service policies
 	serviceRules *radix.Tree
 
+	// sessionRules contains the session policies
+	sessionRules *radix.Tree
+
 	// eventRules contains the user event policies
 	eventRules *radix.Tree
 
@@ -247,6 +265,7 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 		keyRules:           radix.New(),
 		nodeRules:          radix.New(),
 		serviceRules:       radix.New(),
+		sessionRules:       radix.New(),
 		eventRules:         radix.New(),
 		preparedQueryRules: radix.New(),
 	}
@@ -264,6 +283,11 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	// Load the service policy
 	for _, sp := range policy.Services {
 		p.serviceRules.Insert(sp.Name, sp.Policy)
+	}
+
+	// Load the session policy
+	for _, sp := range policy.Sessions {
+		p.sessionRules.Insert(sp.Node, sp.Policy)
 	}
 
 	// Load the event policy
@@ -546,4 +570,40 @@ func (p *PolicyACL) ServiceWrite(name string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.ServiceWrite(name)
+}
+
+// SessionRead checks for permission to read sessions for a given node.
+func (p *PolicyACL) SessionRead(node string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.sessionRules.LongestPrefix(node)
+
+	if ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.SessionRead(node)
+}
+
+// SessionWrite checks for permission to create sessions for a given node.
+func (p *PolicyACL) SessionWrite(node string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.sessionRules.LongestPrefix(node)
+
+	if ok {
+		switch rule {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.SessionWrite(node)
 }

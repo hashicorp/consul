@@ -569,6 +569,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -1021,6 +1022,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -1115,6 +1117,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -1236,6 +1239,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 			Datacenter: "dc2",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -1641,6 +1645,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -1745,6 +1750,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -2040,6 +2046,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -2163,6 +2170,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},
@@ -2283,6 +2291,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service:     "db",
 					OnlyPassing: true,
@@ -2356,6 +2365,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "web",
 				},
@@ -2450,6 +2460,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "web",
 				},
@@ -2770,6 +2781,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "search",
 				},
@@ -4342,6 +4354,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
+				Name: "test",
 				Service: structs.ServiceQuery{
 					Service: "db",
 				},

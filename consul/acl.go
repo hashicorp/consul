@@ -344,13 +344,22 @@ func (f *aclFilter) allowService(service string) bool {
 	return f.acl.ServiceRead(service)
 }
 
+// allowSession is used to determine if a session for a node is accessible for
+// an ACL.
+func (f *aclFilter) allowSession(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.acl.SessionRead(node)
+}
+
 // filterHealthChecks is used to filter a set of health checks down based on
 // the configured ACL rules for a token.
 func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.allowService(check.ServiceName) {
+		if f.allowNode(check.Node) && f.allowService(check.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -388,13 +397,22 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 }
 
 // filterNodeServices is used to filter services on a given node base on ACLs.
-func (f *aclFilter) filterNodeServices(services *structs.NodeServices) {
-	for svc, _ := range services.Services {
+func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
+	if *services == nil {
+		return
+	}
+
+	if !f.allowNode((*services).Node.Node) {
+		*services = nil
+		return
+	}
+
+	for svc, _ := range (*services).Services {
 		if f.allowService(svc) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
-		delete(services.Services, svc)
+		delete((*services).Services, svc)
 	}
 }
 
@@ -403,7 +421,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.allowService(node.Service.Service) {
+		if f.allowNode(node.Node.Node) && f.allowService(node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
@@ -413,6 +431,37 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	*nodes = csn
 }
 
+// filterSessions is used to filter a set of sessions based on ACLs.
+func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
+	s := *sessions
+	for i := 0; i < len(s); i++ {
+		session := s[i]
+		if f.allowSession(session.Node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping session %q from result due to ACLs", session.ID)
+		s = append(s[:i], s[i+1:]...)
+		i--
+	}
+	*sessions = s
+}
+
+// filterCoordinates is used to filter nodes in a coordinate dump based on ACL
+// rules.
+func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
+	c := *coords
+	for i := 0; i < len(c); i++ {
+		node := c[i].Node
+		if f.allowNode(node) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+		c = append(c[:i], c[i+1:]...)
+		i--
+	}
+	*coords = c
+}
+
 // filterNodeDump is used to filter through all parts of a node dump and
 // remove elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
@@ -420,26 +469,34 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	for i := 0; i < len(nd); i++ {
 		info := nd[i]
 
+		// Filter nodes
+		if node := info.Node; !f.allowNode(node) {
+			f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
+			nd = append(nd[:i], nd[i+1:]...)
+			i--
+			continue
+		}
+
 		// Filter services
-		for i := 0; i < len(info.Services); i++ {
-			svc := info.Services[i].Service
+		for j := 0; j < len(info.Services); j++ {
+			svc := info.Services[j].Service
 			if f.allowService(svc) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
-			info.Services = append(info.Services[:i], info.Services[i+1:]...)
-			i--
+			info.Services = append(info.Services[:j], info.Services[j+1:]...)
+			j--
 		}
 
 		// Filter checks
-		for i := 0; i < len(info.Checks); i++ {
-			chk := info.Checks[i]
+		for j := 0; j < len(info.Checks); j++ {
+			chk := info.Checks[j]
 			if f.allowService(chk.ServiceName) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
-			info.Checks = append(info.Checks[:i], info.Checks[i+1:]...)
-			i--
+			info.Checks = append(info.Checks[:j], info.Checks[j+1:]...)
+			j--
 		}
 	}
 	*dump = nd
@@ -448,14 +505,10 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 // filterNodes is used to filter through all parts of a node list and remove
 // elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
-	if !f.enforceVersion8 {
-		return
-	}
-
 	n := *nodes
 	for i := 0; i < len(n); i++ {
 		node := n[i].Node
-		if f.acl.NodeRead(node) {
+		if f.allowNode(node) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -548,6 +601,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
 
+	case *structs.IndexedCoordinates:
+		filt.filterCoordinates(&v.Coordinates)
+
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
 
@@ -558,15 +614,16 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 		filt.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
-		if v.NodeServices != nil {
-			filt.filterNodeServices(v.NodeServices)
-		}
+		filt.filterNodeServices(&v.NodeServices)
 
 	case *structs.IndexedServiceNodes:
 		filt.filterServiceNodes(&v.ServiceNodes)
 
 	case *structs.IndexedServices:
 		filt.filterServices(v.Services)
+
+	case *structs.IndexedSessions:
+		filt.filterSessions(&v.Sessions)
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)

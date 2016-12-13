@@ -46,6 +46,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
@@ -117,6 +118,7 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 		Op: structs.SessionDestroy,
 	}
 	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	// Pull out the session id
 	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")

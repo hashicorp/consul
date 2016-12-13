@@ -507,6 +507,12 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 	if !found {
 		t.Fatalf("bad: %#v", reply.HealthChecks)
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
@@ -543,6 +549,12 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 	if len(reply.HealthChecks) != 0 {
 		t.Fatalf("bad: %#v", reply.HealthChecks)
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
@@ -572,6 +584,12 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 	if len(reply.Nodes) != 0 {
 		t.Fatalf("bad: %#v", reply.Nodes)
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestHealth_ChecksInState_FilterACL(t *testing.T) {
@@ -602,4 +620,10 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 	if !found {
 		t.Fatalf("missing service 'foo': %#v", reply.HealthChecks)
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }

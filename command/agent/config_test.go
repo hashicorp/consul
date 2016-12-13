@@ -643,7 +643,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// ACLs
-	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
+	input = `{"acl_token": "1234", "acl_agent_token": "5678", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
 	"acl_default_policy": "deny", "acl_master_token": "2345",
 	"acl_replication_token": "8675309"}`
@@ -653,6 +653,9 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.ACLToken != "1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentToken != "5678" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLMasterToken != "2345" {
@@ -672,6 +675,32 @@ func TestDecodeConfig(t *testing.T) {
 	}
 	if config.ACLReplicationToken != "8675309" {
 		t.Fatalf("bad: %#v", config)
+	}
+
+	// ACL token precedence.
+	input = `{}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "hello" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_agent_token": "world", "acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "world" {
+		t.Fatalf("bad: %s", token)
 	}
 
 	// ACL flag for Consul version 0.8 features (broken out since we will
@@ -1561,6 +1590,7 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
+		ACLAgentToken:          "5678",
 		ACLMasterToken:         "2345",
 		ACLDatacenter:          "dc2",
 		ACLTTL:                 15 * time.Second,
