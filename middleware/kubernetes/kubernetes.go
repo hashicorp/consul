@@ -182,6 +182,9 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	)
 
 	zone, serviceSegments := k.getZoneForName(name)
+	if len(serviceSegments) < 3 {
+		return nil, errNoItems
+	}
 
 	// TODO: Implementation above globbed together segments for the serviceName if
 	//       multiple segments remained. Determine how to do similar globbing using
