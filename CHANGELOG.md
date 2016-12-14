@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * agent: Check whether a snapshot needs to be taken more often (every 5 seconds instead of 2 minutes) to keep the raft file smaller and to avoid doing huge truncations when writing lots of entries very quickly. [GH-2591]
 * agent: Allow gossiping to suspected/recently dead nodes. [GH-2593]
 * agent: Changed the gossip suspicion timeout to grow smoothly as the number of nodes grows. [GH-2593]
+* agent: Added a deprecation notice for Atlas features to the CLI and docs. [GH-2597]
 
 BUG FIXES:
 
