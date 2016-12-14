@@ -32,6 +32,17 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 	return makeHTTPServerWithConfigLog(t, cb, nil, nil)
 }
 
+func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
+	return makeHTTPServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = c.Datacenter
+		c.ACLDefaultPolicy = "deny"
+		c.ACLMasterToken = "root"
+		c.ACLAgentToken = "root"
+		c.ACLAgentMasterToken = "towel"
+		c.ACLEnforceVersion8 = Bool(true)
+	})
+}
+
 func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
 	configTry := 0
 RECONF:

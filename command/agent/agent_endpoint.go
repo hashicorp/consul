@@ -31,6 +31,17 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		}
 	}
 
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
+
 	return AgentSelf{
 		Config: s.agent.config,
 		Coord:  c,
@@ -45,9 +56,19 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 		return nil, nil
 	}
 
-	errCh := make(chan error, 0)
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
 
 	// Trigger the reload
+	errCh := make(chan error, 0)
 	select {
 	case <-s.agent.ShutdownCh():
 		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
@@ -87,6 +108,17 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 }
 
 func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
+
 	// Check if the WAN is being queried
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
@@ -110,6 +142,17 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
+
 	if err := s.agent.Leave(); err != nil {
 		return nil, err
 	}
@@ -117,8 +160,28 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 }
 
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
+
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	return nil, s.agent.ForceLeave(addr)
+}
+
+// syncChanges is a helper function which wraps a blocking call to sync
+// services and checks to the server. If the operation fails, we only
+// only warn because the write did succeed and anti-entropy will sync later.
+func (s *HTTPServer) syncChanges() {
+	if err := s.agent.state.syncChanges(); err != nil {
+		s.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+	}
 }
 
 const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/TCP and Interval"
@@ -433,31 +496,33 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Only GET supported
+	// Only GET supported.
 	if req.Method != "GET" {
 		resp.WriteHeader(405)
 		return nil, nil
 	}
 
-	var args structs.DCSpecificRequest
-	args.Datacenter = s.agent.config.Datacenter
-	s.parseToken(req, &args.Token)
-	// Validate that the given token has operator permissions
-	var reply structs.RaftConfigurationResponse
-	if err := s.agent.RPC("Operator.RaftGetConfiguration", &args, &reply); err != nil {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
 		return nil, err
 	}
+	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
 
-	// Get the provided loglevel
+	// Get the provided loglevel.
 	logLevel := req.URL.Query().Get("loglevel")
 	if logLevel == "" {
 		logLevel = "INFO"
 	}
 
-	// Upper case the log level
+	// Upper case the level since that's required by the filter.
 	logLevel = strings.ToUpper(logLevel)
 
-	// Create a level filter
+	// Create a level filter and flusher.
 	filter := logger.LevelFilter()
 	filter.MinLevel = logutils.LogLevel(logLevel)
 	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
@@ -465,13 +530,12 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		resp.Write([]byte(fmt.Sprintf("Unknown log level: %s", filter.MinLevel)))
 		return nil, nil
 	}
-
 	flusher, ok := resp.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("Streaming not supported")
 	}
 
-	// Set up a log handler
+	// Set up a log handler.
 	handler := &httpLogHandler{
 		filter: filter,
 		logCh:  make(chan string, 512),
@@ -479,10 +543,9 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	}
 	s.agent.logWriter.RegisterHandler(handler)
 	defer s.agent.logWriter.DeregisterHandler(handler)
-
 	notify := resp.(http.CloseNotifier).CloseNotify()
 
-	// Stream logs until the connection is closed
+	// Stream logs until the connection is closed.
 	for {
 		select {
 		case <-notify:
@@ -498,15 +561,6 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	return nil, nil
-}
-
-// syncChanges is a helper function which wraps a blocking call to sync
-// services and checks to the server. If the operation fails, we only
-// only warn because the write did succeed and anti-entropy will sync later.
-func (s *HTTPServer) syncChanges() {
-	if err := s.agent.state.syncChanges(); err != nil {
-		s.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
-	}
 }
 
 type httpLogHandler struct {
