@@ -20,6 +20,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: Fixed a panic when SIGPIPE signal was received. [GH-2404]
 * api: Added missing Raft index fields to `CatalogService` structure. [GH-2366]
 * api: Added missing notes field to `AgentServiceCheck` structure. [GH-2336]
 * api: Changed type of `AgentServiceCheck.TLSSkipVerify` from `string` to `bool`. [GH-2530]
