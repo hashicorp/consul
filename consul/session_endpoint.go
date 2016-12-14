@@ -53,7 +53,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 			}
 
 		default:
-			return fmt.Errorf("Invalid session operation %q, args.Op")
+			return fmt.Errorf("Invalid session operation %q", args.Op)
 		}
 	}
 
