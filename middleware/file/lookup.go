@@ -44,7 +44,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	}
 	if qtype == dns.TypeNS && qname == z.origin {
 		nsrrs := z.ns(do)
-		glue := z.Glue(nsrrs)
+		glue := z.Glue(nsrrs, do)
 		return nsrrs, nil, glue, Success
 	}
 
@@ -97,7 +97,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 
 		// If we see NS records, it means the name as been delegated, and we should return the delegation.
 		if nsrrs := elem.Types(dns.TypeNS); nsrrs != nil {
-			glue := z.Glue(nsrrs)
+			glue := z.Glue(nsrrs, do)
 			// If qtype == NS, we should returns success to put RRs in answer.
 			if qtype == dns.TypeNS {
 				return nsrrs, nil, glue, Success
@@ -359,28 +359,38 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 }
 
 // Glue returns any potential glue records for nsrrs.
-func (z *Zone) Glue(nsrrs []dns.RR) []dns.RR {
+func (z *Zone) Glue(nsrrs []dns.RR, do bool) []dns.RR {
 	glue := []dns.RR{}
 	for _, rr := range nsrrs {
 		if ns, ok := rr.(*dns.NS); ok && dns.IsSubDomain(ns.Header().Name, ns.Ns) {
-			glue = append(glue, z.searchGlue(ns.Ns)...)
+			glue = append(glue, z.searchGlue(ns.Ns, do)...)
 		}
 	}
 	return glue
 }
 
 // searchGlue looks up A and AAAA for name.
-func (z *Zone) searchGlue(name string) []dns.RR {
+func (z *Zone) searchGlue(name string, do bool) []dns.RR {
 	glue := []dns.RR{}
 
 	// A
 	if elem, found := z.Tree.Search(name); found {
 		glue = append(glue, elem.Types(dns.TypeA)...)
+		if do {
+			sigs := elem.Types(dns.TypeRRSIG)
+			sigs = signatureForSubType(sigs, dns.TypeA)
+			glue = append(glue, sigs...)
+		}
 	}
 
 	// AAAA
 	if elem, found := z.Tree.Search(name); found {
 		glue = append(glue, elem.Types(dns.TypeAAAA)...)
+		if do {
+			sigs := elem.Types(dns.TypeRRSIG)
+			sigs = signatureForSubType(sigs, dns.TypeAAAA)
+			glue = append(glue, sigs...)
+		}
 	}
 	return glue
 }
