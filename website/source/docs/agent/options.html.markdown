@@ -53,6 +53,9 @@ The options below are all specified on the command-line.
   address when being accessed from a remote datacenter if the remote datacenter is configured
   with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
 
+~> **Notice:** The hosted version of Consul Enterprise will be deprecated on
+  March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives
+
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
   It is used to provide the Atlas infrastructure name and the SCADA connection. The format of
