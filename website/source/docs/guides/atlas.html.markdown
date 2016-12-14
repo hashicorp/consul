@@ -8,6 +8,9 @@ description: |-
 
 # Atlas Integration
 
+~> **Notice:** The hosted version of Consul Enterprise will be deprecated on
+March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives
+
 [Atlas](https://atlas.hashicorp.com?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) is a service provided by HashiCorp to deploy applications and manage infrastructure.
 Starting with Consul 0.5, it is possible to integrate Consul with Atlas. Atlas is able to display the state of the Consul cluster in its dashboard and set up alerts based on health checks. Additionally, nodes can use Atlas to auto-join a Consul cluster without hardcoding any configuration.
 
@@ -18,7 +21,7 @@ Atlas is able to securely retrieve data from nodes as Consul maintains a long-ru
 
 To enable Atlas integration, you must specify the name of the Atlas infrastructure and the Atlas authentication
 token in your Consul configuration. The Atlas infrastructure name can be set either with the [`-atlas` CLI flag](/docs/agent/options.html#_atlas) or with the [`atlas_infrastructure` configuration option](/docs/agent/options.html#atlas_infrastructure). The Atlas token is set with the [`-atlas-token` CLI flag](/docs/agent/options.html#_atlas_token),
-[`atlas_token` configuration option](/docs/agent/options.html#atlas_token), or `ATLAS_TOKEN` environment variable. 
+[`atlas_token` configuration option](/docs/agent/options.html#atlas_token), or `ATLAS_TOKEN` environment variable.
 
 To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
 

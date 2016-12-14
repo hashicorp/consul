@@ -1125,6 +1125,10 @@ func (c *Command) setupScadaConn(config *Config) error {
 		return nil
 	}
 
+	c.Ui.Error("WARNING: The hosted version of Consul Enterprise will be deprecated " +
+		"on March 7th, 2017. For details, see " +
+		"https://atlas.hashicorp.com/help/consul/alternatives")
+
 	scadaConfig := &scada.Config{
 		Service:      "consul",
 		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
