@@ -14,6 +14,8 @@ IMPROVEMENTS:
 * agent: Updated Circonus metrics library and added new Circonus configration options for Consul for customizing check display name and tags. [GH-2555]
 * agent: Added a checksum to UDP gossip messages to guard against packet corruption. [GH-2574]
 * agent: Check whether a snapshot needs to be taken more often (every 5 seconds instead of 2 minutes) to keep the raft file smaller and to avoid doing huge truncations when writing lots of entries very quickly. [GH-2591]
+* agent: Allow gossiping to suspected/recently dead nodes. [GH-2593]
+* agent: Changed the gossip suspicion timeout to grow smoothly as the number of nodes grows. [GH-2593]
 
 BUG FIXES:
 
