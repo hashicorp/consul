@@ -18,9 +18,6 @@ import (
 const (
 	syncStaggerIntv = 3 * time.Second
 	syncRetryIntv   = 15 * time.Second
-
-	// permissionDenied is returned when an ACL based rejection happens
-	permissionDenied = "Permission denied"
 )
 
 // syncStatus is used to represent the difference between

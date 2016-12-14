@@ -74,6 +74,9 @@ type Agent struct {
 	server *consul.Server
 	client *consul.Client
 
+	// acls is an object that helps manage local ACL enforcement.
+	acls *aclManager
+
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	state localState
@@ -211,11 +214,17 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		return nil, err
 	}
 
+	// Initialize the ACL manager.
+	acls, err := newACLManager(config)
+	if err != nil {
+		return nil, err
+	}
+	agent.acls = acls
+
 	// Initialize the local state.
 	agent.state.Init(config, agent.logger)
 
 	// Setup either the client or the server.
-	var err error
 	if config.Server {
 		err = agent.setupServer()
 		agent.state.SetIface(agent.server)
