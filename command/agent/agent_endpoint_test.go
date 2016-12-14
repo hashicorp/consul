@@ -60,7 +60,12 @@ func TestAgent_Services(t *testing.T) {
 	}
 	srv.agent.state.AddService(srv1, "")
 
-	obj, err := srv.AgentServices(nil, nil)
+	req, err := http.NewRequest("GET", "/v1/agent/services", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentServices(nil, req)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -70,6 +75,47 @@ func TestAgent_Services(t *testing.T) {
 	}
 	if val["mysql"].Port != 5000 {
 		t.Fatalf("bad service: %v", obj)
+	}
+}
+
+func TestAgent_Services_ACLFilter(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try no token.
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/services", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentServices(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.(map[string]*structs.NodeService)
+		if len(val) != 0 {
+			t.Fatalf("bad: %v", obj)
+		}
+	}
+
+	// Try the root token (we will get the implicit "consul" service).
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/services?token=root", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentServices(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.(map[string]*structs.NodeService)
+		if len(val) != 1 {
+			t.Fatalf("bad: %v", obj)
+		}
 	}
 }
 
@@ -87,7 +133,12 @@ func TestAgent_Checks(t *testing.T) {
 	}
 	srv.agent.state.AddCheck(chk1, "")
 
-	obj, err := srv.AgentChecks(nil, nil)
+	req, err := http.NewRequest("GET", "/v1/agent/checks", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentChecks(nil, req)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -97,6 +148,55 @@ func TestAgent_Checks(t *testing.T) {
 	}
 	if val["mysql"].Status != structs.HealthPassing {
 		t.Fatalf("bad check: %v", obj)
+	}
+}
+
+func TestAgent_Checks_ACLFilter(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk1 := &structs.HealthCheck{
+		Node:    srv.agent.config.NodeName,
+		CheckID: "mysql",
+		Name:    "mysql",
+		Status:  structs.HealthPassing,
+	}
+	srv.agent.state.AddCheck(chk1, "")
+
+	// Try no token.
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/checks", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentChecks(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.(map[types.CheckID]*structs.HealthCheck)
+		if len(val) != 0 {
+			t.Fatalf("bad checks: %v", obj)
+		}
+	}
+
+	// Try the root token.
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/checks?token=root", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentChecks(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.(map[types.CheckID]*structs.HealthCheck)
+		if len(val) != 1 {
+			t.Fatalf("bad checks: %v", obj)
+		}
 	}
 }
 
@@ -364,6 +464,47 @@ func TestAgent_Members_WAN(t *testing.T) {
 	}
 }
 
+func TestAgent_Members_ACLFilter(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try no token.
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/members", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentMembers(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.([]serf.Member)
+		if len(val) != 0 {
+			t.Fatalf("bad members: %v", obj)
+		}
+	}
+
+	// Try the root token.
+	{
+		req, err := http.NewRequest("GET", "/v1/agent/members?token=root", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		obj, err := srv.AgentMembers(nil, req)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		val := obj.([]serf.Member)
+		if len(val) != 1 {
+			t.Fatalf("bad members: %v", obj)
+		}
+	}
+}
+
 func TestAgent_Join(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -480,7 +621,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 		}
 
 		_, err = srv.AgentJoin(nil, req)
-		if err != nil {
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -580,7 +721,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 		}
 
 		_, err = srv.AgentLeave(nil, req)
-		if err != nil {
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -669,7 +810,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 		}
 
 		_, err = srv.AgentForceLeave(nil, req)
-		if err != nil {
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -724,7 +865,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	}
 }
 
-func TestAgent_RegisterCheckPassing(t *testing.T) {
+func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -768,7 +909,7 @@ func TestAgent_RegisterCheckPassing(t *testing.T) {
 	}
 }
 
-func TestAgent_RegisterCheckBadStatus(t *testing.T) {
+func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -794,6 +935,41 @@ func TestAgent_RegisterCheckBadStatus(t *testing.T) {
 	}
 	if resp.Code != 400 {
 		t.Fatalf("accepted bad status")
+	}
+}
+
+func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/check/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &CheckDefinition{
+		Name: "test",
+		CheckType: CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+	req.Body = encodeReq(args)
+	_, err = srv.AgentRegisterCheck(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/check/register?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	req.Body = encodeReq(args)
+	_, err = srv.AgentRegisterCheck(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -825,6 +1001,38 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 	// Ensure we have a check mapping
 	if _, ok := srv.agent.state.Checks()["test"]; ok {
 		t.Fatalf("have test check")
+	}
+}
+
+func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	if err := srv.agent.AddCheck(chk, nil, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/check/deregister/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentDeregisterCheck(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/check/deregister/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentDeregisterCheck(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -860,6 +1068,39 @@ func TestAgent_PassCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_PassCheck_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/check/pass/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckPass(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/check/pass/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckPass(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAgent_WarnCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -892,6 +1133,39 @@ func TestAgent_WarnCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/check/warn/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckWarn(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/check/warn/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckWarn(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAgent_FailCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -921,6 +1195,39 @@ func TestAgent_FailCheck(t *testing.T) {
 	state := srv.agent.state.Checks()["test"]
 	if state.Status != structs.HealthCritical {
 		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestAgent_FailCheck_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/check/fail/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckFail(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/check/fail/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentCheckFail(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -1052,13 +1359,47 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	req.Body = encodeReq(checkUpdate{structs.HealthPassing, "hello-passing"})
+	_, err = srv.AgentCheckUpdate(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("PUT", "/v1/agent/check/update/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	req.Body = encodeReq(checkUpdate{structs.HealthPassing, "hello-passing"})
+	_, err = srv.AgentCheckUpdate(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAgent_RegisterService(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -1110,6 +1451,52 @@ func TestAgent_RegisterService(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterService_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	args := &ServiceDefinition{
+		Name: "test",
+		Tags: []string{"master"},
+		Port: 8000,
+		Check: CheckType{
+			TTL: 15 * time.Second,
+		},
+		Checks: CheckTypes{
+			&CheckType{
+				TTL: 20 * time.Second,
+			},
+			&CheckType{
+				TTL: 30 * time.Second,
+			},
+		},
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("GET", "/v1/agent/service/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	req.Body = encodeReq(args)
+	_, err = srv.AgentRegisterService(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("GET", "/v1/agent/service/register?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	req.Body = encodeReq(args)
+	_, err = srv.AgentRegisterService(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -1124,7 +1511,6 @@ func TestAgent_DeregisterService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/agent/service/deregister/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -1148,7 +1534,42 @@ func TestAgent_DeregisterService(t *testing.T) {
 	}
 }
 
-func TestAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
+func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	service := &structs.NodeService{
+		ID:      "test",
+		Service: "test",
+	}
+	if err := srv.agent.AddService(service, nil, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try without a token.
+	req, err := http.NewRequest("GET", "/v1/agent/service/deregister/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentDeregisterService(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root.
+	req, err = http.NewRequest("GET", "/v1/agent/service/deregister/test?token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentDeregisterService(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1195,7 +1616,7 @@ func TestAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
 	}
 }
 
-func TestAgent_EnableServiceMaintenance(t *testing.T) {
+func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1238,7 +1659,7 @@ func TestAgent_EnableServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestAgent_DisableServiceMaintenance(t *testing.T) {
+func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1275,7 +1696,43 @@ func TestAgent_DisableServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestAgent_NodeMaintenanceEndpoint_BadRequest(t *testing.T) {
+func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Register the service.
+	service := &structs.NodeService{
+		ID:      "test",
+		Service: "test",
+	}
+	if err := srv.agent.AddService(service, nil, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with no token.
+	req, err := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentServiceMaintenance(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken&token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentServiceMaintenance(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1302,7 +1759,7 @@ func TestAgent_NodeMaintenanceEndpoint_BadRequest(t *testing.T) {
 	}
 }
 
-func TestAgent_EnableNodeMaintenance(t *testing.T) {
+func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1336,7 +1793,7 @@ func TestAgent_EnableNodeMaintenance(t *testing.T) {
 	}
 }
 
-func TestAgent_DisableNodeMaintenance(t *testing.T) {
+func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1361,7 +1818,36 @@ func TestAgent_DisableNodeMaintenance(t *testing.T) {
 	}
 }
 
-func TestAgent_RegisterServiceCheck(t *testing.T) {
+func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Try with no token.
+	req, err := http.NewRequest(
+		"PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentNodeMaintenance(nil, req)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try with the root token.
+	req, err = http.NewRequest(
+		"PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=root", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = srv.AgentNodeMaintenance(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_RegisterCheck_Service(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

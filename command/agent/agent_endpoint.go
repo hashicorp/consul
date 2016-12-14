@@ -85,26 +85,50 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 }
 
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any.
+	var token string
+	s.parseToken(req, &token)
+
 	services := s.agent.state.Services()
+	if err := s.agent.filterServices(token, &services); err != nil {
+		return nil, err
+	}
 	return services, nil
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any.
+	var token string
+	s.parseToken(req, &token)
+
 	checks := s.agent.state.Checks()
+	if err := s.agent.filterChecks(token, &checks); err != nil {
+		return nil, err
+	}
 	return checks, nil
 }
 
 func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any.
+	var token string
+	s.parseToken(req, &token)
+
 	// Check if the WAN is being queried
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
 		wan = true
 	}
+
+	var members []serf.Member
 	if wan {
-		return s.agent.WANMembers(), nil
+		members = s.agent.WANMembers()
 	} else {
-		return s.agent.LANMembers(), nil
+		members = s.agent.LANMembers()
 	}
+	if err := s.agent.filterMembers(token, &members); err != nil {
+		return nil, err
+	}
+	return members, nil
 }
 
 func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -188,7 +212,7 @@ const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/T
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args CheckDefinition
-	// Fixup the type decode of TTL or Interval
+	// Fixup the type decode of TTL or Interval.
 	decodeCB := func(raw interface{}) error {
 		return FixupCheckType(raw)
 	}
@@ -198,7 +222,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Verify the check has a name
+	// Verify the check has a name.
 	if args.Name == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing check name"))
@@ -211,10 +235,10 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Construct the health check
+	// Construct the health check.
 	health := args.HealthCheck(s.agent.config.NodeName)
 
-	// Verify the check type
+	// Verify the check type.
 	chkType := &args.CheckType
 	if !chkType.Valid() {
 		resp.WriteHeader(400)
@@ -222,11 +246,14 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Get the provided token, if any
+	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
+	if err := s.agent.vetCheckRegister(token, health); err != nil {
+		return nil, err
+	}
 
-	// Add the check
+	// Add the check.
 	if err := s.agent.AddCheck(health, chkType, true, token); err != nil {
 		return nil, err
 	}
@@ -236,6 +263,14 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/"))
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
 		return nil, err
 	}
@@ -246,6 +281,14 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/"))
 	note := req.URL.Query().Get("note")
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.updateTTLCheck(checkID, structs.HealthPassing, note); err != nil {
 		return nil, err
 	}
@@ -256,6 +299,14 @@ func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request)
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/"))
 	note := req.URL.Query().Get("note")
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.updateTTLCheck(checkID, structs.HealthWarning, note); err != nil {
 		return nil, err
 	}
@@ -266,6 +317,14 @@ func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request)
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/"))
 	note := req.URL.Query().Get("note")
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.updateTTLCheck(checkID, structs.HealthCritical, note); err != nil {
 		return nil, err
 	}
@@ -318,6 +377,14 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	}
 
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.updateTTLCheck(checkID, update.Status, update.Output); err != nil {
 		return nil, err
 	}
@@ -327,7 +394,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args ServiceDefinition
-	// Fixup the type decode of TTL or Interval if a check if provided
+	// Fixup the type decode of TTL or Interval if a check if provided.
 	decodeCB := func(raw interface{}) error {
 		rawMap, ok := raw.(map[string]interface{})
 		if !ok {
@@ -360,17 +427,17 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	// Verify the service has a name
+	// Verify the service has a name.
 	if args.Name == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing service name"))
 		return nil, nil
 	}
 
-	// Get the node service
+	// Get the node service.
 	ns := args.NodeService()
 
-	// Verify the check type
+	// Verify the check type.
 	chkTypes := args.CheckTypes()
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
@@ -385,11 +452,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		}
 	}
 
-	// Get the provided token, if any
+	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
+	if err := s.agent.vetServiceRegister(token, ns); err != nil {
+		return nil, err
+	}
 
-	// Add the check
+	// Add the service.
 	if err := s.agent.AddService(ns, chkTypes, true, token); err != nil {
 		return nil, err
 	}
@@ -399,6 +469,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
+
+	// Get the provided token, if any, and vet against any ACL policies.
+	var token string
+	s.parseToken(req, &token)
+	if err := s.agent.vetServiceUpdate(token, serviceID); err != nil {
+		return nil, err
+	}
+
 	if err := s.agent.RemoveService(serviceID, true); err != nil {
 		return nil, err
 	}
@@ -437,9 +515,12 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
-	// Get the provided token, if any
+	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
+	if err := s.agent.vetServiceUpdate(token, serviceID); err != nil {
+		return nil, err
+	}
 
 	if enable {
 		reason := params.Get("reason")
@@ -482,9 +563,16 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	// Get the provided token, if any
+	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.NodeWrite(s.agent.config.NodeName) {
+		return nil, permissionDeniedErr
+	}
 
 	if enable {
 		s.agent.EnableNodeMaintenance(params.Get("reason"), token)
