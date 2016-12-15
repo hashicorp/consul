@@ -211,6 +211,14 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	if finfo, err := os.Stat(config.DataDir); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting data-dir: %s", err))
+		return nil
+	} else if !finfo.IsDir() {
+		c.Ui.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
+		return nil
+	}
+
 	// Ensure all endpoints are unique
 	if err := config.verifyUniqueListeners(); err != nil {
 		c.Ui.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
