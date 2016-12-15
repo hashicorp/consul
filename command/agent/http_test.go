@@ -33,7 +33,7 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 }
 
 func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
-	return makeHTTPServerWithConfig(t, func(c *Config) {
+	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = c.Datacenter
 		c.ACLDefaultPolicy = "deny"
 		c.ACLMasterToken = "root"
@@ -41,6 +41,11 @@ func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
 		c.ACLAgentMasterToken = "towel"
 		c.ACLEnforceVersion8 = Bool(true)
 	})
+
+	// Need a leader to look up ACLs, so wait here so we don't need to
+	// repeat this in each test.
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	return dir, srv
 }
 
 func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
