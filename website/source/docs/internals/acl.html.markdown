@@ -611,3 +611,13 @@ node "<node name prefix>" {
 
 This affects node registration, node discovery, service discovery, and endpoints like
 `/v1/agent/members`.
+
+The new `session` ACL policy looks like this:
+
+```
+session "<node name prefix>" {
+    policy = "<read|write|deny>"
+}
+```
+
+This affects all the of `/v1/session` endpoints.
