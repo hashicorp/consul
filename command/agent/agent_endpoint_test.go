@@ -1927,59 +1927,29 @@ func TestAgent_Monitor(t *testing.T) {
 		t.Fatalf("bad: %s", body)
 	}
 
-	// Begin streaming logs from the monitor endpoint
-	req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
-	resp = newClosableRecorder()
-	go func() {
-		if _, err := srv.AgentMonitor(resp, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}()
-
-	// Write the incoming logs from http to a channel for comparison
-	logCh := make(chan string, 5)
-
-	// Block until the first log entry from http
+	// Try to stream logs until we see the expected log line
+	expected := []byte("raft: Initial configuration (index=1)")
 	testutil.WaitForResult(func() (bool, error) {
-		line, err := resp.Body.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return false, fmt.Errorf("err: %v", err)
-		}
-		if line == "" {
-			return false, fmt.Errorf("blank line")
-		}
-		logCh <- line
-		return true, nil
-	}, func(err error) {
-		t.Fatal(err)
-	})
+		req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+		resp = newClosableRecorder()
+		done := make(chan struct{})
+		go func() {
+			if _, err := srv.AgentMonitor(resp, req); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			close(done)
+		}()
 
-	go func() {
-		for {
-			line, err := resp.Body.ReadString('\n')
-			if err != nil && err != io.EOF {
-				t.Fatalf("err: %v", err)
-			}
-			if line != "" {
-				logCh <- line
-			}
-		}
-	}()
+		resp.Close()
+		<-done
 
-	// Wait until we see the expected log line
-	expected := "raft: Initial configuration (index=1)"
-	testutil.WaitForResult(func() (bool, error) {
-		select {
-		case log := <-logCh:
-			if !strings.Contains(log, expected) {
-				return false, fmt.Errorf("Log message does not match expected")
-			}
-		case <-time.After(10 * time.Second):
-			return false, fmt.Errorf("failed to get log within timeout")
+		if bytes.Contains(resp.Body.Bytes(), expected) {
+			return true, nil
+		} else {
+			return false, fmt.Errorf("didn't see expected")
 		}
-		return true, nil
 	}, func(err error) {
-		t.Fatal(err)
+		t.Fatalf("err: %v", err)
 	})
 }
 
@@ -1992,6 +1962,10 @@ func newClosableRecorder() *closableRecorder {
 	r := httptest.NewRecorder()
 	closer := make(chan bool)
 	return &closableRecorder{r, closer}
+}
+
+func (r *closableRecorder) Close() {
+	close(r.closer)
 }
 
 func (r *closableRecorder) CloseNotify() <-chan bool {
