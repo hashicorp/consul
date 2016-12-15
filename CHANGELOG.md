@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * agent: Allow gossiping to suspected/recently dead nodes. [GH-2593]
 * agent: Changed the gossip suspicion timeout to grow smoothly as the number of nodes grows. [GH-2593]
 * agent: Added a deprecation notice for Atlas features to the CLI and docs. [GH-2597]
+* agent: Give a better error message when the given data-dir is not a directory. [GH-2529]
 
 BUG FIXES:
 
