@@ -32,6 +32,9 @@ $ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google",
    http://127.0.0.1:8500/v1/catalog/register
 ```
 
+Depending on the ACLs you have applied, you may need to include a `WriteRequest`
+block in the [query payload](/docs/agent/http/catalog.html#catalog_register).
+
 If we do a DNS lookup now, we can see the new search service:
 
 ```text
