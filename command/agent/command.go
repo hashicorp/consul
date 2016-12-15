@@ -205,18 +205,20 @@ func (c *Command) readConfig() *Config {
 		config.SkipLeaveOnInt = Bool(config.Server)
 	}
 
-	// Ensure we have a data directory
-	if config.DataDir == "" && !dev {
-		c.Ui.Error("Must specify data directory using -data-dir")
-		return nil
-	}
+	// Ensure we have a data directory if we are not in dev mode.
+	if !dev {
+		if config.DataDir == "" {
+			c.Ui.Error("Must specify data directory using -data-dir")
+			return nil
+		}
 
-	if finfo, err := os.Stat(config.DataDir); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting data-dir: %s", err))
-		return nil
-	} else if !finfo.IsDir() {
-		c.Ui.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
-		return nil
+		if finfo, err := os.Stat(config.DataDir); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting data-dir: %s", err))
+			return nil
+		} else if !finfo.IsDir() {
+			c.Ui.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
+			return nil
+		}
 	}
 
 	// Ensure all endpoints are unique
