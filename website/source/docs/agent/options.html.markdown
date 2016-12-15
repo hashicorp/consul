@@ -400,7 +400,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   previewed before Consul 0.8. Added in Consul 0.7.2, this will default to false in versions of
   Consul prior to 0.8, and will default to true in Consul 0.8 and later. This helps ease the
   transition to the new ACL features by allowing policies to be in place before enforcement begins.
-  Please see the [ACL internals guide](/docs/internals/acl.htmlXS) for more details.
+  Please see the [ACL internals guide](/docs/internals/acl.html) for more details.
 
 * <a name="acl_master_token"></a><a href="#acl_master_token">`acl_master_token`</a> - Only used
   for servers in the [`acl_datacenter`](#acl_datacenter). This token will be created with management-level
