@@ -12,6 +12,8 @@ import (
 	rawacl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestACL_Bad_Config(t *testing.T) {
@@ -470,5 +472,392 @@ func TestACL_Cache(t *testing.T) {
 	}
 	if !didRefresh {
 		t.Fatalf("should refresh")
+	}
+}
+
+// catalogPolicy supplies some standard policies to help with testing the
+// catalog-related vet and filter functions.
+func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+	reply.Policy = &rawacl.Policy{}
+
+	switch req.ACL {
+
+	case "node-ro":
+		reply.Policy.Nodes = append(reply.Policy.Nodes,
+			&rawacl.NodePolicy{Name: "Node", Policy: "read"})
+
+	case "node-rw":
+		reply.Policy.Nodes = append(reply.Policy.Nodes,
+			&rawacl.NodePolicy{Name: "Node", Policy: "write"})
+
+	case "service-ro":
+		reply.Policy.Services = append(reply.Policy.Services,
+			&rawacl.ServicePolicy{Name: "service", Policy: "read"})
+
+	case "service-rw":
+		reply.Policy.Services = append(reply.Policy.Services,
+			&rawacl.ServicePolicy{Name: "service", Policy: "write"})
+
+	case "other-rw":
+		reply.Policy.Services = append(reply.Policy.Services,
+			&rawacl.ServicePolicy{Name: "other", Policy: "write"})
+
+	default:
+		return fmt.Errorf("unknown token %q", req.ACL)
+	}
+
+	return nil
+}
+
+func TestACL_vetServiceRegister(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new service, with permission.
+	err := agent.vetServiceRegister("service-rw", &structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new service without write privs.
+	err = agent.vetServiceRegister("service-ro", &structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to register over a service without write privs to the existing
+	// service.
+	agent.state.AddService(&structs.NodeService{
+		ID:      "my-service",
+		Service: "other",
+	}, "")
+	err = agent.vetServiceRegister("service-rw", &structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACL_vetServiceUpdate(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update a service that doesn't exist.
+	err := agent.vetServiceUpdate("service-rw", "my-service")
+	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update with write privs.
+	agent.state.AddService(&structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	}, "")
+	err = agent.vetServiceUpdate("service-rw", "my-service")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update without write privs.
+	err = agent.vetServiceUpdate("service-ro", "my-service")
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACL_vetCheckRegister(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new service check with write privs.
+	err := agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+		CheckID:     types.CheckID("my-check"),
+		ServiceID:   "my-service",
+		ServiceName: "service",
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new service check without write privs.
+	err = agent.vetCheckRegister("service-ro", &structs.HealthCheck{
+		CheckID:     types.CheckID("my-check"),
+		ServiceID:   "my-service",
+		ServiceName: "service",
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new node check with write privs.
+	err = agent.vetCheckRegister("node-rw", &structs.HealthCheck{
+		CheckID: types.CheckID("my-check"),
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a new node check without write privs.
+	err = agent.vetCheckRegister("node-ro", &structs.HealthCheck{
+		CheckID: types.CheckID("my-check"),
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to register over a service check without write privs to the
+	// existing service.
+	agent.state.AddService(&structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	}, "")
+	agent.state.AddCheck(&structs.HealthCheck{
+		CheckID:     types.CheckID("my-check"),
+		ServiceID:   "my-service",
+		ServiceName: "other",
+	}, "")
+	err = agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+		CheckID:     types.CheckID("my-check"),
+		ServiceID:   "my-service",
+		ServiceName: "service",
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to register over a node check without write privs to the node.
+	agent.state.AddCheck(&structs.HealthCheck{
+		CheckID: types.CheckID("my-node-check"),
+	}, "")
+	err = agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+		CheckID:     types.CheckID("my-node-check"),
+		ServiceID:   "my-service",
+		ServiceName: "service",
+	})
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACL_vetCheckUpdate(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update a check that doesn't exist.
+	err := agent.vetCheckUpdate("node-rw", "my-check")
+	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update service check with write privs.
+	agent.state.AddService(&structs.NodeService{
+		ID:      "my-service",
+		Service: "service",
+	}, "")
+	agent.state.AddCheck(&structs.HealthCheck{
+		CheckID:     types.CheckID("my-service-check"),
+		ServiceID:   "my-service",
+		ServiceName: "service",
+	}, "")
+	err = agent.vetCheckUpdate("service-rw", "my-service-check")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update service check without write privs.
+	err = agent.vetCheckUpdate("service-ro", "my-service-check")
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update node check with write privs.
+	agent.state.AddCheck(&structs.HealthCheck{
+		CheckID: types.CheckID("my-node-check"),
+	}, "")
+	err = agent.vetCheckUpdate("node-rw", "my-node-check")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update without write privs.
+	err = agent.vetCheckUpdate("node-ro", "my-node-check")
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACL_filterMembers(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var members []serf.Member
+	if err := agent.filterMembers("node-ro", &members); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(members) != 0 {
+		t.Fatalf("bad: %#v", members)
+	}
+
+	members = []serf.Member{
+		serf.Member{Name: "Node 1"},
+		serf.Member{Name: "Nope"},
+		serf.Member{Name: "Node 2"},
+	}
+	if err := agent.filterMembers("node-ro", &members); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(members) != 2 ||
+		members[0].Name != "Node 1" ||
+		members[1].Name != "Node 2" {
+		t.Fatalf("bad: %#v", members)
+	}
+}
+
+func TestACL_filterServices(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services := make(map[string]*structs.NodeService)
+	if err := agent.filterServices("node-ro", &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services["my-service"] = &structs.NodeService{ID: "my-service", Service: "service"}
+	services["my-other"] = &structs.NodeService{ID: "my-other", Service: "other"}
+	if err := agent.filterServices("service-ro", &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["my-service"]; !ok {
+		t.Fatalf("bad: %#v", services)
+	}
+	if _, ok := services["my-other"]; ok {
+		t.Fatalf("bad: %#v", services)
+	}
+}
+
+func TestACL_filterChecks(t *testing.T) {
+	config := nextConfig()
+	config.ACLEnforceVersion8 = Bool(true)
+
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	m := MockServer{catalogPolicy}
+	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks := make(map[types.CheckID]*structs.HealthCheck)
+	if err := agent.filterChecks("node-ro", &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks["my-node"] = &structs.HealthCheck{}
+	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
+	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	if err := agent.filterChecks("service-ro", &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := checks["my-node"]; ok {
+		t.Fatalf("bad: %#v", checks)
+	}
+	if _, ok := checks["my-service"]; !ok {
+		t.Fatalf("bad: %#v", checks)
+	}
+	if _, ok := checks["my-other"]; ok {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	checks["my-node"] = &structs.HealthCheck{}
+	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
+	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	if err := agent.filterChecks("node-ro", &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := checks["my-node"]; !ok {
+		t.Fatalf("bad: %#v", checks)
+	}
+	if _, ok := checks["my-service"]; ok {
+		t.Fatalf("bad: %#v", checks)
+	}
+	if _, ok := checks["my-other"]; ok {
+		t.Fatalf("bad: %#v", checks)
 	}
 }
