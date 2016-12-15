@@ -41,6 +41,12 @@ func TestStaticACL(t *testing.T) {
 	if all.ACLModify() {
 		t.Fatalf("should not allow")
 	}
+	if !all.AgentRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.AgentWrite("foobar") {
+		t.Fatalf("should allow")
+	}
 	if !all.EventRead("foobar") {
 		t.Fatalf("should allow")
 	}
@@ -97,6 +103,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should not allow")
 	}
 	if none.ACLModify() {
+		t.Fatalf("should not allow")
+	}
+	if none.AgentRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.AgentWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
 	if none.EventRead("foobar") {
@@ -161,6 +173,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLModify() {
+		t.Fatalf("should allow")
+	}
+	if !manage.AgentRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.AgentWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.EventRead("foobar") {
@@ -542,6 +560,89 @@ func TestPolicyACL_Parent(t *testing.T) {
 	}
 	if acl.Snapshot() {
 		t.Fatalf("should not allow")
+	}
+}
+
+func TestPolicyACL_Agent(t *testing.T) {
+	deny := DenyAll()
+	policyRoot := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "root-nope",
+				Policy: PolicyDeny,
+			},
+			&AgentPolicy{
+				Node:   "root-ro",
+				Policy: PolicyRead,
+			},
+			&AgentPolicy{
+				Node:   "root-rw",
+				Policy: PolicyWrite,
+			},
+			&AgentPolicy{
+				Node:   "override",
+				Policy: PolicyDeny,
+			},
+		},
+	}
+	root, err := New(deny, policyRoot)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	policy := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "child-nope",
+				Policy: PolicyDeny,
+			},
+			&AgentPolicy{
+				Node:   "child-ro",
+				Policy: PolicyRead,
+			},
+			&AgentPolicy{
+				Node:   "child-rw",
+				Policy: PolicyWrite,
+			},
+			&AgentPolicy{
+				Node:   "override",
+				Policy: PolicyWrite,
+			},
+		},
+	}
+	acl, err := New(root, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	type agentcase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	cases := []agentcase{
+		{"nope", false, false},
+		{"root-nope", false, false},
+		{"root-ro", true, false},
+		{"root-rw", true, true},
+		{"root-nope-prefix", false, false},
+		{"root-ro-prefix", true, false},
+		{"root-rw-prefix", true, true},
+		{"child-nope", false, false},
+		{"child-ro", true, false},
+		{"child-rw", true, true},
+		{"child-nope-prefix", false, false},
+		{"child-ro-prefix", true, false},
+		{"child-rw-prefix", true, true},
+		{"override", true, true},
+	}
+	for _, c := range cases {
+		if c.read != acl.AgentRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.AgentWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
+		}
 	}
 }
 

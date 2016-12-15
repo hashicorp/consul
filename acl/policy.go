@@ -16,6 +16,7 @@ const (
 // an ACL configuration.
 type Policy struct {
 	ID              string                 `hcl:"-"`
+	Agents          []*AgentPolicy         `hcl:"agent,expand"`
 	Keys            []*KeyPolicy           `hcl:"key,expand"`
 	Nodes           []*NodePolicy          `hcl:"node,expand"`
 	Services        []*ServicePolicy       `hcl:"service,expand"`
@@ -24,6 +25,17 @@ type Policy struct {
 	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
 	Keyring         string                 `hcl:"keyring"`
 	Operator        string                 `hcl:"operator"`
+}
+
+// AgentPolicy represents a policy for working with agent endpoints on nodes
+// with specific name prefixes.
+type AgentPolicy struct {
+	Node   string `hcl:",key"`
+	Policy string
+}
+
+func (a *AgentPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *a)
 }
 
 // KeyPolicy represents a policy for a key
@@ -114,6 +126,13 @@ func Parse(rules string) (*Policy, error) {
 
 	if err := hcl.Decode(p, rules); err != nil {
 		return nil, fmt.Errorf("Failed to parse ACL rules: %v", err)
+	}
+
+	// Validate the agent policy
+	for _, ap := range p.Agents {
+		if !isPolicyValid(ap.Policy) {
+			return nil, fmt.Errorf("Invalid agent policy: %#v", ap)
+		}
 	}
 
 	// Validate the key policy

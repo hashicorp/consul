@@ -14,29 +14,30 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
+// These must be kept in sync with the constants in command/agent/acl.go.
 const (
-	// aclNotFound indicates there is no matching ACL
+	// aclNotFound indicates there is no matching ACL.
 	aclNotFound = "ACL not found"
 
-	// rootDenied is returned when attempting to resolve a root ACL
+	// rootDenied is returned when attempting to resolve a root ACL.
 	rootDenied = "Cannot resolve root ACL"
 
-	// permissionDenied is returned when an ACL based rejection happens
+	// permissionDenied is returned when an ACL based rejection happens.
 	permissionDenied = "Permission denied"
 
-	// aclDisabled is returned when ACL changes are not permitted
-	// since they are disabled.
+	// aclDisabled is returned when ACL changes are not permitted since they
+	// are disabled.
 	aclDisabled = "ACL support disabled"
 
-	// anonymousToken is the token ID we re-write to if there
-	// is no token ID provided
+	// anonymousToken is the token ID we re-write to if there is no token ID
+	// provided.
 	anonymousToken = "anonymous"
 
 	// redactedToken is shown in structures with embedded tokens when they
-	// are not allowed to be displayed
+	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// Maximum number of cached ACL entries
+	// Maximum number of cached ACL entries.
 	aclCacheSize = 10 * 1024
 )
 
@@ -264,6 +265,8 @@ func (c *aclCache) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *str
 	// Check if we can used the cached policy
 	if cached != nil && cached.ETag == p.ETag {
 		if p.TTL > 0 {
+			// TODO (slackpad) - This seems like it's an unsafe
+			// write.
 			cached.Expires = time.Now().Add(p.TTL)
 		}
 		return cached.ACL, nil

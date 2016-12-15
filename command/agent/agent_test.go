@@ -55,6 +55,7 @@ func nextConfig() *Config {
 	conf.Ports.SerfWan = basePortNumber + idx + portOffsetSerfWan
 	conf.Ports.Server = basePortNumber + idx + portOffsetServer
 	conf.Server = true
+	conf.ACLEnforceVersion8 = Bool(false)
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
 

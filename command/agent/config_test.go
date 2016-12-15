@@ -643,7 +643,8 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// ACLs
-	input = `{"acl_token": "1234", "acl_agent_token": "5678", "acl_datacenter": "dc2",
+	input = `{"acl_token": "1111", "acl_agent_master_token": "2222",
+	"acl_agent_token": "3333", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
 	"acl_default_policy": "deny", "acl_master_token": "2345",
 	"acl_replication_token": "8675309"}`
@@ -652,10 +653,13 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.ACLToken != "1234" {
+	if config.ACLToken != "1111" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.ACLAgentToken != "5678" {
+	if config.ACLAgentMasterToken != "2222" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentToken != "3333" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLMasterToken != "2345" {
@@ -1589,9 +1593,10 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutWan:    36 * time.Hour,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
-		ACLToken:               "1234",
-		ACLAgentToken:          "5678",
-		ACLMasterToken:         "2345",
+		ACLToken:               "1111",
+		ACLAgentMasterToken:    "2222",
+		ACLAgentToken:          "3333",
+		ACLMasterToken:         "4444",
 		ACLDatacenter:          "dc2",
 		ACLTTL:                 15 * time.Second,
 		ACLTTLRaw:              "15s",

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -190,6 +191,71 @@ func TestEventList_Filter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		})
 	})
+}
+
+func TestEventList_ACLFilter(t *testing.T) {
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Fire an event.
+	p := &UserEvent{Name: "foo"}
+	if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try no token.
+	{
+		testutil.WaitForResult(func() (bool, error) {
+			req, err := http.NewRequest("GET", "/v1/event/list", nil)
+			if err != nil {
+				return false, err
+			}
+			resp := httptest.NewRecorder()
+			obj, err := srv.EventList(resp, req)
+			if err != nil {
+				return false, err
+			}
+
+			list, ok := obj.([]*UserEvent)
+			if !ok {
+				return false, fmt.Errorf("bad: %#v", obj)
+			}
+			if len(list) != 0 {
+				return false, fmt.Errorf("bad: %#v", list)
+			}
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+	}
+
+	// Try the root token.
+	{
+		testutil.WaitForResult(func() (bool, error) {
+			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
+			if err != nil {
+				return false, err
+			}
+			resp := httptest.NewRecorder()
+			obj, err := srv.EventList(resp, req)
+			if err != nil {
+				return false, err
+			}
+
+			list, ok := obj.([]*UserEvent)
+			if !ok {
+				return false, fmt.Errorf("bad: %#v", obj)
+			}
+			if len(list) != 1 || list[0].Name != "foo" {
+				return false, fmt.Errorf("bad: %#v", list)
+			}
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+	}
 }
 
 func TestEventList_Blocking(t *testing.T) {

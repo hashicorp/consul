@@ -488,6 +488,11 @@ type Config struct {
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
 
+	// ACLAgentMasterToken is a special token that has full read and write
+	// privileges for this agent, and can be used to call agent endpoints
+	// when no servers are available.
+	ACLAgentMasterToken string `mapstructure:"acl_agent_master_token" json:"-"`
+
 	// ACLAgentToken is the default token used to make requests for the agent
 	// itself, such as for registering itself with the catalog. If not
 	// configured, the 'acl_token' will be used.
@@ -514,9 +519,15 @@ type Config struct {
 	// white-lists.
 	ACLDefaultPolicy string `mapstructure:"acl_default_policy"`
 
+	// ACLDisabledTTL is used by clients to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled.
+	ACLDisabledTTL time.Duration `mapstructure:"-"`
+
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
 	// reach the ACLDatacenter and the token is not in the cache.
 	// There are two modes:
+	//   * allow - Allow all requests
 	//   * deny - Deny all requests
 	//   * extend-cache - Ignore the cache expiration, and allow cached
 	//                    ACL's to be used to service requests. This
@@ -717,6 +728,7 @@ func DefaultConfig() *Config {
 		ACLTTL:             30 * time.Second,
 		ACLDownPolicy:      "extend-cache",
 		ACLDefaultPolicy:   "allow",
+		ACLDisabledTTL:     120 * time.Second,
 		ACLEnforceVersion8: Bool(false),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
@@ -1482,6 +1494,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLToken != "" {
 		result.ACLToken = b.ACLToken
+	}
+	if b.ACLAgentMasterToken != "" {
+		result.ACLAgentMasterToken = b.ACLAgentMasterToken
 	}
 	if b.ACLAgentToken != "" {
 		result.ACLAgentToken = b.ACLAgentToken

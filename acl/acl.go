@@ -41,6 +41,14 @@ type ACL interface {
 	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
 
+	// AgentRead checks for permission to read from agent endpoints for a
+	// given node.
+	AgentRead(string) bool
+
+	// AgentWrite checks for permission to make changes via agent endpoints
+	// for a given node.
+	AgentWrite(string) bool
+
 	// EventRead determines if a specific event can be queried.
 	EventRead(string) bool
 
@@ -120,6 +128,14 @@ func (s *StaticACL) ACLList() bool {
 
 func (s *StaticACL) ACLModify() bool {
 	return s.allowManage
+}
+
+func (s *StaticACL) AgentRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) AgentWrite(string) bool {
+	return s.defaultAllow
 }
 
 func (s *StaticACL) EventRead(string) bool {
@@ -230,6 +246,9 @@ type PolicyACL struct {
 	// no matching rule.
 	parent ACL
 
+	// agentRules contains the agent policies
+	agentRules *radix.Tree
+
 	// keyRules contains the key policies
 	keyRules *radix.Tree
 
@@ -262,12 +281,18 @@ type PolicyACL struct {
 func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	p := &PolicyACL{
 		parent:             parent,
+		agentRules:         radix.New(),
 		keyRules:           radix.New(),
 		nodeRules:          radix.New(),
 		serviceRules:       radix.New(),
 		sessionRules:       radix.New(),
 		eventRules:         radix.New(),
 		preparedQueryRules: radix.New(),
+	}
+
+	// Load the agent policy
+	for _, ap := range policy.Agents {
+		p.agentRules.Insert(ap.Node, ap.Policy)
 	}
 
 	// Load the key policy
@@ -317,6 +342,44 @@ func (p *PolicyACL) ACLList() bool {
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
 	return p.parent.ACLModify()
+}
+
+// AgentRead checks for permission to read from agent endpoints for a given
+// node.
+func (p *PolicyACL) AgentRead(node string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.agentRules.LongestPrefix(node)
+
+	if ok {
+		switch rule {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.AgentRead(node)
+}
+
+// AgentWrite checks for permission to make changes via agent endpoints for a
+// given node.
+func (p *PolicyACL) AgentWrite(node string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.agentRules.LongestPrefix(node)
+
+	if ok {
+		switch rule {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.AgentWrite(node)
 }
 
 // Snapshot checks if taking and restoring snapshots is allowed.

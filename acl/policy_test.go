@@ -8,6 +8,12 @@ import (
 
 func TestACLPolicy_Parse_HCL(t *testing.T) {
 	inp := `
+agent "foo" {
+	policy = "read"
+}
+agent "bar" {
+	policy = "write"
+}
 event "" {
 	policy = "read"
 }
@@ -63,6 +69,16 @@ query "bar" {
 }
 	`
 	exp := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "foo",
+				Policy: PolicyRead,
+			},
+			&AgentPolicy{
+				Node:   "bar",
+				Policy: PolicyWrite,
+			},
+		},
 		Events: []*EventPolicy{
 			&EventPolicy{
 				Event:  "",
@@ -159,6 +175,14 @@ query "bar" {
 
 func TestACLPolicy_Parse_JSON(t *testing.T) {
 	inp := `{
+	"agent": {
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	},
 	"event": {
 		"": {
 			"policy": "read"
@@ -226,6 +250,16 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 	}
 }`
 	exp := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&AgentPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
 		Events: []*EventPolicy{
 			&EventPolicy{
 				Event:  "",
@@ -358,6 +392,7 @@ operator = ""
 
 func TestACLPolicy_Bad_Policy(t *testing.T) {
 	cases := []string{
+		`agent "" { policy = "nope" }`,
 		`event "" { policy = "nope" }`,
 		`key "" { policy = "nope" }`,
 		`keyring = "nope"`,
