@@ -2,6 +2,7 @@ package debug
 
 import "strings"
 
+// Name is the domain prefix we check for when it is a debug query.
 const Name = "o-o.debug."
 
 // IsDebug checks if name is a debugging name, i.e. starts with o-o.debug.

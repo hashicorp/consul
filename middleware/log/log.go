@@ -32,14 +32,14 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			continue
 		}
 
-		responseRecorder := dnsrecorder.New(w)
-		rc, err := l.Next.ServeDNS(ctx, responseRecorder, r)
+		rrw := dnsrecorder.New(w)
+		rc, err := middleware.NextOrFailure(l.Name(), l.Next, ctx, rrw, r)
 
 		if rc > 0 {
 			// There was an error up the chain, but no response has been written yet.
 			// The error must be handled here so the log entry will record the response size.
 			if l.ErrorFunc != nil {
-				l.ErrorFunc(responseRecorder, r, rc)
+				l.ErrorFunc(rrw, r, rc)
 			} else {
 				answer := new(dns.Msg)
 				answer.SetRcode(r, rc)
@@ -52,16 +52,16 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			rc = 0
 		}
 
-		class, _ := response.Classify(responseRecorder.Msg)
+		class, _ := response.Classify(rrw.Msg)
 		if rule.Class == response.All || rule.Class == class {
-			rep := replacer.New(r, responseRecorder, CommonLogEmptyValue)
+			rep := replacer.New(r, rrw, CommonLogEmptyValue)
 			rule.Log.Println(rep.Replace(rule.Format))
 		}
 
 		return rc, err
 
 	}
-	return l.Next.ServeDNS(ctx, w, r)
+	return middleware.NextOrFailure(l.Name(), l.Next, ctx, w, r)
 }
 
 // Name implements the Handler interface.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -22,7 +23,7 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 		return dns.RcodeServerFailure, nil
 	}
 	if state.QType() != dns.TypeAXFR && state.QType() != dns.TypeIXFR {
-		return 0, fmt.Errorf("xfr called with non transfer type: %d", state.QType())
+		return 0, middleware.Error(x.Name(), fmt.Errorf("xfr called with non transfer type: %d", state.QType()))
 	}
 
 	records := x.All()
@@ -54,5 +55,8 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	// w.Close() // Client closes connection
 	return dns.RcodeSuccess, nil
 }
+
+// Name implements the middleware.Hander interface.
+func (x Xfr) Name() string { return "xfr" } // Or should we return "file" here?
 
 const transferLength = 1000 // Start a new envelop after message reaches this size in bytes. Intentionally small to test multi envelope parsing.

@@ -27,7 +27,7 @@ type errorHandler struct {
 func (h errorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	defer h.recovery(ctx, w, r)
 
-	rcode, err := h.Next.ServeDNS(ctx, w, r)
+	rcode, err := middleware.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 
 	if err != nil {
 		state := request.Request{W: w, Req: r}

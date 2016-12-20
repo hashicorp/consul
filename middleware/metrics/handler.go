@@ -23,7 +23,7 @@ func (m *Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 	// Record response to get status code and size of the reply.
 	rw := dnsrecorder.New(w)
-	status, err := m.Next.ServeDNS(ctx, rw, r)
+	status, err := middleware.NextOrFailure(m.Name(), m.Next, ctx, rw, r)
 
 	vars.Report(state, zone, rcode.ToString(rw.Rcode), rw.Len, rw.Start)
 

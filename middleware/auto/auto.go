@@ -44,7 +44,7 @@ type (
 func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, errors.New("can only deal with ClassINET")
+		return dns.RcodeServerFailure, middleware.Error(a.Name(), errors.New("can only deal with ClassINET"))
 	}
 	qname := state.Name()
 
@@ -53,10 +53,7 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	// Precheck with the origins, i.e. are we allowed to looks here.
 	zone := middleware.Zones(a.Zones.Origins()).Matches(qname)
 	if zone == "" {
-		if a.Next != nil {
-			return a.Next.ServeDNS(ctx, w, r)
-		}
-		return dns.RcodeServerFailure, errors.New("no next middleware found")
+		return middleware.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 	}
 
 	// Now the real zone.

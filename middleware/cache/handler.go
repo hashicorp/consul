@@ -34,7 +34,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	}
 
 	crr := &ResponseWriter{w, c}
-	return c.Next.ServeDNS(ctx, crr, r)
+	return middleware.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
 }
 
 // Name implements the Handler interface.

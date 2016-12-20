@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
@@ -15,7 +15,7 @@ import (
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
+		return dns.RcodeServerFailure, middleware.Error(k.Name(), errors.New("can only deal with ClassINET"))
 	}
 
 	m := new(dns.Msg)
@@ -26,10 +26,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	// otherwise delegate to the next in the pipeline.
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
-		if k.Next == nil {
-			return dns.RcodeServerFailure, nil
-		}
-		return k.Next.ServeDNS(ctx, w, r)
+		return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 	}
 
 	var (

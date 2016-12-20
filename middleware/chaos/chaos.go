@@ -23,7 +23,7 @@ type Chaos struct {
 func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassCHAOS || state.QType() != dns.TypeTXT {
-		return c.Next.ServeDNS(ctx, w, r)
+		return middleware.NextOrFailure(c.Name(), c.Next, ctx, w, r)
 	}
 
 	m := new(dns.Msg)

@@ -410,7 +410,7 @@ func BackendError(b ServiceBackend, zone string, rcode int, state request.Reques
 	state.SizeAndDo(m)
 	state.W.WriteMsg(m)
 	// Return success as the rcode to signal we have written to the client.
-	return dns.RcodeSuccess, nil
+	return dns.RcodeSuccess, err
 }
 
 // ServicesToTxt puts debug in TXT RRs.

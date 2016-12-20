@@ -18,7 +18,7 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	qtype := state.QType()
 	zone := middleware.Zones(d.zones).Matches(qname)
 	if zone == "" {
-		return d.Next.ServeDNS(ctx, w, r)
+		return middleware.NextOrFailure(d.Name(), d.Next, ctx, w, r)
 	}
 
 	// Intercept queries for DNSKEY, but only if one of the zones matches the qname, otherwise we let
@@ -36,7 +36,7 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	}
 
 	drr := &ResponseWriter{w, d}
-	return d.Next.ServeDNS(ctx, drr, r)
+	return middleware.NextOrFailure(d.Name(), d.Next, ctx, drr, r)
 }
 
 var (

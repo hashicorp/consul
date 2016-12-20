@@ -26,11 +26,7 @@ func TestDebugLookup(t *testing.T) {
 		m := tc.Msg()
 
 		rec := dnsrecorder.New(&test.ResponseWriter{})
-		_, err := etc.ServeDNS(ctxt, rec, m)
-		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
-			continue
-		}
+		etc.ServeDNS(ctxt, rec, m)
 
 		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
@@ -64,11 +60,7 @@ func TestDebugLookupFalse(t *testing.T) {
 		m := tc.Msg()
 
 		rec := dnsrecorder.New(&test.ResponseWriter{})
-		_, err := etc.ServeDNS(ctxt, rec, m)
-		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
-			continue
-		}
+		etc.ServeDNS(ctxt, rec, m)
 
 		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))

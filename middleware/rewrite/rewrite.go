@@ -37,9 +37,9 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		switch result := rule.Rewrite(r); result {
 		case RewriteDone:
 			if rw.noRevert {
-				return rw.Next.ServeDNS(ctx, w, r)
+				return middleware.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
 			}
-			return rw.Next.ServeDNS(ctx, wr, r)
+			return middleware.NextOrFailure(rw.Name(), rw.Next, ctx, wr, r)
 		case RewriteIgnored:
 			break
 		case RewriteStatus:
@@ -49,7 +49,7 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			// }
 		}
 	}
-	return rw.Next.ServeDNS(ctx, w, r)
+	return middleware.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
 }
 
 // Name implements the Handler interface.

@@ -1,7 +1,7 @@
 package etcd
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
@@ -18,7 +18,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	opt := middleware.Options{}
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
+		return dns.RcodeServerFailure, middleware.Error(e.Name(), errors.New("can only deal with ClassINET"))
 	}
 	name := state.Name()
 	if e.Debugging {
@@ -43,13 +43,10 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	zone := middleware.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
-		if e.Next == nil {
-			return dns.RcodeServerFailure, nil
-		}
 		if opt.Debug != "" {
 			r.Question[0].Name = opt.Debug
 		}
-		return e.Next.ServeDNS(ctx, w, r)
+		return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
 	}
 
 	var (

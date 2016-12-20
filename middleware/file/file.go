@@ -32,16 +32,13 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	state := request.Request{W: w, Req: r}
 
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, errors.New("can only deal with ClassINET")
+		return dns.RcodeServerFailure, middleware.Error(f.Name(), errors.New("can only deal with ClassINET"))
 	}
 	qname := state.Name()
 	// TODO(miek): match the qname better in the map
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)
 	if zone == "" {
-		if f.Next != nil {
-			return f.Next.ServeDNS(ctx, w, r)
-		}
-		return dns.RcodeServerFailure, errors.New("no next middleware found")
+		return middleware.NextOrFailure(f.Name(), f.Next, ctx, w, r)
 	}
 
 	z, ok := f.Zones.Z[zone]

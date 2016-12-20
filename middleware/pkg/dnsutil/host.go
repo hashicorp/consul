@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// PorseHostPortOrFile parses the strings in s, each string can either be a address,
+// ParseHostPortOrFile parses the strings in s, each string can either be a address,
 // address:port or a filename. The address part is checked and the filename case a
 // resolv.conf like file is parsed and the nameserver found are returned.
 func ParseHostPortOrFile(s ...string) ([]string, error) {

@@ -108,7 +108,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 		return dns.RcodeServerFailure, errUnreachable
 	}
-	return p.Next.ServeDNS(ctx, w, r)
+	return middleware.NextOrFailure(p.Name(), p.Next, ctx, w, r)
 }
 
 // Name implements the Handler interface.

@@ -21,7 +21,7 @@ func setupWhoami(c *caddy.Controller) error {
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return Whoami{Next: next}
+		return Whoami{}
 	})
 
 	return nil
