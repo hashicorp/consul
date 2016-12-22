@@ -3,9 +3,11 @@ package command
 import (
 	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
+	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/mitchellh/cli"
 )
 
 // InfoCommand is a Command implementation that queries a running
@@ -46,6 +48,11 @@ func (i *InfoCommand) Run(args []string) int {
 	if err != nil {
 		i.Ui.Error(fmt.Sprintf("Error querying agent: %s", err))
 		return 1
+	}
+
+	// Check GOMAXPROCS
+	if runtime.GOMAXPROCS(0) == 1 {
+		i.Ui.Error("WARNING: It is highly recommended to set GOMAXPROCS higher than 1")
 	}
 
 	// Get the keys in sorted order
