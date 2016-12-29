@@ -57,6 +57,7 @@ OUTER:
 		if err != nil {
 			// Perform an exponential backoff
 			failures++
+			p.lastIndex = 1
 			retry := retryInterval * time.Duration(failures*failures)
 			if retry > maxBackoffTime {
 				retry = maxBackoffTime
