@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -54,6 +55,8 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
 KV Get Options:
 
+  -base64                 Base64 encode the value. The default value is false.
+
   -detailed               Provide additional metadata about the key in addition
                           to the value such as the ModifyIndex and any flags
                           that may have been set on the key. The default value
@@ -84,6 +87,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	stale := cmdFlags.Bool("stale", false, "")
 	detailed := cmdFlags.Bool("detailed", false, "")
 	keys := cmdFlags.Bool("keys", false, "")
+	base64encode := cmdFlags.Bool("base64", false, "")
 	recurse := cmdFlags.Bool("recurse", false, "")
 	separator := cmdFlags.String("separator", "/", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
@@ -158,7 +162,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		for i, pair := range pairs {
 			if *detailed {
 				var b bytes.Buffer
-				if err := prettyKVPair(&b, pair); err != nil {
+				if err := prettyKVPair(&b, pair, *base64encode); err != nil {
 					c.Ui.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 					return 1
 				}
@@ -169,7 +173,11 @@ func (c *KVGetCommand) Run(args []string) int {
 					c.Ui.Info("")
 				}
 			} else {
-				c.Ui.Info(fmt.Sprintf("%s:%s", pair.Key, pair.Value))
+				if *base64encode {
+					c.Ui.Info(fmt.Sprintf("%s:%s", pair.Key, base64.StdEncoding.EncodeToString(pair.Value)))
+				} else {
+					c.Ui.Info(fmt.Sprintf("%s:%s", pair.Key, pair.Value))
+				}
 			}
 		}
 
@@ -191,7 +199,7 @@ func (c *KVGetCommand) Run(args []string) int {
 
 		if *detailed {
 			var b bytes.Buffer
-			if err := prettyKVPair(&b, pair); err != nil {
+			if err := prettyKVPair(&b, pair, *base64encode); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 				return 1
 			}
@@ -209,7 +217,7 @@ func (c *KVGetCommand) Synopsis() string {
 	return "Retrieves or lists data from the KV store"
 }
 
-func prettyKVPair(w io.Writer, pair *api.KVPair) error {
+func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 	tw := tabwriter.NewWriter(w, 0, 2, 6, ' ', 0)
 	fmt.Fprintf(tw, "CreateIndex\t%d\n", pair.CreateIndex)
 	fmt.Fprintf(tw, "Flags\t%d\n", pair.Flags)
@@ -217,10 +225,14 @@ func prettyKVPair(w io.Writer, pair *api.KVPair) error {
 	fmt.Fprintf(tw, "LockIndex\t%d\n", pair.LockIndex)
 	fmt.Fprintf(tw, "ModifyIndex\t%d\n", pair.ModifyIndex)
 	if pair.Session == "" {
-		fmt.Fprintf(tw, "Session\t-\n")
+		fmt.Fprint(tw, "Session\t-\n")
 	} else {
 		fmt.Fprintf(tw, "Session\t%s\n", pair.Session)
 	}
-	fmt.Fprintf(tw, "Value\t%s", pair.Value)
+	if base64EncodeValue {
+		fmt.Fprintf(tw, "Value\t%s", base64.StdEncoding.EncodeToString(pair.Value))
+	} else {
+		fmt.Fprintf(tw, "Value\t%s", pair.Value)
+	}
 	return tw.Flush()
 }
