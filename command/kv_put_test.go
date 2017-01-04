@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
 	"io/ioutil"
 	"os"
@@ -97,6 +98,42 @@ func TestKVPutCommand_Run(t *testing.T) {
 
 	if !bytes.Equal(data.Value, []byte("bar")) {
 		t.Errorf("bad: %#v", data.Value)
+	}
+}
+
+func TestKVPutCommand_RunBase64(t *testing.T) {
+	srv, client := testAgentWithAPIClient(t)
+	defer srv.Shutdown()
+	waitForLeader(t, srv.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &KVPutCommand{Ui: ui}
+
+	const encodedString = "aGVsbG8gd29ybGQK"
+
+	args := []string{
+		"-http-addr=" + srv.httpAddr,
+		"-base64",
+		"foo", encodedString,
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	data, _, err := client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := base64.StdEncoding.DecodeString(encodedString)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(data.Value, []byte(expected)) {
+		t.Errorf("bad: %#v, %s", data.Value, data.Value)
 	}
 }
 
