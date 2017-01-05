@@ -156,6 +156,14 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		return err
 	}
 
+	var metaFilter []interface{}
+	if args.NodeMetaKey != "" {
+		metaFilter = append(metaFilter, args.NodeMetaKey)
+		if args.NodeMetaValue != "" {
+			metaFilter = append(metaFilter, args.NodeMetaValue)
+		}
+	}
+
 	// Get the list of nodes.
 	state := c.srv.fsm.State()
 	return c.srv.blockingRPC(
@@ -163,7 +171,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		&reply.QueryMeta,
 		state.GetQueryWatch("Nodes"),
 		func() error {
-			index, nodes, err := state.Nodes()
+			index, nodes, err := state.Nodes(metaFilter...)
 			if err != nil {
 				return err
 			}

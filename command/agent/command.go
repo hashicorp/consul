@@ -1071,7 +1071,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 	snap := c.agent.snapshotCheckState()
 	defer c.agent.restoreCheckState(snap)
 
-	// First unload all checks and services. This lets us begin the reload
+	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
@@ -1081,14 +1081,22 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
+	if err := c.agent.unloadMetadata(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading metadata: %s", err))
+		return nil, errs
+	}
 
-	// Reload services and check definitions.
+	// Reload service/check definitions and metadata.
 	if err := c.agent.loadServices(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
 		return nil, errs
 	}
 	if err := c.agent.loadChecks(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return nil, errs
+	}
+	if err := c.agent.loadMetadata(newConf); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
 		return nil, errs
 	}
 

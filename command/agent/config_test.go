@@ -281,6 +281,19 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Node metadata fields
+	input = `{"node_meta": {"thing1": "1", "thing2": "2"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if v, ok := config.Meta["thing1"]; !ok || v != "1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if v, ok := config.Meta["thing2"]; !ok || v != "2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// leave_on_terminate
 	input = `{"leave_on_terminate": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1519,6 +1532,9 @@ func TestMergeConfig(t *testing.T) {
 			DogStatsdAddr:   "nope",
 			DogStatsdTags:   []string{"nope"},
 		},
+		Meta: map[string]string{
+			"key": "value1",
+		},
 	}
 
 	b := &Config{
@@ -1619,6 +1635,9 @@ func TestMergeConfig(t *testing.T) {
 			DisableHostname: true,
 			DogStatsdAddr:   "127.0.0.1:7254",
 			DogStatsdTags:   []string{"tag_1:val_1", "tag_2:val_2"},
+		},
+		Meta: map[string]string{
+			"key": "value2",
 		},
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,

@@ -173,6 +173,7 @@ type RegisterRequest struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	NodeMeta        map[string]string
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
@@ -195,7 +196,8 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	// Check if any of the node-level fields are being changed.
 	if r.Node != node.Node ||
 		r.Address != node.Address ||
-		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) {
+		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
 		return true
 	}
 
@@ -227,8 +229,10 @@ type QuerySource struct {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter string
-	Source     QuerySource
+	Datacenter    string
+	NodeMetaKey   string
+	NodeMetaValue string
+	Source        QuerySource
 	QueryOptions
 }
 
@@ -278,6 +282,7 @@ type Node struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 
 	RaftIndex
 }
@@ -296,6 +301,7 @@ type ServiceNode struct {
 	Node                     string
 	Address                  string
 	TaggedAddresses          map[string]string
+	NodeMeta                 map[string]string
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -488,6 +494,7 @@ type NodeInfo struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 	Services        []*NodeService
 	Checks          HealthChecks
 }

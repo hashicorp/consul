@@ -20,6 +20,7 @@ type AgentSelf struct {
 	Coord  *coordinate.Coordinate
 	Member serf.Member
 	Stats  map[string]map[string]string
+	Meta   map[string]string
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -47,6 +48,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		Coord:  c,
 		Member: s.agent.LocalMember(),
 		Stats:  s.agent.Stats(),
+		Meta:   s.agent.state.Metadata(),
 	}, nil
 }
 

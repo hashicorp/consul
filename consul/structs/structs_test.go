@@ -151,6 +151,9 @@ func testServiceNode() *ServiceNode {
 		TaggedAddresses: map[string]string{
 			"hello": "world",
 		},
+		NodeMeta: map[string]string{
+			"tag": "value",
+		},
 		ServiceID:                "service1",
 		ServiceName:              "dogs",
 		ServiceTags:              []string{"prod", "v1"},
@@ -172,12 +175,13 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	// Make sure the parts that weren't supposed to be cloned didn't get
 	// copied over, then zero-value them out so we can do a DeepEqual() on
 	// the rest of the contents.
-	if clone.Address != "" || len(clone.TaggedAddresses) != 0 {
+	if clone.Address != "" || len(clone.TaggedAddresses) != 0 || len(clone.NodeMeta) != 0 {
 		t.Fatalf("bad: %v", clone)
 	}
 
 	sn.Address = ""
 	sn.TaggedAddresses = nil
+	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, clone) {
 		t.Fatalf("bad: %v", clone)
 	}
@@ -197,6 +201,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	// them out before we do the compare.
 	sn.Address = ""
 	sn.TaggedAddresses = nil
+	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, sn2) {
 		t.Fatalf("bad: %v", sn2)
 	}

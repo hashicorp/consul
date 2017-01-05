@@ -342,6 +342,9 @@ type Config struct {
 	// they are configured with TranslateWanAddrs set to true.
 	TaggedAddresses map[string]string
 
+	// Node metadata
+	Meta map[string]string `mapstructure:"node_meta" json:"-"`
+
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults true on clients, false on servers. This can
 	// be changed on reload.
@@ -1575,6 +1578,14 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
+		}
+	}
+	if len(b.Meta) != 0 {
+		if result.Meta == nil {
+			result.Meta = make(map[string]string)
+		}
+		for field, value := range b.Meta {
+			result.Meta[field] = value
 		}
 	}
 

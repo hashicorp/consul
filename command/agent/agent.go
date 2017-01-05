@@ -246,11 +246,14 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		return nil, err
 	}
 
-	// Load checks/services.
+	// Load checks/services/metadata.
 	if err := agent.loadServices(config); err != nil {
 		return nil, err
 	}
 	if err := agent.loadChecks(config); err != nil {
+		return nil, err
+	}
+	if err := agent.loadMetadata(config); err != nil {
 		return nil, err
 	}
 
@@ -1675,6 +1678,37 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 	for id, check := range snap {
 		a.state.UpdateCheck(id, check.Status, check.Output)
 	}
+}
+
+// loadMetadata loads and validates node metadata fields from the config and
+// updates them on the local agent.
+func (a *Agent) loadMetadata(conf *Config) error {
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	for key, value := range conf.Meta {
+		if strings.Contains(key, ":") {
+			return fmt.Errorf("Key name cannot contain ':' character: %s", key)
+		}
+		if strings.HasPrefix(key, "consul-") {
+			return fmt.Errorf("Key prefix 'consul-' is reserved for internal use")
+		}
+		a.state.metadata[key] = value
+	}
+
+	a.state.changeMade()
+
+	return nil
+}
+
+// unloadMetadata resets the local metadata state
+func (a *Agent) unloadMetadata() error {
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	a.state.metadata = make(map[string]string)
+
+	return nil
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check

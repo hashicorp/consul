@@ -67,6 +67,14 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	// Try to parse node metadata filter params
+	if filter, ok := req.URL.Query()["node-meta"]; ok && len(filter) > 0 {
+		pair := strings.SplitN(filter[0], ":", 2)
+		args.NodeMetaKey = pair[0]
+		if len(pair) == 2 {
+			args.NodeMetaValue = pair[1]
+		}
+	}
 
 	var out structs.IndexedNodes
 	defer setMeta(resp, &out.QueryMeta)
