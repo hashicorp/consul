@@ -24,6 +24,7 @@ variable "ami" {
     eu-west-1-ubuntu      = "ami-47a23a30"
     eu-central-1-ubuntu   = "ami-accff2b1"
     ap-northeast-1-ubuntu = "ami-90815290"
+    ap-northeast-2-ubuntu = "ami-58af6136"
     ap-southeast-1-ubuntu = "ami-0accf458"
     ap-southeast-2-ubuntu = "ami-1dc8b127"
     us-east-1-rhel6       = "ami-0d28fe66"

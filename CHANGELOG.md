@@ -1,7 +1,14 @@
 ## 0.7.3 (UNRELEASED)
 
 FEATURES:
+
+* **KV Import/Export CLI:** `consul kv export` and `consul kv import` can be used to move parts of the KV tree between disconnected consul clusters, using JSON as the intermediate representation. [GH-#2633]
+
 IMPROVEMENTS:
+
+* `consul kv get` now has a `-base64` flag to base 64 encode the value. [GH-2631]
+* `consul kv put` now has a `-base64` flag for setting values which are base 64 encoded. [GH-2632]
+
 BUG FIXES:
 
 ## 0.7.2 (December 19, 2016)

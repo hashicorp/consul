@@ -78,6 +78,18 @@ func init() {
 			}, nil
 		},
 
+		"kv export": func() (cli.Command, error) {
+			return &command.KVExportCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"kv import": func() (cli.Command, error) {
+			return &command.KVImportCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
 				Ui: ui,
