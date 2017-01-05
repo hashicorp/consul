@@ -109,7 +109,7 @@ $ consul kv get foo
 zip
 ```
 
-Consul can provide atomic key updates using a Check-And_set operation. To perform a CAS operation, specify the `-cas` flag:
+Consul can provide atomic key updates using a Check-And-Set operation. To perform a CAS operation, specify the `-cas` flag:
 
 ```sh
 $ consul kv put -cas -modify-index=123 foo bar
