@@ -101,6 +101,34 @@ func TestKVPutCommand_Run(t *testing.T) {
 	}
 }
 
+func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
+	srv, client := testAgentWithAPIClient(t)
+	defer srv.Shutdown()
+	waitForLeader(t, srv.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &KVPutCommand{Ui: ui}
+
+	args := []string{
+		"-http-addr=" + srv.httpAddr,
+		"foo", "",
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	data, _, err := client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if data.Value != nil {
+		t.Errorf("bad: %#v", data.Value)
+	}
+}
+
 func TestKVPutCommand_RunBase64(t *testing.T) {
 	srv, client := testAgentWithAPIClient(t)
 	defer srv.Shutdown()

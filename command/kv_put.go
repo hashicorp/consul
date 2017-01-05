@@ -236,6 +236,11 @@ func (c *KVPutCommand) dataFromArgs(args []string) (string, string, error) {
 	key := args[0]
 	data := args[1]
 
+	// Handle empty quoted shell parameters
+	if len(data) == 0 {
+		return key, "", nil
+	}
+
 	switch data[0] {
 	case '@':
 		data, err := ioutil.ReadFile(data[1:])
