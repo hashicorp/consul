@@ -45,7 +45,7 @@ func TestKVExportCommand_Run(t *testing.T) {
 	var exported []*kvExportEntry
 	err := json.Unmarshal([]byte(output), &exported)
 	if err != nil {
-		t.Fatalf("bad: %s", code)
+		t.Fatalf("bad: %d", code)
 	}
 
 	if len(exported) != 3 {
