@@ -2,6 +2,7 @@ GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/... \
 	github.com/jteeuwen/go-bindata/... \
 	github.com/mitchellh/gox \
+	github.com/Symantec/Dominator/lib/logbuf \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer
 PACKAGES=$(shell go list ./... | grep -v '/vendor/')
