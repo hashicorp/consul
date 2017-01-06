@@ -200,7 +200,7 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 Again, note that the SRV record returns the port of the service as well as its IP.
 
-### Prepared Query Lookups
+## Prepared Query Lookups
 
 The format of a prepared query lookup is:
 
@@ -243,6 +243,16 @@ This endpoint currently only finds services within the same datacenter
 and doesn't support tags. This DNS interface will be expanded over time.
 If you need more complex behavior, please use the
 [catalog API](/api/catalog.html).
+
+### Agent Query Lookup
+
+The agent query is designed to return IP information about the local Consul 
+agent. The IP information returned is the DNS answer for the local node name.
+This does in fact send a DNS query from the local instance to the Consul Server
+Quorum. The result is the IP information that any other service would receive
+for the local Consul agent (this is most commonly the IPv4 bind address). The 
+only valid agent lookup is `agent.consul`. If anything other than that is 
+received an SOA record is returned.
 
 ### UDP Based DNS Queries
 

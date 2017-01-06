@@ -610,6 +610,13 @@ PARSE:
 		node := strings.Join(labels[:n-1], ".")
 		d.nodeLookup(cfg, network, datacenter, node, req, resp, maxRecursionLevel)
 
+	case "agent":
+		if n != 1 {
+			goto INVALID
+		}
+		node := d.agent.config.NodeName
+		d.nodeLookup(network, datacenter, node, req, resp)
+
 	case "query":
 		if n == 1 {
 			goto INVALID
@@ -642,7 +649,7 @@ PARSE:
 				},
 				A: ip,
 			})
-		// IPv6
+			// IPv6
 		case 16:
 			ip, err := hex.DecodeString(labels[0])
 			if err != nil {
@@ -1540,13 +1547,13 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 					record.Hdr.Name = srvRec.Target
 					resp.Extra = append(resp.Extra, record)
 
-				// IPv6
+					// IPv6
 				case *dns.AAAA:
 					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(record.AAAA), dc, d.domain)
 					record.Hdr.Name = srvRec.Target
 					resp.Extra = append(resp.Extra, record)
 
-				// Something else (probably a CNAME; just add the records).
+					// Something else (probably a CNAME; just add the records).
 				default:
 					resp.Extra = append(resp.Extra, records...)
 				}

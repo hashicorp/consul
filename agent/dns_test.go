@@ -256,6 +256,53 @@ func TestDNS_NodeLookup(t *testing.T) {
 	txt, ok = in.Answer[1].(*dns.TXT)
 	require.True(t, ok, "Second answer is not a TXT record")
 
+	// lookup agent.consul
+	m = new(dns.Msg)
+	m.SetQuestion("agent.consul.", dns.TypeANY)
+
+	c = new(dns.Client)
+	addr, _ = srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok = in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	// lookup foo.agent.consul, we should get an SOA
+	m = new(dns.Msg)
+	m.SetQuestion("this.agent.consul.", dns.TypeANY)
+
+	c = new(dns.Client)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
 	// lookup a non-existing node, we should receive a SOA
 	m = new(dns.Msg)
 	m.SetQuestion("nofoo.node.dc1.consul.", dns.TypeANY)
