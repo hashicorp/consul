@@ -11,6 +11,7 @@ import (
 	_ "github.com/miekg/coredns/middleware/cache"
 	_ "github.com/miekg/coredns/middleware/chaos"
 	_ "github.com/miekg/coredns/middleware/dnssec"
+	_ "github.com/miekg/coredns/middleware/erratic"
 	_ "github.com/miekg/coredns/middleware/errors"
 	_ "github.com/miekg/coredns/middleware/etcd"
 	_ "github.com/miekg/coredns/middleware/file"

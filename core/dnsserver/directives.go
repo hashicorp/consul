@@ -96,4 +96,5 @@ var directives = []string{
 	"proxy",
 	"httpproxy",
 	"whoami",
+	"erratic",
 }
