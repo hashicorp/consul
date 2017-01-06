@@ -1851,6 +1851,50 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 }
 
+func TestAgent_metadata(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Load a valid set of key/value pairs
+	config.Meta = map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	if err := agent.loadMetadata(config); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	agent.unloadMetadata()
+
+	// Should fail, keys can't be blank
+	config.Meta = map[string]string{
+		"": "value1",
+	}
+	if err := agent.loadMetadata(config); err == nil {
+		t.Fatalf("should have failed")
+	}
+	agent.unloadMetadata()
+
+	// Should fail, keys can't contain ':'
+	config.Meta = map[string]string{
+		"key:123": "value1",
+	}
+	if err := agent.loadMetadata(config); err == nil {
+		t.Fatalf("should have failed")
+	}
+	agent.unloadMetadata()
+
+	// Should fail, keys can't begin with 'consul-'
+	config.Meta = map[string]string{
+		"consul-key": "value1",
+	}
+	if err := agent.loadMetadata(config); err == nil {
+		t.Fatalf("should have failed")
+	}
+	agent.unloadMetadata()
+}
+
 func TestAgent_GetCoordinate(t *testing.T) {
 	check := func(server bool) {
 		config := nextConfig()

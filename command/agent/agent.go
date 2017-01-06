@@ -1687,6 +1687,9 @@ func (a *Agent) loadMetadata(conf *Config) error {
 	defer a.state.Unlock()
 
 	for key, value := range conf.Meta {
+		if key == "" {
+			return fmt.Errorf("Key name cannot be blank")
+		}
 		if strings.Contains(key, ":") {
 			return fmt.Errorf("Key name cannot contain ':' character: %s", key)
 		}

@@ -592,6 +592,72 @@ func TestCatalog_ListNodes(t *testing.T) {
 	}
 }
 
+func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Filter by a specific meta k/v pair
+	args := structs.DCSpecificRequest{
+		Datacenter:    "dc1",
+		NodeMetaKey:   "somekey",
+		NodeMetaValue: "somevalue",
+	}
+	var out structs.IndexedNodes
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a new node with the right meta k/v pair
+	node := &structs.Node{Node: "foo", Address: "127.0.0.1", Meta: map[string]string{"somekey": "somevalue"}}
+	if err := s1.fsm.State().EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 1, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+
+	// Verify that only the correct node was returned
+	if out.Nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if v, ok := out.Nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Now filter on a nonexistent meta k/v pair
+	args = structs.DCSpecificRequest{
+		Datacenter:    "dc1",
+		NodeMetaKey:   "somekey",
+		NodeMetaValue: "invalid",
+	}
+	out = structs.IndexedNodes{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should get an empty list of nodes back
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 0, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+}
+
 func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

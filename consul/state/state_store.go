@@ -528,7 +528,7 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *StateStore) Nodes(metaFilter ...interface{}) (uint64, structs.Nodes, error) {
+func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -536,13 +536,29 @@ func (s *StateStore) Nodes(metaFilter ...interface{}) (uint64, structs.Nodes, er
 	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
 
 	// Retrieve all of the nodes
-	var nodes memdb.ResultIterator
-	var err error
-	if len(metaFilter) > 0 {
-		nodes, err = tx.Get("nodes", "meta", metaFilter...)
-	} else {
-		nodes, err = tx.Get("nodes", "id")
+	nodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+
+	// Create and return the nodes list.
+	var results structs.Nodes
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		results = append(results, node.(*structs.Node))
+	}
+	return idx, results, nil
+}
+
+// NodesByMeta is used to return all nodes with the given meta key/value pair.
+func (s *StateStore) NodesByMeta(key, value string) (uint64, structs.Nodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+
+	// Retrieve all of the nodes
+	nodes, err := tx.Get("nodes", "meta", key, value)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}

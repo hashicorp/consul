@@ -201,7 +201,12 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 }
 
 func TestAgent_Self(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
+	meta := map[string]string{
+		"somekey": "somevalue",
+	}
+	dir, srv := makeHTTPServerWithConfig(t, func(conf *Config) {
+		conf.Meta = meta
+	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
@@ -231,6 +236,9 @@ func TestAgent_Self(t *testing.T) {
 	}
 	if !reflect.DeepEqual(c, val.Coord) {
 		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
+	}
+	if !reflect.DeepEqual(meta, val.Meta) {
+		t.Fatalf("meta fields are not equal: %v != %v", meta, val.Meta)
 	}
 
 	srv.agent.config.DisableCoordinates = true
