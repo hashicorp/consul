@@ -148,7 +148,8 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 
 	// Get the primary ID of the object
 	idSchema := tableSchema.Indexes[id]
-	ok, idVal, err := idSchema.Indexer.FromObject(obj)
+	idIndexer := idSchema.Indexer.(SingleIndexer)
+	ok, idVal, err := idIndexer.FromObject(obj)
 	if err != nil {
 		return fmt.Errorf("failed to build primary index: %v", err)
 	}
@@ -167,7 +168,19 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		indexTxn := txn.writableIndex(table, name)
 
 		// Determine the new index value
-		ok, val, err := indexSchema.Indexer.FromObject(obj)
+		var (
+			ok   bool
+			vals [][]byte
+			err  error
+		)
+		switch indexer := indexSchema.Indexer.(type) {
+		case SingleIndexer:
+			var val []byte
+			ok, val, err = indexer.FromObject(obj)
+			vals = [][]byte{val}
+		case MultiIndexer:
+			ok, vals, err = indexer.FromObject(obj)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to build index '%s': %v", name, err)
 		}
@@ -176,28 +189,44 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		// This is done by appending the primary key which must
 		// be unique anyways.
 		if ok && !indexSchema.Unique {
-			val = append(val, idVal...)
+			for i := range vals {
+				vals[i] = append(vals[i], idVal...)
+			}
 		}
 
 		// Handle the update by deleting from the index first
 		if update {
-			okExist, valExist, err := indexSchema.Indexer.FromObject(existing)
+			var (
+				okExist   bool
+				valsExist [][]byte
+				err       error
+			)
+			switch indexer := indexSchema.Indexer.(type) {
+			case SingleIndexer:
+				var valExist []byte
+				okExist, valExist, err = indexer.FromObject(existing)
+				valsExist = [][]byte{valExist}
+			case MultiIndexer:
+				okExist, valsExist, err = indexer.FromObject(existing)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to build index '%s': %v", name, err)
 			}
 			if okExist {
-				// Handle non-unique index by computing a unique index.
-				// This is done by appending the primary key which must
-				// be unique anyways.
-				if !indexSchema.Unique {
-					valExist = append(valExist, idVal...)
-				}
+				for i, valExist := range valsExist {
+					// Handle non-unique index by computing a unique index.
+					// This is done by appending the primary key which must
+					// be unique anyways.
+					if !indexSchema.Unique {
+						valExist = append(valExist, idVal...)
+					}
 
-				// If we are writing to the same index with the same value,
-				// we can avoid the delete as the insert will overwrite the
-				// value anyways.
-				if !bytes.Equal(valExist, val) {
-					indexTxn.Delete(valExist)
+					// If we are writing to the same index with the same value,
+					// we can avoid the delete as the insert will overwrite the
+					// value anyways.
+					if i >= len(vals) || !bytes.Equal(valExist, vals[i]) {
+						indexTxn.Delete(valExist)
+					}
 				}
 			}
 		}
@@ -213,7 +242,9 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		}
 
 		// Update the value of the index
-		indexTxn.Insert(val, obj)
+		for _, val := range vals {
+			indexTxn.Insert(val, obj)
+		}
 	}
 	return nil
 }
@@ -233,7 +264,8 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 
 	// Get the primary ID of the object
 	idSchema := tableSchema.Indexes[id]
-	ok, idVal, err := idSchema.Indexer.FromObject(obj)
+	idIndexer := idSchema.Indexer.(SingleIndexer)
+	ok, idVal, err := idIndexer.FromObject(obj)
 	if err != nil {
 		return fmt.Errorf("failed to build primary index: %v", err)
 	}
@@ -253,7 +285,19 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 		indexTxn := txn.writableIndex(table, name)
 
 		// Handle the update by deleting from the index first
-		ok, val, err := indexSchema.Indexer.FromObject(existing)
+		var (
+			ok   bool
+			vals [][]byte
+			err  error
+		)
+		switch indexer := indexSchema.Indexer.(type) {
+		case SingleIndexer:
+			var val []byte
+			ok, val, err = indexer.FromObject(existing)
+			vals = [][]byte{val}
+		case MultiIndexer:
+			ok, vals, err = indexer.FromObject(existing)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to build index '%s': %v", name, err)
 		}
@@ -261,10 +305,12 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 			// Handle non-unique index by computing a unique index.
 			// This is done by appending the primary key which must
 			// be unique anyways.
-			if !indexSchema.Unique {
-				val = append(val, idVal...)
+			for _, val := range vals {
+				if !indexSchema.Unique {
+					val = append(val, idVal...)
+				}
+				indexTxn.Delete(val)
 			}
-			indexTxn.Delete(val)
 		}
 	}
 	return nil

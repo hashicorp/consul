@@ -396,10 +396,10 @@
 			"revisionTime": "2016-06-09T02:05:29Z"
 		},
 		{
-			"checksumSHA1": "/V57CyN7x2NUlHoOzVL5GgGXX84=",
+			"checksumSHA1": "ZpTDFeRvXFwIvSHRD8eDYHxaj4Y=",
 			"path": "github.com/hashicorp/go-memdb",
-			"revision": "98f52f52d7a476958fa9da671354d270c50661a7",
-			"revisionTime": "2016-03-01T23:01:42Z"
+			"revision": "d2d2b77acab85aa635614ac17ea865969f56009e",
+			"revisionTime": "2017-01-07T16:22:14Z"
 		},
 		{
 			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
