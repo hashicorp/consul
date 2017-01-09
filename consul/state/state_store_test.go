@@ -775,9 +775,12 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	// Retrieve the node with role=client
-	_, nodes, err := s.NodesByMeta("role", "client")
+	idx, nodes, err := s.NodesByMeta("role", "client")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Only one node was returned
@@ -796,32 +799,13 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 		t.Fatalf("bad: %v != %v", nodes[0].Meta, node0.Meta)
 	}
 
-	// Retrieve the node with role=server
-	_, nodes, err = s.NodesByMeta("role", "server")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Only one node was returned
-	if n := len(nodes); n != 1 {
-		t.Fatalf("bad node count: %d", n)
-	}
-
-	// Make sure the node is correct
-	if nodes[0].CreateIndex != 1 || nodes[0].ModifyIndex != 1 {
-		t.Fatalf("bad node index: %d, %d", nodes[0].CreateIndex, nodes[0].ModifyIndex)
-	}
-	if nodes[0].Node != "node1" {
-		t.Fatalf("bad: %#v", nodes[0])
-	}
-	if !reflect.DeepEqual(nodes[0].Meta, node1.Meta) {
-		t.Fatalf("bad: %v != %v", nodes[0].Meta, node1.Meta)
-	}
-
 	// Retrieve both nodes via their common meta field
-	_, nodes, err = s.NodesByMeta("common", "1")
+	idx, nodes, err = s.NodesByMeta("common", "1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// All nodes were returned
@@ -1169,6 +1153,78 @@ func TestStateStore_Services(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expected, services) {
 		t.Fatalf("bad: %#v", services)
+	}
+}
+
+func TestStateStore_ServicesByNodeMeta(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns nil
+	idx, res, err := s.ServicesByNodeMeta("somekey", "somevalue")
+	if idx != 0 || len(res) != 0 || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Create some nodes and services in the state store
+	node0 := &structs.Node{Node: "node0", Address: "127.0.0.1", Meta: map[string]string{"role": "client", "common": "1"}}
+	if err := s.EnsureNode(0, node0); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	node1 := &structs.Node{Node: "node1", Address: "127.0.0.1", Meta: map[string]string{"role": "server", "common": "1"}}
+	if err := s.EnsureNode(1, node1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	ns1 := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Tags:    []string{"prod", "master"},
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(2, "node0", ns1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	ns2 := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Tags:    []string{"prod", "slave"},
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(3, "node1", ns2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Filter the services by the first node's meta value
+	idx, res, err = s.ServicesByNodeMeta("role", "client")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	expected := structs.Services{
+		"redis": []string{"prod", "master"},
+	}
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("bad: %v %v", res, expected)
+	}
+
+	// Get all services using the common meta value
+	idx, res, err = s.ServicesByNodeMeta("common", "1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	expected = structs.Services{
+		"redis": []string{"prod", "master", "slave"},
+	}
+	sort.Strings(res["redis"])
+	sort.Strings(expected["redis"])
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("bad: %v %v", res, expected)
 	}
 }
 

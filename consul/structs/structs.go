@@ -292,8 +292,8 @@ type Nodes []*Node
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNode represents a node that is part of a service. Address and
-// TaggedAddresses are node-related fields that are always empty in the state
+// ServiceNode represents a node that is part of a service. Address, TaggedAddresses,
+// and NodeMeta are node-related fields that are always empty in the state
 // store and are filled in on the way out by parseServiceNodes(). This is also
 // why PartialClone() skips them, because we know they are blank already so it
 // would be a waste of time to copy them.

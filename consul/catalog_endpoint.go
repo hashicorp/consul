@@ -196,7 +196,14 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&reply.QueryMeta,
 		state.GetQueryWatch("Services"),
 		func() error {
-			index, services, err := state.Services()
+			var index uint64
+			var services structs.Services
+			var err error
+			if args.NodeMetaKey != "" {
+				index, services, err = state.ServicesByNodeMeta(args.NodeMetaKey, args.NodeMetaValue)
+			} else {
+				index, services, err = state.Services()
+			}
 			if err != nil {
 				return err
 			}

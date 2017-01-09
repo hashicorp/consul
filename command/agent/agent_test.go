@@ -1862,12 +1862,13 @@ func TestAgent_metadata(t *testing.T) {
 		"key1": "value1",
 		"key2": "value2",
 	}
+	// Should succeed
 	if err := agent.loadMetadata(config); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	agent.unloadMetadata()
 
-	// Should fail, keys can't be blank
+	// Should get error
 	config.Meta = map[string]string{
 		"": "value1",
 	}
@@ -1876,23 +1877,48 @@ func TestAgent_metadata(t *testing.T) {
 	}
 	agent.unloadMetadata()
 
-	// Should fail, keys can't contain ':'
-	config.Meta = map[string]string{
-		"key:123": "value1",
+	// Should get error
+	tooManyKeys := make(map[string]string)
+	for i := 0; i < metaMaxKeyPairs+1; i++ {
+		tooManyKeys[string(i)] = "value"
 	}
 	if err := agent.loadMetadata(config); err == nil {
 		t.Fatalf("should have failed")
 	}
-	agent.unloadMetadata()
+}
 
-	// Should fail, keys can't begin with 'consul-'
-	config.Meta = map[string]string{
-		"consul-key": "value1",
+func TestAgent_validateMetaPair(t *testing.T) {
+	longKey := fmt.Sprintf(fmt.Sprintf("%%%ds", metaKeyMaxLength+1), "")
+	longValue := fmt.Sprintf(fmt.Sprintf("%%%ds", metaValueMaxLength+1), "")
+	pairs := []struct {
+		Key     string
+		Value   string
+		Success bool
+	}{
+		// valid pair
+		{"key", "value", true},
+		// invalid, blank key
+		{"", "value", false},
+		// allowed special chars in key name
+		{"k_e-y", "value", true},
+		// ':' in key name
+		{"k:ey", "value", false},
+		// disallowed special chars in key name
+		{"(%key&)", "value", false},
+		// key too long
+		{longKey, "value", false},
+		// reserved prefix
+		{metaKeyReservedPrefix + "key", "value", false},
+		// value too long
+		{"key", longValue, false},
 	}
-	if err := agent.loadMetadata(config); err == nil {
-		t.Fatalf("should have failed")
+
+	for _, pair := range pairs {
+		err := validateMetaPair(pair.Key, pair.Value)
+		if pair.Success != (err == nil) {
+			t.Fatalf("bad: %v, %v", pair, err)
+		}
 	}
-	agent.unloadMetadata()
 }
 
 func TestAgent_GetCoordinate(t *testing.T) {

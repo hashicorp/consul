@@ -110,12 +110,18 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 		Node:            "test",
 		Address:         "127.0.0.1",
 		TaggedAddresses: make(map[string]string),
+		NodeMeta: map[string]string{
+			"role": "server",
+		},
 	}
 
 	node := &Node{
 		Node:            "test",
 		Address:         "127.0.0.1",
 		TaggedAddresses: make(map[string]string),
+		Meta: map[string]string{
+			"role": "server",
+		},
 	}
 
 	check := func(twiddle, restore func()) {
@@ -137,6 +143,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
 	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
 	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
+	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid")})
 
 	if !req.ChangesNode(nil) {
 		t.Fatalf("should change")

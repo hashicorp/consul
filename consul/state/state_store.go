@@ -781,6 +781,56 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	return idx, results, nil
 }
 
+// Services returns all services, filtered by given node metadata.
+func (s *StateStore) ServicesByNodeMeta(key, value string) (uint64, structs.Services, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+
+	// Retrieve all of the nodes with the meta k/v pair
+	nodes, err := tx.Get("nodes", "meta", key, value)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	// Populate the services map
+	unique := make(map[string]map[string]struct{})
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
+		// List all the services on the node
+		services, err := tx.Get("services", "node", n.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed querying services: %s", err)
+		}
+
+		// Rip through the services and enumerate them and their unique set of
+		// tags.
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode)
+			tags, ok := unique[svc.ServiceName]
+			if !ok {
+				unique[svc.ServiceName] = make(map[string]struct{})
+				tags = unique[svc.ServiceName]
+			}
+			for _, tag := range svc.ServiceTags {
+				tags[tag] = struct{}{}
+			}
+		}
+	}
+
+	// Generate the output structure.
+	var results = make(structs.Services)
+	for service, tags := range unique {
+		results[service] = make([]string, 0)
+		for tag, _ := range tags {
+			results[service] = append(results[service], tag)
+		}
+	}
+	return idx, results, nil
+}
+
 // ServiceNodes returns the nodes associated with a given service name.
 func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
