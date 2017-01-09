@@ -1901,8 +1901,6 @@ func TestAgent_validateMetaPair(t *testing.T) {
 		{"", "value", false},
 		// allowed special chars in key name
 		{"k_e-y", "value", true},
-		// ':' in key name
-		{"k:ey", "value", false},
 		// disallowed special chars in key name
 		{"(%key&)", "value", false},
 		// key too long

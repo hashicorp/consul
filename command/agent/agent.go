@@ -47,13 +47,13 @@ const (
 	metaKeyReservedPrefix = "consul-"
 
 	// The maximum number of metadata key pairs allowed to be registered
-	metaMaxKeyPairs       = 64
+	metaMaxKeyPairs = 64
 
 	// The maximum allowed length of a metadata key
-	metaKeyMaxLength      = 128
+	metaKeyMaxLength = 128
 
 	// The maximum allowed length of a metadata value
-	metaValueMaxLength    = 512
+	metaValueMaxLength = 512
 )
 
 var (
@@ -1727,9 +1727,6 @@ func validateMetaPair(key, value string) error {
 	}
 	if len(key) > metaKeyMaxLength {
 		return fmt.Errorf("Key is longer than %d chars", metaKeyMaxLength)
-	}
-	if strings.Contains(key, ":") {
-		return fmt.Errorf("Key contains ':' character")
 	}
 	if strings.HasPrefix(key, metaKeyReservedPrefix) {
 		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)

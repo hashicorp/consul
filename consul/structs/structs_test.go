@@ -143,7 +143,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
 	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
 	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
-	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid")})
+	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid") })
 
 	if !req.ChangesNode(nil) {
 		t.Fatalf("should change")
