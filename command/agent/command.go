@@ -364,6 +364,13 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
+	if config.EnableUi == true && config.UiDir != "" {
+		c.Ui.Error("Error: Both the ui and ui-dir flags were specified")
+		c.Ui.Error("If trying to use your own WebUI resources, simply use the ui-dir flag")
+		c.Ui.Error("If using Consul version 0.7.0+ the WebUI is included in the binary so ui-dir is not necessary")
+		return nil
+	}
+
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
