@@ -657,7 +657,7 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 		if ec2Enabled {
 			servers, err = config.discoverEc2Hosts(logger)
 			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query EC2 insances: %s", err)
+				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from EC2...", len(servers))
 		}
