@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -192,6 +193,16 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			index, services, err := state.Services()
 			if err != nil {
 				return err
+			}
+
+			if args.QueryOptions.Regexp != "" {
+				var filteredServices = make(structs.Services)
+				for service, tags := range services {
+					if match, _ := regexp.MatchString(args.QueryOptions.Regexp, service); match {
+						filteredServices[service] = tags
+					}
+				}
+				services = filteredServices
 			}
 
 			reply.Index, reply.Services = index, services
