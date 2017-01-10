@@ -66,7 +66,7 @@ type Command struct {
 	agent             *Agent
 	rpcServer         *AgentRPC
 	httpServers       []*HTTPServer
-	dnsServer         *DNSServer
+	dnsServers        []*DNSServer
 	scadaProvider     *scada.Provider
 	scadaHttp         *HTTPServer
 }
@@ -728,21 +728,13 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	}
 
 	if config.Ports.DNS > 0 {
-		dnsAddr, err := config.ClientListener(config.Addresses.DNS, config.Ports.DNS)
+		servers, err := NewDNSServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Invalid DNS bind address: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error starting dns servers: %s", err))
 			return err
 		}
-
-		server, err := NewDNSServer(agent, &config.DNSConfig, logOutput,
-			config.Domain, dnsAddr.String(), config.DNSRecursors)
-		if err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))
-			return err
-		}
-		c.dnsServer = server
+		c.dnsServers = servers
 	}
 
 	// Setup update checking
@@ -1052,8 +1044,8 @@ func (c *Command) Run(args []string) int {
 	if c.rpcServer != nil {
 		defer c.rpcServer.Shutdown()
 	}
-	if c.dnsServer != nil {
-		defer c.dnsServer.Shutdown()
+	for _, server := range c.dnsServers {
+		defer server.Shutdown()
 	}
 	for _, server := range c.httpServers {
 		defer server.Shutdown()

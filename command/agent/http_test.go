@@ -32,6 +32,14 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 	return makeHTTPServerWithConfigLog(t, cb, nil, nil)
 }
 
+func makeHTTPServersWithMultiBind(t *testing.T) (string, []*HTTPServer) {
+	dir, srv := makeHTTPServersWithConfigLog(t, func(c *Config) {
+		c.Addresses.HTTP = "{{ GetAllInterfaces | exclude \"type\" \"IPv6\" | include \"flags\" \"up\" | limit 2 | join \"address\" \" \"}}"
+	}, nil, nil)
+
+	return dir, srv
+}
+
 func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
 	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = c.Datacenter
@@ -46,6 +54,29 @@ func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
 	// repeat this in each test.
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 	return dir, srv
+}
+
+func makeHTTPServersWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, []*HTTPServer) {
+	configTry := 0
+RECONF:
+	configTry += 1
+	conf := nextConfig()
+	if cb != nil {
+		cb(conf)
+	}
+
+	dir, agent := makeAgentLog(t, conf, l, logWriter)
+	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
+	if err != nil {
+		if configTry < 3 {
+			goto RECONF
+		}
+		t.Fatalf("err: %v", err)
+	}
+	if len(servers) == 0 {
+		t.Fatalf(fmt.Sprintf("Failed to make HTTP server"))
+	}
+	return dir, servers
 }
 
 func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
@@ -317,6 +348,35 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	xss := resp.Header().Get("X-XSS-Protection")
 	if xss != "1; mode=block" {
 		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
+	}
+}
+
+func TestMultiInterfaceBind(t *testing.T) {
+	dir, servers := makeHTTPServersWithMultiBind(t)
+	defer os.RemoveAll(dir)
+	//agent is shared, only need to call it's shutdown once.
+	defer servers[0].agent.Shutdown()
+
+	for _, srv := range servers {
+		defer srv.Shutdown()
+	}
+
+	for _, srv := range servers {
+		resp := httptest.NewRecorder()
+
+		handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+			// stub out a DirEntry so that it will be encoded as JSON
+			return &structs.DirEntry{Key: "key"}, nil
+		}
+
+		req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
+		srv.wrap(handler)(resp, req)
+
+		contentType := resp.Header().Get("Content-Type")
+
+		if contentType != "application/json" {
+			t.Fatalf("Content-Type header was not 'application/json'")
+		}
 	}
 }
 

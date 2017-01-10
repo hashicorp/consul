@@ -467,6 +467,23 @@ func parseSingleIPTemplate(ipTmpl string) (string, error) {
 	}
 }
 
+// parseMultipleIPTemplate is used as a helper function to parse out multiple IP
+// address from a config parameter where multiple addresses can be used (HTTP, DNS)
+func parseMultipleIPTemplate(ipTmpl string) (string, error) {
+	out, err := template.Parse(ipTmpl)
+	if err != nil {
+		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
+	}
+
+	ips := strings.Split(out, " ")
+	switch len(ips) {
+	case 0:
+		return "", errors.New("No addresses found, please configure one.")
+	default:
+		return out, nil
+	}
+}
+
 // resolveTmplAddrs iterates over the myriad of addresses in the agent's config
 // and performs go-sockaddr/template Parse on each known address in case the
 // user specified a template config for any of their values.
@@ -480,7 +497,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.DNS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.DNS)
+		ipStr, err := parseMultipleIPTemplate(a.config.Addresses.DNS)
 		if err != nil {
 			return fmt.Errorf("DNS address resolution failed: %v", err)
 		}
@@ -488,7 +505,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.HTTP != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTP)
+		ipStr, err := parseMultipleIPTemplate(a.config.Addresses.HTTP)
 		if err != nil {
 			return fmt.Errorf("HTTP address resolution failed: %v", err)
 		}
@@ -496,7 +513,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.HTTPS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTPS)
+		ipStr, err := parseMultipleIPTemplate(a.config.Addresses.HTTPS)
 		if err != nil {
 			return fmt.Errorf("HTTPS address resolution failed: %v", err)
 		}

@@ -32,6 +32,23 @@ func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	return makeDNSServerConfig(t, nil, nil)
 }
 
+func makeMultipleDNSServers(t *testing.T) (string, []*DNSServer) {
+	// Create the configs and apply the functions
+	agentConf := nextConfig()
+
+	// Set things for multiple addresses
+	agentConf.Addresses.DNS = "{{ GetAllInterfaces | exclude \"type\" \"IPv6\" | include \"flags\" \"up\" | limit 2 | join \"address\" \" \"}}"
+
+	// Make it so
+	dir, agent := makeAgent(t, agentConf)
+	servers, err := NewDNSServers(agent, agentConf, agent.logOutput)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return dir, servers
+}
+
 func makeDNSServerConfig(
 	t *testing.T,
 	agentFn func(c *Config),
@@ -126,6 +143,58 @@ func dnsA(src, dest string) *dns.A {
 			Class:  dns.ClassINET,
 		},
 		A: net.ParseIP(dest),
+	}
+}
+
+func TestMultipileDNS_AddressLookup(t *testing.T) {
+	dir, servers := makeMultipleDNSServers(t)
+	defer os.RemoveAll(dir)
+	// Agent is shared, only one shutdown needed.
+	defer servers[0].agent.Shutdown()
+
+	// Let the agent elect a leader
+	testutil.WaitForLeader(t, servers[0].agent.RPC, "dc1")
+
+	// Loop through each server and do the tests for all binds
+	for _, srv := range servers {
+		protocols := []string{"tcp", "udp"}
+		for _, proto := range protocols {
+			time.Sleep(1 * time.Second)
+
+			cases := map[string]string{
+				"7f000001.addr.dc1.consul.": "127.0.0.1",
+			}
+
+			for question, answer := range cases {
+				c := new(dns.Client)
+				c.Net = proto
+				c.DialTimeout = 2 * time.Second
+
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeSRV)
+
+				addr := srv.dnsServer.Addr
+				res, _, err := c.Exchange(m, addr)
+				if err != nil {
+					t.Fatalf("err: %v", err)
+				}
+
+				if len(res.Answer) != 1 {
+					t.Fatalf("Bad: %#v", res)
+				}
+
+				aRec, ok := res.Answer[0].(*dns.A)
+				if !ok {
+					t.Fatalf("Bad: %#v", res.Answer[0])
+				}
+				if aRec.A.To4().String() != answer {
+					t.Fatalf("Bad: %#v", aRec)
+				}
+				if aRec.Hdr.Ttl != 0 {
+					t.Fatalf("Bad: %#v", res.Answer[0])
+				}
+			}
+		}
 	}
 }
 

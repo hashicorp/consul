@@ -498,14 +498,20 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   will attempt to clear the file and create the domain socket in its place. The
   permissions of the socket file are tunable via the [`unix_sockets` config construct](#unix_sockets).
   <br><br>
+  For both the 'http' and 'dns' service, there is support for multiple IP addresses and unix sockets
+  if you want the http interface bound to more than a single, or all (0.0.0.0), interfaces.
+  The format is unique addresses separated by a space. e.g. "127.0.0.1 192.168.0.100". One can also
+  use the template language to list interfaces. See github.com/hashicorp/go-sockaddr/template for
+  details.
+  <br><br>
   When running Consul agent commands against Unix socket interfaces, use the
   `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
   can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
   environment variables.
   <br><br>
-  For TCP addresses, the variable values should be an IP address with the port. For
-  example: `10.0.0.1:8500` and not `10.0.0.1`. However, ports are set separately in the
-  <a href="#ports">`ports`</a> structure when defining them in a configuration file.
+  For TCP addresses, the variable values should be an IP address without a port. For
+  Ports are set separately in the <a href="#ports">`ports`</a> structure when defining
+  them in a configuration file.
   <br><br>
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
