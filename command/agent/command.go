@@ -364,6 +364,12 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
+	// Verify the node metadata entries are valid
+	if err := validateMetadata(config.Meta); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
+		return nil
+	}
+
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
@@ -1081,10 +1087,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
-	if err := c.agent.unloadMetadata(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading metadata: %s", err))
-		return nil, errs
-	}
+	c.agent.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
 	if err := c.agent.loadServices(newConf); err != nil {

@@ -1695,24 +1695,32 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 	}
 }
 
-// loadMetadata loads and validates node metadata fields from the config and
+// loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
 func (a *Agent) loadMetadata(conf *Config) error {
 	a.state.Lock()
 	defer a.state.Unlock()
 
-	if len(conf.Meta) > metaMaxKeyPairs {
-		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
-	}
-
 	for key, value := range conf.Meta {
-		if err := validateMetaPair(key, value); err != nil {
-			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
-		}
 		a.state.metadata[key] = value
 	}
 
 	a.state.changeMade()
+
+	return nil
+}
+
+// validateMeta validates a set of key/value pairs from the agent config
+func validateMetadata(meta map[string]string) error {
+	if len(meta) > metaMaxKeyPairs {
+		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
+	}
+
+	for key, value := range meta {
+		if err := validateMetaPair(key, value); err != nil {
+			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
+		}
+	}
 
 	return nil
 }
@@ -1726,25 +1734,23 @@ func validateMetaPair(key, value string) error {
 		return fmt.Errorf("Key contains invalid characters")
 	}
 	if len(key) > metaKeyMaxLength {
-		return fmt.Errorf("Key is longer than %d chars", metaKeyMaxLength)
+		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
 	}
 	if strings.HasPrefix(key, metaKeyReservedPrefix) {
 		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
 	}
 	if len(value) > metaValueMaxLength {
-		return fmt.Errorf("Value is longer than %d characters", metaValueMaxLength)
+		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
 	}
 	return nil
 }
 
 // unloadMetadata resets the local metadata state
-func (a *Agent) unloadMetadata() error {
+func (a *Agent) unloadMetadata() {
 	a.state.Lock()
 	defer a.state.Unlock()
 
 	a.state.metadata = make(map[string]string)
-
-	return nil
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check

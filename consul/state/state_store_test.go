@@ -759,7 +759,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing with no results returns nil
-	idx, res, err := s.NodesByMeta("somekey", "somevalue")
+	idx, res, err := s.NodesByMeta(map[string]string{"somekey": "somevalue"})
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -775,7 +775,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	// Retrieve the node with role=client
-	idx, nodes, err := s.NodesByMeta("role", "client")
+	idx, nodes, err := s.NodesByMeta(map[string]string{"role": "client"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -800,7 +800,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	// Retrieve both nodes via their common meta field
-	idx, nodes, err = s.NodesByMeta("common", "1")
+	idx, nodes, err = s.NodesByMeta(map[string]string{"common": "1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1160,7 +1160,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing with no results returns nil
-	idx, res, err := s.ServicesByNodeMeta("somekey", "somevalue")
+	idx, res, err := s.ServicesByNodeMeta(map[string]string{"somekey": "somevalue"})
 	if idx != 0 || len(res) != 0 || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1196,7 +1196,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	}
 
 	// Filter the services by the first node's meta value
-	idx, res, err = s.ServicesByNodeMeta("role", "client")
+	idx, res, err = s.ServicesByNodeMeta(map[string]string{"role": "client"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1211,7 +1211,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	}
 
 	// Get all services using the common meta value
-	idx, res, err = s.ServicesByNodeMeta("common", "1")
+	idx, res, err = s.ServicesByNodeMeta(map[string]string{"common": "1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

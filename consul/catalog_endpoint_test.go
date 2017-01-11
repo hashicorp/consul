@@ -599,18 +599,6 @@ func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Filter by a specific meta k/v pair
-	args := structs.DCSpecificRequest{
-		Datacenter:    "dc1",
-		NodeMetaKey:   "somekey",
-		NodeMetaValue: "somevalue",
-	}
-	var out structs.IndexedNodes
-	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add a new node with the right meta k/v pair
@@ -618,6 +606,15 @@ func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
 	if err := s1.fsm.State().EnsureNode(1, node); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Filter by a specific meta k/v pair
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+	var out structs.IndexedNodes
 
 	testutil.WaitForResult(func() (bool, error) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
@@ -639,12 +636,13 @@ func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
 
 	// Now filter on a nonexistent meta k/v pair
 	args = structs.DCSpecificRequest{
-		Datacenter:    "dc1",
-		NodeMetaKey:   "somekey",
-		NodeMetaValue: "invalid",
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "invalid",
+		},
 	}
 	out = structs.IndexedNodes{}
-	err = msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1069,18 +1067,6 @@ func TestCatalog_ListServices_MetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Filter by a specific meta k/v pair
-	args := structs.DCSpecificRequest{
-		Datacenter:    "dc1",
-		NodeMetaKey:   "somekey",
-		NodeMetaValue: "somevalue",
-	}
-	var out structs.IndexedServices
-	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add a new node with the right meta k/v pair
@@ -1093,6 +1079,14 @@ func TestCatalog_ListServices_MetaFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Filter by a specific meta k/v pair
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+	var out structs.IndexedServices
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1112,12 +1106,13 @@ func TestCatalog_ListServices_MetaFilter(t *testing.T) {
 
 	// Now filter on a nonexistent meta k/v pair
 	args = structs.DCSpecificRequest{
-		Datacenter:    "dc1",
-		NodeMetaKey:   "somekey",
-		NodeMetaValue: "invalid",
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "invalid",
+		},
 	}
 	out = structs.IndexedServices{}
-	err = msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

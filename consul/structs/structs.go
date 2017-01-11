@@ -229,10 +229,9 @@ type QuerySource struct {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter    string
-	NodeMetaKey   string
-	NodeMetaValue string
-	Source        QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -287,6 +286,12 @@ type Node struct {
 	RaftIndex
 }
 type Nodes []*Node
+
+// Used for filtering nodes by metadata key/value pairs
+type NodeMetaFilter struct {
+	Key   string
+	Value string
+}
 
 // Used to return information about a provided services.
 // Maps service name to available tags

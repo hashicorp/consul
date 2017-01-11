@@ -342,7 +342,9 @@ type Config struct {
 	// they are configured with TranslateWanAddrs set to true.
 	TaggedAddresses map[string]string
 
-	// Node metadata
+	// Node metadata key/value pairs. These are excluded from JSON output
+	// because they can be reloaded and might be stale when shown from the
+	// config instead of the local state.
 	Meta map[string]string `mapstructure:"node_meta" json:"-"`
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving

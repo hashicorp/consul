@@ -550,7 +550,10 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 }
 
 // NodesByMeta is used to return all nodes with the given meta key/value pair.
-func (s *StateStore) NodesByMeta(key, value string) (uint64, structs.Nodes, error) {
+func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nodes, error) {
+	if len(filters) > 1 {
+		return 0, nil, fmt.Errorf("multiple meta filters not supported")
+	}
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -558,7 +561,11 @@ func (s *StateStore) NodesByMeta(key, value string) (uint64, structs.Nodes, erro
 	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
 
 	// Retrieve all of the nodes
-	nodes, err := tx.Get("nodes", "meta", key, value)
+	var args []interface{}
+	for key, value := range filters {
+		args = append(args, key, value)
+	}
+	nodes, err := tx.Get("nodes", "meta", args...)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -781,8 +788,11 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	return idx, results, nil
 }
 
-// Services returns all services, filtered by given node metadata.
-func (s *StateStore) ServicesByNodeMeta(key, value string) (uint64, structs.Services, error) {
+// Services returns all services, filtered by the given node metadata.
+func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, structs.Services, error) {
+	if len(filters) > 1 {
+		return 0, nil, fmt.Errorf("multiple meta filters not supported")
+	}
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -790,7 +800,11 @@ func (s *StateStore) ServicesByNodeMeta(key, value string) (uint64, structs.Serv
 	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
 
 	// Retrieve all of the nodes with the meta k/v pair
-	nodes, err := tx.Get("nodes", "meta", key, value)
+	var args []interface{}
+	for key, value := range filters {
+		args = append(args, key, value)
+	}
+	nodes, err := tx.Get("nodes", "meta", args...)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}

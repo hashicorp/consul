@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/raft"
+	"strings"
 )
 
 const (
@@ -1852,69 +1853,64 @@ func TestAgent_purgeCheckState(t *testing.T) {
 }
 
 func TestAgent_metadata(t *testing.T) {
-	config := nextConfig()
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
 	// Load a valid set of key/value pairs
-	config.Meta = map[string]string{
+	meta := map[string]string{
 		"key1": "value1",
 		"key2": "value2",
 	}
 	// Should succeed
-	if err := agent.loadMetadata(config); err != nil {
+	if err := validateMetadata(meta); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	agent.unloadMetadata()
 
 	// Should get error
-	config.Meta = map[string]string{
+	meta = map[string]string{
 		"": "value1",
 	}
-	if err := agent.loadMetadata(config); err == nil {
+	if err := validateMetadata(meta); !strings.Contains(err.Error(), "Couldn't load metadata pair") {
 		t.Fatalf("should have failed")
 	}
-	agent.unloadMetadata()
 
 	// Should get error
-	tooManyKeys := make(map[string]string)
+	meta = make(map[string]string)
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
-		tooManyKeys[string(i)] = "value"
+		meta[string(i)] = "value"
 	}
-	if err := agent.loadMetadata(config); err == nil {
+	if err := validateMetadata(meta); !strings.Contains(err.Error(), "cannot contain more than") {
 		t.Fatalf("should have failed")
 	}
 }
 
 func TestAgent_validateMetaPair(t *testing.T) {
-	longKey := fmt.Sprintf(fmt.Sprintf("%%%ds", metaKeyMaxLength+1), "")
-	longValue := fmt.Sprintf(fmt.Sprintf("%%%ds", metaValueMaxLength+1), "")
+	longKey := strings.Repeat("a", metaKeyMaxLength+1)
+	longValue := strings.Repeat("b", metaValueMaxLength+1)
 	pairs := []struct {
-		Key     string
-		Value   string
-		Success bool
+		Key   string
+		Value string
+		Error string
 	}{
 		// valid pair
-		{"key", "value", true},
+		{"key", "value", ""},
 		// invalid, blank key
-		{"", "value", false},
+		{"", "value", "cannot be blank"},
 		// allowed special chars in key name
-		{"k_e-y", "value", true},
+		{"k_e-y", "value", ""},
 		// disallowed special chars in key name
-		{"(%key&)", "value", false},
+		{"(%key&)", "value", "invalid characters"},
 		// key too long
-		{longKey, "value", false},
+		{longKey, "value", "Key is too long"},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", false},
+		{metaKeyReservedPrefix + "key", "value", "reserved for internal use"},
 		// value too long
-		{"key", longValue, false},
+		{"key", longValue, "Value is too long"},
 	}
 
 	for _, pair := range pairs {
 		err := validateMetaPair(pair.Key, pair.Value)
-		if pair.Success != (err == nil) {
-			t.Fatalf("bad: %v, %v", pair, err)
+		if pair.Error == "" && err != nil {
+			t.Fatalf("should have succeeded: %v, %v", pair, err)
+		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {
+			t.Fatalf("should have failed: %v, %v", pair, err)
 		}
 	}
 }

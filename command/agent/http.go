@@ -586,14 +586,20 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 
 // parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
 // filtering results to nodes with the given metadata key/value
-func (s *HTTPServer) parseMetaFilter(req *http.Request, key *string, value *string) {
-	if filter, ok := req.URL.Query()["node-meta"]; ok && len(filter) > 0 {
-		pair := strings.SplitN(filter[0], ":", 2)
-		*key = pair[0]
-		if len(pair) == 2 {
-			*value = pair[1]
+func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
+	if filterList, ok := req.URL.Query()["node-meta"]; ok {
+		filters := make(map[string]string)
+		for _, filter := range filterList {
+			pair := strings.SplitN(filter, ":", 2)
+			if len(pair) == 2 {
+				filters[pair[0]] = pair[1]
+			} else {
+				filters[pair[0]] = ""
+			}
 		}
+		return filters
 	}
+	return nil
 }
 
 // parse is a convenience method for endpoints that need

@@ -166,8 +166,8 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			var index uint64
 			var nodes structs.Nodes
 			var err error
-			if args.NodeMetaKey != "" {
-				index, nodes, err = state.NodesByMeta(args.NodeMetaKey, args.NodeMetaValue)
+			if len(args.NodeMetaFilters) > 0 {
+				index, nodes, err = state.NodesByMeta(args.NodeMetaFilters)
 			} else {
 				index, nodes, err = state.Nodes()
 			}
@@ -199,8 +199,8 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			var index uint64
 			var services structs.Services
 			var err error
-			if args.NodeMetaKey != "" {
-				index, services, err = state.ServicesByNodeMeta(args.NodeMetaKey, args.NodeMetaValue)
+			if len(args.NodeMetaFilters) > 0 {
+				index, services, err = state.ServicesByNodeMeta(args.NodeMetaFilters)
 			} else {
 				index, services, err = state.Services()
 			}
