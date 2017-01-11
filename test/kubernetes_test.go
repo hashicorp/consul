@@ -195,6 +195,18 @@ var dnsTestCases = []test.Case{
 		Answer: []dns.RR{},
 	},
 	{
+		Qname: "10-20-0-101.test-1.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("10-20-0-101.test-1.pod.cluster.local. 0 IN A    10.20.0.101"),
+		},
+	},
+	{
+		Qname: "10-20-0-101.test-X.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+	},
+	{
 		Qname: "123.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Rcode:  dns.RcodeSuccess,
 		Answer: []dns.RR{},
@@ -238,6 +250,7 @@ func TestKubernetesIntegration(t *testing.T) {
 		#tls admin.pem admin-key.pem ca.pem
 		#tls k8s_auth/client2.crt k8s_auth/client2.key k8s_auth/ca2.crt
 		namespaces test-1
+		pods insecure
     }
 `
 	server, udp := createTestServer(t, corefile)

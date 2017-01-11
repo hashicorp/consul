@@ -54,6 +54,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 	k8s := &Kubernetes{ResyncPeriod: defaultResyncPeriod}
 	k8s.NameTemplate = new(nametemplate.Template)
 	k8s.NameTemplate.SetTemplate(defaultNameTemplate)
+	k8s.PodMode = PodModeDisabled
 
 	for c.Next() {
 		if c.Val() == "kubernetes" {
@@ -86,6 +87,19 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 
 			for c.NextBlock() {
 				switch c.Val() {
+				case "pods":
+					args := c.RemainingArgs()
+					if len(args) == 1 {
+						switch args[0] {
+						case PodModeDisabled, PodModeInsecure:
+							k8s.PodMode = args[0]
+						default:
+							return nil, errors.New("pods must be one of: disabled, insecure")
+						}
+						continue
+					}
+					return nil, c.ArgErr()
+
 				case "template":
 					args := c.RemainingArgs()
 					if len(args) > 0 {
@@ -152,4 +166,5 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 const (
 	defaultNameTemplate = "{service}.{namespace}.{type}.{zone}"
 	defaultResyncPeriod = 5 * time.Minute
+	defaultPodMode      = PodModeDisabled
 )

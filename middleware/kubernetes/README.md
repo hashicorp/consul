@@ -43,21 +43,36 @@ This is the default kubernetes setup, with everything specified in full:
         # Kubernetes data API resync period
         # Example values: 60s, 5m, 1h
         resyncperiod 5m
+		
         # Use url for k8s API endpoint
         endpoint https://k8sendpoint:8080
+		
         # The tls cert, key and the CA cert filenames
         tls cert key cacert
+		
         # Assemble k8s record names with the template
         template {service}.{namespace}.{type}.{zone}
+		
         # Only expose the k8s namespace "demo"
         namespaces demo
+		
         # Only expose the records for kubernetes objects
         # that match this label selector. The label
         # selector syntax is described in the kubernetes
         # API documentation: http://kubernetes.io/docs/user-guide/labels/
         # Example selector below only exposes objects tagged as
         # "application=nginx" in the staging or qa environments.
-        labels environment in (staging, qa),application=nginx
+        #labels environment in (staging, qa),application=nginx
+		
+		# The mode of responding to pod A record requests. 
+		# e.g 1-2-3-4.ns.pod.zone.  This option is provided to allow use of
+		# SSL certs when connecting directly to pods.
+		# Valid values: disabled, verified, insecure
+		#  disabled: default. ignore pod requests, always returning NXDOMAIN
+		#  insecure: Always return an A record with IP from request (without 
+		#            checking k8s).  This option is is vulnerable to abuse if
+		# 	         used maliciously in conjuction with wildcard SSL certs.
+		pods disabled
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is specified by an integer in seconds
@@ -72,6 +87,7 @@ Defaults:
 * The `labels` keyword is only used when filtering results based on kubernetes label selector syntax
   is required. The label selector syntax is described in the kubernetes API documentation at:
   http://kubernetes.io/docs/user-guide/labels/
+* If the `pods` keyword is omitted, all pod type requests will result in NXDOMAIN
 
 ### Template Syntax
 Record name templates can be constructed using the symbolic elements:

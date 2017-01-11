@@ -42,7 +42,13 @@ type Kubernetes struct {
 	Namespaces    []string
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
+	PodMode       string
 }
+
+const (
+	PodModeDisabled = "disabled" // default. pod requests are ignored
+	PodModeInsecure = "insecure" // ALL pod requests are answered without verfying they exist
+)
 
 type endpoint struct {
 	addr api.EndpointAddress
@@ -55,6 +61,12 @@ type service struct {
 	addr      string
 	ports     []api.ServicePort
 	endpoints []endpoint
+}
+
+type pod struct {
+	name      string
+	namespace string
+	addr      string
 }
 
 var errNoItems = errors.New("no items found")
@@ -221,12 +233,9 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		return nil, errNoItems
 	}
 
-	// TODO: Implementation above globbed together segments for the serviceName if
-	//       multiple segments remained. Determine how to do similar globbing using
-	//		 the template-based implementation.
-	namespace = k.NameTemplate.NamespaceFromSegmentArray(serviceSegments)
-	serviceName = k.NameTemplate.ServiceFromSegmentArray(serviceSegments)
-	typeName = k.NameTemplate.TypeFromSegmentArray(serviceSegments)
+	serviceName = serviceSegments[0]
+	namespace = serviceSegments[1]
+	typeName = serviceSegments[2]
 
 	if namespace == "" {
 		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
@@ -246,16 +255,16 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		return nil, errNsNotExposed
 	}
 
-	k8sItems, err := k.Get(namespace, serviceName, endpointname, port, protocol, typeName)
+	services, pods, err := k.Get(namespace, serviceName, endpointname, port, protocol, typeName)
 	if err != nil {
 		return nil, err
 	}
-	if len(k8sItems) == 0 {
+	if len(services) == 0 && len(pods) == 0 {
 		// Did not find item in k8s
 		return nil, errNoItems
 	}
 
-	records := k.getRecordsForServiceItems(k8sItems, zone)
+	records := k.getRecordsForK8sItems(services, pods, zone)
 	return records, nil
 }
 
@@ -272,10 +281,10 @@ func endpointHostname(addr api.EndpointAddress) string {
 	return ""
 }
 
-func (k *Kubernetes) getRecordsForServiceItems(serviceItems []service, zone string) []msg.Service {
+func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, zone string) []msg.Service {
 	var records []msg.Service
 
-	for _, svc := range serviceItems {
+	for _, svc := range services {
 
 		key := svc.name + "." + svc.namespace + ".svc." + zone
 
@@ -299,20 +308,61 @@ func (k *Kubernetes) getRecordsForServiceItems(serviceItems []service, zone stri
 		}
 	}
 
+	for _, p := range pods {
+		key := p.name + "." + p.namespace + ".pod." + zone
+		s := msg.Service{
+			Key:  msg.Path(strings.ToLower(key), "coredns"),
+			Host: p.addr,
+		}
+		records = append(records, s)
+	}
+
 	return records
 }
 
-// Get performs the call to the Kubernetes http API.
-func (k *Kubernetes) Get(namespace, servicename, endpointname, port, protocol, typeName string) (services []service, err error) {
+// Get retrieves matching data from the cache.
+func (k *Kubernetes) Get(namespace, servicename, endpointname, port, protocol, typeName string) (services []service, pods []pod, err error) {
 	switch {
 	case typeName == "pod":
-		return nil, fmt.Errorf("%v not implemented", typeName)
+		pods, err = k.findPods(namespace, servicename)
+		return nil, pods, err
 	default:
-		return k.getServices(namespace, servicename, endpointname, port, protocol)
+		services, err = k.findServices(namespace, servicename, endpointname, port, protocol)
+		return services, nil, err
 	}
 }
 
-func (k *Kubernetes) getServices(namespace, servicename, endpointname, port, protocol string) ([]service, error) {
+func ipFromPodName(podname string) string {
+	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
+		return strings.Replace(podname, "-", ".", -1)
+	}
+	return strings.Replace(podname, "-", ":", -1)
+}
+
+func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error) {
+	if k.PodMode == PodModeDisabled {
+		return pods, nil
+	}
+
+	var ip string
+	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
+		ip = strings.Replace(podname, "-", ".", -1)
+	} else {
+		ip = strings.Replace(podname, "-", ":", -1)
+	}
+
+	if k.PodMode == PodModeInsecure {
+		s := pod{name: podname, namespace: namespace, addr: ip}
+		pods = append(pods, s)
+		return pods, nil
+	}
+
+	// TODO: implement cache verified pod responses
+	return pods, nil
+
+}
+
+func (k *Kubernetes) findServices(namespace, servicename, endpointname, port, protocol string) ([]service, error) {
 	serviceList := k.APIConn.ServiceList()
 
 	var resultItems []service
