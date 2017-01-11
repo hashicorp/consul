@@ -191,6 +191,10 @@ the node list in ascending order based on the estimated round trip
 time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
 
+Adding the optional `?node-meta=` parameter with a desired node
+metadata key/value pair of the form `key:value` will filter the
+results to nodes with that pair present.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -221,6 +225,10 @@ This endpoint supports blocking queries and all consistency modes.
 This endpoint is hit with a `GET` and returns the services registered
 in a given DC. By default, the datacenter of the agent is queried;
 however, the `dc` can be provided using the `?dc=` query parameter.
+
+Adding the optional `?node-meta=` parameter with a desired node
+metadata key/value pair of the form `key:value` will filter the
+results to services with that pair present.
 
 It returns a JSON body like this:
 
