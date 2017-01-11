@@ -251,9 +251,9 @@ will exit with an error at startup.
 * <a name="_node"></a><a href="#_node">`-node`</a> - The name of this node in the cluster.
   This must be unique within the cluster. By default this is the hostname of the machine.
 
-* <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - An arbitrary metadata key/value pair
-  to associate with the node, of the form `key:value`. This can be specified multiple times. Node metadata
-  pairs have the following restrictions:
+* <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,
+  this specifies an arbitrary metadata key/value pair to associate with the node, of the form `key:value`.
+  This can be specified multiple times. Node metadata pairs have the following restrictions:
   - A maximum of 64 key/value pairs can be registered per node.
   - Metadata keys must be between 1 and 128 characters (inclusive) in length
   - Metadata keys must contain only alphanumeric, `-`, and `_` characters.
@@ -667,9 +667,18 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="node_name"></a><a href="#node_name">`node_name`</a> Equivalent to the
   [`-node` command-line flag](#_node).
 
-* <a name="node_meta"></a><a href="#node_meta">`node_meta`</a> This object allows associating arbitrary
-  metadata key/value pairs with the local node, which can then be used for filtering results from certain
-  catalog endpoints. See the [`-node-meta` command-line flag](#_node_meta) for more information.
+* <a name="node_meta"></a><a href="#node_meta">`node_meta`</a> Available in Consul 0.7.3 and later,
+  This object allows associating arbitrary metadata key/value pairs with the local node, which can
+  then be used for filtering results from certain catalog endpoints. See the
+  [`-node-meta` command-line flag](#_node_meta) for more information.
+
+    ```javascript
+      {
+        "node_meta": {
+            "instance_type": "t2.medium"
+        }
+      }
+    ```
 
 * <a name="performance"></a><a href="#performance">`performance`</a> Available in Consul 0.7 and
   later, this is a nested object that allows tuning the performance of different subsystems in

@@ -53,6 +53,7 @@ type TestAddressConfig struct {
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName          string                 `json:"node_name"`
+	NodeMeta          map[string]string      `json:"node_meta"`
 	Performance       *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap         bool                   `json:"bootstrap,omitempty"`
 	Server            bool                   `json:"server,omitempty"`
