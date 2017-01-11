@@ -1710,6 +1710,16 @@ func (a *Agent) loadMetadata(conf *Config) error {
 	return nil
 }
 
+// parseMetaPair parses a key/value pair of the form key:value
+func parseMetaPair(raw string) (string, string) {
+	pair := strings.SplitN(raw, ":", 2)
+	if len(pair) == 2 {
+		return pair[0], pair[1]
+	} else {
+		return pair[0], ""
+	}
+}
+
 // validateMeta validates a set of key/value pairs from the agent config
 func validateMetadata(meta map[string]string) error {
 	if len(meta) > metaMaxKeyPairs {

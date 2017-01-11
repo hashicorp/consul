@@ -73,12 +73,14 @@ func (c *Command) readConfig() *Config {
 	var dnsRecursors []string
 	var dev bool
 	var dcDeprecated string
+	var nodeMeta []string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
 	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
+	cmdFlags.Var((*AppendSliceValue)(&nodeMeta), "node-meta", "arbitrary metadata key/value pair")
 	cmdFlags.BoolVar(&dev, "dev", false, "development server mode")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
@@ -159,6 +161,14 @@ func (c *Command) readConfig() *Config {
 			return nil
 		}
 		cmdConfig.RetryIntervalWan = dur
+	}
+
+	if len(nodeMeta) > 0 {
+		cmdConfig.Meta = make(map[string]string)
+		for _, entry := range nodeMeta {
+			key, value := parseMetaPair(entry)
+			cmdConfig.Meta[key] = value
+		}
 	}
 
 	var config *Config
@@ -1242,6 +1252,8 @@ Options:
                             will retry indefinitely.
   -log-level=info           Log level of the agent.
   -node=hostname            Name of this node. Must be unique in the cluster
+  -node-meta=key:value      An arbitrary metadata key/value pair for this node.
+                            This can be specified multiple times.
   -protocol=N               Sets the protocol version. Defaults to latest.
   -rejoin                   Ignores a previous leave and attempts to rejoin the cluster.
   -server                   Switches agent to server mode.

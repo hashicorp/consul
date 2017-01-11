@@ -287,12 +287,6 @@ type Node struct {
 }
 type Nodes []*Node
 
-// Used for filtering nodes by metadata key/value pairs
-type NodeMetaFilter struct {
-	Key   string
-	Value string
-}
-
 // Used to return information about a provided services.
 // Maps service name to available tags
 type Services map[string][]string
