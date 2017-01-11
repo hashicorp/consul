@@ -83,8 +83,14 @@ func (c *client) exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
 
 	dnsco := &dns.Conn{Conn: co, UDPSize: udpsize}
 
+	writeDeadline := time.Now().Add(defaultTimeout)
+	dnsco.SetWriteDeadline(writeDeadline)
 	dnsco.WriteMsg(m)
+
+	readDeadline := time.Now().Add(defaultTimeout)
+	co.SetReadDeadline(readDeadline)
 	r, err := dnsco.ReadMsg()
+
 	dnsco.Close()
 	if r == nil {
 		return dns.Msg{}, err
