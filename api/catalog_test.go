@@ -99,7 +99,7 @@ func TestCatalog_Nodes_MetaFilter(t *testing.T) {
 
 	// Get nothing back when we use an invalid filter
 	testutil.WaitForResult(func() (bool, error) {
-		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: map[string]string{"nope":"nope"}})
+		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
 		if err != nil {
 			return false, err
 		}
@@ -176,7 +176,7 @@ func TestCatalog_Services_NodeMetaFilter(t *testing.T) {
 
 	// Get nothing back when using an invalid filter
 	testutil.WaitForResult(func() (bool, error) {
-		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"nope":"nope"}})
+		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
 		if err != nil {
 			return false, err
 		}
