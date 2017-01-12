@@ -3,6 +3,7 @@
 FEATURES:
 
 * **KV Import/Export CLI:** `consul kv export` and `consul kv import` can be used to move parts of the KV tree between disconnected consul clusters, using JSON as the intermediate representation. [GH-2633]
+* **Node Metadata:** Support for assigning user-defined metadata key/value pairs to nodes has been added. This can be viewed when looking up node info, and can be used to filter the results of the `/v1/catalog/nodes` or `/v1/catalog/services` endpoints. For more information, see the [Node Meta](https://www.consul.io/docs/agent/options.html#_node_meta) section of the agent configuration. [GH-154]
 
 IMPROVEMENTS:
 
