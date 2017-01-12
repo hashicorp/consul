@@ -241,13 +241,13 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
 		s.handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 	} else {
-		s.handleFuncMetrics("/v1/acl/create", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/update", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/info/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/list", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/replication", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/info/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
 	}
 	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
 	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
@@ -582,6 +582,20 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 			source.Node = node
 		}
 	}
+}
+
+// parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
+// filtering results to nodes with the given metadata key/value
+func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
+	if filterList, ok := req.URL.Query()["node-meta"]; ok {
+		filters := make(map[string]string)
+		for _, filter := range filterList {
+			key, value := parseMetaPair(filter)
+			filters[key] = value
+		}
+		return filters
+	}
+	return nil
 }
 
 // parse is a convenience method for endpoints that need

@@ -42,11 +42,26 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+
+	// The meta key prefix reserved for Consul's internal use
+	metaKeyReservedPrefix = "consul-"
+
+	// The maximum number of metadata key pairs allowed to be registered
+	metaMaxKeyPairs = 64
+
+	// The maximum allowed length of a metadata key
+	metaKeyMaxLength = 128
+
+	// The maximum allowed length of a metadata value
+	metaValueMaxLength = 512
 )
 
 var (
 	// dnsNameRe checks if a name or tag is dns-compatible.
 	dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
+
+	// metaKeyFormat checks if a metadata key string is valid
+	metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
 )
 
 /*
@@ -73,6 +88,9 @@ type Agent struct {
 	// on our configuration
 	server *consul.Server
 	client *consul.Client
+
+	// acls is an object that helps manage local ACL enforcement.
+	acls *aclManager
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -211,11 +229,17 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		return nil, err
 	}
 
+	// Initialize the ACL manager.
+	acls, err := newACLManager(config)
+	if err != nil {
+		return nil, err
+	}
+	agent.acls = acls
+
 	// Initialize the local state.
 	agent.state.Init(config, agent.logger)
 
 	// Setup either the client or the server.
-	var err error
 	if config.Server {
 		err = agent.setupServer()
 		agent.state.SetIface(agent.server)
@@ -227,7 +251,8 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 			Port:    agent.config.Ports.Server,
 			Tags:    []string{},
 		}
-		agent.state.AddService(&consulService, "")
+
+		agent.state.AddService(&consulService, agent.config.GetTokenForAgent())
 	} else {
 		err = agent.setupClient()
 		agent.state.SetIface(agent.client)
@@ -236,11 +261,14 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		return nil, err
 	}
 
-	// Load checks/services.
+	// Load checks/services/metadata.
 	if err := agent.loadServices(config); err != nil {
 		return nil, err
 	}
 	if err := agent.loadChecks(config); err != nil {
+		return nil, err
+	}
+	if err := agent.loadMetadata(config); err != nil {
 		return nil, err
 	}
 
@@ -363,6 +391,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ACLToken != "" {
 		base.ACLToken = a.config.ACLToken
 	}
+	if a.config.ACLAgentToken != "" {
+		base.ACLAgentToken = a.config.ACLAgentToken
+	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
 	}
@@ -380,6 +411,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.ACLReplicationToken != "" {
 		base.ACLReplicationToken = a.config.ACLReplicationToken
+	}
+	if a.config.ACLEnforceVersion8 != nil {
+		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
 	}
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin
@@ -811,14 +845,11 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
-			// TODO - Consider adding a distance check so we don't send
-			// an update if the position hasn't changed by more than a
-			// threshold.
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
 				Coord:        c,
-				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
+				WriteRequest: structs.WriteRequest{Token: a.config.GetTokenForAgent()},
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
@@ -1662,6 +1693,74 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 	for id, check := range snap {
 		a.state.UpdateCheck(id, check.Status, check.Output)
 	}
+}
+
+// loadMetadata loads node metadata fields from the agent config and
+// updates them on the local agent.
+func (a *Agent) loadMetadata(conf *Config) error {
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	for key, value := range conf.Meta {
+		a.state.metadata[key] = value
+	}
+
+	a.state.changeMade()
+
+	return nil
+}
+
+// parseMetaPair parses a key/value pair of the form key:value
+func parseMetaPair(raw string) (string, string) {
+	pair := strings.SplitN(raw, ":", 2)
+	if len(pair) == 2 {
+		return pair[0], pair[1]
+	} else {
+		return pair[0], ""
+	}
+}
+
+// validateMeta validates a set of key/value pairs from the agent config
+func validateMetadata(meta map[string]string) error {
+	if len(meta) > metaMaxKeyPairs {
+		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
+	}
+
+	for key, value := range meta {
+		if err := validateMetaPair(key, value); err != nil {
+			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
+		}
+	}
+
+	return nil
+}
+
+// validateMetaPair checks that the given key/value pair is in a valid format
+func validateMetaPair(key, value string) error {
+	if key == "" {
+		return fmt.Errorf("Key cannot be blank")
+	}
+	if !metaKeyFormat(key) {
+		return fmt.Errorf("Key contains invalid characters")
+	}
+	if len(key) > metaKeyMaxLength {
+		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
+	}
+	if strings.HasPrefix(key, metaKeyReservedPrefix) {
+		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+	}
+	if len(value) > metaValueMaxLength {
+		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
+	}
+	return nil
+}
+
+// unloadMetadata resets the local metadata state
+func (a *Agent) unloadMetadata() {
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	a.state.metadata = make(map[string]string)
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check

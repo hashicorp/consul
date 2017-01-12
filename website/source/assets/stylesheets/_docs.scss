@@ -200,8 +200,15 @@ body.layout-intro{
     text-decoration: none;
   }
 
-  pre{
+  pre {
     margin: 0 0 18px;
+
+    // This will force the code to scroll horizontally on small screens
+    // instead of wrapping.
+    code {
+      overflow-wrap: normal;
+      white-space: pre;
+    }
   }
 
   a{

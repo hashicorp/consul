@@ -281,6 +281,19 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Node metadata fields
+	input = `{"node_meta": {"thing1": "1", "thing2": "2"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if v, ok := config.Meta["thing1"]; !ok || v != "1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if v, ok := config.Meta["thing2"]; !ok || v != "2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// leave_on_terminate
 	input = `{"leave_on_terminate": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -643,7 +656,8 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// ACLs
-	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
+	input = `{"acl_token": "1111", "acl_agent_master_token": "2222",
+	"acl_agent_token": "3333", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
 	"acl_default_policy": "deny", "acl_master_token": "2345",
 	"acl_replication_token": "8675309"}`
@@ -652,7 +666,13 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.ACLToken != "1234" {
+	if config.ACLToken != "1111" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentMasterToken != "2222" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentToken != "3333" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLMasterToken != "2345" {
@@ -671,6 +691,48 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLReplicationToken != "8675309" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// ACL token precedence.
+	input = `{}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "hello" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_agent_token": "world", "acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "world" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// ACL flag for Consul version 0.8 features (broken out since we will
+	// eventually remove this). We first verify this is opt-out.
+	config = DefaultConfig()
+	if *config.ACLEnforceVersion8 != false {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	input = `{"acl_enforce_version_8": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if *config.ACLEnforceVersion8 != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1496,6 +1558,9 @@ func TestMergeConfig(t *testing.T) {
 			DogStatsdAddr:   "nope",
 			DogStatsdTags:   []string{"nope"},
 		},
+		Meta: map[string]string{
+			"key": "value1",
+		},
 	}
 
 	b := &Config{
@@ -1570,14 +1635,17 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutWan:    36 * time.Hour,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
-		ACLToken:               "1234",
-		ACLMasterToken:         "2345",
+		ACLToken:               "1111",
+		ACLAgentMasterToken:    "2222",
+		ACLAgentToken:          "3333",
+		ACLMasterToken:         "4444",
 		ACLDatacenter:          "dc2",
 		ACLTTL:                 15 * time.Second,
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
 		ACLReplicationToken:    "8765309",
+		ACLEnforceVersion8:     Bool(true),
 		Watches: []map[string]interface{}{
 			map[string]interface{}{
 				"type":    "keyprefix",
@@ -1593,6 +1661,9 @@ func TestMergeConfig(t *testing.T) {
 			DisableHostname: true,
 			DogStatsdAddr:   "127.0.0.1:7254",
 			DogStatsdTags:   []string{"tag_1:val_1", "tag_2:val_2"},
+		},
+		Meta: map[string]string{
+			"key": "value2",
 		},
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,

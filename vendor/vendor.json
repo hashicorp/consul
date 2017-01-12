@@ -436,10 +436,10 @@
 			"revisionTime": "2016-06-09T02:05:29Z"
 		},
 		{
-			"checksumSHA1": "/V57CyN7x2NUlHoOzVL5GgGXX84=",
+			"checksumSHA1": "ZpTDFeRvXFwIvSHRD8eDYHxaj4Y=",
 			"path": "github.com/hashicorp/go-memdb",
-			"revision": "98f52f52d7a476958fa9da671354d270c50661a7",
-			"revisionTime": "2016-03-01T23:01:42Z"
+			"revision": "d2d2b77acab85aa635614ac17ea865969f56009e",
+			"revisionTime": "2017-01-07T16:22:14Z"
 		},
 		{
 			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
@@ -568,10 +568,10 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "AY1/cRsuWpoJMG0J821TqFo9nDE=",
+			"checksumSHA1": "hSoH77pX3FyU6kkYqOOYmf3r55Y=",
 			"path": "github.com/hashicorp/memberlist",
-			"revision": "0c5ba075f8520c65572f001331a1a43b756e01d7",
-			"revisionTime": "2016-08-12T18:27:57Z"
+			"revision": "9800c50ab79c002353852a9b1095e9591b161513",
+			"revisionTime": "2016-12-13T23:44:46Z"
 		},
 		{
 			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",

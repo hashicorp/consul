@@ -16,12 +16,26 @@ const (
 // an ACL configuration.
 type Policy struct {
 	ID              string                 `hcl:"-"`
+	Agents          []*AgentPolicy         `hcl:"agent,expand"`
 	Keys            []*KeyPolicy           `hcl:"key,expand"`
+	Nodes           []*NodePolicy          `hcl:"node,expand"`
 	Services        []*ServicePolicy       `hcl:"service,expand"`
+	Sessions        []*SessionPolicy       `hcl:"session,expand"`
 	Events          []*EventPolicy         `hcl:"event,expand"`
 	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
 	Keyring         string                 `hcl:"keyring"`
 	Operator        string                 `hcl:"operator"`
+}
+
+// AgentPolicy represents a policy for working with agent endpoints on nodes
+// with specific name prefixes.
+type AgentPolicy struct {
+	Node   string `hcl:",key"`
+	Policy string
+}
+
+func (a *AgentPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *a)
 }
 
 // KeyPolicy represents a policy for a key
@@ -34,14 +48,35 @@ func (k *KeyPolicy) GoString() string {
 	return fmt.Sprintf("%#v", *k)
 }
 
+// NodePolicy represents a policy for a node
+type NodePolicy struct {
+	Name   string `hcl:",key"`
+	Policy string
+}
+
+func (n *NodePolicy) GoString() string {
+	return fmt.Sprintf("%#v", *n)
+}
+
 // ServicePolicy represents a policy for a service
 type ServicePolicy struct {
 	Name   string `hcl:",key"`
 	Policy string
 }
 
-func (k *ServicePolicy) GoString() string {
-	return fmt.Sprintf("%#v", *k)
+func (s *ServicePolicy) GoString() string {
+	return fmt.Sprintf("%#v", *s)
+}
+
+// SessionPolicy represents a policy for making sessions tied to specific node
+// name prefixes.
+type SessionPolicy struct {
+	Node   string `hcl:",key"`
+	Policy string
+}
+
+func (s *SessionPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *s)
 }
 
 // EventPolicy represents a user event policy.
@@ -60,8 +95,8 @@ type PreparedQueryPolicy struct {
 	Policy string
 }
 
-func (e *PreparedQueryPolicy) GoString() string {
-	return fmt.Sprintf("%#v", *e)
+func (p *PreparedQueryPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *p)
 }
 
 // isPolicyValid makes sure the given string matches one of the valid policies.
@@ -93,6 +128,13 @@ func Parse(rules string) (*Policy, error) {
 		return nil, fmt.Errorf("Failed to parse ACL rules: %v", err)
 	}
 
+	// Validate the agent policy
+	for _, ap := range p.Agents {
+		if !isPolicyValid(ap.Policy) {
+			return nil, fmt.Errorf("Invalid agent policy: %#v", ap)
+		}
+	}
+
 	// Validate the key policy
 	for _, kp := range p.Keys {
 		if !isPolicyValid(kp.Policy) {
@@ -100,10 +142,24 @@ func Parse(rules string) (*Policy, error) {
 		}
 	}
 
-	// Validate the service policy
+	// Validate the node policies
+	for _, np := range p.Nodes {
+		if !isPolicyValid(np.Policy) {
+			return nil, fmt.Errorf("Invalid node policy: %#v", np)
+		}
+	}
+
+	// Validate the service policies
 	for _, sp := range p.Services {
 		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+	}
+
+	// Validate the session policies
+	for _, sp := range p.Sessions {
+		if !isPolicyValid(sp.Policy) {
+			return nil, fmt.Errorf("Invalid session policy: %#v", sp)
 		}
 	}
 

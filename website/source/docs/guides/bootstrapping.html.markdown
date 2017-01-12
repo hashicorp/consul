@@ -26,7 +26,7 @@ or specify no value at all. Only servers that specify a value will attempt to bo
 
 We recommend 3 or 5 total servers per datacenter. A single server deployment is _**highly**_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
-[deployment table](/docs/internals/consensus.html#toc_4) for more detail.
+[deployment table](/docs/internals/consensus.html#deployment-table) for more detail.
 
 Suppose we are starting a 3 server cluster. We can start `Node A`, `Node B`, and `Node C` with each
 providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should see a message like:

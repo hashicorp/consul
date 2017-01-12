@@ -131,6 +131,9 @@ It returns a JSON body like this:
       "TaggedAddresses": {
         "lan": "10.1.10.12",
         "wan": "10.1.10.12"
+      },
+      "Meta": {
+        "instance_type": "t2.medium"
       }
     },
     "Service": {

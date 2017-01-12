@@ -8,6 +8,21 @@ import (
 
 func TestACLPolicy_Parse_HCL(t *testing.T) {
 	inp := `
+agent "foo" {
+	policy = "read"
+}
+agent "bar" {
+	policy = "write"
+}
+event "" {
+	policy = "read"
+}
+event "foo" {
+	policy = "write"
+}
+event "bar" {
+	policy = "deny"
+}
 key "" {
 	policy = "read"
 }
@@ -20,19 +35,27 @@ key "foo/bar/" {
 key "foo/bar/baz" {
 	policy = "deny"
 }
+keyring = "deny"
+node "" {
+	policy = "read"
+}
+node "foo" {
+	policy = "write"
+}
+node "bar" {
+	policy = "deny"
+}
+operator = "deny"
 service "" {
 	policy = "write"
 }
 service "foo" {
 	policy = "read"
 }
-event "" {
-	policy = "read"
-}
-event "foo" {
+session "foo" {
 	policy = "write"
 }
-event "bar" {
+session "bar" {
 	policy = "deny"
 }
 query "" {
@@ -44,10 +67,33 @@ query "foo" {
 query "bar" {
 	policy = "deny"
 }
-keyring = "deny"
-operator = "deny"
 	`
 	exp := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "foo",
+				Policy: PolicyRead,
+			},
+			&AgentPolicy{
+				Node:   "bar",
+				Policy: PolicyWrite,
+			},
+		},
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: PolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: PolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Keyring: PolicyDeny,
 		Keys: []*KeyPolicy{
 			&KeyPolicy{
 				Prefix: "",
@@ -66,30 +112,21 @@ operator = "deny"
 				Policy: PolicyDeny,
 			},
 		},
-		Services: []*ServicePolicy{
-			&ServicePolicy{
+		Nodes: []*NodePolicy{
+			&NodePolicy{
 				Name:   "",
-				Policy: PolicyWrite,
+				Policy: PolicyRead,
 			},
-			&ServicePolicy{
+			&NodePolicy{
 				Name:   "foo",
-				Policy: PolicyRead,
-			},
-		},
-		Events: []*EventPolicy{
-			&EventPolicy{
-				Event:  "",
-				Policy: PolicyRead,
-			},
-			&EventPolicy{
-				Event:  "foo",
 				Policy: PolicyWrite,
 			},
-			&EventPolicy{
-				Event:  "bar",
+			&NodePolicy{
+				Name:   "bar",
 				Policy: PolicyDeny,
 			},
 		},
+		Operator: PolicyDeny,
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
 				Prefix: "",
@@ -104,8 +141,26 @@ operator = "deny"
 				Policy: PolicyDeny,
 			},
 		},
-		Keyring:  PolicyDeny,
-		Operator: PolicyDeny,
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: PolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: PolicyRead,
+			},
+		},
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
 	}
 
 	out, err := Parse(inp)
@@ -120,6 +175,25 @@ operator = "deny"
 
 func TestACLPolicy_Parse_JSON(t *testing.T) {
 	inp := `{
+	"agent": {
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	},
+	"event": {
+		"": {
+			"policy": "read"
+		},
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	},
 	"key": {
 		"": {
 			"policy": "read"
@@ -134,15 +208,8 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
-	"service": {
-		"": {
-			"policy": "write"
-		},
-		"foo": {
-			"policy": "read"
-		}
-	},
-	"event": {
+	"keyring": "deny",
+	"node": {
 		"": {
 			"policy": "read"
 		},
@@ -153,6 +220,7 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
+	"operator": "deny",
 	"query": {
 		"": {
 			"policy": "read"
@@ -164,10 +232,49 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
-	"keyring": "deny",
-	"operator": "deny"
+	"service": {
+		"": {
+			"policy": "write"
+		},
+		"foo": {
+			"policy": "read"
+		}
+	},
+	"session": {
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	}
 }`
 	exp := &Policy{
+		Agents: []*AgentPolicy{
+			&AgentPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&AgentPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: PolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: PolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Keyring: PolicyDeny,
 		Keys: []*KeyPolicy{
 			&KeyPolicy{
 				Prefix: "",
@@ -186,30 +293,21 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 				Policy: PolicyDeny,
 			},
 		},
-		Services: []*ServicePolicy{
-			&ServicePolicy{
+		Nodes: []*NodePolicy{
+			&NodePolicy{
 				Name:   "",
-				Policy: PolicyWrite,
+				Policy: PolicyRead,
 			},
-			&ServicePolicy{
+			&NodePolicy{
 				Name:   "foo",
-				Policy: PolicyRead,
-			},
-		},
-		Events: []*EventPolicy{
-			&EventPolicy{
-				Event:  "",
-				Policy: PolicyRead,
-			},
-			&EventPolicy{
-				Event:  "foo",
 				Policy: PolicyWrite,
 			},
-			&EventPolicy{
-				Event:  "bar",
+			&NodePolicy{
+				Name:   "bar",
 				Policy: PolicyDeny,
 			},
 		},
+		Operator: PolicyDeny,
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
 				Prefix: "",
@@ -224,8 +322,26 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 				Policy: PolicyDeny,
 			},
 		},
-		Keyring:  PolicyDeny,
-		Operator: PolicyDeny,
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: PolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: PolicyRead,
+			},
+		},
+		Sessions: []*SessionPolicy{
+			&SessionPolicy{
+				Node:   "foo",
+				Policy: PolicyWrite,
+			},
+			&SessionPolicy{
+				Node:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
 	}
 
 	out, err := Parse(inp)
@@ -276,12 +392,15 @@ operator = ""
 
 func TestACLPolicy_Bad_Policy(t *testing.T) {
 	cases := []string{
-		`key "" { policy = "nope" }`,
-		`service "" { policy = "nope" }`,
+		`agent "" { policy = "nope" }`,
 		`event "" { policy = "nope" }`,
-		`query "" { policy = "nope" }`,
+		`key "" { policy = "nope" }`,
 		`keyring = "nope"`,
+		`node "" { policy = "nope" }`,
 		`operator = "nope"`,
+		`query "" { policy = "nope" }`,
+		`service "" { policy = "nope" }`,
+		`session "" { policy = "nope" }`,
 	}
 	for _, c := range cases {
 		_, err := Parse(c)

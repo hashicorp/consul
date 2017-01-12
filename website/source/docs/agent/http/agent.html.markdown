@@ -128,6 +128,8 @@ This endpoint is used to return the configuration and member information of the 
 
 Consul 0.7.0 and later also includes a snapshot of various operating statistics under the `Stats` key. These statistics are intended to help human operators for debugging and may change over time, so this part of the interface should not be consumed programmatically.
 
+Consul 0.7.3 and later also includes a block of user-defined node metadata values under the `Meta` key. These are arbitrary key/value pairs defined in the [node meta](/docs/agent/options.html#_node_meta) section of the agent configuration.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -194,6 +196,10 @@ It returns a JSON body like this:
     "DelegateMin": 2,
     "DelegateMax": 4,
     "DelegateCur": 4
+  },
+  "Meta": {
+    "instance_type": "i2.xlarge",
+    "os_version": "ubuntu_16.04",
   }
 }
 ```
@@ -477,7 +483,8 @@ information.
 
 If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL`
 should be specified. `Script` and `HTTP` also require `Interval`. The
-created check will be named `service:<ServiceId>`.
+created check will be named `service:<ServiceId>`. The `Status` field 
+can be provided to specify the initial state of the health check.
 
 In Consul 0.7 and later, checks that are associated with a service may
 also contain an optional `DeregisterCriticalServiceAfter` field, which

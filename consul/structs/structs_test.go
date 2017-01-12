@@ -105,6 +105,51 @@ func TestStructs_ACL_IsSame(t *testing.T) {
 	check(func() { other.Rules = "" }, func() { other.Rules = "service \"\" { policy = \"read\" }" })
 }
 
+func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
+	req := &RegisterRequest{
+		Node:            "test",
+		Address:         "127.0.0.1",
+		TaggedAddresses: make(map[string]string),
+		NodeMeta: map[string]string{
+			"role": "server",
+		},
+	}
+
+	node := &Node{
+		Node:            "test",
+		Address:         "127.0.0.1",
+		TaggedAddresses: make(map[string]string),
+		Meta: map[string]string{
+			"role": "server",
+		},
+	}
+
+	check := func(twiddle, restore func()) {
+		if req.ChangesNode(node) {
+			t.Fatalf("should not change")
+		}
+
+		twiddle()
+		if !req.ChangesNode(node) {
+			t.Fatalf("should change")
+		}
+
+		restore()
+		if req.ChangesNode(node) {
+			t.Fatalf("should not change")
+		}
+	}
+
+	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
+	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
+	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
+	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid") })
+
+	if !req.ChangesNode(nil) {
+		t.Fatalf("should change")
+	}
+}
+
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{
@@ -112,6 +157,9 @@ func testServiceNode() *ServiceNode {
 		Address: "127.0.0.1",
 		TaggedAddresses: map[string]string{
 			"hello": "world",
+		},
+		NodeMeta: map[string]string{
+			"tag": "value",
 		},
 		ServiceID:                "service1",
 		ServiceName:              "dogs",
@@ -134,12 +182,13 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	// Make sure the parts that weren't supposed to be cloned didn't get
 	// copied over, then zero-value them out so we can do a DeepEqual() on
 	// the rest of the contents.
-	if clone.Address != "" || len(clone.TaggedAddresses) != 0 {
+	if clone.Address != "" || len(clone.TaggedAddresses) != 0 || len(clone.NodeMeta) != 0 {
 		t.Fatalf("bad: %v", clone)
 	}
 
 	sn.Address = ""
 	sn.TaggedAddresses = nil
+	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, clone) {
 		t.Fatalf("bad: %v", clone)
 	}
@@ -159,6 +208,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	// them out before we do the compare.
 	sn.Address = ""
 	sn.TaggedAddresses = nil
+	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, sn2) {
 		t.Fatalf("bad: %v", sn2)
 	}

@@ -367,6 +367,11 @@ type Config struct {
 	// they are configured with TranslateWanAddrs set to true.
 	TaggedAddresses map[string]string
 
+	// Node metadata key/value pairs. These are excluded from JSON output
+	// because they can be reloaded and might be stale when shown from the
+	// config instead of the local state.
+	Meta map[string]string `mapstructure:"node_meta" json:"-"`
+
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults true on clients, false on servers. This can
 	// be changed on reload.
@@ -516,6 +521,16 @@ type Config struct {
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
 
+	// ACLAgentMasterToken is a special token that has full read and write
+	// privileges for this agent, and can be used to call agent endpoints
+	// when no servers are available.
+	ACLAgentMasterToken string `mapstructure:"acl_agent_master_token" json:"-"`
+
+	// ACLAgentToken is the default token used to make requests for the agent
+	// itself, such as for registering itself with the catalog. If not
+	// configured, the 'acl_token' will be used.
+	ACLAgentToken string `mapstructure:"acl_agent_token" json:"-"`
+
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
@@ -537,9 +552,15 @@ type Config struct {
 	// white-lists.
 	ACLDefaultPolicy string `mapstructure:"acl_default_policy"`
 
+	// ACLDisabledTTL is used by clients to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled.
+	ACLDisabledTTL time.Duration `mapstructure:"-"`
+
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
 	// reach the ACLDatacenter and the token is not in the cache.
 	// There are two modes:
+	//   * allow - Allow all requests
 	//   * deny - Deny all requests
 	//   * extend-cache - Ignore the cache expiration, and allow cached
 	//                    ACL's to be used to service requests. This
@@ -552,6 +573,10 @@ type Config struct {
 	// also enables replication. Replication is only available in datacenters
 	// other than the ACLDatacenter.
 	ACLReplicationToken string `mapstructure:"acl_replication_token" json:"-"`
+
+	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
+	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
+	ACLEnforceVersion8 *bool `mapstructure:"acl_enforce_version_8"`
 
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
@@ -718,6 +743,7 @@ func DefaultConfig() *Config {
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
 		},
+		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
 		Protocol:                   consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval:        5 * time.Minute,
@@ -733,11 +759,13 @@ func DefaultConfig() *Config {
 		SyncCoordinateRateTarget:  64.0, // updates / second
 		SyncCoordinateIntervalMin: 15 * time.Second,
 
-		ACLTTL:           30 * time.Second,
-		ACLDownPolicy:    "extend-cache",
-		ACLDefaultPolicy: "allow",
-		RetryInterval:    30 * time.Second,
-		RetryIntervalWan: 30 * time.Second,
+		ACLTTL:             30 * time.Second,
+		ACLDownPolicy:      "extend-cache",
+		ACLDefaultPolicy:   "allow",
+		ACLDisabledTTL:     120 * time.Second,
+		ACLEnforceVersion8: Bool(false),
+		RetryInterval:      30 * time.Second,
+		RetryIntervalWan:   30 * time.Second,
 	}
 }
 
@@ -777,6 +805,18 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 		return nil, fmt.Errorf("Failed to parse IP: %v", addr)
 	}
 	return &net.TCPAddr{IP: ip, Port: port}, nil
+}
+
+// GetTokenForAgent returns the token the agent should use for its own internal
+// operations, such as registering itself with the catalog.
+func (c *Config) GetTokenForAgent() string {
+	if c.ACLAgentToken != "" {
+		return c.ACLAgentToken
+	} else if c.ACLToken != "" {
+		return c.ACLToken
+	} else {
+		return ""
+	}
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
@@ -1501,6 +1541,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.ACLToken != "" {
 		result.ACLToken = b.ACLToken
 	}
+	if b.ACLAgentMasterToken != "" {
+		result.ACLAgentMasterToken = b.ACLAgentMasterToken
+	}
+	if b.ACLAgentToken != "" {
+		result.ACLAgentToken = b.ACLAgentToken
+	}
 	if b.ACLMasterToken != "" {
 		result.ACLMasterToken = b.ACLMasterToken
 	}
@@ -1519,6 +1565,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLReplicationToken != "" {
 		result.ACLReplicationToken = b.ACLReplicationToken
+	}
+	if b.ACLEnforceVersion8 != nil {
+		result.ACLEnforceVersion8 = b.ACLEnforceVersion8
 	}
 	if len(b.Watches) != 0 {
 		result.Watches = append(result.Watches, b.Watches...)
@@ -1572,6 +1621,14 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
+		}
+	}
+	if len(b.Meta) != 0 {
+		if result.Meta == nil {
+			result.Meta = make(map[string]string)
+		}
+		for field, value := range b.Meta {
+			result.Meta[field] = value
 		}
 	}
 

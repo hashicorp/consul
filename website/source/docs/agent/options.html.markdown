@@ -53,6 +53,9 @@ The options below are all specified on the command-line.
   address when being accessed from a remote datacenter if the remote datacenter is configured
   with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
 
+~> **Notice:** The hosted version of Consul Enterprise will be deprecated on
+  March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives
+
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
   It is used to provide the Atlas infrastructure name and the SCADA connection. The format of
@@ -279,6 +282,15 @@ will exit with an error at startup.
 * <a name="_node"></a><a href="#_node">`-node`</a> - The name of this node in the cluster.
   This must be unique within the cluster. By default this is the hostname of the machine.
 
+* <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,
+  this specifies an arbitrary metadata key/value pair to associate with the node, of the form `key:value`.
+  This can be specified multiple times. Node metadata pairs have the following restrictions:
+  - A maximum of 64 key/value pairs can be registered per node.
+  - Metadata keys must be between 1 and 128 characters (inclusive) in length
+  - Metadata keys must contain only alphanumeric, `-`, and `_` characters.
+  - Metadata keys must not begin with the `consul-` prefix; that is reserved for internal use by Consul.
+  - Metadata values must be between 0 and 512 (inclusive) characters in length.
+
 * <a name="_pid_file"></a><a href="#_pid_file">`-pid-file`</a> - This flag provides the file
   path for the agent to store its PID. This is useful for sending signals (for example, `SIGINT`
   to close the agent or `SIGHUP` to update check definite
@@ -407,6 +419,28 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   node, the down policy is applied. In "allow" mode, all actions are permitted, "deny" restricts
   all operations, and "extend-cache" allows any cached ACLs to be used, ignoring their TTL
   values. If a non-cached ACL is used, "extend-cache" acts like "deny".
+
+* <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
+  Used to access <a href="/docs/agent/http/agent.html">agent endpoints</a> that require agent read
+  or write privileges even if Consul servers aren't present to validate any tokens. This should only
+  be used by operators during outages, regular ACL tokens should normally be used by applications.
+  This was added in Consul 0.7.2 and is only used when <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a>
+  is set to true.
+
+* <a name="acl_agent_token"></a><a href="#acl_agent_token">`acl_agent_token`</a> - Used for clients
+  and servers to perform internal operations to the service catalog. If this isn't specified, then
+  the <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
+  <br><br>
+  For clients, this token must at least have write access to the node name it will register as. For
+  servers, this must have write access to all nodes that are expected to join the cluster, as well
+  as write access to the "consul" service, which will be registered automatically on its behalf.
+
+* <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
+  Used for clients and servers to determine if enforcement should occur for new ACL policies being
+  previewed before Consul 0.8. Added in Consul 0.7.2, this will default to false in versions of
+  Consul prior to 0.8, and will default to true in Consul 0.8 and later. This helps ease the
+  transition to the new ACL features by allowing policies to be in place before enforcement begins.
+  Please see the [ACL internals guide](/docs/internals/acl.html) for more details.
 
 * <a name="acl_master_token"></a><a href="#acl_master_token">`acl_master_token`</a> - Only used
   for servers in the [`acl_datacenter`](#acl_datacenter). This token will be created with management-level
@@ -664,6 +698,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="node_name"></a><a href="#node_name">`node_name`</a> Equivalent to the
   [`-node` command-line flag](#_node).
 
+* <a name="node_meta"></a><a href="#node_meta">`node_meta`</a> Available in Consul 0.7.3 and later,
+  This object allows associating arbitrary metadata key/value pairs with the local node, which can
+  then be used for filtering results from certain catalog endpoints. See the
+  [`-node-meta` command-line flag](#_node_meta) for more information.
+
+    ```javascript
+      {
+        "node_meta": {
+            "instance_type": "t2.medium"
+        }
+      }
+    ```
+
 * <a name="performance"></a><a href="#performance">`performance`</a> Available in Consul 0.7 and
   later, this is a nested object that allows tuning the performance of different subsystems in
   Consul. See the [Server Performance](/docs/guides/performance.html) guide for more details. The
@@ -869,7 +916,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="telemetry-circonus_check_display_name"</a><a href="#telemetry-circonus_check_display_name">`circonus_check_display_name`</a>
     Specifies a name to give a check when it is created. This name is displayed in the Circonus UI Checks list. Available in Consul 0.7.2 and later.
 
-  * <a name="telemetry-circonus_check_tags"</a><a href="telemetry-circonus_check_tags">`circonus_check_tags`</a>
+  * <a name="telemetry-circonus_check_tags"</a><a href="#telemetry-circonus_check_tags">`circonus_check_tags`</a>
     Comma separated list of additional tags to add to a check when it is created. Available in Consul 0.7.2 and later.
 
   * <a name="telemetry-circonus_broker_id"></a><a href="#telemetry-circonus_broker_id">`circonus_broker_id`</a>

@@ -8,7 +8,6 @@ EnvironmentFile=-/etc/sysconfig/consul
 Restart=on-failure
 ExecStart=/usr/local/bin/consul agent $CONSUL_FLAGS -config-dir=/etc/systemd/system/consul.d
 ExecReload=/bin/kill -HUP $MAINPID
-KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

@@ -173,6 +173,7 @@ type RegisterRequest struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	NodeMeta        map[string]string
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
@@ -181,6 +182,26 @@ type RegisterRequest struct {
 
 func (r *RegisterRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+// ChangesNode returns true if the given register request changes the given
+// node, which can be nil. This only looks for changes to the node record itself,
+// not any of the health checks.
+func (r *RegisterRequest) ChangesNode(node *Node) bool {
+	// This means it's creating the node.
+	if node == nil {
+		return true
+	}
+
+	// Check if any of the node-level fields are being changed.
+	if r.Node != node.Node ||
+		r.Address != node.Address ||
+		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
+		return true
+	}
+
+	return false
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
@@ -208,8 +229,9 @@ type QuerySource struct {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter string
-	Source     QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -259,6 +281,7 @@ type Node struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 
 	RaftIndex
 }
@@ -268,8 +291,8 @@ type Nodes []*Node
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNode represents a node that is part of a service. Address and
-// TaggedAddresses are node-related fields that are always empty in the state
+// ServiceNode represents a node that is part of a service. Address, TaggedAddresses,
+// and NodeMeta are node-related fields that are always empty in the state
 // store and are filled in on the way out by parseServiceNodes(). This is also
 // why PartialClone() skips them, because we know they are blank already so it
 // would be a waste of time to copy them.
@@ -277,6 +300,7 @@ type ServiceNode struct {
 	Node                     string
 	Address                  string
 	TaggedAddresses          map[string]string
+	NodeMeta                 map[string]string
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -469,6 +493,7 @@ type NodeInfo struct {
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 	Services        []*NodeService
 	Checks          HealthChecks
 }

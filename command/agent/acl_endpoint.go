@@ -13,8 +13,8 @@ type aclCreateResponse struct {
 	ID string
 }
 
-// aclDisabled handles if ACL datacenter is not configured
-func aclDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// ACLDisabled handles if ACL datacenter is not configured
+func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	resp.WriteHeader(401)
 	resp.Write([]byte("ACL support disabled"))
 	return nil, nil

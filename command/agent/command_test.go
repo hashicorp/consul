@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
+	"reflect"
 )
 
 func TestCommand_implements(t *testing.T) {
@@ -129,6 +130,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-advertise-wan", "1.2.3.4",
 				"-serf-wan-bind", "4.3.2.1",
 				"-serf-lan-bind", "4.3.2.2",
+				"-node-meta", "somekey:somevalue",
 			},
 			ShutdownCh: shutdownCh,
 			Ui:         new(cli.MockUi),
@@ -143,6 +145,30 @@ func TestReadCliConfig(t *testing.T) {
 		}
 		if config.SerfLanBindAddr != "4.3.2.2" {
 			t.Fatalf("expected -serf-lan-bind 4.3.2.2 got %s", config.SerfLanBindAddr)
+		}
+		if len(config.Meta) != 1 || config.Meta["somekey"] != "somevalue" {
+			t.Fatalf("expected somekey=somevalue, got %v", config.Meta)
+		}
+	}
+
+	// Test multiple node meta flags
+	{
+		cmd := &Command{
+			args: []string{
+				"-data-dir", tmpDir,
+				"-node-meta", "somekey:somevalue",
+				"-node-meta", "otherkey:othervalue",
+			},
+			ShutdownCh: shutdownCh,
+			Ui:         new(cli.MockUi),
+		}
+		expected := map[string]string{
+			"somekey":  "somevalue",
+			"otherkey": "othervalue",
+		}
+		config := cmd.readConfig()
+		if !reflect.DeepEqual(config.Meta, expected) {
+			t.Fatalf("bad: %v %v", config.Meta, expected)
 		}
 	}
 

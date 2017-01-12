@@ -155,8 +155,9 @@ func randomOffset(n int) int {
 // suspicionTimeout computes the timeout that should be used when
 // a node is suspected
 func suspicionTimeout(suspicionMult, n int, interval time.Duration) time.Duration {
-	nodeScale := math.Ceil(math.Log10(float64(n + 1)))
-	timeout := time.Duration(suspicionMult) * time.Duration(nodeScale) * interval
+	nodeScale := math.Max(1.0, math.Log10(math.Max(1.0, float64(n))))
+	// multiply by 1000 to keep some precision because time.Duration is an int64 type
+	timeout := time.Duration(suspicionMult) * time.Duration(nodeScale*1000) * interval / 1000
 	return timeout
 }
 
@@ -207,9 +208,10 @@ func moveDeadNodes(nodes []*nodeState) int {
 	return n - numDead
 }
 
-// kRandomNodes is used to select up to k random nodes, excluding a given
-// node and any non-alive nodes. It is possible that less than k nodes are returned.
-func kRandomNodes(k int, excludes []string, nodes []*nodeState) []*nodeState {
+// kRandomNodes is used to select up to k random nodes, excluding any nodes where
+// the filter function returns true. It is possible that less than k nodes are
+// returned.
+func kRandomNodes(k int, nodes []*nodeState, filterFn func(*nodeState) bool) []*nodeState {
 	n := len(nodes)
 	kNodes := make([]*nodeState, 0, k)
 OUTER:
@@ -221,16 +223,9 @@ OUTER:
 		idx := randomOffset(n)
 		node := nodes[idx]
 
-		// Exclude node if match
-		for _, exclude := range excludes {
-			if node.Name == exclude {
-				continue OUTER
-			}
-		}
-
-		// Exclude if not alive
-		if node.State != stateAlive {
-			continue
+		// Give the filter a shot at it.
+		if filterFn != nil && filterFn(node) {
+			continue OUTER
 		}
 
 		// Check if we have this node already
@@ -327,10 +322,18 @@ func isLoopbackIP(ip_str string) bool {
 	return loopbackBlock.Contains(ip)
 }
 
-// Given a string of the form "host", "host:port", or "[ipv6::address]:port",
+// Given a string of the form "host", "host:port",
+// "ipv6::addr" or "[ipv6::address]:port",
 // return true if the string includes a port.
 func hasPort(s string) bool {
-	return strings.LastIndex(s, ":") > strings.LastIndex(s, "]")
+	last := strings.LastIndex(s, ":")
+	if last == -1 {
+		return false
+	}
+	if s[0] == '[' {
+		return s[last-1] == ']'
+	}
+	return strings.Index(s, ":") == last
 }
 
 // compressPayload takes an opaque input buffer, compresses it

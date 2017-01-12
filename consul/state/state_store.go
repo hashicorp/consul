@@ -349,9 +349,9 @@ func (s *StateStore) getWatchTables(method string) []string {
 		return []string{"nodes"}
 	case "Services":
 		return []string{"services"}
-	case "ServiceNodes", "NodeServices":
+	case "NodeService", "NodeServices", "ServiceNodes":
 		return []string{"nodes", "services"}
-	case "NodeChecks", "ServiceChecks", "ChecksInState":
+	case "NodeCheck", "NodeChecks", "ServiceChecks", "ChecksInState":
 		return []string{"checks"}
 	case "CheckServiceNodes", "NodeInfo", "NodeDump":
 		return []string{"nodes", "services", "checks"}
@@ -426,6 +426,7 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 		Node:            req.Node,
 		Address:         req.Address,
 		TaggedAddresses: req.TaggedAddresses,
+		Meta:            req.NodeMeta,
 	}
 	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
 		return fmt.Errorf("failed inserting node: %s", err)
@@ -437,6 +438,12 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 			return fmt.Errorf("failed inserting service: %s", err)
 		}
 	}
+
+	// TODO (slackpad) In Consul 0.8 ban checks that don't have the same
+	// node as the top-level registration. This is just weird to be able to
+	// update unrelated nodes' checks from in here. In 0.7.2 we banned this
+	// up in the ACL check since that's guarded behind an opt-in flag until
+	// Consul 0.8.
 
 	// Add the checks, if any.
 	if req.Check != nil {
@@ -530,6 +537,35 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 
 	// Retrieve all of the nodes
 	nodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	// Create and return the nodes list.
+	var results structs.Nodes
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		results = append(results, node.(*structs.Node))
+	}
+	return idx, results, nil
+}
+
+// NodesByMeta is used to return all nodes with the given meta key/value pair.
+func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nodes, error) {
+	if len(filters) > 1 {
+		return 0, nil, fmt.Errorf("multiple meta filters not supported")
+	}
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+
+	// Retrieve all of the nodes
+	var args []interface{}
+	for key, value := range filters {
+		args = append(args, key, value)
+	}
+	nodes, err := tx.Get("nodes", "meta", args...)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -752,6 +788,63 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	return idx, results, nil
 }
 
+// Services returns all services, filtered by the given node metadata.
+func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, structs.Services, error) {
+	if len(filters) > 1 {
+		return 0, nil, fmt.Errorf("multiple meta filters not supported")
+	}
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+
+	// Retrieve all of the nodes with the meta k/v pair
+	var args []interface{}
+	for key, value := range filters {
+		args = append(args, key, value)
+	}
+	nodes, err := tx.Get("nodes", "meta", args...)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	// Populate the services map
+	unique := make(map[string]map[string]struct{})
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
+		// List all the services on the node
+		services, err := tx.Get("services", "node", n.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed querying services: %s", err)
+		}
+
+		// Rip through the services and enumerate them and their unique set of
+		// tags.
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode)
+			tags, ok := unique[svc.ServiceName]
+			if !ok {
+				unique[svc.ServiceName] = make(map[string]struct{})
+				tags = unique[svc.ServiceName]
+			}
+			for _, tag := range svc.ServiceTags {
+				tags[tag] = struct{}{}
+			}
+		}
+	}
+
+	// Generate the output structure.
+	var results = make(structs.Services)
+	for service, tags := range unique {
+		results[service] = make([]string, 0)
+		for tag, _ := range tags {
+			results[service] = append(results[service], tag)
+		}
+	}
+	return idx, results, nil
+}
+
 // ServiceNodes returns the nodes associated with a given service name.
 func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
@@ -848,10 +941,33 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNo
 		node := n.(*structs.Node)
 		s.Address = node.Address
 		s.TaggedAddresses = node.TaggedAddresses
+		s.NodeMeta = node.Meta
 
 		results = append(results, s)
 	}
 	return results, nil
+}
+
+// NodeService is used to retrieve a specific service associated with the given
+// node.
+func (s *StateStore) NodeService(nodeID string, serviceID string) (uint64, *structs.NodeService, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("NodeService")...)
+
+	// Query the service
+	service, err := tx.First("services", "id", nodeID, serviceID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeID, err)
+	}
+
+	if service != nil {
+		return idx, service.(*structs.ServiceNode).ToNodeService(), nil
+	} else {
+		return idx, nil, nil
+	}
 }
 
 // NodeServices is used to query service registrations by node ID.
@@ -1054,6 +1170,27 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 	watches.Arm("checks")
 	return nil
+}
+
+// NodeCheck is used to retrieve a specific check associated with the given
+// node.
+func (s *StateStore) NodeCheck(nodeID string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("NodeCheck")...)
+
+	// Return the check.
+	check, err := tx.First("checks", "id", nodeID, string(checkID))
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	if check != nil {
+		return idx, check.(*structs.HealthCheck), nil
+	} else {
+		return idx, nil, nil
+	}
 }
 
 // NodeChecks is used to retrieve checks associated with the
@@ -1343,6 +1480,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 			Node:            node.Node,
 			Address:         node.Address,
 			TaggedAddresses: node.TaggedAddresses,
+			Meta:            node.Meta,
 		}
 
 		// Query the node services

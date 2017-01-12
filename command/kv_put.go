@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -45,6 +46,9 @@ Usage: consul kv put [options] KEY [DATA]
 
       $ consul kv put webapp/beta/active
 
+  If the -base64 flag is specified, the data will be treated as base 64
+  encoded.
+
   To perform a Check-And-Set operation, specify the -cas flag with the
   appropriate -modify-index flag corresponding to the key you want to perform
   the CAS operation on:
@@ -61,6 +65,9 @@ KV Put Options:
                           this operation will create the key and obtain the
                           lock. The session must already exist and be specified
                           via the -session flag. The default value is false.
+
+  -base64                 Treat the data as base 64 encoded. The default value
+                          is false.
 
   -cas                    Perform a Check-And-Set operation. Specifying this
                           value also requires the -modify-index flag to be set.
@@ -95,6 +102,7 @@ func (c *KVPutCommand) Run(args []string) int {
 	token := cmdFlags.String("token", "", "")
 	cas := cmdFlags.Bool("cas", false, "")
 	flags := cmdFlags.Uint64("flags", 0, "")
+	base64encoded := cmdFlags.Bool("base64", false, "")
 	modifyIndex := cmdFlags.Uint64("modify-index", 0, "")
 	session := cmdFlags.String("session", "", "")
 	acquire := cmdFlags.Bool("acquire", false, "")
@@ -109,6 +117,14 @@ func (c *KVPutCommand) Run(args []string) int {
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error! %s", err))
 		return 1
+	}
+
+	dataBytes := []byte(data)
+	if *base64encoded {
+		dataBytes, err = base64.StdEncoding.DecodeString(data)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error! Cannot base 64 decode data: %s", err))
+		}
 	}
 
 	// Session is reauired for release or acquire
@@ -137,7 +153,7 @@ func (c *KVPutCommand) Run(args []string) int {
 		Key:         key,
 		ModifyIndex: *modifyIndex,
 		Flags:       *flags,
-		Value:       []byte(data),
+		Value:       dataBytes,
 		Session:     *session,
 	}
 
@@ -219,6 +235,11 @@ func (c *KVPutCommand) dataFromArgs(args []string) (string, string, error) {
 
 	key := args[0]
 	data := args[1]
+
+	// Handle empty quoted shell parameters
+	if len(data) == 0 {
+		return key, "", nil
+	}
 
 	switch data[0] {
 	case '@':

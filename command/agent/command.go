@@ -80,12 +80,14 @@ func (c *Command) readConfig() *Config {
 	var dnsRecursors []string
 	var dev bool
 	var dcDeprecated string
+	var nodeMeta []string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
 	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
+	cmdFlags.Var((*AppendSliceValue)(&nodeMeta), "node-meta", "arbitrary metadata key/value pair")
 	cmdFlags.BoolVar(&dev, "dev", false, "development server mode")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
@@ -176,6 +178,14 @@ func (c *Command) readConfig() *Config {
 		cmdConfig.RetryIntervalWan = dur
 	}
 
+	if len(nodeMeta) > 0 {
+		cmdConfig.Meta = make(map[string]string)
+		for _, entry := range nodeMeta {
+			key, value := parseMetaPair(entry)
+			cmdConfig.Meta[key] = value
+		}
+	}
+
 	var config *Config
 	if dev {
 		config = DevConfig()
@@ -220,10 +230,22 @@ func (c *Command) readConfig() *Config {
 		config.SkipLeaveOnInt = Bool(config.Server)
 	}
 
-	// Ensure we have a data directory
-	if config.DataDir == "" && !dev {
-		c.Ui.Error("Must specify data directory using -data-dir")
-		return nil
+	// Ensure we have a data directory if we are not in dev mode.
+	if !dev {
+		if config.DataDir == "" {
+			c.Ui.Error("Must specify data directory using -data-dir")
+			return nil
+		}
+
+		if finfo, err := os.Stat(config.DataDir); err != nil {
+			if !os.IsNotExist(err) {
+				c.Ui.Error(fmt.Sprintf("Error getting data-dir: %s", err))
+				return nil
+			}
+		} else if !finfo.IsDir() {
+			c.Ui.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
+			return nil
+		}
 	}
 
 	// Ensure all endpoints are unique
@@ -370,6 +392,12 @@ func (c *Command) readConfig() *Config {
 	// EC2 and GCE discovery are mutually exclusive
 	if config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != "" && config.RetryJoinGCE.TagValue != "" {
 		c.Ui.Error("EC2 and GCE discovery are mutually exclusive. Please provide one or the other.")
+		return nil
+	}
+
+	// Verify the node metadata entries are valid
+	if err := validateMetadata(config.Meta); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
 		return nil
 	}
 
@@ -812,7 +840,7 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 		case ec2Enabled:
 			servers, err = config.discoverEc2Hosts(logger)
 			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query EC2 insances: %s", err)
+				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from EC2...", len(servers))
 		case config.RetryJoinGCE.TagValue != "":
@@ -1119,6 +1147,7 @@ func (c *Command) Run(args []string) int {
 func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	// Wait for a signal
 WAIT:
@@ -1143,6 +1172,11 @@ WAIT:
 		return 0
 	}
 	c.Ui.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+	// Skip SIGPIPE signals
+	if sig == syscall.SIGPIPE {
+		goto WAIT
+	}
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
@@ -1226,7 +1260,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 	snap := c.agent.snapshotCheckState()
 	defer c.agent.restoreCheckState(snap)
 
-	// First unload all checks and services. This lets us begin the reload
+	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
@@ -1236,14 +1270,19 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
+	c.agent.unloadMetadata()
 
-	// Reload services and check definitions.
+	// Reload service/check definitions and metadata.
 	if err := c.agent.loadServices(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
 		return nil, errs
 	}
 	if err := c.agent.loadChecks(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return nil, errs
+	}
+	if err := c.agent.loadMetadata(newConf); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
 		return nil, errs
 	}
 
@@ -1297,6 +1336,10 @@ func (c *Command) setupScadaConn(config *Config) error {
 	if config.AtlasInfrastructure == "" {
 		return nil
 	}
+
+	c.Ui.Error("WARNING: The hosted version of Consul Enterprise will be deprecated " +
+		"on March 7th, 2017. For details, see " +
+		"https://atlas.hashicorp.com/help/consul/alternatives")
 
 	scadaConfig := &scada.Config{
 		Service:      "consul",
@@ -1405,6 +1448,9 @@ Options:
   -log-level=info                  Log level of the agent.
   -node=hostname                   Name of this node. Must be unique in the
                                    cluster
+  -node-meta=key:value             An arbitrary metadata key/value pair for
+                                   this node.
+                                   This can be specified multiple times.
   -protocol=N                      Sets the protocol version. Defaults to
                                    latest.
   -rejoin                          Ignores a previous leave and attempts to
