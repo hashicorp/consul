@@ -542,10 +542,11 @@ func (c *Config) discoverGCEHosts(logger *log.Logger) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(addresses) > 0 {
+			logger.Printf("[INFO] agent: Discovered %d instances in %s/%s: %v", len(addresses), config.ProjectName, zone, addresses)
+		}
 		servers = append(servers, addresses...)
 	}
-
-	logger.Printf("[INFO] agent: Discovered hosts: %s", strings.Join(servers, ", "))
 
 	return servers, nil
 }
@@ -613,13 +614,11 @@ func gceDiscoverZones(logger *log.Logger, ctx context.Context, computeService *c
 // returned, but ID is also logged.
 func gceInstancesAddressesForZone(logger *log.Logger, ctx context.Context, computeService *compute.Service, project, zone, tag string) ([]string, error) {
 	addresses := []string{}
-	logger.Printf("[INFO] agent: Discovering instances in %s/%s matching tag: %s", project, zone, tag)
 	call := computeService.Instances.List(project, zone)
 	if err := call.Pages(ctx, func(page *compute.InstanceList) error {
 		for _, v := range page.Items {
 			for _, t := range v.Tags.Items {
 				if t == tag && len(v.NetworkInterfaces) > 0 && v.NetworkInterfaces[0].NetworkIP != "" {
-					logger.Printf("[INFO] agent: Discovered instance: %s -> %s", v.Name, v.NetworkInterfaces[0].NetworkIP)
 					addresses = append(addresses, v.NetworkInterfaces[0].NetworkIP)
 				}
 			}

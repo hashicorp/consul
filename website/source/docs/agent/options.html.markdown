@@ -216,7 +216,7 @@ will exit with an error at startup.
   </a> - A Google Compute Engine instance tag to filter on. Much like the
   `-retry-join-ec2-*` options, this gives Consul the option of doing server
   discovery on [Google Compute Engine](https://cloud.google.com/compute/) by
-  searching the tags assigned to any inparticular instance.
+  searching the tags assigned to any particular instance.
 
 * <a name="_retry_join_gce_project_name"></a><a href="#_retry_join_gce_project_name">`-retry-join-gce-project-name`
   </a> - The project to search in for the tag supplied by
