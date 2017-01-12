@@ -19,7 +19,7 @@ The database provides the following:
 
 * Rich Indexing - Tables can support any number of indexes, which can be simple like
   a single field index, or more advanced compound field indexes. Certain types like
-  UUID can be efficiently compressed from strings into byte indexes for reduces
+  UUID can be efficiently compressed from strings into byte indexes for reduced
   storage requirements.
 
 For the underlying immutable radix trees, see [go-immutable-radix](https://github.com/hashicorp/go-immutable-radix).

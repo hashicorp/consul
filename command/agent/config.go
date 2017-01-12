@@ -342,6 +342,11 @@ type Config struct {
 	// they are configured with TranslateWanAddrs set to true.
 	TaggedAddresses map[string]string
 
+	// Node metadata key/value pairs. These are excluded from JSON output
+	// because they can be reloaded and might be stale when shown from the
+	// config instead of the local state.
+	Meta map[string]string `mapstructure:"node_meta" json:"-"`
+
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults true on clients, false on servers. This can
 	// be changed on reload.
@@ -710,6 +715,7 @@ func DefaultConfig() *Config {
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
 		},
+		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
 		Protocol:                   consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval:        5 * time.Minute,
@@ -1575,6 +1581,14 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
+		}
+	}
+	if len(b.Meta) != 0 {
+		if result.Meta == nil {
+			result.Meta = make(map[string]string)
+		}
+		for field, value := range b.Meta {
+			result.Meta[field] = value
 		}
 	}
 

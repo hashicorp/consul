@@ -73,12 +73,14 @@ func (c *Command) readConfig() *Config {
 	var dnsRecursors []string
 	var dev bool
 	var dcDeprecated string
+	var nodeMeta []string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
 	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
+	cmdFlags.Var((*AppendSliceValue)(&nodeMeta), "node-meta", "arbitrary metadata key/value pair")
 	cmdFlags.BoolVar(&dev, "dev", false, "development server mode")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
@@ -159,6 +161,14 @@ func (c *Command) readConfig() *Config {
 			return nil
 		}
 		cmdConfig.RetryIntervalWan = dur
+	}
+
+	if len(nodeMeta) > 0 {
+		cmdConfig.Meta = make(map[string]string)
+		for _, entry := range nodeMeta {
+			key, value := parseMetaPair(entry)
+			cmdConfig.Meta[key] = value
+		}
 	}
 
 	var config *Config
@@ -362,6 +372,12 @@ func (c *Command) readConfig() *Config {
 			c.Ui.Error("tag key and value are both required for EC2 retry-join")
 			return nil
 		}
+	}
+
+	// Verify the node metadata entries are valid
+	if err := validateMetadata(config.Meta); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
+		return nil
 	}
 
 	// Set the version info
@@ -1071,7 +1087,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 	snap := c.agent.snapshotCheckState()
 	defer c.agent.restoreCheckState(snap)
 
-	// First unload all checks and services. This lets us begin the reload
+	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
@@ -1081,14 +1097,19 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
+	c.agent.unloadMetadata()
 
-	// Reload services and check definitions.
+	// Reload service/check definitions and metadata.
 	if err := c.agent.loadServices(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
 		return nil, errs
 	}
 	if err := c.agent.loadChecks(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return nil, errs
+	}
+	if err := c.agent.loadMetadata(newConf); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
 		return nil, errs
 	}
 
@@ -1231,6 +1252,8 @@ Options:
                             will retry indefinitely.
   -log-level=info           Log level of the agent.
   -node=hostname            Name of this node. Must be unique in the cluster
+  -node-meta=key:value      An arbitrary metadata key/value pair for this node.
+                            This can be specified multiple times.
   -protocol=N               Sets the protocol version. Defaults to latest.
   -rejoin                   Ignores a previous leave and attempts to rejoin the cluster.
   -server                   Switches agent to server mode.

@@ -44,6 +44,9 @@ body must look something like:
     "lan": "192.168.10.10",
     "wan": "10.0.10.10"
   },
+  "NodeMeta": {
+    "somekey": "somevalue"
+  },
   "Service": {
     "ID": "redis1",
     "Service": "redis",
@@ -72,6 +75,10 @@ the node with the catalog. `TaggedAddresses` can be used in conjunction with the
 [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 option and the `wan` address. The `lan` address was added in Consul 0.7 to help find
 the LAN address if address translation is enabled.
+
+The `Meta` block was added in Consul 0.7.3 to enable associating arbitrary metadata
+key/value pairs with a node for filtering purposes. For more information on node metadata,
+see the [node meta](/docs/agent/options.html#_node_meta) section of the configuration page.
 
 If the `Service` key is provided, the service will also be registered. If
 `ID` is not provided, it will be defaulted to the value of the `Service.Service` property.
@@ -191,6 +198,10 @@ the node list in ascending order based on the estimated round trip
 time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
 
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This will filter the results to nodes with that pair present.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -201,6 +212,9 @@ It returns a JSON body like this:
     "TaggedAddresses": {
       "lan": "10.1.10.11",
       "wan": "10.1.10.11"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
     }
   },
   {
@@ -209,6 +223,9 @@ It returns a JSON body like this:
     "TaggedAddresses": {
       "lan": "10.1.10.11",
       "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.large"
     }
   }
 ]
@@ -221,6 +238,10 @@ This endpoint supports blocking queries and all consistency modes.
 This endpoint is hit with a `GET` and returns the services registered
 in a given DC. By default, the datacenter of the agent is queried;
 however, the `dc` can be provided using the `?dc=` query parameter.
+
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This will filter the results to services with that pair present.
 
 It returns a JSON body like this:
 
@@ -265,6 +286,9 @@ It returns a JSON body like this:
       "lan": "192.168.10.10",
       "wan": "10.0.10.10"
     },
+    "Meta": {
+      "instance_type": "t2.medium"
+    }
     "CreateIndex": 51,
     "ModifyIndex": 51,
     "Node": "foobar",
@@ -286,6 +310,7 @@ The returned fields are as follows:
 
 - `Address`: IP address of the Consul node on which the service is registered
 - `TaggedAddresses`: List of explicit LAN and WAN IP addresses for the agent
+- `Meta`: Added in Consul 0.7.3, a list of user-defined metadata key/value pairs for the node
 - `CreateIndex`: Internal index value representing when the service was created
 - `ModifyIndex`: Last index that modified the service
 - `Node`: Node name of the Consul node on which the service is registered
@@ -313,6 +338,9 @@ It returns a JSON body like this:
     "TaggedAddresses": {
       "lan": "10.1.10.12",
       "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
     }
   },
   "Services": {

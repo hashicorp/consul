@@ -163,7 +163,14 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		&reply.QueryMeta,
 		state.GetQueryWatch("Nodes"),
 		func() error {
-			index, nodes, err := state.Nodes()
+			var index uint64
+			var nodes structs.Nodes
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, nodes, err = state.NodesByMeta(args.NodeMetaFilters)
+			} else {
+				index, nodes, err = state.Nodes()
+			}
 			if err != nil {
 				return err
 			}
@@ -189,7 +196,14 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		&reply.QueryMeta,
 		state.GetQueryWatch("Services"),
 		func() error {
-			index, services, err := state.Services()
+			var index uint64
+			var services structs.Services
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, services, err = state.ServicesByNodeMeta(args.NodeMetaFilters)
+			} else {
+				index, services, err = state.Services()
+			}
 			if err != nil {
 				return err
 			}

@@ -592,6 +592,70 @@ func TestCatalog_ListNodes(t *testing.T) {
 	}
 }
 
+func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a new node with the right meta k/v pair
+	node := &structs.Node{Node: "foo", Address: "127.0.0.1", Meta: map[string]string{"somekey": "somevalue"}}
+	if err := s1.fsm.State().EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Filter by a specific meta k/v pair
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+	var out structs.IndexedNodes
+
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 1, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+
+	// Verify that only the correct node was returned
+	if out.Nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if v, ok := out.Nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Now filter on a nonexistent meta k/v pair
+	args = structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "invalid",
+		},
+	}
+	out = structs.IndexedNodes{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should get an empty list of nodes back
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 0, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+}
+
 func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -993,6 +1057,69 @@ func TestCatalog_ListServices(t *testing.T) {
 	}
 	if out.Services["db"][0] != "primary" {
 		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalog_ListServices_MetaFilter(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a new node with the right meta k/v pair
+	node := &structs.Node{Node: "foo", Address: "127.0.0.1", Meta: map[string]string{"somekey": "somevalue"}}
+	if err := s1.fsm.State().EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Add a service to the new node
+	if err := s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Filter by a specific meta k/v pair
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+	var out structs.IndexedServices
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out.Services) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Services["db"] == nil {
+		t.Fatalf("bad: %v", out.Services["db"])
+	}
+	if len(out.Services["db"]) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Services["db"][0] != "primary" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Now filter on a nonexistent meta k/v pair
+	args = structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		NodeMetaFilters: map[string]string{
+			"somekey": "invalid",
+		},
+	}
+	out = structs.IndexedServices{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should get an empty list of nodes back
+	if len(out.Services) != 0 {
+		t.Fatalf("bad: %v", out.Services)
 	}
 }
 

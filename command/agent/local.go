@@ -61,6 +61,9 @@ type localState struct {
 	// Used to track checks that are being deferred
 	deferCheck map[types.CheckID]*time.Timer
 
+	// metadata tracks the local metadata fields
+	metadata map[string]string
+
 	// consulCh is used to inform of a change to the known
 	// consul nodes. This may be used to retry a sync run
 	consulCh chan struct{}
@@ -82,6 +85,7 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.checkTokens = make(map[types.CheckID]string)
 	l.checkCriticalTime = make(map[types.CheckID]time.Time)
 	l.deferCheck = make(map[types.CheckID]*time.Timer)
+	l.metadata = make(map[string]string)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
 }
@@ -339,6 +343,19 @@ func (l *localState) CriticalChecks() map[types.CheckID]CriticalCheck {
 	return checks
 }
 
+// Metadata returns the local node metadata fields that the
+// agent is aware of and are being kept in sync with the server
+func (l *localState) Metadata() map[string]string {
+	metadata := make(map[string]string)
+	l.RLock()
+	defer l.RUnlock()
+
+	for key, value := range l.metadata {
+		metadata[key] = value
+	}
+	return metadata
+}
+
 // antiEntropy is a long running method used to perform anti-entropy
 // between local and remote state.
 func (l *localState) antiEntropy(shutdownCh chan struct{}) {
@@ -412,10 +429,10 @@ func (l *localState) setSyncState() error {
 	l.Lock()
 	defer l.Unlock()
 
-	// Check the node info (currently limited to tagged addresses since
-	// everything else is managed by the Serf layer)
+	// Check the node info
 	if out1.NodeServices == nil || out1.NodeServices.Node == nil ||
-		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) {
+		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) ||
+		!reflect.DeepEqual(out1.NodeServices.Node.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
 
@@ -619,6 +636,7 @@ func (l *localState) syncService(id string) error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
 		Service:         l.services[id],
 		WriteRequest:    structs.WriteRequest{Token: l.serviceToken(id)},
 	}
@@ -680,6 +698,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
 		Service:         service,
 		Check:           l.checks[id],
 		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
@@ -706,6 +725,7 @@ func (l *localState) syncNodeInfo() error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
 		WriteRequest:    structs.WriteRequest{Token: l.config.GetTokenForAgent()},
 	}
 	var out struct{}

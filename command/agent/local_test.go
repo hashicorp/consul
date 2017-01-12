@@ -985,6 +985,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	conf := nextConfig()
+	conf.Meta["somekey"] = "somevalue"
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -1020,7 +1021,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		// Make sure we synced our node info - this should have ridden on the
 		// "consul" service sync
 		addrs := services.NodeServices.Node.TaggedAddresses
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		meta := services.NodeServices.Node.Meta
+		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) || !reflect.DeepEqual(meta, conf.Meta) {
 			return false, fmt.Errorf("bad: %v", addrs)
 		}
 
@@ -1044,7 +1046,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 			return false, fmt.Errorf("err: %v", err)
 		}
 		addrs := services.NodeServices.Node.TaggedAddresses
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		meta := services.NodeServices.Node.Meta
+		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) || !reflect.DeepEqual(meta, conf.Meta) {
 			return false, fmt.Errorf("bad: %v", addrs)
 		}
 
