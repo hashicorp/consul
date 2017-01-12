@@ -1047,6 +1047,32 @@ func TestRetryJoinEC2(t *testing.T) {
 	}
 }
 
+func TestRetryJoinGCE(t *testing.T) {
+	input := `{"retry_join_gce": {
+	  "project_name": "test-project",
+		"zone_pattern": "us-west1-a",
+		"tag_value": "consul-server",
+		"credentials_file": "/path/to/foo.json"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinGCE.ProjectName != "test-project" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.ZonePattern != "us-west1-a" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.TagValue != "consul-server" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.CredentialsFile != "/path/to/foo.json" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Performance(t *testing.T) {
 	input := `{"performance": { "raft_multiplier": 3 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))

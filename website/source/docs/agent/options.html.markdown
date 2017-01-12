@@ -215,6 +215,37 @@ will exit with an error at startup.
    will use the local instance's [EC2 metadata endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html)
    to discover the region.
 
+* <a name="_retry_join_gce_tag_value"></a><a href="#_retry_join_gce_tag_value">`-retry-join-gce-tag-value`
+  </a> - A Google Compute Engine instance tag to filter on. Much like the
+  `-retry-join-ec2-*` options, this gives Consul the option of doing server
+  discovery on [Google Compute Engine](https://cloud.google.com/compute/) by
+  searching the tags assigned to any particular instance.
+
+* <a name="_retry_join_gce_project_name"></a><a href="#_retry_join_gce_project_name">`-retry-join-gce-project-name`
+  </a> - The project to search in for the tag supplied by
+  [`-retry-join-gce-tag-value`](#_retry_join_gce_tag_value). If this is run
+  from within a GCE instance, the default is the project the instance is
+  located in.
+
+* <a name="_retry_join_gce_zone_pattern"></a><a href="#_retry_join_gce_zone_pattern">`-retry-join-gce-zone-pattern`
+  </a> - A regular expression that indicates the zones the tag should be
+  searched in. For example, while `us-west1-a` would only search in
+  `us-west1-a`, `us-west1-.*` would search in `us-west1-a` and `us-west1-b`.
+  The default is to search globally.
+
+* <a name="_retry_join_gce_credentials_file"></a><a href="#_retry_join_gce_credentials_file">`-retry-join-gce-credentials-file`
+  </a> - The path to the JSON credentials file of the [GCE Service
+  Account](https://cloud.google.com/compute/docs/access/service-accounts) that
+  will be used to search for instances. Note that this can also reside in the
+  following locations:
+   - A path supplied by the `GOOGLE_APPLICATION_CREDENTIALS` environment
+     variable
+   - The `%APPDATA%/gcloud/application_default_credentials.json` file (Windows)
+     or `$HOME/.config/gcloud/application_default_credentials.json` (Linux and
+     other systems)
+   - If none of these exist and discovery is being run from a GCE instance, the
+     instance's configured service account will be used.
+
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
 
@@ -763,6 +794,25 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     [`-retry-join-ec2-tag-value` command-line flag](#_retry_join_ec2_tag_value).
   * `access_key_id` - The AWS access key ID to use for authentication.
   * `secret_access_key` - The AWS secret access key to use for authentication.
+
+* <a name="retry_join_gce"></a><a href="#retry_join_gce">`retry_join_gce`</a> - This is a nested object
+  that allows the setting of GCE-related [`-retry-join`](#_retry_join) options.
+  <br><br>
+  The following keys are valid:
+  * `project_name` - The GCE project name. Equivalent to the<br>
+    [`-retry-join-gce-project-name` command-line
+    flag](#_retry_join_gce_project_name).
+  * `zone_pattern` - The regular expression indicating the zones to search in.
+    Equivalent to the <br>
+    [`-retry-join-gce-zone-pattern` command-line
+    flag](#_retry_join_gce_zone_pattern).
+  * `tag_value` - The GCE instance tag value to filter on. Equivalent to the <br>
+    [`-retry-join-gce-tag-value` command-line
+    flag](#_retry_join_gce_tag_value).
+  * `credentials_file` - The path to the GCE service account credentials file.
+    Equivalent to the <br>
+    [`-retry-join-gce-credentials-file` command-line
+    flag](#_retry_join_gce_credentials_file).
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).
