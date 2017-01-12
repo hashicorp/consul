@@ -135,7 +135,7 @@ for additional details):
 On Linux systems that support it, incoming requests and requests to
 the local host can use `iptables` to forward ports on the same machine
 without a secondary service. Since Consul, by default, only resolves
-the `.consul` TDL, it is especially important to use the `recursors`
+the `.consul` TLD, it is especially important to use the `recursors`
 option if you wish the `iptables` setup to resolve for other domains.
 The recursors should not include the local host as the redirects would
 just intercept the requests.
