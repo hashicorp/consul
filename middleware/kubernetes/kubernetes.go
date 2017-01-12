@@ -341,7 +341,7 @@ func ipFromPodName(podname string) string {
 
 func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error) {
 	if k.PodMode == PodModeDisabled {
-		return pods, nil
+		return pods, errors.New("pod records disabled")
 	}
 
 	var ip string
