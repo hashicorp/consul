@@ -16,6 +16,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+// fail when done in parallel
+
 // Start test server that has metrics enabled. Then tear it down again.
 func TestMetricsServer(t *testing.T) {
 	corefile := `example.org:0 {

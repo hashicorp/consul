@@ -242,6 +242,7 @@ func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 }
 
 func TestKubernetesIntegration(t *testing.T) {
+	t.Parallel()
 	corefile :=
 		`.:0 {
     kubernetes cluster.local 0.0.10.in-addr.arpa {

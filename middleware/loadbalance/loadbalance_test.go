@@ -27,14 +27,14 @@ func TestLoadBalance(t *testing.T) {
 	}{
 		{
 			answer: []dns.RR{
-				newCNAME("cname1.region2.skydns.test.	300	IN	CNAME		cname2.region2.skydns.test."),
-				newCNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
-				newCNAME("cname5.region2.skydns.test.	300	IN	CNAME		cname6.region2.skydns.test."),
-				newCNAME("cname6.region2.skydns.test.	300	IN	CNAME		endpoint.region2.skydns.test."),
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
-				newMX("mx.region2.skydns.test.			300	IN	MX		2	mx2.region2.skydns.test."),
-				newMX("mx.region2.skydns.test.			300	IN	MX		3	mx3.region2.skydns.test."),
+				test.CNAME("cname1.region2.skydns.test.	300	IN	CNAME		cname2.region2.skydns.test."),
+				test.CNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
+				test.CNAME("cname5.region2.skydns.test.	300	IN	CNAME		cname6.region2.skydns.test."),
+				test.CNAME("cname6.region2.skydns.test.	300	IN	CNAME		endpoint.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		2	mx2.region2.skydns.test."),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		3	mx3.region2.skydns.test."),
 			},
 			cnameAnswer:   4,
 			addressAnswer: 1,
@@ -42,9 +42,9 @@ func TestLoadBalance(t *testing.T) {
 		},
 		{
 			answer: []dns.RR{
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
-				newCNAME("cname.region2.skydns.test.	300	IN	CNAME		endpoint.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
+				test.CNAME("cname.region2.skydns.test.	300	IN	CNAME		endpoint.region2.skydns.test."),
 			},
 			cnameAnswer:   1,
 			addressAnswer: 1,
@@ -52,23 +52,23 @@ func TestLoadBalance(t *testing.T) {
 		},
 		{
 			answer: []dns.RR{
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.2"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx2.region2.skydns.test."),
-				newCNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.3"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx3.region2.skydns.test."),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.2"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx2.region2.skydns.test."),
+				test.CNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.3"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx3.region2.skydns.test."),
 			},
 			extra: []dns.RR{
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
-				newAAAA("endpoint.region2.skydns.test.	300	IN	AAAA		::1"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
-				newCNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx2.region2.skydns.test."),
-				newA("endpoint.region2.skydns.test.		300	IN	A			10.240.0.3"),
-				newAAAA("endpoint.region2.skydns.test.	300	IN	AAAA		::2"),
-				newMX("mx.region2.skydns.test.			300	IN	MX		1	mx3.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.1"),
+				test.AAAA("endpoint.region2.skydns.test.	300	IN	AAAA		::1"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx1.region2.skydns.test."),
+				test.CNAME("cname2.region2.skydns.test.	300	IN	CNAME		cname3.region2.skydns.test."),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx2.region2.skydns.test."),
+				test.A("endpoint.region2.skydns.test.		300	IN	A			10.240.0.3"),
+				test.AAAA("endpoint.region2.skydns.test.	300	IN	AAAA		::2"),
+				test.MX("mx.region2.skydns.test.			300	IN	MX		1	mx3.region2.skydns.test."),
 			},
 			cnameAnswer:   1,
 			cnameExtra:    1,
@@ -166,8 +166,3 @@ func handler() middleware.Handler {
 		return dns.RcodeSuccess, nil
 	})
 }
-
-func newA(rr string) *dns.A         { r, _ := dns.NewRR(rr); return r.(*dns.A) }
-func newAAAA(rr string) *dns.AAAA   { r, _ := dns.NewRR(rr); return r.(*dns.AAAA) }
-func newCNAME(rr string) *dns.CNAME { r, _ := dns.NewRR(rr); return r.(*dns.CNAME) }
-func newMX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }

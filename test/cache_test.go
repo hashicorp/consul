@@ -14,6 +14,7 @@ import (
 )
 
 func TestLookupCache(t *testing.T) {
+	t.Parallel()
 	// Start auth. CoreDNS holding the auth zone.
 	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {

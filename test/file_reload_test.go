@@ -13,6 +13,7 @@ import (
 )
 
 func TestZoneReload(t *testing.T) {
+	t.Parallel()
 	log.SetOutput(ioutil.Discard)
 
 	name, rm, err := TempFile(".", exampleOrg)

@@ -16,6 +16,7 @@ import (
 )
 
 func TestAuto(t *testing.T) {
+	t.Parallel()
 	tmpdir, err := ioutil.TempDir(os.TempDir(), "coredns")
 	if err != nil {
 		t.Fatal(err)
@@ -81,6 +82,7 @@ func TestAuto(t *testing.T) {
 }
 
 func TestAutoNonExistentZone(t *testing.T) {
+	t.Parallel()
 	tmpdir, err := ioutil.TempDir(os.TempDir(), "coredns")
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +121,7 @@ func TestAutoNonExistentZone(t *testing.T) {
 }
 
 func TestAutoAXFR(t *testing.T) {
+	t.Parallel()
 	log.SetOutput(ioutil.Discard)
 
 	tmpdir, err := ioutil.TempDir(os.TempDir(), "coredns")
