@@ -3,18 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "appengine",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal/base",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "ZLRh6zW4/DnVsGpgtt+ZiIaEFKc=",
 			"path": "cloud.google.com/go/compute/metadata",
 			"revision": "bfdc39bde7a3c8dd361ea7fcdb69e7a41a475bb9",
@@ -25,10 +13,6 @@
 			"path": "cloud.google.com/go/internal",
 			"revision": "bfdc39bde7a3c8dd361ea7fcdb69e7a41a475bb9",
 			"revisionTime": "2016-12-01T15:27:07Z"
-		},
-		{
-			"path": "git",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "JhyS/zIicgtrSasHSZ6WtXGWJVk=",
@@ -911,10 +895,6 @@
 			"path": "google.golang.org/grpc/transport",
 			"revision": "708a7f9f3283aa2d4f6132d287d78683babe55c8",
 			"revisionTime": "2016-12-02T18:43:27Z"
-		},
-		{
-			"path": "log",
-			"revision": ""
 		}
 	],
 	"rootPath": "github.com/hashicorp/consul"

@@ -564,7 +564,7 @@ func (c *Config) discoverGCEHosts(logger *log.Logger) ([]string, error) {
 
 	logger.Printf("[INFO] agent: Discovering GCE hosts with tag %s in zones: %s", config.TagValue, strings.Join(zones, ", "))
 
-	servers := []string{}
+	var servers []string
 	for _, zone := range zones {
 		addresses, err := gceInstancesAddressesForZone(logger, ctx, computeService, config.ProjectName, zone, config.TagValue)
 		if err != nil {
@@ -611,7 +611,7 @@ func gceProjectIDFromMetadata(logger *log.Logger) (string, error) {
 // gceDiscoverZones discovers a list of zones from a supplied zone pattern, or
 // all of the zones available to a project.
 func gceDiscoverZones(logger *log.Logger, ctx context.Context, computeService *compute.Service, project, pattern string) ([]string, error) {
-	zones := []string{}
+	var zones []string
 
 	if pattern != "" {
 		logger.Printf("[INFO] agent: Discovering zones for project %s matching pattern: %s", project, pattern)
@@ -641,7 +641,7 @@ func gceDiscoverZones(logger *log.Logger, ctx context.Context, computeService *c
 // and zone, matching the supplied tag. Only the private IP addresses are
 // returned, but ID is also logged.
 func gceInstancesAddressesForZone(logger *log.Logger, ctx context.Context, computeService *compute.Service, project, zone, tag string) ([]string, error) {
-	addresses := []string{}
+	var addresses []string
 	call := computeService.Instances.List(project, zone)
 	if err := call.Pages(ctx, func(page *compute.InstanceList) error {
 		for _, v := range page.Items {
@@ -842,13 +842,13 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 			if err != nil {
 				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
 			}
-			logger.Printf("[INFO] agent: Discovered %d servers from EC2...", len(servers))
+			logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
 		case config.RetryJoinGCE.TagValue != "":
 			servers, err = config.discoverGCEHosts(logger)
 			if err != nil {
 				logger.Printf("[ERROR] agent: Unable to query GCE insances: %s", err)
 			}
-			logger.Printf("[INFO] agent: Discovered %d servers from GCE.", len(servers))
+			logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
 		}
 
 		servers = append(servers, config.RetryJoin...)
