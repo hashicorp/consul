@@ -2,8 +2,6 @@ package etcd
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
+	mwtls "github.com/miekg/coredns/middleware/pkg/tls"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	etcdc "github.com/coreos/etcd/client"
@@ -57,11 +56,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		Stubmap:    &stub,
 	}
 	var (
-		tlsCertFile   = ""
-		tlsKeyFile    = ""
-		tlsCAcertFile = ""
-		endpoints     = []string{defaultEndpoint}
-		stubzones     = false
+		tlsConfig *tls.Config
+		err	  error
+		endpoints = []string{defaultEndpoint}
+		stubzones = false
 	)
 	for c.Next() {
 		if c.Val() == "etcd" {
@@ -101,10 +99,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 					etc.Proxy = proxy.New(ups)
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
-					if len(args) != 3 {
-						return &Etcd{}, false, c.ArgErr()
+					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
+					if err != nil {
+						return &Etcd{}, false, err
 					}
-					tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
 				default:
 					if c.Val() != "}" {
 						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
@@ -139,10 +137,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 						etc.Proxy = proxy.New(ups)
 					case "tls": // cert key cacertfile
 						args := c.RemainingArgs()
-						if len(args) != 3 {
-							return &Etcd{}, false, c.ArgErr()
+						tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
+						if err != nil {
+							return &Etcd{}, false, err
 						}
-						tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
 					default:
 						if c.Val() != "}" { // TODO(miek): this feels like I'm doing it completely wrong.
 							return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
@@ -151,7 +149,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				}
 
 			}
-			client, err := newEtcdClient(endpoints, tlsCertFile, tlsKeyFile, tlsCAcertFile)
+			client, err := newEtcdClient(endpoints, tlsConfig)
 			if err != nil {
 				return &Etcd{}, false, err
 			}
@@ -164,10 +162,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 	return &Etcd{}, false, nil
 }
 
-func newEtcdClient(endpoints []string, tlsCert, tlsKey, tlsCACert string) (etcdc.KeysAPI, error) {
+func newEtcdClient(endpoints []string, cc *tls.Config) (etcdc.KeysAPI, error) {
 	etcdCfg := etcdc.Config{
 		Endpoints: endpoints,
-		Transport: newHTTPSTransport(tlsCert, tlsKey, tlsCACert),
+		Transport: newHTTPSTransport(cc),
 	}
 	cli, err := etcdc.New(etcdCfg)
 	if err != nil {
@@ -176,25 +174,10 @@ func newEtcdClient(endpoints []string, tlsCert, tlsKey, tlsCACert string) (etcdc
 	return etcdc.NewKeysAPI(cli), nil
 }
 
-func newHTTPSTransport(tlsCertFile, tlsKeyFile, tlsCACertFile string) etcdc.CancelableTransport {
-	var cc *tls.Config
-
-	if tlsCertFile != "" && tlsKeyFile != "" {
-		var rpool *x509.CertPool
-		if tlsCACertFile != "" {
-			if pemBytes, err := ioutil.ReadFile(tlsCACertFile); err == nil {
-				rpool = x509.NewCertPool()
-				rpool.AppendCertsFromPEM(pemBytes)
-			}
-		}
-
-		if tlsCert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile); err == nil {
-			cc = &tls.Config{
-				RootCAs:            rpool,
-				Certificates:       []tls.Certificate{tlsCert},
-				InsecureSkipVerify: true,
-			}
-		}
+func newHTTPSTransport(cc *tls.Config) etcdc.CancelableTransport {
+	// this seems like a bad idea but was here in the previous version
+	if cc != nil {
+		cc.InsecureSkipVerify = true
 	}
 
 	tr := &http.Transport{

@@ -14,6 +14,7 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/middleware/pkg/tls"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"
@@ -28,7 +29,8 @@ func newEtcdMiddleware() *Etcd {
 	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
 
 	endpoints := []string{"http://localhost:2379"}
-	client, _ := newEtcdClient(endpoints, "", "", "")
+	tlsc, _ := tls.NewTLSConfigFromArgs()
+	client, _ := newEtcdClient(endpoints, tlsc)
 
 	return &Etcd{
 		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
