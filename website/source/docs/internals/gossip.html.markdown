@@ -49,7 +49,7 @@ SWIM makes the assumption that the local node is healthy in the sense
 that soft real-time processing of packets is possible. However, in cases
 where the local node is experiencing CPU or network exhaustion this assumption
 can be violated. The result is that the `serfHealth` check status can
-occassionally flap, resulting in false monitoring alarms, adding noise to
+occasionally flap, resulting in false monitoring alarms, adding noise to
 telemetry, and simply causing the overall cluster to waste CPU and network
 resources diagnosing a failure that may not truly exist.
 
