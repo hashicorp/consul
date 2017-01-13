@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 )
 
 func testUUID() string {
@@ -120,6 +121,15 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	if result, ok := e.(*structs.DirEntry); !ok || result.Key != key {
 		t.Fatalf("bad kvs entry: %#v", result)
 	}
+}
+
+// watchFired is a helper for unit tests that returns if the given watch set
+// fired (it doesn't care which watch actually fired). This uses a fixed
+// 1 ms timeout since we already expect the event happened before calling
+// this and just need to distinguish a fire from a timeout.
+func watchFired(ws memdb.WatchSet) bool {
+	timedOut := ws.Watch(time.After(1 * time.Millisecond))
+	return !timedOut
 }
 
 func TestStateStore_Restore_Abort(t *testing.T) {

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -417,6 +418,59 @@ RUN_QUERY:
 		case <-notifyCh:
 			goto REGISTER_NOTIFY
 		case <-timeout.C:
+		}
+	}
+	return err
+}
+
+// queryFn is used to perform a query operation. If a re-query is needed, the
+// passed-in watch set will be used to block for changes.
+type queryFn func(memdb.WatchSet) error
+
+// blockingQuery is used to process a potentially blocking query operation.
+func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+	fn queryFn) error {
+	var timeout *time.Timer
+
+	// Fast path right to the non-blocking query.
+	if queryOpts.MinQueryIndex == 0 {
+		goto RUN_QUERY
+	}
+
+	// Restrict the max query time, and ensure there is always one.
+	if queryOpts.MaxQueryTime > maxQueryTime {
+		queryOpts.MaxQueryTime = maxQueryTime
+	} else if queryOpts.MaxQueryTime <= 0 {
+		queryOpts.MaxQueryTime = defaultQueryTime
+	}
+
+	// Apply a small amount of jitter to the request.
+	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
+
+	// Setup a query timeout.
+	timeout = time.NewTimer(queryOpts.MaxQueryTime)
+	defer timeout.Stop()
+
+RUN_QUERY:
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta)
+
+	// If the read must be consistent we verify that we are still the leader.
+	if queryOpts.RequireConsistent {
+		if err := s.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Run the query.
+	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
+	ws := memdb.NewWatchSet()
+	err := fn(ws)
+
+	// Block up to the timeout if we didn't see anything fresh.
+	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
+		if expired := ws.Watch(timeout.C); !expired {
+			goto RUN_QUERY
 		}
 	}
 	return err
