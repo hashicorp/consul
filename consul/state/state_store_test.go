@@ -1204,8 +1204,9 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	expected := structs.Services{
-		"redis": []string{"prod", "master"},
+		"redis": []string{"master", "prod"},
 	}
+	sort.Strings(res["redis"])
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("bad: %v %v", res, expected)
 	}
@@ -1219,10 +1220,9 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	expected = structs.Services{
-		"redis": []string{"prod", "master", "slave"},
+		"redis": []string{"master", "prod", "slave"},
 	}
 	sort.Strings(res["redis"])
-	sort.Strings(expected["redis"])
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("bad: %v %v", res, expected)
 	}
