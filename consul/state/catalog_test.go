@@ -545,65 +545,50 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	// Create some nodes in the state store
-	node0 := &structs.Node{Node: "node0", Address: "127.0.0.1", Meta: map[string]string{"role": "client", "common": "1"}}
-	if err := s.EnsureNode(0, node0); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	node1 := &structs.Node{Node: "node1", Address: "127.0.0.1", Meta: map[string]string{"role": "server", "common": "1"}}
-	if err := s.EnsureNode(1, node1); err != nil {
-		t.Fatalf("err: %v", err)
+	testRegisterNodeWithMeta(t, s, 0, "node0", map[string]string{"role": "client"})
+	testRegisterNodeWithMeta(t, s, 1, "node1", map[string]string{"role": "client", "common": "1"})
+	testRegisterNodeWithMeta(t, s, 2, "node2", map[string]string{"role": "server", "common": "1"})
+
+	cases := []struct {
+		filters map[string]string
+		nodes   []string
+	}{
+		// Simple meta filter
+		{
+			filters: map[string]string{"role": "server"},
+			nodes:   []string{"node2"},
+		},
+		// Common meta filter
+		{
+			filters: map[string]string{"common": "1"},
+			nodes:   []string{"node1", "node2"},
+		},
+		// Invalid meta filter
+		{
+			filters: map[string]string{"invalid": "nope"},
+			nodes:   []string{},
+		},
+		// Multiple meta filters
+		{
+			filters: map[string]string{"role": "client", "common": "1"},
+			nodes:   []string{"node1"},
+		},
 	}
 
-	// Retrieve the node with role=client
-	idx, nodes, err := s.NodesByMeta(map[string]string{"role": "client"})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
-	// Only one node was returned
-	if n := len(nodes); n != 1 {
-		t.Fatalf("bad node count: %d", n)
-	}
-
-	// Make sure the node is correct
-	if nodes[0].CreateIndex != 0 || nodes[0].ModifyIndex != 0 {
-		t.Fatalf("bad node index: %d, %d", nodes[0].CreateIndex, nodes[0].ModifyIndex)
-	}
-	if nodes[0].Node != "node0" {
-		t.Fatalf("bad: %#v", nodes[0])
-	}
-	if !reflect.DeepEqual(nodes[0].Meta, node0.Meta) {
-		t.Fatalf("bad: %v != %v", nodes[0].Meta, node0.Meta)
-	}
-
-	// Retrieve both nodes via their common meta field
-	idx, nodes, err = s.NodesByMeta(map[string]string{"common": "1"})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
-	// All nodes were returned
-	if n := len(nodes); n != 2 {
-		t.Fatalf("bad node count: %d", n)
-	}
-
-	// Make sure the nodes match
-	for i, node := range nodes {
-		if node.CreateIndex != uint64(i) || node.ModifyIndex != uint64(i) {
-			t.Fatalf("bad node index: %d, %d", node.CreateIndex, node.ModifyIndex)
+	for _, tc := range cases {
+		_, result, err := s.NodesByMeta(tc.filters)
+		if err != nil {
+			t.Fatalf("bad: %v", err)
 		}
-		name := fmt.Sprintf("node%d", i)
-		if node.Node != name {
-			t.Fatalf("bad: %#v", node)
+
+		if len(result) != len(tc.nodes) {
+			t.Fatalf("bad: %v %v", result, tc.nodes)
 		}
-		if v, ok := node.Meta["common"]; !ok || v != "1" {
-			t.Fatalf("bad: %v", node.Meta)
+
+		for i, node := range result {
+			if node.Node != tc.nodes[i] {
+				t.Fatalf("bad: %v %v", node.Node, tc.nodes[i])
+			}
 		}
 	}
 }
@@ -976,12 +961,9 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	}
 
 	// Filter the services by the first node's meta value
-	idx, res, err = s.ServicesByNodeMeta(map[string]string{"role": "client"})
+	_, res, err = s.ServicesByNodeMeta(map[string]string{"role": "client"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if idx != 3 {
-		t.Fatalf("bad index: %d", idx)
 	}
 	expected := structs.Services{
 		"redis": []string{"master", "prod"},
@@ -992,15 +974,35 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	}
 
 	// Get all services using the common meta value
-	idx, res, err = s.ServicesByNodeMeta(map[string]string{"common": "1"})
+	_, res, err = s.ServicesByNodeMeta(map[string]string{"common": "1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
 	expected = structs.Services{
 		"redis": []string{"master", "prod", "slave"},
+	}
+	sort.Strings(res["redis"])
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("bad: %v %v", res, expected)
+	}
+
+	// Get an empty list for an invalid meta value
+	_, res, err = s.ServicesByNodeMeta(map[string]string{"invalid": "nope"})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	expected = structs.Services{}
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("bad: %v %v", res, expected)
+	}
+
+	// Get the first node's service instance using multiple meta filters
+	_, res, err = s.ServicesByNodeMeta(map[string]string{"role": "client", "common": "1"})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	expected = structs.Services{
+		"redis": []string{"master", "prod"},
 	}
 	sort.Strings(res["redis"])
 	if !reflect.DeepEqual(res, expected) {
