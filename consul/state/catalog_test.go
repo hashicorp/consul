@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
@@ -1546,6 +1547,63 @@ func TestStateStore_ServiceChecks(t *testing.T) {
 	}
 }
 
+func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the first node and service with some checks
+	testRegisterNodeWithMeta(t, s, 0, "node1", map[string]string{"somekey": "somevalue", "common": "1"})
+	testRegisterService(t, s, 1, "node1", "service1")
+	testRegisterCheck(t, s, 2, "node1", "service1", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 3, "node1", "service1", "check2", structs.HealthPassing)
+
+	// Create a second node/service with a different set of checks
+	testRegisterNodeWithMeta(t, s, 4, "node2", map[string]string{"common": "1"})
+	testRegisterService(t, s, 5, "node2", "service1")
+	testRegisterCheck(t, s, 6, "node2", "service1", "check3", structs.HealthPassing)
+
+	cases := []struct {
+		filters map[string]string
+		checks  []string
+	}{
+		// Basic meta filter
+		{
+			filters: map[string]string{"somekey": "somevalue"},
+			checks:  []string{"check1", "check2"},
+		},
+		// Common meta field
+		{
+			filters: map[string]string{"common": "1"},
+			checks:  []string{"check1", "check2", "check3"},
+		},
+		// Invalid meta filter
+		{
+			filters: map[string]string{"invalid": "nope"},
+			checks:  []string{},
+		},
+		// Multiple filters
+		{
+			filters: map[string]string{"somekey": "somevalue", "common": "1"},
+			checks:  []string{"check1", "check2"},
+		},
+	}
+
+	// Try querying for all checks associated with service1
+	for _, tc := range cases {
+		_, checks, err := s.ServiceChecksByNodeMeta("service1", tc.filters)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(checks) != len(tc.checks) {
+			t.Fatalf("bad checks: %#v", checks)
+		}
+		for i, check := range checks {
+			if check.CheckID != types.CheckID(tc.checks[i]) {
+				t.Fatalf("bad checks: %#v", checks)
+			}
+		}
+	}
+}
+
 func TestStateStore_ChecksInState(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1582,6 +1640,88 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	}
 	if n := len(checks); n != 3 {
 		t.Fatalf("expected 3 checks, got: %d", n)
+	}
+}
+
+func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no results returns nil
+	idx, res, err := s.ChecksInStateByNodeMeta(structs.HealthPassing, nil)
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Register a node with checks in varied states
+	testRegisterNodeWithMeta(t, s, 0, "node1", map[string]string{"somekey": "somevalue", "common": "1"})
+	testRegisterCheck(t, s, 1, "node1", "", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 2, "node1", "", "check2", structs.HealthCritical)
+
+	testRegisterNodeWithMeta(t, s, 3, "node2", map[string]string{"common": "1"})
+	testRegisterCheck(t, s, 4, "node2", "", "check3", structs.HealthPassing)
+
+	cases := []struct {
+		filters map[string]string
+		state   string
+		checks  []string
+	}{
+		// Basic meta filter, any status
+		{
+			filters: map[string]string{"somekey": "somevalue"},
+			state:   structs.HealthAny,
+			checks:  []string{"check2", "check1"},
+		},
+		// Basic meta filter, only passing
+		{
+			filters: map[string]string{"somekey": "somevalue"},
+			state:   structs.HealthPassing,
+			checks:  []string{"check1"},
+		},
+		// Common meta filter, any status
+		{
+			filters: map[string]string{"common": "1"},
+			state:   structs.HealthAny,
+			checks:  []string{"check2", "check1", "check3"},
+		},
+		// Common meta filter, only passing
+		{
+			filters: map[string]string{"common": "1"},
+			state:   structs.HealthPassing,
+			checks:  []string{"check1", "check3"},
+		},
+		// Invalid meta filter
+		{
+			filters: map[string]string{"invalid": "nope"},
+			checks:  []string{},
+		},
+		// Multiple filters, any status
+		{
+			filters: map[string]string{"somekey": "somevalue", "common": "1"},
+			state:   structs.HealthAny,
+			checks:  []string{"check2", "check1"},
+		},
+		// Multiple filters, only passing
+		{
+			filters: map[string]string{"somekey": "somevalue", "common": "1"},
+			state:   structs.HealthPassing,
+			checks:  []string{"check1"},
+		},
+	}
+
+	// Try querying for all checks associated with service1
+	for _, tc := range cases {
+		_, checks, err := s.ChecksInStateByNodeMeta(tc.state, tc.filters)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(checks) != len(tc.checks) {
+			t.Fatalf("bad checks: %#v", checks)
+		}
+		for i, check := range checks {
+			if check.CheckID != types.CheckID(tc.checks[i]) {
+				t.Fatalf("bad checks: %#v, %v", checks, tc.checks)
+			}
+		}
 	}
 }
 

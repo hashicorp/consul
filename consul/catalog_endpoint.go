@@ -243,6 +243,15 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.Index, reply.ServiceNodes = index, services
+			if len(args.NodeMetaFilters) > 0 {
+				var filtered structs.ServiceNodes
+				for _, service := range services {
+					if structs.SatisfiesMetaFilters(service.NodeMeta, args.NodeMetaFilters) {
+						filtered = append(filtered, service)
+					}
+				}
+				reply.ServiceNodes = filtered
+			}
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}

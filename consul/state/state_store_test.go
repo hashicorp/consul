@@ -35,7 +35,11 @@ func testStateStore(t *testing.T) *StateStore {
 }
 
 func testRegisterNode(t *testing.T, s *StateStore, idx uint64, nodeID string) {
-	node := &structs.Node{Node: nodeID}
+	testRegisterNodeWithMeta(t, s, idx, nodeID, nil)
+}
+
+func testRegisterNodeWithMeta(t *testing.T, s *StateStore, idx uint64, nodeID string, meta map[string]string) {
+	node := &structs.Node{Node: nodeID, Meta: meta}
 	if err := s.EnsureNode(idx, node); err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -222,6 +222,8 @@ func (s *StateStore) getWatchTables(method string) []string {
 		return []string{"nodes", "services"}
 	case "NodeCheck", "NodeChecks", "ServiceChecks", "ChecksInState":
 		return []string{"checks"}
+	case "ChecksInStateByNodeMeta", "ServiceChecksByNodeMeta":
+		return []string{"nodes", "checks"}
 	case "CheckServiceNodes", "NodeInfo", "NodeDump":
 		return []string{"nodes", "services", "checks"}
 	case "SessionGet", "SessionList", "NodeSessions":

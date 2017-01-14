@@ -592,7 +592,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 	}
 }
 
-func TestCatalog_ListNodes_MetaFilter(t *testing.T) {
+func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1060,7 +1060,7 @@ func TestCatalog_ListServices(t *testing.T) {
 	}
 }
 
-func TestCatalog_ListServices_MetaFilter(t *testing.T) {
+func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1305,6 +1305,106 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	}
 	if len(out.ServiceNodes) != 0 {
 		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add 2 nodes with specific meta maps
+	node := &structs.Node{Node: "foo", Address: "127.0.0.1", Meta: map[string]string{"somekey": "somevalue", "common": "1"}}
+	if err := s1.fsm.State().EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	node2 := &structs.Node{Node: "bar", Address: "127.0.0.2", Meta: map[string]string{"common": "1"}}
+	if err := s1.fsm.State().EnsureNode(2, node2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureService(3, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureService(4, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	cases := []struct {
+		filters  map[string]string
+		tag      string
+		services structs.ServiceNodes
+	}{
+		// Basic meta filter
+		{
+			filters:  map[string]string{"somekey": "somevalue"},
+			services: structs.ServiceNodes{&structs.ServiceNode{Node: "foo", ServiceID: "db"}},
+		},
+		// Basic meta filter, tag
+		{
+			filters:  map[string]string{"somekey": "somevalue"},
+			tag:      "primary",
+			services: structs.ServiceNodes{&structs.ServiceNode{Node: "foo", ServiceID: "db"}},
+		},
+		// Common meta filter
+		{
+			filters: map[string]string{"common": "1"},
+			services: structs.ServiceNodes{
+				&structs.ServiceNode{Node: "bar", ServiceID: "db2"},
+				&structs.ServiceNode{Node: "foo", ServiceID: "db"},
+			},
+		},
+		// Common meta filter, tag
+		{
+			filters: map[string]string{"common": "1"},
+			tag:     "secondary",
+			services: structs.ServiceNodes{
+				&structs.ServiceNode{Node: "bar", ServiceID: "db2"},
+			},
+		},
+		// Invalid meta filter
+		{
+			filters:  map[string]string{"invalid": "nope"},
+			services: structs.ServiceNodes{},
+		},
+		// Multiple filter values
+		{
+			filters:  map[string]string{"somekey": "somevalue", "common": "1"},
+			services: structs.ServiceNodes{&structs.ServiceNode{Node: "foo", ServiceID: "db"}},
+		},
+		// Multiple filter values, tag
+		{
+			filters:  map[string]string{"somekey": "somevalue", "common": "1"},
+			tag:      "primary",
+			services: structs.ServiceNodes{&structs.ServiceNode{Node: "foo", ServiceID: "db"}},
+		},
+	}
+
+	for _, tc := range cases {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:      "dc1",
+			NodeMetaFilters: tc.filters,
+			ServiceName:     "db",
+			ServiceTag:      tc.tag,
+			TagFilter:       tc.tag != "",
+		}
+		var out structs.IndexedServiceNodes
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(out.ServiceNodes) != len(tc.services) {
+			t.Fatalf("bad: %v", out)
+		}
+
+		for i, serviceNode := range out.ServiceNodes {
+			if serviceNode.Node != tc.services[i].Node || serviceNode.ServiceID != tc.services[i].ServiceID {
+				t.Fatalf("bad: %v, %v filters: %v", serviceNode, tc.services[i], tc.filters)
+			}
+		}
 	}
 }
 
