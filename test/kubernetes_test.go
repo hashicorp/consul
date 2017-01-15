@@ -218,6 +218,13 @@ var dnsTestCases = []test.Case{
 			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
 		},
 	},
+	{
+		Qname: "dns-version.cluster.local.", Qtype: dns.TypeTXT,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.TXT("dns-version.cluster.local. 28800 IN TXT \"1.0.0\""),
+		},
+	},
 }
 
 var dnsTestCasesPodsInsecure = []test.Case{

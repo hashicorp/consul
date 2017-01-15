@@ -44,8 +44,9 @@ type Kubernetes struct {
 }
 
 const (
-	PodModeDisabled = "disabled" // default. pod requests are ignored
-	PodModeInsecure = "insecure" // ALL pod requests are answered without verfying they exist
+	PodModeDisabled  = "disabled" // default. pod requests are ignored
+	PodModeInsecure  = "insecure" // ALL pod requests are answered without verfying they exist
+	DnsSchemaVersion = "1.0.0"    // https://github.com/kubernetes/dns/blob/master/docs/specification.md
 )
 
 type endpoint struct {
@@ -82,8 +83,28 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 	if e != nil {
 		return nil, nil, e
 	}
-	s, e := k.Records(r)
-	return s, nil, e // Haven't implemented debug queries yet.
+
+	switch state.Type() {
+	case "A", "SRV":
+		s, e := k.Records(r)
+		return s, nil, e // Haven't implemented debug queries yet.
+	case "TXT":
+		s, e := k.recordsForTXT(r)
+		return s, nil, e
+	}
+	return nil, nil, nil
+}
+
+func (k *Kubernetes) recordsForTXT(r recordRequest) ([]msg.Service, error) {
+	switch r.typeName {
+	case "dns-version":
+		s := msg.Service{
+			Text: DnsSchemaVersion,
+			TTL:  28800,
+			Key:  msg.Path(r.typeName+"."+r.zone, "coredns")}
+		return []msg.Service{s}, nil
+	}
+	return nil, nil
 }
 
 // PrimaryZone will return the first non-reverse zone being handled by this middleware
@@ -250,6 +271,11 @@ func (k *Kubernetes) parseRequest(lowerCasedName, qtype string) (r recordRequest
 		r.namespace = segs[offset+1]
 		r.typeName = segs[offset+2]
 
+		return r, nil
+	}
+
+	if len(segs) == 1 && qtype == "TXT" {
+		r.typeName = segs[0]
 		return r, nil
 	}
 
