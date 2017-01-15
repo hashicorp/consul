@@ -241,11 +241,12 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
-	Datacenter  string
-	ServiceName string
-	ServiceTag  string
-	TagFilter   bool // Controls tag filtering
-	Source      QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	ServiceName     string
+	ServiceTag      string
+	TagFilter       bool // Controls tag filtering
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -266,9 +267,10 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 
 // ChecksInStateRequest is used to query for nodes in a state
 type ChecksInStateRequest struct {
-	Datacenter string
-	State      string
-	Source     QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	State           string
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -286,6 +288,15 @@ type Node struct {
 	RaftIndex
 }
 type Nodes []*Node
+
+func SatisfiesMetaFilters(meta map[string]string, filters map[string]string) bool {
+	for key, value := range filters {
+		if v, ok := meta[key]; !ok || v != value {
+			return false
+		}
+	}
+	return true
+}
 
 // Used to return information about a provided services.
 // Maps service name to available tags

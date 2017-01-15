@@ -222,6 +222,36 @@ func TestCatalog_Service(t *testing.T) {
 	})
 }
 
+func TestCatalog_Service_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+	})
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	testutil.WaitForResult(func() (bool, error) {
+		services, meta, err := catalog.Service("consul", "", &QueryOptions{NodeMeta: meta})
+		if err != nil {
+			return false, err
+		}
+
+		if meta.LastIndex == 0 {
+			return false, fmt.Errorf("Bad: %v", meta)
+		}
+
+		if len(services) == 0 {
+			return false, fmt.Errorf("Bad: %v", services)
+		}
+
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
+}
+
 func TestCatalog_Node(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

@@ -200,7 +200,8 @@ node for the sort.
 
 In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
 provided with a desired node metadata key/value pair of the form `key:value`.
-This will filter the results to nodes with that pair present.
+This parameter can be specified multiple times, and will filter the results to
+nodes with the specified key/value pair(s).
 
 It returns a JSON body like this:
 
@@ -241,7 +242,8 @@ however, the `dc` can be provided using the `?dc=` query parameter.
 
 In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
 provided with a desired node metadata key/value pair of the form `key:value`.
-This will filter the results to services with that pair present.
+This parameter can be specified multiple times, and will filter the results to
+services on nodes with the specified key/value pair(s).
 
 It returns a JSON body like this:
 
@@ -275,6 +277,11 @@ Adding the optional `?near=` parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
 time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
+
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This parameter can be specified multiple times, and will filter the results to
+service entries on nodes with the specified key/value pair(s).
 
 It returns a JSON body like this:
 

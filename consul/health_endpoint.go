@@ -25,7 +25,14 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ChecksInState"),
 		func() error {
-			index, checks, err := state.ChecksInState(args.State)
+			var index uint64
+			var checks structs.HealthChecks
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, checks, err = state.ChecksInStateByNodeMeta(args.State, args.NodeMetaFilters)
+			} else {
+				index, checks, err = state.ChecksInState(args.State)
+			}
 			if err != nil {
 				return err
 			}
@@ -80,7 +87,14 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ServiceChecks"),
 		func() error {
-			index, checks, err := state.ServiceChecks(args.ServiceName)
+			var index uint64
+			var checks structs.HealthChecks
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, checks, err = state.ServiceChecksByNodeMeta(args.ServiceName, args.NodeMetaFilters)
+			} else {
+				index, checks, err = state.ServiceChecks(args.ServiceName)
+			}
 			if err != nil {
 				return err
 			}
@@ -123,6 +137,15 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			}
 
 			reply.Index, reply.Nodes = index, nodes
+			if len(args.NodeMetaFilters) > 0 {
+				var filtered structs.CheckServiceNodes
+				for _, node := range nodes {
+					if structs.SatisfiesMetaFilters(node.Node.Meta, args.NodeMetaFilters) {
+						filtered = append(filtered, node)
+					}
+				}
+				reply.Nodes = filtered
+			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}

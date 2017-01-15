@@ -65,6 +65,49 @@ func TestHealthChecksInState(t *testing.T) {
 	})
 }
 
+func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.1",
+			NodeMeta:   map[string]string{"somekey": "somevalue"},
+			Check: &structs.HealthCheck{
+				Node:   "bar",
+				Name:   "node check",
+				Status: structs.HealthCritical,
+			},
+		}
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		req, err := http.NewRequest("GET", "/v1/health/state/critical?node-meta=somekey:somevalue", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		testutil.WaitForResult(func() (bool, error) {
+			resp := httptest.NewRecorder()
+			obj, err := srv.HealthChecksInState(resp, req)
+			if err != nil {
+				return false, err
+			}
+			if err := checkIndex(resp); err != nil {
+				return false, err
+			}
+
+			// Should be 1 health check for the server
+			nodes := obj.(structs.HealthChecks)
+			if len(nodes) != 1 {
+				return false, fmt.Errorf("bad: %v", obj)
+			}
+			return true, nil
+		}, func(err error) { t.Fatalf("err: %v", err) })
+	})
+}
+
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -258,6 +301,69 @@ func TestHealthServiceChecks(t *testing.T) {
 	}
 }
 
+func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	req, err := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthServiceChecks(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list
+	nodes := obj.(structs.HealthChecks)
+	if nodes == nil || len(nodes) != 0 {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Create a service check
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.agent.config.NodeName,
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:      srv.agent.config.NodeName,
+			Name:      "consul check",
+			ServiceID: "consul",
+		},
+	}
+
+	var out struct{}
+	if err = srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = httptest.NewRecorder()
+	obj, err = srv.HealthServiceChecks(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes = obj.(structs.HealthChecks)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -410,6 +516,69 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 
 	req, err = http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = httptest.NewRecorder()
+	obj, err = srv.HealthServiceNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list for checks
+	nodes = obj.(structs.CheckServiceNodes)
+	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthServiceNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list
+	nodes := obj.(structs.CheckServiceNodes)
+	if nodes == nil || len(nodes) != 0 {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Service: &structs.NodeService{
+			ID:      "test",
+			Service: "test",
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&node-meta=somekey:somevalue", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

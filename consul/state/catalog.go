@@ -198,11 +198,8 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 	return idx, results, nil
 }
 
-// NodesByMeta is used to return all nodes with the given meta key/value pair.
+// NodesByMeta is used to return all nodes with the given metadata key/value pairs.
 func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nodes, error) {
-	if len(filters) > 1 {
-		return 0, nil, fmt.Errorf("multiple meta filters not supported")
-	}
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -213,6 +210,7 @@ func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nod
 	var args []interface{}
 	for key, value := range filters {
 		args = append(args, key, value)
+		break
 	}
 	nodes, err := tx.Get("nodes", "meta", args...)
 	if err != nil {
@@ -222,7 +220,10 @@ func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nod
 	// Create and return the nodes list.
 	var results structs.Nodes
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
-		results = append(results, node.(*structs.Node))
+		n := node.(*structs.Node)
+		if len(filters) <= 1 || structs.SatisfiesMetaFilters(n.Meta, filters) {
+			results = append(results, n)
+		}
 	}
 	return idx, results, nil
 }
@@ -437,11 +438,8 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	return idx, results, nil
 }
 
-// Services returns all services, filtered by the given node metadata.
+// ServicesByNodeMeta returns all services, filtered by the given node metadata.
 func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, structs.Services, error) {
-	if len(filters) > 1 {
-		return 0, nil, fmt.Errorf("multiple meta filters not supported")
-	}
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -452,6 +450,7 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 	var args []interface{}
 	for key, value := range filters {
 		args = append(args, key, value)
+		break
 	}
 	nodes, err := tx.Get("nodes", "meta", args...)
 	if err != nil {
@@ -462,6 +461,9 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 	unique := make(map[string]map[string]struct{})
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
+		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
+			continue
+		}
 		// List all the services on the node
 		services, err := tx.Get("services", "node", n.Node)
 		if err != nil {
@@ -877,6 +879,24 @@ func (s *StateStore) ServiceChecks(serviceName string) (uint64, structs.HealthCh
 	return s.parseChecks(idx, checks)
 }
 
+// ServiceChecksByNodeMeta is used to get all checks associated with a
+// given service ID, filtered by the given node metadata values. The query
+// is performed against a service _name_ instead of a service ID.
+func (s *StateStore) ServiceChecksByNodeMeta(serviceName string, filters map[string]string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("ServiceChecksByNodeMeta")...)
+
+	// Return the checks.
+	checks, err := tx.Get("checks", "service", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
+}
+
 // ChecksInState is used to query the state store for all checks
 // which are in the provided state.
 func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, error) {
@@ -903,6 +923,34 @@ func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, 
 	return s.parseChecks(idx, checks)
 }
 
+// ChecksInStateByNodeMeta is used to query the state store for all checks
+// which are in the provided state, filtered by the given node metadata values.
+func (s *StateStore) ChecksInStateByNodeMeta(state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInStateByNodeMeta")...)
+
+	// Query all checks if HealthAny is passed
+	var checks memdb.ResultIterator
+	var err error
+	if state == structs.HealthAny {
+		checks, err = tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	} else {
+		// Any other state we need to query for explicitly
+		checks, err = tx.Get("checks", "status", state)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	}
+
+	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
+}
+
 // parseChecks is a helper function used to deduplicate some
 // repetitive code for returning health checks.
 func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64, structs.HealthChecks, error) {
@@ -910,6 +958,27 @@ func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64,
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		results = append(results, check.(*structs.HealthCheck))
+	}
+	return idx, results, nil
+}
+
+// parseChecksByNodeMeta is a helper function used to deduplicate some
+// repetitive code for returning health checks filtered by node metadata fields.
+func (s *StateStore) parseChecksByNodeMeta(idx uint64, iter memdb.ResultIterator, tx *memdb.Txn,
+	filters map[string]string) (uint64, structs.HealthChecks, error) {
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		healthCheck := check.(*structs.HealthCheck)
+		node, err := tx.First("nodes", "id", healthCheck.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+		}
+		if node == nil {
+			return 0, nil, ErrMissingNode
+		}
+		if structs.SatisfiesMetaFilters(node.(*structs.Node).Meta, filters) {
+			results = append(results, healthCheck)
+		}
 	}
 	return idx, results, nil
 }
