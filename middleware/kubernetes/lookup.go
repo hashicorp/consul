@@ -12,7 +12,11 @@ import (
 )
 
 func (k Kubernetes) records(state request.Request, exact bool) ([]msg.Service, error) {
-	services, err := k.Records(state.Name(), exact)
+	r, err := k.parseRequest(state.Name(), state.Type())
+	if err != nil {
+		return nil, err
+	}
+	services, err := k.Records(r)
 	if err != nil {
 		return nil, err
 	}

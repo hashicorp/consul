@@ -8,7 +8,6 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 
 	"github.com/mholt/caddy"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
@@ -52,8 +51,6 @@ func setup(c *caddy.Controller) error {
 
 func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 	k8s := &Kubernetes{ResyncPeriod: defaultResyncPeriod}
-	k8s.NameTemplate = new(nametemplate.Template)
-	k8s.NameTemplate.SetTemplate(defaultNameTemplate)
 	k8s.PodMode = PodModeDisabled
 
 	for c.Next() {
@@ -95,18 +92,6 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 							k8s.PodMode = args[0]
 						default:
 							return nil, errors.New("pods must be one of: disabled, insecure")
-						}
-						continue
-					}
-					return nil, c.ArgErr()
-
-				case "template":
-					args := c.RemainingArgs()
-					if len(args) > 0 {
-						template := strings.Join(args, "")
-						err := k8s.NameTemplate.SetTemplate(template)
-						if err != nil {
-							return nil, err
 						}
 						continue
 					}
@@ -164,7 +149,6 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 }
 
 const (
-	defaultNameTemplate = "{service}.{namespace}.{type}.{zone}"
 	defaultResyncPeriod = 5 * time.Minute
 	defaultPodMode      = PodModeDisabled
 )

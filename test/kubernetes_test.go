@@ -105,7 +105,7 @@ var dnsTestCases = []test.Case{
 	},
 	//TODO: Fix below to all use test.SRV not test.A!
 	{
-		Qname: "_*._*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*._TcP.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
@@ -113,12 +113,12 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*._*.bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "_*._*.svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.any.svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
@@ -126,7 +126,7 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*._*.svc-1-a.any.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "ANY.*.svc-1-a.any.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
@@ -134,17 +134,17 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*._*.bogusservice.*.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.bogusservice.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "_*._*.bogusservice.any.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.bogusservice.any.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "_c-port._*.*.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "_c-port._UDP.*.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.SRV("_c-port._udp.svc-c.test-1.svc.cluster.local.      303    IN    SRV 10 100 1234 svc-c.test-1.svc.cluster.local."),
@@ -153,7 +153,7 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*._tcp.any.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*._tcp.any.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.SRV("_http._tcp.svc-1-a.test-1.svc.cluster.local.      303    IN    SRV 10 100 80 svc-1-a.test-1.svc.cluster.local."),
@@ -162,12 +162,12 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*._*.any.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.any.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "_*._*.*.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Qname: "*.*.*.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeNameError,
 		Answer: []dns.RR{},
 	},
@@ -180,18 +180,18 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "_*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
+		Qname: "*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode:  dns.RcodeServerFailure,
 		Answer: []dns.RR{},
 	},
 	{
-		Qname: "_*._not-udp-or-tcp.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
+		Qname: "*._not-udp-or-tcp.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode:  dns.RcodeServerFailure,
 		Answer: []dns.RR{},
 	},
 	{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
+		Rcode:  dns.RcodeServerFailure,
 		Answer: []dns.RR{},
 	},
 	{

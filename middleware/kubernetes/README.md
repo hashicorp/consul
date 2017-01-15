@@ -1,14 +1,13 @@
 # kubernetes
 
 *kubernetes* enables reading zone data from a kubernetes cluster. Record names
-are constructed as "myservice.mynamespace.coredns.local" where:
+are constructed as "myservice.mynamespace.type.coredns.local" where:
 
 * "myservice" is the name of the k8s service (this may include multiple DNS labels,
   such as "c1.myservice"),
 * "mynamespace" is the k8s namespace for the service, and
+* "type" is svc or pod
 * "coredns.local" is the zone configured for `kubernetes`.
-
-The record name format can be changed by specifying a name template in the Corefile.
 
 ## Syntax
 
@@ -50,9 +49,6 @@ This is the default kubernetes setup, with everything specified in full:
         # The tls cert, key and the CA cert filenames
         tls cert key cacert
 		
-        # Assemble k8s record names with the template
-        template {service}.{namespace}.{type}.{zone}
-		
         # Only expose the k8s namespace "demo"
         namespaces demo
 		
@@ -64,15 +60,15 @@ This is the default kubernetes setup, with everything specified in full:
         # "application=nginx" in the staging or qa environments.
         #labels environment in (staging, qa),application=nginx
 		
-		# The mode of responding to pod A record requests. 
-		# e.g 1-2-3-4.ns.pod.zone.  This option is provided to allow use of
-		# SSL certs when connecting directly to pods.
-		# Valid values: disabled, verified, insecure
-		#  disabled: default. ignore pod requests, always returning NXDOMAIN
-		#  insecure: Always return an A record with IP from request (without 
-		#            checking k8s).  This option is is vulnerable to abuse if
-		# 	         used maliciously in conjuction with wildcard SSL certs.
-		pods disabled
+        # The mode of responding to pod A record requests. 
+        # e.g 1-2-3-4.ns.pod.zone.  This option is provided to allow use of
+        # SSL certs when connecting directly to pods.
+        # Valid values: disabled, verified, insecure
+        #  disabled: default. ignore pod requests, always returning NXDOMAIN
+        #  insecure: Always return an A record with IP from request (without 
+        #            checking k8s).  This option is is vulnerable to abuse if
+        #            used maliciously in conjuction with wildcard SSL certs.
+	pods disabled
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is specified by an integer in seconds
@@ -82,21 +78,11 @@ This is the default kubernetes setup, with everything specified in full:
 
 Defaults:
 * If the `namespaces` keyword is omitted, all kubernetes namespaces are exposed.
-* If the `template` keyword is omitted, the default template of "{service}.{namespace}.{type}.{zone}" is used.
 * If the `resyncperiod` keyword is omitted, the default resync period is 5 minutes.
 * The `labels` keyword is only used when filtering results based on kubernetes label selector syntax
   is required. The label selector syntax is described in the kubernetes API documentation at:
   http://kubernetes.io/docs/user-guide/labels/
 * If the `pods` keyword is omitted, all pod type requests will result in NXDOMAIN
-
-### Template Syntax
-Record name templates can be constructed using the symbolic elements:
-
-| template symbol | description                                                         |
-| `{service}`     | Kubernetes object/service name.                                     |
-| `{namespace}`   | The kubernetes namespace.                                           |
-| `{type}`        | The type of the kubernetes object. Supports values 'svc' and 'pod'. |
-| `{zone}`        | The zone configured for the kubernetes middleware.                  |
 
 ### Basic Setup
 
@@ -146,7 +132,6 @@ Build CoreDNS and launch using this configuration file:
     kubernetes coredns.local {
         resyncperiod 5m
         endpoint http://localhost:8080
-        template {service}.{namespace}.{type}.{zone}
         namespaces demo
         # Only expose the records for kubernetes objects
         # that matches this label selector. 
