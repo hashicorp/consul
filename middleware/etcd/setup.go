@@ -49,7 +49,7 @@ func setup(c *caddy.Controller) error {
 func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 	stub := make(map[string]proxy.Proxy)
 	etc := Etcd{
-		Proxy:      proxy.New([]string{"8.8.8.8:53", "8.8.4.4:53"}),
+		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},
@@ -57,7 +57,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 	}
 	var (
 		tlsConfig *tls.Config
-		err	  error
+		err       error
 		endpoints = []string{defaultEndpoint}
 		stubzones = false
 	)
@@ -96,7 +96,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 					if err != nil {
 						return &Etcd{}, false, err
 					}
-					etc.Proxy = proxy.New(ups)
+					etc.Proxy = proxy.NewLookup(ups)
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
 					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
@@ -134,7 +134,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 						if err != nil {
 							return &Etcd{}, false, c.ArgErr()
 						}
-						etc.Proxy = proxy.New(ups)
+						etc.Proxy = proxy.NewLookup(ups)
 					case "tls": // cert key cacertfile
 						args := c.RemainingArgs()
 						tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)

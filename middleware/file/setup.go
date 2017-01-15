@@ -110,7 +110,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 					if err != nil {
 						return Zones{}, err
 					}
-					prxy = proxy.New(ups)
+					prxy = proxy.NewLookup(ups)
 				}
 
 				for _, origin := range origins {

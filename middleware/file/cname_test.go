@@ -93,7 +93,7 @@ func TestLookupCNAMEExternal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
-	zone.Proxy = proxy.New([]string{"8.8.8.8:53"}) // TODO(miek): point to local instance
+	zone.Proxy = proxy.NewLookup([]string{"8.8.8.8:53"}) // TODO(miek): point to local instance
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{name: zone}, Names: []string{name}}}
 	ctx := context.TODO()

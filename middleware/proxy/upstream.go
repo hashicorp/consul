@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -37,6 +38,7 @@ type staticUpstream struct {
 	WithoutPathPrefix string
 	IgnoredSubDomains []string
 	options           Options
+	Protocol          protocol
 }
 
 // Options ...
@@ -56,6 +58,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			Spray:       nil,
 			FailTimeout: 10 * time.Second,
 			MaxFails:    1,
+			Protocol:    dnsProto,
 		}
 
 		if !c.Args(&upstream.from) {
@@ -86,6 +89,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
 				Unhealthy:   false,
+				Exchanger:   newDNSEx(host),
 
 				CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 					return func(uh *UpstreamHost) bool {
@@ -102,6 +106,15 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 				}(upstream),
 				WithoutPathPrefix: upstream.WithoutPathPrefix,
 			}
+			switch upstream.Protocol {
+			// case https_google:
+
+			case dnsProto:
+				fallthrough
+			default:
+				// Already done in the initialization above.
+			}
+
 			upstream.Hosts[i] = uh
 		}
 
@@ -188,6 +201,19 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 		u.IgnoredSubDomains = ignoredDomains
 	case "spray":
 		u.Spray = &Spray{}
+	case "protocol":
+		encArgs := c.RemainingArgs()
+		if len(encArgs) == 0 {
+			return c.ArgErr()
+		}
+		switch encArgs[0] {
+		case "dns":
+			u.Protocol = dnsProto
+		case "https_google":
+			// Nothing yet.
+		default:
+			return fmt.Errorf("%s: %s", errInvalidProtocol, encArgs[0])
+		}
 
 	default:
 		return c.Errf("unknown property '%s'", c.Val())

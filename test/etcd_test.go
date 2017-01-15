@@ -66,15 +66,14 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 		defer delete(ctx, t, etc, serv.Key)
 	}
 
-	p := proxy.New([]string{udp}) // use udp port from the server
+	p := proxy.NewLookup([]string{udp}) // use udp port from the server
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 	resp, err := p.Lookup(state, "example.com.", dns.TypeA)
 	if err != nil {
-		t.Error("Expected to receive reply, but didn't")
-		return
+		t.Fatalf("Expected to receive reply, but didn't", err)
 	}
 	if len(resp.Answer) == 0 {
-		t.Error("Expected to at least one RR in the answer section, got none")
+		t.Fatalf("Expected to at least one RR in the answer section, got none")
 	}
 	if resp.Answer[0].Header().Rrtype != dns.TypeA {
 		t.Errorf("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)

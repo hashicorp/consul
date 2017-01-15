@@ -42,7 +42,7 @@ func TestAuto(t *testing.T) {
 
 	log.SetOutput(ioutil.Discard)
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	resp, err := p.Lookup(state, "www.example.org.", dns.TypeA)
@@ -108,7 +108,7 @@ func TestAutoNonExistentZone(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
@@ -155,7 +155,7 @@ func TestAutoAXFR(t *testing.T) {
 
 	time.Sleep(1100 * time.Millisecond) // wait for it to be picked up
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	m := new(dns.Msg)
 	m.SetAxfr("example.org.")
 	state := request.Request{W: &test.ResponseWriter{}, Req: m}

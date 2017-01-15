@@ -57,7 +57,7 @@ func TestLookupDS(t *testing.T) {
 
 	log.SetOutput(ioutil.Discard)
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &mtest.ResponseWriter{}, Req: new(dns.Msg)}
 
 	for _, tc := range dsTestCases {

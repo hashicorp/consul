@@ -10,25 +10,30 @@ import (
 	"github.com/miekg/dns"
 )
 
-type client struct {
+type dnsEx struct {
 	Timeout time.Duration
+	Address string // address/name of this upstream
 
 	group *singleflight.Group
 }
 
-func newClient() *client {
-	return &client{Timeout: defaultTimeout, group: new(singleflight.Group)}
+func newDNSEx(address string) *dnsEx {
+	return &dnsEx{Address: address, group: new(singleflight.Group), Timeout: defaultTimeout * time.Second}
 }
 
-// ServeDNS does not satisfy middleware.Handler, instead it interacts with the upstream
-// and returns the respons or an error.
-func (c *client) ServeDNS(w dns.ResponseWriter, r *dns.Msg, u *UpstreamHost) (*dns.Msg, error) {
-	co, err := net.DialTimeout(request.Proto(w), u.Name, c.Timeout)
+func (d *dnsEx) OnStartup() error             { return nil }
+func (d *dnsEx) OnShutdown() error            { return nil }
+func (d *dnsEx) SetUpstream(u Upstream) error { return nil }
+func (d *dnsEx) Protocol() protocol           { return dnsProto }
+
+// Exchange implements the Exchanger interface.
+func (d *dnsEx) Exchange(state request.Request) (*dns.Msg, error) {
+	co, err := net.DialTimeout(state.Proto(), d.Address, d.Timeout)
 	if err != nil {
 		return nil, err
 	}
 
-	reply, _, err := c.Exchange(r, co)
+	reply, _, err := d.ExchangeConn(state.Req, co)
 
 	co.Close()
 
@@ -42,12 +47,12 @@ func (c *client) ServeDNS(w dns.ResponseWriter, r *dns.Msg, u *UpstreamHost) (*d
 	}
 
 	reply.Compress = true
-	reply.Id = r.Id
+	reply.Id = state.Req.Id
 
 	return reply, nil
 }
 
-func (c *client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, error) {
+func (d *dnsEx) ExchangeConn(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, error) {
 	t := "nop"
 	if t1, ok := dns.TypeToString[m.Question[0].Qtype]; ok {
 		t = t1
@@ -60,9 +65,8 @@ func (c *client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, err
 	start := time.Now()
 
 	// Name needs to be normalized! Bug in go dns.
-	r, err := c.group.Do(m.Question[0].Name+t+cl, func() (interface{}, error) {
-		ret, e := c.exchange(m, co)
-		return ret, e
+	r, err := d.group.Do(m.Question[0].Name+t+cl, func() (interface{}, error) {
+		return exchange(m, co)
 	})
 
 	r1 := r.(dns.Msg)
@@ -72,7 +76,7 @@ func (c *client) Exchange(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, err
 
 // exchange does *not* return a pointer to dns.Msg because that leads to buffer reuse when
 // group.Do is used in Exchange.
-func (c *client) exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
+func exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
 	opt := m.IsEdns0()
 
 	udpsize := uint16(dns.MinMsgSize)
@@ -97,3 +101,5 @@ func (c *client) exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
 	}
 	return *r, err
 }
+
+const dnsProto protocol = "dns"

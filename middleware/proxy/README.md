@@ -26,6 +26,7 @@ proxy FROM TO... {
     health_check PATH:PORT [DURATION]
     except IGNORED_NAMES...
     spray
+    protocol [dns|https_google]
 }
 ~~~
 
@@ -37,6 +38,8 @@ proxy FROM TO... {
 * `health_check` will check path (on port) on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
 * `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed through.
 * `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is a failsafe.)
+* `protocol` specifies what protocol to use to speak to an upstream, `dns` (the default) is plain old DNS, and
+  `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect.
 
 ## Policies
 
@@ -48,14 +51,20 @@ There are three load-balancing policies available:
 All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
 available. This is to preeempt the case where the healthchecking (as a mechanism) fails.
 
+## Upstream Protocols
+
+Currently supported are `dns` (i.e., standard DNS over UDP) and `https_google`. Note that with
+`https_google` the entire transport is encrypted. Only *you* and *Google* can see your DNS activity.
+
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* coredns_proxy_request_count_total{zone, proto, family}
+* coredns_proxy_request_count_total{protocol, zone, family}
 
 This has some overlap with `coredns_dns_request_count_total{zone, proto, family}`, but allows for
 specifics on upstream query resolving. See the *prometheus* documentation for more details.
+`protocol` is the protocol used to query the upstream.
 
 ## Examples
 

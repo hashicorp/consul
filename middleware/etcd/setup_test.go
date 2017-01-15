@@ -12,9 +12,9 @@ import (
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/pkg/singleflight"
+	"github.com/miekg/coredns/middleware/pkg/tls"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
-	"github.com/miekg/coredns/middleware/pkg/tls"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"
@@ -33,7 +33,7 @@ func newEtcdMiddleware() *Etcd {
 	client, _ := newEtcdClient(endpoints, tlsc)
 
 	return &Etcd{
-		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
+		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},

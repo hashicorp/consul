@@ -7,17 +7,20 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
-var errUnreachable = errors.New("unreachable backend")
+var (
+	errUnreachable     = errors.New("unreachable backend")
+	errInvalidProtocol = errors.New("invalid protocol")
+)
 
-// Proxy represents a middleware instance that can proxy requests to another DNS server.
+// Proxy represents a middleware instance that can proxy requests to another (DNS) server.
 type Proxy struct {
 	Next      middleware.Handler
-	Client    *client
 	Upstreams []Upstream
 }
 
@@ -46,6 +49,7 @@ type UpstreamHost struct {
 	Unhealthy         bool
 	CheckDown         UpstreamHostDownFunc
 	WithoutPathPrefix string
+	Exchanger
 }
 
 // Down checks whether the upstream host is down or not.
@@ -66,6 +70,7 @@ var tryDuration = 60 * time.Second
 
 // ServeDNS satisfies the middleware.Handler interface.
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	state := request.Request{W: w, Req: r}
 	for _, upstream := range p.Upstreams {
 		start := time.Now()
 
@@ -82,7 +87,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := p.Client.ServeDNS(w, r, host)
+			reply, backendErr := host.Exchange(state)
 
 			atomic.AddInt64(&host.Conns, -1)
 

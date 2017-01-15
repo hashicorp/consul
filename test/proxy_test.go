@@ -38,7 +38,7 @@ func TestLookupProxy(t *testing.T) {
 
 	log.SetOutput(ioutil.Discard)
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
@@ -82,7 +82,7 @@ func BenchmarkLookupProxy(b *testing.B) {
 
 	log.SetOutput(ioutil.Discard)
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	b.ResetTimer()

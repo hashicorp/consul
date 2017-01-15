@@ -33,7 +33,7 @@ func TestProxyErratic(t *testing.T) {
 	}
 	defer backend.Stop()
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	// We do one lookup that should not time out.

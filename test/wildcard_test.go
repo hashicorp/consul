@@ -38,7 +38,7 @@ func TestLookupWildcard(t *testing.T) {
 
 	log.SetOutput(ioutil.Discard)
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	for _, lookup := range []string{"a.w.example.org.", "a.a.w.example.org."} {

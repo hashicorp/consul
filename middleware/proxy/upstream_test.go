@@ -165,6 +165,20 @@ proxy . 8.8.8.8:53 {
 proxy . some_bogus_filename`,
 			true,
 		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+	protocol dns
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+	protocol foobar
+}`,
+			true,
+		},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputUpstreams)

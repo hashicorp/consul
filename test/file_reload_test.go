@@ -42,7 +42,7 @@ example.net:0 {
 	}
 	defer i.Stop()
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)

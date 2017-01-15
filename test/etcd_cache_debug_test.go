@@ -47,7 +47,7 @@ func TestEtcdCacheAndDebug(t *testing.T) {
 		defer delete(ctx, t, etc, serv.Key)
 	}
 
-	p := proxy.New([]string{udp})
+	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
 	resp, err := p.Lookup(state, "b.example.skydns.test.", dns.TypeA)

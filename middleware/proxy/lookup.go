@@ -11,9 +11,10 @@ import (
 	"github.com/miekg/dns"
 )
 
-// New create a new proxy with the hosts in host and a Random policy.
-func New(hosts []string) Proxy {
-	p := Proxy{Next: nil, Client: newClient()}
+// NewLookup create a new proxy with the hosts in host and a Random policy.
+func NewLookup(hosts []string) Proxy {
+	// TODO(miek): maybe add optional protocol parameter?
+	p := Proxy{Next: nil}
 
 	upstream := &staticUpstream{
 		from:        "",
@@ -21,7 +22,7 @@ func New(hosts []string) Proxy {
 		Policy:      &Random{},
 		Spray:       nil,
 		FailTimeout: 10 * time.Second,
-		MaxFails:    1,
+		MaxFails:    3,
 	}
 
 	for i, host := range hosts {
@@ -30,6 +31,7 @@ func New(hosts []string) Proxy {
 			Conns:       0,
 			Fails:       0,
 			FailTimeout: upstream.FailTimeout,
+			Exchanger:   newDNSEx(host),
 
 			Unhealthy: false,
 			CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
@@ -59,15 +61,17 @@ func (p Proxy) Lookup(state request.Request, name string, typ uint16) (*dns.Msg,
 	req.SetQuestion(name, typ)
 	state.SizeAndDo(req)
 
-	return p.lookup(state, req)
+	state2 := request.Request{W: state.W, Req: req}
+
+	return p.lookup(state2)
 }
 
 // Forward forward the request in state as-is. Unlike Lookup that adds EDNS0 suffix to the message.
 func (p Proxy) Forward(state request.Request) (*dns.Msg, error) {
-	return p.lookup(state, state.Req)
+	return p.lookup(state)
 }
 
-func (p Proxy) lookup(state request.Request, r *dns.Msg) (*dns.Msg, error) {
+func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 	for _, upstream := range p.Upstreams {
 		start := time.Now()
 
@@ -80,11 +84,11 @@ func (p Proxy) lookup(state request.Request, r *dns.Msg) (*dns.Msg, error) {
 			}
 
 			// duplicated from proxy.go, but with a twist, we don't write the
-			// reply back to the client, we return it.
+			// reply back to the client, we return it and there is no monitoring.
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := p.Client.ServeDNS(state.W, r, host)
+			reply, backendErr := host.Exchange(state)
 
 			atomic.AddInt64(&host.Conns, -1)
 

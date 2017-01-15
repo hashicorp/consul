@@ -153,7 +153,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					if err != nil {
 						return a, err
 					}
-					a.loader.proxy = proxy.New(ups)
+					a.loader.proxy = proxy.NewLookup(ups)
 
 				default:
 					t, _, e := file.TransferParse(c, false)
