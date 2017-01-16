@@ -1041,10 +1041,7 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 	return nil
 }
 
-// CheckServiceNodes is used to query all nodes and checks for a given service
-// The results are compounded into a CheckServiceNodes, and the index returned
-// is the maximum index observed over any node, check, or service in the result
-// set.
+// CheckServiceNodes is used to query all nodes and checks for a given service.
 func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -1067,9 +1064,7 @@ func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.Chec
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
-// service, filtering out services that don't contain the given tag. The results
-// are compounded into a CheckServiceNodes, and the index returned is the maximum
-// index observed over any node, check, or service in the result set.
+// service, filtering out services that don't contain the given tag.
 func (s *StateStore) CheckServiceTagNodes(serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
