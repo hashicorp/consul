@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -26,6 +27,7 @@ const IPv4HostMask = IPv4Mask(0xffffffff)
 // ipv4AddrAttrMap is a map of the IPv4Addr type-specific attributes.
 var ipv4AddrAttrMap map[AttrName]func(IPv4Addr) string
 var ipv4AddrAttrs []AttrName
+var trailingHexNetmaskRE *regexp.Regexp
 
 // IPv4Addr implements a convenience wrapper around the union of Go's
 // built-in net.IP and net.IPNet types.  In UNIX-speak, IPv4Addr implements
@@ -40,6 +42,7 @@ type IPv4Addr struct {
 
 func init() {
 	ipv4AddrInit()
+	trailingHexNetmaskRE = regexp.MustCompile(`/([0f]{8})$`)
 }
 
 // NewIPv4Addr creates an IPv4Addr from a string.  String can be in the form
@@ -52,6 +55,13 @@ func init() {
 // To create uint32 values from net.IP, always test to make sure the address
 // returned can be converted to a 4 byte array using To4().
 func NewIPv4Addr(ipv4Str string) (IPv4Addr, error) {
+	// Strip off any bogus hex-encoded netmasks that will be mis-parsed by Go.  In
+	// particular, clients with the Barracuda VPN client will see something like:
+	// `192.168.3.51/00ffffff` as their IP address.
+	if match := trailingHexNetmaskRE.FindStringIndex(ipv4Str); match != nil {
+		ipv4Str = ipv4Str[:match[0]]
+	}
+
 	// Parse as an IPv4 CIDR
 	ipAddr, network, err := net.ParseCIDR(ipv4Str)
 	if err == nil {

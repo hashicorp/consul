@@ -216,7 +216,12 @@ func GetAllInterfaces() (IfAddrs, error) {
 // GetDefaultInterfaces returns IfAddrs of the addresses attached to the default
 // route.
 func GetDefaultInterfaces() (IfAddrs, error) {
-	defaultIfName, err := getDefaultIfName()
+	ri, err := NewRouteInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	defaultIfName, err := ri.GetDefaultInterfaceName()
 	if err != nil {
 		return nil, err
 	}
@@ -849,9 +854,9 @@ func OffsetIfAddrs(off int, in IfAddrs) (IfAddrs, error) {
 	}
 
 	if end {
-		return in[len(in)-off : len(in)], nil
+		return in[len(in)-off:], nil
 	}
-	return in[off:len(in)], nil
+	return in[off:], nil
 }
 
 func (ifAddr IfAddr) String() string {
