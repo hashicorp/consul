@@ -15,6 +15,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * cli: Fixed a panic when an empty quoted argument was given to `consul kv put`. [GH-2635]
+* tests: Fixed a race condition with check mock's map usage. [GH-2578]
 
 ## 0.7.2 (December 19, 2016)
 
