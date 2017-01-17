@@ -297,6 +297,7 @@ body must look like:
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",
+  "HostHeader": "test.example",
   "TLSSkipVerify": true
 }
 ```
@@ -336,6 +337,10 @@ expected. Certificate verification can be controlled using the
 
 If `TLSSkipVerify` is set to `true`, certificate verification will be
 disabled. By default, certificate verification is enabled.
+
+`HostHeader` can be used to perform checks through reverse proxy so that
+Consul will check the end-user interface (avoid to consider the service as healthy
+if the reverse proxy has an issue).
 
 A `TCP` check will perform an TCP connection attempt against the value of `TCP`
 (expected to be an IP or hostname plus port combination) every `Interval`. If the

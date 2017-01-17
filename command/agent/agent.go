@@ -1175,6 +1175,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,
+				HostHeader:    chkType.HostHeader,
 				TLSSkipVerify: chkType.TLSSkipVerify,
 			}
 			http.Start()
