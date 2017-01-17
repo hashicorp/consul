@@ -288,6 +288,24 @@
 			"revisionTime": "2016-11-10T00:26:50Z"
 		},
 		{
+			"checksumSHA1": "CEJm5ON60MQje7KV5RB8V/6SGIY=",
+			"path": "github.com/denverdino/aliyungo/common",
+			"revision": "2e96a92a383243c769e6fc448e465f79d28efacd",
+			"revisionTime": "2017-01-17T06:39:14Z"
+		},
+		{
+			"checksumSHA1": "JZ3qOfEnqScHGqjn9wmjnDqoqzw=",
+			"path": "github.com/denverdino/aliyungo/ecs",
+			"revision": "2e96a92a383243c769e6fc448e465f79d28efacd",
+			"revisionTime": "2017-01-17T06:39:14Z"
+		},
+		{
+			"checksumSHA1": "w9yuwEZLOe1Fcj8u7sv380ajcUk=",
+			"path": "github.com/denverdino/aliyungo/util",
+			"revision": "2e96a92a383243c769e6fc448e465f79d28efacd",
+			"revisionTime": "2017-01-17T06:39:14Z"
+		},
+		{
 			"checksumSHA1": "fXAinpJ5bOcborK7AiO1rnW60BI=",
 			"path": "github.com/docker/docker/opts",
 			"revision": "eb28dde01f165849bf372e18200e83042c76f26c",
