@@ -2,6 +2,7 @@ package sockaddr
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"strings"
 )
@@ -131,10 +132,27 @@ func ipAddrInit() {
 			return fmt.Sprintf("%d", ip.Maskbits())
 		},
 		"netmask": func(ip IPAddr) string {
-			return ip.NetIPMask().String()
+			switch v := ip.(type) {
+			case IPv4Addr:
+				ipv4Mask := IPv4Addr{
+					Address: IPv4Address(v.Mask),
+					Mask:    IPv4HostMask,
+				}
+				return ipv4Mask.String()
+			case IPv6Addr:
+				ipv6Mask := new(big.Int)
+				ipv6Mask.Set(v.Mask)
+				ipv6MaskAddr := IPv6Addr{
+					Address: IPv6Address(ipv6Mask),
+					Mask:    ipv6HostMask,
+				}
+				return ipv6MaskAddr.String()
+			default:
+				return fmt.Sprintf("<unsupported type: %T>", ip)
+			}
 		},
 		"network": func(ip IPAddr) string {
-			return ip.Network().String()
+			return ip.Network().NetIP().String()
 		},
 		"octets": func(ip IPAddr) string {
 			octets := ip.Octets()
