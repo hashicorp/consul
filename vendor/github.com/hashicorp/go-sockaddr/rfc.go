@@ -38,31 +38,31 @@ func KnownRFCs() map[uint]SockAddrs {
 	// NOTE(sean@): Multiple SockAddrs per RFC lend themselves well to a
 	// RADIX tree, but `ENOTIME`.  Patches welcome.
 	return map[uint]SockAddrs{
-		919: SockAddrs{
+		919: {
 			// [RFC919] Broadcasting Internet Datagrams
 			MustIPv4Addr("255.255.255.255/32"), // [RFC1122], §7 Broadcast IP Addressing - Proposed Standards
 		},
-		1122: SockAddrs{
+		1122: {
 			// [RFC1122] Requirements for Internet Hosts -- Communication Layers
 			MustIPv4Addr("0.0.0.0/8"),   // [RFC1122], §3.2.1.3
 			MustIPv4Addr("127.0.0.0/8"), // [RFC1122], §3.2.1.3
 		},
-		1112: SockAddrs{
+		1112: {
 			// [RFC1112] Host Extensions for IP Multicasting
 			MustIPv4Addr("224.0.0.0/4"), // [RFC1112], §4 Host Group Addresses
 		},
-		1918: SockAddrs{
+		1918: {
 			// [RFC1918] Address Allocation for Private Internets
 			MustIPv4Addr("10.0.0.0/8"),
 			MustIPv4Addr("172.16.0.0/12"),
 			MustIPv4Addr("192.168.0.0/16"),
 		},
-		2544: SockAddrs{
+		2544: {
 			// [RFC2544] Benchmarking Methodology for Network
 			// Interconnect Devices
 			MustIPv4Addr("198.18.0.0/15"),
 		},
-		2765: SockAddrs{
+		2765: {
 			// [RFC2765] Stateless IP/ICMP Translation Algorithm
 			// (SIIT) (obsoleted by RFCs 6145, which itself was
 			// later obsoleted by 7915).
@@ -70,7 +70,7 @@ func KnownRFCs() map[uint]SockAddrs {
 			// [RFC2765], §2.1 Addresses
 			MustIPv6Addr("0:0:0:0:0:ffff:0:0/96"),
 		},
-		2928: SockAddrs{
+		2928: {
 			// [RFC2928] Initial IPv6 Sub-TLA ID Assignments
 			MustIPv6Addr("2001::/16"), // Superblock
 			//MustIPv6Addr("2001:0000::/23"), // IANA
@@ -81,13 +81,13 @@ func KnownRFCs() map[uint]SockAddrs {
 			// ...
 			//MustIPv6Addr("2001:FE00::/23"), // (future assignment)
 		},
-		3056: SockAddrs{ // 6to4 address
+		3056: { // 6to4 address
 			// [RFC3056] Connection of IPv6 Domains via IPv4 Clouds
 
 			// [RFC3056], §2 IPv6 Prefix Allocation
 			MustIPv6Addr("2002::/16"),
 		},
-		3068: SockAddrs{
+		3068: {
 			// [RFC3068] An Anycast Prefix for 6to4 Relay Routers
 			// (obsolete by RFC7526)
 
@@ -99,11 +99,11 @@ func KnownRFCs() map[uint]SockAddrs {
 			// NOTE: /120 == 128-(32-24)
 			MustIPv6Addr("2002:c058:6301::/120"),
 		},
-		3171: SockAddrs{
+		3171: {
 			// [RFC3171] IANA Guidelines for IPv4 Multicast Address Assignments
 			MustIPv4Addr("224.0.0.0/4"),
 		},
-		3330: SockAddrs{
+		3330: {
 			// [RFC3330] Special-Use IPv4 Addresses
 
 			// Addresses in this block refer to source hosts on
@@ -237,25 +237,25 @@ func KnownRFCs() map[uint]SockAddrs {
 			// for future use.  [RFC1700, page 4]
 			MustIPv4Addr("240.0.0.0/4"),
 		},
-		3849: SockAddrs{
+		3849: {
 			// [RFC3849] IPv6 Address Prefix Reserved for Documentation
 			MustIPv6Addr("2001:db8::/32"), // [RFC3849], §4 IANA Considerations
 		},
-		3927: SockAddrs{
+		3927: {
 			// [RFC3927] Dynamic Configuration of IPv4 Link-Local Addresses
 			MustIPv4Addr("169.254.0.0/16"), // [RFC3927], §2.1 Link-Local Address Selection
 		},
-		4038: SockAddrs{
+		4038: {
 			// [RFC4038] Application Aspects of IPv6 Transition
 
 			// [RFC4038], §4.2. IPv6 Applications in a Dual-Stack Node
 			MustIPv6Addr("0:0:0:0:0:ffff::/96"),
 		},
-		4193: SockAddrs{
+		4193: {
 			// [RFC4193] Unique Local IPv6 Unicast Addresses
 			MustIPv6Addr("fc00::/7"),
 		},
-		4291: SockAddrs{
+		4291: {
 			// [RFC4291] IP Version 6 Addressing Architecture
 
 			// [RFC4291], §2.5.2 The Unspecified Address
@@ -314,55 +314,55 @@ func KnownRFCs() map[uint]SockAddrs {
 			// * ff02::1:ff00:0/104 // Solicited-node multicast address.
 			// * ff02::2:ff00:0/104 // Node Information Queries
 		},
-		4380: SockAddrs{
+		4380: {
 			// [RFC4380] Teredo: Tunneling IPv6 over UDP through
 			// Network Address Translations (NATs)
 
 			// [RFC4380], §2.6 Global Teredo IPv6 Service Prefix
 			MustIPv6Addr("2001:0000::/32"),
 		},
-		4773: SockAddrs{
+		4773: {
 			// [RFC4773] Administration of the IANA Special Purpose IPv6 Address Block
 			MustIPv6Addr("2001:0000::/23"), // IANA
 		},
-		4843: SockAddrs{
+		4843: {
 			// [RFC4843] An IPv6 Prefix for Overlay Routable Cryptographic Hash Identifiers (ORCHID)
 			MustIPv6Addr("2001:10::/28"), // [RFC4843], §7 IANA Considerations
 		},
-		5180: SockAddrs{
+		5180: {
 			// [RFC5180] IPv6 Benchmarking Methodology for Network Interconnect Devices
 			MustIPv6Addr("2001:0200::/48"), // [RFC5180], §8 IANA Considerations
 		},
-		5735: SockAddrs{
+		5735: {
 			// [RFC5735] Special Use IPv4 Addresses
 			MustIPv4Addr("192.0.2.0/24"),    // TEST-NET-1
 			MustIPv4Addr("198.51.100.0/24"), // TEST-NET-2
 			MustIPv4Addr("203.0.113.0/24"),  // TEST-NET-3
 			MustIPv4Addr("198.18.0.0/15"),   // Benchmarks
 		},
-		5737: SockAddrs{
+		5737: {
 			// [RFC5737] IPv4 Address Blocks Reserved for Documentation
 			MustIPv4Addr("192.0.2.0/24"),    // TEST-NET-1
 			MustIPv4Addr("198.51.100.0/24"), // TEST-NET-2
 			MustIPv4Addr("203.0.113.0/24"),  // TEST-NET-3
 		},
-		6052: SockAddrs{
+		6052: {
 			// [RFC6052] IPv6 Addressing of IPv4/IPv6 Translators
 			MustIPv6Addr("64:ff9b::/96"), // [RFC6052], §2.1. Well-Known Prefix
 		},
-		6333: SockAddrs{
+		6333: {
 			// [RFC6333] Dual-Stack Lite Broadband Deployments Following IPv4 Exhaustion
 			MustIPv4Addr("192.0.0.0/29"), // [RFC6333], §5.7 Well-Known IPv4 Address
 		},
-		6598: SockAddrs{
+		6598: {
 			// [RFC6598] IANA-Reserved IPv4 Prefix for Shared Address Space
 			MustIPv4Addr("100.64.0.0/10"),
 		},
-		6666: SockAddrs{
+		6666: {
 			// [RFC6666] A Discard Prefix for IPv6
 			MustIPv6Addr("0100::/64"),
 		},
-		6890: SockAddrs{
+		6890: {
 			// [RFC6890] Special-Purpose IP Address Registries
 
 			// From "RFC6890 §2.2.1 Information Requirements":
@@ -894,11 +894,11 @@ func KnownRFCs() map[uint]SockAddrs {
 			  +----------------------+-----------------------+*/
 			MustIPv6Addr("fe80::/10"),
 		},
-		7335: SockAddrs{
+		7335: {
 			// [RFC7335] IPv4 Service Continuity Prefix
 			MustIPv4Addr("192.0.0.0/29"), // [RFC7335], §6 IANA Considerations
 		},
-		ForwardingBlacklist: SockAddrs{ // Pseudo-RFC
+		ForwardingBlacklist: { // Pseudo-RFC
 			// Blacklist of non-forwardable IP blocks taken from RFC6890
 			//
 			// TODO: the attributes for forwardable should be
@@ -936,7 +936,7 @@ func VisitAllRFCs(fn func(rfcNum uint, sockaddrs SockAddrs)) {
 	// Blacklist of faux-RFCs.  Don't show the world that we're abusing the
 	// RFC system in this library.
 	rfcBlacklist := map[uint]struct{}{
-		ForwardingBlacklist: struct{}{},
+		ForwardingBlacklist: {},
 	}
 
 	for rfcNum, sas := range rfcNetMap {

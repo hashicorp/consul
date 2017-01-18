@@ -399,12 +399,12 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 
 	for _, tc := range cases {
 		var out structs.IndexedHealthChecks
-		inState := structs.ServiceSpecificRequest{
+		args := structs.ServiceSpecificRequest{
 			Datacenter:      "dc1",
 			NodeMetaFilters: tc.filters,
 			ServiceName:     "db",
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &inState, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
