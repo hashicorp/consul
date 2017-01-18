@@ -284,6 +284,10 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	go s.wanEventHandler()
 
+	// Start monitoring leadership. This must happen after Serf is set up
+	// since it can fire events when leadership is obtained.
+	go s.monitorLeadership()
+
 	// Start ACL replication.
 	if s.IsACLReplicationEnabled() {
 		go s.runACLReplication()
@@ -491,9 +495,6 @@ func (s *Server) setupRaft() error {
 	if err != nil {
 		return err
 	}
-
-	// Start monitoring leadership.
-	go s.monitorLeadership()
 	return nil
 }
 
