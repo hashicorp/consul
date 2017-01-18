@@ -1482,8 +1482,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Datacenter: dc,
 					Node:       fmt.Sprintf("node%d", i+1),
 					Address:    fmt.Sprintf("127.0.0.%d", i+1),
-					NodeMeta:   map[string]string{
-						"group": fmt.Sprintf("%d", i/5),
+					NodeMeta: map[string]string{
+						"group":         fmt.Sprintf("%d", i/5),
 						"instance_type": "t2.micro",
 					},
 					Service: &structs.NodeService{
@@ -1596,24 +1596,24 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Run various service queries with node metadata filters.
 	if false {
-		cases := []struct{
-			filters map[string]string
+		cases := []struct {
+			filters  map[string]string
 			numNodes int
 		}{
 			{
-				filters: map[string]string{},
+				filters:  map[string]string{},
 				numNodes: 10,
 			},
 			{
-				filters: map[string]string{"instance_type": "t2.micro"},
+				filters:  map[string]string{"instance_type": "t2.micro"},
 				numNodes: 10,
 			},
 			{
-				filters: map[string]string{"group": "1"},
+				filters:  map[string]string{"group": "1"},
 				numNodes: 5,
 			},
 			{
-				filters: map[string]string{"group": "0", "unique": "true"},
+				filters:  map[string]string{"group": "0", "unique": "true"},
 				numNodes: 1,
 			},
 		}
@@ -1624,7 +1624,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				Op:         structs.PreparedQueryCreate,
 				Query: &structs.PreparedQuery{
 					Service: structs.ServiceQuery{
-						Service: "foo",
+						Service:  "foo",
 						NodeMeta: tc.filters,
 					},
 					DNS: structs.QueryDNSOptions{
@@ -1659,7 +1659,6 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			}
 		}
 	}
-
 
 	// Push a coordinate for one of the nodes so we can try an RTT sort. We
 	// have to sleep a little while for the coordinate batch to get flushed.
@@ -1764,9 +1763,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -1833,9 +1831,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -1866,9 +1863,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -1895,12 +1891,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		// Expect the set to be shuffled since we have no coordinates
 		// on the "foo" node.
 		shuffled := false
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -1935,10 +1930,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		shuffled := false
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
