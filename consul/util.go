@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 
@@ -62,14 +60,6 @@ func init() {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[5] = block
-}
-
-// ensurePath is used to make sure a path exists
-func ensurePath(path string, dir bool) error {
-	if !dir {
-		path = filepath.Dir(path)
-	}
-	return os.MkdirAll(path, 0755)
 }
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given

@@ -92,6 +92,7 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
+	cmdFlags.StringVar((*string)(&cmdConfig.NodeID), "node-id", "", "node ID")
 	cmdFlags.StringVar(&dcDeprecated, "dc", "", "node datacenter (deprecated: use 'datacenter' instead)")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "datacenter", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
@@ -1115,6 +1116,7 @@ func (c *Command) Run(args []string) int {
 
 	c.Ui.Output("Consul agent running!")
 	c.Ui.Info(fmt.Sprintf("       Version: '%s'", c.HumanVersion))
+	c.Ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))

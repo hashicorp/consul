@@ -657,7 +657,7 @@ func TestAgent_Monitor(t *testing.T) {
 	// Wait for the first log message and validate it
 	select {
 	case log := <-logCh:
-		if !strings.Contains(log, "[INFO] raft: Initial configuration") {
+		if !strings.Contains(log, "[INFO]") {
 			t.Fatalf("bad: %q", log)
 		}
 	case <-time.After(10 * time.Second):
