@@ -418,6 +418,7 @@ AFTER_CHECK:
 	// Register with the catalog
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
+		ID:         types.NodeID(member.Tags["id"]),
 		Node:       member.Name,
 		Address:    member.Addr.String(),
 		Service:    service,

@@ -170,6 +170,7 @@ type QueryMeta struct {
 // is provided, the node is registered.
 type RegisterRequest struct {
 	Datacenter      string
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
@@ -194,7 +195,8 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	}
 
 	// Check if any of the node-level fields are being changed.
-	if r.Node != node.Node ||
+	if r.ID != node.ID ||
+		r.Node != node.Node ||
 		r.Address != node.Address ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
 		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
@@ -280,6 +282,7 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 
 // Used to return information about a node
 type Node struct {
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
@@ -302,12 +305,13 @@ func SatisfiesMetaFilters(meta map[string]string, filters map[string]string) boo
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNode represents a node that is part of a service. Address, TaggedAddresses,
-// and NodeMeta are node-related fields that are always empty in the state
-// store and are filled in on the way out by parseServiceNodes(). This is also
-// why PartialClone() skips them, because we know they are blank already so it
-// would be a waste of time to copy them.
+// ServiceNode represents a node that is part of a service. ID, Address,
+// TaggedAddresses, and NodeMeta are node-related fields that are always empty
+// in the state store and are filled in on the way out by parseServiceNodes().
+// This is also why PartialClone() skips them, because we know they are blank
+// already so it would be a waste of time to copy them.
 type ServiceNode struct {
+	ID                       types.NodeID
 	Node                     string
 	Address                  string
 	TaggedAddresses          map[string]string
@@ -329,6 +333,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 	copy(tags, s.ServiceTags)
 
 	return &ServiceNode{
+		// Skip ID, see above.
 		Node: s.Node,
 		// Skip Address, see above.
 		// Skip TaggedAddresses, see above.
@@ -395,6 +400,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 	return &ServiceNode{
+		// Skip ID, see ServiceNode definition.
 		Node: node,
 		// Skip Address, see ServiceNode definition.
 		// Skip TaggedAddresses, see ServiceNode definition.
@@ -501,6 +507,7 @@ OUTER:
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
 type NodeInfo struct {
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string

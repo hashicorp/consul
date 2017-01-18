@@ -287,8 +287,10 @@ will exit with an error at startup.
   changes. This must be in the form of a hex string, 36 characters long, such as
   `adf4238a-882b-9ddc-4a9d-5b6758e4159e`. If this isn't supplied, which is the most common case, then
   the agent will generate an identifier at startup and persist it in the <a href="#_data_dir">data directory</a>
-  so that it will remain the same across agent restarts. This is currently only exposed via the agent's
-  <a href="/docs/agent/http/agent.html#agent_self">/v1/agent/self</a> endpoint, but future versions of
+  so that it will remain the same across agent restarts. This is currently only exposed via
+  <a href="/docs/agent/http/agent.html#agent_self">/v1/agent/self</a>,
+  <a href="/docs/agent/http/catalog.html">/v1/catalog</a>, and
+  <a href="/docs/agent/http/health.html">/v1/health</a> endpoints, but future versions of
   Consul will use this to better manage cluster changes, especially for Consul servers.
 
 * <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,

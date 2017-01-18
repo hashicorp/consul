@@ -33,6 +33,8 @@ It returns a JSON body like this:
 ```javascript
 [
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
     "Node": "foobar",
     "CheckID": "serfHealth",
     "Name": "Serf Health Status",
@@ -43,6 +45,7 @@ It returns a JSON body like this:
     "ServiceName": ""
   },
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "Node": "foobar",
     "CheckID": "service:redis",
     "Name": "Service 'redis' check",
@@ -136,6 +139,7 @@ It returns a JSON body like this:
 [
   {
     "Node": {
+      "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
       "Node": "foobar",
       "Address": "10.1.10.12",
       "TaggedAddresses": {
