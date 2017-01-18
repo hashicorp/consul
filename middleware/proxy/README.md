@@ -60,11 +60,10 @@ Currently supported are `dns` (i.e., standard DNS over UDP) and `https_google`. 
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* coredns_proxy_request_count_total{protocol, zone, family}
+* coredns_proxy_request_duration_milliseconds{zone}
 
-This has some overlap with `coredns_dns_request_count_total{zone, proto, family}`, but allows for
-specifics on upstream query resolving. See the *prometheus* documentation for more details.
-`protocol` is the protocol used to query the upstream.
+The metric shows the duration for a proxied request, the `zone` label is the **FROM** as specified
+in the configuration.
 
 ## Examples
 
