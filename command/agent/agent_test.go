@@ -322,6 +322,15 @@ func TestAgent_NodeID(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Running again should get the same ID (persisted in the file).
+	c.NodeID = ""
+	if err := agent.setupNodeID(c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if newID := agent.consulConfig().NodeID; id != newID {
+		t.Fatalf("bad: %q vs %q", id, newID)
+	}
+
 	// Set an invalid ID via config.
 	c.NodeID = types.NodeID("nope")
 	err := agent.setupNodeID(c)
