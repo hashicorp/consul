@@ -34,6 +34,25 @@ func visit(path string, v reflect.Value, t reflect.Type, fn visitor) error {
 				return err
 			}
 		}
+	case reflect.Map:
+		for i, key := range v.MapKeys() {
+			value := v.MapIndex(key)
+
+			newKey := reflect.New(key.Type()).Elem()
+			newKey.SetString(key.String())
+			newValue := reflect.New(value.Type()).Elem()
+			newValue.SetString(value.String())
+
+			if err := visit(fmt.Sprintf("%s.keys[%d]", path, i), newKey, newKey.Type(), fn); err != nil {
+				return err
+			}
+			if err := visit(fmt.Sprintf("%s[%s]", path, key.String()), newValue, newValue.Type(), fn); err != nil {
+				return err
+			}
+			// delete the old entry and add the new one
+			v.SetMapIndex(key, reflect.Value{})
+			v.SetMapIndex(newKey, newValue)
+		}
 	}
 	return nil
 }

@@ -22,6 +22,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		},
 		Near: "_agent",
 		Tags: []string{"tag1", "tag2", "tag3"},
+		NodeMeta: map[string]string{"role": "server"},
 	}
 	if err := walk(service, fn); err != nil {
 		t.Fatalf("err: %v", err)
@@ -35,6 +36,8 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		".Tags[0]:tag1",
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",
+		".NodeMeta.keys[0]:role",
+		".NodeMeta[role]:server",
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)

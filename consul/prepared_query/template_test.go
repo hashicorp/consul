@@ -38,6 +38,11 @@ var (
 				"${match(1)}",
 				"${match(2)}",
 			},
+			NodeMeta: map[string]string{
+				"${name.full}": "${name.prefix}",
+				"${name.suffix}": "${match(0)}",
+				"${match(1)}": "${match(2)}",
+			},
 		},
 	}
 
@@ -222,6 +227,7 @@ func TestTemplate_Render(t *testing.T) {
 				"${match(4)}",
 				"${40 + 2}",
 			},
+			NodeMeta: map[string]string{"${match(1)}": "${match(2)}"},
 		},
 	}
 	ct, err := Compile(query)
@@ -252,6 +258,7 @@ func TestTemplate_Render(t *testing.T) {
 					"",
 					"42",
 				},
+				NodeMeta: map[string]string{"hello": "foo"},
 			},
 		}
 		if !reflect.DeepEqual(actual, expected) {
@@ -282,6 +289,7 @@ func TestTemplate_Render(t *testing.T) {
 					"",
 					"42",
 				},
+				NodeMeta: map[string]string{"": ""},
 			},
 		}
 		if !reflect.DeepEqual(actual, expected) {

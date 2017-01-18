@@ -492,6 +492,11 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	// Filter out any unhealthy nodes.
 	nodes = nodes.Filter(query.Service.OnlyPassing)
 
+	// Apply the node metadata filters, if any.
+	if len(query.Service.NodeMeta) > 0 {
+		nodes = nodeMetaFilter(query.Service.NodeMeta, nodes)
+	}
+
 	// Apply the tag filters, if any.
 	if len(query.Service.Tags) > 0 {
 		nodes = tagFilter(query.Service.Tags, nodes)
@@ -560,6 +565,18 @@ func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServ
 		i--
 	}
 	return nodes[:n]
+}
+
+// nodeMetaFilter returns a list of the nodes who satisfy the given metadata filters. Nodes
+// must have ALL the given tags.
+func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var filtered structs.CheckServiceNodes
+	for _, node := range nodes {
+		if structs.SatisfiesMetaFilters(node.Node.Meta, filters) {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
 }
 
 // queryServer is a wrapper that makes it easier to test the failover logic.
