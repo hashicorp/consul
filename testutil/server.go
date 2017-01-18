@@ -165,8 +165,8 @@ func NewTestServer(t TestingT) *TestServer {
 // an optional callback function to modify the configuration.
 func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
-		t.Fatal("consul not found on $PATH - download and install " + 
-				"consul or skip this test")
+		t.Fatal("consul not found on $PATH - download and install " +
+			"consul or skip this test")
 	}
 
 	dataDir, err := ioutil.TempDir("", "consul")

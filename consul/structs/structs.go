@@ -289,6 +289,7 @@ type Node struct {
 }
 type Nodes []*Node
 
+// SatisfiesMetaFilters returns true if the metadata map contains the given filters
 func SatisfiesMetaFilters(meta map[string]string, filters map[string]string) bool {
 	for key, value := range filters {
 		if v, ok := meta[key]; !ok || v != value {
