@@ -44,7 +44,7 @@ type localState struct {
 	iface consul.Interface
 
 	// nodeInfoInSync tracks whether the server has our correct top-level
-	// node information in sync (currently only used for tagged addresses)
+	// node information in sync
 	nodeInfoInSync bool
 
 	// Services tracks the local services
@@ -431,6 +431,7 @@ func (l *localState) setSyncState() error {
 
 	// Check the node info
 	if out1.NodeServices == nil || out1.NodeServices.Node == nil ||
+		out1.NodeServices.Node.ID != l.config.NodeID ||
 		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) ||
 		!reflect.DeepEqual(out1.NodeServices.Node.Meta, l.metadata) {
 		l.nodeInfoInSync = false
@@ -633,6 +634,7 @@ func (l *localState) deleteCheck(id types.CheckID) error {
 func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
@@ -695,6 +697,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
@@ -722,6 +725,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 func (l *localState) syncNodeInfo() error {
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,

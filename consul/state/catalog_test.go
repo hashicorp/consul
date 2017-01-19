@@ -16,6 +16,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 	// Start with just a node.
 	req := &structs.RegisterRequest{
+		ID:      types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:    "node1",
 		Address: "1.2.3.4",
 		TaggedAddresses: map[string]string{
@@ -35,7 +36,8 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if out.Node != "node1" || out.Address != "1.2.3.4" ||
+		if out.ID != types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") ||
+			out.Node != "node1" || out.Address != "1.2.3.4" ||
 			len(out.TaggedAddresses) != 1 ||
 			out.TaggedAddresses["hello"] != "world" ||
 			out.Meta["somekey"] != "somevalue" ||

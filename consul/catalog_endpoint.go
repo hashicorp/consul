@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-uuid"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -24,6 +25,11 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	// Verify the args.
 	if args.Node == "" || args.Address == "" {
 		return fmt.Errorf("Must provide node and address")
+	}
+	if args.ID != "" {
+		if _, err := uuid.ParseUUID(string(args.ID)); err != nil {
+			return fmt.Errorf("Bad node ID: %v", err)
+		}
 	}
 
 	// Fetch the ACL token, if any.
