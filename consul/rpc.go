@@ -464,10 +464,15 @@ RUN_QUERY:
 
 	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
-	ws := memdb.NewWatchSet()
-	err := fn(ws)
+
+	// We can skip all watch tracking if this isn't a blocking query.
+	var ws memdb.WatchSet
+	if queryOpts.MinQueryIndex > 0 {
+		ws = memdb.NewWatchSet()
+	}
 
 	// Block up to the timeout if we didn't see anything fresh.
+	err := fn(ws)
 	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			goto RUN_QUERY
