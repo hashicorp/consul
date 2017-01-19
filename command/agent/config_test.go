@@ -1738,6 +1738,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		RetryJoinECS: RetryJoinECS{
 			Region:          "cn-hangzhou",
+			NetworkType:     "classic",
 			TagKey:          "Key2",
 			TagValue:        "Value2",
 			AccessKeyID:     "foo",
