@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -65,6 +66,9 @@ type Config struct {
 
 	// DevMode is used to enable a development server mode.
 	DevMode bool
+
+	// NodeID is a unique identifier for this node across space and time.
+	NodeID types.NodeID
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string

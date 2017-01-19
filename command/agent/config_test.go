@@ -60,13 +60,17 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Without a protocol
-	input = `{"node_name": "foo", "datacenter": "dc2"}`
+	input = `{"node_id": "bar", "node_name": "foo", "datacenter": "dc2"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.NodeName != "foo" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.NodeID != "bar" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1532,6 +1536,7 @@ func TestMergeConfig(t *testing.T) {
 		DataDir:                "/tmp/foo",
 		Domain:                 "basic",
 		LogLevel:               "debug",
+		NodeID:                 "bar",
 		NodeName:               "foo",
 		ClientAddr:             "127.0.0.1",
 		BindAddr:               "127.0.0.1",
@@ -1586,6 +1591,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		Domain:           "other",
 		LogLevel:         "info",
+		NodeID:           "bar",
 		NodeName:         "baz",
 		ClientAddr:       "127.0.0.2",
 		BindAddr:         "127.0.0.2",

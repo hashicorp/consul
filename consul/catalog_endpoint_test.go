@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -40,13 +41,40 @@ func TestCatalog_Register(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
 
-	testutil.WaitForResult(func() (bool, error) {
-		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-		return err == nil, err
-	}, func(err error) {
+func TestCatalog_Register_NodeID(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		ID:         "nope",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			ServiceID: "db",
+		},
+	}
+	var out struct{}
+
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err == nil || !strings.Contains(err.Error(), "Bad node ID") {
 		t.Fatalf("err: %v", err)
-	})
+	}
+
+	arg.ID = types.NodeID("adf4238a-882b-9ddc-4a9d-5b6758e4159e")
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 }
 
 func TestCatalog_Register_ACLDeny(t *testing.T) {

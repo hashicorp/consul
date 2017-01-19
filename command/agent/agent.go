@@ -224,7 +224,6 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 	}
-
 	if err := agent.resolveTmplAddrs(); err != nil {
 		return nil, err
 	}
@@ -235,6 +234,12 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 		return nil, err
 	}
 	agent.acls = acls
+
+	// Retrieve or generate the node ID before setting up the rest of the
+	// agent, which depends on it.
+	if err := agent.setupNodeID(config); err != nil {
+		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
+	}
 
 	// Initialize the local state.
 	agent.state.Init(config, agent.logger)
@@ -302,6 +307,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	} else {
 		base = consul.DefaultConfig()
 	}
+
+	// This is set when the agent starts up
+	base.NodeID = a.config.NodeID
 
 	// Apply dev mode
 	base.DevMode = a.config.DevMode
@@ -597,6 +605,67 @@ func (a *Agent) setupClient() error {
 		return fmt.Errorf("Failed to start Consul client: %v", err)
 	}
 	a.client = client
+	return nil
+}
+
+// setupNodeID will pull the persisted node ID, if any, or create a random one
+// and persist it.
+func (a *Agent) setupNodeID(config *Config) error {
+	// If they've configured a node ID manually then just use that, as
+	// long as it's valid.
+	if config.NodeID != "" {
+		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// For dev mode we have no filesystem access so just make a GUID.
+	if a.config.DevMode {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return err
+		}
+
+		config.NodeID = types.NodeID(id)
+		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (will not be persisted in dev mode)", config.NodeID)
+		return nil
+	}
+
+	// Load saved state, if any. Since a user could edit this, we also
+	// validate it.
+	fileID := filepath.Join(config.DataDir, "node-id")
+	if _, err := os.Stat(fileID); err == nil {
+		rawID, err := ioutil.ReadFile(fileID)
+		if err != nil {
+			return err
+		}
+
+		nodeID := strings.TrimSpace(string(rawID))
+		if _, err := uuid.ParseUUID(nodeID); err != nil {
+			return err
+		}
+
+		config.NodeID = types.NodeID(nodeID)
+	}
+
+	// If we still don't have a valid node ID, make one.
+	if config.NodeID == "" {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return err
+		}
+		if err := lib.EnsurePath(fileID, false); err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(fileID, []byte(id), 0600); err != nil {
+			return err
+		}
+
+		config.NodeID = types.NodeID(id)
+		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (persisted)", config.NodeID)
+	}
 	return nil
 }
 
