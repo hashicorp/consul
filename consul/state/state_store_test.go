@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"

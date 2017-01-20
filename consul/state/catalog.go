@@ -70,7 +70,7 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 // conditions on state updates.
 func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
 	req *structs.RegisterRequest) error {
-	// Add the node.
+	// Create a node structure.
 	node := &structs.Node{
 		ID:              req.ID,
 		Node:            req.Node,
@@ -78,14 +78,37 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
 	}
-	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
-		return fmt.Errorf("failed inserting node: %s", err)
+
+	// Since this gets called for all node operations (service and check
+	// updates) and churn on the node itself is basically none after the
+	// node updates itself the first time, it's worth seeing if we need to
+	// modify the node at all so we prevent watch churn and useless writes
+	// and modify index bumps on the node.
+	{
+		existing, err := tx.First("nodes", "id", node.Node)
+		if err != nil {
+			return fmt.Errorf("node lookup failed: %s", err)
+		}
+		if existing == nil || req.ChangesNode(existing.(*structs.Node)) {
+			if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
+				return fmt.Errorf("failed inserting node: %s", err)
+			}
+		}
 	}
 
-	// Add the service, if any.
+	// Add the service, if any. We perform a similar check as we do for the
+	// node info above to make sure we actually need to update the service
+	// definition in order to prevent useless churn if nothing has changed.
 	if req.Service != nil {
-		if err := s.ensureServiceTxn(tx, idx, watches, req.Node, req.Service); err != nil {
-			return fmt.Errorf("failed inserting service: %s", err)
+		existing, err := tx.First("services", "id", req.Node, req.Service.ID)
+		if err != nil {
+			return fmt.Errorf("failed service lookup: %s", err)
+		}
+		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
+			if err := s.ensureServiceTxn(tx, idx, watches, req.Node, req.Service); err != nil {
+				return fmt.Errorf("failed inserting service: %s", err)
+
+			}
 		}
 	}
 
