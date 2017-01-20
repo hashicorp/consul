@@ -201,18 +201,19 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
+func (s *StateStore) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve all of the nodes
 	nodes, err := tx.Get("nodes", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
 
 	// Create and return the nodes list.
 	var results structs.Nodes
@@ -223,12 +224,12 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 }
 
 // NodesByMeta is used to return all nodes with the given metadata key/value pairs.
-func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nodes, error) {
+func (s *StateStore) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve all of the nodes
 	var args []interface{}
@@ -240,6 +241,7 @@ func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nod
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
 
 	// Create and return the nodes list.
 	var results structs.Nodes
@@ -422,18 +424,19 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *StateStore) Services() (uint64, structs.Services, error) {
+func (s *StateStore) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Services")...)
+	idx := maxIndexTxn(tx, "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services: %s", err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Rip through the services and enumerate them and their unique set of
 	// tags.
@@ -462,12 +465,12 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 }
 
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
-func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, structs.Services, error) {
+func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "services", "nodes")
 
 	// Retrieve all of the nodes with the meta k/v pair
 	var args []interface{}
@@ -479,6 +482,15 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
+
+	// We don't want to track an unlimited number of services, so we pull a
+	// top-level watch to use as a fallback.
+	allServices, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed services lookup: %s", err)
+	}
+	allServicesCh := allServices.WatchCh()
 
 	// Populate the services map
 	unique := make(map[string]map[string]struct{})
@@ -492,6 +504,7 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed querying services: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 
 		// Rip through the services and enumerate them and their unique set of
 		// tags.
@@ -520,25 +533,27 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
-func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNodes, error) {
+func (s *StateStore) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(services.WatchCh())
+
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		results = append(results, service.(*structs.ServiceNode))
 	}
 
 	// Fill in the address details.
-	results, err = s.parseServiceNodes(tx, results)
+	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
@@ -547,18 +562,19 @@ func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNo
 
 // ServiceTagNodes returns the nodes associated with a given service, filtering
 // out services that don't contain the given tag.
-func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes, error) {
+func (s *StateStore) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "service", service)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Gather all the services and apply the tag filter.
 	var results structs.ServiceNodes
@@ -570,7 +586,7 @@ func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.Servi
 	}
 
 	// Fill in the address details.
-	results, err = s.parseServiceNodes(tx, results)
+	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
@@ -595,7 +611,16 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
-func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+func (s *StateStore) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// Fill in the node data for each service instance.
 	var results structs.ServiceNodes
 	for _, sn := range services {
 		// Note that we have to clone here because we don't want to
@@ -604,10 +629,11 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNo
 		s := sn.PartialClone()
 
 		// Grab the corresponding node record.
-		n, err := tx.First("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
 
 		// Populate the node-related fields. The tagged addresses may be
 		// used by agents to perform address translation if they are
@@ -646,18 +672,19 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 }
 
 // NodeServices is used to query service registrations by node ID.
-func (s *StateStore) NodeServices(nodeName string) (uint64, *structs.NodeServices, error) {
+func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeServices")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// Query the node
-	n, err := tx.First("nodes", "id", nodeName)
+	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
+	ws.Add(watchCh)
 	if n == nil {
 		return 0, nil, nil
 	}
@@ -668,6 +695,7 @@ func (s *StateStore) NodeServices(nodeName string) (uint64, *structs.NodeService
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Initialize the node services struct
 	ns := &structs.NodeServices{

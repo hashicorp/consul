@@ -30,6 +30,18 @@ var (
 	ErrMissingQueryID = errors.New("Missing Query ID")
 )
 
+const (
+	// watchLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained. This isn't as bad as it
+	// seems since we have made the main culprits (nodes and services) more
+	// efficient by diffing before we update via register requests.
+	//
+	// Given the current size of aFew == 32 in memdb's watch_few.go, this
+	// will allow for up to ~64 goroutines per blocking query.
+	watchLimit = 2048
+)
+
 // StateStore is where we store all of Consul's state, including
 // records of node registrations, services, checks, key/value
 // pairs and more. The DB is entirely in-memory and is constructed

@@ -126,10 +126,11 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 
 // watchFired is a helper for unit tests that returns if the given watch set
 // fired (it doesn't care which watch actually fired). This uses a fixed
-// 1 ms timeout since we already expect the event happened before calling
-// this and just need to distinguish a fire from a timeout.
+// timeout since we already expect the event happened before calling this and
+// just need to distinguish a fire from a timeout. We do need a little time to
+// allow the watch to set up any goroutines, though.
 func watchFired(ws memdb.WatchSet) bool {
-	timedOut := ws.Watch(time.After(1 * time.Millisecond))
+	timedOut := ws.Watch(time.After(50 * time.Millisecond))
 	return !timedOut
 }
 

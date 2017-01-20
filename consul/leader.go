@@ -287,7 +287,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(check.Node)
+		_, services, err := state.NodeServices(nil, check.Node)
 		if err != nil {
 			return err
 		}
@@ -385,7 +385,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(member.Name)
+			_, services, err := state.NodeServices(nil, member.Name)
 			if err != nil {
 				return err
 			}

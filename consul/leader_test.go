@@ -71,7 +71,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Service should be registered
-	_, services, err := state.NodeServices(s1.config.NodeName)
+	_, services, err := state.NodeServices(nil, s1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
