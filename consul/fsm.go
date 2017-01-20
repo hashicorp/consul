@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -24,8 +25,15 @@ type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
+
+	// stateLock is only used to protect outside callers to State() from
+	// racing with Restore(), which is called by Raft (it puts in a totally
+	// new state store). Everything else is synchronized by the Raft side,
+	// so doesn't need to lock this.
+	stateLock sync.RWMutex
 	state     *state.StateStore
-	gc        *state.TombstoneGC
+
+	gc *state.TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
@@ -60,6 +68,8 @@ func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 
 // State is used to return a handle to the current state
 func (c *consulFSM) State() *state.StateStore {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
 	return c.state
 }
 
@@ -316,7 +326,12 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
+
+	// External code might be calling State(), so we need to synchronize
+	// here to make sure we swap in the new state store atomically.
+	c.stateLock.Lock()
 	c.state = stateNew
+	c.stateLock.Unlock()
 
 	// Set up a new restore transaction
 	restore := c.state.Restore()
