@@ -88,10 +88,10 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					args := c.RemainingArgs()
 					if len(args) == 1 {
 						switch args[0] {
-						case PodModeDisabled, PodModeInsecure:
+						case PodModeDisabled, PodModeInsecure, PodModeVerified:
 							k8s.PodMode = args[0]
 						default:
-							return nil, errors.New("pods must be one of: disabled, insecure")
+							return nil, errors.New("pods must be one of: disabled, verified, insecure")
 						}
 						continue
 					}

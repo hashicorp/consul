@@ -242,6 +242,19 @@ var dnsTestCasesPodsInsecure = []test.Case{
 	},
 }
 
+var dnsTestCasesPodsVerified = []test.Case{
+	{
+		Qname: "10-20-0-101.test-1.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "10-20-0-101.test-X.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+	},
+}
+
 func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
@@ -314,4 +327,16 @@ func TestKubernetesIntegrationPodsInsecure(t *testing.T) {
     }
 `
 	doIntegrationTests(t, corefile, dnsTestCasesPodsInsecure)
+}
+
+func TestKubernetesIntegrationPodsVerified(t *testing.T) {
+	corefile :=
+		`.:0 {
+    kubernetes cluster.local 0.0.10.in-addr.arpa {
+                endpoint http://localhost:8080
+                namespaces test-1
+                pods verified
+    }
+`
+	doIntegrationTests(t, corefile, dnsTestCasesPodsVerified)
 }
