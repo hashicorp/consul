@@ -529,5 +529,5 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 
 // symbolContainsWildcard checks whether symbol contains a wildcard value
 func symbolContainsWildcard(symbol string) bool {
-	return (strings.Contains(symbol, "*") || (symbol == "any"))
+	return (symbol == "*" || symbol == "any")
 }

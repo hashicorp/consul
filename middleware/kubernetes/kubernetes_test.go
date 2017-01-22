@@ -11,9 +11,9 @@ var testdataSymbolContainsWildcard = []struct {
 	{"mynamespace", false},
 	{"*", true},
 	{"any", true},
-	{"my*space", true},
-	{"*space", true},
-	{"myname*", true},
+	{"my*space", false},
+	{"*space", false},
+	{"myname*", false},
 }
 
 func TestSymbolContainsWildcard(t *testing.T) {
