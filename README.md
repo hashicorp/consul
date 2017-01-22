@@ -141,13 +141,33 @@ nameserver *and* rewrite ANY queries to HINFO.
 }
 ~~~
 
+### Zone Specification
 
-## What Remains To Be Done
+The following Corefile fragment is legal, but does not explicitly define a zone to listen on:
 
-* Optimizations.
-* Load testing.
-* The [issues](https://github.com/miekg/coredns/issues).
+~~~ txt
+{
+   # ...
+}
+~~~
 
+This defaults to `.:53` (or whatever `-dns.port` is).
+
+The next one only defines a port:
+~~~ txt
+:123 {
+    # ...
+}
+~~~
+This defaults to the root zone `.`, but can't be overruled with the `-dns.port` flag.
+
+Just specifying a zone, default to listening on port 53 (can still be overridden with `-dns.port`:
+
+~~~ txt
+example.org {
+    # ...
+}
+~~~
 
 ## Blog and Contact
 
