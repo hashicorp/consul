@@ -25,9 +25,9 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	do := state.Do() // TODO(): might need more from OPT record? Like the actual bufsize?
 
 	if i, ok, expired := c.get(qname, qtype, do); ok && !expired {
-
 		resp := i.toMsg(r)
 		state.SizeAndDo(resp)
+		resp, _ = state.Scrub(resp)
 		w.WriteMsg(resp)
 
 		return dns.RcodeSuccess, nil
