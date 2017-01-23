@@ -10,6 +10,7 @@ import (
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
+        ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 )
 
@@ -70,6 +71,8 @@ var tryDuration = 60 * time.Second
 
 // ServeDNS satisfies the middleware.Handler interface.
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	var span, child ot.Span
+	span = ot.SpanFromContext(ctx)
 	state := request.Request{W: w, Req: r}
 	for _, upstream := range p.Upstreams {
 		start := time.Now()
@@ -85,11 +88,20 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				return dns.RcodeServerFailure, errUnreachable
 			}
 
+			if span != nil {
+				child = span.Tracer().StartSpan("exchange", ot.ChildOf(span.Context()))
+				ctx = ot.ContextWithSpan(ctx, child)
+			}
+
 			atomic.AddInt64(&host.Conns, 1)
 
 			reply, backendErr := host.Exchange(state)
 
 			atomic.AddInt64(&host.Conns, -1)
+
+			if child != nil {
+				child.Finish()
+			}
 
 			if backendErr == nil {
 				w.WriteMsg(reply)

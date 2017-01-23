@@ -75,6 +75,7 @@ func RegisterDevDirective(name, before string) {
 var directives = []string{
 	"root",
 	"bind",
+	"trace",
 	"health",
 	"pprof",
 

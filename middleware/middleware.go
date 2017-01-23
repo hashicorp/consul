@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/miekg/dns"
+        ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 )
 
@@ -70,6 +71,11 @@ func Error(name string, err error) error { return fmt.Errorf("%s/%s: %s", "middl
 // and a nil error.
 func NextOrFailure(name string, next Handler, ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	if next != nil {
+		if span := ot.SpanFromContext(ctx); span != nil {
+			child := span.Tracer().StartSpan(next.Name(), ot.ChildOf(span.Context()))
+			defer child.Finish()
+			ctx = ot.ContextWithSpan(ctx, child)
+		}
 		return next.ServeDNS(ctx, w, r)
 	}
 
