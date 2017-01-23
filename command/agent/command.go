@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
@@ -396,7 +397,7 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Verify the node metadata entries are valid
-	if err := validateMetadata(config.Meta); err != nil {
+	if err := structs.ValidateMetadata(config.Meta); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
 		return nil
 	}

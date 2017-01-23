@@ -42,26 +42,11 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
-
-	// The meta key prefix reserved for Consul's internal use
-	metaKeyReservedPrefix = "consul-"
-
-	// The maximum number of metadata key pairs allowed to be registered
-	metaMaxKeyPairs = 64
-
-	// The maximum allowed length of a metadata key
-	metaKeyMaxLength = 128
-
-	// The maximum allowed length of a metadata value
-	metaValueMaxLength = 512
 )
 
 var (
 	// dnsNameRe checks if a name or tag is dns-compatible.
 	dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
-
-	// metaKeyFormat checks if a metadata key string is valid
-	metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
 )
 
 /*
@@ -1718,41 +1703,6 @@ func parseMetaPair(raw string) (string, string) {
 	} else {
 		return pair[0], ""
 	}
-}
-
-// validateMeta validates a set of key/value pairs from the agent config
-func validateMetadata(meta map[string]string) error {
-	if len(meta) > metaMaxKeyPairs {
-		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
-	}
-
-	for key, value := range meta {
-		if err := validateMetaPair(key, value); err != nil {
-			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
-		}
-	}
-
-	return nil
-}
-
-// validateMetaPair checks that the given key/value pair is in a valid format
-func validateMetaPair(key, value string) error {
-	if key == "" {
-		return fmt.Errorf("Key cannot be blank")
-	}
-	if !metaKeyFormat(key) {
-		return fmt.Errorf("Key contains invalid characters")
-	}
-	if len(key) > metaKeyMaxLength {
-		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
-	}
-	if strings.HasPrefix(key, metaKeyReservedPrefix) {
-		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
-	}
-	if len(value) > metaValueMaxLength {
-		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
-	}
-	return nil
 }
 
 // unloadMetadata resets the local metadata state

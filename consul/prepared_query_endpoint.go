@@ -178,6 +178,11 @@ func parseService(svc *structs.ServiceQuery) error {
 		return fmt.Errorf("Bad NearestN '%d', must be >= 0", svc.Failover.NearestN)
 	}
 
+	// Make sure the metadata filters are valid
+	if err := structs.ValidateMetadata(svc.NodeMeta); err != nil {
+		return err
+	}
+
 	// We skip a few fields:
 	// - There's no validation for Datacenters; we skip any unknown entries
 	//   at execution time.

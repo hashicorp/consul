@@ -604,6 +604,17 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 		if err := parseQuery(query, version8); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+
+		query.Service.NodeMeta = map[string]string{"": "somevalue"}
+		err = parseQuery(query, version8)
+		if err == nil || !strings.Contains(err.Error(), "cannot be blank") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		query.Service.NodeMeta = map[string]string{"somekey": "somevalue"}
+		if err := parseQuery(query, version8); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 }
 
