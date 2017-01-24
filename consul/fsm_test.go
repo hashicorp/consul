@@ -553,7 +553,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify queries are restored.
-	_, queries, err := fsm2.state.PreparedQueryList()
+	_, queries, err := fsm2.state.PreparedQueryList(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1131,7 +1131,7 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		_, actual, err := fsm.state.PreparedQueryGet(nil, query.Query.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1158,7 +1158,7 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 
 	// Verify the update.
 	{
-		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		_, actual, err := fsm.state.PreparedQueryGet(nil, query.Query.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1184,7 +1184,7 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 
 	// Make sure it's gone.
 	{
-		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		_, actual, err := fsm.state.PreparedQueryGet(nil, query.Query.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

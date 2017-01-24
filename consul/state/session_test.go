@@ -898,7 +898,7 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	}
 
 	// Make sure the query is gone and the index is updated.
-	idx, q2, err := s.PreparedQueryGet(query.ID)
+	idx, q2, err := s.PreparedQueryGet(nil, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

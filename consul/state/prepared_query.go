@@ -238,18 +238,19 @@ func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *
 }
 
 // PreparedQueryGet returns the given prepared query by ID.
-func (s *StateStore) PreparedQueryGet(queryID string) (uint64, *structs.PreparedQuery, error) {
+func (s *StateStore) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryGet")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Look up the query by its ID.
-	wrapped, err := tx.First("prepared-queries", "id", queryID)
+	watchCh, wrapped, err := tx.FirstWatch("prepared-queries", "id", queryID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	return idx, toPreparedQuery(wrapped), nil
 }
 
@@ -331,7 +332,7 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 }
 
 // PreparedQueryList returns all the prepared queries.
-func (s *StateStore) PreparedQueryList() (uint64, structs.PreparedQueries, error) {
+func (s *StateStore) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.PreparedQueries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -343,6 +344,7 @@ func (s *StateStore) PreparedQueryList() (uint64, structs.PreparedQueries, error
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
+	ws.Add(queries.WatchCh())
 
 	// Go over all of the queries and build the response.
 	var result structs.PreparedQueries
