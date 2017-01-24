@@ -138,13 +138,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 			reply.Index, reply.Nodes = index, nodes
 			if len(args.NodeMetaFilters) > 0 {
-				var filtered structs.CheckServiceNodes
-				for _, node := range nodes {
-					if structs.SatisfiesMetaFilters(node.Node.Meta, args.NodeMetaFilters) {
-						filtered = append(filtered, node)
-					}
-				}
-				reply.Nodes = filtered
+				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
 			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err

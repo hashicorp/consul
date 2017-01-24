@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"sort"
 )
 
 func TestWalk_ServiceQuery(t *testing.T) {
@@ -20,22 +21,26 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		Failover: structs.QueryDatacenterOptions{
 			Datacenters: []string{"dc1", "dc2"},
 		},
-		Near: "_agent",
-		Tags: []string{"tag1", "tag2", "tag3"},
+		Near:     "_agent",
+		Tags:     []string{"tag1", "tag2", "tag3"},
+		NodeMeta: map[string]string{"foo": "bar", "role": "server"},
 	}
 	if err := walk(service, fn); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	expected := []string{
-		".Service:the-service",
 		".Failover.Datacenters[0]:dc1",
 		".Failover.Datacenters[1]:dc2",
 		".Near:_agent",
+		".NodeMeta[foo]:bar",
+		".NodeMeta[role]:server",
+		".Service:the-service",
 		".Tags[0]:tag1",
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",
 	}
+	sort.Strings(actual)
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}

@@ -90,6 +90,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 						},
 						OnlyPassing: true,
 						Tags:        []string{"foo", "bar"},
+						NodeMeta:    map[string]string{"somekey": "somevalue"},
 					},
 					DNS: structs.QueryDNSOptions{
 						TTL: "10s",
@@ -120,6 +121,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 				},
 				"OnlyPassing": true,
 				"Tags":        []string{"foo", "bar"},
+				"NodeMeta":    map[string]string{"somekey": "somevalue"},
 			},
 			"DNS": map[string]interface{}{
 				"TTL": "10s",
@@ -645,6 +647,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 						},
 						OnlyPassing: true,
 						Tags:        []string{"foo", "bar"},
+						NodeMeta:    map[string]string{"somekey": "somevalue"},
 					},
 					DNS: structs.QueryDNSOptions{
 						TTL: "10s",
@@ -676,6 +679,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 				},
 				"OnlyPassing": true,
 				"Tags":        []string{"foo", "bar"},
+				"NodeMeta":    map[string]string{"somekey": "somevalue"},
 			},
 			"DNS": map[string]interface{}{
 				"TTL": "10s",
