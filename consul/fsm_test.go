@@ -544,7 +544,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}()
 
 	// Verify coordinates are restored
-	_, coords, err := fsm2.state.Coordinates()
+	_, coords, err := fsm2.state.Coordinates(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -832,7 +832,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, coords, err := fsm.state.Coordinates()
+	_, coords, err := fsm.state.Coordinates(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
