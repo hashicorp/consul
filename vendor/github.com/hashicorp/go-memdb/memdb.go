@@ -15,6 +15,7 @@ import (
 type MemDB struct {
 	schema *DBSchema
 	root   unsafe.Pointer // *iradix.Tree underneath
+	primary bool
 
 	// There can only be a single writter at once
 	writer sync.Mutex
@@ -31,6 +32,7 @@ func NewMemDB(schema *DBSchema) (*MemDB, error) {
 	db := &MemDB{
 		schema: schema,
 		root:   unsafe.Pointer(iradix.New()),
+		primary: true,
 	}
 	if err := db.initialize(); err != nil {
 		return nil, err
@@ -65,6 +67,7 @@ func (db *MemDB) Snapshot() *MemDB {
 	clone := &MemDB{
 		schema: db.schema,
 		root:   unsafe.Pointer(db.getRoot()),
+		primary: false,
 	}
 	return clone
 }

@@ -426,16 +426,16 @@
 			"revisionTime": "2016-04-07T17:41:26Z"
 		},
 		{
-			"checksumSHA1": "qmE9mO0WW6ALLpUU81rXDyspP5M=",
+			"checksumSHA1": "jPxyofQxI1PRPq6LPc6VlcRn5fI=",
 			"path": "github.com/hashicorp/go-immutable-radix",
-			"revision": "afc5a0dbb18abdf82c277a7bc01533e81fa1d6b8",
-			"revisionTime": "2016-06-09T02:05:29Z"
+			"revision": "76b5f4e390910df355bfb9b16b41899538594a05",
+			"revisionTime": "2017-01-13T02:29:29Z"
 		},
 		{
-			"checksumSHA1": "ZpTDFeRvXFwIvSHRD8eDYHxaj4Y=",
+			"checksumSHA1": "K8Fsgt1llTXP0EwqdBzvSGdKOKc=",
 			"path": "github.com/hashicorp/go-memdb",
-			"revision": "d2d2b77acab85aa635614ac17ea865969f56009e",
-			"revisionTime": "2017-01-07T16:22:14Z"
+			"revision": "c01f56b44823e8ba697e23c18d12dca984b85aca",
+			"revisionTime": "2017-01-23T15:32:28Z"
 		},
 		{
 			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
