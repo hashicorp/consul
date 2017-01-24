@@ -807,7 +807,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Key should be unlocked.
-	idx, d2, err := s.KVSGet("/foo")
+	idx, d2, err := s.KVSGet(nil, "/foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -889,7 +889,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Key should be deleted.
-	idx, d2, err := s.KVSGet("/bar")
+	idx, d2, err := s.KVSGet(nil, "/bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

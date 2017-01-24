@@ -36,7 +36,7 @@ func TestKVS_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, d, err := state.KVSGet("test")
+	_, d, err := state.KVSGet(nil, "test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestKVS_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, d, err = state.KVSGet("test")
+	_, d, err = state.KVSGet(nil, "test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

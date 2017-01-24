@@ -295,7 +295,7 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	}
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.KVSList("")
+	idx, actual, err := s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -364,7 +364,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 
 	// This function verifies that the state store wasn't changed.
 	verifyStateStore := func(desc string) {
-		idx, actual, err := s.KVSList("")
+		idx, actual, err := s.KVSList(nil, "")
 		if err != nil {
 			t.Fatalf("err (%s): %s", desc, err)
 		}

@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 // KVS endpoint is used to manipulate the Key-Value store
@@ -119,12 +120,11 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(
+	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetKVSWatch(args.Key),
-		func() error {
-			index, ent, err := state.KVSGet(args.Key)
+		func(ws memdb.WatchSet) error {
+			index, ent, err := state.KVSGet(ws, args.Key)
 			if err != nil {
 				return err
 			}
@@ -161,12 +161,11 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(
+	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetKVSWatch(args.Key),
-		func() error {
-			index, ent, err := state.KVSList(args.Key)
+		func(ws memdb.WatchSet) error {
+			index, ent, err := state.KVSList(ws, args.Key)
 			if err != nil {
 				return err
 			}
@@ -204,12 +203,11 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(
+	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetKVSWatch(args.Prefix),
-		func() error {
-			index, keys, err := state.KVSListKeys(args.Prefix, args.Seperator)
+		func(ws memdb.WatchSet) error {
+			index, keys, err := state.KVSListKeys(ws, args.Prefix, args.Seperator)
 			if err != nil {
 				return err
 			}
