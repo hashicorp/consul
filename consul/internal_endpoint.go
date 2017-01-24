@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -23,12 +24,11 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 
 	// Get the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(
+	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("NodeInfo"),
-		func() error {
-			index, dump, err := state.NodeInfo(args.Node)
+		func(ws memdb.WatchSet) error {
+			index, dump, err := state.NodeInfo(ws, args.Node)
 			if err != nil {
 				return err
 			}
@@ -47,12 +47,11 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 
 	// Get all the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(
+	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("NodeDump"),
-		func() error {
-			index, dump, err := state.NodeDump()
+		func(ws memdb.WatchSet) error {
+			index, dump, err := state.NodeDump(ws)
 			if err != nil {
 				return err
 			}

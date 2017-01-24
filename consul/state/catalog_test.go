@@ -2499,11 +2499,13 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	s := testStateStore(t)
 
 	// Generating a node dump that matches nothing returns empty
-	idx, dump, err := s.NodeInfo("node1")
+	wsInfo := memdb.NewWatchSet()
+	idx, dump, err := s.NodeInfo(wsInfo, "node1")
 	if idx != 0 || dump != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, dump, err)
 	}
-	idx, dump, err = s.NodeDump()
+	wsDump := memdb.NewWatchSet()
+	idx, dump, err = s.NodeDump(wsDump)
 	if idx != 0 || dump != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, dump, err)
 	}
@@ -2525,6 +2527,14 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	// Register node-level checks
 	testRegisterCheck(t, s, 8, "node1", "", "check2", structs.HealthPassing)
 	testRegisterCheck(t, s, 9, "node2", "", "check2", structs.HealthPassing)
+
+	// Both watches should have fired due to the changes above.
+	if !watchFired(wsInfo) {
+		t.Fatalf("bad")
+	}
+	if !watchFired(wsDump) {
+		t.Fatalf("bad")
+	}
 
 	// Check that our result matches what we expect.
 	expect := structs.NodeDump{
@@ -2629,7 +2639,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Get a dump of just a single node
-	idx, dump, err = s.NodeInfo("node1")
+	ws := memdb.NewWatchSet()
+	idx, dump, err = s.NodeInfo(ws, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2641,7 +2652,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Generate a dump of all the nodes
-	idx, dump, err = s.NodeDump()
+	idx, dump, err = s.NodeDump(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2650,5 +2661,13 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 	if !reflect.DeepEqual(dump, expect) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])
+	}
+
+	// Registering some unrelated node + service + check should not fire the
+	// watch.
+	testRegisterNode(t, s, 10, "nope")
+	testRegisterService(t, s, 11, "nope", "nope")
+	if watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }

@@ -1252,25 +1252,26 @@ func (s *StateStore) parseCheckServiceNodes(
 
 // NodeInfo is used to generate a dump of a single node. The dump includes
 // all services and checks which are registered against the node.
-func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump, error) {
+func (s *StateStore) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeInfo")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the node by the passed node
 	nodes, err := tx.Get("nodes", "id", node)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
-	return s.parseNodes(tx, idx, nodes)
+	ws.Add(nodes.WatchCh())
+	return s.parseNodes(tx, ws, idx, nodes)
 }
 
 // NodeDump is used to generate a dump of all nodes. This call is expensive
 // as it has to query every node, service, and check. The response can also
 // be quite large since there is currently no filtering applied.
-func (s *StateStore) NodeDump() (uint64, structs.NodeDump, error) {
+func (s *StateStore) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1282,14 +1283,30 @@ func (s *StateStore) NodeDump() (uint64, structs.NodeDump, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
-	return s.parseNodes(tx, idx, nodes)
+	ws.Add(nodes.WatchCh())
+	return s.parseNodes(tx, ws, idx, nodes)
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
 // and/or health checks.
-func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
+func (s *StateStore) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator) (uint64, structs.NodeDump, error) {
+
+	// We don't want to track an unlimited number of services, so we pull a
+	// top-level watch to use as a fallback.
+	allServices, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed services lookup: %s", err)
+	}
+	allServicesCh := allServices.WatchCh()
+
+	// We need a similar fallback for checks.
+	allChecks, err := tx.Get("checks", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+	}
+	allChecksCh := allChecks.WatchCh()
 
 	var results structs.NodeDump
 	for n := iter.Next(); n != nil; n = iter.Next() {
@@ -1309,6 +1326,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed services lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 		for service := services.Next(); service != nil; service = services.Next() {
 			ns := service.(*structs.ServiceNode).ToNodeService()
 			dump.Services = append(dump.Services, ns)
@@ -1319,6 +1337,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, checks.WatchCh(), allChecksCh)
 		for check := checks.Next(); check != nil; check = checks.Next() {
 			hc := check.(*structs.HealthCheck)
 			dump.Checks = append(dump.Checks, hc)
