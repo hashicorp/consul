@@ -145,18 +145,19 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 }
 
 // SessionGet is used to retrieve an active session from the state store.
-func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, error) {
+func (s *StateStore) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *structs.Session, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("SessionGet")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Look up the session by its ID
-	session, err := tx.First("sessions", "id", sessionID)
+	watchCh, session, err := tx.FirstWatch("sessions", "id", sessionID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	if session != nil {
 		return idx, session.(*structs.Session), nil
 	}
@@ -164,18 +165,19 @@ func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, err
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
+func (s *StateStore) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("SessionList")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Query all of the active sessions.
 	sessions, err := tx.Get("sessions", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(sessions.WatchCh())
 
 	// Go over the sessions and create a slice of them.
 	var result structs.Sessions
@@ -188,18 +190,19 @@ func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
-func (s *StateStore) NodeSessions(nodeID string) (uint64, structs.Sessions, error) {
+func (s *StateStore) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeSessions")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Get all of the sessions which belong to the node
 	sessions, err := tx.Get("sessions", "node", nodeID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(sessions.WatchCh())
 
 	// Go over all of the sessions and return them as a slice
 	var result structs.Sessions

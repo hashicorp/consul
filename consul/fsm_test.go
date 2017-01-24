@@ -500,7 +500,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(session.ID)
+	idx, s, err := fsm2.state.SessionGet(nil, session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -875,7 +875,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 	// Get the session
 	id := resp.(string)
-	_, session, err := fsm.state.SessionGet(id)
+	_, session, err := fsm.state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -911,7 +911,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, session, err = fsm.state.SessionGet(id)
+	_, session, err = fsm.state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
