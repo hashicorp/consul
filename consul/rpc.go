@@ -469,6 +469,10 @@ RUN_QUERY:
 	var ws memdb.WatchSet
 	if queryOpts.MinQueryIndex > 0 {
 		ws = memdb.NewWatchSet()
+
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(s.fsm.State().AbandonCh())
 	}
 
 	// Block up to the timeout if we didn't see anything fresh.

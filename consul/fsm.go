@@ -330,8 +330,14 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
 	c.stateLock.Lock()
+	stateOld := c.state
 	c.state = stateNew
 	c.stateLock.Unlock()
+
+	// The old state store has been abandoned already since we've replaced
+	// it with an empty one, but we defer telling watchers about it until
+	// the restore is done, so they wake up one we have the latest data.
+	defer stateOld.Abandon()
 
 	// Set up a new restore transaction
 	restore := c.state.Restore()

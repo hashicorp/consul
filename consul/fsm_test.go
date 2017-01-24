@@ -563,6 +563,33 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if !reflect.DeepEqual(queries[0], &query) {
 		t.Fatalf("bad: %#v", queries[0])
 	}
+
+	// Snapshot
+	snap, err = fsm2.Snapshot()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer snap.Release()
+
+	// Persist
+	buf = bytes.NewBuffer(nil)
+	sink = &MockSink{buf, false}
+	if err := snap.Persist(sink); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to restore on the old FSM and make sure it abandons the old state
+	// store.
+	abandonCh := fsm.state.AbandonCh()
+	if err := fsm.Restore(sink); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	select {
+	case <-abandonCh:
+	default:
+		t.Fatalf("bad")
+	}
+
 }
 
 func TestFSM_KVSSet(t *testing.T) {

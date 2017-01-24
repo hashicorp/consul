@@ -50,6 +50,10 @@ type StateStore struct {
 	schema *memdb.DBSchema
 	db     *memdb.MemDB
 
+	// abandonCh is used to signal watchers that this state store has been
+	// abandoned (usually during a restore). This is only ever closed.
+	abandonCh chan struct{}
+
 	// tableWatches holds all the full table watches, indexed by table name.
 	tableWatches map[string]*FullTableWatch
 
@@ -118,6 +122,7 @@ func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 	s := &StateStore{
 		schema:       schema,
 		db:           db,
+		abandonCh:    make(chan struct{}),
 		tableWatches: tableWatches,
 		kvsWatch:     NewPrefixWatchManager(),
 		kvsGraveyard: NewGraveyard(gc),
@@ -173,6 +178,18 @@ func (s *StateRestore) Commit() {
 	s.tx.Defer(func() { s.watches.Notify() })
 
 	s.tx.Commit()
+}
+
+// AbandonCh returns a channel you can wait on to know if the state store was
+// abandoned.
+func (s *StateStore) AbandonCh() <-chan struct{} {
+	return s.abandonCh
+}
+
+// Abandon is used to signal that the given state store has been abandoned.
+// Calling this more than one time will panic.
+func (s *StateStore) Abandon() {
+	close(s.abandonCh)
 }
 
 // maxIndex is a helper used to retrieve the highest known index

@@ -164,6 +164,17 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 }
 
+func TestStateStore_Abandon(t *testing.T) {
+	s := testStateStore(t)
+	abandonCh := s.AbandonCh()
+	s.Abandon()
+	select {
+	case <-abandonCh:
+	default:
+		t.Fatalf("bad")
+	}
+}
+
 func TestStateStore_maxIndex(t *testing.T) {
 	s := testStateStore(t)
 
