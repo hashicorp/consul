@@ -38,6 +38,7 @@ body must look something like:
 ```javascript
 {
   "Datacenter": "dc1",
+  "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
   "Node": "foobar",
   "Address": "192.168.10.10",
   "TaggedAddresses": {
@@ -74,7 +75,10 @@ to match that of the agent. If only those are provided, the endpoint will regist
 the node with the catalog. `TaggedAddresses` can be used in conjunction with the
 [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 option and the `wan` address. The `lan` address was added in Consul 0.7 to help find
-the LAN address if address translation is enabled.
+the LAN address if address translation is enabled. The `ID` field was added in Consul
+0.7.3 and is optional, but if supplied must be in the form of a hex string, 36
+characters long. This is a unique identifier for this node across all time, even if
+the node name or address changes.
 
 The `Meta` block was added in Consul 0.7.3 to enable associating arbitrary metadata
 key/value pairs with a node for filtering purposes. For more information on node metadata,
@@ -208,6 +212,7 @@ It returns a JSON body like this:
 ```javascript
 [
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "Node": "baz",
     "Address": "10.1.10.11",
     "TaggedAddresses": {
@@ -219,6 +224,7 @@ It returns a JSON body like this:
     }
   },
   {
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {
@@ -288,6 +294,8 @@ It returns a JSON body like this:
 ```javascript
 [
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
     "Address": "192.168.10.10",
     "TaggedAddresses": {
       "lan": "192.168.10.10",
@@ -298,7 +306,6 @@ It returns a JSON body like this:
     }
     "CreateIndex": 51,
     "ModifyIndex": 51,
-    "Node": "foobar",
     "ServiceAddress": "172.17.0.3",
     "ServiceEnableTagOverride": false,
     "ServiceID": "32a2a47f7992:nodea:5000",
@@ -340,6 +347,7 @@ It returns a JSON body like this:
 ```javascript
 {
   "Node": {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {

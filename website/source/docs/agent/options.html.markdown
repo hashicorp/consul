@@ -282,6 +282,17 @@ will exit with an error at startup.
 * <a name="_node"></a><a href="#_node">`-node`</a> - The name of this node in the cluster.
   This must be unique within the cluster. By default this is the hostname of the machine.
 
+* <a name="_node_id"></a><a href="#_node_id">`-node-id`</a> - Available in Consul 0.7.3 and later, this
+  is a unique identifier for this node across all time, even if the name of the node or address
+  changes. This must be in the form of a hex string, 36 characters long, such as
+  `adf4238a-882b-9ddc-4a9d-5b6758e4159e`. If this isn't supplied, which is the most common case, then
+  the agent will generate an identifier at startup and persist it in the <a href="#_data_dir">data directory</a>
+  so that it will remain the same across agent restarts. This is currently only exposed via
+  <a href="/docs/agent/http/agent.html#agent_self">/v1/agent/self</a>,
+  <a href="/docs/agent/http/catalog.html">/v1/catalog</a>, and
+  <a href="/docs/agent/http/health.html">/v1/health</a> endpoints, but future versions of
+  Consul will use this to better manage cluster changes, especially for Consul servers.
+
 * <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,
   this specifies an arbitrary metadata key/value pair to associate with the node, of the form `key:value`.
   This can be specified multiple times. Node metadata pairs have the following restrictions:
@@ -694,6 +705,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
+
+* <a name="node_id"></a><a href="#node_id">`node_id`</a> Equivalent to the
+  [`-node-id` command-line flag](#_node_id).
 
 * <a name="node_name"></a><a href="#node_name">`node_name`</a> Equivalent to the
   [`-node` command-line flag](#_node).

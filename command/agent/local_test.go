@@ -121,10 +121,14 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			return false, fmt.Errorf("err: %v", err)
 		}
 
-		// Make sure we sent along our tagged addresses when we synced.
+		// Make sure we sent along our node info when we synced.
+		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
-			return false, fmt.Errorf("bad: %v", addrs)
+		meta := services.NodeServices.Node.Meta
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			return false, fmt.Errorf("bad: %v", services.NodeServices.Node)
 		}
 
 		// We should have 6 services (consul included)
@@ -717,7 +721,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		}
 	}
 
-	// Make sure we sent along our tagged addresses when we synced.
+	// Make sure we sent along our node info addresses when we synced.
 	{
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
@@ -728,9 +732,13 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
-			t.Fatalf("bad: %v", addrs)
+		meta := services.NodeServices.Node.Meta
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			t.Fatalf("bad: %v", services.NodeServices.Node)
 		}
 	}
 
@@ -985,6 +993,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	conf := nextConfig()
+	conf.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	conf.Meta["somekey"] = "somevalue"
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
@@ -1020,12 +1029,14 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 		// Make sure we synced our node info - this should have ridden on the
 		// "consul" service sync
+		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) || !reflect.DeepEqual(meta, conf.Meta) {
-			return false, fmt.Errorf("bad: %v", addrs)
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			return false, fmt.Errorf("bad: %v", services.NodeServices.Node)
 		}
-
 		return true, nil
 	}, func(err error) {
 		t.Fatalf("err: %s", err)
@@ -1045,12 +1056,15 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
+
+		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) || !reflect.DeepEqual(meta, conf.Meta) {
-			return false, fmt.Errorf("bad: %v", addrs)
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			return false, fmt.Errorf("bad: %v", services.NodeServices.Node)
 		}
-
 		return true, nil
 	}, func(err error) {
 		t.Fatalf("err: %s", err)

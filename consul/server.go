@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -283,6 +284,10 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	go s.wanEventHandler()
 
+	// Start monitoring leadership. This must happen after Serf is set up
+	// since it can fire events when leadership is obtained.
+	go s.monitorLeadership()
+
 	// Start ACL replication.
 	if s.IsACLReplicationEnabled() {
 		go s.runACLReplication()
@@ -308,6 +313,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
+	conf.Tags["id"] = string(s.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
@@ -337,7 +343,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	// When enabled, the Serf gossip may just turn off if we are the minority
 	// node which is rather unexpected.
 	conf.EnableNameConflictResolution = false
-	if err := ensurePath(conf.SnapshotPath, false); err != nil {
+	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
 
@@ -390,7 +396,7 @@ func (s *Server) setupRaft() error {
 	} else {
 		// Create the base raft path.
 		path := filepath.Join(s.config.DataDir, raftState)
-		if err := ensurePath(path, true); err != nil {
+		if err := lib.EnsurePath(path, true); err != nil {
 			return err
 		}
 
@@ -489,9 +495,6 @@ func (s *Server) setupRaft() error {
 	if err != nil {
 		return err
 	}
-
-	// Start monitoring leadership.
-	go s.monitorLeadership()
 	return nil
 }
 

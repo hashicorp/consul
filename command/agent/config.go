@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
 )
@@ -311,6 +312,10 @@ type Config struct {
 
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
+
+	// Node ID is a unique ID for this node across space and time. Defaults
+	// to a randomly-generated ID that persists in the data-dir.
+	NodeID types.NodeID `mapstructure:"node_id"`
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string `mapstructure:"node_name"`
@@ -1272,6 +1277,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Protocol > 0 {
 		result.Protocol = b.Protocol
+	}
+	if b.NodeID != "" {
+		result.NodeID = b.NodeID
 	}
 	if b.NodeName != "" {
 		result.NodeName = b.NodeName

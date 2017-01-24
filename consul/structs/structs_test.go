@@ -107,6 +107,7 @@ func TestStructs_ACL_IsSame(t *testing.T) {
 
 func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 	req := &RegisterRequest{
+		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:            "test",
 		Address:         "127.0.0.1",
 		TaggedAddresses: make(map[string]string),
@@ -116,6 +117,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 	}
 
 	node := &Node{
+		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:            "test",
 		Address:         "127.0.0.1",
 		TaggedAddresses: make(map[string]string),
@@ -140,6 +142,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 		}
 	}
 
+	check(func() { req.ID = "nope" }, func() { req.ID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") })
 	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
 	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
 	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
@@ -153,6 +156,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{
+		ID:      types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:    "node1",
 		Address: "127.0.0.1",
 		TaggedAddresses: map[string]string{
@@ -182,10 +186,14 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	// Make sure the parts that weren't supposed to be cloned didn't get
 	// copied over, then zero-value them out so we can do a DeepEqual() on
 	// the rest of the contents.
-	if clone.Address != "" || len(clone.TaggedAddresses) != 0 || len(clone.NodeMeta) != 0 {
+	if clone.ID != "" ||
+		clone.Address != "" ||
+		len(clone.TaggedAddresses) != 0 ||
+		len(clone.NodeMeta) != 0 {
 		t.Fatalf("bad: %v", clone)
 	}
 
+	sn.ID = ""
 	sn.Address = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
@@ -206,6 +214,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 
 	// These two fields get lost in the conversion, so we have to zero-value
 	// them out before we do the compare.
+	sn.ID = ""
 	sn.Address = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil

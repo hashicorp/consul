@@ -143,6 +143,7 @@ It returns a JSON body like this:
     "DNSRecursors": [],
     "Domain": "consul.",
     "LogLevel": "INFO",
+    "NodeID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "NodeName": "foobar",
     "ClientAddr": "127.0.0.1",
     "BindAddr": "0.0.0.0",
@@ -183,6 +184,7 @@ It returns a JSON body like this:
     "Tags": {
       "bootstrap": "1",
       "dc": "dc1",
+      "id": "40e4a748-2192-161a-0510-9bf59fe950b5",
       "port": "8300",
       "role": "consul",
       "vsn": "1",

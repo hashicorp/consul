@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 )
 
@@ -305,6 +307,71 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 			t.Fatalf("bad: %s", wan.String())
 		}
 	}()
+}
+
+func TestAgent_NodeID(t *testing.T) {
+	c := nextConfig()
+	dir, agent := makeAgent(t, c)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// The auto-assigned ID should be valid.
+	id := agent.consulConfig().NodeID
+	if _, err := uuid.ParseUUID(string(id)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Running again should get the same ID (persisted in the file).
+	c.NodeID = ""
+	if err := agent.setupNodeID(c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if newID := agent.consulConfig().NodeID; id != newID {
+		t.Fatalf("bad: %q vs %q", id, newID)
+	}
+
+	// Set an invalid ID via config.
+	c.NodeID = types.NodeID("nope")
+	err := agent.setupNodeID(c)
+	if err == nil || !strings.Contains(err.Error(), "uuid string is wrong length") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set a valid ID via config.
+	newID, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.NodeID = types.NodeID(newID)
+	if err := agent.setupNodeID(c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if id := agent.consulConfig().NodeID; string(id) != newID {
+		t.Fatalf("bad: %q vs. %q", id, newID)
+	}
+
+	// Set an invalid ID via the file.
+	fileID := filepath.Join(c.DataDir, "node-id")
+	if err := ioutil.WriteFile(fileID, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.NodeID = ""
+	err = agent.setupNodeID(c)
+	if err == nil || !strings.Contains(err.Error(), "uuid is improperly formatted") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set a valid ID via the file.
+	if err := ioutil.WriteFile(fileID, []byte("adf4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.NodeID = ""
+	if err := agent.setupNodeID(c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if id := agent.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
+		t.Fatalf("bad: %q vs. %q", id, newID)
+	}
 }
 
 func TestAgent_AddService(t *testing.T) {
