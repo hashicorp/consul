@@ -288,27 +288,3 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 		}
 	}()
 }
-
-func TestStateStore_ACL_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Call functions that update the acls table and make sure a watch fires
-	// each time.
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		if err := s.ACLDelete(2, "acl1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		restore := s.Restore()
-		if err := restore.ACL(&structs.ACL{ID: "acl1"}); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
-	})
-}

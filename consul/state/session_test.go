@@ -504,44 +504,6 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	}()
 }
 
-func TestStateStore_Session_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Register a test node.
-	testRegisterNode(t, s, 1, "node1")
-
-	// This just covers the basics. The session invalidation tests above
-	// cover the more nuanced multiple table watches.
-	session := testUUID()
-	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		sess := &structs.Session{
-			ID:       session,
-			Node:     "node1",
-			Behavior: structs.SessionKeysDelete,
-		}
-		if err := s.SessionCreate(2, sess); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		if err := s.SessionDestroy(3, session); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		restore := s.Restore()
-		sess := &structs.Session{
-			ID:       session,
-			Node:     "node1",
-			Behavior: structs.SessionKeysDelete,
-		}
-		if err := restore.Session(sess); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
-	})
-}
-
 func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	s := testStateStore(t)
 

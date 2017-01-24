@@ -32,9 +32,6 @@ func (s *StateRestore) KVS(entry *structs.DirEntry) error {
 	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, "kvs"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
-
-	// We have a single top-level KVS watch trigger instead of doing
-	// tons of prefix watches.
 	return nil
 }
 
@@ -114,7 +111,6 @@ func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntr
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.kvsWatch.Notify(entry.Key, false) })
 	return nil
 }
 
@@ -316,7 +312,6 @@ func (s *StateStore) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.kvsWatch.Notify(key, false) })
 	return nil
 }
 
@@ -455,7 +450,6 @@ func (s *StateStore) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) 
 
 	// Update the index
 	if modified {
-		tx.Defer(func() { s.kvsWatch.Notify(prefix, true) })
 		if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}

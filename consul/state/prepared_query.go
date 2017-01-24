@@ -75,7 +75,6 @@ func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("prepared-queries")
 	return nil
 }
 
@@ -193,7 +192,6 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["prepared-queries"].Notify() })
 	return nil
 }
 
@@ -202,20 +200,17 @@ func (s *StateStore) PreparedQueryDelete(idx uint64, queryID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.preparedQueryDeleteTxn(tx, idx, watches, queryID); err != nil {
+	if err := s.preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	queryID string) error {
+func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {
@@ -233,7 +228,6 @@ func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("prepared-queries")
 	return nil
 }
 
@@ -262,7 +256,7 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryResolve")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Explicitly ban an empty query. This will never match an ID and the
 	// schema is set up so it will never match a query with an empty name,
@@ -337,7 +331,7 @@ func (s *StateStore) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.Prepa
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryList")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Query all of the prepared queries in the state store.
 	queries, err := tx.Get("prepared-queries", "id")

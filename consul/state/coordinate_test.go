@@ -284,28 +284,3 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	}()
 
 }
-
-func TestStateStore_Coordinate_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	testRegisterNode(t, s, 1, "node1")
-
-	// Call functions that update the coordinates table and make sure a watch fires
-	// each time.
-	verifyWatch(t, s.getTableWatch("coordinates"), func() {
-		updates := structs.Coordinates{
-			&structs.Coordinate{
-				Node:  "node1",
-				Coord: generateRandomCoordinate(),
-			},
-		}
-		if err := s.CoordinateBatchUpdate(2, updates); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("coordinates"), func() {
-		if err := s.DeleteNode(3, "node1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-}

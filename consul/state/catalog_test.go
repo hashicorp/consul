@@ -314,97 +314,6 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	}()
 }
 
-func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// With the new diffing logic for the node and service structures, we
-	// need to twiddle the request to get the expected watch to fire for
-	// the restore cases below.
-	req := &structs.RegisterRequest{
-		Node:    "node1",
-		Address: "1.2.3.4",
-	}
-
-	// The nodes watch should fire for this one.
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		verifyNoWatch(t, s.getTableWatch("services"), func() {
-			verifyNoWatch(t, s.getTableWatch("checks"), func() {
-				if err := s.EnsureRegistration(1, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-	// The nodes watch should fire for this one.
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		verifyNoWatch(t, s.getTableWatch("services"), func() {
-			verifyNoWatch(t, s.getTableWatch("checks"), func() {
-				req.Address = "1.2.3.5"
-				restore := s.Restore()
-				if err := restore.Registration(1, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-				restore.Commit()
-			})
-		})
-	})
-	// With a service definition added it should fire just services.
-	req.Service = &structs.NodeService{
-		ID:      "redis1",
-		Service: "redis",
-		Address: "1.1.1.1",
-		Port:    8080,
-	}
-	verifyNoWatch(t, s.getTableWatch("nodes"), func() {
-		verifyWatch(t, s.getTableWatch("services"), func() {
-			verifyNoWatch(t, s.getTableWatch("checks"), func() {
-				if err := s.EnsureRegistration(2, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-	verifyNoWatch(t, s.getTableWatch("nodes"), func() {
-		verifyWatch(t, s.getTableWatch("services"), func() {
-			verifyNoWatch(t, s.getTableWatch("checks"), func() {
-				req.Service.Address = "1.1.1.2"
-				restore := s.Restore()
-				if err := restore.Registration(2, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-				restore.Commit()
-			})
-		})
-	})
-
-	// Adding a check should just affect checks.
-	req.Check = &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Name:    "check",
-	}
-	verifyNoWatch(t, s.getTableWatch("nodes"), func() {
-		verifyNoWatch(t, s.getTableWatch("services"), func() {
-			verifyWatch(t, s.getTableWatch("checks"), func() {
-				if err := s.EnsureRegistration(3, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-	verifyNoWatch(t, s.getTableWatch("nodes"), func() {
-		verifyNoWatch(t, s.getTableWatch("services"), func() {
-			verifyWatch(t, s.getTableWatch("checks"), func() {
-				restore := s.Restore()
-				if err := restore.Registration(3, req); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-				restore.Commit()
-			})
-		})
-	})
-}
-
 func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
@@ -732,58 +641,6 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 	if nodes.Next() != nil {
 		t.Fatalf("unexpected extra nodes")
 	}
-}
-
-func TestStateStore_Node_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Call functions that update the nodes table and make sure a watch fires
-	// each time.
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		req := &structs.RegisterRequest{
-			Node: "node1",
-		}
-		if err := s.EnsureRegistration(1, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		node := &structs.Node{Node: "node2"}
-		if err := s.EnsureNode(2, node); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		if err := s.DeleteNode(3, "node2"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-
-	// Check that a delete of a node + service + check + coordinate triggers
-	// all tables in one shot.
-	testRegisterNode(t, s, 4, "node1")
-	testRegisterService(t, s, 5, "node1", "service1")
-	testRegisterCheck(t, s, 6, "node1", "service1", "check3", structs.HealthPassing)
-	updates := structs.Coordinates{
-		&structs.Coordinate{
-			Node:  "node1",
-			Coord: generateRandomCoordinate(),
-		},
-	}
-	if err := s.CoordinateBatchUpdate(7, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	verifyWatch(t, s.getTableWatch("nodes"), func() {
-		verifyWatch(t, s.getTableWatch("services"), func() {
-			verifyWatch(t, s.getTableWatch("checks"), func() {
-				verifyWatch(t, s.getTableWatch("coordinates"), func() {
-					if err := s.DeleteNode(7, "node1"); err != nil {
-						t.Fatalf("err: %s", err)
-					}
-				})
-			})
-		})
-	})
 }
 
 func TestStateStore_EnsureService(t *testing.T) {
@@ -1544,43 +1401,6 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	if services.Next() != nil {
 		t.Fatalf("unexpected extra services")
 	}
-}
-
-func TestStateStore_Service_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	testRegisterNode(t, s, 0, "node1")
-	ns := &structs.NodeService{
-		ID:      "service2",
-		Service: "nomad",
-		Address: "1.1.1.2",
-		Port:    8000,
-	}
-
-	// Call functions that update the services table and make sure a watch
-	// fires each time.
-	verifyWatch(t, s.getTableWatch("services"), func() {
-		if err := s.EnsureService(2, "node1", ns); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("services"), func() {
-		if err := s.DeleteService(3, "node1", "service2"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-
-	// Check that a delete of a service + check triggers both tables in one
-	// shot.
-	testRegisterService(t, s, 4, "node1", "service1")
-	testRegisterCheck(t, s, 5, "node1", "service1", "check3", structs.HealthPassing)
-	verifyWatch(t, s.getTableWatch("services"), func() {
-		verifyWatch(t, s.getTableWatch("checks"), func() {
-			if err := s.DeleteService(6, "node1", "service1"); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		})
-	})
 }
 
 func TestStateStore_EnsureCheck(t *testing.T) {
@@ -2463,36 +2283,6 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	if iter.Next() != nil {
 		t.Fatalf("unexpected extra checks")
 	}
-}
-
-func TestStateStore_Check_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	testRegisterNode(t, s, 0, "node1")
-	hc := &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Status:  structs.HealthPassing,
-	}
-
-	// Call functions that update the checks table and make sure a watch fires
-	// each time.
-	verifyWatch(t, s.getTableWatch("checks"), func() {
-		if err := s.EnsureCheck(1, hc); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("checks"), func() {
-		hc.Status = structs.HealthCritical
-		if err := s.EnsureCheck(2, hc); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("checks"), func() {
-		if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
 }
 
 func TestStateStore_NodeInfo_NodeDump(t *testing.T) {

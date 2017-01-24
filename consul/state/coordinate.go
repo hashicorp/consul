@@ -31,7 +31,6 @@ func (s *StateRestore) Coordinates(idx uint64, updates structs.Coordinates) erro
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("coordinates")
 	return nil
 }
 
@@ -113,7 +112,6 @@ func (s *StateStore) CoordinateBatchUpdate(idx uint64, updates structs.Coordinat
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["coordinates"].Notify() })
 	tx.Commit()
 	return nil
 }

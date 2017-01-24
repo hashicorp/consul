@@ -42,7 +42,6 @@ func (s *StateRestore) Session(sess *structs.Session) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("sessions")
 	return nil
 }
 
@@ -140,7 +139,6 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["sessions"].Notify() })
 	return nil
 }
 
@@ -220,19 +218,17 @@ func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
 	defer tx.Abort()
 
 	// Call the session deletion.
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteSessionTxn(tx, idx, watches, sessionID); err != nil {
+	if err := s.deleteSessionTxn(tx, idx, sessionID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteSessionTxn is the inner method, which is used to do the actual
-// session deletion and handle session invalidation, watch triggers, etc.
-func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, sessionID string) error {
+// session deletion and handle session invalidation, etc.
+func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
 	// Look up the session.
 	sess, err := tx.First("sessions", "id", sessionID)
 	if err != nil {
@@ -337,12 +333,11 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 
 		// Do the delete in a separate loop so we don't trash the iterator.
 		for _, id := range ids {
-			if err := s.preparedQueryDeleteTxn(tx, idx, watches, id); err != nil {
+			if err := s.preparedQueryDeleteTxn(tx, idx, id); err != nil {
 				return fmt.Errorf("failed prepared query delete: %s", err)
 			}
 		}
 	}
 
-	watches.Arm("sessions")
 	return nil
 }

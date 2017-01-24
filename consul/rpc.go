@@ -11,7 +11,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
-	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
@@ -351,76 +350,6 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	}
 
 	return future.Response(), nil
-}
-
-// blockingRPC is used for queries that need to wait for a minimum index. This
-// is used to block and wait for changes.
-func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	watch state.Watch, run func() error) error {
-	var timeout *time.Timer
-	var notifyCh chan struct{}
-
-	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
-		goto RUN_QUERY
-	}
-
-	// Make sure a watch was given if we were asked to block.
-	if watch == nil {
-		panic("no watch given for blocking query")
-	}
-
-	// Restrict the max query time, and ensure there is always one.
-	if queryOpts.MaxQueryTime > maxQueryTime {
-		queryOpts.MaxQueryTime = maxQueryTime
-	} else if queryOpts.MaxQueryTime <= 0 {
-		queryOpts.MaxQueryTime = defaultQueryTime
-	}
-
-	// Apply a small amount of jitter to the request.
-	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
-
-	// Setup a query timeout.
-	timeout = time.NewTimer(queryOpts.MaxQueryTime)
-
-	// Setup the notify channel.
-	notifyCh = make(chan struct{}, 1)
-
-	// Ensure we tear down any watches on return.
-	defer func() {
-		timeout.Stop()
-		watch.Clear(notifyCh)
-	}()
-
-REGISTER_NOTIFY:
-	// Register the notification channel. This may be done multiple times if
-	// we haven't reached the target wait index.
-	watch.Wait(notifyCh)
-
-RUN_QUERY:
-	// Update the query metadata.
-	s.setQueryMeta(queryMeta)
-
-	// If the read must be consistent we verify that we are still the leader.
-	if queryOpts.RequireConsistent {
-		if err := s.consistentRead(); err != nil {
-			return err
-		}
-	}
-
-	// Run the query.
-	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
-	err := run()
-
-	// Check for minimum query time.
-	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
-		select {
-		case <-notifyCh:
-			goto REGISTER_NOTIFY
-		case <-timeout.C:
-		}
-	}
-	return err
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the

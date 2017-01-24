@@ -42,7 +42,7 @@ func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
 // performed within a single transaction to avoid race conditions on state
 // updates.
 func (s *StateRestore) Registration(idx uint64, req *structs.RegisterRequest) error {
-	if err := s.store.ensureRegistrationTxn(s.tx, idx, s.watches, req); err != nil {
+	if err := s.store.ensureRegistrationTxn(s.tx, idx, req); err != nil {
 		return err
 	}
 	return nil
@@ -55,12 +55,10 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureRegistrationTxn(tx, idx, watches, req); err != nil {
+	if err := s.ensureRegistrationTxn(tx, idx, req); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -68,8 +66,7 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	req *structs.RegisterRequest) error {
+func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
 	// Create a node structure.
 	node := &structs.Node{
 		ID:              req.ID,
@@ -90,7 +87,7 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
 		if existing == nil || req.ChangesNode(existing.(*structs.Node)) {
-			if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
+			if err := s.ensureNodeTxn(tx, idx, node); err != nil {
 				return fmt.Errorf("failed inserting node: %s", err)
 			}
 		}
@@ -105,7 +102,7 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 			return fmt.Errorf("failed service lookup: %s", err)
 		}
 		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
-			if err := s.ensureServiceTxn(tx, idx, watches, req.Node, req.Service); err != nil {
+			if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
 				return fmt.Errorf("failed inserting service: %s", err)
 
 			}
@@ -120,12 +117,12 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckTxn(tx, idx, watches, req.Check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, req.Check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckTxn(tx, idx, watches, check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
@@ -139,12 +136,10 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 	defer tx.Abort()
 
 	// Call the node upsert
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
+	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -152,8 +147,7 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	node *structs.Node) error {
+func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
 	// Check for an existing node
 	existing, err := tx.First("nodes", "id", node.Node)
 	if err != nil {
@@ -177,7 +171,6 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, watches *DumbWatch
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("nodes")
 	return nil
 }
 
@@ -187,7 +180,7 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("GetNode")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
 	node, err := tx.First("nodes", "id", id)
@@ -280,10 +273,6 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 		return nil
 	}
 
-	// Use a watch manager since the inner functions can perform multiple
-	// ops per table.
-	watches := NewDumbWatchManager(s.tableWatches)
-
 	// Delete all services associated with the node and update the service index.
 	services, err := tx.Get("services", "node", nodeName)
 	if err != nil {
@@ -296,7 +285,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, sid := range sids {
-		if err := s.deleteServiceTxn(tx, idx, watches, nodeName, sid); err != nil {
+		if err := s.deleteServiceTxn(tx, idx, nodeName, sid); err != nil {
 			return err
 		}
 	}
@@ -314,7 +303,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, cid := range cids {
-		if err := s.deleteCheckTxn(tx, idx, watches, nodeName, cid); err != nil {
+		if err := s.deleteCheckTxn(tx, idx, nodeName, cid); err != nil {
 			return err
 		}
 	}
@@ -331,7 +320,6 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 		if err := tx.Insert("index", &IndexEntry{"coordinates", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
-		watches.Arm("coordinates")
 	}
 
 	// Delete the node and update the index.
@@ -354,13 +342,11 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 			return fmt.Errorf("failed session delete: %s", err)
 		}
 	}
 
-	watches.Arm("nodes")
-	tx.Defer(func() { watches.Notify() })
 	return nil
 }
 
@@ -370,20 +356,17 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 	defer tx.Abort()
 
 	// Call the service registration upsert
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureServiceTxn(tx, idx, watches, node, svc); err != nil {
+	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	node string, svc *structs.NodeService) error {
+func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
 	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
@@ -419,7 +402,6 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("services")
 	return nil
 }
 
@@ -657,7 +639,7 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeService")...)
+	idx := maxIndexTxn(tx, "services")
 
 	// Query the service
 	service, err := tx.First("services", "id", nodeName, serviceID)
@@ -719,19 +701,17 @@ func (s *StateStore) DeleteService(idx uint64, nodeName, serviceID string) error
 	defer tx.Abort()
 
 	// Call the service deletion
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteServiceTxn(tx, idx, watches, nodeName, serviceID); err != nil {
+	if err := s.deleteServiceTxn(tx, idx, nodeName, serviceID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, nodeName, serviceID string) error {
+func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string) error {
 	// Look up the service.
 	service, err := tx.First("services", "id", nodeName, serviceID)
 	if err != nil {
@@ -754,7 +734,7 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, cid := range cids {
-		if err := s.deleteCheckTxn(tx, idx, watches, nodeName, cid); err != nil {
+		if err := s.deleteCheckTxn(tx, idx, nodeName, cid); err != nil {
 			return err
 		}
 	}
@@ -772,7 +752,6 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("services")
 	return nil
 }
 
@@ -782,12 +761,10 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	defer tx.Abort()
 
 	// Call the check registration
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureCheckTxn(tx, idx, watches, hc); err != nil {
+	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -795,8 +772,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	hc *structs.HealthCheck) error {
+func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
 	if err != nil {
@@ -855,13 +831,11 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 		// Delete the session in a separate loop so we don't trash the
 		// iterator.
-		watches := NewDumbWatchManager(s.tableWatches)
 		for _, id := range ids {
-			if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+			if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 				return fmt.Errorf("failed deleting session: %s", err)
 			}
 		}
-		tx.Defer(func() { watches.Notify() })
 	}
 
 	// Persist the check registration in the db.
@@ -872,7 +846,6 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("checks")
 	return nil
 }
 
@@ -1068,19 +1041,17 @@ func (s *StateStore) DeleteCheck(idx uint64, node string, checkID types.CheckID)
 	defer tx.Abort()
 
 	// Call the check deletion
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteCheckTxn(tx, idx, watches, node, checkID); err != nil {
+	if err := s.deleteCheckTxn(tx, idx, node, checkID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node string, checkID types.CheckID) error {
+func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID) error {
 	// Try to retrieve the existing health check.
 	hc, err := tx.First("checks", "id", node, string(checkID))
 	if err != nil {
@@ -1110,12 +1081,11 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 			return fmt.Errorf("failed deleting session: %s", err)
 		}
 	}
 
-	watches.Arm("checks")
 	return nil
 }
 
@@ -1276,7 +1246,7 @@ func (s *StateStore) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, erro
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeDump")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Fetch all of the registered nodes
 	nodes, err := tx.Get("nodes", "id")

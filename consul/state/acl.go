@@ -26,7 +26,6 @@ func (s *StateRestore) ACL(acl *structs.ACL) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("acls")
 	return nil
 }
 
@@ -75,7 +74,6 @@ func (s *StateStore) aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) erro
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["acls"].Notify() })
 	return nil
 }
 
@@ -170,6 +168,5 @@ func (s *StateStore) aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["acls"].Notify() })
 	return nil
 }

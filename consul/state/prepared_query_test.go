@@ -972,38 +972,3 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 		}
 	}()
 }
-
-func TestStateStore_PreparedQuery_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Set up our test environment.
-	testRegisterNode(t, s, 1, "foo")
-	testRegisterService(t, s, 2, "foo", "redis")
-
-	query := &structs.PreparedQuery{
-		ID: testUUID(),
-		Service: structs.ServiceQuery{
-			Service: "redis",
-		},
-	}
-
-	// Call functions that update the queries table and make sure a watch
-	// fires each time.
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		if err := s.PreparedQuerySet(3, query); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		if err := s.PreparedQueryDelete(4, query.ID); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		restore := s.Restore()
-		if err := restore.PreparedQuery(query); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
-	})
-}
