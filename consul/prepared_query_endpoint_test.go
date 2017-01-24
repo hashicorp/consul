@@ -1808,10 +1808,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: execToken},
 		}
 
-		var reply structs.PreparedQueryExecuteResponse
-
 		shuffled := false
 		for i := 0; i < 10; i++ {
+			var reply structs.PreparedQueryExecuteResponse
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
