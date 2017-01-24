@@ -512,7 +512,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify ACL is restored
-	_, a, err := fsm2.state.ACLGet(acl.ID)
+	_, a, err := fsm2.state.ACLGet(nil, acl.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1053,7 +1053,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 
 	// Get the ACL
 	id := resp.(string)
-	_, acl, err := fsm.state.ACLGet(id)
+	_, acl, err := fsm.state.ACLGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1089,7 +1089,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, acl, err = fsm.state.ACLGet(id)
+	_, acl, err = fsm.state.ACLGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

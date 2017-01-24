@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -108,7 +109,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 				return err
 			}
 
-			_, acl, err := state.ACLGet(args.ACL.ID)
+			_, acl, err := state.ACLGet(nil, args.ACL.ID)
 			if err != nil {
 				a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
 				return err
@@ -146,11 +147,10 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 
 	// Get the local state
 	state := a.srv.fsm.State()
-	return a.srv.blockingRPC(&args.QueryOptions,
+	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("ACLGet"),
-		func() error {
-			index, acl, err := state.ACLGet(args.ACL)
+		func(ws memdb.WatchSet) error {
+			index, acl, err := state.ACLGet(ws, args.ACL)
 			if err != nil {
 				return err
 			}
@@ -226,11 +226,10 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 
 	// Get the local state
 	state := a.srv.fsm.State()
-	return a.srv.blockingRPC(&args.QueryOptions,
+	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("ACLList"),
-		func() error {
-			index, acls, err := state.ACLList()
+		func(ws memdb.WatchSet) error {
+			index, acls, err := state.ACLList(ws)
 			if err != nil {
 				return err
 			}

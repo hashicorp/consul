@@ -185,7 +185,7 @@ func (s *Server) initializeACL() error {
 
 	// Look for the anonymous token
 	state := s.fsm.State()
-	_, acl, err := state.ACLGet(anonymousToken)
+	_, acl, err := state.ACLGet(nil, anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -214,7 +214,7 @@ func (s *Server) initializeACL() error {
 	}
 
 	// Look for the master token
-	_, acl, err = state.ACLGet(master)
+	_, acl, err = state.ACLGet(nil, master)
 	if err != nil {
 		return fmt.Errorf("failed to get master token: %v", err)
 	}
