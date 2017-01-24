@@ -262,7 +262,7 @@ func (s *Server) reconcile() (err error) {
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(structs.HealthAny)
+	_, checks, err := state.ChecksInState(nil, structs.HealthAny)
 	if err != nil {
 		return err
 	}
@@ -402,7 +402,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name)
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	}
 	if node != nil && node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name)
 		if err != nil {
 			return err
 		}

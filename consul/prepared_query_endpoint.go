@@ -489,7 +489,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply *structs.PreparedQueryExecuteResponse) error {
 	state := p.srv.fsm.State()
-	_, nodes, err := state.CheckServiceNodes(query.Service.Service)
+	_, nodes, err := state.CheckServiceNodes(nil, query.Service.Service)
 	if err != nil {
 		return err
 	}

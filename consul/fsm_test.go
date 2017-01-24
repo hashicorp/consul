@@ -146,7 +146,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify check
-	_, checks, err := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.state.NodeChecks(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -268,7 +268,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify check not registered
-	_, checks, err := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.state.NodeChecks(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -344,7 +344,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify checks not registered
-	_, checks, err := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.state.NodeChecks(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -482,7 +482,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 
-	_, checks, err := fsm2.state.NodeChecks("foo")
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

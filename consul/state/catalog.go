@@ -499,6 +499,7 @@ func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]st
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
+
 		// List all the services on the node
 		services, err := tx.Get("services", "node", n.Node)
 		if err != nil {
@@ -552,7 +553,7 @@ func (s *StateStore) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64
 		results = append(results, service.(*structs.ServiceNode))
 	}
 
-	// Fill in the address details.
+	// Fill in the node details.
 	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
@@ -585,7 +586,7 @@ func (s *StateStore) ServiceTagNodes(ws memdb.WatchSet, service string, tag stri
 		}
 	}
 
-	// Fill in the address details.
+	// Fill in the node details.
 	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
@@ -882,13 +883,14 @@ func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, 
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeCheck")...)
+	idx := maxIndexTxn(tx, "checks")
 
 	// Return the check.
 	check, err := tx.First("checks", "id", nodeName, string(checkID))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
+
 	if check != nil {
 		return idx, check.(*structs.HealthCheck), nil
 	} else {
@@ -898,115 +900,20 @@ func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, 
 
 // NodeChecks is used to retrieve checks associated with the
 // given node from the state store.
-func (s *StateStore) NodeChecks(nodeName string) (uint64, structs.HealthChecks, error) {
+func (s *StateStore) NodeChecks(ws memdb.WatchSet, nodeName string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeChecks")...)
+	idx := maxIndexTxn(tx, "checks")
 
 	// Return the checks.
-	checks, err := tx.Get("checks", "node", nodeName)
+	iter, err := tx.Get("checks", "node", nodeName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
-	return s.parseChecks(idx, checks)
-}
+	ws.Add(iter.WatchCh())
 
-// ServiceChecks is used to get all checks associated with a
-// given service ID. The query is performed against a service
-// _name_ instead of a service ID.
-func (s *StateStore) ServiceChecks(serviceName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceChecks")...)
-
-	// Return the checks.
-	checks, err := tx.Get("checks", "service", serviceName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecks(idx, checks)
-}
-
-// ServiceChecksByNodeMeta is used to get all checks associated with a
-// given service ID, filtered by the given node metadata values. The query
-// is performed against a service _name_ instead of a service ID.
-func (s *StateStore) ServiceChecksByNodeMeta(serviceName string, filters map[string]string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceChecksByNodeMeta")...)
-
-	// Return the checks.
-	checks, err := tx.Get("checks", "service", serviceName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
-}
-
-// ChecksInState is used to query the state store for all checks
-// which are in the provided state.
-func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInState")...)
-
-	// Query all checks if HealthAny is passed
-	if state == structs.HealthAny {
-		checks, err := tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-		return s.parseChecks(idx, checks)
-	}
-
-	// Any other state we need to query for explicitly
-	checks, err := tx.Get("checks", "status", state)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecks(idx, checks)
-}
-
-// ChecksInStateByNodeMeta is used to query the state store for all checks
-// which are in the provided state, filtered by the given node metadata values.
-func (s *StateStore) ChecksInStateByNodeMeta(state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInStateByNodeMeta")...)
-
-	// Query all checks if HealthAny is passed
-	var checks memdb.ResultIterator
-	var err error
-	if state == structs.HealthAny {
-		checks, err = tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-	} else {
-		// Any other state we need to query for explicitly
-		checks, err = tx.Get("checks", "status", state)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-	}
-
-	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
-}
-
-// parseChecks is a helper function used to deduplicate some
-// repetitive code for returning health checks.
-func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64, structs.HealthChecks, error) {
-	// Gather the health checks and return them properly type casted.
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		results = append(results, check.(*structs.HealthCheck))
@@ -1014,20 +921,140 @@ func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64,
 	return idx, results, nil
 }
 
+// ServiceChecks is used to get all checks associated with a
+// given service ID. The query is performed against a service
+// _name_ instead of a service ID.
+func (s *StateStore) ServiceChecks(ws memdb.WatchSet, serviceName string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "checks")
+
+	// Return the checks.
+	iter, err := tx.Get("checks", "service", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		results = append(results, check.(*structs.HealthCheck))
+	}
+	return idx, results, nil
+}
+
+// ServiceChecksByNodeMeta is used to get all checks associated with a
+// given service ID, filtered by the given node metadata values. The query
+// is performed against a service _name_ instead of a service ID.
+func (s *StateStore) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
+	filters map[string]string) (uint64, structs.HealthChecks, error) {
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "nodes", "checks")
+
+	// Return the checks.
+	iter, err := tx.Get("checks", "service", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+}
+
+// ChecksInState is used to query the state store for all checks
+// which are in the provided state.
+func (s *StateStore) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "checks")
+
+	// Query all checks if HealthAny is passed, otherwise use the index.
+	var iter memdb.ResultIterator
+	var err error
+	if state == structs.HealthAny {
+		iter, err = tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	} else {
+		iter, err = tx.Get("checks", "status", state)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		results = append(results, check.(*structs.HealthCheck))
+	}
+	return idx, results, nil
+}
+
+// ChecksInStateByNodeMeta is used to query the state store for all checks
+// which are in the provided state, filtered by the given node metadata values.
+func (s *StateStore) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "nodes", "checks")
+
+	// Query all checks if HealthAny is passed, otherwise use the index.
+	var iter memdb.ResultIterator
+	var err error
+	if state == structs.HealthAny {
+		iter, err = tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	} else {
+		iter, err = tx.Get("checks", "status", state)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	}
+	ws.Add(iter.WatchCh())
+
+	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+}
+
 // parseChecksByNodeMeta is a helper function used to deduplicate some
 // repetitive code for returning health checks filtered by node metadata fields.
-func (s *StateStore) parseChecksByNodeMeta(idx uint64, iter memdb.ResultIterator, tx *memdb.Txn,
-	filters map[string]string) (uint64, structs.HealthChecks, error) {
+func (s *StateStore) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
+	idx uint64, iter memdb.ResultIterator, filters map[string]string) (uint64, structs.HealthChecks, error) {
+
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// Only take results for nodes that satisfy the node metadata filters.
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		healthCheck := check.(*structs.HealthCheck)
-		node, err := tx.First("nodes", "id", healthCheck.Node)
+		watchCh, node, err := tx.FirstWatch("nodes", "id", healthCheck.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
 		if node == nil {
 			return 0, nil, ErrMissingNode
 		}
+
+		// Add even the filtered nodes so we wake up if the node metadata
+		// changes.
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
 		if structs.SatisfiesMetaFilters(node.(*structs.Node).Meta, filters) {
 			results = append(results, healthCheck)
 		}
@@ -1093,58 +1120,61 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 }
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
-func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.CheckServiceNodes, error) {
+func (s *StateStore) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", serviceName)
+	iter, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	// Return the results.
 	var results structs.ServiceNodes
-	for service := services.Next(); service != nil; service = services.Next() {
+	for service := iter.Next(); service != nil; service = iter.Next() {
 		results = append(results, service.(*structs.ServiceNode))
 	}
-	return s.parseCheckServiceNodes(tx, idx, results, err)
+	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *StateStore) CheckServiceTagNodes(serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
+func (s *StateStore) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", serviceName)
+	iter, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	// Return the results, filtering by tag.
 	var results structs.ServiceNodes
-	for service := services.Next(); service != nil; service = services.Next() {
+	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
 		if !serviceTagFilter(svc, tag) {
 			results = append(results, svc)
 		}
 	}
-	return s.parseCheckServiceNodes(tx, idx, results, err)
+	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
 func (s *StateStore) parseCheckServiceNodes(
-	tx *memdb.Txn, idx uint64, services structs.ServiceNodes,
+	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+	serviceName string, services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
 		return 0, nil, err
@@ -1156,32 +1186,57 @@ func (s *StateStore) parseCheckServiceNodes(
 		return idx, nil, nil
 	}
 
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// We need a similar fallback for checks. Since services need the
+	// status of node + service-specific checks, we pull in a top-level
+	// watch over all checks.
+	allChecks, err := tx.Get("checks", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+	}
+	allChecksCh := allChecks.WatchCh()
+
 	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
-		n, err := tx.First("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
+
 		if n == nil {
 			return 0, nil, ErrMissingNode
 		}
 		node := n.(*structs.Node)
 
-		// We need to return the checks specific to the given service
-		// as well as the node itself. Unfortunately, memdb won't let
-		// us use the index to do the latter query so we have to pull
-		// them all and filter.
+		// First add the node-level checks. These always apply to any
+		// service on the node.
 		var checks structs.HealthChecks
-		iter, err := tx.Get("checks", "node", sn.Node)
+		iter, err := tx.Get("checks", "node_service_check", sn.Node, false)
 		if err != nil {
 			return 0, nil, err
 		}
+		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
 		for check := iter.Next(); check != nil; check = iter.Next() {
-			hc := check.(*structs.HealthCheck)
-			if hc.ServiceID == "" || hc.ServiceID == sn.ServiceID {
-				checks = append(checks, hc)
-			}
+			checks = append(checks, check.(*structs.HealthCheck))
+		}
+
+		// Now add the service-specific checks.
+		iter, err = tx.Get("checks", "node_service", sn.Node, sn.ServiceID)
+		if err != nil {
+			return 0, nil, err
+		}
+		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
+		for check := iter.Next(); check != nil; check = iter.Next() {
+			checks = append(checks, check.(*structs.HealthCheck))
 		}
 
 		// Append to the results.

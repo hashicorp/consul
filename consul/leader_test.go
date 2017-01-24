@@ -44,7 +44,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(c1.config.NodeName)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(c1.config.NodeName)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		_, checks, err = state.NodeChecks(c1.config.NodeName)
+		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

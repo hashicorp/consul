@@ -106,7 +106,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 	// Verify that the check got registered.
 	verifyCheck := func() {
-		idx, out, err := s.NodeChecks("node1")
+		idx, out, err := s.NodeChecks(nil, "node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -154,7 +154,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	verifyNode()
 	verifyService()
 	{
-		idx, out, err := s.NodeChecks("node1")
+		idx, out, err := s.NodeChecks(nil, "node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -252,7 +252,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Verify that the check got registered.
 	verifyCheck := func() {
-		idx, out, err := s.NodeChecks("node1")
+		idx, out, err := s.NodeChecks(nil, "node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -290,7 +290,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	verifyNode()
 	verifyService()
 	func() {
-		idx, out, err := s.NodeChecks("node1")
+		idx, out, err := s.NodeChecks(nil, "node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1620,7 +1620,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 
 	// Retrieve the check and make sure it matches
-	idx, checks, err := s.NodeChecks("node1")
+	idx, checks, err := s.NodeChecks(nil, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1641,7 +1641,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 
 	// Check that we successfully updated
-	idx, checks, err = s.NodeChecks("node1")
+	idx, checks, err = s.NodeChecks(nil, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1681,7 +1681,7 @@ func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
 	}
 
 	// Get the check again
-	_, result, err := s.NodeChecks("node1")
+	_, result, err := s.NodeChecks(nil, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1695,19 +1695,34 @@ func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
 func TestStateStore_NodeChecks(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create the first node and service with some checks
+	// Do an initial query for a node that doesn't exist.
+	ws := memdb.NewWatchSet()
+	idx, checks, err := s.NodeChecks(ws, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if len(checks) != 0 {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Create some nodes and checks.
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterService(t, s, 1, "node1", "service1")
 	testRegisterCheck(t, s, 2, "node1", "service1", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 3, "node1", "service1", "check2", structs.HealthPassing)
-
-	// Create a second node/service with a different set of checks
 	testRegisterNode(t, s, 4, "node2")
 	testRegisterService(t, s, 5, "node2", "service2")
 	testRegisterCheck(t, s, 6, "node2", "service2", "check3", structs.HealthPassing)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Try querying for all checks associated with node1
-	idx, checks, err := s.NodeChecks("node1")
+	ws = memdb.NewWatchSet()
+	idx, checks, err = s.NodeChecks(ws, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1718,35 +1733,64 @@ func TestStateStore_NodeChecks(t *testing.T) {
 		t.Fatalf("bad checks: %#v", checks)
 	}
 
+	// Creating some unrelated node should not fire the watch.
+	testRegisterNode(t, s, 7, "node3")
+	testRegisterCheck(t, s, 8, "node3", "", "check1", structs.HealthPassing)
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
 	// Try querying for all checks associated with node2
-	idx, checks, err = s.NodeChecks("node2")
+	ws = memdb.NewWatchSet()
+	idx, checks, err = s.NodeChecks(ws, "node2")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 6 {
+	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(checks) != 1 || checks[0].CheckID != "check3" {
 		t.Fatalf("bad checks: %#v", checks)
+	}
+
+	// Changing node2 should fire the watch.
+	testRegisterCheck(t, s, 9, "node2", "service2", "check3", structs.HealthCritical)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
 func TestStateStore_ServiceChecks(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create the first node and service with some checks
+	// Do an initial query for a service that doesn't exist.
+	ws := memdb.NewWatchSet()
+	idx, checks, err := s.ServiceChecks(ws, "service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if len(checks) != 0 {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Create some nodes and checks.
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterService(t, s, 1, "node1", "service1")
 	testRegisterCheck(t, s, 2, "node1", "service1", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 3, "node1", "service1", "check2", structs.HealthPassing)
-
-	// Create a second node/service with a different set of checks
 	testRegisterNode(t, s, 4, "node2")
 	testRegisterService(t, s, 5, "node2", "service2")
 	testRegisterCheck(t, s, 6, "node2", "service2", "check3", structs.HealthPassing)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
-	// Try querying for all checks associated with service1
-	idx, checks, err := s.ServiceChecks("service1")
+	// Try querying for all checks associated with service1.
+	ws = memdb.NewWatchSet()
+	idx, checks, err = s.ServiceChecks(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1756,21 +1800,48 @@ func TestStateStore_ServiceChecks(t *testing.T) {
 	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
 		t.Fatalf("bad checks: %#v", checks)
 	}
+
+	// Adding some unrelated service + check should not fire the watch.
+	testRegisterService(t, s, 7, "node1", "service3")
+	testRegisterCheck(t, s, 8, "node1", "service3", "check3", structs.HealthPassing)
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Updating a related check should fire the watch.
+	testRegisterCheck(t, s, 9, "node1", "service1", "check2", structs.HealthCritical)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 }
 
 func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create the first node and service with some checks
+	// Querying with no results returns nil.
+	ws := memdb.NewWatchSet()
+	idx, checks, err := s.ServiceChecksByNodeMeta(ws, "service1", nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if len(checks) != 0 {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Create some nodes and checks.
 	testRegisterNodeWithMeta(t, s, 0, "node1", map[string]string{"somekey": "somevalue", "common": "1"})
 	testRegisterService(t, s, 1, "node1", "service1")
 	testRegisterCheck(t, s, 2, "node1", "service1", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 3, "node1", "service1", "check2", structs.HealthPassing)
-
-	// Create a second node/service with a different set of checks
 	testRegisterNodeWithMeta(t, s, 4, "node2", map[string]string{"common": "1"})
 	testRegisterService(t, s, 5, "node2", "service1")
 	testRegisterCheck(t, s, 6, "node2", "service1", "check3", structs.HealthPassing)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	cases := []struct {
 		filters map[string]string
@@ -1798,9 +1869,11 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 		},
 	}
 
-	// Try querying for all checks associated with service1
+	// Try querying for all checks associated with service1.
+	idx = 7
 	for _, tc := range cases {
-		_, checks, err := s.ServiceChecksByNodeMeta("service1", tc.filters)
+		ws = memdb.NewWatchSet()
+		_, checks, err := s.ServiceChecksByNodeMeta(ws, "service1", tc.filters)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1812,6 +1885,39 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 				t.Fatalf("bad checks: %#v", checks)
 			}
 		}
+
+		// Registering some unrelated node should not fire the watch.
+		testRegisterNode(t, s, idx, fmt.Sprintf("nope%d", idx))
+		idx++
+		if watchFired(ws) {
+			t.Fatalf("bad")
+		}
+	}
+
+	// Overwhelm the node tracking.
+	for i := 0; i < 2*watchLimit; i++ {
+		node := fmt.Sprintf("many%d", idx)
+		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
+		idx++
+		testRegisterService(t, s, idx, node, "service1")
+		idx++
+		testRegisterCheck(t, s, idx, node, "service1", "check1", structs.HealthPassing)
+		idx++
+	}
+
+	// Now get a fresh watch, which will be forced to watch the whole
+	// node table.
+	ws = memdb.NewWatchSet()
+	_, _, err = s.ServiceChecksByNodeMeta(ws, "service1",
+		map[string]string{"common": "1"})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Registering some unrelated node should now fire the watch.
+	testRegisterNode(t, s, idx, "nope")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
@@ -1819,7 +1925,8 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no results returns nil
-	idx, res, err := s.ChecksInState(structs.HealthPassing)
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.ChecksInState(ws, structs.HealthPassing)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1829,9 +1936,13 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	testRegisterCheck(t, s, 1, "node1", "", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 2, "node1", "", "check2", structs.HealthCritical)
 	testRegisterCheck(t, s, 3, "node1", "", "check3", structs.HealthPassing)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Query the state store for passing checks.
-	_, checks, err := s.ChecksInState(structs.HealthPassing)
+	ws = memdb.NewWatchSet()
+	_, checks, err := s.ChecksInState(ws, structs.HealthPassing)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1843,33 +1954,55 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	if checks[0].CheckID != "check1" || checks[1].CheckID != "check3" {
 		t.Fatalf("bad: %#v", checks)
 	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Changing the state of a check should fire the watch.
+	testRegisterCheck(t, s, 4, "node1", "", "check1", structs.HealthCritical)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// HealthAny just returns everything.
-	_, checks, err = s.ChecksInState(structs.HealthAny)
+	ws = memdb.NewWatchSet()
+	_, checks, err = s.ChecksInState(ws, structs.HealthAny)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if n := len(checks); n != 3 {
 		t.Fatalf("expected 3 checks, got: %d", n)
 	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Adding a new check should fire the watch.
+	testRegisterCheck(t, s, 5, "node1", "", "check4", structs.HealthCritical)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 }
 
 func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 	s := testStateStore(t)
 
-	// Querying with no results returns nil
-	idx, res, err := s.ChecksInStateByNodeMeta(structs.HealthPassing, nil)
+	// Querying with no results returns nil.
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.ChecksInStateByNodeMeta(ws, structs.HealthPassing, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
-	// Register a node with checks in varied states
+	// Register a node with checks in varied states.
 	testRegisterNodeWithMeta(t, s, 0, "node1", map[string]string{"somekey": "somevalue", "common": "1"})
 	testRegisterCheck(t, s, 1, "node1", "", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 2, "node1", "", "check2", structs.HealthCritical)
-
 	testRegisterNodeWithMeta(t, s, 3, "node2", map[string]string{"common": "1"})
 	testRegisterCheck(t, s, 4, "node2", "", "check3", structs.HealthPassing)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	cases := []struct {
 		filters map[string]string
@@ -1919,9 +2052,11 @@ func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 		},
 	}
 
-	// Try querying for all checks associated with service1
+	// Try querying for all checks associated with service1.
+	idx = 5
 	for _, tc := range cases {
-		_, checks, err := s.ChecksInStateByNodeMeta(tc.state, tc.filters)
+		ws = memdb.NewWatchSet()
+		_, checks, err := s.ChecksInStateByNodeMeta(ws, tc.state, tc.filters)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1933,23 +2068,70 @@ func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 				t.Fatalf("bad checks: %#v, %v", checks, tc.checks)
 			}
 		}
+
+		// Registering some unrelated node should not fire the watch.
+		testRegisterNode(t, s, idx, fmt.Sprintf("nope%d", idx))
+		idx++
+		if watchFired(ws) {
+			t.Fatalf("bad")
+		}
+	}
+
+	// Overwhelm the node tracking.
+	for i := 0; i < 2*watchLimit; i++ {
+		node := fmt.Sprintf("many%d", idx)
+		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
+		idx++
+		testRegisterService(t, s, idx, node, "service1")
+		idx++
+		testRegisterCheck(t, s, idx, node, "service1", "check1", structs.HealthPassing)
+		idx++
+	}
+
+	// Now get a fresh watch, which will be forced to watch the whole
+	// node table.
+	ws = memdb.NewWatchSet()
+	_, _, err = s.ChecksInStateByNodeMeta(ws, structs.HealthPassing,
+		map[string]string{"common": "1"})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Registering some unrelated node should now fire the watch.
+	testRegisterNode(t, s, idx, "nope")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
 func TestStateStore_DeleteCheck(t *testing.T) {
 	s := testStateStore(t)
 
-	// Register a node and a node-level health check
+	// Register a node and a node-level health check.
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterCheck(t, s, 2, "node1", "", "check1", structs.HealthPassing)
 
-	// Delete the check
+	// Make sure the check is there.
+	ws := memdb.NewWatchSet()
+	_, checks, err := s.NodeChecks(ws, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Delete the check.
 	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Check is gone
-	_, checks, err := s.NodeChecks("node1")
+	ws = memdb.NewWatchSet()
+	_, checks, err = s.NodeChecks(ws, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1957,18 +2139,21 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", checks)
 	}
 
-	// Index tables were updated
+	// Index tables were updated.
 	if idx := s.maxIndex("checks"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Deleting a nonexistent check should be idempotent and not return an
-	// error
+	// error.
 	if err := s.DeleteCheck(4, "node1", "check1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if idx := s.maxIndex("checks"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
+	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
@@ -1976,31 +2161,37 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no matches gives an empty response
-	idx, res, err := s.CheckServiceNodes("service1")
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.CheckServiceNodes(ws, "service1")
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
-	// Register some nodes
+	// Register some nodes.
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
-	// Register node-level checks. These should not be returned
-	// in the final result.
+	// Register node-level checks. These should be the final result.
 	testRegisterCheck(t, s, 2, "node1", "", "check1", structs.HealthPassing)
 	testRegisterCheck(t, s, 3, "node2", "", "check2", structs.HealthPassing)
 
-	// Register a service against the nodes
+	// Register a service against the nodes.
 	testRegisterService(t, s, 4, "node1", "service1")
 	testRegisterService(t, s, 5, "node2", "service2")
 
-	// Register checks against the services
+	// Register checks against the services.
 	testRegisterCheck(t, s, 6, "node1", "service1", "check3", structs.HealthPassing)
 	testRegisterCheck(t, s, 7, "node2", "service2", "check4", structs.HealthPassing)
 
-	// Query the state store for nodes and checks which
-	// have been registered with a specific service.
-	idx, results, err := s.CheckServiceNodes("service1")
+	// At this point all the changes should have fired the watch.
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Query the state store for nodes and checks which have been registered
+	// with a specific service.
+	ws = memdb.NewWatchSet()
+	idx, results, err := s.CheckServiceNodes(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2008,18 +2199,24 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Make sure we get the expected result (service check + node check)
+	// Make sure we get the expected result (service check + node check).
 	if n := len(results); n != 1 {
 		t.Fatalf("expected 1 result, got: %d", n)
 	}
 	csn := results[0]
-	if csn.Node == nil || csn.Service == nil || len(csn.Checks) != 2 {
+	if csn.Node == nil || csn.Service == nil || len(csn.Checks) != 2 ||
+		csn.Checks[0].ServiceID != "" || csn.Checks[0].CheckID != "check1" ||
+		csn.Checks[1].ServiceID != "service1" || csn.Checks[1].CheckID != "check3" {
 		t.Fatalf("bad output: %#v", csn)
 	}
 
-	// Node updates alter the returned index
+	// Node updates alter the returned index and fire the watch.
 	testRegisterNode(t, s, 8, "node1")
-	idx, results, err = s.CheckServiceNodes("service1")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	ws = memdb.NewWatchSet()
+	idx, results, err = s.CheckServiceNodes(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2027,9 +2224,13 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Service updates alter the returned index
+	// Service updates alter the returned index and fire the watch.
 	testRegisterService(t, s, 9, "node1", "service1")
-	idx, results, err = s.CheckServiceNodes("service1")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	ws = memdb.NewWatchSet()
+	idx, results, err = s.CheckServiceNodes(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2037,14 +2238,63 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Check updates alter the returned index
+	// Check updates alter the returned index and fire the watch.
 	testRegisterCheck(t, s, 10, "node1", "service1", "check1", structs.HealthCritical)
-	idx, results, err = s.CheckServiceNodes("service1")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	ws = memdb.NewWatchSet()
+	idx, results, err = s.CheckServiceNodes(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Registering some unrelated node + service should not fire the watch.
+	testRegisterNode(t, s, 11, "nope")
+	testRegisterService(t, s, 12, "nope", "nope")
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Overwhelm node and check tracking.
+	idx = 13
+	for i := 0; i < 2*watchLimit; i++ {
+		node := fmt.Sprintf("many%d", i)
+		testRegisterNode(t, s, idx, node)
+		idx++
+		testRegisterCheck(t, s, idx, node, "", "check1", structs.HealthPassing)
+		idx++
+		testRegisterService(t, s, idx, node, "service1")
+		idx++
+		testRegisterCheck(t, s, idx, node, "service1", "check2", structs.HealthPassing)
+		idx++
+	}
+
+	// Now registering an unrelated node will fire the watch.
+	ws = memdb.NewWatchSet()
+	idx, results, err = s.CheckServiceNodes(ws, "service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	testRegisterNode(t, s, idx, "more-nope")
+	idx++
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Also, registering an unrelated check will fire the watch.
+	ws = memdb.NewWatchSet()
+	idx, results, err = s.CheckServiceNodes(ws, "service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	testRegisterCheck(t, s, idx, "more-nope", "", "check1", structs.HealthPassing)
+	idx++
+	if !watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
@@ -2080,8 +2330,9 @@ func BenchmarkCheckServiceNodes(b *testing.B) {
 		b.Fatalf("err: %v", err)
 	}
 
+	ws := memdb.NewWatchSet()
 	for i := 0; i < b.N; i++ {
-		s.CheckServiceNodes("db")
+		s.CheckServiceNodes(ws, "db")
 	}
 }
 
@@ -2114,7 +2365,8 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.CheckServiceTagNodes("db", "master")
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", "master")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2138,6 +2390,14 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 	if nodes[0].Checks[1].CheckID != "db" {
 		t.Fatalf("Bad: %v", nodes[0])
+	}
+
+	// Changing a tag should fire the watch.
+	if err := s.EnsureService(4, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"nope"}, Address: "", Port: 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
