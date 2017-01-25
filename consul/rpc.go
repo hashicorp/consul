@@ -354,7 +354,10 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the
-// passed-in watch set will be used to block for changes.
+// passed-in watch set will be used to block for changes. The passed-in state
+// store should be used (vs. calling fsm.State()) since the given state store
+// will be correctly watched for changes if the state store is restored from
+// a snapshot.
 type queryFn func(memdb.WatchSet, *state.StateStore) error
 
 // blockingQuery is used to process a potentially blocking query operation.
