@@ -113,7 +113,7 @@ time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
 
 By default, all nodes matching the service are returned. The list can be filtered
-by tag using the "?tag=" query parameter.
+by tag using the `?tag=` query parameter.
 
 Providing the `?passing` query parameter, added in Consul 0.2, will
 filter results to only nodes with all checks in the `passing` state.
