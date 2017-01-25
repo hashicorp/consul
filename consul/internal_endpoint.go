@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
@@ -22,12 +23,10 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// Get the node info
-	state := m.srv.fsm.State()
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, dump, err := state.NodeInfo(ws, args.Node)
 			if err != nil {
 				return err
@@ -45,12 +44,10 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		return err
 	}
 
-	// Get all the node info
-	state := m.srv.fsm.State()
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, dump, err := state.NodeDump(ws)
 			if err != nil {
 				return err

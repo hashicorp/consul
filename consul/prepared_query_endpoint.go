@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -217,12 +218,10 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		return err
 	}
 
-	// Get the requested query.
-	state := p.srv.fsm.State()
 	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, query, err := state.PreparedQueryGet(ws, args.QueryID)
 			if err != nil {
 				return err
@@ -263,12 +262,10 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 		return err
 	}
 
-	// Get the list of queries.
-	state := p.srv.fsm.State()
 	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, queries, err := state.PreparedQueryList(ws)
 			if err != nil {
 				return err

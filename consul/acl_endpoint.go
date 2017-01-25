@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -145,11 +146,9 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		return fmt.Errorf(aclDisabled)
 	}
 
-	// Get the local state
-	state := a.srv.fsm.State()
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, acl, err := state.ACLGet(ws, args.ACL)
 			if err != nil {
 				return err
@@ -224,11 +223,9 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 		return permissionDeniedErr
 	}
 
-	// Get the local state
-	state := a.srv.fsm.State()
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, acls, err := state.ACLList(ws)
 			if err != nil {
 				return err

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -140,12 +141,10 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, session, err := state.SessionGet(ws, args.Session)
 			if err != nil {
 				return err
@@ -171,12 +170,10 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, sessions, err := state.SessionList(ws)
 			if err != nil {
 				return err
@@ -197,12 +194,10 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, sessions, err := state.NodeSessions(ws, args.Node)
 			if err != nil {
 				return err

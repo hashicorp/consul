@@ -11,6 +11,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
@@ -354,7 +355,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 
 // queryFn is used to perform a query operation. If a re-query is needed, the
 // passed-in watch set will be used to block for changes.
-type queryFn func(memdb.WatchSet) error
+type queryFn func(memdb.WatchSet, *state.StateStore) error
 
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
@@ -394,6 +395,11 @@ RUN_QUERY:
 	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
 
+	// Operate on a consistent set of state. This makes sure that the
+	// abandon channel goes with the state that the caller is using to
+	// build watches.
+	state := s.fsm.State()
+
 	// We can skip all watch tracking if this isn't a blocking query.
 	var ws memdb.WatchSet
 	if queryOpts.MinQueryIndex > 0 {
@@ -401,11 +407,11 @@ RUN_QUERY:
 
 		// This channel will be closed if a snapshot is restored and the
 		// whole state store is abandoned.
-		ws.Add(s.fsm.State().AbandonCh())
+		ws.Add(state.AbandonCh())
 	}
 
 	// Block up to the timeout if we didn't see anything fresh.
-	err := fn(ws)
+	err := fn(ws, state)
 	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			goto RUN_QUERY

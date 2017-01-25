@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/coordinate"
@@ -174,10 +175,9 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	state := c.srv.fsm.State()
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, coords, err := state.Coordinates(ws)
 			if err != nil {
 				return err

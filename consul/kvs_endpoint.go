@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -118,12 +119,10 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		return err
 	}
 
-	// Get the local state
-	state := k.srv.fsm.State()
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, ent, err := state.KVSGet(ws, args.Key)
 			if err != nil {
 				return err
@@ -159,12 +158,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	// Get the local state
-	state := k.srv.fsm.State()
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, ent, err := state.KVSList(ws, args.Key)
 			if err != nil {
 				return err
@@ -201,12 +198,10 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	// Get the local state
-	state := k.srv.fsm.State()
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, keys, err := state.KVSListKeys(ws, args.Prefix, args.Seperator)
 			if err != nil {
 				return err

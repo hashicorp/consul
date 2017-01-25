@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
@@ -163,12 +164,10 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	// Get the list of nodes.
-	state := c.srv.fsm.State()
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			var index uint64
 			var nodes structs.Nodes
 			var err error
@@ -195,12 +194,10 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	// Get the list of services and their tags.
-	state := c.srv.fsm.State()
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			var index uint64
 			var services structs.Services
 			var err error
@@ -229,12 +226,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		return fmt.Errorf("Must provide service name")
 	}
 
-	// Get the nodes
-	state := c.srv.fsm.State()
 	err := c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			var index uint64
 			var services structs.ServiceNodes
 			var err error
@@ -286,12 +281,10 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		return fmt.Errorf("Must provide node")
 	}
 
-	// Get the node services
-	state := c.srv.fsm.State()
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet) error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			index, services, err := state.NodeServices(ws, args.Node)
 			if err != nil {
 				return err
