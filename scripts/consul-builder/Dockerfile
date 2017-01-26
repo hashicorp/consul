@@ -1,6 +1,6 @@
 FROM ubuntu:trusty
 
-ENV GOVERSION 1.7.3
+ENV GOVERSION 1.7.4
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q \
