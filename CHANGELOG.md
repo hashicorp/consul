@@ -17,6 +17,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: Redacted the AWS access key and secret key ID from the /v1/agent/self output so they are not disclosed. [GH-2677]
 * agent: Fixed a rare startup panic due to a Raft/Serf race condition. [GH-1899]
 * cli: Fixed a panic when an empty quoted argument was given to `consul kv put`. [GH-2635]
 * tests: Fixed a race condition with check mock's map usage. [GH-2578]
