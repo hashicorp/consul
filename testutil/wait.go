@@ -1,19 +1,20 @@
 package testutil
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 type testFn func() (bool, error)
 type errorFn func(error)
 
 func WaitForResult(test testFn, error errorFn) {
-	retries := 1000
+	retries := 100
 
 	for retries > 0 {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		retries--
 
 		success, err := test()
