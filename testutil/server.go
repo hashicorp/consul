@@ -292,6 +292,7 @@ func (s *TestServer) waitForAPI() {
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 1 or more to be observed to confirm leader election is done.
+// It then waits to ensure the anti-entropy checks have completed.
 func (s *TestServer) waitForLeader() {
 	WaitForResult(func() (bool, error) {
 		// Query the API and check the status code
@@ -312,6 +313,25 @@ func (s *TestServer) waitForLeader() {
 		if resp.Header.Get("X-Consul-Index") == "0" {
 			return false, fmt.Errorf("Consul index is 0")
 		}
+
+		var parsed []map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&parsed); err != nil {
+			return false, err
+		}
+
+		if len(parsed) < 1 {
+			return false, fmt.Errorf("No nodes")
+		}
+
+		taggedAddresses, ok := parsed[0]["TaggedAddresses"].(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("Missing tagged addresses")
+		}
+		if _, ok := taggedAddresses["lan"]; !ok {
+			return false, fmt.Errorf("No lan tagged addresses")
+		}
+
 		return true, nil
 	}, func(err error) {
 		defer s.Stop()
