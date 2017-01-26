@@ -225,16 +225,22 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 	s1.reconcileCh <- c1mem
 
-	// Should be deregistered
-	testutil.WaitForResult(func() (bool, error) {
+	// Should be deregistered; we have to poll quickly here because
+	// anti-entropy will put it back.
+	reaped := false
+	for start := time.Now(); time.Since(start) < 5*time.Second; {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		return node == nil, nil
-	}, func(err error) {
+		if node == nil {
+			reaped = true
+			break
+		}
+	}
+	if !reaped {
 		t.Fatalf("client should not be registered")
-	})
+	}
 }
 
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
