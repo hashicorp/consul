@@ -10,6 +10,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* build: Consul is now built with Go 1.7.4. [GH-2676]
 * cli: `consul kv get` now has a `-base64` flag to base 64 encode the value. [GH-2631]
 * cli: `consul kv put` now has a `-base64` flag for setting values which are base 64 encoded. [GH-2632]
 * ui: Added a notice that JS is required when viewing the web UI with JS disabled. [GH-2636]
@@ -74,7 +75,7 @@ IMPROVEMENTS:
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
 * agent: Added the ability to bind Serf WAN and LAN to different interfaces than the general bind address. [GH-2007]
 * agent: Added a new `tls_skip_verify` configuration option for HTTP checks. [GH-1984]
-* agent: Consul is now built with Go 1.7.3. [GH-2281]
+* build: Consul is now built with Go 1.7.3. [GH-2281]
 
 BUG FIXES:
 
