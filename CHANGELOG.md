@@ -1,7 +1,11 @@
 ## 0.7.4 (UNRELEASED)
 
 FEATURES:
+
 IMPROVEMENTS:
+
+* build: Consul is now built with Go 1.7.5. [GH-2682]
+
 BUG FIXES:
 
 ## 0.7.3 (January 26, 2017)
