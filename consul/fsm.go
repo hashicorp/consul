@@ -318,29 +318,19 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	return &consulSnapshot{c.state.Snapshot()}, nil
 }
 
+// Restore streams in the snapshot and replaces the current state store with a
+// new one based on the snapshot if all goes OK during the restore.
 func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
-	// Create a new state store
+	// Create a new state store.
 	stateNew, err := state.NewStateStore(c.gc)
 	if err != nil {
 		return err
 	}
 
-	// External code might be calling State(), so we need to synchronize
-	// here to make sure we swap in the new state store atomically.
-	c.stateLock.Lock()
-	stateOld := c.state
-	c.state = stateNew
-	c.stateLock.Unlock()
-
-	// The old state store has been abandoned already since we've replaced
-	// it with an empty one, but we defer telling watchers about it until
-	// the restore is done, so they wake up once we have the latest data.
-	defer stateOld.Abandon()
-
 	// Set up a new restore transaction
-	restore := c.state.Restore()
+	restore := stateNew.Restore()
 	defer restore.Abort()
 
 	// Create a decoder
@@ -443,6 +433,18 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	}
 
 	restore.Commit()
+
+	// External code might be calling State(), so we need to synchronize
+	// here to make sure we swap in the new state store atomically.
+	c.stateLock.Lock()
+	stateOld := c.state
+	c.state = stateNew
+	c.stateLock.Unlock()
+
+	// Signal that the old state store has been abandoned. This is required
+	// because we don't operate on it any more, we just throw it away, so
+	// blocking queries won't see any changes and need to be woken up.
+	stateOld.Abandon()
 	return nil
 }
 

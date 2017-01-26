@@ -592,37 +592,41 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 
 }
 
-func TestFSM_KVSSet(t *testing.T) {
+func TestFSM_BadRestore(t *testing.T) {
+	// Create an FSM with some state.
 	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	abandonCh := fsm.state.AbandonCh()
 
-	req := structs.KVSRequest{
-		Datacenter: "dc1",
-		Op:         structs.KVSSet,
-		DirEnt: structs.DirEntry{
-			Key:   "/test/path",
-			Flags: 0,
-			Value: []byte("test"),
-		},
-	}
-	buf, err := structs.Encode(structs.KVSRequestType, req)
-	if err != nil {
+	// Do a bad restore.
+	buf := bytes.NewBuffer([]byte("bad snapshot"))
+	sink := &MockSink{buf, false}
+	if err := fsm.Restore(sink); err == nil {
 		t.Fatalf("err: %v", err)
 	}
-	resp := fsm.Apply(makeLog(buf))
-	if resp != nil {
-		t.Fatalf("resp: %v", resp)
+
+	// Verify the contents didn't get corrupted.
+	_, nodes, err := fsm.state.Nodes(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" ||
+		nodes[0].Address != "127.0.0.1" ||
+		len(nodes[0].TaggedAddresses) != 0 {
+		t.Fatalf("bad: %v", nodes[0])
 	}
 
-	// Verify key is set
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if d == nil {
-		t.Fatalf("missing")
+	// Verify the old state store didn't get abandoned.
+	select {
+	case <-abandonCh:
+		t.Fatalf("bad")
+	default:
 	}
 }
 
