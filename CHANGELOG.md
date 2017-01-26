@@ -1,4 +1,4 @@
-## 0.7.3 (UNRELEASED)
+## 0.7.3 (January 26, 2017)
 
 FEATURES:
 
