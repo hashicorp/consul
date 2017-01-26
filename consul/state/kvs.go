@@ -32,9 +32,6 @@ func (s *StateRestore) KVS(entry *structs.DirEntry) error {
 	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, "kvs"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
-
-	// We have a single top-level KVS watch trigger instead of doing
-	// tons of prefix watches.
 	return nil
 }
 
@@ -114,29 +111,29 @@ func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntr
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.kvsWatch.Notify(entry.Key, false) })
 	return nil
 }
 
 // KVSGet is used to retrieve a key/value pair from the state store.
-func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
+func (s *StateStore) KVSGet(ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.kvsGetTxn(tx, key)
+	return s.kvsGetTxn(tx, ws, key)
 }
 
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
-func (s *StateStore) kvsGetTxn(tx *memdb.Txn, key string) (uint64, *structs.DirEntry, error) {
+func (s *StateStore) kvsGetTxn(tx *memdb.Txn, ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
 	// Retrieve the key.
-	entry, err := tx.First("kvs", "id", key)
+	watchCh, entry, err := tx.FirstWatch("kvs", "id", key)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	if entry != nil {
 		return idx, entry.(*structs.DirEntry), nil
 	}
@@ -147,16 +144,16 @@ func (s *StateStore) kvsGetTxn(tx *memdb.Txn, key string) (uint64, *structs.DirE
 // prefix is left empty, all keys in the KVS will be returned. The returned
 // is the max index of the returned kvs entries or applicable tombstones, or
 // else it's the full table indexes for kvs and tombstones.
-func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
+func (s *StateStore) KVSList(ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.kvsListTxn(tx, prefix)
+	return s.kvsListTxn(tx, ws, prefix)
 }
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
-func (s *StateStore) kvsListTxn(tx *memdb.Txn, prefix string) (uint64, structs.DirEntries, error) {
+func (s *StateStore) kvsListTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
 	// Get the table indexes.
 	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
@@ -165,6 +162,7 @@ func (s *StateStore) kvsListTxn(tx *memdb.Txn, prefix string) (uint64, structs.D
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	ws.Add(entries.WatchCh())
 
 	// Gather all of the keys found in the store
 	var ents structs.DirEntries
@@ -203,7 +201,7 @@ func (s *StateStore) kvsListTxn(tx *memdb.Txn, prefix string) (uint64, structs.D
 // An optional separator may be specified, which can be used to slice off a part
 // of the response so that only a subset of the prefix is returned. In this
 // mode, the keys which are omitted are still counted in the returned index.
-func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
+func (s *StateStore) KVSListKeys(ws memdb.WatchSet, prefix, sep string) (uint64, []string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -215,6 +213,7 @@ func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	ws.Add(entries.WatchCh())
 
 	prefixLen := len(prefix)
 	sepLen := len(sep)
@@ -313,7 +312,6 @@ func (s *StateStore) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.kvsWatch.Notify(key, false) })
 	return nil
 }
 
@@ -452,7 +450,6 @@ func (s *StateStore) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) 
 
 	// Update the index
 	if modified {
-		tx.Defer(func() { s.kvsWatch.Notify(prefix, true) })
 		if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}

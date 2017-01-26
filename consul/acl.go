@@ -62,7 +62,7 @@ func (s *Server) aclLocalFault(id string) (string, string, error) {
 
 	// Query the state store.
 	state := s.fsm.State()
-	_, acl, err := state.ACLGet(id)
+	_, acl, err := state.ACLGet(nil, id)
 	if err != nil {
 		return "", "", err
 	}

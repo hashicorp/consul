@@ -22,7 +22,7 @@ const (
 func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
-	_, sessions, err := state.SessionList()
+	_, sessions, err := state.SessionList(nil)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	// Fault the session in if not given
 	if session == nil {
 		state := s.fsm.State()
-		_, s, err := state.SessionGet(id)
+		_, s, err := state.SessionGet(nil, id)
 		if err != nil {
 			return err
 		}

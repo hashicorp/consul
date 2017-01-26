@@ -688,14 +688,14 @@ func TestACL_Replication(t *testing.T) {
 
 	// Wait for replication to occur.
 	testutil.WaitForResult(func() (bool, error) {
-		_, acl, err := s2.fsm.State().ACLGet(id)
+		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
 			return false, err
 		}
 		if acl == nil {
 			return false, nil
 		}
-		_, acl, err = s3.fsm.State().ACLGet(id)
+		_, acl, err = s3.fsm.State().ACLGet(nil, id)
 		if err != nil {
 			return false, err
 		}

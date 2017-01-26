@@ -42,7 +42,7 @@ func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
 // performed within a single transaction to avoid race conditions on state
 // updates.
 func (s *StateRestore) Registration(idx uint64, req *structs.RegisterRequest) error {
-	if err := s.store.ensureRegistrationTxn(s.tx, idx, s.watches, req); err != nil {
+	if err := s.store.ensureRegistrationTxn(s.tx, idx, req); err != nil {
 		return err
 	}
 	return nil
@@ -55,12 +55,10 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureRegistrationTxn(tx, idx, watches, req); err != nil {
+	if err := s.ensureRegistrationTxn(tx, idx, req); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -68,9 +66,8 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	req *structs.RegisterRequest) error {
-	// Add the node.
+func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
+	// Create a node structure.
 	node := &structs.Node{
 		ID:              req.ID,
 		Node:            req.Node,
@@ -78,14 +75,37 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
 	}
-	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
-		return fmt.Errorf("failed inserting node: %s", err)
+
+	// Since this gets called for all node operations (service and check
+	// updates) and churn on the node itself is basically none after the
+	// node updates itself the first time, it's worth seeing if we need to
+	// modify the node at all so we prevent watch churn and useless writes
+	// and modify index bumps on the node.
+	{
+		existing, err := tx.First("nodes", "id", node.Node)
+		if err != nil {
+			return fmt.Errorf("node lookup failed: %s", err)
+		}
+		if existing == nil || req.ChangesNode(existing.(*structs.Node)) {
+			if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+				return fmt.Errorf("failed inserting node: %s", err)
+			}
+		}
 	}
 
-	// Add the service, if any.
+	// Add the service, if any. We perform a similar check as we do for the
+	// node info above to make sure we actually need to update the service
+	// definition in order to prevent useless churn if nothing has changed.
 	if req.Service != nil {
-		if err := s.ensureServiceTxn(tx, idx, watches, req.Node, req.Service); err != nil {
-			return fmt.Errorf("failed inserting service: %s", err)
+		existing, err := tx.First("services", "id", req.Node, req.Service.ID)
+		if err != nil {
+			return fmt.Errorf("failed service lookup: %s", err)
+		}
+		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
+			if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
+				return fmt.Errorf("failed inserting service: %s", err)
+
+			}
 		}
 	}
 
@@ -97,12 +117,12 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *D
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckTxn(tx, idx, watches, req.Check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, req.Check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckTxn(tx, idx, watches, check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
@@ -116,12 +136,10 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 	defer tx.Abort()
 
 	// Call the node upsert
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
+	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -129,8 +147,7 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	node *structs.Node) error {
+func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
 	// Check for an existing node
 	existing, err := tx.First("nodes", "id", node.Node)
 	if err != nil {
@@ -154,7 +171,6 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, watches *DumbWatch
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("nodes")
 	return nil
 }
 
@@ -164,7 +180,7 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("GetNode")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
 	node, err := tx.First("nodes", "id", id)
@@ -178,18 +194,19 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
+func (s *StateStore) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve all of the nodes
 	nodes, err := tx.Get("nodes", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
 
 	// Create and return the nodes list.
 	var results structs.Nodes
@@ -200,12 +217,12 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 }
 
 // NodesByMeta is used to return all nodes with the given metadata key/value pairs.
-func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nodes, error) {
+func (s *StateStore) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Nodes")...)
+	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve all of the nodes
 	var args []interface{}
@@ -217,6 +234,7 @@ func (s *StateStore) NodesByMeta(filters map[string]string) (uint64, structs.Nod
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
 
 	// Create and return the nodes list.
 	var results structs.Nodes
@@ -255,10 +273,6 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 		return nil
 	}
 
-	// Use a watch manager since the inner functions can perform multiple
-	// ops per table.
-	watches := NewDumbWatchManager(s.tableWatches)
-
 	// Delete all services associated with the node and update the service index.
 	services, err := tx.Get("services", "node", nodeName)
 	if err != nil {
@@ -271,7 +285,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, sid := range sids {
-		if err := s.deleteServiceTxn(tx, idx, watches, nodeName, sid); err != nil {
+		if err := s.deleteServiceTxn(tx, idx, nodeName, sid); err != nil {
 			return err
 		}
 	}
@@ -289,7 +303,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, cid := range cids {
-		if err := s.deleteCheckTxn(tx, idx, watches, nodeName, cid); err != nil {
+		if err := s.deleteCheckTxn(tx, idx, nodeName, cid); err != nil {
 			return err
 		}
 	}
@@ -306,7 +320,6 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 		if err := tx.Insert("index", &IndexEntry{"coordinates", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
-		watches.Arm("coordinates")
 	}
 
 	// Delete the node and update the index.
@@ -329,13 +342,11 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 			return fmt.Errorf("failed session delete: %s", err)
 		}
 	}
 
-	watches.Arm("nodes")
-	tx.Defer(func() { watches.Notify() })
 	return nil
 }
 
@@ -345,20 +356,17 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 	defer tx.Abort()
 
 	// Call the service registration upsert
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureServiceTxn(tx, idx, watches, node, svc); err != nil {
+	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	node string, svc *structs.NodeService) error {
+func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
 	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
@@ -394,23 +402,23 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("services")
 	return nil
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *StateStore) Services() (uint64, structs.Services, error) {
+func (s *StateStore) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Services")...)
+	idx := maxIndexTxn(tx, "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services: %s", err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Rip through the services and enumerate them and their unique set of
 	// tags.
@@ -439,12 +447,12 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 }
 
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
-func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, structs.Services, error) {
+func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "services", "nodes")
 
 	// Retrieve all of the nodes with the meta k/v pair
 	var args []interface{}
@@ -456,6 +464,15 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
+	ws.Add(nodes.WatchCh())
+
+	// We don't want to track an unlimited number of services, so we pull a
+	// top-level watch to use as a fallback.
+	allServices, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed services lookup: %s", err)
+	}
+	allServicesCh := allServices.WatchCh()
 
 	// Populate the services map
 	unique := make(map[string]map[string]struct{})
@@ -464,11 +481,13 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
+
 		// List all the services on the node
 		services, err := tx.Get("services", "node", n.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed querying services: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 
 		// Rip through the services and enumerate them and their unique set of
 		// tags.
@@ -497,25 +516,27 @@ func (s *StateStore) ServicesByNodeMeta(filters map[string]string) (uint64, stru
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
-func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNodes, error) {
+func (s *StateStore) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(services.WatchCh())
+
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		results = append(results, service.(*structs.ServiceNode))
 	}
 
-	// Fill in the address details.
-	results, err = s.parseServiceNodes(tx, results)
+	// Fill in the node details.
+	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
@@ -524,18 +545,19 @@ func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNo
 
 // ServiceTagNodes returns the nodes associated with a given service, filtering
 // out services that don't contain the given tag.
-func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes, error) {
+func (s *StateStore) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// List all the services.
 	services, err := tx.Get("services", "service", service)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Gather all the services and apply the tag filter.
 	var results structs.ServiceNodes
@@ -546,8 +568,8 @@ func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.Servi
 		}
 	}
 
-	// Fill in the address details.
-	results, err = s.parseServiceNodes(tx, results)
+	// Fill in the node details.
+	results, err = s.parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
@@ -572,7 +594,16 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
-func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+func (s *StateStore) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// Fill in the node data for each service instance.
 	var results structs.ServiceNodes
 	for _, sn := range services {
 		// Note that we have to clone here because we don't want to
@@ -581,10 +612,11 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNo
 		s := sn.PartialClone()
 
 		// Grab the corresponding node record.
-		n, err := tx.First("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
 
 		// Populate the node-related fields. The tagged addresses may be
 		// used by agents to perform address translation if they are
@@ -607,7 +639,7 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeService")...)
+	idx := maxIndexTxn(tx, "services")
 
 	// Query the service
 	service, err := tx.First("services", "id", nodeName, serviceID)
@@ -623,18 +655,19 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 }
 
 // NodeServices is used to query service registrations by node ID.
-func (s *StateStore) NodeServices(nodeName string) (uint64, *structs.NodeServices, error) {
+func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeServices")...)
+	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// Query the node
-	n, err := tx.First("nodes", "id", nodeName)
+	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
+	ws.Add(watchCh)
 	if n == nil {
 		return 0, nil, nil
 	}
@@ -645,6 +678,7 @@ func (s *StateStore) NodeServices(nodeName string) (uint64, *structs.NodeService
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
+	ws.Add(services.WatchCh())
 
 	// Initialize the node services struct
 	ns := &structs.NodeServices{
@@ -667,19 +701,17 @@ func (s *StateStore) DeleteService(idx uint64, nodeName, serviceID string) error
 	defer tx.Abort()
 
 	// Call the service deletion
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteServiceTxn(tx, idx, watches, nodeName, serviceID); err != nil {
+	if err := s.deleteServiceTxn(tx, idx, nodeName, serviceID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, nodeName, serviceID string) error {
+func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string) error {
 	// Look up the service.
 	service, err := tx.First("services", "id", nodeName, serviceID)
 	if err != nil {
@@ -702,7 +734,7 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, cid := range cids {
-		if err := s.deleteCheckTxn(tx, idx, watches, nodeName, cid); err != nil {
+		if err := s.deleteCheckTxn(tx, idx, nodeName, cid); err != nil {
 			return err
 		}
 	}
@@ -720,7 +752,6 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("services")
 	return nil
 }
 
@@ -730,12 +761,10 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	defer tx.Abort()
 
 	// Call the check registration
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.ensureCheckTxn(tx, idx, watches, hc); err != nil {
+	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -743,8 +772,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	hc *structs.HealthCheck) error {
+func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
 	if err != nil {
@@ -803,13 +831,11 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 		// Delete the session in a separate loop so we don't trash the
 		// iterator.
-		watches := NewDumbWatchManager(s.tableWatches)
 		for _, id := range ids {
-			if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+			if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 				return fmt.Errorf("failed deleting session: %s", err)
 			}
 		}
-		tx.Defer(func() { watches.Notify() })
 	}
 
 	// Persist the check registration in the db.
@@ -820,7 +846,6 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("checks")
 	return nil
 }
 
@@ -831,13 +856,14 @@ func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, 
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeCheck")...)
+	idx := maxIndexTxn(tx, "checks")
 
 	// Return the check.
 	check, err := tx.First("checks", "id", nodeName, string(checkID))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
+
 	if check != nil {
 		return idx, check.(*structs.HealthCheck), nil
 	} else {
@@ -847,115 +873,20 @@ func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, 
 
 // NodeChecks is used to retrieve checks associated with the
 // given node from the state store.
-func (s *StateStore) NodeChecks(nodeName string) (uint64, structs.HealthChecks, error) {
+func (s *StateStore) NodeChecks(ws memdb.WatchSet, nodeName string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeChecks")...)
+	idx := maxIndexTxn(tx, "checks")
 
 	// Return the checks.
-	checks, err := tx.Get("checks", "node", nodeName)
+	iter, err := tx.Get("checks", "node", nodeName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
-	return s.parseChecks(idx, checks)
-}
+	ws.Add(iter.WatchCh())
 
-// ServiceChecks is used to get all checks associated with a
-// given service ID. The query is performed against a service
-// _name_ instead of a service ID.
-func (s *StateStore) ServiceChecks(serviceName string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceChecks")...)
-
-	// Return the checks.
-	checks, err := tx.Get("checks", "service", serviceName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecks(idx, checks)
-}
-
-// ServiceChecksByNodeMeta is used to get all checks associated with a
-// given service ID, filtered by the given node metadata values. The query
-// is performed against a service _name_ instead of a service ID.
-func (s *StateStore) ServiceChecksByNodeMeta(serviceName string, filters map[string]string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ServiceChecksByNodeMeta")...)
-
-	// Return the checks.
-	checks, err := tx.Get("checks", "service", serviceName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
-}
-
-// ChecksInState is used to query the state store for all checks
-// which are in the provided state.
-func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInState")...)
-
-	// Query all checks if HealthAny is passed
-	if state == structs.HealthAny {
-		checks, err := tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-		return s.parseChecks(idx, checks)
-	}
-
-	// Any other state we need to query for explicitly
-	checks, err := tx.Get("checks", "status", state)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-	}
-	return s.parseChecks(idx, checks)
-}
-
-// ChecksInStateByNodeMeta is used to query the state store for all checks
-// which are in the provided state, filtered by the given node metadata values.
-func (s *StateStore) ChecksInStateByNodeMeta(state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInStateByNodeMeta")...)
-
-	// Query all checks if HealthAny is passed
-	var checks memdb.ResultIterator
-	var err error
-	if state == structs.HealthAny {
-		checks, err = tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-	} else {
-		// Any other state we need to query for explicitly
-		checks, err = tx.Get("checks", "status", state)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
-	}
-
-	return s.parseChecksByNodeMeta(idx, checks, tx, filters)
-}
-
-// parseChecks is a helper function used to deduplicate some
-// repetitive code for returning health checks.
-func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64, structs.HealthChecks, error) {
-	// Gather the health checks and return them properly type casted.
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		results = append(results, check.(*structs.HealthCheck))
@@ -963,20 +894,140 @@ func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64,
 	return idx, results, nil
 }
 
+// ServiceChecks is used to get all checks associated with a
+// given service ID. The query is performed against a service
+// _name_ instead of a service ID.
+func (s *StateStore) ServiceChecks(ws memdb.WatchSet, serviceName string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "checks")
+
+	// Return the checks.
+	iter, err := tx.Get("checks", "service", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		results = append(results, check.(*structs.HealthCheck))
+	}
+	return idx, results, nil
+}
+
+// ServiceChecksByNodeMeta is used to get all checks associated with a
+// given service ID, filtered by the given node metadata values. The query
+// is performed against a service _name_ instead of a service ID.
+func (s *StateStore) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
+	filters map[string]string) (uint64, structs.HealthChecks, error) {
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "nodes", "checks")
+
+	// Return the checks.
+	iter, err := tx.Get("checks", "service", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+}
+
+// ChecksInState is used to query the state store for all checks
+// which are in the provided state.
+func (s *StateStore) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "checks")
+
+	// Query all checks if HealthAny is passed, otherwise use the index.
+	var iter memdb.ResultIterator
+	var err error
+	if state == structs.HealthAny {
+		iter, err = tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	} else {
+		iter, err = tx.Get("checks", "status", state)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		results = append(results, check.(*structs.HealthCheck))
+	}
+	return idx, results, nil
+}
+
+// ChecksInStateByNodeMeta is used to query the state store for all checks
+// which are in the provided state, filtered by the given node metadata values.
+func (s *StateStore) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "nodes", "checks")
+
+	// Query all checks if HealthAny is passed, otherwise use the index.
+	var iter memdb.ResultIterator
+	var err error
+	if state == structs.HealthAny {
+		iter, err = tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	} else {
+		iter, err = tx.Get("checks", "status", state)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+	}
+	ws.Add(iter.WatchCh())
+
+	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+}
+
 // parseChecksByNodeMeta is a helper function used to deduplicate some
 // repetitive code for returning health checks filtered by node metadata fields.
-func (s *StateStore) parseChecksByNodeMeta(idx uint64, iter memdb.ResultIterator, tx *memdb.Txn,
-	filters map[string]string) (uint64, structs.HealthChecks, error) {
+func (s *StateStore) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
+	idx uint64, iter memdb.ResultIterator, filters map[string]string) (uint64, structs.HealthChecks, error) {
+
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// Only take results for nodes that satisfy the node metadata filters.
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		healthCheck := check.(*structs.HealthCheck)
-		node, err := tx.First("nodes", "id", healthCheck.Node)
+		watchCh, node, err := tx.FirstWatch("nodes", "id", healthCheck.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
 		if node == nil {
 			return 0, nil, ErrMissingNode
 		}
+
+		// Add even the filtered nodes so we wake up if the node metadata
+		// changes.
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
 		if structs.SatisfiesMetaFilters(node.(*structs.Node).Meta, filters) {
 			results = append(results, healthCheck)
 		}
@@ -990,19 +1041,17 @@ func (s *StateStore) DeleteCheck(idx uint64, node string, checkID types.CheckID)
 	defer tx.Abort()
 
 	// Call the check deletion
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteCheckTxn(tx, idx, watches, node, checkID); err != nil {
+	if err := s.deleteCheckTxn(tx, idx, node, checkID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node string, checkID types.CheckID) error {
+func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID) error {
 	// Try to retrieve the existing health check.
 	hc, err := tx.First("checks", "id", node, string(checkID))
 	if err != nil {
@@ -1032,73 +1081,70 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, watches, id); err != nil {
+		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
 			return fmt.Errorf("failed deleting session: %s", err)
 		}
 	}
 
-	watches.Arm("checks")
 	return nil
 }
 
-// CheckServiceNodes is used to query all nodes and checks for a given service
-// The results are compounded into a CheckServiceNodes, and the index returned
-// is the maximum index observed over any node, check, or service in the result
-// set.
-func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.CheckServiceNodes, error) {
+// CheckServiceNodes is used to query all nodes and checks for a given service.
+func (s *StateStore) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", serviceName)
+	iter, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	// Return the results.
 	var results structs.ServiceNodes
-	for service := services.Next(); service != nil; service = services.Next() {
+	for service := iter.Next(); service != nil; service = iter.Next() {
 		results = append(results, service.(*structs.ServiceNode))
 	}
-	return s.parseCheckServiceNodes(tx, idx, results, err)
+	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
-// service, filtering out services that don't contain the given tag. The results
-// are compounded into a CheckServiceNodes, and the index returned is the maximum
-// index observed over any node, check, or service in the result set.
-func (s *StateStore) CheckServiceTagNodes(serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
+// service, filtering out services that don't contain the given tag.
+func (s *StateStore) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", serviceName)
+	iter, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	// Return the results, filtering by tag.
 	var results structs.ServiceNodes
-	for service := services.Next(); service != nil; service = services.Next() {
+	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
 		if !serviceTagFilter(svc, tag) {
 			results = append(results, svc)
 		}
 	}
-	return s.parseCheckServiceNodes(tx, idx, results, err)
+	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
 func (s *StateStore) parseCheckServiceNodes(
-	tx *memdb.Txn, idx uint64, services structs.ServiceNodes,
+	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+	serviceName string, services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
 		return 0, nil, err
@@ -1110,32 +1156,57 @@ func (s *StateStore) parseCheckServiceNodes(
 		return idx, nil, nil
 	}
 
+	// We don't want to track an unlimited number of nodes, so we pull a
+	// top-level watch to use as a fallback.
+	allNodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+	allNodesCh := allNodes.WatchCh()
+
+	// We need a similar fallback for checks. Since services need the
+	// status of node + service-specific checks, we pull in a top-level
+	// watch over all checks.
+	allChecks, err := tx.Get("checks", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+	}
+	allChecksCh := allChecks.WatchCh()
+
 	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
-		n, err := tx.First("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
+
 		if n == nil {
 			return 0, nil, ErrMissingNode
 		}
 		node := n.(*structs.Node)
 
-		// We need to return the checks specific to the given service
-		// as well as the node itself. Unfortunately, memdb won't let
-		// us use the index to do the latter query so we have to pull
-		// them all and filter.
+		// First add the node-level checks. These always apply to any
+		// service on the node.
 		var checks structs.HealthChecks
-		iter, err := tx.Get("checks", "node", sn.Node)
+		iter, err := tx.Get("checks", "node_service_check", sn.Node, false)
 		if err != nil {
 			return 0, nil, err
 		}
+		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
 		for check := iter.Next(); check != nil; check = iter.Next() {
-			hc := check.(*structs.HealthCheck)
-			if hc.ServiceID == "" || hc.ServiceID == sn.ServiceID {
-				checks = append(checks, hc)
-			}
+			checks = append(checks, check.(*structs.HealthCheck))
+		}
+
+		// Now add the service-specific checks.
+		iter, err = tx.Get("checks", "node_service", sn.Node, sn.ServiceID)
+		if err != nil {
+			return 0, nil, err
+		}
+		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
+		for check := iter.Next(); check != nil; check = iter.Next() {
+			checks = append(checks, check.(*structs.HealthCheck))
 		}
 
 		// Append to the results.
@@ -1151,44 +1222,61 @@ func (s *StateStore) parseCheckServiceNodes(
 
 // NodeInfo is used to generate a dump of a single node. The dump includes
 // all services and checks which are registered against the node.
-func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump, error) {
+func (s *StateStore) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeInfo")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Query the node by the passed node
 	nodes, err := tx.Get("nodes", "id", node)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
-	return s.parseNodes(tx, idx, nodes)
+	ws.Add(nodes.WatchCh())
+	return s.parseNodes(tx, ws, idx, nodes)
 }
 
 // NodeDump is used to generate a dump of all nodes. This call is expensive
 // as it has to query every node, service, and check. The response can also
 // be quite large since there is currently no filtering applied.
-func (s *StateStore) NodeDump() (uint64, structs.NodeDump, error) {
+func (s *StateStore) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeDump")...)
+	idx := maxIndexTxn(tx, "nodes", "services", "checks")
 
 	// Fetch all of the registered nodes
 	nodes, err := tx.Get("nodes", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
-	return s.parseNodes(tx, idx, nodes)
+	ws.Add(nodes.WatchCh())
+	return s.parseNodes(tx, ws, idx, nodes)
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
 // and/or health checks.
-func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
+func (s *StateStore) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator) (uint64, structs.NodeDump, error) {
+
+	// We don't want to track an unlimited number of services, so we pull a
+	// top-level watch to use as a fallback.
+	allServices, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed services lookup: %s", err)
+	}
+	allServicesCh := allServices.WatchCh()
+
+	// We need a similar fallback for checks.
+	allChecks, err := tx.Get("checks", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+	}
+	allChecksCh := allChecks.WatchCh()
 
 	var results structs.NodeDump
 	for n := iter.Next(); n != nil; n = iter.Next() {
@@ -1208,6 +1296,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed services lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 		for service := services.Next(); service != nil; service = services.Next() {
 			ns := service.(*structs.ServiceNode).ToNodeService()
 			dump.Services = append(dump.Services, ns)
@@ -1218,6 +1307,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+		ws.AddWithLimit(watchLimit, checks.WatchCh(), allChecksCh)
 		for check := checks.Next(); check != nil; check = checks.Next() {
 			hc := check.(*structs.HealthCheck)
 			dump.Checks = append(dump.Checks, hc)

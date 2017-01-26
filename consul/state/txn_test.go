@@ -295,7 +295,7 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	}
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.KVSList("")
+	idx, actual, err := s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -364,7 +364,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 
 	// This function verifies that the state store wasn't changed.
 	verifyStateStore := func(desc string) {
-		idx, actual, err := s.KVSList("")
+		idx, actual, err := s.KVSList(nil, "")
 		if err != nil {
 			t.Fatalf("err (%s): %s", desc, err)
 		}
@@ -710,85 +710,4 @@ func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
 			t.Fatalf("bad %d: %v", i, errors[i].Error())
 		}
 	}
-}
-
-func TestStateStore_Txn_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Verify that a basic transaction triggers multiple watches. We call
-	// the same underlying methods that are called above so this is more
-	// of a sanity check.
-	verifyWatch(t, s.GetKVSWatch("multi/one"), func() {
-		verifyWatch(t, s.GetKVSWatch("multi/two"), func() {
-			ops := structs.TxnOps{
-				&structs.TxnOp{
-					KV: &structs.TxnKVOp{
-						Verb: structs.KVSSet,
-						DirEnt: structs.DirEntry{
-							Key:   "multi/one",
-							Value: []byte("one"),
-						},
-					},
-				},
-				&structs.TxnOp{
-					KV: &structs.TxnKVOp{
-						Verb: structs.KVSSet,
-						DirEnt: structs.DirEntry{
-							Key:   "multi/two",
-							Value: []byte("two"),
-						},
-					},
-				},
-			}
-			results, errors := s.TxnRW(15, ops)
-			if len(results) != len(ops) {
-				t.Fatalf("bad len: %d != %d", len(results), len(ops))
-			}
-			if len(errors) != 0 {
-				t.Fatalf("bad len: %d != 0", len(errors))
-			}
-		})
-	})
-
-	// Verify that a rolled back transaction doesn't trigger any watches.
-	verifyNoWatch(t, s.GetKVSWatch("multi/one"), func() {
-		verifyNoWatch(t, s.GetKVSWatch("multi/two"), func() {
-			ops := structs.TxnOps{
-				&structs.TxnOp{
-					KV: &structs.TxnKVOp{
-						Verb: structs.KVSSet,
-						DirEnt: structs.DirEntry{
-							Key:   "multi/one",
-							Value: []byte("one-updated"),
-						},
-					},
-				},
-				&structs.TxnOp{
-					KV: &structs.TxnKVOp{
-						Verb: structs.KVSSet,
-						DirEnt: structs.DirEntry{
-							Key:   "multi/two",
-							Value: []byte("two-updated"),
-						},
-					},
-				},
-				&structs.TxnOp{
-					KV: &structs.TxnKVOp{
-						Verb: structs.KVSLock,
-						DirEnt: structs.DirEntry{
-							Key:   "multi/nope",
-							Value: []byte("nope"),
-						},
-					},
-				},
-			}
-			results, errors := s.TxnRW(16, ops)
-			if len(errors) != 1 {
-				t.Fatalf("bad len: %d != 1", len(errors))
-			}
-			if len(results) != 0 {
-				t.Fatalf("bad len: %d != 0", len(results))
-			}
-		})
-	})
 }

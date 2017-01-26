@@ -55,14 +55,14 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 		}
 
 	case structs.KVSGet:
-		_, entry, err = s.kvsGetTxn(tx, op.DirEnt.Key)
+		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
 	case structs.KVSGetTree:
 		var entries structs.DirEntries
-		_, entries, err = s.kvsListTxn(tx, op.DirEnt.Key)
+		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key)
 		if err == nil {
 			results := make(structs.TxnResults, 0, len(entries))
 			for _, e := range entries {

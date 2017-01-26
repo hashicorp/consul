@@ -42,7 +42,6 @@ func (s *StateRestore) Session(sess *structs.Session) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("sessions")
 	return nil
 }
 
@@ -140,23 +139,23 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["sessions"].Notify() })
 	return nil
 }
 
 // SessionGet is used to retrieve an active session from the state store.
-func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, error) {
+func (s *StateStore) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *structs.Session, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("SessionGet")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Look up the session by its ID
-	session, err := tx.First("sessions", "id", sessionID)
+	watchCh, session, err := tx.FirstWatch("sessions", "id", sessionID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	if session != nil {
 		return idx, session.(*structs.Session), nil
 	}
@@ -164,18 +163,19 @@ func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, err
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
+func (s *StateStore) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("SessionList")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Query all of the active sessions.
 	sessions, err := tx.Get("sessions", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(sessions.WatchCh())
 
 	// Go over the sessions and create a slice of them.
 	var result structs.Sessions
@@ -188,18 +188,19 @@ func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
-func (s *StateStore) NodeSessions(nodeID string) (uint64, structs.Sessions, error) {
+func (s *StateStore) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("NodeSessions")...)
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Get all of the sessions which belong to the node
 	sessions, err := tx.Get("sessions", "node", nodeID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
+	ws.Add(sessions.WatchCh())
 
 	// Go over all of the sessions and return them as a slice
 	var result structs.Sessions
@@ -217,19 +218,17 @@ func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
 	defer tx.Abort()
 
 	// Call the session deletion.
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteSessionTxn(tx, idx, watches, sessionID); err != nil {
+	if err := s.deleteSessionTxn(tx, idx, sessionID); err != nil {
 		return err
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // deleteSessionTxn is the inner method, which is used to do the actual
-// session deletion and handle session invalidation, watch triggers, etc.
-func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, sessionID string) error {
+// session deletion and handle session invalidation, etc.
+func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
 	// Look up the session.
 	sess, err := tx.First("sessions", "id", sessionID)
 	if err != nil {
@@ -334,12 +333,11 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 
 		// Do the delete in a separate loop so we don't trash the iterator.
 		for _, id := range ids {
-			if err := s.preparedQueryDeleteTxn(tx, idx, watches, id); err != nil {
+			if err := s.preparedQueryDeleteTxn(tx, idx, id); err != nil {
 				return fmt.Errorf("failed prepared query delete: %s", err)
 			}
 		}
 	}
 
-	watches.Arm("sessions")
 	return nil
 }
