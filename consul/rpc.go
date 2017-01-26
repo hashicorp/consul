@@ -417,7 +417,16 @@ RUN_QUERY:
 	err := fn(ws, state)
 	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
-			goto RUN_QUERY
+			// If a restore may have woken us up then bail out from
+			// the query immediately. This is slightly race-ey since
+			// this might have been interrupted for other reasons,
+			// but it's OK to kick it back to the caller in either
+			// case.
+			select {
+			case <-state.AbandonCh():
+			default:
+				goto RUN_QUERY
+			}
 		}
 	}
 	return err
