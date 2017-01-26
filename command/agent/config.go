@@ -129,8 +129,8 @@ type RetryJoinEC2 struct {
 	TagValue string `mapstructure:"tag_value"`
 
 	// The AWS credentials to use for making requests to EC2
-	AccessKeyID     string `mapstructure:"access_key_id"`
-	SecretAccessKey string `mapstructure:"secret_access_key"`
+	AccessKeyID     string `mapstructure:"access_key_id" json:"-"`
+	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
 }
 
 // RetryJoinGCE is used to configure discovery of instances via Google Compute
