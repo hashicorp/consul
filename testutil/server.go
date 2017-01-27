@@ -336,7 +336,6 @@ func (s *TestServer) waitForLeader() {
 		if _, ok := taggedAddresses["lan"]; !ok {
 			return false, fmt.Errorf("No lan tagged addresses")
 		}
-
 		return true, nil
 	}, func(err error) {
 		defer s.Stop()
