@@ -2,7 +2,7 @@
 #+TITLE:   Terraforming consul on Openstack
 
 * 1. Pre-requisites
-  - Populates all variables in your terraform.tfvars
+  - Populate all variables in your terraform.tfvars
     #+BEGIN_SRC terraform
     username = "..."
     password = "..."
@@ -15,7 +15,7 @@
     according to your openstack settings
   - Use an "upstart" compatible image for your consul nodes
 
-* 2. Terraform for test
+* 2. Test it
 
   : terraform apply
 
