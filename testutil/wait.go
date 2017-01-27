@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ func WaitForResult(try testFn, fail errorFn) {
 		var success bool
 		success, err = try()
 		if success {
+			time.Sleep(25 * time.Millisecond)
 			return
 		}
 
@@ -39,11 +41,20 @@ type rpcFn func(string, interface{}, interface{}) error
 func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 	var out structs.IndexedNodes
 	WaitForResult(func() (bool, error) {
+		// Ensure we have a leader and a node registration.
 		args := &structs.DCSpecificRequest{
 			Datacenter: dc,
 		}
-		err := rpc("Catalog.ListNodes", args, &out)
-		return out.QueryMeta.KnownLeader && out.Index > 0, err
+		if err := rpc("Catalog.ListNodes", args, &out); err != nil {
+			return false, fmt.Errorf("Catalog.ListNodes failed: %v", err)
+		}
+		if !out.QueryMeta.KnownLeader {
+			return false, fmt.Errorf("No leader")
+		}
+		if out.Index == 0 {
+			return false, fmt.Errorf("Consul index is 0")
+		}
+		return true, nil
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})
