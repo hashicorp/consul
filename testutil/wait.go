@@ -10,22 +10,28 @@ import (
 type testFn func() (bool, error)
 type errorFn func(error)
 
-func WaitForResult(test testFn, error errorFn) {
-	retries := 400
+const (
+	baseWait = 1 * time.Millisecond
+	maxWait  = 100 * time.Millisecond
+)
 
-	for retries > 0 {
-		time.Sleep(100 * time.Millisecond)
-		retries--
-
-		success, err := test()
+func WaitForResult(try testFn, fail errorFn) {
+	var err error
+	wait := baseWait
+	for retries := 100; retries > 0; retries-- {
+		var success bool
+		success, err = try()
 		if success {
 			return
 		}
 
-		if retries == 0 {
-			error(err)
+		time.Sleep(wait)
+		wait *= 2
+		if wait > maxWait {
+			wait = maxWait
 		}
 	}
+	fail(err)
 }
 
 type rpcFn func(string, interface{}, interface{}) error
