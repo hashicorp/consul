@@ -11,11 +11,8 @@ type testFn func() (bool, error)
 type errorFn func(error)
 
 func WaitForResult(test testFn, error errorFn) {
-	retries := 400
-
-	for retries > 0 {
+	for retries := 100; retries > 0; retries-- {
 		time.Sleep(100 * time.Millisecond)
-		retries--
 
 		success, err := test()
 		if success {
