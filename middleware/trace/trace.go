@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"sync"
 
-        "golang.org/x/net/context"
+	"golang.org/x/net/context"
 
 	"github.com/miekg/coredns/middleware"
-        "github.com/miekg/dns"
-        ot "github.com/opentracing/opentracing-go"
-        zipkin "github.com/openzipkin/zipkin-go-opentracing"
+	"github.com/miekg/dns"
+	ot "github.com/opentracing/opentracing-go"
+	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 )
 
 // Trace holds the tracer and endpoint info
 type Trace struct {
-	Next middleware.Handler
+	Next            middleware.Handler
 	ServiceEndpoint string
-	Endpoint string
-	EndpointType string
-	Tracer ot.Tracer
-	Once sync.Once
+	Endpoint        string
+	EndpointType    string
+	Tracer          ot.Tracer
+	Once            sync.Once
 }
 
 // OnStartup sets up the tracer
@@ -52,10 +52,12 @@ func (t *Trace) setupZipkin() error {
 	return nil
 }
 
-func (t *Trace) Name() (string) {
+// Name implements the Handler interface.
+func (t *Trace) Name() string {
 	return "trace"
 }
 
+// ServeDNS implements the middleware.Handle interface.
 func (t *Trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	span := t.Tracer.StartSpan("servedns")
 	defer span.Finish()

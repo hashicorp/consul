@@ -38,7 +38,7 @@ func setup(c *caddy.Controller) error {
 
 func traceParse(c *caddy.Controller) (*Trace, error) {
 	var (
-		tr = &Trace{Endpoint: defEP, EndpointType: defEpType}
+		tr  = &Trace{Endpoint: defEP, EndpointType: defEpType}
 		err error
 	)
 
@@ -82,6 +82,6 @@ func normalizeEndpoint(epType, ep string) (string, error) {
 var traceOnce sync.Once
 
 const (
-	defEP = "localhost:9411"
+	defEP     = "localhost:9411"
 	defEpType = "zipkin"
 )

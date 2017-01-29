@@ -1,8 +1,8 @@
 package tls
 
 import (
-        "testing"
-        "path/filepath"
+	"path/filepath"
+	"testing"
 
 	"github.com/miekg/coredns/middleware/test"
 )
@@ -57,7 +57,7 @@ func TestNewTLSConfigFromArgs(t *testing.T) {
 		t.Error("RootCAs should not be nil when one arg passed")
 	}
 
-	c, err = NewTLSConfigFromArgs(cert,key)
+	c, err = NewTLSConfigFromArgs(cert, key)
 	if err != nil {
 		t.Errorf("Failed to create TLSConfig: %s", err)
 	}
@@ -67,7 +67,7 @@ func TestNewTLSConfigFromArgs(t *testing.T) {
 	if len(c.Certificates) != 1 {
 		t.Error("Certificates should have a single entry when two args passed")
 	}
-	args := []string{cert,key,ca}
+	args := []string{cert, key, ca}
 	c, err = NewTLSConfigFromArgs(args...)
 	if err != nil {
 		t.Errorf("Failed to create TLSConfig: %s", err)

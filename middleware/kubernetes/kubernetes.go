@@ -44,10 +44,14 @@ type Kubernetes struct {
 }
 
 const (
-	PodModeDisabled  = "disabled" // default. pod requests are ignored
-	PodModeVerified  = "verified" // Pod requests are answered only if they exist
-	PodModeInsecure  = "insecure" // ALL pod requests are answered without verfying they exist
-	DnsSchemaVersion = "1.0.0"    // https://github.com/kubernetes/dns/blob/master/docs/specification.md
+	// PodModeDisabled is the default value where pod requests are ignored
+	PodModeDisabled = "disabled"
+	// PodModeVerified is where Pod requests are answered only if they exist
+	PodModeVerified = "verified"
+	// PodModeInsecure is where pod requests are answered without verfying they exist
+	PodModeInsecure = "insecure"
+	// DNSSchemaVersion is the schema version: https://github.com/kubernetes/dns/blob/master/docs/specification.md
+	DNSSchemaVersion = "1.0.0"
 )
 
 type endpoint struct {
@@ -100,7 +104,7 @@ func (k *Kubernetes) recordsForTXT(r recordRequest) ([]msg.Service, error) {
 	switch r.typeName {
 	case "dns-version":
 		s := msg.Service{
-			Text: DnsSchemaVersion,
+			Text: DNSSchemaVersion,
 			TTL:  28800,
 			Key:  msg.Path(r.typeName+"."+r.zone, "coredns")}
 		return []msg.Service{s}, nil
@@ -289,7 +293,7 @@ func (k *Kubernetes) Records(r recordRequest) ([]msg.Service, error) {
 		return nil, errNsNotExposed
 	}
 
-	services, pods, err := k.Get(r)
+	services, pods, err := k.get(r)
 	if err != nil {
 		return nil, err
 	}
@@ -405,8 +409,8 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error)
 	return pods, nil
 }
 
-// Get retrieves matching data from the cache.
-func (k *Kubernetes) Get(r recordRequest) (services []service, pods []pod, err error) {
+// get retrieves matching data from the cache.
+func (k *Kubernetes) get(r recordRequest) (services []service, pods []pod, err error) {
 	switch {
 	case r.typeName == "pod":
 		pods, err = k.findPods(r.namespace, r.service)
@@ -497,7 +501,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		}
 		if service.Spec.ClusterIP == ip {
 			domain := service.Name + "." + service.Namespace + ".svc." + k.PrimaryZone()
-			return []msg.Service{msg.Service{Host: domain}}
+			return []msg.Service{{Host: domain}}
 		}
 	}
 	// If no cluster ips match, search endpoints
@@ -513,7 +517,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
 					domain := endpointHostname(addr) + "." + ep.ObjectMeta.Name + "." + ep.ObjectMeta.Namespace + ".svc." + k.PrimaryZone()
-					return []msg.Service{msg.Service{Host: domain}}
+					return []msg.Service{{Host: domain}}
 				}
 			}
 		}

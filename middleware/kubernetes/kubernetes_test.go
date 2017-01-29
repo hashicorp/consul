@@ -27,8 +27,8 @@ func TestSymbolContainsWildcard(t *testing.T) {
 
 func expectString(t *testing.T, function, qtype, query string, r *recordRequest, field, expected string) {
 	ref := reflect.ValueOf(r)
-	ref_f := reflect.Indirect(ref).FieldByName(field)
-	got := ref_f.String()
+	refField := reflect.Indirect(ref).FieldByName(field)
+	got := refField.String()
 	if got != expected {
 		t.Errorf("Expected %v(%v, \"%v\") to get %v == \"%v\". Instead got \"%v\".", function, query, qtype, field, expected, got)
 	}

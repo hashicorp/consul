@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
-        ot "github.com/opentracing/opentracing-go"
+	ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 )
 
