@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/shirou/gopsutil/host"
 )
 
 const (
@@ -593,7 +594,46 @@ func (a *Agent) setupClient() error {
 	return nil
 }
 
-// setupNodeID will pull the persisted node ID, if any, or create a random one
+// makeNodeID will try to find a host-specific ID, or else will generate a
+// random ID. The returned ID will always be formatted as a GUID. We don't
+// tell the caller whether this ID is random or stable since the consequences
+// are high for us if this changes, so we will persist it either way. This will
+// let gopsutil change implementations without affecting in-place upgrades of
+// nodes.
+func (a *Agent) makeNodeID() (string, error) {
+	var id string
+
+	// Try to get a stable ID associated with the host itself.
+	info, err := host.Info()
+	if err != nil {
+		a.logger.Printf("[DEBUG] Failed to get a unique id from the host, generating a random one: %v", err)
+		goto RANDOM_ID
+	}
+
+	// Make sure the host ID parses as a UUID, since we don't have complete
+	// control over this process.
+	id = strings.ToLower(info.HostID)
+	if _, err := uuid.ParseUUID(id); err != nil {
+		a.logger.Printf("[DEBUG] Host ID %q isn't formatted as a UUID, generating a random one: %v",
+			id, err)
+		goto RANDOM_ID
+	}
+
+	a.logger.Printf("[DEBUG] Using ID %q from host as node ID", id)
+	return id, nil
+
+	// Worst case, just generate a random UUID.
+RANDOM_ID:
+	id, err = uuid.GenerateUUID()
+	if err != nil {
+		return "", err
+	}
+
+	a.logger.Printf("[DEBUG] Using random UUID %q as node ID", id)
+	return id, nil
+}
+
+// setupNodeID will pull the persisted node ID, if any, or create one
 // and persist it.
 func (a *Agent) setupNodeID(config *Config) error {
 	// If they've configured a node ID manually then just use that, as
@@ -606,15 +646,14 @@ func (a *Agent) setupNodeID(config *Config) error {
 		return nil
 	}
 
-	// For dev mode we have no filesystem access so just make a GUID.
+	// For dev mode we have no filesystem access so just make one.
 	if a.config.DevMode {
-		id, err := uuid.GenerateUUID()
+		id, err := a.makeNodeID()
 		if err != nil {
 			return err
 		}
 
 		config.NodeID = types.NodeID(id)
-		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (will not be persisted in dev mode)", config.NodeID)
 		return nil
 	}
 
@@ -637,7 +676,7 @@ func (a *Agent) setupNodeID(config *Config) error {
 
 	// If we still don't have a valid node ID, make one.
 	if config.NodeID == "" {
-		id, err := uuid.GenerateUUID()
+		id, err := a.makeNodeID()
 		if err != nil {
 			return err
 		}
@@ -649,7 +688,6 @@ func (a *Agent) setupNodeID(config *Config) error {
 		}
 
 		config.NodeID = types.NodeID(id)
-		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (persisted)", config.NodeID)
 	}
 	return nil
 }
