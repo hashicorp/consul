@@ -48,6 +48,10 @@ clean:
 	go clean
 	rm -f coredns
 
+.PHONY: gen
+gen:
+	go generate ./core/...
+
 .PHONY: distclean
 distclean: clean
 	# Clean all dependencies and build artifacts
