@@ -21,6 +21,9 @@ type Config struct {
 	// First consumer is the file middleware to looks for zone files in this place.
 	Root string
 
+	// Server is the server that handles this config
+	Server  *Server
+
 	// Middleware stack.
 	Middleware []middleware.Middleware
 
