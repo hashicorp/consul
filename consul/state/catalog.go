@@ -725,11 +725,12 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 	}
 
 	node := n.(*structs.Node)
+	nodeName := node.Node
 
 	// Read all of the services
-	services, err := tx.Get("services", "node", nodeNameOrID)
+	services, err := tx.Get("services", "node", nodeName)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeNameOrID, err)
+		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
 	ws.Add(services.WatchCh())
 
