@@ -681,7 +681,7 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 }
 
 // NodeServices is used to query service registrations by node ID.
-func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *structs.NodeServices, error) {
+func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -689,16 +689,16 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *
 	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// Query the node by node name
-	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeName)
+	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeNameOrID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
 
 	if n == nil {
-		if len(nodeName) >= minUUIDLookupLen {
+		if len(nodeNameOrID) >= minUUIDLookupLen {
 			// Attempt to lookup the node by it's node ID
 			var idWatchCh <-chan struct{}
-			idWatchCh, n, err = tx.FirstWatch("nodes", "uuid_prefix", nodeName)
+			idWatchCh, n, err = tx.FirstWatch("nodes", "uuid_prefix", nodeNameOrID)
 			if err != nil {
 				return 0, nil, fmt.Errorf("node ID lookup failed: %s", err)
 			}
@@ -719,9 +719,9 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *
 	node := n.(*structs.Node)
 
 	// Read all of the services
-	services, err := tx.Get("services", "node", nodeName)
+	services, err := tx.Get("services", "node", nodeNameOrID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
+		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeNameOrID, err)
 	}
 	ws.Add(services.WatchCh())
 
