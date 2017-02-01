@@ -710,16 +710,18 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 			// failing once a logger has been introduced to the catalog.
 			return 0, nil, nil
 		}
+
 		n = iter.Next()
 		if n == nil {
+			// No nodes matched, even with the Node ID: add a watch on the node name.
 			ws.Add(watchCh)
 			return 0, nil, nil
 		}
 
 		idWatchCh := iter.WatchCh()
 		if iter.Next() != nil {
-			// Watch on the channel that did a node name lookup if we don't find
-			// anything when searching by Node ID.
+			// More than one match present: Watch on the node name channel and return
+			// an empty result (node lookups can not be ambiguous).
 			ws.Add(watchCh)
 			return 0, nil, nil
 		}
