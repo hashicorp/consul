@@ -594,6 +594,17 @@ func (a *Agent) setupClient() error {
 	return nil
 }
 
+// makeRandomID will generate a random UUID for a node.
+func (a *Agent) makeRandomID() (string, error) {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		return "", err
+	}
+
+	a.logger.Printf("[DEBUG] Using random ID %q as node ID", id)
+	return id, nil
+}
+
 // makeNodeID will try to find a host-specific ID, or else will generate a
 // random ID. The returned ID will always be formatted as a GUID. We don't
 // tell the caller whether this ID is random or stable since the consequences
@@ -601,35 +612,23 @@ func (a *Agent) setupClient() error {
 // let gopsutil change implementations without affecting in-place upgrades of
 // nodes.
 func (a *Agent) makeNodeID() (string, error) {
-	var id string
-
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {
-		a.logger.Printf("[DEBUG] Failed to get a unique id from the host, generating a random one: %v", err)
-		goto RANDOM_ID
+		a.logger.Printf("[DEBUG] Couldn't get a unique ID from the host: %v", err)
+		return a.makeRandomID()
 	}
 
 	// Make sure the host ID parses as a UUID, since we don't have complete
 	// control over this process.
-	id = strings.ToLower(info.HostID)
+	id := strings.ToLower(info.HostID)
 	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Printf("[DEBUG] Host ID %q isn't formatted as a UUID, generating a random one: %v",
+		a.logger.Printf("[DEBUG] Unique ID %q from host isn't formatted as a UUID: %v",
 			id, err)
-		goto RANDOM_ID
+		return a.makeRandomID()
 	}
 
-	a.logger.Printf("[DEBUG] Using ID %q from host as node ID", id)
-	return id, nil
-
-	// Worst case, just generate a random UUID.
-RANDOM_ID:
-	id, err = uuid.GenerateUUID()
-	if err != nil {
-		return "", err
-	}
-
-	a.logger.Printf("[DEBUG] Using random UUID %q as node ID", id)
+	a.logger.Printf("[DEBUG] Using unique ID %q from host as node ID", id)
 	return id, nil
 }
 
