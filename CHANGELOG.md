@@ -8,6 +8,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* dns: Fixed an issue where SRV lookups for services on a node registered with non-IP addresses were missing the CNAME record in the additional section of the response. [GH-2695]
+
 ## 0.7.3 (January 26, 2017)
 
 FEATURES:

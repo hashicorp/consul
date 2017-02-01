@@ -206,6 +206,9 @@ will exit with an error at startup.
   - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
   - ECS task role metadata (container-specific).
   - EC2 instance role metadata.
+  
+  The only required IAM permission is `ec2:DescribeInstances`, and it is recommended you make a dedicated
+  key used only for auto-joining.
 
 * <a name="_retry_join_ec2_tag_value"></a><a href="#_retry_join_ec2_tag_value">`-retry-join-ec2-tag-value`
   </a> - The Amazon EC2 instance tag value to filter on.
