@@ -39,6 +39,18 @@
 			"revisionTime": "2016-07-16T02:56:31Z"
 		},
 		{
+			"checksumSHA1": "BDMwtKr4z8gDY44D357JR/btBC0=",
+			"path": "github.com/Symantec/Dominator/lib/logbuf",
+			"revision": "8f706d9dbbb82321e51d4c16df190af7d8a9f2b8",
+			"revisionTime": "2016-11-16T18:35:26Z"
+		},
+		{
+			"checksumSHA1": "4byZ4HZxj1dUysDIvlec6yjXPEQ=",
+			"path": "github.com/Symantec/Dominator/lib/url",
+			"revision": "8f706d9dbbb82321e51d4c16df190af7d8a9f2b8",
+			"revisionTime": "2016-11-16T18:35:26Z"
+		},
+		{
 			"checksumSHA1": "l0iFqayYAaEip6Olaq3/LCOa/Sg=",
 			"path": "github.com/armon/circbuf",
 			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d",
