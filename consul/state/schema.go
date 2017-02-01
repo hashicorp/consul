@@ -80,7 +80,7 @@ func nodesTableSchema() *memdb.TableSchema {
 			},
 			"uuid": &memdb.IndexSchema{
 				Name:         "uuid",
-				AllowMissing: false,
+				AllowMissing: true,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
 					Field: "ID",
