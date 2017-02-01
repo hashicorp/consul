@@ -78,6 +78,14 @@ func nodesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
+			"uuid": &memdb.IndexSchema{
+				Name:         "uuid",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "ID",
+				},
+			},
 			"meta": &memdb.IndexSchema{
 				Name:         "meta",
 				AllowMissing: true,

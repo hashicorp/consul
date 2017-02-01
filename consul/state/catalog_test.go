@@ -10,14 +10,23 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
+
+func makeRandomNodeID(t *testing.T) types.NodeID {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return types.NodeID(id)
+}
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
 	s := testStateStore(t)
 
 	// Start with just a node.
 	req := &structs.RegisterRequest{
-		ID:      types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
+		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
 		TaggedAddresses: map[string]string{
@@ -27,6 +36,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			"somekey": "somevalue",
 		},
 	}
+	nodeID := req.ID
 	if err := s.EnsureRegistration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -37,13 +47,20 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if out.ID != types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") ||
+		if out.ID != nodeID ||
 			out.Node != "node1" || out.Address != "1.2.3.4" ||
 			len(out.TaggedAddresses) != 1 ||
 			out.TaggedAddresses["hello"] != "world" ||
 			out.Meta["somekey"] != "somevalue" ||
 			out.CreateIndex != 1 || out.ModifyIndex != 1 {
 			t.Fatalf("bad node returned: %#v", out)
+		}
+		_, out2, err := s.GetNodeID(nodeID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !reflect.DeepEqual(out, out2) {
+			t.Fatalf("bad node returned: %#v -- %#v", out, out2)
 		}
 	}
 	verifyNode()
@@ -183,6 +200,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Start with just a node.
 	req := &structs.RegisterRequest{
+		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}

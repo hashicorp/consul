@@ -9,6 +9,13 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+const (
+	// minUUIDLookupLen is used as a minimum length of a node name required before
+	// we test to see if the name is actually a UUID and perform an ID-based node
+	// lookup.
+	minUUIDLookupLen = 8
+)
+
 // Nodes is used to pull the full list of nodes for use during snapshots.
 func (s *StateSnapshot) Nodes() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("nodes", "id")
@@ -151,7 +158,7 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node
 	// Check for an existing node
 	existing, err := tx.First("nodes", "id", node.Node)
 	if err != nil {
-		return fmt.Errorf("node lookup failed: %s", err)
+		return fmt.Errorf("node name lookup failed: %s", err)
 	}
 
 	// Get the indexes
@@ -174,7 +181,7 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node
 	return nil
 }
 
-// GetNode is used to retrieve a node registration by node ID.
+// GetNode is used to retrieve a node registration by node name ID.
 func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -184,6 +191,25 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 
 	// Retrieve the node from the state store
 	node, err := tx.First("nodes", "id", id)
+	if err != nil {
+		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
+	}
+	if node != nil {
+		return idx, node.(*structs.Node), nil
+	}
+	return idx, nil, nil
+}
+
+// GetNodeID is used to retrieve a node registration by node ID.
+func (s *StateStore) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "nodes")
+
+	// Retrieve the node from the state store
+	node, err := tx.First("nodes", "uuid", string(id))
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
@@ -662,15 +688,34 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeName string) (uint64, *
 	// Get the table index.
 	idx := maxIndexTxn(tx, "nodes", "services")
 
-	// Query the node
+	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
-	ws.Add(watchCh)
+
 	if n == nil {
-		return 0, nil, nil
+		if len(nodeName) >= minUUIDLookupLen {
+			// Attempt to lookup the node by it's node ID
+			var idWatchCh <-chan struct{}
+			idWatchCh, n, err = tx.FirstWatch("nodes", "uuid_prefix", nodeName)
+			if err != nil {
+				return 0, nil, fmt.Errorf("node ID lookup failed: %s", err)
+			}
+			if n == nil {
+				ws.Add(watchCh)
+				return 0, nil, nil
+			} else {
+				ws.Add(idWatchCh)
+			}
+		} else {
+			ws.Add(watchCh)
+			return 0, nil, nil
+		}
+	} else {
+		ws.Add(watchCh)
 	}
+
 	node := n.(*structs.Node)
 
 	// Read all of the services
