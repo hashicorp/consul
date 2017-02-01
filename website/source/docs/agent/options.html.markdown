@@ -961,6 +961,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
 
+* <a name="tls_min_version"></a><a href="#tls_min_version">`tls_min_version`</a> Added in Consul
+  0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
+  or "tls12". This defaults to "tls10". WARNING: TLS 1.1 and lower are generally considered less
+  secure; avoid using these if possible. This will be changed to default to "tls12" in Consul 0.8.0.
+
 * <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
   set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>
   when servicing DNS and HTTP requests for a node in a remote datacenter. This allows the node to

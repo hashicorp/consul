@@ -144,6 +144,9 @@ type Config struct {
 	// provide matches the certificate
 	ServerName string
 
+	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
+	TLSMinVersion string
+
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to
@@ -341,6 +344,8 @@ func DefaultConfig() *Config {
 		// bit longer to try to cover that period. This should be more
 		// than enough when running in the high performance mode.
 		RPCHoldTimeout: 7 * time.Second,
+
+		TLSMinVersion: "tls10",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -394,6 +399,7 @@ func (c *Config) tlsConfig() *tlsutil.Config {
 		NodeName:             c.NodeName,
 		ServerName:           c.ServerName,
 		Domain:               c.Domain,
+		TLSMinVersion:        c.TLSMinVersion,
 	}
 	return tlsConf
 }
