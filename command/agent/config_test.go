@@ -332,7 +332,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS
-	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true}`
+	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -347,6 +347,10 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.VerifyServerHostname != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.TLSMinVersion != "tls12" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1621,6 +1625,7 @@ func TestMergeConfig(t *testing.T) {
 		CAFile:                 "test/ca.pem",
 		CertFile:               "test/cert.pem",
 		KeyFile:                "test/key.pem",
+		TLSMinVersion:          "tls12",
 		Checks:                 []*CheckDefinition{nil},
 		Services:               []*ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},

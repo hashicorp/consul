@@ -429,6 +429,7 @@ func (a *Agent) consulConfig() *consul.Config {
 	base.KeyFile = a.config.KeyFile
 	base.ServerName = a.config.ServerName
 	base.Domain = a.config.Domain
+	base.TLSMinVersion = a.config.TLSMinVersion
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp

@@ -62,7 +62,9 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			CertFile:       config.CertFile,
 			KeyFile:        config.KeyFile,
 			NodeName:       config.NodeName,
-			ServerName:     config.ServerName}
+			ServerName:     config.ServerName,
+			TLSMinVersion:  config.TLSMinVersion,
+		}
 
 		tlsConfig, err := tlsConf.IncomingTLSConfig()
 		if err != nil {

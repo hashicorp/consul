@@ -429,6 +429,9 @@ type Config struct {
 	// provide matches the certificate
 	ServerName string `mapstructure:"server_name"`
 
+	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
+	TLSMinVersion string `mapstructure:"tls_min_version"`
+
 	// StartJoin is a list of addresses to attempt to join when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.
@@ -771,6 +774,8 @@ func DefaultConfig() *Config {
 		ACLEnforceVersion8: Bool(false),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
+
+		TLSMinVersion: "tls10",
 	}
 }
 
@@ -1406,6 +1411,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ServerName != "" {
 		result.ServerName = b.ServerName
+	}
+	if b.TLSMinVersion != "" {
+		result.TLSMinVersion = b.TLSMinVersion
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)
