@@ -4,7 +4,6 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* agent: Integrated gopsutil library to use built in host UUID as node ID, if available, instead of a randomly generated UUID. This makes it easier for other applications on the same host to generate the same node ID without coordinating with Consul. [GH-2691]
 * build: Consul is now built with Go 1.7.5. [GH-2682]
 
 BUG FIXES:
