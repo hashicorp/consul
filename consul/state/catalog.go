@@ -694,26 +694,34 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
 
-	if n == nil {
-		if len(nodeNameOrID) >= minUUIDLookupLen {
-			// Attempt to lookup the node by it's node ID
-			var idWatchCh <-chan struct{}
-			idWatchCh, n, err = tx.FirstWatch("nodes", "uuid_prefix", nodeNameOrID)
-			if err != nil {
-				return 0, nil, fmt.Errorf("node ID lookup failed: %s", err)
-			}
-			if n == nil {
-				ws.Add(watchCh)
-				return 0, nil, nil
-			} else {
-				ws.Add(idWatchCh)
-			}
-		} else {
+	if n != nil {
+		ws.Add(watchCh)
+	} else {
+		if len(nodeNameOrID) < minUUIDLookupLen {
 			ws.Add(watchCh)
 			return 0, nil, nil
 		}
-	} else {
-		ws.Add(watchCh)
+
+		// Attempt to lookup the node by it's node ID
+		iter, err := tx.Get("nodes", "uuid_prefix", nodeNameOrID)
+		if err != nil {
+			return 0, nil, fmt.Errorf("node ID lookup failed: %s", err)
+		}
+		n = iter.Next()
+		if n == nil {
+			ws.Add(watchCh)
+			return 0, nil, nil
+		}
+
+		idWatchCh := iter.WatchCh()
+		if iter.Next() != nil {
+			// Watch on the channel that did a node name lookup if we don't find
+			// anything when searching by Node ID.
+			ws.Add(watchCh)
+			return 0, nil, nil
+		}
+
+		ws.Add(idWatchCh)
 	}
 
 	node := n.(*structs.Node)
