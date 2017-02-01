@@ -702,10 +702,13 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 			return 0, nil, nil
 		}
 
-		// Attempt to lookup the node by it's node ID
+		// Attempt to lookup the node by its node ID
 		iter, err := tx.Get("nodes", "uuid_prefix", nodeNameOrID)
 		if err != nil {
-			return 0, nil, fmt.Errorf("node ID lookup failed: %s", err)
+			ws.Add(watchCh)
+			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup
+			// failing once a logger has been introduced to the catalog.
+			return 0, nil, nil
 		}
 		n = iter.Next()
 		if n == nil {
