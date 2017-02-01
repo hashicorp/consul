@@ -1,0 +1,43 @@
+Copyright (c) 1992-2016 The FreeBSD Project.
+Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994
+        The Regents of the University of California. All rights reserved.
+FreeBSD is a registered trademark of The FreeBSD Foundation.
+FreeBSD 11.0-RELEASE-p2 #0: Mon Oct 24 06:55:27 UTC 2016
+    root@amd64-builder.daemonology.net:/usr/obj/usr/src/sys/GENERIC amd64
+FreeBSD clang version 3.8.0 (tags/RELEASE_380/final 262564) (based on LLVM 3.8.0)
+VT(vga): resolution 640x480
+CPU: Intel(R) Core(TM) i3 CPU         550  @ 3.20GHz (3192.07-MHz K8-class CPU)
+  Origin="GenuineIntel"  Id=0x20655  Family=0x6  Model=0x25  Stepping=5
+  Features=0xbfebfbff<FPU,VME,DE,PSE,TSC,MSR,PAE,MCE,CX8,APIC,SEP,MTRR,PGE,MCA,CMOV,PAT,PSE36,CLFLUSH,DTS,ACPI,MMX,FXSR,SSE,SSE2,SS,HTT,TM,PBE>
+  Features2=0x9ae3bd<SSE3,DTES64,MON,DS_CPL,VMX,EST,TM2,SSSE3,CX16,xTPR,PDCM,PCID,SSE4.1,SSE4.2,POPCNT>
+  AMD Features=0x28100800<SYSCALL,NX,RDTSCP,LM>
+  AMD Features2=0x1<LAHF>
+  VT-x: PAT,HLT,MTF,PAUSE,EPT,UG,VPID
+  TSC: P-state invariant, performance statistics
+real memory  = 8589934592 (8192 MB)
+avail memory = 8046452736 (7673 MB)
+Event timer "LAPIC" quality 600
+ACPI APIC Table: <INTEL  DH55HC  >
+FreeBSD/SMP: Multiprocessor System Detected: 4 CPUs
+FreeBSD/SMP: 1 package(s) x 2 core(s) x 2 hardware threads
+random: unblocking device.
+ioapic0 <Version 2.0> irqs 0-23 on motherboard
+random: entropy device external interface
+kbd1 at kbdmux0
+netmap: loaded module
+module_register_init: MOD_LOAD (vesa, 0xffffffff8101c970, 0) error 19
+vtvga0: <VT VGA driver> on motherboard
+cryptosoft0: <software crypto> on motherboard
+aesni0: No AESNI support.
+acpi0: <INTEL DH55HC> on motherboard
+acpi0: Power Button (fixed)
+cpu0: <ACPI CPU> on acpi0
+ACPI BIOS Warning (bug): Incorrect checksum in table [SSDT] - 0x3F, should be 0x1F (20160527/tbprint-229)
+cpu1: <ACPI CPU> on acpi0
+cpu2: <ACPI CPU> on acpi0
+cpu3: <ACPI CPU> on acpi0
+attimer0: <AT timer> port 0x40-0x43 irq 0 on acpi0
+Timecounter "i8254" frequency 1193182 Hz quality 0
+Event timer "i8254" frequency 1193182 Hz quality 100
+atrtc0: <AT realtime clock> port 0x70-0x71 irq 8 on acpi0
+Event timer "RTC" frequency 32768 Hz quality 0

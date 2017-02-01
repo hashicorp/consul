@@ -1,0 +1,45 @@
+Copyright (c) 1992-2011 The FreeBSD Project.
+Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994
+        The Regents of the University of California. All rights reserved.
+FreeBSD is a registered trademark of The FreeBSD Foundation.
+FreeBSD 8.2-RELEASE #1: Sat Mar  5 23:03:14 CET 2011
+    root@host1:/usr/obj/usr/src/sys/MYKERNEL amd64
+Timecounter "i8254" frequency 1193182 Hz quality 0
+CPU: Intel(R) Xeon(R) CPU           E5420  @ 2.50GHz (2500.11-MHz K8-class CPU)
+  Origin = "GenuineIntel"  Id = 0x10676  Family = 6  Model = 17  Stepping = 6
+  Features=0xbfebfbff<FPU,VME,DE,PSE,TSC,MSR,PAE,MCE,CX8,APIC,SEP,MTRR,PGE,MCA,CMOV,PAT,PSE36,CLFLUSH,DTS,ACPI,MMX,FXSR,SSE,SSE2,SS,HTT,TM,PBE>
+  Features2=0xce3bd<SSE3,DTES64,MON,DS_CPL,VMX,EST,TM2,SSSE3,CX16,xTPR,PDCM,DCA,SSE4.1>
+  AMD Features=0x20100800<SYSCALL,NX,LM>
+  AMD Features2=0x1<LAHF>
+  TSC: P-state invariant
+real memory  = 17179869184 (16384 MB)
+avail memory = 16531587072 (15765 MB)
+ACPI APIC Table: <PTLTD          APIC  >
+FreeBSD/SMP: Multiprocessor System Detected: 8 CPUs
+FreeBSD/SMP: 2 package(s) x 4 core(s)
+ cpu0 (BSP): APIC ID:  0
+ cpu1 (AP): APIC ID:  1
+ cpu2 (AP): APIC ID:  2
+ cpu3 (AP): APIC ID:  3
+ cpu4 (AP): APIC ID:  4
+ cpu5 (AP): APIC ID:  5
+ cpu6 (AP): APIC ID:  6
+ cpu7 (AP): APIC ID:  7
+ioapic0 <Version 2.0> irqs 0-23 on motherboard
+ioapic1 <Version 2.0> irqs 24-47 on motherboard
+kbd1 at kbdmux0
+acpi0: <PTLTD    XSDT> on motherboard
+acpi0: [ITHREAD]
+acpi0: Power Button (fixed)
+unknown: I/O range not supported
+Timecounter "ACPI-fast" frequency 3579545 Hz quality 1000
+acpi_timer0: <24-bit timer at 3.579545MHz> port 0x1008-0x100b on acpi0
+cpu0: <ACPI CPU> on acpi0
+cpu1: <ACPI CPU> on acpi0
+cpu2: <ACPI CPU> on acpi0
+cpu3: <ACPI CPU> on acpi0
+cpu4: <ACPI CPU> on acpi0
+cpu5: <ACPI CPU> on acpi0
+cpu6: <ACPI CPU> on acpi0
+cpu7: <ACPI CPU> on acpi0
+pcib0: <ACPI Host-PCI bridge> port 0xcf8-0xcff on acpi0
