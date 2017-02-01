@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -84,6 +85,20 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 
 			for c.NextBlock() {
 				switch c.Val() {
+				case "cidrs":
+					args := c.RemainingArgs()
+					if len(args) > 0 {
+						for _, cidrStr := range args {
+							_, cidr, err := net.ParseCIDR(cidrStr)
+							if err != nil {
+								return nil, errors.New(c.Val() + " contains an invalid cidr: " + cidrStr)
+							}
+							k8s.ReverseCidrs = append(k8s.ReverseCidrs, *cidr)
+
+						}
+						continue
+					}
+					return nil, c.ArgErr()
 				case "pods":
 					args := c.RemainingArgs()
 					if len(args) == 1 {

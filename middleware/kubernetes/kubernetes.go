@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ type Kubernetes struct {
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
 	PodMode       string
+	ReverseCidrs  []net.IPNet
 }
 
 const (
@@ -126,6 +128,16 @@ func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.O
 
 	records := k.getServiceRecordForIP(ip, state.Name())
 	return records, nil, nil
+}
+
+func (k *Kubernetes) IsRequestInReverseRange(state request.Request) bool {
+	ip := dnsutil.ExtractAddressFromReverse(state.Name())
+	for _, c := range k.ReverseCidrs {
+		if c.Contains(net.ParseIP(ip)) {
+			return true
+		}
+	}
+	return false
 }
 
 // Lookup implements the ServiceBackend interface.
