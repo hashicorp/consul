@@ -13,7 +13,7 @@ const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
 	// we test to see if the name is actually a UUID and perform an ID-based node
 	// lookup.
-	minUUIDLookupLen = 8
+	minUUIDLookupLen = 2
 )
 
 // Nodes is used to pull the full list of nodes for use during snapshots.
