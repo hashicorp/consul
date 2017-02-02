@@ -10,14 +10,23 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
+
+func makeRandomNodeID(t *testing.T) types.NodeID {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return types.NodeID(id)
+}
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
 	s := testStateStore(t)
 
 	// Start with just a node.
 	req := &structs.RegisterRequest{
-		ID:      types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
+		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
 		TaggedAddresses: map[string]string{
@@ -27,6 +36,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			"somekey": "somevalue",
 		},
 	}
+	nodeID := req.ID
 	if err := s.EnsureRegistration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -37,13 +47,20 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if out.ID != types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") ||
+		if out.ID != nodeID ||
 			out.Node != "node1" || out.Address != "1.2.3.4" ||
 			len(out.TaggedAddresses) != 1 ||
 			out.TaggedAddresses["hello"] != "world" ||
 			out.Meta["somekey"] != "somevalue" ||
 			out.CreateIndex != 1 || out.ModifyIndex != 1 {
 			t.Fatalf("bad node returned: %#v", out)
+		}
+		_, out2, err := s.GetNodeID(nodeID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !reflect.DeepEqual(out, out2) {
+			t.Fatalf("bad node returned: %#v -- %#v", out, out2)
 		}
 	}
 	verifyNode()
@@ -183,9 +200,12 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Start with just a node.
 	req := &structs.RegisterRequest{
+		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}
+	nodeID := string(req.ID)
+	nodeName := string(req.Node)
 	restore := s.Restore()
 	if err := restore.Registration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -193,17 +213,26 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	restore.Commit()
 
 	// Retrieve the node and verify its contents.
-	verifyNode := func() {
-		_, out, err := s.GetNode("node1")
+	verifyNode := func(nodeLookup string) {
+		_, out, err := s.GetNode(nodeLookup)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if out.Node != "node1" || out.Address != "1.2.3.4" ||
+		if out == nil {
+			_, out, err = s.GetNodeID(types.NodeID(nodeLookup))
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		if out == nil || out.Address != "1.2.3.4" ||
+			!(out.Node == nodeLookup || string(out.ID) == nodeLookup) ||
 			out.CreateIndex != 1 || out.ModifyIndex != 1 {
 			t.Fatalf("bad node returned: %#v", out)
 		}
 	}
-	verifyNode()
+	verifyNode(nodeID)
+	verifyNode(nodeName)
 
 	// Add in a service definition.
 	req.Service = &structs.NodeService{
@@ -219,8 +248,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	restore.Commit()
 
 	// Verify that the service got registered.
-	verifyService := func() {
-		idx, out, err := s.NodeServices(nil, "node1")
+	verifyService := func(nodeLookup string) {
+		idx, out, err := s.NodeServices(nil, nodeLookup)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -240,7 +269,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Add in a top-level check.
 	req.Check = &structs.HealthCheck{
-		Node:    "node1",
+		Node:    nodeName,
 		CheckID: "check1",
 		Name:    "check",
 	}
@@ -252,7 +281,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Verify that the check got registered.
 	verifyCheck := func() {
-		idx, out, err := s.NodeChecks(nil, "node1")
+		idx, out, err := s.NodeChecks(nil, nodeName)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -263,19 +292,21 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c := out[0]
-		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
+		if c.Node != nodeName || c.CheckID != "check1" || c.Name != "check" ||
 			c.CreateIndex != 3 || c.ModifyIndex != 3 {
 			t.Fatalf("bad check returned: %#v", c)
 		}
 	}
-	verifyNode()
-	verifyService()
+	verifyNode(nodeID)
+	verifyNode(nodeName)
+	verifyService(nodeID)
+	verifyService(nodeName)
 	verifyCheck()
 
 	// Add in another check via the slice.
 	req.Checks = structs.HealthChecks{
 		&structs.HealthCheck{
-			Node:    "node1",
+			Node:    nodeName,
 			CheckID: "check2",
 			Name:    "check",
 		},
@@ -287,10 +318,12 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	restore.Commit()
 
 	// Verify that the additional check got registered.
-	verifyNode()
-	verifyService()
+	verifyNode(nodeID)
+	verifyNode(nodeName)
+	verifyService(nodeID)
+	verifyService(nodeName)
 	func() {
-		idx, out, err := s.NodeChecks(nil, "node1")
+		idx, out, err := s.NodeChecks(nil, nodeName)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -301,13 +334,13 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad: %#v", out)
 		}
 		c1 := out[0]
-		if c1.Node != "node1" || c1.CheckID != "check1" || c1.Name != "check" ||
+		if c1.Node != nodeName || c1.CheckID != "check1" || c1.Name != "check" ||
 			c1.CreateIndex != 3 || c1.ModifyIndex != 4 {
 			t.Fatalf("bad check returned: %#v", c1)
 		}
 
 		c2 := out[1]
-		if c2.Node != "node1" || c2.CheckID != "check2" || c2.Name != "check" ||
+		if c2.Node != nodeName || c2.CheckID != "check2" || c2.Name != "check" ||
 			c2.CreateIndex != 4 || c2.ModifyIndex != 4 {
 			t.Fatalf("bad check returned: %#v", c2)
 		}

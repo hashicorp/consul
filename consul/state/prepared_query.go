@@ -14,6 +14,11 @@ var validUUID = regexp.MustCompile(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f
 
 // isUUID returns true if the given string is a valid UUID.
 func isUUID(str string) bool {
+	const uuidLen = 36
+	if len(str) != uuidLen {
+		return false
+	}
+
 	return validUUID.MatchString(str)
 }
 
