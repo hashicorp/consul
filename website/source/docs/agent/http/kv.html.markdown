@@ -119,7 +119,7 @@ be used with a `PUT` request:
   put the key if it does not already exist. If the index is non-zero,
   the key is only set if the index matches the `ModifyIndex` of that key.
 
-  * `?acquire=<session>` : This flag is used to turn the `PUT` into a lock acquisition
+* `?acquire=<session>` : This flag is used to turn the `PUT` into a lock acquisition
   operation. This is useful as it allows leader election to be built on top
   of Consul. If the lock is not held and the session is valid, this increments
   the `LockIndex` and sets the `Session` value of the key in addition to updating
