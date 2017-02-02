@@ -680,7 +680,7 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 	}
 }
 
-// NodeServices is used to query service registrations by node ID.
+// NodeServices is used to query service registrations by node name or UUID.
 func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()

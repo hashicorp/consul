@@ -579,6 +579,105 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 }
 
+func TestStateStore_NodeServices(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register some nodes with similar IDs.
+	{
+		req := &structs.RegisterRequest{
+			ID:      types.NodeID("40e4a748-2192-161a-0510-aaaaaaaaaaaa"),
+			Node:    "node1",
+			Address: "1.2.3.4",
+		}
+		if err := s.EnsureRegistration(1, req); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		req := &structs.RegisterRequest{
+			ID:      types.NodeID("40e4a748-2192-161a-0510-bbbbbbbbbbbb"),
+			Node:    "node2",
+			Address: "5.6.7.8",
+		}
+		if err := s.EnsureRegistration(2, req); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Look up by name.
+	{
+		_, ns, err := s.NodeServices(nil, "node1")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns == nil || ns.Node.Node != "node1" {
+			t.Fatalf("bad: %#v", *ns)
+		}
+	}
+	{
+		_, ns, err := s.NodeServices(nil, "node2")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns == nil || ns.Node.Node != "node2" {
+			t.Fatalf("bad: %#v", *ns)
+		}
+	}
+
+	// Look up by UUID.
+	{
+		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns == nil || ns.Node.Node != "node1" {
+			t.Fatalf("bad: %#v", ns)
+		}
+	}
+	{
+		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns == nil || ns.Node.Node != "node2" {
+			t.Fatalf("bad: %#v", ns)
+		}
+	}
+
+	// Ambiguous prefix.
+	{
+		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns != nil {
+			t.Fatalf("bad: %#v", ns)
+		}
+	}
+
+	// Bad node, and not a UUID (should not get a UUID error).
+	{
+		_, ns, err := s.NodeServices(nil, "nope")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns != nil {
+			t.Fatalf("bad: %#v", ns)
+		}
+	}
+
+	// Specific prefix.
+	{
+		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bb")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if ns == nil || ns.Node.Node != "node2" {
+			t.Fatalf("bad: %#v", ns)
+		}
+	}
+}
+
 func TestStateStore_DeleteNode(t *testing.T) {
 	s := testStateStore(t)
 
