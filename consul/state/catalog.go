@@ -13,8 +13,18 @@ const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
 	// we test to see if the name is actually a UUID and perform an ID-based node
 	// lookup.
-	minUUIDLookupLen = 8
+	minUUIDLookupLen = 2
 )
+
+func resizeNodeLookupKey(s string) string {
+	l := len(s)
+
+	if l%2 != 0 {
+		return s[0 : l-1]
+	}
+
+	return s
+}
 
 // Nodes is used to pull the full list of nodes for use during snapshots.
 func (s *StateSnapshot) Nodes() (memdb.ResultIterator, error) {
@@ -703,7 +713,7 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 		}
 
 		// Attempt to lookup the node by its node ID
-		iter, err := tx.Get("nodes", "uuid_prefix", nodeNameOrID)
+		iter, err := tx.Get("nodes", "uuid_prefix", resizeNodeLookupKey(nodeNameOrID))
 		if err != nil {
 			ws.Add(watchCh)
 			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup
