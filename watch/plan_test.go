@@ -3,6 +3,8 @@ package watch
 import (
 	"testing"
 	"time"
+
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 func init() {
@@ -43,12 +45,32 @@ func TestRun_Stop(t *testing.T) {
 		plan.Stop()
 	})
 
-	err := plan.Run("127.0.0.1:8500")
+	err := plan.Run("127.0.0.1:8500", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	if expect == 1 {
 		t.Fatalf("Bad: %d", expect)
+	}
+}
+
+func TestRun_Config(t *testing.T) {
+	plan := mustParse(t, `{"type":"noop"}`)
+
+	conf := consulapi.DefaultConfig()
+	conf.Address = "127.0.0.1:8500"
+
+	time.AfterFunc(10*time.Millisecond, func() {
+		plan.Stop()
+	})
+
+	err := plan.Run("", conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if plan.address != conf.Address {
+		t.Fatalf("Bad: %s", plan.address)
 	}
 }

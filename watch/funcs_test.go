@@ -59,7 +59,7 @@ func TestKeyWatch(t *testing.T) {
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestServicesWatch(t *testing.T) {
 		agent.ServiceDeregister("foo")
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestNodesWatch(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestServiceWatch(t *testing.T) {
 		agent.ServiceDeregister("foo")
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestChecksWatch_State(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -384,7 +384,7 @@ func TestChecksWatch_Service(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -424,7 +424,7 @@ func TestEventWatch(t *testing.T) {
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(consulAddr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

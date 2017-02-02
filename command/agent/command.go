@@ -1092,7 +1092,7 @@ func (c *Command) Run(args []string) int {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
+			if err := wp.Run(httpAddr.String(), nil); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)
@@ -1305,7 +1305,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
+			if err := wp.Run(httpAddr.String(), nil); err != nil {
 				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
 			}
 		}(wp)
