@@ -12,11 +12,10 @@ BUILD_TAGS?=consul
 # all builds binaries for all targets
 all: bin
 
-# ci:
-# 	if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then \
-# 		$(MAKE) bin ;\
-# 	fi
-ci: bin test
+ci:
+	if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then \
+		$(MAKE) bin ;\
+	fi
 	@$(MAKE) test
 
 bin: tools
