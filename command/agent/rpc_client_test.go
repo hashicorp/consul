@@ -371,7 +371,7 @@ func TestRPCClientInstallKey(t *testing.T) {
 	})
 
 	// install key2
-	r, err := p1.client.InstallKey(key2, "")
+	r, err := p1.client.InstallKey(key2, "", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -402,7 +402,7 @@ func TestRPCClientUseKey(t *testing.T) {
 	defer p1.Close()
 
 	// add a second key to the ring
-	r, err := p1.client.InstallKey(key2, "")
+	r, err := p1.client.InstallKey(key2, "", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -423,21 +423,21 @@ func TestRPCClientUseKey(t *testing.T) {
 	})
 
 	// can't remove key1 yet
-	r, err = p1.client.RemoveKey(key1, "")
+	r, err = p1.client.RemoveKey(key1, "", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	keyringError(t, r)
 
 	// change primary key
-	r, err = p1.client.UseKey(key2, "")
+	r, err = p1.client.UseKey(key2, "", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	keyringSuccess(t, r)
 
 	// can remove key1 now
-	r, err = p1.client.RemoveKey(key1, "")
+	r, err = p1.client.RemoveKey(key1, "", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -450,7 +450,7 @@ func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
 	})
 	defer p1.Close()
 
-	r, err := p1.client.ListKeys("")
+	r, err := p1.client.ListKeys("", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -458,7 +458,7 @@ func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
 }
 
 func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
-	resp, err := c.ListKeys("")
+	resp, err := c.ListKeys("", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -147,15 +147,16 @@ func (m *Internal) executeKeyringOp(
 		mgr = m.srv.KeyManagerLAN()
 	}
 
+	opts := &serf.KeyRequestOptions{RelayFactor: args.RelayFactor}
 	switch args.Operation {
 	case structs.KeyringList:
-		serfResp, err = mgr.ListKeys()
+		serfResp, err = mgr.ListKeysWithOptions(opts)
 	case structs.KeyringInstall:
-		serfResp, err = mgr.InstallKey(args.Key)
+		serfResp, err = mgr.InstallKeyWithOptions(args.Key, opts)
 	case structs.KeyringUse:
-		serfResp, err = mgr.UseKey(args.Key)
+		serfResp, err = mgr.UseKeyWithOptions(args.Key, opts)
 	case structs.KeyringRemove:
-		serfResp, err = mgr.RemoveKey(args.Key)
+		serfResp, err = mgr.RemoveKeyWithOptions(args.Key, opts)
 	}
 
 	errStr := ""

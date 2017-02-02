@@ -77,7 +77,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		listResponse, err := srv.agent.ListKeys("")
+		listResponse, err := srv.agent.ListKeys("", 0)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -155,13 +155,13 @@ func TestOperator_KeyringRemove(t *testing.T) {
 		c.EncryptKey = key
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		_, err := srv.agent.InstallKey(tempKey, "")
+		_, err := srv.agent.InstallKey(tempKey, "", 0)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		// Make sure the temp key is installed
-		list, err := srv.agent.ListKeys("")
+		list, err := srv.agent.ListKeys("", 0)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -191,7 +191,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 		}
 
 		// Make sure the temp key has been removed
-		list, err = srv.agent.ListKeys("")
+		list, err = srv.agent.ListKeys("", 0)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -217,7 +217,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 		c.EncryptKey = oldKey
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		if _, err := srv.agent.InstallKey(newKey, ""); err != nil {
+		if _, err := srv.agent.InstallKey(newKey, "", 0); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -233,12 +233,12 @@ func TestOperator_KeyringUse(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		if _, err := srv.agent.RemoveKey(oldKey, ""); err != nil {
+		if _, err := srv.agent.RemoveKey(oldKey, "", 0); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		// Make sure only the new key remains
-		list, err := srv.agent.ListKeys("")
+		list, err := srv.agent.ListKeys("", 0)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -252,6 +252,35 @@ func TestOperator_KeyringUse(t *testing.T) {
 			}
 			if _, ok := response.Keys[newKey]; !ok {
 				t.Fatalf("bad: %v", ok)
+			}
+		}
+	}, configFunc)
+}
+
+func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	configFunc := func(c *Config) {
+		c.EncryptKey = key
+	}
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		cases := map[string]string{
+			"999":  "Relay factor must be in range",
+			"asdf": "Error parsing relay factor",
+		}
+		for relayFactor, errString := range cases {
+			req, err := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			resp := httptest.NewRecorder()
+			_, err = srv.OperatorKeyringEndpoint(resp, req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			body := resp.Body.String()
+			if !strings.Contains(body, errString) {
+				t.Fatalf("bad: %v", body)
 			}
 		}
 	}, configFunc)

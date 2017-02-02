@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
+	"strconv"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -59,8 +60,9 @@ func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Reques
 }
 
 type keyringArgs struct {
-	Key   string
-	Token string
+	Key         string
+	Token       string
+	RelayFactor uint8
 }
 
 // OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
@@ -74,6 +76,23 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 		}
 	}
 	s.parseToken(req, &args.Token)
+
+	// Parse relay factor
+	if relayFactor := req.URL.Query().Get("relay-factor"); relayFactor != "" {
+		n, err := strconv.Atoi(relayFactor)
+		if err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Error parsing relay factor: %v", err)))
+			return nil, nil
+		}
+
+		args.RelayFactor, err = ParseRelayFactor(n)
+		if err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Invalid relay factor: %v", err)))
+			return nil, nil
+		}
+	}
 
 	// Switch on the method
 	switch req.Method {
@@ -93,7 +112,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 
 // KeyringInstall is used to install a new gossip encryption key into the cluster
 func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.InstallKey(args.Key, args.Token)
+	responses, err := s.agent.InstallKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +122,7 @@ func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request,
 
 // KeyringList is used to list the keys installed in the cluster
 func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.ListKeys(args.Token)
+	responses, err := s.agent.ListKeys(args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +132,7 @@ func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, ar
 
 // KeyringRemove is used to list the keys installed in the cluster
 func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.RemoveKey(args.Key, args.Token)
+	responses, err := s.agent.RemoveKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +142,7 @@ func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, 
 
 // KeyringUse is used to change the primary gossip encryption key
 func (s *HTTPServer) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.UseKey(args.Key, args.Token)
+	responses, err := s.agent.UseKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}
