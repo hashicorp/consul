@@ -138,6 +138,9 @@ Available in Consul 0.7.2 and later, the keyring endpoint supports the
 This endpoint supports the use of ACL tokens using either the `X-CONSUL-TOKEN`
 header or the `?token=` query parameter.
 
+Added in Consul 0.7.4, this endpoint supports the `?relay-factor=` query parameter.
+See the [Keyring Command](/docs/commands/keyring.html#_relay_factor) for more details.
+
 #### GET Method
 
 Using the `GET` method, this endpoint will list the gossip encryption keys

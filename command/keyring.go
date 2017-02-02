@@ -18,6 +18,7 @@ type KeyringCommand struct {
 func (c *KeyringCommand) Run(args []string) int {
 	var installKey, useKey, removeKey, token string
 	var listKeys bool
+	var relay int
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
@@ -27,6 +28,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
 	cmdFlags.StringVar(&token, "token", "", "acl token")
+	cmdFlags.IntVar(&relay, "relay-factor", 0, "relay factor")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -56,6 +58,13 @@ func (c *KeyringCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Validate the relay factor
+	relayFactor, err := agent.ParseRelayFactor(relay)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing relay factor: %s", err))
+		return 1
+	}
+
 	// All other operations will require a client connection
 	client, err := RPCClient(*rpcAddr)
 	if err != nil {
@@ -66,7 +75,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if listKeys {
 		c.Ui.Info("Gathering installed encryption keys...")
-		r, err := client.ListKeys(token)
+		r, err := client.ListKeys(token, relayFactor)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -80,7 +89,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if installKey != "" {
 		c.Ui.Info("Installing new gossip encryption key...")
-		r, err := client.InstallKey(installKey, token)
+		r, err := client.InstallKey(installKey, token, relayFactor)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -90,7 +99,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if useKey != "" {
 		c.Ui.Info("Changing primary gossip encryption key...")
-		r, err := client.UseKey(useKey, token)
+		r, err := client.UseKey(useKey, token, relayFactor)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -100,7 +109,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if removeKey != "" {
 		c.Ui.Info("Removing gossip encryption key...")
-		r, err := client.RemoveKey(removeKey, token)
+		r, err := client.RemoveKey(removeKey, token, relayFactor)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -206,6 +215,11 @@ Options:
                             not currently the primary key.
   -token=""                 ACL token to use during requests. Defaults to that
                             of the agent.
+  -relay-factor             Added in Consul 0.7.4, setting this to a non-zero
+                            value will cause nodes to relay their response to
+                            the operation through this many randomly-chosen
+                            other nodes in the cluster. The maximum allowed
+                            value is 5.
   -use=<key>                Change the primary encryption key, which is used to
                             encrypt messages. The key must already be installed
                             before this operation can succeed.

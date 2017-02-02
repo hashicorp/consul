@@ -24,6 +24,10 @@ type QueryParam struct {
 	// send an ack.
 	RequestAck bool
 
+	// RelayFactor controls the number of duplicate responses to relay
+	// back to the sender through other nodes for redundancy.
+	RelayFactor uint8
+
 	// The timeout limits how long the query is left open. If not provided,
 	// then a default timeout is used based on the configuration of Serf
 	Timeout time.Duration
@@ -93,6 +97,10 @@ type QueryResponse struct {
 	// respCh is used to send a response from a node
 	respCh chan NodeResponse
 
+	// acks/responses are used to track the nodes that have sent an ack/response
+	acks      map[string]struct{}
+	responses map[string]struct{}
+
 	closed    bool
 	closeLock sync.Mutex
 }
@@ -100,13 +108,15 @@ type QueryResponse struct {
 // newQueryResponse is used to construct a new query response
 func newQueryResponse(n int, q *messageQuery) *QueryResponse {
 	resp := &QueryResponse{
-		deadline: time.Now().Add(q.Timeout),
-		id:       q.ID,
-		lTime:    q.LTime,
-		respCh:   make(chan NodeResponse, n),
+		deadline:  time.Now().Add(q.Timeout),
+		id:        q.ID,
+		lTime:     q.LTime,
+		respCh:    make(chan NodeResponse, n),
+		responses: make(map[string]struct{}),
 	}
 	if q.Ack() {
 		resp.ackCh = make(chan string, n)
+		resp.acks = make(map[string]struct{})
 	}
 	return resp
 }

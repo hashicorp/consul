@@ -1000,10 +1000,11 @@ const (
 // KeyringRequest encapsulates a request to modify an encryption keyring.
 // It can be used for install, remove, or use key type operations.
 type KeyringRequest struct {
-	Operation  KeyringOp
-	Key        string
-	Datacenter string
-	Forwarded  bool
+	Operation   KeyringOp
+	Key         string
+	Datacenter  string
+	Forwarded   bool
+	RelayFactor uint8
 	QueryOptions
 }
 
