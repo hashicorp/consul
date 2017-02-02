@@ -255,6 +255,66 @@ var dnsTestCasesPodsVerified = []test.Case{
 	},
 }
 
+var dnsTestCasesCidrReverseZone = []test.Case{
+	{
+		Qname: "123.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "100.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "110.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-b.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "115.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
+		},
+	},
+}
+
+var dnsTestCasesPartialCidrReverseZone = []test.Case{
+	{
+		// In exposed range, record not present = OK + No data
+		Qname: "99.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{},
+	},
+	{
+		// In exposed range, record present = OK + Data
+		Qname: "100.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		// In exposed range, record present = OK + Data
+		Qname: "110.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-b.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		// Out of exposed range, record present = pass to next middleware (not existing in test) = FAIL
+		Qname: "115.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeServerFailure,
+		Answer: []dns.RR{},
+	},
+}
+
 func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
@@ -275,7 +335,7 @@ func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
 
 	// Work-around for timing condition that results in no-data being returned in
 	// test environment.
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	for _, tc := range testCases {
 
@@ -339,4 +399,28 @@ func TestKubernetesIntegrationPodsVerified(t *testing.T) {
     }
 `
 	doIntegrationTests(t, corefile, dnsTestCasesPodsVerified)
+}
+
+func TestKubernetesIntegrationCidrReverseZone(t *testing.T) {
+	corefile :=
+		`.:0 {
+    kubernetes cluster.local {
+                endpoint http://localhost:8080
+                namespaces test-1
+				cidrs 10.0.0.0/24				
+    }
+`
+	doIntegrationTests(t, corefile, dnsTestCasesCidrReverseZone)
+}
+
+func TestKubernetesIntegrationPartialCidrReverseZone(t *testing.T) {
+	corefile :=
+		`.:0 {
+    kubernetes cluster.local {
+                endpoint http://localhost:8080
+                namespaces test-1
+				cidrs 10.0.0.96/28 10.0.0.120/32
+    }
+`
+	doIntegrationTests(t, corefile, dnsTestCasesPartialCidrReverseZone)
 }

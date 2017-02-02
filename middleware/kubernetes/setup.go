@@ -91,7 +91,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						for _, cidrStr := range args {
 							_, cidr, err := net.ParseCIDR(cidrStr)
 							if err != nil {
-								return nil, errors.New(c.Val() + " contains an invalid cidr: " + cidrStr)
+								return nil, errors.New("Invalid cidr: " + cidrStr)
 							}
 							k8s.ReverseCidrs = append(k8s.ReverseCidrs, *cidr)
 
@@ -106,7 +106,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						case PodModeDisabled, PodModeInsecure, PodModeVerified:
 							k8s.PodMode = args[0]
 						default:
-							return nil, errors.New("pods must be one of: disabled, verified, insecure")
+							return nil, errors.New("Value for pods must be one of: disabled, verified, insecure")
 						}
 						continue
 					}
