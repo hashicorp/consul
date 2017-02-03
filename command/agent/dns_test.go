@@ -139,6 +139,63 @@ func TestRecursorAddr(t *testing.T) {
 	}
 }
 
+func TestDNS_KVLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register TXT record
+	args := &structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "/dns/TXT/dc1/_kerberos",
+			Value: []byte("DC1.CONSUL"),
+		},
+	}
+
+	var success bool
+	if err := srv.agent.RPC("KVS.Apply", args, &success); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make query
+	questions := []string{
+		"_kerberos.dc1.consul.",
+		"_kerberos.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeTXT)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		txtRec, ok := in.Answer[0].(*dns.TXT)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if txtRec.Txt[0] != "DC1.CONSUL" {
+			t.Fatalf("Bad: %#v", txtRec)
+		}
+		if txtRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+	}
+
+}
+
 func TestDNS_NodeLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
