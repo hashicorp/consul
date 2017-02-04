@@ -695,26 +695,44 @@
 		{
 			"checksumSHA1": "9rCHOi3ELajBtQUPWxxmEo/Nalk=",
 			"path": "github.com/shirou/gopsutil",
-			"revision": "b68f0fdb25a7785ce7a38e77330d3dd415010106",
-			"revisionTime": "2017-02-01T16:25:48Z"
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
 		},
 		{
-			"checksumSHA1": "z30Q7+rqd6FGTNeJlvmAccYrHQ0=",
+			"checksumSHA1": "zW2k8E1gkuySzTz2eXuSEDhpffY=",
+			"path": "github.com/shirou/gopsutil/cpu",
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
+		},
+		{
+			"checksumSHA1": "j5cGmi4mFeXmsLpSTiakU/k7aOc=",
 			"path": "github.com/shirou/gopsutil/host",
-			"revision": "b68f0fdb25a7785ce7a38e77330d3dd415010106",
-			"revisionTime": "2017-02-01T16:25:48Z"
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
 		},
 		{
-			"checksumSHA1": "F4xYQ60JlmamCUSCJl7zuuq58Kw=",
+			"checksumSHA1": "hz9RxkaV3Tnju2eiHBWO/Yv7n5c=",
 			"path": "github.com/shirou/gopsutil/internal/common",
-			"revision": "b68f0fdb25a7785ce7a38e77330d3dd415010106",
-			"revisionTime": "2017-02-01T16:25:48Z"
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
 		},
 		{
-			"checksumSHA1": "6PZpekfhutCewqXOVB2Pu8OuUnE=",
+			"checksumSHA1": "XQwjGKI51Y3aQ3/jNyRh9Gnprgg=",
+			"path": "github.com/shirou/gopsutil/mem",
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
+		},
+		{
+			"checksumSHA1": "OSvOZs5uK5iolCOeS46nB2InVy8=",
+			"path": "github.com/shirou/gopsutil/net",
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
+		},
+		{
+			"checksumSHA1": "JX0bRK/BdKVfbm4XOxMducVdY58=",
 			"path": "github.com/shirou/gopsutil/process",
-			"revision": "b68f0fdb25a7785ce7a38e77330d3dd415010106",
-			"revisionTime": "2017-02-01T16:25:48Z"
+			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
+			"revisionTime": "2017-02-04T05:36:48Z"
 		},
 		{
 			"checksumSHA1": "Nve7SpDmjsv6+rhkXAkfg/UQx94=",
