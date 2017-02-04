@@ -7,8 +7,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"os/exec"
 	"github.com/shirou/gopsutil/internal/common"
+	"os/exec"
 )
 
 func GetPageSize() (uint64, error) {
@@ -47,12 +47,12 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 	p := uint64(uvmexp.Pagesize)
 
 	ret := &VirtualMemoryStat{
-		Total:		uint64(uvmexp.Npages) * p,
-		Free:		uint64(uvmexp.Free) * p,
-		Active:		uint64(uvmexp.Active) * p,
-		Inactive:	uint64(uvmexp.Inactive) * p,
-		Cached:		0, // not available
-		Wired:		uint64(uvmexp.Wired) * p,
+		Total:    uint64(uvmexp.Npages) * p,
+		Free:     uint64(uvmexp.Free) * p,
+		Active:   uint64(uvmexp.Active) * p,
+		Inactive: uint64(uvmexp.Inactive) * p,
+		Cached:   0, // not available
+		Wired:    uint64(uvmexp.Wired) * p,
 	}
 
 	ret.Available = ret.Inactive + ret.Cached + ret.Free
@@ -94,8 +94,8 @@ func SwapMemory() (*SwapMemoryStat, error) {
 	var total, used, free uint64
 
 	_, err = fmt.Sscanf(line,
-	  "total: %d 1K-blocks allocated, %d used, %d available",
-	  &total, &used, &free)
+		"total: %d 1K-blocks allocated, %d used, %d available",
+		&total, &used, &free)
 	if err != nil {
 		return nil, errors.New("failed to parse swapctl output")
 	}

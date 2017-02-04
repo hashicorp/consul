@@ -26,9 +26,9 @@ const (
 
 // sys/sysctl.h
 const (
-	CTLKern          = 1  // "high kernel": proc, limits
-	KernCptime	 = 40 // KERN_CPTIME
-	KernCptime2      = 71 // KERN_CPTIME2
+	CTLKern     = 1  // "high kernel": proc, limits
+	KernCptime  = 40 // KERN_CPTIME
+	KernCptime2 = 71 // KERN_CPTIME2
 )
 
 var ClocksPerSec = float64(128)
@@ -79,7 +79,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 		c := TimesStat{
 			User:   float64(cpuTimes[CPUser]) / ClocksPerSec,
 			Nice:   float64(cpuTimes[CPNice]) / ClocksPerSec,
-			System: float64(cpuTimes[CPSys])  / ClocksPerSec,
+			System: float64(cpuTimes[CPSys]) / ClocksPerSec,
 			Idle:   float64(cpuTimes[CPIdle]) / ClocksPerSec,
 			Irq:    float64(cpuTimes[CPIntr]) / ClocksPerSec,
 		}

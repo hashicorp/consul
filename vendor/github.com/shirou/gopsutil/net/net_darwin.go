@@ -222,7 +222,7 @@ func IOCounters(pernic bool) ([]IOCountersStat, error) {
 			}
 			if truncated {
 				// run netstat with -I$ifacename
-				if out, err = invoke.Command(netstat, "-ibdnWI" + interfaceName);err != nil {
+				if out, err = invoke.Command(netstat, "-ibdnWI"+interfaceName); err != nil {
 					return nil, err
 				}
 				parsedIfaces, err := parseNetstatOutput(string(out))

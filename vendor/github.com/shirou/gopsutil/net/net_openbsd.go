@@ -12,7 +12,7 @@ import (
 )
 
 func ParseNetstat(output string, mode string,
-	iocs map[string]IOCountersStat) (error) {
+	iocs map[string]IOCountersStat) error {
 	lines := strings.Split(output, "\n")
 
 	exists := make([]string, 0, len(lines)-1)
@@ -44,16 +44,16 @@ func ParseNetstat(output string, mode string,
 		var vv []string
 		if mode == "inb" {
 			vv = []string{
-				values[base+3],  // BytesRecv
-				values[base+4],  // BytesSent
+				values[base+3], // BytesRecv
+				values[base+4], // BytesSent
 			}
 		} else {
 			vv = []string{
-				values[base+3],  // Ipkts
-				values[base+4],  // Ierrs
-				values[base+5],  // Opkts
-				values[base+6],  // Oerrs
-				values[base+8],  // Drops
+				values[base+3], // Ipkts
+				values[base+4], // Ierrs
+				values[base+5], // Opkts
+				values[base+6], // Oerrs
+				values[base+8], // Drops
 			}
 		}
 		for _, target := range vv {
@@ -72,18 +72,18 @@ func ParseNetstat(output string, mode string,
 
 		n, present := iocs[values[0]]
 		if !present {
-			n = IOCountersStat{Name : values[0]}
+			n = IOCountersStat{Name: values[0]}
 		}
 		if mode == "inb" {
 			n.BytesRecv = parsed[0]
 			n.BytesSent = parsed[1]
 		} else {
 			n.PacketsRecv = parsed[0]
-			n.Errin       = parsed[1]
+			n.Errin = parsed[1]
 			n.PacketsSent = parsed[2]
-			n.Errout      = parsed[3]
-			n.Dropin      = parsed[4]
-			n.Dropout     = parsed[4]
+			n.Errout = parsed[3]
+			n.Dropin = parsed[4]
+			n.Dropout = parsed[4]
 		}
 
 		iocs[n.Name] = n

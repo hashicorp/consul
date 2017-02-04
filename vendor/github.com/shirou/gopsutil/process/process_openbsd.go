@@ -3,8 +3,8 @@
 package process
 
 import (
-	"bytes"
 	"C"
+	"bytes"
 	"encoding/binary"
 	"strings"
 	"syscall"
@@ -12,8 +12,8 @@ import (
 
 	cpu "github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/internal/common"
-	net "github.com/shirou/gopsutil/net"
 	mem "github.com/shirou/gopsutil/mem"
+	net "github.com/shirou/gopsutil/net"
 )
 
 // MemoryInfoExStat is different between OSes
@@ -58,7 +58,7 @@ func (p *Process) Exe() (string, error) {
 }
 
 func (p *Process) CmdlineSlice() ([]string, error) {
-	mib := []int32{CTLKern, KernProcArgs, p.Pid, KernProcArgv }
+	mib := []int32{CTLKern, KernProcArgs, p.Pid, KernProcArgv}
 	buf, _, err := common.CallSyscall(mib)
 
 	if err != nil {
@@ -75,7 +75,7 @@ func (p *Process) CmdlineSlice() ([]string, error) {
 		strParts = append(strParts, C.GoString(argv))
 
 		argc++
-		argv = *(**C.char)(unsafe.Pointer(uintptr(argvp) + uintptr(argc) * size))
+		argv = *(**C.char)(unsafe.Pointer(uintptr(argvp) + uintptr(argc)*size))
 	}
 	return strParts, nil
 }

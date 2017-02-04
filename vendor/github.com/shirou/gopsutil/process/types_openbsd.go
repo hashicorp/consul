@@ -42,15 +42,14 @@ const (
 	KernProcPID      = 1  // by process id
 	KernProcProc     = 8  // only return procs
 	KernProcPathname = 12 // path to executable
-	KernProcArgs     = 55  // get/set arguments/proctitle
-	KernProcArgv	 = 1
-	KernProcEnv	 = 3
+	KernProcArgs     = 55 // get/set arguments/proctitle
+	KernProcArgv     = 1
+	KernProcEnv      = 3
 )
 
 const (
-	ArgMax	=	256 * 1024 // sys/syslimits.h:#define  ARG_MAX
+	ArgMax = 256 * 1024 // sys/syslimits.h:#define  ARG_MAX
 )
-
 
 const (
 	sizeofPtr      = C.sizeofPtr
@@ -67,12 +66,12 @@ const (
 
 // from sys/proc.h
 const (
-	SIDL   = 1 /* Process being created by fork. */
-	SRUN   = 2 /* Currently runnable. */
-	SSLEEP = 3 /* Sleeping on an address. */
-	SSTOP  = 4 /* Process debugging or suspension. */
-	SZOMB  = 5 /* Awaiting collection by parent. */
-	SDEAD  = 6 /* Thread is almost gone */
+	SIDL    = 1 /* Process being created by fork. */
+	SRUN    = 2 /* Currently runnable. */
+	SSLEEP  = 3 /* Sleeping on an address. */
+	SSTOP   = 4 /* Process debugging or suspension. */
+	SZOMB   = 5 /* Awaiting collection by parent. */
+	SDEAD   = 6 /* Thread is almost gone */
 	SONPROC = 7 /* Thread is currently on a CPU. */
 )
 
