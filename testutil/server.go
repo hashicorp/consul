@@ -298,7 +298,7 @@ func (s *TestServer) waitForLeader() {
 	var index int64
 	WaitForResult(func() (bool, error) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=10s", index))
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
 		resp, err := s.HttpClient.Get(url)
 		if err != nil {
 			return false, err
