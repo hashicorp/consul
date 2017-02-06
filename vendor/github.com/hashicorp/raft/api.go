@@ -3,6 +3,7 @@ package raft
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -24,6 +25,10 @@ var (
 	// ErrLeadershipLost is returned when a leader fails to commit a log entry
 	// because it's been deposed in the process.
 	ErrLeadershipLost = errors.New("leadership lost while committing log")
+
+	// ErrAbortedByRestore is returned when a leader fails to commit a log
+	// entry because it's been superseded by a user snapshot restore.
+	ErrAbortedByRestore = errors.New("snapshot restored while committing log")
 
 	// ErrRaftShutdown is returned when operations are requested against an
 	// inactive Raft.
@@ -64,11 +69,14 @@ type Raft struct {
 	// FSM is the client state machine to apply commands to
 	fsm FSM
 
-	// fsmCommitCh is used to trigger async application of logs to the fsm
-	fsmCommitCh chan commitTuple
-
-	// fsmRestoreCh is used to trigger a restore from snapshot
-	fsmRestoreCh chan *restoreFuture
+	// fsmMutateCh is used to send state-changing updates to the FSM. This
+	// receives pointers to commitTuple structures when applying logs or
+	// pointers to restoreFuture structures when restoring a snapshot. We
+	// need control over the order of these operations when doing user
+	// restores so that we finish applying any old log applies before we
+	// take a user snapshot on the leader, otherwise we might restore the
+	// snapshot and apply old logs to it that were in the pipe.
+	fsmMutateCh chan interface{}
 
 	// fsmSnapshotCh is used to trigger a new snapshot being taken
 	fsmSnapshotCh chan *reqSnapshotFuture
@@ -118,8 +126,12 @@ type Raft struct {
 	// snapshots is used to store and retrieve snapshots
 	snapshots SnapshotStore
 
-	// snapshotCh is used for user triggered snapshots
-	snapshotCh chan *snapshotFuture
+	// userSnapshotCh is used for user-triggered snapshots
+	userSnapshotCh chan *userSnapshotFuture
+
+	// userRestoreCh is used for user-triggered restores of external
+	// snapshots
+	userRestoreCh chan *userRestoreFuture
 
 	// stable is a StableStore implementation for durable state
 	// It provides stable storage for many fields in raftState
@@ -429,8 +441,7 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		applyCh:         make(chan *logFuture),
 		conf:            *conf,
 		fsm:             fsm,
-		fsmCommitCh:     make(chan commitTuple, 128),
-		fsmRestoreCh:    make(chan *restoreFuture),
+		fsmMutateCh:     make(chan interface{}, 128),
 		fsmSnapshotCh:   make(chan *reqSnapshotFuture),
 		leaderCh:        make(chan bool),
 		localID:         localID,
@@ -441,7 +452,8 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		configurations:        configurations{},
 		rpcCh:                 trans.Consumer(),
 		snapshots:             snaps,
-		snapshotCh:            make(chan *snapshotFuture),
+		userSnapshotCh:        make(chan *userSnapshotFuture),
+		userRestoreCh:         make(chan *userRestoreFuture),
 		shutdownCh:            make(chan struct{}),
 		stable:                stable,
 		trans:                 trans,
@@ -792,18 +804,78 @@ func (r *Raft) Shutdown() Future {
 	return &shutdownFuture{nil}
 }
 
-// Snapshot is used to manually force Raft to take a snapshot.
-// Returns a future that can be used to block until complete.
-func (r *Raft) Snapshot() Future {
-	snapFuture := &snapshotFuture{}
-	snapFuture.init()
+// Snapshot is used to manually force Raft to take a snapshot. Returns a future
+// that can be used to block until complete, and that contains a function that
+// can be used to open the snapshot.
+func (r *Raft) Snapshot() SnapshotFuture {
+	future := &userSnapshotFuture{}
+	future.init()
 	select {
-	case r.snapshotCh <- snapFuture:
-		return snapFuture
+	case r.userSnapshotCh <- future:
+		return future
 	case <-r.shutdownCh:
-		return errorFuture{ErrRaftShutdown}
+		future.respond(ErrRaftShutdown)
+		return future
+	}
+}
+
+// Restore is used to manually force Raft to consume an external snapshot, such
+// as if restoring from a backup. We will use the current Raft configuration,
+// not the one from the snapshot, so that we can restore into a new cluster. We
+// will also use the higher of the index of the snapshot, or the current index,
+// and then add 1 to that, so we force a new state with a hole in the Raft log,
+// so that the snapshot will be sent to followers and used for any new joiners.
+// This can only be run on the leader, and blocks until the restore is complete
+// or an error occurs.
+//
+// WARNING! This operation has the leader take on the state of the snapshot and
+// then sets itself up so that it replicates that to its followers though the
+// install snapshot process. This involves a potentially dangerous period where
+// the leader commits ahead of its followers, so should only be used for disaster
+// recovery into a fresh cluster, and should not be used in normal operations.
+func (r *Raft) Restore(meta *SnapshotMeta, reader io.Reader, timeout time.Duration) error {
+	metrics.IncrCounter([]string{"raft", "restore"}, 1)
+	var timer <-chan time.Time
+	if timeout > 0 {
+		timer = time.After(timeout)
 	}
 
+	// Perform the restore.
+	restore := &userRestoreFuture{
+		meta:   meta,
+		reader: reader,
+	}
+	restore.init()
+	select {
+	case <-timer:
+		return ErrEnqueueTimeout
+	case <-r.shutdownCh:
+		return ErrRaftShutdown
+	case r.userRestoreCh <- restore:
+		// If the restore is ingested then wait for it to complete.
+		if err := restore.Error(); err != nil {
+			return err
+		}
+	}
+
+	// Apply a no-op log entry. Waiting for this allows us to wait until the
+	// followers have gotten the restore and replicated at least this new
+	// entry, which shows that we've also faulted and installed the
+	// snapshot with the contents of the restore.
+	noop := &logFuture{
+		log: Log{
+			Type: LogNoop,
+		},
+	}
+	noop.init()
+	select {
+	case <-timer:
+		return ErrEnqueueTimeout
+	case <-r.shutdownCh:
+		return ErrRaftShutdown
+	case r.applyCh <- noop:
+		return noop.Error()
+	}
 }
 
 // State is used to return the current raft state.
@@ -870,7 +942,7 @@ func (r *Raft) Stats() map[string]string {
 		"last_log_term":        toString(lastLogTerm),
 		"commit_index":         toString(r.getCommitIndex()),
 		"applied_index":        toString(r.getLastApplied()),
-		"fsm_pending":          toString(uint64(len(r.fsmCommitCh))),
+		"fsm_pending":          toString(uint64(len(r.fsmMutateCh))),
 		"last_snapshot_index":  toString(lastSnapIndex),
 		"last_snapshot_term":   toString(lastSnapTerm),
 		"protocol_version":     toString(uint64(r.protocolVersion)),

@@ -1,6 +1,6 @@
 FROM ubuntu:trusty
 
-ENV GOVERSION 1.6.3
+ENV GOVERSION 1.7.5
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q \
@@ -27,4 +27,3 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
 
 RUN mkdir -p $GOPATH/src/github.com/hashicorp/consul
 WORKDIR $GOPATH/src/github.com/hashicorp/consul
-CMD ./scripts/dist_build.sh

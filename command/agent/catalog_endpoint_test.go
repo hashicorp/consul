@@ -145,6 +145,53 @@ func TestCatalogNodes(t *testing.T) {
 	}
 }
 
+func TestCatalogNodes_MetaFilter(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a node with a meta field
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?node-meta=somekey:somevalue", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify an index is set
+	assertIndex(t, resp)
+
+	// Verify we only get the node with the correct meta field back
+	nodes := obj.(structs.Nodes)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+	if v, ok := nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
+		t.Fatalf("bad: %v", nodes[0].Meta)
+	}
+}
+
 func TestCatalogNodes_WanTranslation(t *testing.T) {
 	dir1, srv1 := makeHTTPServerWithConfig(t,
 		func(c *Config) {
@@ -449,6 +496,54 @@ func TestCatalogServices(t *testing.T) {
 	}
 }
 
+func TestCatalogServices_NodeMetaFilter(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"somekey": "somevalue",
+		},
+		Service: &structs.NodeService{
+			Service: "api",
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/services?node-meta=somekey:somevalue", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogServices(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	services := obj.(structs.Services)
+	if len(services) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+	if _, ok := services[args.Service.Service]; !ok {
+		t.Fatalf("bad: %v", services)
+	}
+}
+
 func TestCatalogServiceNodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -495,6 +590,72 @@ func TestCatalogServiceNodes(t *testing.T) {
 	}
 
 	req, err := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogServiceNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Make sure an empty list is returned, not a nil
+	{
+		req, err := http.NewRequest("GET", "/v1/catalog/service/api?node-meta=somekey:somevalue", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.CatalogServiceNodes(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.ServiceNodes)
+		if nodes == nil || len(nodes) != 0 {
+			t.Fatalf("bad: %v", obj)
+		}
+	}
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"somekey": "somevalue",
+		},
+		Service: &structs.NodeService{
+			Service: "api",
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/service/api?node-meta=somekey:somevalue", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

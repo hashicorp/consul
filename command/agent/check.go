@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -47,6 +48,7 @@ type CheckType struct {
 	Interval          time.Duration
 	DockerContainerID string
 	Shell             string
+	TLSSkipVerify     bool
 
 	Timeout time.Duration
 	TTL     time.Duration
@@ -108,7 +110,6 @@ type CheckMonitor struct {
 	Interval time.Duration
 	Timeout  time.Duration
 	Logger   *log.Logger
-	ReapLock *sync.RWMutex
 
 	stop     bool
 	stopCh   chan struct{}
@@ -154,12 +155,6 @@ func (c *CheckMonitor) run() {
 
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
-	// Disable child process reaping so that we can get this command's
-	// return value. Note that we take the read lock here since we are
-	// waiting on a specific PID and don't need to serialize all waits.
-	c.ReapLock.RLock()
-	defer c.ReapLock.RUnlock()
-
 	// Create the command
 	cmd, err := ExecScript(c.Script)
 	if err != nil {
@@ -202,7 +197,7 @@ func (c *CheckMonitor) check() {
 			output.Size(), output.TotalWritten(), outputStr)
 	}
 
-	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
+	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
 		c.CheckID, c.Script, outputStr)
 
 	// Check if the check passed
@@ -340,12 +335,13 @@ type persistedCheckState struct {
 // The check is critical if the response code is anything else
 // or if the request returns an error
 type CheckHTTP struct {
-	Notify   CheckNotifier
-	CheckID  types.CheckID
-	HTTP     string
-	Interval time.Duration
-	Timeout  time.Duration
-	Logger   *log.Logger
+	Notify        CheckNotifier
+	CheckID       types.CheckID
+	HTTP          string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        *log.Logger
+	TLSSkipVerify bool
 
 	httpClient *http.Client
 	stop       bool
@@ -364,6 +360,15 @@ func (c *CheckHTTP) Start() {
 		// failing checks due to the keepalive interval.
 		trans := cleanhttp.DefaultTransport()
 		trans.DisableKeepAlives = true
+
+		// Skip SSL certificate verification if TLSSkipVerify is true
+		if trans.TLSClientConfig == nil {
+			trans.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: c.TLSSkipVerify,
+			}
+		} else {
+			trans.TLSClientConfig.InsecureSkipVerify = c.TLSSkipVerify
+		}
 
 		// Create the HTTP client.
 		c.httpClient = &http.Client{
@@ -436,7 +441,7 @@ func (c *CheckHTTP) check() {
 	// Read the response into a circular buffer to limit the size
 	output, _ := circbuf.NewBuffer(CheckBufSize)
 	if _, err := io.Copy(output, resp.Body); err != nil {
-		c.Logger.Printf("[WARN] agent: check '%v': Get error while reading body: %s", c.CheckID, err)
+		c.Logger.Printf("[WARN] agent: Check '%v': Get error while reading body: %s", c.CheckID, err)
 	}
 
 	// Format the response body
@@ -444,19 +449,19 @@ func (c *CheckHTTP) check() {
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
-		c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
+		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
 
 	} else if resp.StatusCode == 429 {
 		// WARNING
 		// 429 Too Many Requests (RFC 6585)
 		// The user has sent too many requests in a given amount of time.
-		c.Logger.Printf("[WARN] agent: check '%v' is now warning", c.CheckID)
+		c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, result)
 
 	} else {
 		// CRITICAL
-		c.Logger.Printf("[WARN] agent: check '%v' is now critical", c.CheckID)
+		c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, result)
 	}
 }
@@ -540,7 +545,7 @@ func (c *CheckTCP) check() {
 		return
 	}
 	conn.Close()
-	c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
+	c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
@@ -666,7 +671,7 @@ func (c *CheckDocker) check() {
 			output.Size(), output.TotalWritten(), outputStr)
 	}
 
-	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
+	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
 		c.CheckID, c.Script, outputStr)
 
 	execInfo, err := c.dockerClient.InspectExec(exec.ID)

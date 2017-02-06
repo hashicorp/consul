@@ -1,0 +1,38 @@
+Copyright (c) 1992-2016 The FreeBSD Project.
+Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994
+        The Regents of the University of California. All rights reserved.
+FreeBSD is a registered trademark of The FreeBSD Foundation.
+FreeBSD 10.3-RELEASE-p4 #0: Sat May 28 12:23:44 UTC 2016
+    root@amd64-builder.daemonology.net:/usr/obj/usr/src/sys/GENERIC amd64
+FreeBSD clang version 3.4.1 (tags/RELEASE_34/dot1-final 208032) 20140512
+CPU: Intel(R) Xeon(R) CPU E5-1620 v2 @ 3.70GHz (3700.09-MHz K8-class CPU)
+  Origin="GenuineIntel"  Id=0x306e4  Family=0x6  Model=0x3e  Stepping=4
+  Features=0xbfebfbff<FPU,VME,DE,PSE,TSC,MSR,PAE,MCE,CX8,APIC,SEP,MTRR,PGE,MCA,CMOV,PAT,PSE36,CLFLUSH,DTS,ACPI,MMX,FXSR,SSE,SSE2,SS,HTT,TM,PBE>
+  Features2=0x7fbee3ff<SSE3,PCLMULQDQ,DTES64,MON,DS_CPL,VMX,SMX,EST,TM2,SSSE3,CX16,xTPR,PDCM,PCID,DCA,SSE4.1,SSE4.2,x2APIC,POPCNT,TSCDLT,AESNI,XSAVE,OSXSAVE,AVX,F16C,RDRAND>
+  AMD Features=0x2c100800<SYSCALL,NX,Page1GB,RDTSCP,LM>
+  AMD Features2=0x1<LAHF>
+  Structured Extended Features=0x281<FSGSBASE,SMEP,ERMS>
+  XSAVE Features=0x1<XSAVEOPT>
+  VT-x: PAT,HLT,MTF,PAUSE,EPT,UG,VPID,VID,PostIntr
+  TSC: P-state invariant, performance statistics
+real memory  = 34368126976 (32776 MB)
+avail memory = 33228333056 (31689 MB)
+Event timer "LAPIC" quality 600
+ACPI APIC Table: < >
+FreeBSD/SMP: Multiprocessor System Detected: 8 CPUs
+FreeBSD/SMP: 1 package(s) x 4 core(s) x 2 SMT threads
+ cpu0 (BSP): APIC ID:  0
+ cpu1 (AP): APIC ID:  1
+ cpu2 (AP): APIC ID:  2
+ cpu3 (AP): APIC ID:  3
+ cpu4 (AP): APIC ID:  4
+ cpu5 (AP): APIC ID:  5
+ cpu6 (AP): APIC ID:  6
+ cpu7 (AP): APIC ID:  7
+random: <Software, Yarrow> initialized
+ioapic0 <Version 2.0> irqs 0-23 on motherboard
+ioapic1 <Version 2.0> irqs 24-47 on motherboard
+kbd1 at kbdmux0
+cryptosoft0: <software crypto> on motherboard
+aesni0: <AES-CBC,AES-XTS> on motherboard
+acpi0: <SUPERM SMCI--MB> on motherboard

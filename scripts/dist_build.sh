@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-export GO15VENDOREXPERIMENT=1
-
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
@@ -11,8 +9,8 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 # Change into that dir because we expect that.
 cd $DIR
 
-# Make sure build tools are abailable.
-make -f GNUMakefile tools
+# Make sure build tools are available.
+make tools
 
 # Build the standalone version of the web assets for the sanity check.
 pushd ui
@@ -29,7 +27,7 @@ popd
 
 # Regenerate the built-in web assets. If there are any diffs after doing this
 # then we know something is up.
-make -f GNUMakefile static-assets
+make static-assets
 if ! git diff --quiet command/agent/bindata_assetfs.go; then
    echo "Checked-in web assets are out of date, build aborted"
    exit 1
@@ -39,7 +37,7 @@ fi
 # away our pkg folder so we have to regenerate the ui once more. This is probably
 # for the best since we have meddled with the timestamps.
 rm -rf pkg
-make -f GNUMakefile all
+make all
 pushd ui
 make dist
 popd

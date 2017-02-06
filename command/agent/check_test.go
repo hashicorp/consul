@@ -25,13 +25,42 @@ type MockNotify struct {
 	state   map[types.CheckID]string
 	updates map[types.CheckID]int
 	output  map[types.CheckID]string
+
+	// A guard to protect an access to the internal attributes
+	// of the notification mock in order to prevent panics
+	// raised by the race conditions detector.
+	mu sync.RWMutex
 }
 
 func (m *MockNotify) UpdateCheck(id types.CheckID, status, output string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.state[id] = status
 	old := m.updates[id]
 	m.updates[id] = old + 1
 	m.output[id] = output
+}
+
+// State returns the state of the specified health-check.
+func (m *MockNotify) State(id types.CheckID) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.state[id]
+}
+
+// Updates returns the count of updates of the specified health-check.
+func (m *MockNotify) Updates(id types.CheckID) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.updates[id]
+}
+
+// Output returns an output string of the specified health-check.
+func (m *MockNotify) Output(id types.CheckID) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.output[id]
 }
 
 func expectStatus(t *testing.T, script, status string) {
@@ -46,18 +75,17 @@ func expectStatus(t *testing.T, script, status string) {
 		Script:   script,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
-		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
 
 	testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
-		if mock.updates["foo"] < 2 {
+		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
 		}
 
-		if mock.state["foo"] != status {
+		if mock.State("foo") != status {
 			return false, fmt.Errorf("should be %v %v", status, mock.state)
 		}
 
@@ -96,7 +124,6 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		Interval: 10 * time.Millisecond,
 		Timeout:  5 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
-		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
@@ -104,11 +131,11 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
+	if mock.Updates("foo") < 2 {
 		t.Fatalf("should have at least 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != "critical" {
+	if mock.State("foo") != "critical" {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 }
@@ -125,7 +152,6 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
-		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
@@ -133,11 +159,11 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 1 update
-	if mock.updates["foo"] < 1 {
+	if mock.Updates("foo") < 1 {
 		t.Fatalf("should have 1 or more updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthPassing {
+	if mock.State("foo") != structs.HealthPassing {
 		t.Fatalf("should be %v %v", structs.HealthPassing, mock.state)
 	}
 }
@@ -154,7 +180,6 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
-		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
@@ -162,7 +187,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.output["foo"]) > CheckBufSize+100 {
+	if len(mock.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 }
@@ -185,32 +210,32 @@ func TestCheckTTL(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	check.SetStatus(structs.HealthPassing, "test-output")
 
-	if mock.updates["foo"] != 1 {
+	if mock.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthPassing {
+	if mock.State("foo") != structs.HealthPassing {
 		t.Fatalf("should be passing %v", mock.state)
 	}
 
 	// Ensure we don't fail early
 	time.Sleep(75 * time.Millisecond)
-	if mock.updates["foo"] != 1 {
+	if mock.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
 	// Wait for the TTL to expire
 	time.Sleep(75 * time.Millisecond)
 
-	if mock.updates["foo"] != 2 {
+	if mock.Updates("foo") != 2 {
 		t.Fatalf("should have 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != structs.HealthCritical {
+	if mock.State("foo") != structs.HealthCritical {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 
-	if !strings.Contains(mock.output["foo"], "test-output") {
+	if !strings.Contains(mock.Output("foo"), "test-output") {
 		t.Fatalf("should have retained output %v", mock.output)
 	}
 }
@@ -226,6 +251,19 @@ func mockHTTPServer(responseCode int) *httptest.Server {
 	})
 
 	return httptest.NewServer(mux)
+}
+
+func mockTLSHTTPServer(responseCode int) *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Body larger than 4k limit
+		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+		w.WriteHeader(responseCode)
+		w.Write(body)
+		return
+	})
+
+	return httptest.NewTLSServer(mux)
 }
 
 func expectHTTPStatus(t *testing.T, url string, status string) {
@@ -244,21 +282,24 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.Updates("foo") < 2 {
+			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
-	}
+		if mock.State("foo") != status {
+			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		}
 
-	if mock.state["foo"] != status {
-		t.Fatalf("should be %v %v", status, mock.state)
-	}
-
-	// Allow slightly more data than CheckBufSize, for the header
-	if n := len(mock.output["foo"]); n > (CheckBufSize + 256) {
-		t.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
-	}
+		// Allow slightly more data than CheckBufSize, for the header
+		if n := len(mock.Output("foo")); n > (CheckBufSize + 256) {
+			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTPCritical(t *testing.T) {
@@ -347,16 +388,19 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.updates["bar"] < 2 {
+			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["bar"] < 2 {
-		t.Fatalf("should have at least 2 updates %v", mock.updates)
-	}
-
-	if mock.state["bar"] != structs.HealthCritical {
-		t.Fatalf("should be critical %v", mock.state)
-	}
+		if mock.state["bar"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
@@ -373,6 +417,134 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).DisableKeepAlives {
 		t.Fatalf("should have disabled keepalives")
 	}
+}
+
+func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
+	check := &CheckHTTP{
+		CheckID:  "foo",
+		HTTP:     "https://foo.bar/baz",
+		Interval: 10 * time.Second,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Fatalf("should default to false")
+	}
+}
+
+func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
+	server := mockTLSHTTPServer(200)
+	defer server.Close()
+
+	mock := &MockNotify{
+		state:   make(map[types.CheckID]string),
+		updates: make(map[types.CheckID]int),
+		output:  make(map[types.CheckID]string),
+	}
+
+	check := &CheckHTTP{
+		Notify:        mock,
+		CheckID:       types.CheckID("skipverify_true"),
+		HTTP:          server.URL,
+		Interval:      5 * time.Millisecond,
+		Logger:        log.New(os.Stderr, "", log.LstdFlags),
+		TLSSkipVerify: true,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Fatalf("should be true")
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		if mock.state["skipverify_true"] != structs.HealthPassing {
+			return false, fmt.Errorf("should be passing %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
+}
+
+func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
+	server := mockTLSHTTPServer(500)
+	defer server.Close()
+
+	mock := &MockNotify{
+		state:   make(map[types.CheckID]string),
+		updates: make(map[types.CheckID]int),
+		output:  make(map[types.CheckID]string),
+	}
+
+	check := &CheckHTTP{
+		Notify:        mock,
+		CheckID:       types.CheckID("skipverify_true"),
+		HTTP:          server.URL,
+		Interval:      5 * time.Millisecond,
+		Logger:        log.New(os.Stderr, "", log.LstdFlags),
+		TLSSkipVerify: true,
+	}
+	check.Start()
+	defer check.Stop()
+
+	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Fatalf("should be true")
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		if mock.state["skipverify_true"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
+}
+
+func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
+	server := mockTLSHTTPServer(200)
+	defer server.Close()
+
+	mock := &MockNotify{
+		state:   make(map[types.CheckID]string),
+		updates: make(map[types.CheckID]int),
+		output:  make(map[types.CheckID]string),
+	}
+
+	check := &CheckHTTP{
+		Notify:        mock,
+		CheckID:       types.CheckID("skipverify_false"),
+		HTTP:          server.URL,
+		Interval:      100 * time.Millisecond,
+		Logger:        log.New(os.Stderr, "", log.LstdFlags),
+		TLSSkipVerify: false,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Fatalf("should be false")
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		// This should fail due to an invalid SSL cert
+		if mock.state["skipverify_false"] != structs.HealthCritical {
+			return false, fmt.Errorf("should be critical %v", mock.state)
+		}
+
+		if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
+			return false, fmt.Errorf("should fail with certificate error %v", mock.output)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func mockTCPServer(network string) net.Listener {
@@ -410,16 +582,19 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.Updates("foo") < 2 {
+			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
-	}
-
-	if mock.state["foo"] != status {
-		t.Fatalf("should be %v %v", status, mock.state)
-	}
+		if mock.State("foo") != status {
+			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckTCPCritical(t *testing.T) {
@@ -596,15 +771,15 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
+	if mock.Updates("foo") < 2 {
 		t.Fatalf("should have 2 updates %v", mock.updates)
 	}
 
-	if mock.state["foo"] != status {
+	if mock.State("foo") != status {
 		t.Fatalf("should be %v %v", status, mock.state)
 	}
 
-	if mock.output["foo"] != output {
+	if mock.Output("foo") != output {
 		t.Fatalf("should be %v %v", output, mock.output)
 	}
 }
@@ -706,7 +881,7 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.output["foo"]) > CheckBufSize+100 {
+	if len(mock.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 

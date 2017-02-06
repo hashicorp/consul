@@ -17,8 +17,8 @@ be extended to a scalable, production-grade service discovery infrastructure.
 In this step, we'll create our first real cluster with multiple members.
 
 When a Consul agent is started, it begins without knowledge of any other node:
-it is an isolated cluster of one.  To learn about other cluster members, the
-agent must _join_ an existing cluster.  To join an existing cluster, it only
+it is an isolated cluster of one. To learn about other cluster members, the
+agent must _join_ an existing cluster. To join an existing cluster, it only
 needs to know about a _single_ existing member. After it joins, the agent will
 gossip with this member and quickly discover the other members in the cluster.
 A Consul agent can join any other agent, not just agents in server mode.

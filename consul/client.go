@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/servers"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -143,6 +145,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.NodeName = c.config.NodeName
 	conf.Tags["role"] = "node"
 	conf.Tags["dc"] = c.config.Datacenter
+	conf.Tags["id"] = string(c.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", c.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
@@ -155,7 +158,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
 	conf.DisableCoordinates = c.config.DisableCoordinates
-	if err := ensurePath(conf.SnapshotPath, false); err != nil {
+	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
 	return serf.Create(conf)
@@ -332,6 +335,51 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 		c.servers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
+	}
+
+	return nil
+}
+
+// SnapshotReplyFn gets a peek at the reply before the snapshot streams, which
+// is useful for setting headers.
+type SnapshotReplyFn func(reply *structs.SnapshotResponse) error
+
+// SnapshotRPC sends the snapshot request to one of the servers, reading from
+// the streaming input and writing to the streaming output depending on the
+// operation.
+func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
+	replyFn SnapshotReplyFn) error {
+
+	// Locate a server to make the request to.
+	server := c.servers.FindServer()
+	if server == nil {
+		return structs.ErrNoServers
+	}
+
+	// Request the operation.
+	var reply structs.SnapshotResponse
+	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, args, in, &reply)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := snap.Close(); err != nil {
+			c.logger.Printf("[WARN] consul: Failed closing snapshot stream: %v", err)
+		}
+	}()
+
+	// Let the caller peek at the reply.
+	if replyFn != nil {
+		if err := replyFn(&reply); err != nil {
+			return nil
+		}
+	}
+
+	// Stream the snapshot.
+	if out != nil {
+		if _, err := io.Copy(out, snap); err != nil {
+			return fmt.Errorf("failed to stream snapshot: %v", err)
+		}
 	}
 
 	return nil

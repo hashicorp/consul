@@ -183,6 +183,27 @@ func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	}
 }
 
+func TestConfig_OutgoingTLS_TLSMinVersion(t *testing.T) {
+	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	for _, version := range tlsVersions {
+		conf := &Config{
+			VerifyOutgoing: true,
+			CAFile:         "../test/ca/root.cer",
+			TLSMinVersion:  version,
+		}
+		tls, err := conf.OutgoingTLSConfig()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if tls == nil {
+			t.Fatalf("expected config")
+		}
+		if tls.MinVersion != TLSLookup[version] {
+			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
+		}
+	}
+}
+
 func startTLSServer(config *Config) (net.Conn, chan error) {
 	errc := make(chan error, 1)
 
@@ -207,6 +228,7 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 			errc <- err
 		}
 		close(errc)
+
 		// Because net.Pipe() is unbuffered, if both sides
 		// Close() simultaneously, we will deadlock as they
 		// both send an alert and then block. So we make the
@@ -276,12 +298,11 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
@@ -309,12 +330,11 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	}
-	defer tlsClient.Close()
 	err = tlsClient.(*tls.Conn).Handshake()
-
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
 	}
+	tlsClient.Close()
 
 	<-errc
 }
@@ -449,5 +469,28 @@ func TestConfig_IncomingTLS_NoVerify(t *testing.T) {
 	}
 	if len(tlsC.Certificates) != 0 {
 		t.Fatalf("unexpected client cert")
+	}
+}
+
+func TestConfig_IncomingTLS_TLSMinVersion(t *testing.T) {
+	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	for _, version := range tlsVersions {
+		conf := &Config{
+			VerifyIncoming: true,
+			CAFile:         "../test/ca/root.cer",
+			CertFile:       "../test/key/ourdomain.cer",
+			KeyFile:        "../test/key/ourdomain.key",
+			TLSMinVersion:  version,
+		}
+		tls, err := conf.IncomingTLSConfig()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if tls == nil {
+			t.Fatalf("expected config")
+		}
+		if tls.MinVersion != TLSLookup[version] {
+			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
+		}
 	}
 }

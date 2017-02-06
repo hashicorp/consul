@@ -19,6 +19,13 @@
 </head>
 <body>
 
+  <noscript>
+    <center>
+      <h2>JavaScript Required</h2>
+      <p>Please enable JavaScript in your web browser to use Consul UI.</p>
+    </center>
+  </noscript>
+
   <div class="wrapper">
     <div class="container">
       <div class="col-md-12">
@@ -520,7 +527,6 @@
 
       <h3 class="no-margin">
         {{ model.Node }} <small> {{ model.Address }}</small>
-        <button {{ action "deregisterNode" }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-mini isLoading:btn-warning" }}>Deregister</button>
       </h3>
       <hr>
 

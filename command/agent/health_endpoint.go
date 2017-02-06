@@ -11,6 +11,7 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
 	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -70,6 +71,7 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -100,6 +102,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}

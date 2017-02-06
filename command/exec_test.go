@@ -23,7 +23,7 @@ func TestExecCommandRun(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &ExecCommand{Ui: ui}
-	args := []string{"-http-addr=" + a1.httpAddr, "-wait=400ms", "uptime"}
+	args := []string{"-http-addr=" + a1.httpAddr, "-wait=10s", "uptime"}
 
 	code := c.Run(args)
 	if code != 0 {

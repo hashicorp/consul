@@ -18,9 +18,6 @@ import (
 const (
 	syncStaggerIntv = 3 * time.Second
 	syncRetryIntv   = 15 * time.Second
-
-	// permissionDenied is returned when an ACL based rejection happens
-	permissionDenied = "Permission denied"
 )
 
 // syncStatus is used to represent the difference between
@@ -47,7 +44,7 @@ type localState struct {
 	iface consul.Interface
 
 	// nodeInfoInSync tracks whether the server has our correct top-level
-	// node information in sync (currently only used for tagged addresses)
+	// node information in sync
 	nodeInfoInSync bool
 
 	// Services tracks the local services
@@ -63,6 +60,9 @@ type localState struct {
 
 	// Used to track checks that are being deferred
 	deferCheck map[types.CheckID]*time.Timer
+
+	// metadata tracks the local metadata fields
+	metadata map[string]string
 
 	// consulCh is used to inform of a change to the known
 	// consul nodes. This may be used to retry a sync run
@@ -85,6 +85,7 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.checkTokens = make(map[types.CheckID]string)
 	l.checkCriticalTime = make(map[types.CheckID]time.Time)
 	l.deferCheck = make(map[types.CheckID]*time.Timer)
+	l.metadata = make(map[string]string)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
 }
@@ -170,14 +171,20 @@ func (l *localState) AddService(service *structs.NodeService, token string) {
 
 // RemoveService is used to remove a service entry from the local state.
 // The agent will make a best effort to ensure it is deregistered
-func (l *localState) RemoveService(serviceID string) {
+func (l *localState) RemoveService(serviceID string) error {
 	l.Lock()
 	defer l.Unlock()
 
-	delete(l.services, serviceID)
-	delete(l.serviceTokens, serviceID)
-	l.serviceStatus[serviceID] = syncStatus{inSync: false}
-	l.changeMade()
+	if _, ok := l.services[serviceID]; ok {
+		delete(l.services, serviceID)
+		delete(l.serviceTokens, serviceID)
+		l.serviceStatus[serviceID] = syncStatus{inSync: false}
+		l.changeMade()
+	} else {
+		return fmt.Errorf("Service does not exist")
+	}
+
+	return nil
 }
 
 // Services returns the locally registered services that the
@@ -336,6 +343,19 @@ func (l *localState) CriticalChecks() map[types.CheckID]CriticalCheck {
 	return checks
 }
 
+// Metadata returns the local node metadata fields that the
+// agent is aware of and are being kept in sync with the server
+func (l *localState) Metadata() map[string]string {
+	metadata := make(map[string]string)
+	l.RLock()
+	defer l.RUnlock()
+
+	for key, value := range l.metadata {
+		metadata[key] = value
+	}
+	return metadata
+}
+
 // antiEntropy is a long running method used to perform anti-entropy
 // between local and remote state.
 func (l *localState) antiEntropy(shutdownCh chan struct{}) {
@@ -394,7 +414,7 @@ func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.config.ACLToken},
+		QueryOptions: structs.QueryOptions{Token: l.config.GetTokenForAgent()},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -409,10 +429,11 @@ func (l *localState) setSyncState() error {
 	l.Lock()
 	defer l.Unlock()
 
-	// Check the node info (currently limited to tagged addresses since
-	// everything else is managed by the Serf layer)
+	// Check the node info
 	if out1.NodeServices == nil || out1.NodeServices.Node == nil ||
-		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) {
+		out1.NodeServices.Node.ID != l.config.NodeID ||
+		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) ||
+		!reflect.DeepEqual(out1.NodeServices.Node.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
 
@@ -613,9 +634,11 @@ func (l *localState) deleteCheck(id types.CheckID) error {
 func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
 		Service:         l.services[id],
 		WriteRequest:    structs.WriteRequest{Token: l.serviceToken(id)},
 	}
@@ -674,9 +697,11 @@ func (l *localState) syncCheck(id types.CheckID) error {
 
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
 		Service:         service,
 		Check:           l.checks[id],
 		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
@@ -700,10 +725,12 @@ func (l *localState) syncCheck(id types.CheckID) error {
 func (l *localState) syncNodeInfo() error {
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
-		WriteRequest:    structs.WriteRequest{Token: l.config.ACLToken},
+		NodeMeta:        l.metadata,
+		WriteRequest:    structs.WriteRequest{Token: l.config.GetTokenForAgent()},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)

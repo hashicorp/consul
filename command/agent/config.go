@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
 )
@@ -118,6 +119,45 @@ type DNSConfig struct {
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
+// RetryJoinEC2 is used to configure discovery of instances via Amazon's EC2 api
+type RetryJoinEC2 struct {
+	// The AWS region to look for instances in
+	Region string `mapstructure:"region"`
+
+	// The tag key and value to use when filtering instances
+	TagKey   string `mapstructure:"tag_key"`
+	TagValue string `mapstructure:"tag_value"`
+
+	// The AWS credentials to use for making requests to EC2
+	AccessKeyID     string `mapstructure:"access_key_id" json:"-"`
+	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
+}
+
+// RetryJoinGCE is used to configure discovery of instances via Google Compute
+// Engine's API.
+type RetryJoinGCE struct {
+	// The name of the project the instances reside in.
+	ProjectName string `mapstructure:"project_name"`
+
+	// A regular expression (RE2) pattern for the zones you want to discover the instances in.
+	// Example: us-west1-.*, or us-(?west|east).*.
+	ZonePattern string `mapstructure:"zone_pattern"`
+
+	// The tag value to search for when filtering instances.
+	TagValue string `mapstructure:"tag_value"`
+
+	// A path to a JSON file with the service account credentials necessary to
+	// connect to GCE. If this is not defined, the following chain is respected:
+	// 1. A JSON file whose path is specified by the
+	//		GOOGLE_APPLICATION_CREDENTIALS environment variable.
+	// 2. A JSON file in a location known to the gcloud command-line tool.
+	//    On Windows, this is %APPDATA%/gcloud/application_default_credentials.json.
+	//  	On other systems, $HOME/.config/gcloud/application_default_credentials.json.
+	// 3. On Google Compute Engine, it fetches credentials from the metadata
+	//    server.  (In this final case any provided scopes are ignored.)
+	CredentialsFile string `mapstructure:"credentials_file"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -199,6 +239,13 @@ type Telemetry struct {
 	// narrow down the search results when neither a Submission URL or Check ID is provided.
 	// Default: service:app (e.g. service:consul)
 	CirconusCheckSearchTag string `mapstructure:"circonus_check_search_tag"`
+	// CirconusCheckTags is a comma separated list of tags to apply to the check. Note that
+	// the value of CirconusCheckSearchTag will always be added to the check.
+	// Default: none
+	CirconusCheckTags string `mapstructure:"circonus_check_tags"`
+	// CirconusCheckDisplayName is the name for the check which will be displayed in the Circonus UI.
+	// Default: value of CirconusCheckInstanceID
+	CirconusCheckDisplayName string `mapstructure:"circonus_check_display_name"`
 	// CirconusBrokerID is an explicit broker to use when creating a new check. The numeric portion
 	// of broker._cid. If metric management is enabled and neither a Submission URL nor Check ID
 	// is provided, an attempt will be made to search for an existing check using Instance ID and
@@ -266,6 +313,10 @@ type Config struct {
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
 
+	// Node ID is a unique ID for this node across space and time. Defaults
+	// to a randomly-generated ID that persists in the data-dir.
+	NodeID types.NodeID `mapstructure:"node_id"`
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string `mapstructure:"node_name"`
 
@@ -278,6 +329,18 @@ type Config struct {
 	// This controls the address we use for cluster facing
 	// services (Gossip, Server RPC)
 	BindAddr string `mapstructure:"bind_addr"`
+
+	// SerfWanBindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip) Serf
+	SerfWanBindAddr string `mapstructure:"serf_wan_bind"`
+
+	// SerfLanBindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip) Serf
+	SerfLanBindAddr string `mapstructure:"serf_lan_bind"`
 
 	// AdvertiseAddr is the address we use for advertising our Serf,
 	// and Consul RPC IP. If not specified, bind address is used.
@@ -308,6 +371,11 @@ type Config struct {
 	// user-defined tags. The "wan" tag will be used by remote agents if
 	// they are configured with TranslateWanAddrs set to true.
 	TaggedAddresses map[string]string
+
+	// Node metadata key/value pairs. These are excluded from JSON output
+	// because they can be reloaded and might be stale when shown from the
+	// config instead of the local state.
+	Meta map[string]string `mapstructure:"node_meta" json:"-"`
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults true on clients, false on servers. This can
@@ -361,6 +429,9 @@ type Config struct {
 	// provide matches the certificate
 	ServerName string `mapstructure:"server_name"`
 
+	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
+	TLSMinVersion string `mapstructure:"tls_min_version"`
+
 	// StartJoin is a list of addresses to attempt to join when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.
@@ -384,6 +455,12 @@ type Config struct {
 	// the default is 30s.
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
+
+	// RetryJoinEC2 configuration
+	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
+
+	// The config struct for the GCE tag server discovery feature.
+	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -452,6 +529,16 @@ type Config struct {
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
 
+	// ACLAgentMasterToken is a special token that has full read and write
+	// privileges for this agent, and can be used to call agent endpoints
+	// when no servers are available.
+	ACLAgentMasterToken string `mapstructure:"acl_agent_master_token" json:"-"`
+
+	// ACLAgentToken is the default token used to make requests for the agent
+	// itself, such as for registering itself with the catalog. If not
+	// configured, the 'acl_token' will be used.
+	ACLAgentToken string `mapstructure:"acl_agent_token" json:"-"`
+
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
@@ -473,9 +560,15 @@ type Config struct {
 	// white-lists.
 	ACLDefaultPolicy string `mapstructure:"acl_default_policy"`
 
+	// ACLDisabledTTL is used by clients to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled.
+	ACLDisabledTTL time.Duration `mapstructure:"-"`
+
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
 	// reach the ACLDatacenter and the token is not in the cache.
 	// There are two modes:
+	//   * allow - Allow all requests
 	//   * deny - Deny all requests
 	//   * extend-cache - Ignore the cache expiration, and allow cached
 	//                    ACL's to be used to service requests. This
@@ -488,6 +581,10 @@ type Config struct {
 	// also enables replication. Replication is only available in datacenters
 	// other than the ACLDatacenter.
 	ACLReplicationToken string `mapstructure:"acl_replication_token" json:"-"`
+
+	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
+	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
+	ACLEnforceVersion8 *bool `mapstructure:"acl_enforce_version_8"`
 
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
@@ -648,12 +745,13 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			AllowStale:      Bool(true),
 			UDPAnswerLimit:  3,
-			MaxStale:        5 * time.Second,
+			MaxStale:        10 * 365 * 24 * time.Hour,
 			RecursorTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
 		},
+		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
 		Protocol:                   consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval:        5 * time.Minute,
@@ -669,11 +767,15 @@ func DefaultConfig() *Config {
 		SyncCoordinateRateTarget:  64.0, // updates / second
 		SyncCoordinateIntervalMin: 15 * time.Second,
 
-		ACLTTL:           30 * time.Second,
-		ACLDownPolicy:    "extend-cache",
-		ACLDefaultPolicy: "allow",
-		RetryInterval:    30 * time.Second,
-		RetryIntervalWan: 30 * time.Second,
+		ACLTTL:             30 * time.Second,
+		ACLDownPolicy:      "extend-cache",
+		ACLDefaultPolicy:   "allow",
+		ACLDisabledTTL:     120 * time.Second,
+		ACLEnforceVersion8: Bool(false),
+		RetryInterval:      30 * time.Second,
+		RetryIntervalWan:   30 * time.Second,
+
+		TLSMinVersion: "tls10",
 	}
 }
 
@@ -713,6 +815,18 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 		return nil, fmt.Errorf("Failed to parse IP: %v", addr)
 	}
 	return &net.TCPAddr{IP: ip, Port: port}, nil
+}
+
+// GetTokenForAgent returns the token the agent should use for its own internal
+// operations, such as registering itself with the catalog.
+func (c *Config) GetTokenForAgent() string {
+	if c.ACLAgentToken != "" {
+		return c.ACLAgentToken
+	} else if c.ACLToken != "" {
+		return c.ACLToken
+	} else {
+		return ""
+	}
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
@@ -931,6 +1045,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfLanRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfLanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("Serf Advertise LAN address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.SerfLanRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfLanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.SerfLan is invalid: %v", err)
@@ -939,6 +1059,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfWanRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfWanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("Serf Advertise WAN address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.SerfWanRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfWanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.SerfWan is invalid: %v", err)
@@ -947,6 +1073,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.RPCRaw != "" {
+		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.RPCRaw)
+		if err != nil {
+			return nil, fmt.Errorf("RPC Advertise address resolution failed: %v", err)
+		}
+		result.AdvertiseAddrs.RPCRaw = ipStr
+
 		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.RPCRaw)
 		if err != nil {
 			return nil, fmt.Errorf("AdvertiseAddrs.RPC is invalid: %v", err)
@@ -1036,6 +1168,9 @@ func FixupCheckType(raw interface{}) error {
 			delete(rawMap, k)
 		case "docker_container_id":
 			rawMap["DockerContainerID"] = v
+			delete(rawMap, k)
+		case "tls_skip_verify":
+			rawMap["TLSSkipVerify"] = v
 			delete(rawMap, k)
 		}
 	}
@@ -1148,6 +1283,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Protocol > 0 {
 		result.Protocol = b.Protocol
 	}
+	if b.NodeID != "" {
+		result.NodeID = b.NodeID
+	}
 	if b.NodeName != "" {
 		result.NodeName = b.NodeName
 	}
@@ -1162,6 +1300,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
+	}
+	if b.SerfWanBindAddr != "" {
+		result.SerfWanBindAddr = b.SerfWanBindAddr
+	}
+	if b.SerfLanBindAddr != "" {
+		result.SerfLanBindAddr = b.SerfLanBindAddr
 	}
 	if b.TranslateWanAddrs == true {
 		result.TranslateWanAddrs = true
@@ -1232,6 +1376,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Telemetry.CirconusCheckSearchTag != "" {
 		result.Telemetry.CirconusCheckSearchTag = b.Telemetry.CirconusCheckSearchTag
 	}
+	if b.Telemetry.CirconusCheckDisplayName != "" {
+		result.Telemetry.CirconusCheckDisplayName = b.Telemetry.CirconusCheckDisplayName
+	}
+	if b.Telemetry.CirconusCheckTags != "" {
+		result.Telemetry.CirconusCheckTags = b.Telemetry.CirconusCheckTags
+	}
 	if b.Telemetry.CirconusBrokerID != "" {
 		result.Telemetry.CirconusBrokerID = b.Telemetry.CirconusBrokerID
 	}
@@ -1261,6 +1411,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ServerName != "" {
 		result.ServerName = b.ServerName
+	}
+	if b.TLSMinVersion != "" {
+		result.TLSMinVersion = b.TLSMinVersion
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)
@@ -1322,6 +1475,33 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
 	}
+	if b.RetryJoinEC2.AccessKeyID != "" {
+		result.RetryJoinEC2.AccessKeyID = b.RetryJoinEC2.AccessKeyID
+	}
+	if b.RetryJoinEC2.SecretAccessKey != "" {
+		result.RetryJoinEC2.SecretAccessKey = b.RetryJoinEC2.SecretAccessKey
+	}
+	if b.RetryJoinEC2.Region != "" {
+		result.RetryJoinEC2.Region = b.RetryJoinEC2.Region
+	}
+	if b.RetryJoinEC2.TagKey != "" {
+		result.RetryJoinEC2.TagKey = b.RetryJoinEC2.TagKey
+	}
+	if b.RetryJoinEC2.TagValue != "" {
+		result.RetryJoinEC2.TagValue = b.RetryJoinEC2.TagValue
+	}
+	if b.RetryJoinGCE.ProjectName != "" {
+		result.RetryJoinGCE.ProjectName = b.RetryJoinGCE.ProjectName
+	}
+	if b.RetryJoinGCE.ZonePattern != "" {
+		result.RetryJoinGCE.ZonePattern = b.RetryJoinGCE.ZonePattern
+	}
+	if b.RetryJoinGCE.TagValue != "" {
+		result.RetryJoinGCE.TagValue = b.RetryJoinGCE.TagValue
+	}
+	if b.RetryJoinGCE.CredentialsFile != "" {
+		result.RetryJoinGCE.CredentialsFile = b.RetryJoinGCE.CredentialsFile
+	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
 	}
@@ -1377,6 +1557,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.ACLToken != "" {
 		result.ACLToken = b.ACLToken
 	}
+	if b.ACLAgentMasterToken != "" {
+		result.ACLAgentMasterToken = b.ACLAgentMasterToken
+	}
+	if b.ACLAgentToken != "" {
+		result.ACLAgentToken = b.ACLAgentToken
+	}
 	if b.ACLMasterToken != "" {
 		result.ACLMasterToken = b.ACLMasterToken
 	}
@@ -1395,6 +1581,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLReplicationToken != "" {
 		result.ACLReplicationToken = b.ACLReplicationToken
+	}
+	if b.ACLEnforceVersion8 != nil {
+		result.ACLEnforceVersion8 = b.ACLEnforceVersion8
 	}
 	if len(b.Watches) != 0 {
 		result.Watches = append(result.Watches, b.Watches...)
@@ -1448,6 +1637,14 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
+		}
+	}
+	if len(b.Meta) != 0 {
+		if result.Meta == nil {
+			result.Meta = make(map[string]string)
+		}
+		for field, value := range b.Meta {
+			result.Meta[field] = value
 		}
 	}
 

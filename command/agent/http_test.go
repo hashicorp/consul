@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 )
@@ -28,6 +29,26 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 }
 
 func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPServer) {
+	return makeHTTPServerWithConfigLog(t, cb, nil, nil)
+}
+
+func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
+	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = c.Datacenter
+		c.ACLDefaultPolicy = "deny"
+		c.ACLMasterToken = "root"
+		c.ACLAgentToken = "root"
+		c.ACLAgentMasterToken = "towel"
+		c.ACLEnforceVersion8 = Bool(true)
+	})
+
+	// Need a leader to look up ACLs, so wait here so we don't need to
+	// repeat this in each test.
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	return dir, srv
+}
+
+func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
 	configTry := 0
 RECONF:
 	configTry += 1
@@ -36,7 +57,7 @@ RECONF:
 		cb(conf)
 	}
 
-	dir, agent := makeAgent(t, conf)
+	dir, agent := makeAgentLog(t, conf, l, logWriter)
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		if configTry < 3 {

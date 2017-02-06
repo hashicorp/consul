@@ -3,7 +3,9 @@ package consul
 import (
 	"fmt"
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 // Health endpoint is used to query the health information
@@ -18,14 +20,18 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 		return err
 	}
 
-	// Get the state specific checks
-	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(
+	return h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("ChecksInState"),
-		func() error {
-			index, checks, err := state.ChecksInState(args.State)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			var index uint64
+			var checks structs.HealthChecks
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, checks, err = state.ChecksInStateByNodeMeta(ws, args.State, args.NodeMetaFilters)
+			} else {
+				index, checks, err = state.ChecksInState(ws, args.State)
+			}
 			if err != nil {
 				return err
 			}
@@ -44,14 +50,11 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// Get the node checks
-	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(
+	return h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("NodeChecks"),
-		func() error {
-			index, checks, err := state.NodeChecks(args.Node)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, checks, err := state.NodeChecks(ws, args.Node)
 			if err != nil {
 				return err
 			}
@@ -73,14 +76,18 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 		return err
 	}
 
-	// Get the service checks
-	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(
+	return h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("ServiceChecks"),
-		func() error {
-			index, checks, err := state.ServiceChecks(args.ServiceName)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			var index uint64
+			var checks structs.HealthChecks
+			var err error
+			if len(args.NodeMetaFilters) > 0 {
+				index, checks, err = state.ServiceChecksByNodeMeta(ws, args.ServiceName, args.NodeMetaFilters)
+			} else {
+				index, checks, err = state.ServiceChecks(ws, args.ServiceName)
+			}
 			if err != nil {
 				return err
 			}
@@ -103,26 +110,26 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		return fmt.Errorf("Must provide service name")
 	}
 
-	// Get the nodes
-	state := h.srv.fsm.State()
-	err := h.srv.blockingRPC(
+	err := h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("CheckServiceNodes"),
-		func() error {
+		func(ws memdb.WatchSet, state *state.StateStore) error {
 			var index uint64
 			var nodes structs.CheckServiceNodes
 			var err error
 			if args.TagFilter {
-				index, nodes, err = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
+				index, nodes, err = state.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
 			} else {
-				index, nodes, err = state.CheckServiceNodes(args.ServiceName)
+				index, nodes, err = state.CheckServiceNodes(ws, args.ServiceName)
 			}
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Nodes = index, nodes
+			if len(args.NodeMetaFilters) > 0 {
+				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
+			}
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}

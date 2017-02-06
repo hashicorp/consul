@@ -8,20 +8,10 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 )
 
-const (
-	// RPCAddrEnvName defines an environment variable name which sets
-	// an RPC address if there is no -rpc-addr specified.
-	RPCAddrEnvName = "CONSUL_RPC_ADDR"
-
-	// HTTPAddrEnvName defines an environment variable name which sets
-	// the HTTP address if there is no -http-addr specified.
-	HTTPAddrEnvName = "CONSUL_HTTP_ADDR"
-)
-
 // RPCAddrFlag returns a pointer to a string that will be populated
 // when the given flagset is parsed with the RPC address of the Consul.
 func RPCAddrFlag(f *flag.FlagSet) *string {
-	defaultRPCAddr := os.Getenv(RPCAddrEnvName)
+	defaultRPCAddr := os.Getenv(agent.RPCAddrEnvName)
 	if defaultRPCAddr == "" {
 		defaultRPCAddr = "127.0.0.1:8400"
 	}
@@ -37,7 +27,7 @@ func RPCClient(addr string) (*agent.RPCClient, error) {
 // HTTPAddrFlag returns a pointer to a string that will be populated
 // when the given flagset is parsed with the HTTP address of the Consul.
 func HTTPAddrFlag(f *flag.FlagSet) *string {
-	defaultHTTPAddr := os.Getenv(HTTPAddrEnvName)
+	defaultHTTPAddr := os.Getenv(consulapi.HTTPAddrEnvName)
 	if defaultHTTPAddr == "" {
 		defaultHTTPAddr = "127.0.0.1:8500"
 	}

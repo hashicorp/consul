@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -28,6 +30,33 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 	if args.Session.Node == "" && args.Op == structs.SessionCreate {
 		return fmt.Errorf("Must provide Node")
+	}
+
+	// Fetch the ACL token, if any, and apply the policy.
+	acl, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && s.srv.config.ACLEnforceVersion8 {
+		switch args.Op {
+		case structs.SessionDestroy:
+			state := s.srv.fsm.State()
+			_, existing, err := state.SessionGet(nil, args.Session.ID)
+			if err != nil {
+				return fmt.Errorf("Unknown session %q", args.Session.ID)
+			}
+			if !acl.SessionWrite(existing.Node) {
+				return permissionDeniedErr
+			}
+
+		case structs.SessionCreate:
+			if !acl.SessionWrite(args.Session.Node) {
+				return permissionDeniedErr
+			}
+
+		default:
+			return fmt.Errorf("Invalid session operation %q", args.Op)
+		}
 	}
 
 	// Ensure that the specified behavior is allowed
@@ -67,7 +96,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 				s.srv.logger.Printf("[ERR] consul.session: UUID generation failed: %v", err)
 				return err
 			}
-			_, sess, err := state.SessionGet(args.Session.ID)
+			_, sess, err := state.SessionGet(nil, args.Session.ID)
 			if err != nil {
 				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)
 				return err
@@ -112,14 +141,11 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("SessionGet"),
-		func() error {
-			index, session, err := state.SessionGet(args.Session)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, session, err := state.SessionGet(ws, args.Session)
 			if err != nil {
 				return err
 			}
@@ -129,6 +155,9 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 				reply.Sessions = structs.Sessions{session}
 			} else {
 				reply.Sessions = nil
+			}
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
 			}
 			return nil
 		})
@@ -141,19 +170,19 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("SessionList"),
-		func() error {
-			index, sessions, err := state.SessionList()
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, sessions, err := state.SessionList(ws)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Sessions = index, sessions
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return nil
 		})
 }
@@ -165,19 +194,19 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("NodeSessions"),
-		func() error {
-			index, sessions, err := state.NodeSessions(args.Node)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, sessions, err := state.NodeSessions(ws, args.Node)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Sessions = index, sessions
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return nil
 		})
 }
@@ -190,21 +219,35 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	}
 	defer metrics.MeasureSince([]string{"consul", "session", "renew"}, time.Now())
 
-	// Get the session, from local state
+	// Get the session, from local state.
 	state := s.srv.fsm.State()
-	index, session, err := state.SessionGet(args.Session)
+	index, session, err := state.SessionGet(nil, args.Session)
 	if err != nil {
 		return err
 	}
 
-	// Reset the session TTL timer
 	reply.Index = index
-	if session != nil {
-		reply.Sessions = structs.Sessions{session}
-		if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
-			s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
-			return err
+	if session == nil {
+		return nil
+	}
+
+	// Fetch the ACL token, if any, and apply the policy.
+	acl, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && s.srv.config.ACLEnforceVersion8 {
+		if !acl.SessionWrite(session.Node) {
+			return permissionDeniedErr
 		}
 	}
+
+	// Reset the session TTL timer.
+	reply.Sessions = structs.Sessions{session}
+	if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
+		s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
+		return err
+	}
+
 	return nil
 }

@@ -12,7 +12,7 @@ Consul makes use of a HashiCorp service called [Checkpoint](http://checkpoint.ha
 which is used to check for updates and critical security bulletins.
 Only anonymous information, which cannot be used to identify the user or host, is
 sent to Checkpoint . An anonymous ID is sent which helps de-duplicate warning messages.
-This anonymous ID can can be disabled. In fact, using the Checkpoint service is optional
+This anonymous ID can be disabled. In fact, using the Checkpoint service is optional
 and can be disabled.
 
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
@@ -62,8 +62,8 @@ the current state of the catalog can lag behind until the state is reconciled.
 To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
 states), Consul will automatically remove dead nodes out of the catalog. This
 process is called _reaping_. This is currently done on a configurable
-interval of 72 hours.  Reaping is similar to leaving, causing all associated
-services to be deregistered.  Changing the reap interval for aesthetic
+interval of 72 hours. Reaping is similar to leaving, causing all associated
+services to be deregistered. Changing the reap interval for aesthetic
 reasons to trim the number of _failed_ or _left_ nodes is not advised (nodes
 in the _failed_ or _left_ state do not cause any additional burden on
 Consul).

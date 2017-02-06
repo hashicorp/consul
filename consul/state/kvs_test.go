@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_GC(t *testing.T) {
@@ -121,7 +122,7 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 
 	// Pull out the list and check the index, which should come from the
 	// tombstones.
-	idx, _, err := s.KVSList("foo/")
+	idx, _, err := s.KVSList(nil, "foo/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -135,7 +136,7 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	}
 
 	// Should still be good because 7 is in there.
-	idx, _, err = s.KVSList("foo/")
+	idx, _, err = s.KVSList(nil, "foo/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -149,7 +150,7 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	}
 
 	// At this point the sub index will slide backwards.
-	idx, _, err = s.KVSList("foo/")
+	idx, _, err = s.KVSList(nil, "foo/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -173,7 +174,8 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// Get on an nonexistent key returns nil.
-	idx, result, err := s.KVSGet("foo")
+	ws := memdb.NewWatchSet()
+	idx, result, err := s.KVSGet(ws, "foo")
 	if result != nil || err != nil || idx != 0 {
 		t.Fatalf("expected (0, nil, nil), got : (%#v, %#v, %#v)", idx, result, err)
 	}
@@ -186,9 +188,13 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if err := s.KVSSet(1, entry); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Retrieve the K/V entry again.
-	idx, result, err = s.KVSGet("foo")
+	ws = memdb.NewWatchSet()
+	idx, result, err = s.KVSGet(ws, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -217,9 +223,13 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if err := s.KVSSet(2, update); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Fetch the kv pair and check.
-	idx, result, err = s.KVSGet("foo")
+	ws = memdb.NewWatchSet()
+	idx, result, err = s.KVSGet(ws, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -242,9 +252,13 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if err := s.KVSSet(3, update); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Fetch the kv pair and check.
-	idx, result, err = s.KVSGet("foo")
+	ws = memdb.NewWatchSet()
+	idx, result, err = s.KVSGet(ws, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -276,9 +290,13 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Fetch the kv pair and check.
-	idx, result, err = s.KVSGet("foo")
+	ws = memdb.NewWatchSet()
+	idx, result, err = s.KVSGet(ws, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -304,9 +322,13 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if err := s.KVSSet(7, update); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Fetch the kv pair and check.
-	idx, result, err = s.KVSGet("foo")
+	ws = memdb.NewWatchSet()
+	idx, result, err = s.KVSGet(ws, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -323,11 +345,17 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
+	// Setting some unrelated key should not fire the watch.
+	testSetKey(t, s, 8, "other", "yup")
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
 	// Fetch a key that doesn't exist and make sure we get the right
 	// response.
-	idx, result, err = s.KVSGet("nope")
-	if result != nil || err != nil || idx != 7 {
-		t.Fatalf("expected (7, nil, nil), got : (%#v, %#v, %#v)", idx, result, err)
+	idx, result, err = s.KVSGet(nil, "nope")
+	if result != nil || err != nil || idx != 8 {
+		t.Fatalf("expected (8, nil, nil), got : (%#v, %#v, %#v)", idx, result, err)
 	}
 }
 
@@ -335,7 +363,8 @@ func TestStateStore_KVSList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing an empty KVS returns nothing
-	idx, entries, err := s.KVSList("")
+	ws := memdb.NewWatchSet()
+	idx, entries, err := s.KVSList(ws, "")
 	if idx != 0 || entries != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, entries, err)
 	}
@@ -346,9 +375,12 @@ func TestStateStore_KVSList(t *testing.T) {
 	testSetKey(t, s, 3, "foo/bar/zip", "zip")
 	testSetKey(t, s, 4, "foo/bar/zip/zorp", "zorp")
 	testSetKey(t, s, 5, "foo/bar/baz", "baz")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// List out all of the keys
-	idx, entries, err = s.KVSList("")
+	idx, entries, err = s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -362,7 +394,7 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 
 	// Try listing with a provided prefix
-	idx, entries, err = s.KVSList("foo/bar/zip")
+	idx, entries, err = s.KVSList(nil, "foo/bar/zip")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -379,10 +411,19 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 
 	// Delete a key and make sure the index comes from the tombstone.
+	ws = memdb.NewWatchSet()
+	idx, _, err = s.KVSList(ws, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if err := s.KVSDelete(6, "foo/bar/baz"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSList("foo/bar/baz")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	ws = memdb.NewWatchSet()
+	idx, _, err = s.KVSList(ws, "foo/bar/baz")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -390,11 +431,15 @@ func TestStateStore_KVSList(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Set a different key to bump the index.
+	// Set a different key to bump the index. This shouldn't fire the
+	// watch since there's a different prefix.
 	testSetKey(t, s, 7, "some/other/key", "")
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Make sure we get the right index from the tombstone.
-	idx, _, err = s.KVSList("foo/bar/baz")
+	idx, _, err = s.KVSList(nil, "foo/bar/baz")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -407,7 +452,7 @@ func TestStateStore_KVSList(t *testing.T) {
 	if err := s.ReapTombstones(6); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSList("foo/bar/baz")
+	idx, _, err = s.KVSList(nil, "foo/bar/baz")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -416,7 +461,7 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 
 	// List all the keys to make sure the index is also correct.
-	idx, _, err = s.KVSList("")
+	idx, _, err = s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -429,7 +474,8 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing keys with no results returns nil.
-	idx, keys, err := s.KVSListKeys("", "")
+	ws := memdb.NewWatchSet()
+	idx, keys, err := s.KVSListKeys(ws, "", "")
 	if idx != 0 || keys != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, keys, err)
 	}
@@ -442,9 +488,12 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	testSetKey(t, s, 5, "foo/bar/zip/zam", "zam")
 	testSetKey(t, s, 6, "foo/bar/zip/zorp", "zorp")
 	testSetKey(t, s, 7, "some/other/prefix", "nack")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// List all the keys.
-	idx, keys, err = s.KVSListKeys("", "")
+	idx, keys, err = s.KVSListKeys(nil, "", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -456,7 +505,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	}
 
 	// Query using a prefix and pass a separator.
-	idx, keys, err = s.KVSListKeys("foo/bar/", "/")
+	idx, keys, err = s.KVSListKeys(nil, "foo/bar/", "/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -474,7 +523,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	}
 
 	// Listing keys with no separator returns everything.
-	idx, keys, err = s.KVSListKeys("foo", "")
+	idx, keys, err = s.KVSListKeys(nil, "foo", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -488,10 +537,19 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	}
 
 	// Delete a key and make sure the index comes from the tombstone.
+	ws = memdb.NewWatchSet()
+	idx, _, err = s.KVSListKeys(ws, "foo/bar/baz", "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if err := s.KVSDelete(8, "foo/bar/baz"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSListKeys("foo/bar/baz", "")
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	ws = memdb.NewWatchSet()
+	idx, _, err = s.KVSListKeys(ws, "foo/bar/baz", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -499,11 +557,15 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Set a different key to bump the index.
+	// Set a different key to bump the index. This shouldn't fire the watch
+	// since there's a different prefix.
 	testSetKey(t, s, 9, "some/other/key", "")
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Make sure the index still comes from the tombstone.
-	idx, _, err = s.KVSListKeys("foo/bar/baz", "")
+	idx, _, err = s.KVSListKeys(nil, "foo/bar/baz", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -516,7 +578,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	if err := s.ReapTombstones(8); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSListKeys("foo/bar/baz", "")
+	idx, _, err = s.KVSListKeys(nil, "foo/bar/baz", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -525,7 +587,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	}
 
 	// List all the keys to make sure the index is also correct.
-	idx, _, err = s.KVSListKeys("", "")
+	idx, _, err = s.KVSListKeys(nil, "", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -573,7 +635,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 
 	// Check that the tombstone was created and that prevents the index
 	// from sliding backwards.
-	idx, _, err := s.KVSList("foo")
+	idx, _, err := s.KVSList(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -586,7 +648,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	if err := s.ReapTombstones(3); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSList("foo")
+	idx, _, err = s.KVSList(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -620,7 +682,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 
 	// Check that the index is untouched and the entry
 	// has not been deleted.
-	idx, e, err := s.KVSGet("foo")
+	idx, e, err := s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -639,7 +701,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	}
 
 	// Entry was deleted and index was updated
-	idx, e, err = s.KVSGet("bar")
+	idx, e, err = s.KVSGet(nil, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -655,7 +717,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 
 	// Check that the tombstone was created and that prevents the index
 	// from sliding backwards.
-	idx, _, err = s.KVSList("bar")
+	idx, _, err = s.KVSList(nil, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -668,7 +730,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	if err := s.ReapTombstones(4); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSList("bar")
+	idx, _, err = s.KVSList(nil, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -733,7 +795,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Entry was inserted
-	idx, entry, err := s.KVSGet("foo")
+	idx, entry, err := s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -775,7 +837,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Entry was not updated in the store
-	idx, entry, err = s.KVSGet("foo")
+	idx, entry, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -802,7 +864,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Entry was updated
-	idx, entry, err = s.KVSGet("foo")
+	idx, entry, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -829,7 +891,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Entry was updated, but the session should have been ignored.
-	idx, entry, err = s.KVSGet("foo")
+	idx, entry, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -874,7 +936,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 
 	// Entry was updated, and the lock status should have stayed the same.
-	idx, entry, err = s.KVSGet("foo")
+	idx, entry, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -938,7 +1000,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 
 	// Check that the tombstones ware created and that prevents the index
 	// from sliding backwards.
-	idx, _, err := s.KVSList("foo")
+	idx, _, err := s.KVSList(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -951,7 +1013,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	if err := s.ReapTombstones(5); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err = s.KVSList("foo")
+	idx, _, err = s.KVSList(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1000,7 +1062,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Make sure the indexes got set properly.
-	idx, result, err := s.KVSGet("foo")
+	idx, result, err := s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1021,7 +1083,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 
 	// Make sure the indexes got set properly, note that the lock index
 	// won't go up since we didn't lock it again.
-	idx, result, err = s.KVSGet("foo")
+	idx, result, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1044,7 +1106,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Make sure the indexes got set properly.
-	idx, result, err = s.KVSGet("foo")
+	idx, result, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1064,7 +1126,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Make sure the indexes got set properly.
-	idx, result, err = s.KVSGet("bar")
+	idx, result, err = s.KVSGet(nil, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1090,7 +1152,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Make sure the indexes didn't update.
-	idx, result, err = s.KVSGet("bar")
+	idx, result, err = s.KVSGet(nil, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1134,7 +1196,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Make sure the indexes didn't update.
-	idx, result, err := s.KVSGet("foo")
+	idx, result, err := s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1163,7 +1225,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Make sure the indexes didn't update.
-	idx, result, err = s.KVSGet("foo")
+	idx, result, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1182,7 +1244,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Make sure the indexes got set properly.
-	idx, result, err = s.KVSGet("foo")
+	idx, result, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1201,7 +1263,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Make sure the indexes didn't update.
-	idx, result, err = s.KVSGet("foo")
+	idx, result, err = s.KVSGet(nil, "foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1294,7 +1356,7 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		restore.Commit()
 
 		// Read the restored keys back out and verify they match.
-		idx, res, err := s.KVSList("")
+		idx, res, err := s.KVSList(nil, "")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1310,142 +1372,6 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 			t.Fatalf("bad index: %d", idx)
 		}
 	}()
-}
-
-func TestStateStore_KVS_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// This is used when locking down below.
-	testRegisterNode(t, s, 1, "node1")
-	session := testUUID()
-	if err := s.SessionCreate(2, &structs.Session{ID: session, Node: "node1"}); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// An empty prefix watch should hit on all KVS ops, and some other
-	// prefix should not be affected ever. We also add a positive prefix
-	// match.
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSSet(1, &structs.DirEntry{Key: "aaa"}); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSSet(2, &structs.DirEntry{Key: "aaa"}); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-
-	// Restore just fires off a top-level watch, so we should get hits on
-	// any prefix, including ones for keys that aren't in there.
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("b"), func() {
-			verifyWatch(t, s.GetKVSWatch("/nope"), func() {
-				restore := s.Restore()
-				if err := restore.KVS(&structs.DirEntry{Key: "bbb"}); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-				restore.Commit()
-			})
-		})
-	})
-
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSDelete(3, "aaa"); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if ok, err := s.KVSSetCAS(4, &structs.DirEntry{Key: "aaa"}); !ok || err != nil {
-					t.Fatalf("ok: %v err: %s", ok, err)
-				}
-			})
-		})
-	})
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if ok, err := s.KVSLock(5, &structs.DirEntry{Key: "aaa", Session: session}); !ok || err != nil {
-					t.Fatalf("ok: %v err: %s", ok, err)
-				}
-			})
-		})
-	})
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if ok, err := s.KVSUnlock(6, &structs.DirEntry{Key: "aaa", Session: session}); !ok || err != nil {
-					t.Fatalf("ok: %v err: %s", ok, err)
-				}
-			})
-		})
-	})
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSDeleteTree(7, "aaa"); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-
-	// A delete tree operation at the top level will notify all the watches.
-	verifyWatch(t, s.GetKVSWatch(""), func() {
-		verifyWatch(t, s.GetKVSWatch("a"), func() {
-			verifyWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSDeleteTree(8, ""); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-
-	// Create a more interesting tree.
-	testSetKey(t, s, 9, "foo/bar", "bar")
-	testSetKey(t, s, 10, "foo/bar/baz", "baz")
-	testSetKey(t, s, 11, "foo/bar/zip", "zip")
-	testSetKey(t, s, 12, "foo/zorp", "zorp")
-
-	// Deleting just the foo/bar key should not trigger watches on the
-	// children.
-	verifyWatch(t, s.GetKVSWatch("foo/bar"), func() {
-		verifyNoWatch(t, s.GetKVSWatch("foo/bar/baz"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("foo/bar/zip"), func() {
-				if err := s.KVSDelete(13, "foo/bar"); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			})
-		})
-	})
-
-	// But a delete tree from that point should notify the whole subtree,
-	// even for keys that don't exist.
-	verifyWatch(t, s.GetKVSWatch("foo/bar"), func() {
-		verifyWatch(t, s.GetKVSWatch("foo/bar/baz"), func() {
-			verifyWatch(t, s.GetKVSWatch("foo/bar/zip"), func() {
-				verifyWatch(t, s.GetKVSWatch("foo/bar/uh/nope"), func() {
-					if err := s.KVSDeleteTree(14, "foo/bar"); err != nil {
-						t.Fatalf("err: %s", err)
-					}
-				})
-			})
-		})
-	})
 }
 
 func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
@@ -1467,7 +1393,7 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	if err := s.ReapTombstones(4); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, _, err := s.KVSList("foo/bar")
+	idx, _, err := s.KVSList(nil, "foo/bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1504,7 +1430,7 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 		restore.Commit()
 
 		// See if the stone works properly in a list query.
-		idx, _, err := s.KVSList("foo/bar")
+		idx, _, err := s.KVSList(nil, "foo/bar")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1518,7 +1444,7 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 		if err := s.ReapTombstones(4); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		idx, _, err = s.KVSList("foo/bar")
+		idx, _, err = s.KVSList(nil, "foo/bar")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

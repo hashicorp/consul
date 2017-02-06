@@ -2,6 +2,7 @@ package consul
 
 import (
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/raft"
@@ -15,6 +16,12 @@ const (
 
 	// userEventPrefix is pre-pended to a user event to distinguish it
 	userEventPrefix = "consul:event:"
+
+	// maxPeerRetries limits how many invalidate attempts are made
+	maxPeerRetries = 6
+
+	// peerRetryBase is a baseline retry time
+	peerRetryBase = 1 * time.Second
 )
 
 // userEventName computes the name of a user event
@@ -154,7 +161,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 			s.localLock.Unlock()
 		}
 
-		// If we still expecting to bootstrap, may need to handle this.
+		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
 			s.maybeBootstrap()
 		}
@@ -238,10 +245,18 @@ func (s *Server) maybeBootstrap() {
 	// Query each of the servers and make sure they report no Raft peers.
 	for _, server := range servers {
 		var peers []string
-		if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
-			"Status.Peers", &struct{}{}, &peers); err != nil {
-			s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v", server.Name, err)
-			return
+
+		// Retry with exponential backoff to get peer status from this server
+		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
+			if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
+				"Status.Peers", &struct{}{}, &peers); err != nil {
+				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
+				s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v. Retrying in "+
+					"%v...", server.Name, err, nextRetry.String())
+				time.Sleep(nextRetry)
+			} else {
+				break
+			}
 		}
 
 		// Found a node with some Raft peers, stop bootstrap since there's

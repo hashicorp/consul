@@ -7,7 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -119,6 +121,17 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return fmt.Errorf("rejected bad coordinate: %v", args.Coord)
 	}
 
+	// Fetch the ACL token, if any, and enforce the node policy if enabled.
+	acl, err := c.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+		if !acl.NodeWrite(args.Node) {
+			return permissionDeniedErr
+		}
+	}
+
 	// Add the coordinate to the map of pending updates.
 	c.updatesLock.Lock()
 	c.updates[args.Node] = args.Coord
@@ -162,17 +175,18 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("Coordinates"),
-		func() error {
-			index, coords, err := state.Coordinates()
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, coords, err := state.Coordinates(ws)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Coordinates = index, coords
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return nil
 		})
 }

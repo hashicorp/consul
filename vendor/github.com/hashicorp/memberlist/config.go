@@ -126,8 +126,12 @@ type Config struct {
 	// per GossipInterval. Increasing this number causes the gossip messages
 	// to propagate across the cluster more quickly at the expense of
 	// increased bandwidth.
-	GossipInterval time.Duration
-	GossipNodes    int
+	//
+	// GossipToTheDeadTime is the interval after which a node has died that
+	// we will still try to gossip to it. This gives it a chance to refute.
+	GossipInterval      time.Duration
+	GossipNodes         int
+	GossipToTheDeadTime time.Duration
 
 	// EnableCompression is used to control message compression. This can
 	// be used to reduce bandwidth usage at the cost of slightly more CPU
@@ -179,6 +183,11 @@ type Config struct {
 	// behavior for using LogOutput. You cannot specify both LogOutput and Logger
 	// at the same time.
 	Logger *log.Logger
+
+	// Size of Memberlist's internal channel which handles UDP messages. The
+	// size of this determines the size of the queue which Memberlist will keep
+	// while UDP messages are handled.
+	HandoffQueueDepth int
 }
 
 // DefaultLANConfig returns a sane set of configurations for Memberlist.
@@ -207,8 +216,9 @@ func DefaultLANConfig() *Config {
 		DisableTcpPings:         false,                  // TCP pings are safe, even with mixed versions
 		AwarenessMaxMultiplier:  8,                      // Probe interval backs off to 8 seconds
 
-		GossipNodes:    3,                      // Gossip to 3 nodes
-		GossipInterval: 200 * time.Millisecond, // Gossip more rapidly
+		GossipNodes:         3,                      // Gossip to 3 nodes
+		GossipInterval:      200 * time.Millisecond, // Gossip more rapidly
+		GossipToTheDeadTime: 30 * time.Second,       // Same as push/pull
 
 		EnableCompression: true, // Enable compression by default
 
@@ -216,6 +226,8 @@ func DefaultLANConfig() *Config {
 		Keyring:   nil,
 
 		DNSConfigPath: "/etc/resolv.conf",
+
+		HandoffQueueDepth: 1024,
 	}
 }
 
@@ -231,6 +243,7 @@ func DefaultWANConfig() *Config {
 	conf.ProbeInterval = 5 * time.Second
 	conf.GossipNodes = 4 // Gossip less frequently, but to an additional node
 	conf.GossipInterval = 500 * time.Millisecond
+	conf.GossipToTheDeadTime = 60 * time.Second
 	return conf
 }
 
@@ -247,6 +260,7 @@ func DefaultLocalConfig() *Config {
 	conf.ProbeTimeout = 200 * time.Millisecond
 	conf.ProbeInterval = time.Second
 	conf.GossipInterval = 100 * time.Millisecond
+	conf.GossipToTheDeadTime = 15 * time.Second
 	return conf
 }
 

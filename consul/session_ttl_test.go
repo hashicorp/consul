@@ -143,6 +143,8 @@ func TestResetSessionTimerLocked(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
 	s1.sessionTimersLock.Unlock()
@@ -223,7 +225,7 @@ func TestInvalidateSession(t *testing.T) {
 	s1.invalidateSession(session.ID)
 
 	// Check it is gone
-	_, sess, err := state.SessionGet(session.ID)
+	_, sess, err := state.SessionGet(nil, session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

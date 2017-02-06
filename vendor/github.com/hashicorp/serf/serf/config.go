@@ -15,6 +15,7 @@ var ProtocolVersionMap map[uint8]uint8
 
 func init() {
 	ProtocolVersionMap = map[uint8]uint8{
+		5: 2,
 		4: 2,
 		3: 2,
 		2: 2,
@@ -240,7 +241,7 @@ func DefaultConfig() *Config {
 		EventBuffer:                  512,
 		QueryBuffer:                  512,
 		LogOutput:                    os.Stderr,
-		ProtocolVersion:              ProtocolVersionMax,
+		ProtocolVersion:              4,
 		ReapInterval:                 15 * time.Second,
 		RecentIntentTimeout:          5 * time.Minute,
 		ReconnectInterval:            30 * time.Second,

@@ -31,8 +31,8 @@ Type is either `client` or `management`. A management token is comparable
 to a root user and has the ability to perform any action including
 creating, modifying, and deleting ACLs.
 
-By constrast, a client token can only perform actions as permitted by the
-rules associated. Client tokens can never manage ACLs.  Given this limitation,
+By contrast, a client token can only perform actions as permitted by the
+rules associated. Client tokens can never manage ACLs. Given this limitation,
 only a management token can be used to make requests to the `/v1/acl/create`
 endpoint.
 
@@ -40,7 +40,7 @@ In any Consul cluster, only a single datacenter is authoritative for ACLs, so
 all requests are automatically routed to that datacenter regardless
 of the agent to which the request is made.
 
-The create endpoint supports a JSON request body with the PUT. The request
+The create endpoint supports a JSON request body with the `PUT`. The request
 body may take the form:
 
 ```javascript
@@ -51,7 +51,7 @@ body may take the form:
 }
 ```
 
-None of the fields are mandatory. In fact, no body needs to be PUT if the
+None of the fields are mandatory. In fact, no body needs to be `PUT` if the
 defaults are to be used. The `Name` and `Rules` fields default to being
 blank, and the `Type` defaults to "client".
 
@@ -75,13 +75,13 @@ The update endpoint is used to modify the policy for a given ACL token. It
 is very similar to the create endpoint; however, instead of generating a new
 token ID, the `ID` field must be provided. As with [`/v1/acl/create`](#acl_create),
 requests to this endpoint must be made with a management token. If the ID does not
-exist, the ACL will be upserted. In this sense, create and update are identical.
+exist, the ACL will be inserted. In this sense, create and update are identical.
 
 In any Consul cluster, only a single datacenter is authoritative for ACLs, so
 all requests are automatically routed to that datacenter regardless
 of the agent to which the request is made.
 
-The update endpoint requires a JSON request body to the PUT. The request
+The update endpoint requires a JSON request body to the `PUT`. The request
 body may look like:
 
 ```javascript
@@ -99,7 +99,7 @@ The format of `Rules` is [documented here](/docs/internals/acl.html).
 
 ### <a name="acl_destroy"></a> /v1/acl/destroy/\<id\>
 
-The destroy endpoint must be hit with a PUT.  This endpoint destroys the ACL
+The destroy endpoint must be hit with a `PUT`. This endpoint destroys the ACL
 token identified by the `id` portion of the path.
 
 The request is automatically routed to the authoritative ACL datacenter.
@@ -107,7 +107,7 @@ Requests to this endpoint must be made with a management token.
 
 ### <a name="acl_info"></a> /v1/acl/info/\<id\>
 
-The info endpoint must be hit with a GET.  This endpoint returns the ACL
+The info endpoint must be hit with a `GET`. This endpoint returns the ACL
 token information identified by the `id` portion of the path.
 
 It returns a JSON body like this:
@@ -129,7 +129,7 @@ If the ACL is not found, null is returned instead of a JSON list.
 
 ### <a name="acl_clone"></a> /v1/acl/clone/\<id\>
 
-The clone endpoint must be hit with a PUT. It clones the ACL identified
+The clone endpoint must be hit with a `PUT`. It clones the ACL identified
 by the `id` portion of the path and returns a new token `ID`. This allows
 a token to serve as a template for others, making it simple to generate new
 tokens without complex rule management.
@@ -148,7 +148,7 @@ created ACL, like so:
 
 ### <a name="acl_list"></a> /v1/acl/list
 
-The list endpoint must be hit with a GET. It lists all the active
+The list endpoint must be hit with a `GET`. It lists all the active
 ACL tokens. This is a privileged endpoint and requires a
 management token.
 
@@ -171,12 +171,12 @@ It returns a JSON body like this:
 ### <a name="acl_replication_status"></a> /v1/acl/replication
 
 Available in Consul 0.7 and later, the endpoint must be hit with a
-GET and returns the status of the [ACL replication](/docs/internals/acl.html#replication)
+`GET` and returns the status of the [ACL replication](/docs/internals/acl.html#replication)
 process in the datacenter. This is intended to be used by operators, or by
 automation checking the health of ACL replication.
 
-By default, the datacenter of the agent is queried; however, the dc can be provided
-using the "?dc=" query parameter.
+By default, the datacenter of the agent is queried; however, the `dc` can be provided
+using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 
@@ -203,15 +203,16 @@ replicated from, and will match the
 `ReplicatedIndex` is the last index that was successfully replicated. You can
 compare this to the `X-Consul-Index` header returned by the [`/v1/acl/list`](#acl_list)
 endpoint to determine if the replication process has gotten all available
-ACLs. Note that replication runs as a background process approximately every 30
+ACLs. Replication runs as a background process approximately every 30
 seconds, and that local updates are rate limited to 100 updates/second, so so it
 may take several minutes to perform the initial sync of a large set of ACLs.
 After the initial sync, replica lag should be on the order of about 30 seconds.
 
-`LastSuccess` is the UTC time of the last successful sync operation. Note that
-since ACL replication is done with a blocking query, this may not update for up
-to 5 minutes if there have been no ACL changes to replicate. A zero value of
-"0001-01-01T00:00:00Z" will be present if no sync has been successful.
+`LastSuccess` is the UTC time of the last successful sync operation.
+Since ACL replication is done with a blocking query, this may not update
+for up to 5 minutes if there have been no ACL changes to replicate. A
+zero value of "0001-01-01T00:00:00Z" will be present if no sync has been
+successful.
 
 `LastError` is the UTC time of the last error encountered during a sync operation.
 If this time is later than `LastSuccess`, you can assume the replication process

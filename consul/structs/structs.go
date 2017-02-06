@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/serf/coordinate"
+	"regexp"
+	"strings"
 )
 
 var (
@@ -56,6 +58,34 @@ const (
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
+	HealthMaint    = "maintenance"
+)
+
+const (
+	// NodeMaint is the special key set by a node in maintenance mode.
+	NodeMaint = "_node_maintenance"
+
+	// ServiceMaintPrefix is the prefix for a service in maintenance mode.
+	ServiceMaintPrefix = "_service_maintenance:"
+)
+
+const (
+	// The meta key prefix reserved for Consul's internal use
+	metaKeyReservedPrefix = "consul-"
+
+	// The maximum number of metadata key pairs allowed to be registered
+	metaMaxKeyPairs = 64
+
+	// The maximum allowed length of a metadata key
+	metaKeyMaxLength = 128
+
+	// The maximum allowed length of a metadata value
+	metaValueMaxLength = 512
+)
+
+var (
+	// metaKeyFormat checks if a metadata key string is valid
+	metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
 )
 
 func ValidStatus(s string) bool {
@@ -161,9 +191,11 @@ type QueryMeta struct {
 // is provided, the node is registered.
 type RegisterRequest struct {
 	Datacenter      string
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	NodeMeta        map[string]string
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
@@ -172,6 +204,27 @@ type RegisterRequest struct {
 
 func (r *RegisterRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+// ChangesNode returns true if the given register request changes the given
+// node, which can be nil. This only looks for changes to the node record itself,
+// not any of the health checks.
+func (r *RegisterRequest) ChangesNode(node *Node) bool {
+	// This means it's creating the node.
+	if node == nil {
+		return true
+	}
+
+	// Check if any of the node-level fields are being changed.
+	if r.ID != node.ID ||
+		r.Node != node.Node ||
+		r.Address != node.Address ||
+		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
+		return true
+	}
+
+	return false
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
@@ -199,8 +252,9 @@ type QuerySource struct {
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
-	Datacenter string
-	Source     QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -210,11 +264,12 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
-	Datacenter  string
-	ServiceName string
-	ServiceTag  string
-	TagFilter   bool // Controls tag filtering
-	Source      QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	ServiceName     string
+	ServiceTag      string
+	TagFilter       bool // Controls tag filtering
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -235,9 +290,10 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 
 // ChecksInStateRequest is used to query for nodes in a state
 type ChecksInStateRequest struct {
-	Datacenter string
-	State      string
-	Source     QuerySource
+	Datacenter      string
+	NodeMetaFilters map[string]string
+	State           string
+	Source          QuerySource
 	QueryOptions
 }
 
@@ -247,27 +303,76 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 
 // Used to return information about a node
 type Node struct {
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 
 	RaftIndex
 }
 type Nodes []*Node
 
+// ValidateMeta validates a set of key/value pairs from the agent config
+func ValidateMetadata(meta map[string]string) error {
+	if len(meta) > metaMaxKeyPairs {
+		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
+	}
+
+	for key, value := range meta {
+		if err := validateMetaPair(key, value); err != nil {
+			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
+		}
+	}
+
+	return nil
+}
+
+// validateMetaPair checks that the given key/value pair is in a valid format
+func validateMetaPair(key, value string) error {
+	if key == "" {
+		return fmt.Errorf("Key cannot be blank")
+	}
+	if !metaKeyFormat(key) {
+		return fmt.Errorf("Key contains invalid characters")
+	}
+	if len(key) > metaKeyMaxLength {
+		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
+	}
+	if strings.HasPrefix(key, metaKeyReservedPrefix) {
+		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+	}
+	if len(value) > metaValueMaxLength {
+		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
+	}
+	return nil
+}
+
+// SatisfiesMetaFilters returns true if the metadata map contains the given filters
+func SatisfiesMetaFilters(meta map[string]string, filters map[string]string) bool {
+	for key, value := range filters {
+		if v, ok := meta[key]; !ok || v != value {
+			return false
+		}
+	}
+	return true
+}
+
 // Used to return information about a provided services.
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNode represents a node that is part of a service. Address and
-// TaggedAddresses are node-related fields that are always empty in the state
-// store and are filled in on the way out by parseServiceNodes(). This is also
-// why PartialClone() skips them, because we know they are blank already so it
-// would be a waste of time to copy them.
+// ServiceNode represents a node that is part of a service. ID, Address,
+// TaggedAddresses, and NodeMeta are node-related fields that are always empty
+// in the state store and are filled in on the way out by parseServiceNodes().
+// This is also why PartialClone() skips them, because we know they are blank
+// already so it would be a waste of time to copy them.
 type ServiceNode struct {
+	ID                       types.NodeID
 	Node                     string
 	Address                  string
 	TaggedAddresses          map[string]string
+	NodeMeta                 map[string]string
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -285,6 +390,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 	copy(tags, s.ServiceTags)
 
 	return &ServiceNode{
+		// Skip ID, see above.
 		Node: s.Node,
 		// Skip Address, see above.
 		// Skip TaggedAddresses, see above.
@@ -351,6 +457,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 	return &ServiceNode{
+		// Skip ID, see ServiceNode definition.
 		Node: node,
 		// Skip Address, see ServiceNode definition.
 		// Skip TaggedAddresses, see ServiceNode definition.
@@ -412,6 +519,7 @@ func (c *HealthCheck) Clone() *HealthCheck {
 	return clone
 }
 
+// HealthChecks is a collection of HealthCheck structs.
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service
@@ -456,11 +564,13 @@ OUTER:
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
 type NodeInfo struct {
+	ID              types.NodeID
 	Node            string
 	Address         string
 	TaggedAddresses map[string]string
+	Meta            map[string]string
 	Services        []*NodeService
-	Checks          []*HealthCheck
+	Checks          HealthChecks
 }
 
 // NodeDump is used to dump all the nodes with all their
@@ -890,10 +1000,11 @@ const (
 // KeyringRequest encapsulates a request to modify an encryption keyring.
 // It can be used for install, remove, or use key type operations.
 type KeyringRequest struct {
-	Operation  KeyringOp
-	Key        string
-	Datacenter string
-	Forwarded  bool
+	Operation   KeyringOp
+	Key         string
+	Datacenter  string
+	Forwarded   bool
+	RelayFactor uint8
 	QueryOptions
 }
 
@@ -906,10 +1017,10 @@ func (r *KeyringRequest) RequestDatacenter() string {
 type KeyringResponse struct {
 	WAN        bool
 	Datacenter string
-	Messages   map[string]string
+	Messages   map[string]string `json:",omitempty"`
 	Keys       map[string]int
 	NumNodes   int
-	Error      string
+	Error      string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

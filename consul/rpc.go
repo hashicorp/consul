@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -27,6 +28,7 @@ const (
 	rpcMultiplex // Old Muxado byte, no longer supported.
 	rpcTLS
 	rpcMultiplexV2
+	rpcSnapshot
 )
 
 const (
@@ -119,6 +121,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case rpcMultiplexV2:
 		s.handleMultiplexV2(conn)
 
+	case rpcSnapshot:
+		s.handleSnapshotConn(conn)
+
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
 		conn.Close()
@@ -165,6 +170,17 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
 	}
+}
+
+// handleSnapshotConn is used to dispatch snapshot saves and restores, which
+// stream so don't use the normal RPC mechanism.
+func (s *Server) handleSnapshotConn(conn net.Conn) {
+	go func() {
+		defer conn.Close()
+		if err := s.handleSnapshotRequest(conn); err != nil {
+			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
+		}
+	}()
 }
 
 // forward is used to forward to a remote DC or to forward to the local leader
@@ -216,9 +232,9 @@ CHECK_LEADER:
 	return true, structs.ErrNoLeader
 }
 
-// getLeader returns if the current node is the leader, and if not
-// then it returns the leader which is potentially nil if the cluster
-// has not yet elected a leader.
+// getLeader returns if the current node is the leader, and if not then it
+// returns the leader which is potentially nil if the cluster has not yet
+// elected a leader.
 func (s *Server) getLeader() (bool, *agent.Server) {
 	// Check if we are the leader
 	if s.IsLeader() {
@@ -249,23 +265,29 @@ func (s *Server) forwardLeader(server *agent.Server, method string, args interfa
 	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, args, reply)
 }
 
-// forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
-func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
-	// Bail if we can't find any servers
+// getRemoteServer returns a random server from a remote datacenter. This uses
+// the bool parameter to signal that none were available.
+func (s *Server) getRemoteServer(dc string) (*agent.Server, bool) {
 	s.remoteLock.RLock()
+	defer s.remoteLock.RUnlock()
 	servers := s.remoteConsuls[dc]
 	if len(servers) == 0 {
-		s.remoteLock.RUnlock()
+		return nil, false
+	}
+
+	offset := rand.Int31n(int32(len(servers)))
+	server := servers[offset]
+	return server, true
+}
+
+// forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
+func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
+	server, ok := s.getRemoteServer(dc)
+	if !ok {
 		s.logger.Printf("[WARN] consul.rpc: RPC request for DC '%s', no path found", dc)
 		return structs.ErrNoDCPath
 	}
 
-	// Select a random addr
-	offset := rand.Int31n(int32(len(servers)))
-	server := servers[offset]
-	s.remoteLock.RUnlock()
-
-	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
 	return s.connPool.RPC(dc, server.Addr, server.Version, method, args, reply)
 }
@@ -331,21 +353,21 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	return future.Response(), nil
 }
 
-// blockingRPC is used for queries that need to wait for a minimum index. This
-// is used to block and wait for changes.
-func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	watch state.Watch, run func() error) error {
+// queryFn is used to perform a query operation. If a re-query is needed, the
+// passed-in watch set will be used to block for changes. The passed-in state
+// store should be used (vs. calling fsm.State()) since the given state store
+// will be correctly watched for changes if the state store is restored from
+// a snapshot.
+type queryFn func(memdb.WatchSet, *state.StateStore) error
+
+// blockingQuery is used to process a potentially blocking query operation.
+func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+	fn queryFn) error {
 	var timeout *time.Timer
-	var notifyCh chan struct{}
 
 	// Fast path right to the non-blocking query.
 	if queryOpts.MinQueryIndex == 0 {
 		goto RUN_QUERY
-	}
-
-	// Make sure a watch was given if we were asked to block.
-	if watch == nil {
-		panic("no watch given for blocking query")
 	}
 
 	// Restrict the max query time, and ensure there is always one.
@@ -360,20 +382,7 @@ func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs
 
 	// Setup a query timeout.
 	timeout = time.NewTimer(queryOpts.MaxQueryTime)
-
-	// Setup the notify channel.
-	notifyCh = make(chan struct{}, 1)
-
-	// Ensure we tear down any watches on return.
-	defer func() {
-		timeout.Stop()
-		watch.Clear(notifyCh)
-	}()
-
-REGISTER_NOTIFY:
-	// Register the notification channel. This may be done multiple times if
-	// we haven't reached the target wait index.
-	watch.Wait(notifyCh)
+	defer timeout.Stop()
 
 RUN_QUERY:
 	// Update the query metadata.
@@ -388,14 +397,36 @@ RUN_QUERY:
 
 	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
-	err := run()
 
-	// Check for minimum query time.
+	// Operate on a consistent set of state. This makes sure that the
+	// abandon channel goes with the state that the caller is using to
+	// build watches.
+	state := s.fsm.State()
+
+	// We can skip all watch tracking if this isn't a blocking query.
+	var ws memdb.WatchSet
+	if queryOpts.MinQueryIndex > 0 {
+		ws = memdb.NewWatchSet()
+
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(state.AbandonCh())
+	}
+
+	// Block up to the timeout if we didn't see anything fresh.
+	err := fn(ws, state)
 	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
-		select {
-		case <-notifyCh:
-			goto REGISTER_NOTIFY
-		case <-timeout.C:
+		if expired := ws.Watch(timeout.C); !expired {
+			// If a restore may have woken us up then bail out from
+			// the query immediately. This is slightly race-ey since
+			// this might have been interrupted for other reasons,
+			// but it's OK to kick it back to the caller in either
+			// case.
+			select {
+			case <-state.AbandonCh():
+			default:
+				goto RUN_QUERY
+			}
 		}
 	}
 	return err

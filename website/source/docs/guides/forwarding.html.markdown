@@ -3,31 +3,34 @@ layout: "docs"
 page_title: "Forwarding"
 sidebar_current: "docs-guides-forwarding"
 description: |-
-  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
+  By default, DNS is served from port 53. On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
 ---
 
 # Forwarding DNS
 
-By default, DNS is served from port 53.  On most operating systems, this
+By default, DNS is served from port 53. On most operating systems, this
 requires elevated privileges. Instead of running Consul with an administrative
 or root account, it is possible to instead forward appropriate queries to Consul,
 running on an unprivileged port, from another DNS server or port redirect.
 
-In this guide, we will demonstrate forwarding from [BIND](https://www.isc.org/downloads/bind/)
-as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and [iptables](http://www.netfilter.org/).
-For the sake of simplicity, BIND and Consul are running on the same machine in this example. For iptables the
-rules must be set on the same host as the Consul instance and relay hosts should not be on the same host or 
-the redirects will intercept the traffic. 
+In this guide, we will demonstrate forwarding from
+[BIND](https://www.isc.org/downloads/bind/) as well as
+[dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and
+[iptables](http://www.netfilter.org/). For the sake of simplicity, BIND
+and Consul are running on the same machine in this example. For iptables
+the rules must be set on the same host as the Consul instance and relay
+hosts should not be on the same host or the redirects will intercept the
+traffic.
 
 It is worth mentioning that, by default, Consul does not resolve DNS
 records outside the `.consul.` zone unless the
 [recursors](/docs/agent/options.html#recursors) configuration option
-has been set.  As an example of how this changes Consul's behavior,
+has been set. As an example of how this changes Consul's behavior,
 suppose a Consul DNS reply includes a CNAME record pointing outside
 the `.consul` TLD. The DNS reply will only include CNAME records by
 default. By contrast, when `recursors` is set and the upstream resolver is
 functioning correctly, Consul will try to resolve CNAMEs and include
-any records (e.g. A, AAAA, PTR) for them in its DNS reply. 
+any records (e.g. A, AAAA, PTR) for them in its DNS reply.
 
 You can either do one of the following:
 
@@ -61,7 +64,7 @@ include "/etc/named/consul.conf";
 
 ### Zone File
 
-Then we set up a zone for our Consul managed records in consul.conf:
+Then we set up a zone for our Consul managed records in `consul.conf`:
 
 ```text
 zone "consul" IN {
@@ -77,7 +80,7 @@ DNS on port 8600.
 ### Dnsmasq Setup
 
 Dnsmasq is typically configured via a `dnsmasq.conf` or a series of files in
-the `/etc/dnsmasq.d` directory.  In Dnsmasq's configuration file
+the `/etc/dnsmasq.d` directory. In Dnsmasq's configuration file
 (e.g. `/etc/dnsmasq.d/10-consul`), add the following:
 
 ```text
@@ -115,8 +118,8 @@ for additional details):
 #no-resolv
 
 # Specify IP address(es) of other DNS servers for queries not handled
-# directly by consul.  There is normally one 'server' entry set for every
-# 'nameserver' parameter found in '/etc/resolv.conf'.  See dnsmasq(8)'s
+# directly by consul. There is normally one 'server' entry set for every
+# 'nameserver' parameter found in '/etc/resolv.conf'. See dnsmasq(8)'s
 # 'server' configuration option for details.
 #server=1.2.3.4
 #server=208.67.222.222
@@ -129,15 +132,20 @@ for additional details):
 
 ### iptables Setup
 
-On Linux systems that support it, incoming requests and requests to localhost can use `iptables`
-to forward ports on the same machine without a secondary service.  Since Consul, by default, only
-resolves the `.consul` TDL, it is especially important to use the `recursors` option if you wish the
-`iptables` setup to resolve for other domains. The recursors should not include the localhost as the 
-redirects would just intercept the requests. The iptables method is suited for situations where an
-external DNS service is already running in your infrastructure and is used as the recursor or if you want 
-to use an existing DNS server as your query endpoint and forward requests for the consul domain to the 
-consul server. In both of those cases you may want to query the consul server but not need the overhead
-of a separate service on the consul host.
+On Linux systems that support it, incoming requests and requests to
+the local host can use `iptables` to forward ports on the same machine
+without a secondary service. Since Consul, by default, only resolves
+the `.consul` TLD, it is especially important to use the `recursors`
+option if you wish the `iptables` setup to resolve for other domains.
+The recursors should not include the local host as the redirects would
+just intercept the requests.
+
+The iptables method is suited for situations where an external DNS
+service is already running in your infrastructure and is used as the
+recursor or if you want to use an existing DNS server as your query
+endpoint and forward requests for the consul domain to the Consul
+server. In both of those cases you may want to query the Consul server
+but not need the overhead of a separate service on the Consul host.
 
 ```
 [root@localhost ~]# iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
@@ -151,9 +159,9 @@ of a separate service on the consul host.
 First, perform a DNS query against Consul directly to be sure that the record exists:
 
 ```text
-[root@localhost ~]# dig @localhost -p 8600 master.redis.service.dc-1.consul. A
+[root@localhost ~]# dig @localhost -p 8600 primary.redis.service.dc-1.consul. A
 
-; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost master.redis.service.dc-1.consul. A
+; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost primary.redis.service.dc-1.consul. A
 ; (1 server found)
 ;; global options: +cmd
 ;; Got answer:
@@ -161,10 +169,10 @@ First, perform a DNS query against Consul directly to be sure that the record ex
 ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
 
 ;; QUESTION SECTION:
-;master.redis.service.dc-1.consul. IN A
+;primary.redis.service.dc-1.consul. IN A
 
 ;; ANSWER SECTION:
-master.redis.service.dc-1.consul. 0 IN A 172.31.3.234
+primary.redis.service.dc-1.consul. 0 IN A 172.31.3.234
 
 ;; Query time: 4 msec
 ;; SERVER: 127.0.0.1#53(127.0.0.1)
@@ -176,9 +184,9 @@ Then run the same query against your BIND instance and make sure you get a
 valid result:
 
 ```text
-[root@localhost ~]# dig @localhost -p 53 master.redis.service.dc-1.consul. A
+[root@localhost ~]# dig @localhost -p 53 primary.redis.service.dc-1.consul. A
 
-; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost master.redis.service.dc-1.consul. A
+; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost primary.redis.service.dc-1.consul. A
 ; (1 server found)
 ;; global options: +cmd
 ;; Got answer:
@@ -186,10 +194,10 @@ valid result:
 ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
 
 ;; QUESTION SECTION:
-;master.redis.service.dc-1.consul. IN A
+;primary.redis.service.dc-1.consul. IN A
 
 ;; ANSWER SECTION:
-master.redis.service.dc-1.consul. 0 IN A 172.31.3.234
+primary.redis.service.dc-1.consul. 0 IN A 172.31.3.234
 
 ;; Query time: 4 msec
 ;; SERVER: 127.0.0.1#53(127.0.0.1)

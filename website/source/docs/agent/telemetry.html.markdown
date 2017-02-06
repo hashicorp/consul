@@ -161,7 +161,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
     <td>`consul.serf.events`</td>
-    <td>This increments when an agent processes an [event](/docs/commands/event.html). Note that Consul uses events internally so there may be additional events showing in telemetry. There are also a per-event counters emitted as `consul.serf.events.<event name>`.</td>
+    <td>This increments when an agent processes an [event](/docs/commands/event.html). Consul uses events internally so there may be additional events showing in telemetry. There are also a per-event counters emitted as `consul.serf.events.<event name>`.</td>
     <td>events / interval</td>
     <td>counter</td>
   </tr>
@@ -178,8 +178,14 @@ These metrics give insight into the health of the cluster as a whole.
     <td>timer</td>
   </tr>
   <tr>
+    <td>`consul.dns.stale_queries`</td>
+    <td>Available in Consul 0.7.1 and later, this increments when an agent serves a DNS query based on information from a server that is more than 5 seconds out of date.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.http.<verb>.<path>`</td>
-    <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Note that paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
+    <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
     <td>ms</td>
     <td>timer</td>
   </tr>

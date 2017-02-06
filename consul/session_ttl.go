@@ -8,13 +8,21 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
+const (
+	// maxInvalidateAttempts limits how many invalidate attempts are made
+	maxInvalidateAttempts = 6
+
+	// invalidateRetryBase is a baseline retry time
+	invalidateRetryBase = 10 * time.Second
+)
+
 // initializeSessionTimers is used when a leader is newly elected to create
 // a new map to track session expiration and to reset all the timers from
 // the previously known set of timers.
 func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
-	_, sessions, err := state.SessionList()
+	_, sessions, err := state.SessionList(nil)
 	if err != nil {
 		return err
 	}
@@ -33,7 +41,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	// Fault the session in if not given
 	if session == nil {
 		state := s.fsm.State()
-		_, s, err := state.SessionGet(id)
+		_, s, err := state.SessionGet(nil, id)
 		if err != nil {
 			return err
 		}
@@ -110,12 +118,19 @@ func (s *Server) invalidateSession(id string) {
 			ID: id,
 		},
 	}
-	s.logger.Printf("[DEBUG] consul.state: Session %s TTL expired", id)
 
-	// Apply the update to destroy the session
-	if _, err := s.raftApply(structs.SessionRequestType, args); err != nil {
+	// Retry with exponential backoff to invalidate the session
+	for attempt := uint(0); attempt < maxInvalidateAttempts; attempt++ {
+		_, err := s.raftApply(structs.SessionRequestType, args)
+		if err == nil {
+			s.logger.Printf("[DEBUG] consul.state: Session %s TTL expired", id)
+			return
+		}
+
 		s.logger.Printf("[ERR] consul.session: Invalidation failed: %v", err)
+		time.Sleep((1 << attempt) * invalidateRetryBase)
 	}
+	s.logger.Printf("[ERR] consul.session: maximum revoke attempts reached for session: %s", id)
 }
 
 // clearSessionTimer is used to clear the session time for

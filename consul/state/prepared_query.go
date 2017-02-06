@@ -14,6 +14,11 @@ var validUUID = regexp.MustCompile(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f
 
 // isUUID returns true if the given string is a valid UUID.
 func isUUID(str string) bool {
+	const uuidLen = 36
+	if len(str) != uuidLen {
+		return false
+	}
+
 	return validUUID.MatchString(str)
 }
 
@@ -75,7 +80,6 @@ func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("prepared-queries")
 	return nil
 }
 
@@ -193,7 +197,6 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["prepared-queries"].Notify() })
 	return nil
 }
 
@@ -202,20 +205,17 @@ func (s *StateStore) PreparedQueryDelete(idx uint64, queryID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.preparedQueryDeleteTxn(tx, idx, watches, queryID); err != nil {
+	if err := s.preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 
-	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
-	queryID string) error {
+func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {
@@ -233,23 +233,23 @@ func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	watches.Arm("prepared-queries")
 	return nil
 }
 
 // PreparedQueryGet returns the given prepared query by ID.
-func (s *StateStore) PreparedQueryGet(queryID string) (uint64, *structs.PreparedQuery, error) {
+func (s *StateStore) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryGet")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Look up the query by its ID.
-	wrapped, err := tx.First("prepared-queries", "id", queryID)
+	watchCh, wrapped, err := tx.FirstWatch("prepared-queries", "id", queryID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	return idx, toPreparedQuery(wrapped), nil
 }
 
@@ -261,7 +261,7 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryResolve")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Explicitly ban an empty query. This will never match an ID and the
 	// schema is set up so it will never match a query with an empty name,
@@ -331,18 +331,19 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 }
 
 // PreparedQueryList returns all the prepared queries.
-func (s *StateStore) PreparedQueryList() (uint64, structs.PreparedQueries, error) {
+func (s *StateStore) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.PreparedQueries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryList")...)
+	idx := maxIndexTxn(tx, "prepared-queries")
 
 	// Query all of the prepared queries in the state store.
 	queries, err := tx.Get("prepared-queries", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
+	ws.Add(queries.WatchCh())
 
 	// Go over all of the queries and build the response.
 	var result structs.PreparedQueries

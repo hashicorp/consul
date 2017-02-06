@@ -12,7 +12,7 @@ One of the primary roles of the agent is management of system-level and applicat
 checks. A health check is considered to be application-level if it is associated with a
 service. If not associated with a service, the check monitors the health of the entire node.
 
-A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
+A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
 
 There are five different kinds of checks:
@@ -34,7 +34,10 @@ There are five different kinds of checks:
   with a request timeout equal to the check interval, with a max of 10 seconds.
   It is possible to configure a custom HTTP check timeout value by specifying
   the `timeout` field in the check definition. The output of the check is
-  limited to roughly 4K. Responses larger than this will be truncated.
+  limited to roughly 4K. Responses larger than this will be truncated. HTTP checks
+  also support SSL. By default, a valid SSL certificate is expected. Certificate
+  verification can be turned off by setting the `tls_skip_verify` field to `true`
+  in the check definition.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname

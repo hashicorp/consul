@@ -22,15 +22,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-cleanhttp"
 )
-
-// offset is used to atomically increment the port numbers.
-var offset uint64
 
 // TestPerformanceConfig configures the performance parameters.
 type TestPerformanceConfig struct {
@@ -57,6 +54,7 @@ type TestAddressConfig struct {
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName          string                 `json:"node_name"`
+	NodeMeta          map[string]string      `json:"node_meta,omitempty"`
 	Performance       *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap         bool                   `json:"bootstrap,omitempty"`
 	Server            bool                   `json:"server,omitempty"`
@@ -70,7 +68,9 @@ type TestServerConfig struct {
 	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
 	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
+	Encrypt           string                 `json:"encrypt,omitempty"`
 	Stdout, Stderr    io.Writer              `json:"-"`
+	Args              []string               `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -80,10 +80,8 @@ type ServerConfigCallback func(c *TestServerConfig)
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
 func defaultServerConfig() *TestServerConfig {
-	idx := int(atomic.AddUint64(&offset, 1))
-
 	return &TestServerConfig{
-		NodeName:          fmt.Sprintf("node%d", idx),
+		NodeName:          fmt.Sprintf("node%d", randomPort()),
 		DisableCheckpoint: true,
 		Performance: &TestPerformanceConfig{
 			RaftMultiplier: 1,
@@ -94,14 +92,24 @@ func defaultServerConfig() *TestServerConfig {
 		Bind:      "127.0.0.1",
 		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
-			DNS:     20000 + idx,
-			HTTP:    21000 + idx,
-			RPC:     22000 + idx,
-			SerfLan: 23000 + idx,
-			SerfWan: 24000 + idx,
-			Server:  25000 + idx,
+			DNS:     randomPort(),
+			HTTP:    randomPort(),
+			RPC:     randomPort(),
+			SerfLan: randomPort(),
+			SerfWan: randomPort(),
+			Server:  randomPort(),
 		},
 	}
+}
+
+// randomPort asks the kernel for a random port to use.
+func randomPort() int {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
 }
 
 // TestService is used to serialize a service definition.
@@ -158,7 +166,8 @@ func NewTestServer(t TestingT) *TestServer {
 // an optional callback function to modify the configuration.
 func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
-		t.Skip("consul not found on $PATH, skipping")
+		t.Fatal("consul not found on $PATH - download and install " +
+			"consul or skip this test")
 	}
 
 	dataDir, err := ioutil.TempDir("", "consul")
@@ -200,7 +209,9 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Start the server
-	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
+	args := []string{"agent", "-config-file", configFile.Name()}
+	args = append(args, consulConfig.Args...)
+	cmd := exec.Command("consul", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
@@ -282,10 +293,13 @@ func (s *TestServer) waitForAPI() {
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 1 or more to be observed to confirm leader election is done.
+// It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader() {
+	var index int64
 	WaitForResult(func() (bool, error) {
-		// Query the API and check the status code
-		resp, err := s.HttpClient.Get(s.url("/v1/catalog/nodes"))
+		// Query the API and check the status code.
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=10s", index))
+		resp, err := s.HttpClient.Get(url)
 		if err != nil {
 			return false, err
 		}
@@ -294,13 +308,33 @@ func (s *TestServer) waitForLeader() {
 			return false, err
 		}
 
-		// Ensure we have a leader and a node registration
+		// Ensure we have a leader and a node registration.
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			fmt.Println(leader)
 			return false, fmt.Errorf("Consul leader status: %#v", leader)
 		}
-		if resp.Header.Get("X-Consul-Index") == "0" {
+		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+		if err != nil {
+			return false, fmt.Errorf("Consul index was bad: %v", err)
+		}
+		if index == 0 {
 			return false, fmt.Errorf("Consul index is 0")
+		}
+
+		// Watch for the anti-entropy sync to finish.
+		var parsed []map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&parsed); err != nil {
+			return false, err
+		}
+		if len(parsed) < 1 {
+			return false, fmt.Errorf("No nodes")
+		}
+		taggedAddresses, ok := parsed[0]["TaggedAddresses"].(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("Missing tagged addresses")
+		}
+		if _, ok := taggedAddresses["lan"]; !ok {
+			return false, fmt.Errorf("No lan tagged addresses")
 		}
 		return true, nil
 	}, func(err error) {

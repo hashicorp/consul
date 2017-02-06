@@ -1,8 +1,15 @@
 package api
 
 import (
+	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
+
+	"time"
+
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestAgent_Self(t *testing.T) {
@@ -20,6 +27,51 @@ func TestAgent_Self(t *testing.T) {
 	name := info["Config"]["NodeName"]
 	if name == "" {
 		t.Fatalf("bad: %v", info)
+	}
+}
+
+func TestAgent_Reload(t *testing.T) {
+	t.Parallel()
+
+	// Create our initial empty config file, to be overwritten later
+	configFile, err := ioutil.TempFile("", "reload")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := configFile.Write([]byte("{}")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	configFile.Close()
+
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Args = []string{"-config-file", configFile.Name()}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Update the config file with a service definition
+	config := `{"service":{"name":"redis", "port":1234}}`
+	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err = agent.Reload(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	service, ok := services["redis"]
+	if !ok {
+		t.Fatalf("bad: %v", ok)
+	}
+	if service.Port != 1234 {
+		t.Fatalf("bad: %v", service.Port)
 	}
 }
 
@@ -544,6 +596,41 @@ func TestAgent_Join(t *testing.T) {
 	}
 }
 
+func TestAgent_Leave(t *testing.T) {
+	t.Parallel()
+	c1, s1 := makeClient(t)
+	defer s1.Stop()
+
+	c2, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Server = false
+		conf.Bootstrap = false
+	})
+	defer s2.Stop()
+
+	if err := c2.Agent().Join(s1.LANAddr, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We sometimes see an EOF response to this one, depending on timing.
+	err := c2.Agent().Leave()
+	if err != nil && err != io.EOF {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the second agent's status is 'Left'
+	members, err := c1.Agent().Members(false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	member := members[0]
+	if member.Name == s1.Config.NodeName {
+		member = members[1]
+	}
+	if member.Status != int(serf.StatusLeft) {
+		t.Fatalf("bad: %v", *member)
+	}
+}
+
 func TestAgent_ForceLeave(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -555,6 +642,29 @@ func TestAgent_ForceLeave(t *testing.T) {
 	err := agent.ForceLeave("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Monitor(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	logCh, err := agent.Monitor("info", nil, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the first log message and validate it
+	select {
+	case log := <-logCh:
+		if !strings.Contains(log, "[INFO]") {
+			t.Fatalf("bad: %q", log)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("failed to get a log message")
 	}
 }
 

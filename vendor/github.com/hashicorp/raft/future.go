@@ -1,6 +1,8 @@
 package raft
 
 import (
+	"fmt"
+	"io"
 	"sync"
 	"time"
 )
@@ -44,6 +46,16 @@ type ConfigurationFuture interface {
 	// Configuration contains the latest configuration. This must
 	// not be called until after the Error method has returned.
 	Configuration() Configuration
+}
+
+// SnapshotFuture is used for waiting on a user-triggered snapshot to complete.
+type SnapshotFuture interface {
+	Future
+
+	// Open is a function you can call to access the underlying snapshot and
+	// its metadata. This must not be called until after the Error method
+	// has returned.
+	Open() (*SnapshotMeta, io.ReadCloser, error)
 }
 
 // errorFuture is used to return a static error.
@@ -150,9 +162,41 @@ func (s *shutdownFuture) Error() error {
 	return nil
 }
 
-// snapshotFuture is used for waiting on a snapshot to complete.
-type snapshotFuture struct {
+// userSnapshotFuture is used for waiting on a user-triggered snapshot to
+// complete.
+type userSnapshotFuture struct {
 	deferError
+
+	// opener is a function used to open the snapshot. This is filled in
+	// once the future returns with no error.
+	opener func() (*SnapshotMeta, io.ReadCloser, error)
+}
+
+// Open is a function you can call to access the underlying snapshot and its
+// metadata.
+func (u *userSnapshotFuture) Open() (*SnapshotMeta, io.ReadCloser, error) {
+	if u.opener == nil {
+		return nil, nil, fmt.Errorf("no snapshot available")
+	} else {
+		// Invalidate the opener so it can't get called multiple times,
+		// which isn't generally safe.
+		defer func() {
+			u.opener = nil
+		}()
+		return u.opener()
+	}
+}
+
+// userRestoreFuture is used for waiting on a user-triggered restore of an
+// external snapshot to complete.
+type userRestoreFuture struct {
+	deferError
+
+	// meta is the metadata that belongs with the snapshot.
+	meta *SnapshotMeta
+
+	// reader is the interface to read the snapshot contents from.
+	reader io.Reader
 }
 
 // reqSnapshotFuture is used for requesting a snapshot start.

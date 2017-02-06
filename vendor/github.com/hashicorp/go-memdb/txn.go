@@ -70,6 +70,11 @@ func (txn *Txn) writableIndex(table, index string) *iradix.Txn {
 	raw, _ := txn.rootTxn.Get(path)
 	indexTxn := raw.(*iradix.Tree).Txn()
 
+	// If we are the primary DB, enable mutation tracking. Snapshots should
+	// not notify, otherwise we will trigger watches on the primary DB when
+	// the writes will not be visible.
+	indexTxn.TrackMutate(txn.db.primary)
+
 	// Keep this open for the duration of the txn
 	txn.modified[key] = indexTxn
 	return indexTxn
@@ -148,7 +153,8 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 
 	// Get the primary ID of the object
 	idSchema := tableSchema.Indexes[id]
-	ok, idVal, err := idSchema.Indexer.FromObject(obj)
+	idIndexer := idSchema.Indexer.(SingleIndexer)
+	ok, idVal, err := idIndexer.FromObject(obj)
 	if err != nil {
 		return fmt.Errorf("failed to build primary index: %v", err)
 	}
@@ -167,7 +173,19 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		indexTxn := txn.writableIndex(table, name)
 
 		// Determine the new index value
-		ok, val, err := indexSchema.Indexer.FromObject(obj)
+		var (
+			ok   bool
+			vals [][]byte
+			err  error
+		)
+		switch indexer := indexSchema.Indexer.(type) {
+		case SingleIndexer:
+			var val []byte
+			ok, val, err = indexer.FromObject(obj)
+			vals = [][]byte{val}
+		case MultiIndexer:
+			ok, vals, err = indexer.FromObject(obj)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to build index '%s': %v", name, err)
 		}
@@ -176,28 +194,44 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		// This is done by appending the primary key which must
 		// be unique anyways.
 		if ok && !indexSchema.Unique {
-			val = append(val, idVal...)
+			for i := range vals {
+				vals[i] = append(vals[i], idVal...)
+			}
 		}
 
 		// Handle the update by deleting from the index first
 		if update {
-			okExist, valExist, err := indexSchema.Indexer.FromObject(existing)
+			var (
+				okExist   bool
+				valsExist [][]byte
+				err       error
+			)
+			switch indexer := indexSchema.Indexer.(type) {
+			case SingleIndexer:
+				var valExist []byte
+				okExist, valExist, err = indexer.FromObject(existing)
+				valsExist = [][]byte{valExist}
+			case MultiIndexer:
+				okExist, valsExist, err = indexer.FromObject(existing)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to build index '%s': %v", name, err)
 			}
 			if okExist {
-				// Handle non-unique index by computing a unique index.
-				// This is done by appending the primary key which must
-				// be unique anyways.
-				if !indexSchema.Unique {
-					valExist = append(valExist, idVal...)
-				}
+				for i, valExist := range valsExist {
+					// Handle non-unique index by computing a unique index.
+					// This is done by appending the primary key which must
+					// be unique anyways.
+					if !indexSchema.Unique {
+						valExist = append(valExist, idVal...)
+					}
 
-				// If we are writing to the same index with the same value,
-				// we can avoid the delete as the insert will overwrite the
-				// value anyways.
-				if !bytes.Equal(valExist, val) {
-					indexTxn.Delete(valExist)
+					// If we are writing to the same index with the same value,
+					// we can avoid the delete as the insert will overwrite the
+					// value anyways.
+					if i >= len(vals) || !bytes.Equal(valExist, vals[i]) {
+						indexTxn.Delete(valExist)
+					}
 				}
 			}
 		}
@@ -213,7 +247,9 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 		}
 
 		// Update the value of the index
-		indexTxn.Insert(val, obj)
+		for _, val := range vals {
+			indexTxn.Insert(val, obj)
+		}
 	}
 	return nil
 }
@@ -233,7 +269,8 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 
 	// Get the primary ID of the object
 	idSchema := tableSchema.Indexes[id]
-	ok, idVal, err := idSchema.Indexer.FromObject(obj)
+	idIndexer := idSchema.Indexer.(SingleIndexer)
+	ok, idVal, err := idIndexer.FromObject(obj)
 	if err != nil {
 		return fmt.Errorf("failed to build primary index: %v", err)
 	}
@@ -253,7 +290,19 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 		indexTxn := txn.writableIndex(table, name)
 
 		// Handle the update by deleting from the index first
-		ok, val, err := indexSchema.Indexer.FromObject(existing)
+		var (
+			ok   bool
+			vals [][]byte
+			err  error
+		)
+		switch indexer := indexSchema.Indexer.(type) {
+		case SingleIndexer:
+			var val []byte
+			ok, val, err = indexer.FromObject(existing)
+			vals = [][]byte{val}
+		case MultiIndexer:
+			ok, vals, err = indexer.FromObject(existing)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to build index '%s': %v", name, err)
 		}
@@ -261,10 +310,12 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 			// Handle non-unique index by computing a unique index.
 			// This is done by appending the primary key which must
 			// be unique anyways.
-			if !indexSchema.Unique {
-				val = append(val, idVal...)
+			for _, val := range vals {
+				if !indexSchema.Unique {
+					val = append(val, idVal...)
+				}
+				indexTxn.Delete(val)
 			}
-			indexTxn.Delete(val)
 		}
 	}
 	return nil
@@ -306,13 +357,13 @@ func (txn *Txn) DeleteAll(table, index string, args ...interface{}) (int, error)
 	return num, nil
 }
 
-// First is used to return the first matching object for
-// the given constraints on the index
-func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, error) {
+// FirstWatch is used to return the first matching object for
+// the given constraints on the index along with the watch channel
+func (txn *Txn) FirstWatch(table, index string, args ...interface{}) (<-chan struct{}, interface{}, error) {
 	// Get the index value
 	indexSchema, val, err := txn.getIndexValue(table, index, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Get the index itself
@@ -320,18 +371,25 @@ func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, er
 
 	// Do an exact lookup
 	if indexSchema.Unique && val != nil && indexSchema.Name == index {
-		obj, ok := indexTxn.Get(val)
+		watch, obj, ok := indexTxn.GetWatch(val)
 		if !ok {
-			return nil, nil
+			return watch, nil, nil
 		}
-		return obj, nil
+		return watch, obj, nil
 	}
 
 	// Handle non-unique index by using an iterator and getting the first value
 	iter := indexTxn.Root().Iterator()
-	iter.SeekPrefix(val)
+	watch := iter.SeekPrefixWatch(val)
 	_, value, _ := iter.Next()
-	return value, nil
+	return watch, value, nil
+}
+
+// First is used to return the first matching object for
+// the given constraints on the index
+func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, error) {
+	_, val, err := txn.FirstWatch(table, index, args...)
+	return val, err
 }
 
 // LongestPrefix is used to fetch the longest prefix match for the given
@@ -422,6 +480,7 @@ func (txn *Txn) getIndexValue(table, index string, args ...interface{}) (*IndexS
 // ResultIterator is used to iterate over a list of results
 // from a Get query on a table.
 type ResultIterator interface {
+	WatchCh() <-chan struct{}
 	Next() interface{}
 }
 
@@ -442,11 +501,12 @@ func (txn *Txn) Get(table, index string, args ...interface{}) (ResultIterator, e
 	indexIter := indexRoot.Iterator()
 
 	// Seek the iterator to the appropriate sub-set
-	indexIter.SeekPrefix(val)
+	watchCh := indexIter.SeekPrefixWatch(val)
 
 	// Create an iterator
 	iter := &radixIterator{
-		iter: indexIter,
+		iter:    indexIter,
+		watchCh: watchCh,
 	}
 	return iter, nil
 }
@@ -460,10 +520,15 @@ func (txn *Txn) Defer(fn func()) {
 }
 
 // radixIterator is used to wrap an underlying iradix iterator.
-// This is much mroe efficient than a sliceIterator as we are not
+// This is much more efficient than a sliceIterator as we are not
 // materializing the entire view.
 type radixIterator struct {
-	iter *iradix.Iterator
+	iter    *iradix.Iterator
+	watchCh <-chan struct{}
+}
+
+func (r *radixIterator) WatchCh() <-chan struct{} {
+	return r.watchCh
 }
 
 func (r *radixIterator) Next() interface{} {

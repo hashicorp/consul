@@ -10,8 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
+	"reflect"
 )
 
 func TestCommand_implements(t *testing.T) {
@@ -126,6 +128,9 @@ func TestReadCliConfig(t *testing.T) {
 				"-data-dir", tmpDir,
 				"-node", `"a"`,
 				"-advertise-wan", "1.2.3.4",
+				"-serf-wan-bind", "4.3.2.1",
+				"-serf-lan-bind", "4.3.2.2",
+				"-node-meta", "somekey:somevalue",
 			},
 			ShutdownCh: shutdownCh,
 			Ui:         new(cli.MockUi),
@@ -134,6 +139,36 @@ func TestReadCliConfig(t *testing.T) {
 		config := cmd.readConfig()
 		if config.AdvertiseAddrWan != "1.2.3.4" {
 			t.Fatalf("expected -advertise-addr-wan 1.2.3.4 got %s", config.AdvertiseAddrWan)
+		}
+		if config.SerfWanBindAddr != "4.3.2.1" {
+			t.Fatalf("expected -serf-wan-bind 4.3.2.1 got %s", config.SerfWanBindAddr)
+		}
+		if config.SerfLanBindAddr != "4.3.2.2" {
+			t.Fatalf("expected -serf-lan-bind 4.3.2.2 got %s", config.SerfLanBindAddr)
+		}
+		if len(config.Meta) != 1 || config.Meta["somekey"] != "somevalue" {
+			t.Fatalf("expected somekey=somevalue, got %v", config.Meta)
+		}
+	}
+
+	// Test multiple node meta flags
+	{
+		cmd := &Command{
+			args: []string{
+				"-data-dir", tmpDir,
+				"-node-meta", "somekey:somevalue",
+				"-node-meta", "otherkey:othervalue",
+			},
+			ShutdownCh: shutdownCh,
+			Ui:         new(cli.MockUi),
+		}
+		expected := map[string]string{
+			"somekey":  "somevalue",
+			"otherkey": "othervalue",
+		}
+		config := cmd.readConfig()
+		if !reflect.DeepEqual(config.Meta, expected) {
+			t.Fatalf("bad: %v %v", config.Meta, expected)
 		}
 	}
 
@@ -266,6 +301,63 @@ func TestRetryJoinWanFail(t *testing.T) {
 	}
 }
 
+func TestDiscoverEC2Hosts(t *testing.T) {
+	if os.Getenv("AWS_REGION") == "" {
+		t.Skip("AWS_REGION not set, skipping")
+	}
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		t.Skip("AWS_ACCESS_KEY_ID not set, skipping")
+	}
+
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		t.Skip("AWS_SECRET_ACCESS_KEY not set, skipping")
+	}
+
+	c := &Config{
+		RetryJoinEC2: RetryJoinEC2{
+			Region:   os.Getenv("AWS_REGION"),
+			TagKey:   "ConsulRole",
+			TagValue: "Server",
+		},
+	}
+
+	servers, err := c.discoverEc2Hosts(&log.Logger{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(servers) != 3 {
+		t.Fatalf("bad: %v", servers)
+	}
+}
+
+func TestDiscoverGCEHosts(t *testing.T) {
+	if os.Getenv("GCE_PROJECT") == "" {
+		t.Skip("GCE_PROJECT not set, skipping")
+	}
+
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" && os.Getenv("GCE_CONFIG_CREDENTIALS") == "" {
+		t.Skip("GOOGLE_APPLICATION_CREDENTIALS or GCE_CONFIG_CREDENTIALS not set, skipping")
+	}
+
+	c := &Config{
+		RetryJoinGCE: RetryJoinGCE{
+			ProjectName:     os.Getenv("GCE_PROJECT"),
+			ZonePattern:     os.Getenv("GCE_ZONE"),
+			TagValue:        "consulrole-server",
+			CredentialsFile: os.Getenv("GCE_CONFIG_CREDENTIALS"),
+		},
+	}
+
+	servers, err := c.discoverGCEHosts(log.New(os.Stderr, "", log.LstdFlags))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(servers) != 3 {
+		t.Fatalf("bad: %v", servers)
+	}
+}
+
 func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
@@ -299,7 +391,7 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 		Ui:         new(cli.MockUi),
 	}
 
-	logWriter := NewLogWriter(512)
+	logWriter := logger.NewLogWriter(512)
 	logOutput := new(bytes.Buffer)
 
 	// Ensure the server is created

@@ -17,6 +17,7 @@ or perform any other orchestration action. Events can be handled by
 [using a watch](/docs/agent/watches.html).
 
 Under the hood, events are propagated using the [gossip protocol](/docs/internals/gossip.html).
+
 While the details are not important for using events, an understanding of
 the semantics is useful. The gossip layer will make a best-effort to deliver
 the event, but there is **no guaranteed delivery**. Unlike most Consul data, which is
@@ -42,7 +43,7 @@ The list of available flags are:
 
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
+  `127.0.0.1:8500` which is the default HTTP address of a Consul agent.
 
 * `-datacenter` - Datacenter to query. Defaults to that of agent.
 
@@ -54,7 +55,7 @@ The list of available flags are:
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may
-  do "-service mysql -tag slave".
+  do `-service mysql -tag secondary`.
 
 * `-token` - The ACL token to use when firing the event. This token must have
   write-level privileges for the event specified. Defaults to that of the agent.

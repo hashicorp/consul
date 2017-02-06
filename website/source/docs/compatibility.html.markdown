@@ -18,8 +18,9 @@ compatible with _at least_ one prior version. Concretely: version 0.5 can
 speak to 0.4 (and vice versa) but may not be able to speak to 0.1.
 
 Backwards compatibility is automatic unless otherwise noted. Consul agents by
-default will speak the latest protocol but can understand earlier ones. Note:
-if speaking an earlier protocol, _new features may not be available_.
+default will speak the latest protocol but can understand earlier ones.
+
+-> **Note:** If speaking an earlier protocol, _new features may not be available_.
 
 The ability for an agent to speak an earlier protocol is to ensure that any agent
 can be upgraded without cluster disruption. Consul agents can be updated one
@@ -53,5 +54,13 @@ For more details on the specifics of upgrading, see the [upgrading page](/docs/u
   <tr>
     <td>0.5</td>
     <td>1, 2. 0.5.X servers cannot be mixed with older servers.</td>
+  </tr>
+  <tr>
+    <td>0.6</td>
+    <td>1, 2, 3</td>
+  </tr>
+  <tr>
+    <td>0.7</td>
+    <td>2, 3. Will automatically use protocol > 2 when speaking to compatible agents</td>
   </tr>
 </table>

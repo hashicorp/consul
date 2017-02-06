@@ -60,13 +60,17 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Without a protocol
-	input = `{"node_name": "foo", "datacenter": "dc2"}`
+	input = `{"node_id": "bar", "node_name": "foo", "datacenter": "dc2"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.NodeName != "foo" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.NodeID != "bar" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -179,13 +183,22 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Server addrs
-	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3"}`
+	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3", "serf_lan_bind": "127.0.0.4", "serf_wan_bind": "52.54.55.56"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.BindAddr != "127.0.0.2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.SerfWanBindAddr != "52.54.55.56" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.SerfLanBindAddr != "127.0.0.4" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -272,6 +285,19 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Node metadata fields
+	input = `{"node_meta": {"thing1": "1", "thing2": "2"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if v, ok := config.Meta["thing1"]; !ok || v != "1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if v, ok := config.Meta["thing2"]; !ok || v != "2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// leave_on_terminate
 	input = `{"leave_on_terminate": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -306,7 +332,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS
-	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true}`
+	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -321,6 +347,10 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.VerifyServerHostname != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.TLSMinVersion != "tls12" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -634,7 +664,8 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// ACLs
-	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
+	input = `{"acl_token": "1111", "acl_agent_master_token": "2222",
+	"acl_agent_token": "3333", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
 	"acl_default_policy": "deny", "acl_master_token": "2345",
 	"acl_replication_token": "8675309"}`
@@ -643,7 +674,13 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.ACLToken != "1234" {
+	if config.ACLToken != "1111" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentMasterToken != "2222" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLAgentToken != "3333" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLMasterToken != "2345" {
@@ -662,6 +699,48 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLReplicationToken != "8675309" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// ACL token precedence.
+	input = `{}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "hello" {
+		t.Fatalf("bad: %s", token)
+	}
+	input = `{"acl_agent_token": "world", "acl_token": "hello"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if token := config.GetTokenForAgent(); token != "world" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// ACL flag for Consul version 0.8 features (broken out since we will
+	// eventually remove this). We first verify this is opt-out.
+	config = DefaultConfig()
+	if *config.ACLEnforceVersion8 != false {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	input = `{"acl_enforce_version_8": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if *config.ACLEnforceVersion8 != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -749,6 +828,7 @@ func TestDecodeConfig(t *testing.T) {
     "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
 	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
     "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
+    "circonus_check_display_name": "node1:consul", "circonus_check_tags": "cat1:tag1,cat2:tag2",
     "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"} }`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
@@ -779,6 +859,12 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Telemetry.CirconusCheckSearchTag != "c:d" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckDisplayName != "node1:consul" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckTags != "cat1:tag1,cat2:tag2" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Telemetry.CirconusBrokerID != "6789" {
@@ -936,6 +1022,62 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 	_, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err == nil || !strings.Contains(err.Error(), "invalid keys") {
 		t.Fatalf("should have rejected invalid config keys")
+	}
+}
+
+func TestRetryJoinEC2(t *testing.T) {
+	input := `{"retry_join_ec2": {
+	  "region": "us-east-1",
+		"tag_key": "ConsulRole",
+		"tag_value": "Server",
+		"access_key_id": "asdf",
+		"secret_access_key": "qwerty"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinEC2.Region != "us-east-1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.TagKey != "ConsulRole" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.TagValue != "Server" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.AccessKeyID != "asdf" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinEC2.SecretAccessKey != "qwerty" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestRetryJoinGCE(t *testing.T) {
+	input := `{"retry_join_gce": {
+	  "project_name": "test-project",
+		"zone_pattern": "us-west1-a",
+		"tag_value": "consul-server",
+		"credentials_file": "/path/to/foo.json"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinGCE.ProjectName != "test-project" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.ZonePattern != "us-west1-a" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.TagValue != "consul-server" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinGCE.CredentialsFile != "/path/to/foo.json" {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 
@@ -1136,6 +1278,23 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"interval": "10s",
 				"timeout": "100ms",
 				"service_id": "elasticsearch"
+			},
+			{
+				"id": "chk5",
+				"name": "service:sslservice",
+				"HTTP": "https://sslservice/status",
+				"interval": "10s",
+				"timeout": "100ms",
+				"service_id": "sslservice"
+			},
+			{
+				"id": "chk6",
+				"name": "service:insecure-sslservice",
+				"HTTP": "https://insecure-sslservice/status",
+				"interval": "10s",
+				"timeout": "100ms",
+				"service_id": "insecure-sslservice",
+				"tls_skip_verify": true
 			}
 		]
 	}`
@@ -1180,6 +1339,28 @@ func TestDecodeConfig_Checks(t *testing.T) {
 					HTTP:     "http://localhost:9200/_cluster_health",
 					Interval: 10 * time.Second,
 					Timeout:  100 * time.Millisecond,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk5",
+				Name:      "service:sslservice",
+				ServiceID: "sslservice",
+				CheckType: CheckType{
+					HTTP:          "https://sslservice/status",
+					Interval:      10 * time.Second,
+					Timeout:       100 * time.Millisecond,
+					TLSSkipVerify: false,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk6",
+				Name:      "service:insecure-sslservice",
+				ServiceID: "insecure-sslservice",
+				CheckType: CheckType{
+					HTTP:          "https://insecure-sslservice/status",
+					Interval:      10 * time.Second,
+					Timeout:       100 * time.Millisecond,
+					TLSSkipVerify: true,
 				},
 			},
 		},
@@ -1359,6 +1540,7 @@ func TestMergeConfig(t *testing.T) {
 		DataDir:                "/tmp/foo",
 		Domain:                 "basic",
 		LogLevel:               "debug",
+		NodeID:                 "bar",
 		NodeName:               "foo",
 		ClientAddr:             "127.0.0.1",
 		BindAddr:               "127.0.0.1",
@@ -1370,6 +1552,13 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
 		RetryIntervalWanRaw:    "10s",
+		RetryJoinEC2: RetryJoinEC2{
+			Region:          "us-east-1",
+			TagKey:          "Key1",
+			TagValue:        "Value1",
+			AccessKeyID:     "nope",
+			SecretAccessKey: "nope",
+		},
 		Telemetry: Telemetry{
 			DisableHostname: false,
 			StatsdAddr:      "nope",
@@ -1377,6 +1566,9 @@ func TestMergeConfig(t *testing.T) {
 			StatsitePrefix:  "nope",
 			DogStatsdAddr:   "nope",
 			DogStatsdTags:   []string{"nope"},
+		},
+		Meta: map[string]string{
+			"key": "value1",
 		},
 	}
 
@@ -1403,6 +1595,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		Domain:           "other",
 		LogLevel:         "info",
+		NodeID:           "bar",
 		NodeName:         "baz",
 		ClientAddr:       "127.0.0.2",
 		BindAddr:         "127.0.0.2",
@@ -1432,6 +1625,7 @@ func TestMergeConfig(t *testing.T) {
 		CAFile:                 "test/ca.pem",
 		CertFile:               "test/cert.pem",
 		KeyFile:                "test/key.pem",
+		TLSMinVersion:          "tls12",
 		Checks:                 []*CheckDefinition{nil},
 		Services:               []*ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
@@ -1452,14 +1646,17 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutWan:    36 * time.Hour,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
-		ACLToken:               "1234",
-		ACLMasterToken:         "2345",
+		ACLToken:               "1111",
+		ACLAgentMasterToken:    "2222",
+		ACLAgentToken:          "3333",
+		ACLMasterToken:         "4444",
 		ACLDatacenter:          "dc2",
 		ACLTTL:                 15 * time.Second,
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
 		ACLReplicationToken:    "8765309",
+		ACLEnforceVersion8:     Bool(true),
 		Watches: []map[string]interface{}{
 			map[string]interface{}{
 				"type":    "keyprefix",
@@ -1475,6 +1672,9 @@ func TestMergeConfig(t *testing.T) {
 			DisableHostname: true,
 			DogStatsdAddr:   "127.0.0.1:7254",
 			DogStatsdTags:   []string{"tag_1:val_1", "tag_2:val_2"},
+		},
+		Meta: map[string]string{
+			"key": "value2",
 		},
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
@@ -1492,8 +1692,15 @@ func TestMergeConfig(t *testing.T) {
 		AtlasToken:          "123456789",
 		AtlasACLToken:       "abcdefgh",
 		AtlasJoin:           true,
-		SessionTTLMinRaw:    "1000s",
-		SessionTTLMin:       1000 * time.Second,
+		RetryJoinEC2: RetryJoinEC2{
+			Region:          "us-east-2",
+			TagKey:          "Key2",
+			TagValue:        "Value2",
+			AccessKeyID:     "foo",
+			SecretAccessKey: "bar",
+		},
+		SessionTTLMinRaw: "1000s",
+		SessionTTLMin:    1000 * time.Second,
 		AdvertiseAddrs: AdvertiseAddrsConfig{
 			SerfLan:    &net.TCPAddr{},
 			SerfLanRaw: "127.0.0.5:1231",

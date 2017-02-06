@@ -87,3 +87,19 @@ respect them.
 * In other applications that perform high volumes of reads against Consul, consider using the
 [stale consistency mode](/docs/agent/http.html#consistency) available to allow reads to scale
 across all the servers and not just be forwarded to the leader.
+
+## Memory Requirements
+
+Consul server agents operate on a working set of data comprised of key/value
+entries, the service catalog, prepared queries, access control lists, and
+sessions in memory. These data are persisted through Raft to disk in the form
+of a snapshot and log of changes since the previous snapshot for durability.
+
+When planning for memory requirements, you should typically allocate
+enough RAM for your server agents to contain between 2 to 4 times the working
+set size. You can determine the working set size by noting the value of
+`consul.runtime.alloc_bytes` in the [Telemetry data](/docs/agent/telemetry.html).
+
+> NOTE: Consul is not designed to serve as a general purpose database, and you
+> should keep this in mind when choosing what data are populated to the
+> key/value store.

@@ -105,8 +105,14 @@
 						<li<%= sidebar_current("docs-commands-kv-delete") %>>
 							<a href="/docs/commands/kv/delete.html">delete</a>
 						</li>
+						<li<%= sidebar_current("docs-commands-kv-export") %>>
+							<a href="/docs/commands/kv/export.html">export</a>
+						</li>
 						<li<%= sidebar_current("docs-commands-kv-get") %>>
 							<a href="/docs/commands/kv/get.html">get</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-kv-import") %>>
+							<a href="/docs/commands/kv/import.html">import</a>
 						</li>
 						<li<%= sidebar_current("docs-commands-kv-put") %>>
 							<a href="/docs/commands/kv/put.html">put</a>
@@ -147,6 +153,24 @@
 
 					<li<%= sidebar_current("docs-commands-rtt") %>>
 					<a href="/docs/commands/rtt.html">rtt</a>
+					</li>
+
+					<li<%= sidebar_current("docs-commands-snapshot") %>>
+					<a href="/docs/commands/snapshot.html">snapshot</a>
+					<ul class="subnav">
+						<li<%= sidebar_current("docs-commands-snapshot-agent") %>>
+							<a href="/docs/commands/snapshot/agent.html">agent</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-snapshot-inspect") %>>
+							<a href="/docs/commands/snapshot/inspect.html">inspect</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-snapshot-restore") %>>
+							<a href="/docs/commands/snapshot/restore.html">restore</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-snapshot-save") %>>
+							<a href="/docs/commands/snapshot/save.html">save</a>
+						</li>
+					</ul>
 					</li>
 
 					<li<%= sidebar_current("docs-commands-watch") %>>
@@ -198,7 +222,7 @@
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-operator") %>>
-						<a href="/docs/agent/http/operator.html">Operator  </a>
+						<a href="/docs/agent/http/operator.html">Operator</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-query") %>>
@@ -207,6 +231,10 @@
 
 						<li<%= sidebar_current("docs-agent-http-session") %>>
 						<a href="/docs/agent/http/session.html">Sessions</a>
+						</li>
+
+						<li<%= sidebar_current("docs-agent-http-snapshot") %>>
+						<a href="/docs/agent/http/snapshot.html">Snapshots</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-status") %>>

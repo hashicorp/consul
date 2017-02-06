@@ -57,7 +57,7 @@ When using the `POST` method, Consul will create a new prepared query and return
 its ID if it is created successfully.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter.
+provided using the `?dc=` query parameter.
 
 If ACLs are enabled, the client will need to supply an ACL Token with `query`
 write privileges for the `Name` of the query being created.
@@ -70,15 +70,16 @@ query, like this example:
   "Name": "my-query",
   "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
   "Token": "",
-  "Near": "node1",
   "Service": {
     "Service": "redis",
     "Failover": {
       "NearestN": 3,
       "Datacenters": ["dc1", "dc2"]
     },
+    "Near": "node1",
     "OnlyPassing": false,
-    "Tags": ["master", "!experimental"]
+    "Tags": ["primary", "!experimental"],
+    "NodeMeta": {"instance_type": "m3.large"}
   },
   "DNS": {
     "TTL": "10s"
@@ -105,14 +106,14 @@ field is left blank or omitted, the client's ACL Token will be used to determine
 if they have access to the service being queried. If the client does not supply
 an ACL Token, the anonymous token will be used.
 
-Note that Consul version 0.6.3 and earlier would automatically capture the ACL
+Consul version 0.6.3 and earlier would automatically capture the ACL
 Token for use in the future when prepared queries were executed and would
 execute with the same privileges as the definer of the prepared query. Older
 queries wishing to obtain the new behavior will need to be updated to remove
 their captured `Token` field. Capturing ACL Tokens is analogous to
 [PostgreSQL’s SECURITY DEFINER](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
 attribute which can be set on functions. This change in effect moves Consul
-from using `SECURITY DEFINER` by default to `SECURITY INVOKER` by default for
+from using `SECURITY DEFINER` to `SECURITY INVOKER` by default for
 new Prepared Queries.
 
 <a name="near"></a>
@@ -162,7 +163,11 @@ to pass the tag filter it must have *all* of the required tags, and *none* of th
 excluded tags (prefixed with `!`). The default value is an empty list, which does
 no tag filtering.
 
-`TTL` in the `DNS` structure is a duration string that can use "s" as a
+`NodeMeta` provides a list of user-defined key/value pairs that will be used for
+filtering the query results to nodes with the given metadata values present. This
+was added in Consul 0.7.3.
+
+`TTL` in the `DNS` structure is a duration string that can use `s` as a
 suffix for seconds. It controls how the TTL is set when query results are served
 over DNS. If this isn't specified, then the Consul agent configuration for the given
 service will be used (see [DNS Caching](/docs/guides/dns-cache.html)). If this is
@@ -180,8 +185,10 @@ a JSON body:
 ```
 
 <a name="templates"><b>Prepared Query Templates</b></a>
-Consul 0.6.4 and later also support prepared query templates. These are created similar
-to static templates, except with some additional fields and features. Here's an example:
+
+Consul 0.6.4 and later also support prepared query templates. These are
+created similar to static templates, except with some additional fields
+and features. Here's an example:
 
 ```javascript
 {
@@ -197,7 +204,8 @@ to static templates, except with some additional fields and features. Here's an 
       "Datacenters": ["dc1", "dc2"]
     },
     "OnlyPassing": true,
-    "Tags": ["${match(2)}"]
+    "Tags": ["${match(2)}"],
+    "NodeMeta": {"instance_type": "m3.large"}
   }
 }
 ```
@@ -205,9 +213,9 @@ to static templates, except with some additional fields and features. Here's an 
 The new `Template` structure configures a prepared query as a template instead of a
 static query. It has two fields:
 
-`Type` is the query type, which must be "name_prefix_match". This means that the
+`Type` is the query type, which must be `name_prefix_match`. This means that the
 template will apply to any query lookup with a name whose prefix matches the `Name`
-field of the template. In this example, any query for "geo-db" will match this
+field of the template. In this example, any query for `geo-db` will match this
 query. Query templates are resolved using a longest prefix match, so it's possible
 to have high-level templates that are overridden for specific services. Static
 queries are always resolved first, so they can also override templates.
@@ -224,23 +232,25 @@ before it is executed. All of the string fields inside the `Service` structure a
 interpolated, with the following variables available:
 
 `${name.full}` has the entire name that was queried. For example, a DNS lookup for
-"geo-db-customer-master.query.consul" in the example above would set this variable to
-"geo-db-customer-master".
+`geo-db-customer-primary.query.consul` in the example above would set this variable to
+`geo-db-customer-primary`.
 
-`${name.prefix}` has the prefix that matched. This would always be "geo-db" for
+`${name.prefix}` has the prefix that matched. This would always be `geo-db` for
 the example above.
 
 `${name.suffix}` has the suffix after the prefix. For example, a DNS lookup for
-"geo-db-customer-master.query.consul" in the example above would set this variable to
-"-customer-master".
+`geo-db-customer-primary.query.consul` in the example above would set this variable to
+`-customer-primary`.
 
-`${match(N)}` returns the regular expression match at the given index N. The
-0 index will have the entire match, and >0 will have the results of each match
-group. For example, a DNS lookup for "geo-db-customer-master.query.consul" in the example
-above with a `Regexp` field set to `^geo-db-(.*?)-([^\-]+?)$` would return
-"geo-db-customer-master" for `${match(0)}`, "customer" for `${match(1)}`, and
-"master" for `${match(2)}`. If the regular expression doesn't match, or an invalid
-index is given, then `${match(N)}` will return an empty string.
+`${match(N)}` returns the regular expression match at the given index N.
+The 0 index will have the entire match, and >0 will have the results of
+each match group. For example, a DNS lookup for
+`geo-db-customer-primary.query.consul` in the example above with a
+`Regexp` field set to `^geo-db-(.*?)-([^\-]+?)$` would return
+`geo-db-customer-primary` for `${match(0)}`, `customer` for
+`${match(1)}`, and `primary` for `${match(2)}`. If the regular
+expression doesn't match, or an invalid index is given, then
+`${match(N)}` will return an empty string.
 
 See the [query explain](#explain) endpoint which is useful for testing interpolations
 and determining which query is handling a given name.
@@ -272,10 +282,10 @@ only a single catch-all template can be registered at any time.
 
 #### GET Method
 
-When using the GET method, Consul will provide a listing of all prepared queries.
+When using the `GET` method, Consul will provide a listing of all prepared queries.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter. This endpoint supports blocking
+provided using the `?dc=` query parameter. This endpoint supports blocking
 queries and all consistency modes.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
@@ -299,7 +309,8 @@ This returns a JSON list of prepared queries, which looks like:
         "Datacenters": ["dc1", "dc2"]
       },
       "OnlyPassing": false,
-      "Tags": ["master", "!experimental"]
+      "Tags": ["primary", "!experimental"],
+      "NodeMeta": {"instance_type": "m3.large"}
     },
     "DNS": {
       "TTL": "10s"
@@ -322,7 +333,7 @@ The query-specific endpoint supports the `GET`, `PUT`, and `DELETE` methods. The
 The `PUT` method allows an existing prepared query to be updated.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter.
+provided using the `?dc=` query parameter.
 
 If ACLs are enabled, the client will need to supply an ACL Token with `query`
 write privileges for the `Name` of the query being updated.
@@ -336,7 +347,7 @@ If the API call succeeds, a 200 status code is returned.
 The `GET` method allows an existing prepared query to be fetched.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter. This endpoint supports blocking
+provided using the `?dc=` query parameter. This endpoint supports blocking
 queries and all consistency modes.
 
 The returned response is the same as the list of prepared queries above,
@@ -353,7 +364,7 @@ management token is used.
 The `DELETE` method is used to delete a prepared query.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter.
+provided using the `?dc=` query parameter.
 
 If ACLs are enabled, the client will need to supply an ACL Token with `query`
 write privileges for the `Name` of the query being deleted.
@@ -370,17 +381,17 @@ of an existing prepared query, or a name that matches a prefix name for a
 [prepared query template](#templates).
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter. This endpoint does not support
+provided using the `?dc=` query parameter. This endpoint does not support
 blocking queries, but it does support all consistency modes.
 
-Adding the optional "?near=" parameter with a node name will sort the resulting
+Adding the optional `?near=` parameter with a node name will sort the resulting
 list in ascending order based on the estimated round trip time from that node.
-Passing "?near=_agent" will use the agent's node for the sort. If this is not
+Passing `?near=_agent` will use the agent's node for the sort. If this is not
 present, the default behavior will shuffle the nodes randomly each time the
 query is executed. Passing this option will override the built-in
 <a href="#near">near parameter</a> of a prepared query, if present.
 
-An optional "?limit=" parameter can be used to limit the size of the list to
+An optional `?limit=` parameter can be used to limit the size of the list to
 the given number of nodes. This is applied after any sorting or shuffling.
 
 If an ACL Token was bound to the query when it was defined then it will be used
@@ -398,12 +409,14 @@ a JSON body will be returned like this:
   "Nodes": [
     {
       "Node": {
+        "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
         "Node": "foobar",
         "Address": "10.1.10.12",
         "TaggedAddresses": {
           "lan": "10.1.10.12",
           "wan": "10.1.10.12"
-        }
+        },
+        "NodeMeta": {"instance_type": "m3.large"}
       },
       "Service": {
         "ID": "redis",
@@ -465,7 +478,7 @@ which [prepared query template](#templates) matches a given name, and what the
 final query looks like after interpolation.
 
 By default, the datacenter of the agent is queried; however, the `dc` can be
-provided using the "?dc=" query parameter. This endpoint does not support
+provided using the `?dc=` query parameter. This endpoint does not support
 blocking queries, but it does support all consistency modes.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
@@ -495,10 +508,11 @@ a JSON body will be returned like this:
         "Datacenters": ["dc1", "dc2"]
       },
       "OnlyPassing": true,
-      "Tags": ["master"]
+      "Tags": ["primary"],
+      "NodeMeta": {"instance_type": "m3.large"}
     }
 }
 ```
 
-Note that even though this query is a template, it is shown with its `Service`
-fields interpolated based on the example query name "geo-db-customer-master".
+Even though this query is a template, it is shown with its `Service`
+fields interpolated based on the example query name `geo-db-customer-primary`.

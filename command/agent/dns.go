@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -23,6 +24,9 @@ const (
 	// times.
 	maxUDPAnswerLimit = 8
 	maxRecurseRecords = 5
+
+	// Increment a counter when requests staler than this are served
+	staleCounterThreshold = 5 * time.Second
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -50,8 +54,8 @@ func (d *DNSServer) Shutdown() {
 
 // NewDNSServer starts a new DNS server to provide an agent interface
 func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
-	// Make sure domain is FQDN
-	domain = dns.Fqdn(domain)
+	// Make sure domain is FQDN, make it case insensitive for ServeMux
+	domain = dns.Fqdn(strings.ToLower(domain))
 
 	// Construct the DNS components
 	mux := dns.NewServeMux()
@@ -357,6 +361,46 @@ PARSE:
 		query := strings.Join(labels[:n-1], ".")
 		d.preparedQueryLookup(network, datacenter, query, req, resp)
 
+	case "addr":
+		if n != 2 {
+			goto INVALID
+		}
+
+		switch len(labels[0]) / 2 {
+		// IPv4
+		case 4:
+			ip, err := hex.DecodeString(labels[0])
+			if err != nil {
+				goto INVALID
+			}
+
+			resp.Answer = append(resp.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				A: ip,
+			})
+		// IPv6
+		case 16:
+			ip, err := hex.DecodeString(labels[0])
+			if err != nil {
+				goto INVALID
+			}
+
+			resp.Answer = append(resp.Answer, &dns.AAAA{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				AAAA: ip,
+			})
+		}
+
 	default:
 		// Store the DC, and re-parse
 		datacenter = labels[n-1]
@@ -396,10 +440,14 @@ RPC:
 	}
 
 	// Verify that request is not too stale, redo the request
-	if args.AllowStale && out.LastContact > d.config.MaxStale {
-		args.AllowStale = false
-		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-		goto RPC
+	if args.AllowStale {
+		if out.LastContact > d.config.MaxStale {
+			args.AllowStale = false
+			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+		}
 	}
 
 	// If we have no address, return not found!
@@ -596,10 +644,14 @@ RPC:
 	}
 
 	// Verify that request is not too stale, redo the request
-	if args.AllowStale && out.LastContact > d.config.MaxStale {
-		args.AllowStale = false
-		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-		goto RPC
+	if args.AllowStale {
+		if out.LastContact > d.config.MaxStale {
+			args.AllowStale = false
+			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+		}
 	}
 
 	// Determine the TTL
@@ -698,10 +750,14 @@ RPC:
 	}
 
 	// Verify that request is not too stale, redo the request.
-	if args.AllowStale && out.LastContact > d.config.MaxStale {
-		args.AllowStale = false
-		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-		goto RPC
+	if args.AllowStale {
+		if out.LastContact > d.config.MaxStale {
+			args.AllowStale = false
+			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+		}
 	}
 
 	// Determine the TTL. The parse should never fail since we vet it when
@@ -820,8 +876,35 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 
 		// Add the extra record
 		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
-		if records != nil {
-			resp.Extra = append(resp.Extra, records...)
+		if len(records) > 0 {
+			// Use the node address if it doesn't differ from the service address
+			if addr == node.Node.Address {
+				resp.Extra = append(resp.Extra, records...)
+			} else {
+				// If it differs from the service address, give a special response in the
+				// 'addr.consul' domain with the service IP encoded in it. We have to do
+				// this because we can't put an IP in the target field of an SRV record.
+				switch record := records[0].(type) {
+				// IPv4
+				case *dns.A:
+					addr := hex.EncodeToString(record.A)
+
+					// Take the last 8 chars (4 bytes) of the encoded address to avoid junk bytes
+					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", addr[len(addr)-(net.IPv4len*2):], dc, d.domain)
+					record.Hdr.Name = srvRec.Target
+					resp.Extra = append(resp.Extra, record)
+
+				// IPv6
+				case *dns.AAAA:
+					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(record.AAAA), dc, d.domain)
+					record.Hdr.Name = srvRec.Target
+					resp.Extra = append(resp.Extra, record)
+
+				// Something else (probably a CNAME; just add the records).
+				default:
+					resp.Extra = append(resp.Extra, records...)
+				}
+			}
 		}
 	}
 }
@@ -848,7 +931,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var err error
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
-		if err == nil {
+		if err == nil || err == dns.ErrTruncated {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.
@@ -877,6 +960,19 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(name string) []dns.RR {
+	// If the CNAME record points to a Consul address, resolve it internally
+	// Convert query to lowercase because DNS is case insensitive; d.domain is
+	// already converted
+	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
+		req := &dns.Msg{}
+		resp := &dns.Msg{}
+
+		req.SetQuestion(name, dns.TypeANY)
+		d.dispatch("udp", req, resp)
+
+		return resp.Answer
+	}
+
 	// Do nothing if we don't have a recursor
 	if len(d.recursors) == 0 {
 		return nil

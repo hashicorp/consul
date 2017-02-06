@@ -48,67 +48,87 @@ type FSMSnapshot interface {
 // the FSM to block our internal operations.
 func (r *Raft) runFSM() {
 	var lastIndex, lastTerm uint64
+
+	commit := func(req *commitTuple) {
+		// Apply the log if a command
+		var resp interface{}
+		if req.log.Type == LogCommand {
+			start := time.Now()
+			resp = r.fsm.Apply(req.log)
+			metrics.MeasureSince([]string{"raft", "fsm", "apply"}, start)
+		}
+
+		// Update the indexes
+		lastIndex = req.log.Index
+		lastTerm = req.log.Term
+
+		// Invoke the future if given
+		if req.future != nil {
+			req.future.response = resp
+			req.future.respond(nil)
+		}
+	}
+
+	restore := func(req *restoreFuture) {
+		// Open the snapshot
+		meta, source, err := r.snapshots.Open(req.ID)
+		if err != nil {
+			req.respond(fmt.Errorf("failed to open snapshot %v: %v", req.ID, err))
+			return
+		}
+
+		// Attempt to restore
+		start := time.Now()
+		if err := r.fsm.Restore(source); err != nil {
+			req.respond(fmt.Errorf("failed to restore snapshot %v: %v", req.ID, err))
+			source.Close()
+			return
+		}
+		source.Close()
+		metrics.MeasureSince([]string{"raft", "fsm", "restore"}, start)
+
+		// Update the last index and term
+		lastIndex = meta.Index
+		lastTerm = meta.Term
+		req.respond(nil)
+	}
+
+	snapshot := func(req *reqSnapshotFuture) {
+		// Is there something to snapshot?
+		if lastIndex == 0 {
+			req.respond(ErrNothingNewToSnapshot)
+			return
+		}
+
+		// Start a snapshot
+		start := time.Now()
+		snap, err := r.fsm.Snapshot()
+		metrics.MeasureSince([]string{"raft", "fsm", "snapshot"}, start)
+
+		// Respond to the request
+		req.index = lastIndex
+		req.term = lastTerm
+		req.snapshot = snap
+		req.respond(err)
+	}
+
 	for {
 		select {
-		case req := <-r.fsmRestoreCh:
-			// Open the snapshot
-			meta, source, err := r.snapshots.Open(req.ID)
-			if err != nil {
-				req.respond(fmt.Errorf("failed to open snapshot %v: %v", req.ID, err))
-				continue
-			}
+		case ptr := <-r.fsmMutateCh:
+			switch req := ptr.(type) {
+			case *commitTuple:
+				commit(req)
 
-			// Attempt to restore
-			start := time.Now()
-			if err := r.fsm.Restore(source); err != nil {
-				req.respond(fmt.Errorf("failed to restore snapshot %v: %v", req.ID, err))
-				source.Close()
-				continue
-			}
-			source.Close()
-			metrics.MeasureSince([]string{"raft", "fsm", "restore"}, start)
+			case *restoreFuture:
+				restore(req)
 
-			// Update the last index and term
-			lastIndex = meta.Index
-			lastTerm = meta.Term
-			req.respond(nil)
+			default:
+				panic(fmt.Errorf("bad type passed to fsmMutateCh: %#v", ptr))
+			}
 
 		case req := <-r.fsmSnapshotCh:
-			// Is there something to snapshot?
-			if lastIndex == 0 {
-				req.respond(ErrNothingNewToSnapshot)
-				continue
-			}
+			snapshot(req)
 
-			// Start a snapshot
-			start := time.Now()
-			snap, err := r.fsm.Snapshot()
-			metrics.MeasureSince([]string{"raft", "fsm", "snapshot"}, start)
-
-			// Respond to the request
-			req.index = lastIndex
-			req.term = lastTerm
-			req.snapshot = snap
-			req.respond(err)
-
-		case commitEntry := <-r.fsmCommitCh:
-			// Apply the log if a command
-			var resp interface{}
-			if commitEntry.log.Type == LogCommand {
-				start := time.Now()
-				resp = r.fsm.Apply(commitEntry.log)
-				metrics.MeasureSince([]string{"raft", "fsm", "apply"}, start)
-			}
-
-			// Update the indexes
-			lastIndex = commitEntry.log.Index
-			lastTerm = commitEntry.log.Term
-
-			// Invoke the future if given
-			if commitEntry.future != nil {
-				commitEntry.future.response = resp
-				commitEntry.future.respond(nil)
-			}
 		case <-r.shutdownCh:
 			return
 		}

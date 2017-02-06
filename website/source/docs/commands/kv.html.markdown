@@ -14,7 +14,7 @@ and deleting from the store. This command is available in Consul 0.7.1 and
 later.
 
 The key-value store is also accessible via the
-[HTTP API](docs/agent/http/kv.html).
+[HTTP API](/docs/agent/http/kv.html).
 
 ## Usage
 
@@ -31,7 +31,9 @@ Usage: consul kv <subcommand> [options] [args]
 Subcommands:
 
     delete    Removes data from the KV store
+    export    Exports part of the KV tree in JSON format
     get       Retrieves or lists data from the KV store
+    import    Imports part of the KV tree in JSON format
     put       Sets or updates data in the KV store
 ```
 
@@ -39,7 +41,9 @@ For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
 - [delete](/docs/commands/kv/delete.html)
+- [export](/docs/commands/kv/export.html)
 - [get](/docs/commands/kv/get.html)
+- [import](/docs/commands/kv/import.html)
 - [put](/docs/commands/kv/put.html)
 
 ## Basic Examples

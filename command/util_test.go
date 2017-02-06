@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/logger"
 	"github.com/mitchellh/cli"
 )
 
@@ -61,7 +62,7 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 		t.Fatalf("err: %s", err)
 	}
 
-	lw := agent.NewLogWriter(512)
+	lw := logger.NewLogWriter(512)
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
@@ -73,7 +74,7 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 	}
 	conf.DataDir = dir
 
-	a, err := agent.Create(conf, lw)
+	a, err := agent.Create(conf, lw, nil, nil)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))

@@ -1,11 +1,13 @@
 package agent
 
 import (
-	"github.com/hashicorp/logutils"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/logutils"
 )
 
 type MockStreamClient struct {
@@ -22,7 +24,7 @@ func (m *MockStreamClient) Send(h *responseHeader, o interface{}) error {
 
 func TestRPCLogStream(t *testing.T) {
 	sc := &MockStreamClient{}
-	filter := LevelFilter()
+	filter := logger.LevelFilter()
 	filter.MinLevel = logutils.LogLevel("INFO")
 
 	ls := newLogStream(sc, filter, 42, log.New(os.Stderr, "", log.LstdFlags))

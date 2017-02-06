@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -45,7 +47,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 			if args.Query.ID, err = uuid.GenerateUUID(); err != nil {
 				return fmt.Errorf("UUID generation for prepared query failed: %v", err)
 			}
-			_, query, err := state.PreparedQueryGet(args.Query.ID)
+			_, query, err := state.PreparedQueryGet(nil, args.Query.ID)
 			if err != nil {
 				return fmt.Errorf("Prepared query lookup failed: %v", err)
 			}
@@ -77,7 +79,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// access to whatever they are changing, if prefix ACLs apply to it.
 	if args.Op != structs.PreparedQueryCreate {
 		state := p.srv.fsm.State()
-		_, query, err := state.PreparedQueryGet(args.Query.ID)
+		_, query, err := state.PreparedQueryGet(nil, args.Query.ID)
 		if err != nil {
 			return fmt.Errorf("Prepared Query lookup failed: %v", err)
 		}
@@ -96,7 +98,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// Parse the query and prep it for the state store.
 	switch args.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
-		if err := parseQuery(args.Query); err != nil {
+		if err := parseQuery(args.Query, p.srv.config.ACLEnforceVersion8); err != nil {
 			return fmt.Errorf("Invalid prepared query: %v", err)
 		}
 
@@ -125,7 +127,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 // update operation. Some of the fields are not checked or are partially
 // checked, as noted in the comments below. This also updates all the parsed
 // fields of the query.
-func parseQuery(query *structs.PreparedQuery) error {
+func parseQuery(query *structs.PreparedQuery, enforceVersion8 bool) error {
 	// We skip a few fields:
 	// - ID is checked outside this fn.
 	// - Name is optional with no restrictions, except for uniqueness which
@@ -133,9 +135,15 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   names do not overlap with IDs, which is also checked during the
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
-	// - Session is optional and checked for integrity during the transaction.
 	// - Template is checked during the transaction since that's where we
 	//   compile it.
+
+	// Anonymous queries require a session or need to be part of a template.
+	if enforceVersion8 {
+		if query.Name == "" && query.Template.Type == "" && query.Session == "" {
+			return fmt.Errorf("Must be bound to a session")
+		}
+	}
 
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
@@ -172,6 +180,11 @@ func parseService(svc *structs.ServiceQuery) error {
 		return fmt.Errorf("Bad NearestN '%d', must be >= 0", svc.Failover.NearestN)
 	}
 
+	// Make sure the metadata filters are valid
+	if err := structs.ValidateMetadata(svc.NodeMeta); err != nil {
+		return err
+	}
+
 	// We skip a few fields:
 	// - There's no validation for Datacenters; we skip any unknown entries
 	//   at execution time.
@@ -205,14 +218,11 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		return err
 	}
 
-	// Get the requested query.
-	state := p.srv.fsm.State()
-	return p.srv.blockingRPC(
+	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("PreparedQueryGet"),
-		func() error {
-			index, query, err := state.PreparedQueryGet(args.QueryID)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, query, err := state.PreparedQueryGet(ws, args.QueryID)
 			if err != nil {
 				return err
 			}
@@ -252,14 +262,11 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 		return err
 	}
 
-	// Get the list of queries.
-	state := p.srv.fsm.State()
-	return p.srv.blockingRPC(
+	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("PreparedQueryList"),
-		func() error {
-			index, queries, err := state.PreparedQueryList()
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, queries, err := state.PreparedQueryList(ws)
 			if err != nil {
 				return err
 			}
@@ -478,13 +485,18 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply *structs.PreparedQueryExecuteResponse) error {
 	state := p.srv.fsm.State()
-	_, nodes, err := state.CheckServiceNodes(query.Service.Service)
+	_, nodes, err := state.CheckServiceNodes(nil, query.Service.Service)
 	if err != nil {
 		return err
 	}
 
 	// Filter out any unhealthy nodes.
 	nodes = nodes.Filter(query.Service.OnlyPassing)
+
+	// Apply the node metadata filters, if any.
+	if len(query.Service.NodeMeta) > 0 {
+		nodes = nodeMetaFilter(query.Service.NodeMeta, nodes)
+	}
 
 	// Apply the tag filters, if any.
 	if len(query.Service.Tags) > 0 {
@@ -554,6 +566,18 @@ func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServ
 		i--
 	}
 	return nodes[:n]
+}
+
+// nodeMetaFilter returns a list of the nodes who satisfy the given metadata filters. Nodes
+// must have ALL the given tags.
+func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var filtered structs.CheckServiceNodes
+	for _, node := range nodes {
+		if structs.SatisfiesMetaFilters(node.Node.Meta, filters) {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
 }
 
 // queryServer is a wrapper that makes it easier to test the failover logic.

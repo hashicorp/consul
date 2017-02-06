@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -24,8 +25,15 @@ type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
+
+	// stateLock is only used to protect outside callers to State() from
+	// racing with Restore(), which is called by Raft (it puts in a totally
+	// new state store). Everything internal here is synchronized by the
+	// Raft side, so doesn't need to lock this.
+	stateLock sync.RWMutex
 	state     *state.StateStore
-	gc        *state.TombstoneGC
+
+	gc *state.TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
@@ -60,6 +68,8 @@ func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 
 // State is used to return a handle to the current state
 func (c *consulFSM) State() *state.StateStore {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
 	return c.state
 }
 
@@ -127,7 +137,9 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	// Either remove the service entry or the whole node
+	// Either remove the service entry or the whole node. The precedence
+	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
+	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
 		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)
@@ -306,18 +318,19 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	return &consulSnapshot{c.state.Snapshot()}, nil
 }
 
+// Restore streams in the snapshot and replaces the current state store with a
+// new one based on the snapshot if all goes OK during the restore.
 func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
-	// Create a new state store
+	// Create a new state store.
 	stateNew, err := state.NewStateStore(c.gc)
 	if err != nil {
 		return err
 	}
-	c.state = stateNew
 
 	// Set up a new restore transaction
-	restore := c.state.Restore()
+	restore := stateNew.Restore()
 	defer restore.Abort()
 
 	// Create a decoder
@@ -420,6 +433,18 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	}
 
 	restore.Commit()
+
+	// External code might be calling State(), so we need to synchronize
+	// here to make sure we swap in the new state store atomically.
+	c.stateLock.Lock()
+	stateOld := c.state
+	c.state = stateNew
+	c.stateLock.Unlock()
+
+	// Signal that the old state store has been abandoned. This is required
+	// because we don't operate on it any more, we just throw it away, so
+	// blocking queries won't see any changes and need to be woken up.
+	stateOld.Abandon()
 	return nil
 }
 

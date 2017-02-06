@@ -23,8 +23,8 @@ A service definition that is a script looks like:
 {
   "service": {
     "name": "redis",
-    "tags": ["master"],
-    "address": "127.0.0.1",
+    "tags": ["primary"],
+    "address": "",
     "port": 8000,
     "enableTagOverride": false,
     "checks": [
@@ -37,14 +37,15 @@ A service definition that is a script looks like:
 }
 ```
 
-A service definition must include a `name` and may optionally provide
-an `id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`.  The `id` is 
-set to the `name` if not provided. It is required that all services have a unique 
-ID per node, so if names might conflict then unique IDs should be provided.
+A service definition must include a `name` and may optionally provide an
+`id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`. The
+`id` is set to the `name` if not provided. It is required that all
+services have a unique ID per node, so if names might conflict then
+unique IDs should be provided.
 
-The `tags` property is a list of values that are opaque to Consul but can be used to
-distinguish between "master" or "slave" nodes, different versions, or any other service
-level labels.
+The `tags` property is a list of values that are opaque to Consul but
+can be used to distinguish between `primary` or `secondary` nodes,
+different versions, or any other service level labels.
 
 The `address` field can be used to specify a service-specific IP address. By
 default, the IP address of the agent is used, and this does not need to be provided.
@@ -58,7 +59,7 @@ used for any interaction with the catalog for the service, including
 
 A service can have an associated health check. This is a powerful feature as
 it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed slave, etc. The health check is strongly integrated in
+to replace a failed secondary, etc. The health check is strongly integrated in
 the DNS interface as well. If a service is failing its health check or a
 node has any failing system-level check, the DNS interface will omit that
 node from any service query.
@@ -72,37 +73,42 @@ service checks registered, the ID will be generated as
 `service:<service-id>:<num>` where `<num>` is an incrementing number starting
 from `1`.
 
-Note: there is more information about [checks here](/docs/agent/checks.html). 
+-> **Note:** There is more information about [checks here](/docs/agent/checks.html).
 
-The `enableTagOverride` can optionally be specified to disable the anti-entropy 
-feature for this service. If `enableTagOverride` is set to TRUE then external 
-agents can update this service in the [catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
-local sync operations by this agent will ignore the updated tags. For instance: If an external agent
-modified both the tags and the port for this service and `enableTagOverride` 
-was set to TRUE then after the next sync cycle the service's port would revert 
-to the original value but the tags would maintain the updated value. As a 
-counter example: If an external agent modified both the tags and port for this 
-service and `enableTagOverride` was set to FALSE then after the next sync 
-cycle the service's port AND the tags would revert to the original value and
-all modifications would be lost. It's important to note that this applies only
-to the locally registered service. If you have multiple nodes all registering
-the same service their `enableTagOverride` configuration and all other service
-configuration items are independent of one another. Updating the tags for
-the service registered on one node is independent of the same service (by name)
-registered on another node. If `enableTagOverride` is not specified the default 
-value is false.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
-for more info.
+The `enableTagOverride` can optionally be specified to disable the
+anti-entropy feature for this service. If `enableTagOverride` is set to
+`TRUE` then external agents can update this service in the
+[catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+local sync operations by this agent will ignore the updated tags. For
+example, if an external agent modified both the tags and the port for
+this service and `enableTagOverride` was set to `TRUE` then after the next
+sync cycle the service's port would revert to the original value but the
+tags would maintain the updated value. As a counter example: If an
+external agent modified both the tags and port for this service and
+`enableTagOverride` was set to `FALSE` then after the next sync cycle the
+service's port *and* the tags would revert to the original value and all
+modifications would be lost.
 
-To configure a service, either provide it as a `-config-file` option to the
-agent or place it inside the `-config-dir` of the agent. The file must
-end in the ".json" extension to be loaded by Consul. Check definitions can
-also be updated by sending a `SIGHUP` to the agent. Alternatively, the
-service can be registered dynamically using the [HTTP API](/docs/agent/http.html).
+It's important to note that this applies only to the locally registered
+service. If you have multiple nodes all registering the same service
+their `enableTagOverride` configuration and all other service
+configuration items are independent of one another. Updating the tags
+for the service registered on one node is independent of the same
+service (by name) registered on another node. If `enableTagOverride` is
+not specified the default value is false. See [anti-entropy
+syncs](/docs/internals/anti-entropy.html) for more info.
+
+To configure a service, either provide it as a `-config-file` option to
+the agent or place it inside the `-config-dir` of the agent. The file
+must end in the `.json` extension to be loaded by Consul. Check
+definitions can be updated by sending a `SIGHUP` to the agent.
+Alternatively, the service can be registered dynamically using the [HTTP
+API](/docs/agent/http.html).
 
 ## Multiple Service Definitions
 
-Multiple services definitions can be provided at once using the `services`
-(plural) key in your configuration file.
+Multiple services definitions can be provided at once using the plural
+`services` key in your configuration file.
 
 ```javascript
 {
@@ -111,9 +117,9 @@ Multiple services definitions can be provided at once using the `services`
       "id": "red0",
       "name": "redis",
       "tags": [
-        "master"
+        "primary"
       ],
-      "address": "127.0.0.1",
+      "address": "",
       "port": 6000,
       "checks": [
         {
@@ -128,9 +134,9 @@ Multiple services definitions can be provided at once using the `services`
       "name": "redis",
       "tags": [
         "delayed",
-        "slave"
+        "secondary"
       ],
-      "address": "127.0.0.1",
+      "address": "",
       "port": 7000,
       "checks": [
         {

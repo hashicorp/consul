@@ -24,6 +24,8 @@ Usage: `consul kv put [options] KEY [DATA]`
   operation will create the key and obtain the lock. The session must already
   exist and be specified via the -session flag. The default value is false.
 
+* `-base64` - Treat the data as base 64 encoded. The default value is false.
+
 * `-cas` - Perform a Check-And-Set operation. Specifying this value also
   requires the -modify-index flag to be set. The default value is false.
 
@@ -34,7 +36,7 @@ Usage: `consul kv put [options] KEY [DATA]`
 * `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
   key. This is used in combination with the -cas flag.
 
-* `-release` - Forfeit the lock on the key at the givne path. This requires the
+* `-release` - Forfeit the lock on the key at the given path. This requires the
   -session flag to be set. The key must be held by the session in order to be
   unlocked. The default value is false.
 
@@ -58,6 +60,13 @@ If no data is specified, the key will be created with empty data:
 ```
 $ consul kv put redis/config/connections
 Success! Data written to: redis/config/connections
+```
+
+If the `-base64` flag is set, the data will be decoded before writing:
+
+```
+$ consul kv put -base64 foo/encoded aGVsbG8gd29ybGQK
+Success! Data written to: foo/encoded
 ```
 
 !> **Be careful when overwriting data!** The above operation would overwrite
@@ -110,7 +119,7 @@ $ consul kv put -flags=42 redis/config/password s3cr3t
 Success! Data written to: redis/config/password
 ```
 
-To create or tune a lock, use the `-acquire` and `-session` flags. Note that the session must already exist (this command will not create it or manage it):
+To create or tune a lock, use the `-acquire` and `-session` flags. The session must already exist (this command will not create it or manage it):
 
 ```
 $ consul kv put -acquire -session=abc123 redis/lock/update

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -65,6 +66,9 @@ type Config struct {
 
 	// DevMode is used to enable a development server mode.
 	DevMode bool
+
+	// NodeID is a unique identifier for this node across space and time.
+	NodeID types.NodeID
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
@@ -140,6 +144,9 @@ type Config struct {
 	// provide matches the certificate
 	ServerName string
 
+	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
+	TLSMinVersion string
+
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to
@@ -154,6 +161,11 @@ type Config struct {
 	// If not provided, the anonymous token is used. This enables
 	// backwards compatibility as well.
 	ACLToken string
+
+	// ACLAgentToken is the default token used to make requests for the agent
+	// itself, such as for registering itself with the catalog. If not
+	// configured, the ACLToken will be used.
+	ACLAgentToken string
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
@@ -199,6 +211,10 @@ type Config struct {
 	// apply operations that we allow during a one second period. This is
 	// used to limit the amount of Raft bandwidth used for replication.
 	ACLReplicationApplyLimit int
+
+	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
+	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
+	ACLEnforceVersion8 bool
 
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
@@ -328,6 +344,8 @@ func DefaultConfig() *Config {
 		// bit longer to try to cover that period. This should be more
 		// than enough when running in the high performance mode.
 		RPCHoldTimeout: 7 * time.Second,
+
+		TLSMinVersion: "tls10",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -350,6 +368,9 @@ func DefaultConfig() *Config {
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 
+	// Check every 5 seconds to see if there are enough new entries for a snapshot
+	conf.RaftConfig.SnapshotInterval = 5 * time.Second
+
 	return conf
 }
 
@@ -366,6 +387,7 @@ func (c *Config) ScaleRaft(raftMultRaw uint) {
 	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 
+// tlsConfig maps this config into a tlsutil config.
 func (c *Config) tlsConfig() *tlsutil.Config {
 	tlsConf := &tlsutil.Config{
 		VerifyIncoming:       c.VerifyIncoming,
@@ -377,6 +399,19 @@ func (c *Config) tlsConfig() *tlsutil.Config {
 		NodeName:             c.NodeName,
 		ServerName:           c.ServerName,
 		Domain:               c.Domain,
+		TLSMinVersion:        c.TLSMinVersion,
 	}
 	return tlsConf
+}
+
+// GetTokenForAgent returns the token the agent should use for its own internal
+// operations, such as registering itself with the catalog.
+func (c *Config) GetTokenForAgent() string {
+	if c.ACLAgentToken != "" {
+		return c.ACLAgentToken
+	} else if c.ACLToken != "" {
+		return c.ACLToken
+	} else {
+		return ""
+	}
 }

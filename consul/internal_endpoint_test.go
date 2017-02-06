@@ -284,6 +284,12 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", info.Services)
 		}
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestInternal_NodeDump_FilterACL(t *testing.T) {
@@ -327,6 +333,12 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", info.Services)
 		}
 	}
+
+	// We've already proven that we call the ACL filtering function so we
+	// test node filtering down in acl.go for node cases. This also proves
+	// that we respect the version 8 ACL flag, since the test server sets
+	// that to false (the regression value of *not* changing this is better
+	// for now until we change the sense of the version 8 ACL flag).
 }
 
 func TestInternal_EventFire_Token(t *testing.T) {

@@ -26,7 +26,7 @@ or specify no value at all. Only servers that specify a value will attempt to bo
 
 We recommend 3 or 5 total servers per datacenter. A single server deployment is _**highly**_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
-[deployment table](/docs/internals/consensus.html#toc_4) for more detail.
+[deployment table](/docs/internals/consensus.html#deployment-table) for more detail.
 
 Suppose we are starting a 3 server cluster. We can start `Node A`, `Node B`, and `Node C` with each
 providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should see a message like:
@@ -70,19 +70,22 @@ Since a join operation is symmetric, it does not matter which node initiates it.
 [INFO] consul: cluster leadership acquired
 ```
 
-As a sanity check, the [`consul info`](/docs/commands/info.html) command is a useful tool. It can be used to
-verify `raft.num_peers` is now 2, and you can view the latest log index under `raft.last_log_index`.
-When running [`consul info`](/docs/commands/info.html) on the followers, you should see `raft.last_log_index`
-converge to the same value once the leader begins replication. That value represents the last
-log entry that has been stored on disk.
+As a sanity check, the [`consul info`](/docs/commands/info.html) command
+is a useful tool. It can be used to verify `raft.num_peers` is now 2,
+and you can view the latest log index under `raft.last_log_index`. When
+running [`consul info`](/docs/commands/info.html) on the followers, you
+should see `raft.last_log_index` converge to the same value once the
+leader begins replication. That value represents the last log entry that
+has been stored on disk.
 
-Now that the servers are all started and replicating to each other, all the remaining
-clients can be joined. Clients are much easier as they can join against any existing node.
-All nodes participate in a gossip protocol to perform basic discovery, so once joined to any
-member of the cluster, new clients will automatically find the servers and register themselves.
+Now that the servers are all started and replicating to each other, all
+the remaining clients can be joined. Clients are much easier as they can
+join against any existing node. All nodes participate in a gossip
+protocol to perform basic discovery, so once joined to any member of the
+cluster, new clients will automatically find the servers and register
+themselves.
 
-Note: it is not strictly necessary to start the server nodes before the clients; however, most
-operations will fail until the servers are available.
+-> **Note:** It is not strictly necessary to start the server nodes before the clients; however, most operations will fail until the servers are available.
 
 ## Manual Bootstrapping
 

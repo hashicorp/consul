@@ -24,15 +24,16 @@ All of the health endpoints support blocking queries and all consistency modes.
 
 ### <a name="health_node"></a> /v1/health/node/\<node\>
 
-This endpoint is hit with a GET and returns the checks specific to the node
+This endpoint is hit with a `GET` and returns the checks specific to the node
 provided on the path. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
 It returns a JSON body like this:
 
 ```javascript
 [
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "Node": "foobar",
     "CheckID": "serfHealth",
     "Name": "Serf Health Status",
@@ -43,6 +44,7 @@ It returns a JSON body like this:
     "ServiceName": ""
   },
   {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "Node": "foobar",
     "CheckID": "service:redis",
     "Name": "Service 'redis' check",
@@ -56,7 +58,7 @@ It returns a JSON body like this:
 ```
 
 In this case, we can see there is a system level check (that is, a check with
-no associated `ServiceID`) as well as a service check for Redis. The "serfHealth" check
+no associated `ServiceID`) as well as a service check for Redis. The `serfHealth` check
 is special in that it is automatically present on every node. When a node
 joins the Consul cluster, it is part of a distributed failure detection
 provided by Serf. If a node fails, it is detected and the status is automatically
@@ -66,14 +68,19 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="health_checks"></a> /v1/health/checks/\<service\>
 
-This endpoint is hit with a GET and returns the checks associated with
+This endpoint is hit with a `GET` and returns the checks associated with
 the service provided on the path. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
-Adding the optional "?near=" parameter with a node name will sort
+Adding the optional `?near=` parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=_agent" will use the agent's
+time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
+
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This parameter can be specified multiple times, and will filter the results to
+health checks on nodes with the specified key/value pair(s).
 
 It returns a JSON body like this:
 
@@ -96,23 +103,28 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="health_service"></a> /v1/health/service/\<service\>
 
-This endpoint is hit with a GET and returns the nodes providing
+This endpoint is hit with a `GET` and returns the nodes providing
 the service indicated on the path. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
-Adding the optional "?near=" parameter with a node name will sort
+Adding the optional `?near=` parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=_agent" will use the agent's
+time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
 
 By default, all nodes matching the service are returned. The list can be filtered
-by tag using the "?tag=" query parameter.
+by tag using the `?tag=` query parameter.
 
-Providing the "?passing" query parameter, added in Consul 0.2, will filter results
-to only nodes with all checks in the `passing` state. This can be used to avoid extra filtering
-logic on the client side.
+Providing the `?passing` query parameter, added in Consul 0.2, will
+filter results to only nodes with all checks in the `passing` state.
+This can be used to avoid extra filtering logic on the client side.
 
-This endpoint is very similar to the /v1/catalog/service endpoint; however, this
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This parameter can be specified multiple times, and will filter the results to
+nodes with the specified key/value pair(s).
+
+This endpoint is very similar to the `/v1/catalog/service` endpoint; however, this
 endpoint automatically returns the status of the associated health check
 as well as any system level health checks. This allows a client to avoid
 sending traffic to nodes that are failing health tests or reporting warnings.
@@ -126,11 +138,15 @@ It returns a JSON body like this:
 [
   {
     "Node": {
+      "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
       "Node": "foobar",
       "Address": "10.1.10.12",
       "TaggedAddresses": {
         "lan": "10.1.10.12",
         "wan": "10.1.10.12"
+      },
+      "Meta": {
+        "instance_type": "t2.medium"
       }
     },
     "Service": {
@@ -170,14 +186,19 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="health_state"></a> /v1/health/state/\<state\>
 
-This endpoint is hit with a GET and returns the checks in the
+This endpoint is hit with a `GET` and returns the checks in the
 state provided on the path. By default, the datacenter of the agent is queried;
-however, the dc can be provided using the "?dc=" query parameter.
+however, the `dc` can be provided using the `?dc=` query parameter.
 
-Adding the optional "?near=" parameter with a node name will sort
+Adding the optional `?near=` parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=_agent" will use the agent's
+time from that node. Passing `?near=_agent` will use the agent's
 node for the sort.
+
+In Consul 0.7.3 and later, the optional `?node-meta=` parameter can be
+provided with a desired node metadata key/value pair of the form `key:value`.
+This parameter can be specified multiple times, and will filter the results to
+health checks on nodes with the specified key/value pair(s).
 
 The supported states are `any`, `passing`, `warning`, or `critical`.
 The `any` state is a wildcard that can be used to return all checks.

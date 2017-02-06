@@ -62,7 +62,9 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			CertFile:       config.CertFile,
 			KeyFile:        config.KeyFile,
 			NodeName:       config.NodeName,
-			ServerName:     config.ServerName}
+			ServerName:     config.ServerName,
+			TLSMinVersion:  config.TLSMinVersion,
+		}
 
 		tlsConfig, err := tlsConf.IncomingTLSConfig()
 		if err != nil {
@@ -231,64 +233,7 @@ func (s *HTTPServer) handleFuncMetrics(pattern string, handler func(http.Respons
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/", s.Index)
 
-	s.handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
-	s.handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
-
-	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
-	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
-
-	s.handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	s.handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	s.handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	s.handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	s.handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
-	s.handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	s.handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
-
-	if !s.agent.config.DisableCoordinates {
-		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
-	} else {
-		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
-	}
-
-	s.handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	s.handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	s.handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	s.handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
-
-	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
-	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	s.handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
-	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
-	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
-	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
-	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
-
-	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	s.handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	s.handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	s.handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	s.handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
-
-	s.handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	s.handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	s.handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
-
-	s.handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
-	s.handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
-
-	s.handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
-
-	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
-	s.handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	s.handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
-	s.handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
-	s.handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
-	s.handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
-
+	// API V1.
 	if s.agent.config.ACLDatacenter != "" {
 		s.handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
 		s.handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
@@ -298,20 +243,74 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
 		s.handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 	} else {
-		s.handleFuncMetrics("/v1/acl/create", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/update", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/info/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/list", s.wrap(aclDisabled))
-		s.handleFuncMetrics("/v1/acl/replication", s.wrap(aclDisabled))
+		s.handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/info/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
+		s.handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
 	}
-
+	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
+	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
+	s.handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
+	s.handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
+	s.handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
+	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
+	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
+	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
+	s.handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
+	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
+	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
+	s.handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
+	s.handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
+	s.handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
+	s.handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
+	s.handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
+	s.handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
+	s.handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
+	s.handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
+	s.handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
+	s.handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
+	s.handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
+	s.handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
+	s.handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
+	s.handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+	if !s.agent.config.DisableCoordinates {
+		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	} else {
+		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+	}
+	s.handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
+	s.handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
+	s.handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
+	s.handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
+	s.handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
+	s.handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+	s.handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	s.handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	s.handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
+	s.handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
+	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
+	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
+	s.handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
 	s.handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
 	s.handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
-
+	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
+	s.handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
+	s.handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
+	s.handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
+	s.handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
+	s.handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
+	s.handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
+	s.handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
+	s.handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
 	s.handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
 
+	// Debug endpoints.
 	if enableDebug {
 		s.handleFuncMetrics("/debug/pprof/", pprof.Index)
 		s.handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
@@ -326,10 +325,6 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
-	// API's are under /internal/ui/ to avoid conflict
-	s.handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	s.handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	s.handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
 }
 
 // wrap is used to wrap functions to make them more convenient
@@ -404,7 +399,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
 func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
-	if _, ok := req.URL.Query()["pretty"]; ok {
+	if _, ok := req.URL.Query()["pretty"]; ok || s.agent.config.DevMode {
 		buf, err := json.MarshalIndent(obj, "", "    ")
 		if err != nil {
 			return nil, err
@@ -589,6 +584,20 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 			source.Node = node
 		}
 	}
+}
+
+// parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
+// filtering results to nodes with the given metadata key/value
+func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
+	if filterList, ok := req.URL.Query()["node-meta"]; ok {
+		filters := make(map[string]string)
+		for _, filter := range filterList {
+			key, value := parseMetaPair(filter)
+			filters[key] = value
+		}
+		return filters
+	}
+	return nil
 }
 
 // parse is a convenience method for endpoints that need

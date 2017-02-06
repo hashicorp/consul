@@ -64,6 +64,7 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -85,6 +86,7 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.DCSpecificRequest{}
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -101,6 +103,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}

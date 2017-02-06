@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
-func TestSessionEndpoint_Apply(t *testing.T) {
+func TestSession_Apply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -39,7 +40,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(out)
+	_, s, err := state.SessionGet(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -61,7 +62,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(id)
+	_, s, err = state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_DeleteApply(t *testing.T) {
+func TestSession_DeleteApply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -99,7 +100,7 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(out)
+	_, s, err := state.SessionGet(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -124,7 +125,7 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(id)
+	_, s, err = state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -133,7 +134,101 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_Get(t *testing.T) {
+func TestSession_Apply_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	req := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+session "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var token string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Just add a node.
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+
+	// Try to create without a token, which will go through since version 8
+	// enforcement isn't enabled.
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+			Name: "my-session",
+		},
+	}
+	var id1 string
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now turn on version 8 enforcement and try again, it should be denied.
+	var id2 string
+	s1.config.ACLEnforceVersion8 = true
+	err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id2)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now set a token and try again. This should go through.
+	arg.Token = token
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a delete on the first session with version 8 enforcement off and
+	// no token. This should go through.
+	var out string
+	s1.config.ACLEnforceVersion8 = false
+	arg.Op = structs.SessionDestroy
+	arg.Token = ""
+	arg.Session.ID = id1
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Turn on version 8 enforcement and make sure the delete of the second
+	// session fails.
+	s1.config.ACLEnforceVersion8 = true
+	arg.Session.ID = id2
+	err = msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now set a token and try again. This should go through.
+	arg.Token = token
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSession_Get(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -176,7 +271,7 @@ func TestSessionEndpoint_Get(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_List(t *testing.T) {
+func TestSession_List(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -227,7 +322,175 @@ func TestSessionEndpoint_List(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_ApplyTimers(t *testing.T) {
+func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	req := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+session "foo" {
+	policy = "read"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var token string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a node and a session.
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Perform all the read operations, which should go through since version
+	// 8 ACL enforcement isn't enabled.
+	getR := structs.SessionSpecificRequest{
+		Datacenter: "dc1",
+		Session:    out,
+	}
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	listR := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	nodeR := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+	}
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+
+	// Now turn on version 8 enforcement and make sure everything is empty.
+	s1.config.ACLEnforceVersion8 = true
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 0 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	{
+		var sessions structs.IndexedSessions
+
+		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 0 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 0 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+
+	// Finally, supply the token and make sure the reads are allowed.
+	getR.Token = token
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	listR.Token = token
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.List", &listR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+	nodeR.Token = token
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", &nodeR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 1 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+
+	// Try to get a session that doesn't exist to make sure that's handled
+	// correctly by the filter (it will get passed a nil slice).
+	getR.Session = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+	{
+		var sessions structs.IndexedSessions
+		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(sessions.Sessions) != 0 {
+			t.Fatalf("bad: %v", sessions.Sessions)
+		}
+	}
+}
+
+func TestSession_ApplyTimers(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -268,7 +531,7 @@ func TestSessionEndpoint_ApplyTimers(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_Renew(t *testing.T) {
+func TestSession_Renew(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -428,7 +691,85 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_NodeSessions(t *testing.T) {
+func TestSession_Renew_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	req := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+session "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var token string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Just add a node.
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+
+	// Create a session. The token won't matter here since we don't have
+	// version 8 ACL enforcement on yet.
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+			Name: "my-session",
+		},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Renew without a token should go through without version 8 ACL
+	// enforcement.
+	renewR := structs.SessionSpecificRequest{
+		Datacenter: "dc1",
+		Session:    id,
+	}
+	var session structs.IndexedSessions
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now turn on version 8 enforcement and the renew should be rejected.
+	s1.config.ACLEnforceVersion8 = true
+	err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set the token and it should go through.
+	renewR.Token = token
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSession_NodeSessions(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -486,7 +827,7 @@ func TestSessionEndpoint_NodeSessions(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_Apply_BadTTL(t *testing.T) {
+func TestSession_Apply_BadTTL(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

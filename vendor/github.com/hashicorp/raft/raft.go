@@ -160,6 +160,10 @@ func (r *Raft) runFollower() {
 			// Reject any operations since we are not the leader
 			v.respond(ErrNotLeader)
 
+		case r := <-r.userRestoreCh:
+			// Reject any restores since we are not the leader
+			r.respond(ErrNotLeader)
+
 		case c := <-r.configurationsCh:
 			c.configurations = r.configurations.Clone()
 			c.respond(nil)
@@ -282,6 +286,10 @@ func (r *Raft) runCandidate() {
 		case v := <-r.verifyCh:
 			// Reject any operations since we are not the leader
 			v.respond(ErrNotLeader)
+
+		case r := <-r.userRestoreCh:
+			// Reject any restores since we are not the leader
+			r.respond(ErrNotLeader)
 
 		case c := <-r.configurationsCh:
 			c.configurations = r.configurations.Clone()
@@ -550,6 +558,10 @@ func (r *Raft) leaderLoop() {
 				v.respond(nil)
 			}
 
+		case future := <-r.userRestoreCh:
+			err := r.restoreUserSnapshot(future.meta, future.reader)
+			future.respond(err)
+
 		case c := <-r.configurationsCh:
 			c.configurations = r.configurations.Clone()
 			c.respond(nil)
@@ -680,6 +692,102 @@ func (r *Raft) quorumSize() int {
 	return voters/2 + 1
 }
 
+// restoreUserSnapshot is used to manually consume an external snapshot, such
+// as if restoring from a backup. We will use the current Raft configuration,
+// not the one from the snapshot, so that we can restore into a new cluster. We
+// will also use the higher of the index of the snapshot, or the current index,
+// and then add 1 to that, so we force a new state with a hole in the Raft log,
+// so that the snapshot will be sent to followers and used for any new joiners.
+// This can only be run on the leader, and returns a future that can be used to
+// block until complete.
+func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.Reader) error {
+	defer metrics.MeasureSince([]string{"raft", "restoreUserSnapshot"}, time.Now())
+
+	// Sanity check the version.
+	version := meta.Version
+	if version < SnapshotVersionMin || version > SnapshotVersionMax {
+		return fmt.Errorf("unsupported snapshot version %d", version)
+	}
+
+	// We don't support snapshots while there's a config change
+	// outstanding since the snapshot doesn't have a means to
+	// represent this state.
+	committedIndex := r.configurations.committedIndex
+	latestIndex := r.configurations.latestIndex
+	if committedIndex != latestIndex {
+		return fmt.Errorf("cannot restore snapshot now, wait until the configuration entry at %v has been applied (have applied %v)",
+			latestIndex, committedIndex)
+	}
+
+	// Cancel any inflight requests.
+	for {
+		e := r.leaderState.inflight.Front()
+		if e == nil {
+			break
+		}
+		e.Value.(*logFuture).respond(ErrAbortedByRestore)
+		r.leaderState.inflight.Remove(e)
+	}
+
+	// We will overwrite the snapshot metadata with the current term,
+	// an index that's greater than the current index, or the last
+	// index in the snapshot. It's important that we leave a hole in
+	// the index so we know there's nothing in the Raft log there and
+	// replication will fault and send the snapshot.
+	term := r.getCurrentTerm()
+	lastIndex := r.getLastIndex()
+	if meta.Index > lastIndex {
+		lastIndex = meta.Index
+	}
+	lastIndex++
+
+	// Dump the snapshot. Note that we use the latest configuration,
+	// not the one that came with the snapshot.
+	sink, err := r.snapshots.Create(version, lastIndex, term,
+		r.configurations.latest, r.configurations.latestIndex, r.trans)
+	if err != nil {
+		return fmt.Errorf("failed to create snapshot: %v", err)
+	}
+	n, err := io.Copy(sink, reader)
+	if err != nil {
+		sink.Cancel()
+		return fmt.Errorf("failed to write snapshot: %v", err)
+	}
+	if n != meta.Size {
+		sink.Cancel()
+		return fmt.Errorf("failed to write snapshot, size didn't match (%d != %d)", n, meta.Size)
+	}
+	if err := sink.Close(); err != nil {
+		return fmt.Errorf("failed to close snapshot: %v", err)
+	}
+	r.logger.Printf("[INFO] raft: Copied %d bytes to local snapshot", n)
+
+	// Restore the snapshot into the FSM. If this fails we are in a
+	// bad state so we panic to take ourselves out.
+	fsm := &restoreFuture{ID: sink.ID()}
+	fsm.init()
+	select {
+	case r.fsmMutateCh <- fsm:
+	case <-r.shutdownCh:
+		return ErrRaftShutdown
+	}
+	if err := fsm.Error(); err != nil {
+		panic(fmt.Errorf("failed to restore snapshot: %v", err))
+	}
+
+	// We set the last log so it looks like we've stored the empty
+	// index we burned. The last applied is set because we made the
+	// FSM take the snapshot state, and we store the last snapshot
+	// in the stable store since we created a snapshot as part of
+	// this process.
+	r.setLastLog(lastIndex, term)
+	r.setLastApplied(lastIndex)
+	r.setLastSnapshot(lastIndex, term)
+
+	r.logger.Printf("[INFO] raft: Restored user snapshot (index %d)", lastIndex)
+	return nil
+}
+
 // appendConfigurationEntry changes the configuration and adds a new
 // configuration entry to the log. This must only be called from the
 // main thread.
@@ -804,7 +912,7 @@ func (r *Raft) processLog(l *Log, future *logFuture) {
 	case LogCommand:
 		// Forward to the fsm handler
 		select {
-		case r.fsmCommitCh <- commitTuple{l, future}:
+		case r.fsmMutateCh <- &commitTuple{l, future}:
 		case <-r.shutdownCh:
 			if future != nil {
 				future.respond(ErrRaftShutdown)
@@ -1204,7 +1312,7 @@ func (r *Raft) installSnapshot(rpc RPC, req *InstallSnapshotRequest) {
 	future := &restoreFuture{ID: sink.ID()}
 	future.init()
 	select {
-	case r.fsmRestoreCh <- future:
+	case r.fsmMutateCh <- future:
 	case <-r.shutdownCh:
 		future.respond(ErrRaftShutdown)
 		return
