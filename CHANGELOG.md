@@ -1,6 +1,4 @@
-## 0.7.4 (UNRELEASED)
-
-FEATURES:
+## 0.7.4 (February 6, 2017)
 
 IMPROVEMENTS:
 
