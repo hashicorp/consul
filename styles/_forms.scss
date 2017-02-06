@@ -16,6 +16,22 @@
         }
     }
 
+    &.validate {
+        &.success {
+            .form-control {
+                border-color: $green-faded;
+                box-shadow: 0 0 5px $green-faded;
+            }
+        }
+
+        &.error {
+            .form-control {
+                border-color: $red-faded;
+                box-shadow: 0 0 5px $red-faded;
+            }
+        }
+    }
+
     .input-group-addon {
         background-color: $gray-background;
     }
@@ -23,4 +39,16 @@
 
 textarea.form-control {
     height: 130px;
+}
+
+.form-checkbox {
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 12px;
+    color: $gray;
+    margin-left: 20px;
+
+    input {
+        margin-right: 5px;
+    }
 }
