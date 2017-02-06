@@ -741,6 +741,12 @@
 			"revisionTime": "2016-09-30T03:27:40Z"
 		},
 		{
+			"checksumSHA1": "t24KnvC9jRxiANVhpw2pqFpmEu8=",
+			"path": "github.com/tonnerre/golang-text",
+			"revision": "048ed3d792f7104850acbc8cfc01e5a6070f4c04",
+			"revisionTime": "2013-09-25T19:58:46Z"
+		},
+		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
 			"path": "golang.org/x/net/context",
 			"revision": "075e191f18186a8ff2becaf64478e30f4545cdad",
