@@ -244,13 +244,16 @@
                   {{#if newKey.isFolder }}
                   <p>No value needed for nested keys.</p>
                   {{else}}
-                  <div class="form-group">
+                  <div {{ bind-attr class=":form-group newKey.validateJson:validate newKey.isValidJson:success:error" }}>
                     {{ textarea value=newKey.Value class="form-control"}}
                     <span class="help-block">Value can be any format and length</span>
                   </div>
                   {{/if}}
 
                   <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
+                  {{#unless newKey.isFolder }}
+                  <label class="form-checkbox">{{ input type=checkbox checked=newKey.validateJson }}Validate JSON</span>
+                  {{/unless}}
                   <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
                 </form>
               </div>

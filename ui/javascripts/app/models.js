@@ -125,6 +125,8 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     Key: { presence: true }
   },
 
+  // Boolean if field should validate JSON
+  validateJson: false,
   // Boolean if the key is valid
   keyValid: Ember.computed.empty('errors.Key'),
   // Boolean if the value is valid
@@ -191,6 +193,15 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     return (this.get('Value').fromBase64());
   }.property('Value'),
 
+  // Check if JSON is valid by attempting a native JSON parse
+  isValidJson: function() {
+    try {
+      JSON.parse(this.get('Value'));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }.property('Value'),
 
   // An array of the key broken up by the /
   keyParts: function() {
@@ -270,5 +281,3 @@ App.Settings = Ember.Object.extend({
     this.endPropertyChanges();
   }
 });
-
-
