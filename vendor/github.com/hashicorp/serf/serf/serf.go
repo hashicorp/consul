@@ -1238,6 +1238,9 @@ func (s *Serf) handleQuery(query *messageQuery) bool {
 			if err := s.memberlist.SendTo(&addr, raw); err != nil {
 				s.logger.Printf("[ERR] serf: failed to send ack: %v", err)
 			}
+			if err := s.relayResponse(query.RelayFactor, addr, &ack); err != nil {
+				s.logger.Printf("[ERR] serf: failed to relay ack: %v", err)
+			}
 		}
 	}
 
@@ -1286,6 +1289,7 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	if resp.Ack() {
 		// Exit early if this is a duplicate ack
 		if _, ok := query.acks[resp.From]; ok {
+			metrics.IncrCounter([]string{"serf", "query_duplicate_acks"}, 1)
 			return
 		}
 
@@ -1299,6 +1303,7 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	} else {
 		// Exit early if this is a duplicate response
 		if _, ok := query.responses[resp.From]; ok {
+			metrics.IncrCounter([]string{"serf", "query_duplicate_responses"}, 1)
 			return
 		}
 
