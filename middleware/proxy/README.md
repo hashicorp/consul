@@ -13,8 +13,8 @@ In its most basic form, a simple reverse proxy uses this syntax:
 proxy FROM TO
 ~~~
 
-* **FROM** is the base domain to match for the request to be proxied
-* **TO** is the destination endpoint to proxy to
+* **FROM** is the base domain to match for the request to be proxied.
+* **TO** is the destination endpoint to proxy to.
 
 However, advanced features including load balancing can be utilized with an expanded syntax:
 
@@ -26,7 +26,7 @@ proxy FROM TO... {
     health_check PATH:PORT [DURATION]
     except IGNORED_NAMES...
     spray
-    protocol [dns|https_google]
+    protocol [dns|https_google [bootstrap ADDRESS...]]
 }
 ~~~
 
@@ -39,7 +39,8 @@ proxy FROM TO... {
 * `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed through.
 * `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is a failsafe.)
 * `protocol` specifies what protocol to use to speak to an upstream, `dns` (the default) is plain old DNS, and
-  `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect.
+  `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect. Note when using this
+  **TO** must be `dns.google.com`.
 
 ## Policies
 
@@ -53,17 +54,43 @@ available. This is to preeempt the case where the healthchecking (as a mechanism
 
 ## Upstream Protocols
 
-Currently supported are `dns` (i.e., standard DNS over UDP) and `https_google`. Note that with
-`https_google` the entire transport is encrypted. Only *you* and *Google* can see your DNS activity.
+Currently `protocol` supports `dns` (i.e., standard DNS over UDP/TCP) and `https_google` (JSON
+payload over HTTPS). Note that with `https_google` the entire transport is encrypted. Only *you* and
+*Google* can see your DNS activity.
+
+* `dns`: no options can be given at the moment.
+* `https_google`: bootstrap **ADDRESS...** is used to (re-)resolve `dns.google.com` to an address to
+  connect to. This happens every 300s. If not specified the default is used: 8.8.8.8:53/8.8.4.4:53.
+  Note that **TO** is *ignored* when `https_google` is used, as its upstream is defined as
+  `dns.google.com`.
+
+  Debug queries are enabled by default and currently there is no way to turn them off. When CoreDNS
+  receives a debug query (i.e. the name is prefixed with `o-o.debug.`) a TXT record with Comment
+  from `dns.google.com` is added. Note this is not always set, but sometimes you'll see:
+
+  `dig @localhost -p 1053 mx o-o.debug.example.org`:
+
+~~~ txt
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;o-o.debug.example.org.		IN	MX
+
+;; AUTHORITY SECTION:
+example.org.		1799	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016110711 7200 3600 1209600 3600
+
+;; ADDITIONAL SECTION:
+.			0	CH	TXT	"Response from 199.43.133.53"
+~~~
 
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* coredns_proxy_request_duration_milliseconds{zone}
+* coredns_proxy_request_count_total{proto, from}
 
-The metric shows the duration for a proxied request, the `zone` label is the **FROM** as specified
-in the configuration.
+Where `proto` is the protocol used (`dns`, or `https_google`) and `from` is **FROM** specified in
+the config.
 
 ## Examples
 
@@ -109,5 +136,21 @@ Proxy everything except example.org using the host resolv.conf nameservers:
 ~~~
 proxy . /etc/resolv.conf {
 	except miek.nl example.org
+}
+~~~
+
+Proxy all requests within example.org to Google's dns.google.com.
+
+~~~
+proxy example.org 1.2.3.4:53 {
+    protocol https_google
+}
+~~~
+
+Proxy everything, and re-lookup `dns.google.com` every 300 seconds using 8.8.8.8:53.
+
+~~~
+proxy . 1.2.3.4:53 {
+    protocol https_google bootstrap 8.8.8.8:53
 }
 ~~~

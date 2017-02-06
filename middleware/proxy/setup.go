@@ -19,11 +19,24 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return middleware.Error("proxy", err)
 	}
+
+	P := &Proxy{}
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return Proxy{Next: next, Upstreams: upstreams}
+		P.Next = next
+		P.Upstreams = &upstreams
+		return P
 	})
 
-	c.OnStartup(OnStartup)
+	c.OnStartup(OnStartupMetrics)
+
+	for _, u := range upstreams {
+		c.OnStartup(func() error {
+			return u.Exchanger().OnStartup(P)
+		})
+		c.OnShutdown(func() error {
+			return u.Exchanger().OnShutdown(P)
+		})
+	}
 
 	return nil
 }

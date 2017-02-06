@@ -37,13 +37,7 @@ type staticUpstream struct {
 	}
 	WithoutPathPrefix string
 	IgnoredSubDomains []string
-	options           Options
-	Protocol          protocol
-}
-
-// Options ...
-type Options struct {
-	Ecs []*net.IPNet // EDNS0 CLIENT SUBNET address (v4/v6) to add in CIDR notaton.
+	ex                Exchanger
 }
 
 // NewStaticUpstreams parses the configuration input and sets up
@@ -58,7 +52,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			Spray:       nil,
 			FailTimeout: 10 * time.Second,
 			MaxFails:    1,
-			Protocol:    dnsProto,
+			ex:          newDNSEx(),
 		}
 
 		if !c.Args(&upstream.from) {
@@ -89,7 +83,6 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
 				Unhealthy:   false,
-				Exchanger:   newDNSEx(host),
 
 				CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 					return func(uh *UpstreamHost) bool {
@@ -105,14 +98,6 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 					}
 				}(upstream),
 				WithoutPathPrefix: upstream.WithoutPathPrefix,
-			}
-			switch upstream.Protocol {
-			// case https_google:
-
-			case dnsProto:
-				fallthrough
-			default:
-				// Already done in the initialization above.
 			}
 
 			upstream.Hosts[i] = uh
@@ -133,10 +118,6 @@ func RegisterPolicy(name string, policy func() Policy) {
 
 func (u *staticUpstream) From() string {
 	return u.from
-}
-
-func (u *staticUpstream) Options() Options {
-	return u.options
 }
 
 func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
@@ -208,9 +189,14 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 		}
 		switch encArgs[0] {
 		case "dns":
-			u.Protocol = dnsProto
+			u.ex = newDNSEx()
 		case "https_google":
-			// Nothing yet.
+			boot := []string{"8.8.8.8:53", "8.8.4.4:53"}
+			if len(encArgs) > 2 && encArgs[1] == "bootstrap" {
+				boot = encArgs[2:]
+			}
+
+			u.ex = newGoogle("", boot) // "" for default in google.go
 		default:
 			return fmt.Errorf("%s: %s", errInvalidProtocol, encArgs[0])
 		}
@@ -305,3 +291,5 @@ func (u *staticUpstream) IsAllowedPath(name string) bool {
 	}
 	return true
 }
+
+func (u *staticUpstream) Exchanger() Exchanger { return u.ex }

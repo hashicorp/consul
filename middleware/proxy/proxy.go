@@ -21,8 +21,12 @@ var (
 
 // Proxy represents a middleware instance that can proxy requests to another (DNS) server.
 type Proxy struct {
-	Next      middleware.Handler
-	Upstreams []Upstream
+	Next middleware.Handler
+
+	// Upstreams is a pointer to a slice, so we can update the upstream (used for Google)
+	// midway.
+
+	Upstreams *[]Upstream
 }
 
 // Upstream manages a pool of proxy upstream hosts. Select should return a
@@ -34,8 +38,8 @@ type Upstream interface {
 	Select() *UpstreamHost
 	// Checks if subpdomain is not an ignored.
 	IsAllowedPath(string) bool
-	// Options returns the options set for this upstream
-	Options() Options
+	// Exchanger returns the exchanger to be used for this upstream.
+	Exchanger() Exchanger
 }
 
 // UpstreamHostDownFunc can be used to customize how Down behaves.
@@ -50,7 +54,6 @@ type UpstreamHost struct {
 	Unhealthy         bool
 	CheckDown         UpstreamHostDownFunc
 	WithoutPathPrefix string
-	Exchanger
 }
 
 // Down checks whether the upstream host is down or not.
@@ -70,11 +73,12 @@ func (uh *UpstreamHost) Down() bool {
 var tryDuration = 60 * time.Second
 
 // ServeDNS satisfies the middleware.Handler interface.
+
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	var span, child ot.Span
 	span = ot.SpanFromContext(ctx)
 	state := request.Request{W: w, Req: r}
-	for _, upstream := range p.Upstreams {
+	for _, upstream := range *p.Upstreams {
 		start := time.Now()
 
 		// Since Select() should give us "up" hosts, keep retrying
@@ -83,7 +87,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			host := upstream.Select()
 			if host == nil {
 
-				RequestDuration.WithLabelValues(state.Proto(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+				RequestDuration.WithLabelValues(upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
 				return dns.RcodeServerFailure, errUnreachable
 			}
@@ -95,7 +99,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := host.Exchange(state)
+			reply, backendErr := upstream.Exchanger().Exchange(host.Name, state)
 
 			atomic.AddInt64(&host.Conns, -1)
 
@@ -106,7 +110,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			if backendErr == nil {
 				w.WriteMsg(reply)
 
-				RequestDuration.WithLabelValues(state.Proto(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+				RequestDuration.WithLabelValues(upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
 				return 0, nil
 			}
@@ -121,7 +125,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			}(host, timeout)
 		}
 
-		RequestDuration.WithLabelValues(state.Proto(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
+		RequestDuration.WithLabelValues(upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
 		return dns.RcodeServerFailure, errUnreachable
 	}
