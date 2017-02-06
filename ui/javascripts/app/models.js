@@ -195,8 +195,17 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
 
   // Check if JSON is valid by attempting a native JSON parse
   isValidJson: function() {
+    var value;
+
     try {
-      JSON.parse(this.get('Value'));
+      window.atob(this.get('Value'));
+      value = this.get('valueDecoded');
+    } catch (e) {
+      value = this.get('Value');
+    }
+
+    try {
+      JSON.parse(value);
       return true;
     } catch (e) {
       return false;
