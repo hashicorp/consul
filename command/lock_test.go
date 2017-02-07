@@ -38,9 +38,8 @@ func argFail(t *testing.T, args []string, expected string) {
 }
 
 func TestLockCommand_BadArgs(t *testing.T) {
-	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "parsing try timeout")
-	argFail(t, []string{"-try=0s", "test/prefix", "date"}, "timeout must be positive")
-	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "timeout must be positive")
+	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
+	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "Timeout must be positive")
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 

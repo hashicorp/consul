@@ -1,42 +1,37 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
 	"strings"
 )
 
 // ForceLeaveCommand is a Command implementation that tells a running Consul
 // to force a member to enter the "left" state.
 type ForceLeaveCommand struct {
-	Ui cli.Ui
+	Meta
 }
 
 func (c *ForceLeaveCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("join", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	f := c.Meta.NewFlagSet(c)
+	if err := c.Meta.Parse(args); err != nil {
 		return 1
 	}
 
-	nodes := cmdFlags.Args()
+	nodes := f.Args()
 	if len(nodes) != 1 {
-		c.Ui.Error("A node name must be specified to force leave.")
+		c.Ui.Error("A single node name must be specified to force leave.")
 		c.Ui.Error("")
 		c.Ui.Error(c.Help())
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.Meta.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	err = client.ForceLeave(nodes[0])
+	err = client.Agent().ForceLeave(nodes[0])
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error force leaving: %s", err))
 		return 1
@@ -60,10 +55,7 @@ Usage: consul force-leave [options] name
   Consul will attempt to reconnect to those failed nodes for some period of
   time before eventually reaping them.
 
-Options:
+` + c.Meta.Help()
 
-  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
-
-`
 	return strings.TrimSpace(helpText)
 }

@@ -83,7 +83,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var childDone chan struct{}
 
 	f := c.Meta.NewFlagSet(c)
-	f.IntVar(&c.limit, "limit", 1,
+	f.IntVar(&c.limit, "n", 1,
 		"Optional limit on the number of concurrent lock holders. The underlying "+
 			"implementation switches from a lock to a semaphore when the value is "+
 			"greater than 1. The default value is 1.")
@@ -127,6 +127,11 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	prefix := extra[0]
 	prefix = strings.TrimPrefix(prefix, "/")
 	script := strings.Join(extra[1:], " ")
+
+	if c.timeout < 0 {
+		c.Ui.Error("Timeout must be positive")
+		return 1
+	}
 
 	// Calculate a session name if none provided
 	if c.name == "" {

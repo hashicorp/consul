@@ -23,7 +23,6 @@ type FlagSetFlags uint
 const (
 	FlagSetNone FlagSetFlags = iota << 1
 	FlagSetHTTP FlagSetFlags = iota << 1
-	FlagSetRPC  FlagSetFlags = iota << 1
 )
 
 type Meta struct {
@@ -37,8 +36,6 @@ type Meta struct {
 	datacenter string
 	token      string
 	stale      bool
-
-	rpcAddr string
 }
 
 // HTTPClient returns a client with the parsed flags. It panics if the command
@@ -85,35 +82,6 @@ func (m *Meta) httpFlags(f *flag.FlagSet) *flag.FlagSet {
 	return f
 }
 
-// RPCClient returns a client with the parsed flags. It panics if the command
-// does not accept RPC flags or if the flags have not been parsed.
-func (m *Meta) RPCClient() (*api.Client, error) {
-	if !m.hasRPC() {
-		panic("no rpc flags defined")
-	}
-	if !m.flagSet.Parsed() {
-		panic("flags have not been parsed")
-	}
-
-	// TODO
-	return nil, nil
-}
-
-// rpcFlags is the list of flags that apply to RPC connections.
-func (m *Meta) rpcFlags(f *flag.FlagSet) *flag.FlagSet {
-	if f == nil {
-		f = flag.NewFlagSet("", flag.ContinueOnError)
-	}
-
-	f.StringVar(&m.rpcAddr, "rpc-addr", "",
-		"Address and port to the Consul RPC agent. The value can be an IP "+
-			"address or DNS address, but it must also include the port. This can "+
-			"also be specified via the CONSUL_RPC_ADDR environment variable. The "+
-			"default value is 127.0.0.1:8400.")
-
-	return f
-}
-
 // NewFlagSet creates a new flag set for the given command. It automatically
 // generates help output and adds the appropriate API flags.
 func (m *Meta) NewFlagSet(c cli.Command) *flag.FlagSet {
@@ -122,10 +90,6 @@ func (m *Meta) NewFlagSet(c cli.Command) *flag.FlagSet {
 
 	if m.hasHTTP() {
 		m.httpFlags(f)
-	}
-
-	if m.hasRPC() {
-		m.rpcFlags(f)
 	}
 
 	errR, errW := io.Pipe()
@@ -157,40 +121,29 @@ func (m *Meta) hasHTTP() bool {
 	return m.Flags&FlagSetHTTP != 0
 }
 
-// hasRPC returns true if this meta command contains RPC flags.
-func (m *Meta) hasRPC() bool {
-	return m.Flags&FlagSetRPC != 0
-}
-
 // helpFlagsFor visits all flags in the given flag set and prints formatted
 // help output. This function is sad because there's no "merging" of command
 // line flags. We explicitly pull out our "common" options into another section
 // by doing string comparisons :(.
 func (m *Meta) helpFlagsFor(f *flag.FlagSet) string {
 	httpFlags := m.httpFlags(nil)
-	rpcFlags := m.rpcFlags(nil)
 
 	var out bytes.Buffer
 
-	printTitle(&out, "Command Options")
-	f.VisitAll(func(f *flag.Flag) {
-		// Skip HTTP and RPC flags as they will be grouped separately
-		if flagContains(httpFlags, f) || flagContains(rpcFlags, f) {
-			return
-		}
-		printFlag(&out, f)
-	})
-
-	if m.hasHTTP() {
-		printTitle(&out, "HTTP API Options")
-		httpFlags.VisitAll(func(f *flag.Flag) {
+	if f.NFlag() > 0 {
+		printTitle(&out, "Command Options")
+		f.VisitAll(func(f *flag.Flag) {
+			// Skip HTTP flags as they will be grouped separately
+			if flagContains(httpFlags, f) {
+				return
+			}
 			printFlag(&out, f)
 		})
 	}
 
-	if m.hasRPC() {
-		printTitle(&out, "RPC API Options")
-		rpcFlags.VisitAll(func(f *flag.Flag) {
+	if m.hasHTTP() {
+		printTitle(&out, "HTTP API Options")
+		httpFlags.VisitAll(func(f *flag.Flag) {
 			printFlag(&out, f)
 		})
 	}

@@ -31,7 +31,10 @@ func init() {
 
 		"configtest": func() (cli.Command, error) {
 			return &command.ConfigTestCommand{
-				Ui: ui,
+				Meta: command.Meta{
+					Flags: command.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -50,7 +53,10 @@ func init() {
 
 		"force-leave": func() (cli.Command, error) {
 			return &command.ForceLeaveCommand{
-				Ui: ui,
+				Meta: command.Meta{
+					Flags: command.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
