@@ -26,11 +26,15 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	// otherwise delegate to the next in the pipeline.
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
-		// If this is a PTR request, and a the request is in a defined
-		// pod/service cidr range, process the request in this middleware,
-		// otherwise pass to next middleware.
-		if state.Type() != "PTR" || !k.IsRequestInReverseRange(state) {
-			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
+		if state.Type() == "PTR" {
+			// If this is a PTR request, and a the request is in a defined
+			// pod/service cidr range, process the request in this middleware,
+			// otherwise pass to next middleware.
+			if !k.IsRequestInReverseRange(state) {
+				return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
+			}
+			// Set the zone to this specific request.
+			zone = state.Name()
 		}
 	}
 
