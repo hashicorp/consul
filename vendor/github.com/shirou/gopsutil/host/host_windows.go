@@ -64,7 +64,7 @@ func Info() (*InfoStat, error) {
 	{
 		hostID, err := getMachineGuid()
 		if err == nil {
-			ret.HostID = hostID
+			ret.HostID = strings.ToLower(hostID)
 		}
 	}
 
