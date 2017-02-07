@@ -87,10 +87,10 @@ example.org.		1799	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016110711 7200 
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* coredns_proxy_request_count_total{proto, from}
+* coredns_proxy_request_count_total{proto, proxy_proto, from}
 
-Where `proto` is the protocol used (`dns`, or `https_google`) and `from` is **FROM** specified in
-the config.
+Where `proxy_proto` is the protocol used (`dns`, or `https_google`) and `from` is **FROM** specified in
+the config, `proto` is the protocol used by the incoming query ("tcp" or "udp").
 
 ## Examples
 
