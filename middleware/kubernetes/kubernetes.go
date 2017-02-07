@@ -508,7 +508,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		return nil
 	}
 	for _, service := range svcList {
-		if !dnsstrings.StringInSlice(service.Namespace, k.Namespaces) {
+		if (len(k.Namespaces) > 0) && !dnsstrings.StringInSlice(service.Namespace, k.Namespaces) {
 			continue
 		}
 		if service.Spec.ClusterIP == ip {
@@ -522,7 +522,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		return nil
 	}
 	for _, ep := range epList.Items {
-		if !dnsstrings.StringInSlice(ep.ObjectMeta.Namespace, k.Namespaces) {
+		if (len(k.Namespaces) > 0) && !dnsstrings.StringInSlice(ep.ObjectMeta.Namespace, k.Namespaces) {
 			continue
 		}
 		for _, eps := range ep.Subsets {

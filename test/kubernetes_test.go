@@ -315,6 +315,42 @@ var dnsTestCasesPartialCidrReverseZone = []test.Case{
 	},
 }
 
+var dnsTestCasesAllNSExposed = []test.Case{
+	{
+		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+		},
+	},
+	{
+		Qname: "svc-c.test-2.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("svc-c.test-1.svc.cluster.local.      303    IN      A       10.0.0.120"),
+		},
+	},
+	{
+		Qname: "123.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "100.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       svc-1-a.test-1.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "120.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.PTR("120.0.0.10.in-addr.arpa.      303    IN      PTR       svc-c.test-2.svc.cluster.local."),
+		},
+	},
+}
+
 func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
@@ -423,4 +459,15 @@ func TestKubernetesIntegrationPartialCidrReverseZone(t *testing.T) {
     }
 `
 	doIntegrationTests(t, corefile, dnsTestCasesPartialCidrReverseZone)
+}
+
+func TestKubernetesIntegrationAllNSExposed(t *testing.T) {
+	corefile :=
+		`.:0 {
+    kubernetes cluster.local {
+                endpoint http://localhost:8080
+				cidrs 10.0.0.0/24
+    }
+`
+	doIntegrationTests(t, corefile, dnsTestCasesAllNSExposed)
 }
