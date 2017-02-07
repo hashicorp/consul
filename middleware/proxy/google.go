@@ -126,13 +126,7 @@ func (g *google) OnStartup(p *Proxy) error {
 
 	new, err := g.bootstrapProxy.Lookup(state, g.endpoint, dns.TypeA)
 
-	oldUpstream := *p.Upstreams
-	oldFrom := ""
-	var oldEx Exchanger
-	if len(oldUpstream) > 0 {
-		oldFrom = oldUpstream[0].From()
-		oldEx = oldUpstream[0].Exchanger()
-	}
+	var oldUpstream Upstream
 
 	// ignore errors here, as we want to keep on trying.
 	if err != nil {
@@ -143,8 +137,13 @@ func (g *google) OnStartup(p *Proxy) error {
 			log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
 		}
 
-		up := newUpstream(addrs, oldFrom, oldEx)
-		p.Upstreams = &[]Upstream{up}
+		if len(*p.Upstreams) > 0 {
+			oldUpstream = (*p.Upstreams)[0]
+			up := newUpstream(addrs, oldUpstream.(*staticUpstream))
+			p.Upstreams = &[]Upstream{up}
+		} else {
+			log.Printf("[WARNING] Failed to bootstrap upstreams %q", g.endpoint)
+		}
 	}
 
 	go func() {
@@ -164,8 +163,11 @@ func (g *google) OnStartup(p *Proxy) error {
 						continue
 					}
 
-					up := newUpstream(addrs, oldFrom, oldEx)
-					p.Upstreams = &[]Upstream{up}
+					// TODO(miek): can this actually happen?
+					if oldUpstream != nil {
+						up := newUpstream(addrs, oldUpstream.(*staticUpstream))
+						p.Upstreams = &[]Upstream{up}
+					}
 				}
 
 			case <-g.quit:
@@ -195,15 +197,17 @@ func extractAnswer(m *dns.Msg) ([]string, error) {
 }
 
 // newUpstream returns an upstream initialized with hosts.
-func newUpstream(hosts []string, from string, ex Exchanger) Upstream {
+func newUpstream(hosts []string, old *staticUpstream) Upstream {
 	upstream := &staticUpstream{
-		from:        from,
-		Hosts:       nil,
-		Policy:      &Random{},
-		Spray:       nil,
-		FailTimeout: 10 * time.Second,
-		MaxFails:    3,
-		ex:          ex,
+		from:              old.from,
+		Hosts:             nil,
+		Policy:            &Random{},
+		Spray:             nil,
+		FailTimeout:       10 * time.Second,
+		MaxFails:          3,
+		ex:                old.ex,
+		WithoutPathPrefix: old.WithoutPathPrefix,
+		IgnoredSubDomains: old.IgnoredSubDomains,
 	}
 
 	upstream.Hosts = make([]*UpstreamHost, len(hosts))
