@@ -17,6 +17,7 @@ import (
 var (
 	errUnreachable     = errors.New("unreachable backend")
 	errInvalidProtocol = errors.New("invalid protocol")
+	errInvalidDomain   = errors.New("invalid path for proxy")
 )
 
 // Proxy represents a middleware instance that can proxy requests to another (DNS) server.
@@ -37,7 +38,7 @@ type Upstream interface {
 	// Selects an upstream host to be routed to.
 	Select() *UpstreamHost
 	// Checks if subpdomain is not an ignored.
-	IsAllowedPath(string) bool
+	IsAllowedDomain(string) bool
 	// Exchanger returns the exchanger to be used for this upstream.
 	Exchanger() Exchanger
 }
@@ -73,12 +74,17 @@ func (uh *UpstreamHost) Down() bool {
 var tryDuration = 60 * time.Second
 
 // ServeDNS satisfies the middleware.Handler interface.
-
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	var span, child ot.Span
 	span = ot.SpanFromContext(ctx)
 	state := request.Request{W: w, Req: r}
-	for _, upstream := range *p.Upstreams {
+
+	upstream := p.match(state)
+	if upstream == nil {
+		return middleware.NextOrFailure(p.Name(), p.Next, ctx, w, r)
+	}
+
+	for {
 		start := time.Now()
 
 		// Since Select() should give us "up" hosts, keep retrying
@@ -129,7 +135,24 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 		return dns.RcodeServerFailure, errUnreachable
 	}
-	return middleware.NextOrFailure(p.Name(), p.Next, ctx, w, r)
+}
+
+func (p Proxy) match(state request.Request) (u Upstream) {
+	longestMatch := 0
+	for _, upstream := range *p.Upstreams {
+		from := upstream.From()
+
+		if !middleware.Name(from).Matches(state.Name()) || !upstream.IsAllowedDomain(state.Name()) {
+			continue
+		}
+
+		if lf := len(from); lf > longestMatch {
+			longestMatch = lf
+			u = upstream
+		}
+	}
+	return u
+
 }
 
 // Name implements the Handler interface.

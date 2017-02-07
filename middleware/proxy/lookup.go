@@ -16,7 +16,7 @@ func NewLookup(hosts []string) Proxy {
 	p := Proxy{Next: nil}
 
 	upstream := &staticUpstream{
-		from:        "",
+		from:        ".",
 		Hosts:       make([]*UpstreamHost, len(hosts)),
 		Policy:      &Random{},
 		Spray:       nil,
@@ -71,7 +71,11 @@ func (p Proxy) Forward(state request.Request) (*dns.Msg, error) {
 }
 
 func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
-	for _, upstream := range *p.Upstreams {
+	upstream := p.match(state)
+	if upstream == nil {
+		return nil, errInvalidDomain
+	}
+	for {
 		start := time.Now()
 
 		// Since Select() should give us "up" hosts, keep retrying
@@ -106,5 +110,4 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 		}
 		return nil, errUnreachable
 	}
-	return nil, errUnreachable
 }

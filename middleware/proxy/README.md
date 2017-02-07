@@ -36,7 +36,7 @@ proxy FROM TO... {
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to communicate with it. The default value is 10 seconds ("10s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
 * `health_check` will check path (on port) on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
-* `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed through.
+* **IGNORED_NAMES** is a space-separated list of domains to exclude from proxying. Requests that match none of these names will be passed through.
 * `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is a failsafe.)
 * `protocol` specifies what protocol to use to speak to an upstream, `dns` (the default) is plain old DNS, and
   `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect. Note when using this

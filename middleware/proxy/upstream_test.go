@@ -13,7 +13,7 @@ import (
 
 func TestHealthCheck(t *testing.T) {
 	upstream := &staticUpstream{
-		from:        "",
+		from:        ".",
 		Hosts:       testPool(),
 		Policy:      &Random{},
 		Spray:       nil,
@@ -31,7 +31,7 @@ func TestHealthCheck(t *testing.T) {
 
 func TestSelect(t *testing.T) {
 	upstream := &staticUpstream{
-		from:        "",
+		from:        ".",
 		Hosts:       testPool()[:3],
 		Policy:      &Random{},
 		FailTimeout: 10 * time.Second,
@@ -59,10 +59,10 @@ func TestRegisterPolicy(t *testing.T) {
 
 }
 
-func TestAllowedPaths(t *testing.T) {
+func TestAllowedDomain(t *testing.T) {
 	upstream := &staticUpstream{
 		from:              "miek.nl.",
-		IgnoredSubDomains: []string{"download.", "static."}, // closing dot mandatory
+		IgnoredSubDomains: []string{"download.miek.nl.", "static.miek.nl."}, // closing dot mandatory
 	}
 	tests := []struct {
 		name     string
@@ -75,7 +75,7 @@ func TestAllowedPaths(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		isAllowed := upstream.IsAllowedPath(test.name)
+		isAllowed := upstream.IsAllowedDomain(test.name)
 		if test.expected != isAllowed {
 			t.Errorf("Test %d: expected %v found %v for %s", i+1, test.expected, isAllowed, test.name)
 		}

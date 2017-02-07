@@ -46,7 +46,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 	var upstreams []Upstream
 	for c.Next() {
 		upstream := &staticUpstream{
-			from:        "",
+			from:        ".",
 			Hosts:       nil,
 			Policy:      &Random{},
 			Spray:       nil,
@@ -280,12 +280,13 @@ func (u *staticUpstream) Select() *UpstreamHost {
 	return u.Spray.Select(pool)
 }
 
-func (u *staticUpstream) IsAllowedPath(name string) bool {
+func (u *staticUpstream) IsAllowedDomain(name string) bool {
 	for _, ignoredSubDomain := range u.IgnoredSubDomains {
 		if dns.Name(name) == dns.Name(u.From()) {
 			return true
 		}
-		if middleware.Name(name).Matches(ignoredSubDomain + u.From()) {
+
+		if middleware.Name(ignoredSubDomain).Matches(name) {
 			return false
 		}
 	}
