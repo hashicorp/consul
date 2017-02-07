@@ -126,7 +126,9 @@ func (c *KVGetCommand) Run(args []string) int {
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
 	conf.Address = *httpAddr
-	conf.Token = *token
+	if *token != "" {
+		conf.Token = *token
+	}
 	client, err := api.NewClient(conf)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
