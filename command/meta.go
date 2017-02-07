@@ -130,16 +130,18 @@ func (m *Meta) helpFlagsFor(f *flag.FlagSet) string {
 
 	var out bytes.Buffer
 
-	if f.NFlag() > 0 {
-		printTitle(&out, "Command Options")
-		f.VisitAll(func(f *flag.Flag) {
-			// Skip HTTP flags as they will be grouped separately
-			if flagContains(httpFlags, f) {
-				return
-			}
-			printFlag(&out, f)
-		})
-	}
+	first := true
+	f.VisitAll(func(f *flag.Flag) {
+		// Skip HTTP flags as they will be grouped separately
+		if flagContains(httpFlags, f) {
+			return
+		}
+		if first {
+			printTitle(&out, "Command Options")
+			first = false
+		}
+		printFlag(&out, f)
+	})
 
 	if m.hasHTTP() {
 		printTitle(&out, "HTTP API Options")
