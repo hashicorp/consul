@@ -1,7 +1,7 @@
 package rewrite
 
 import (
-	"strings"
+	"log"
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
@@ -108,8 +108,12 @@ func rewriteParse(c *caddy.Controller) ([]Rule, error) {
 
 		// the only unhandled case is 2 and above
 		default:
-			rule = NewSimpleRule(args[0], strings.Join(args[1:], " "))
-			simpleRules = append(simpleRules, rule)
+			if _, ok := Fields[args[0]]; ok {
+				rule = Fields[args[0]].New(args[1:]...)
+				simpleRules = append(simpleRules, rule)
+			} else {
+				log.Printf("[WARN] %s is not a valid field, ignore %s", args[0], args)
+			}
 		}
 	}
 
