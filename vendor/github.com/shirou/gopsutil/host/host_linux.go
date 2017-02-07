@@ -70,14 +70,14 @@ func Info() (*InfoStat, error) {
 	case common.PathExists(sysProductUUID):
 		lines, err := common.ReadLines(sysProductUUID)
 		if err == nil && len(lines) > 0 && lines[0] != "" {
-			ret.HostID = lines[0]
+			ret.HostID = strings.ToLower(lines[0])
 			break
 		}
 		fallthrough
 	default:
 		values, err := common.DoSysctrl("kernel.random.boot_id")
 		if err == nil && len(values) == 1 && values[0] != "" {
-			ret.HostID = values[0]
+			ret.HostID = strings.ToLower(values[0])
 		}
 	}
 
