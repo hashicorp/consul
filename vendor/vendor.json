@@ -474,10 +474,10 @@
 			"revisionTime": "2016-09-30T03:51:02Z"
 		},
 		{
-			"checksumSHA1": "L9iVjsIjeU9Ia1VZUY417ZHBAtc=",
+			"checksumSHA1": "BGODc7juQbdG3vNXHZG07kt+lKI=",
 			"path": "github.com/hashicorp/go-sockaddr",
-			"revision": "945b922c7db81f071a1f176e747e9857b76ed7c3",
-			"revisionTime": "2017-01-17T20:27:00Z"
+			"revision": "f910dd83c2052566cad78352c33af714358d1372",
+			"revisionTime": "2017-02-08T07:30:35Z"
 		},
 		{
 			"checksumSHA1": "lPzwetgfMBtpHqdTPolgejMctVQ=",
@@ -582,10 +582,10 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "hSoH77pX3FyU6kkYqOOYmf3r55Y=",
+			"checksumSHA1": "1zk7IeGClUqBo+Phsx89p7fQ/rQ=",
 			"path": "github.com/hashicorp/memberlist",
-			"revision": "9800c50ab79c002353852a9b1095e9591b161513",
-			"revisionTime": "2016-12-13T23:44:46Z"
+			"revision": "23ad4b7d7b38496cd64c241dfd4c60b7794c254a",
+			"revisionTime": "2017-02-08T21:15:06Z"
 		},
 		{
 			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
@@ -625,11 +625,11 @@
 			"revisionTime": "2016-08-09T01:42:04Z"
 		},
 		{
-			"checksumSHA1": "E63/tz2qjNJ6+hyGi9AoYb0sH9s=",
+			"checksumSHA1": "AZ4RoXStVz6qx38ZMZAyC6Gw3Q4=",
 			"comment": "v0.7.0-66-g6c4672d",
 			"path": "github.com/hashicorp/serf/serf",
-			"revision": "f85661e5323286a0406cabeb0ad515962c1780b7",
-			"revisionTime": "2017-02-06T16:55:42Z"
+			"revision": "c5e26c3704ca774760df65ee8cbb039d9d9ec560",
+			"revisionTime": "2017-02-08T21:49:39Z"
 		},
 		{
 			"checksumSHA1": "ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=",
@@ -691,6 +691,12 @@
 			"path": "github.com/ryanuber/columnize",
 			"revision": "9b3edd62028f107d7cabb19353292afd29311a4e",
 			"revisionTime": "2016-07-12T16:32:29Z"
+		},
+		{
+			"checksumSHA1": "A/YUMbGg1LHIeK2+NLZBt+MIAao=",
+			"path": "github.com/sean-/seed",
+			"revision": "3c72d44db0c567f7c901f9c5da5fe68392227750",
+			"revisionTime": "2017-02-08T16:47:21Z"
 		},
 		{
 			"checksumSHA1": "9rCHOi3ELajBtQUPWxxmEo/Nalk=",

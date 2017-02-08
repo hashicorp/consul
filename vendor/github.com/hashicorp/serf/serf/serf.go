@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -240,9 +241,23 @@ func Create(conf *Config) (*Serf, error) {
 			conf.ProtocolVersion, ProtocolVersionMin, ProtocolVersionMax)
 	}
 
+	if conf.LogOutput != nil && conf.Logger != nil {
+		return nil, fmt.Errorf("Cannot specify both LogOutput and Logger. Please choose a single log configuration setting.")
+	}
+
+	logDest := conf.LogOutput
+	if logDest == nil {
+		logDest = os.Stderr
+	}
+
+	logger := conf.Logger
+	if logger == nil {
+		logger = log.New(logDest, "", log.LstdFlags)
+	}
+
 	serf := &Serf{
 		config:        conf,
-		logger:        log.New(conf.LogOutput, "", log.LstdFlags),
+		logger:        logger,
 		members:       make(map[string]*memberState),
 		queryResponse: make(map[LamportTime]*QueryResponse),
 		shutdownCh:    make(chan struct{}),

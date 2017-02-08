@@ -11,7 +11,7 @@ func init() {
 // GetPrivateIP returns a string with a single IP address that is part of RFC
 // 6890 and has a default route.  If the system can't determine its IP address
 // or find an RFC 6890 IP address, an empty string will be returned instead.
-// This function is the `eval` equivilant of:
+// This function is the `eval` equivalent of:
 //
 // ```
 // $ sockaddr eval -r '{{GetPrivateInterfaces | attr "address"}}'
@@ -33,7 +33,7 @@ func GetPrivateIP() (string, error) {
 // GetPublicIP returns a string with a single IP address that is NOT part of RFC
 // 6890 and has a default route.  If the system can't determine its IP address
 // or find a non RFC 6890 IP address, an empty string will be returned instead.
-// This function is the `eval` equivilant of:
+// This function is the `eval` equivalent of:
 //
 // ```
 // $ sockaddr eval -r '{{GetPublicInterfaces | attr "address"}}'
@@ -53,7 +53,7 @@ func GetPublicIP() (string, error) {
 
 // GetInterfaceIP returns a string with a single IP address sorted by the size
 // of the network (i.e. IP addresses with a smaller netmask, larger network
-// size, are sorted first).  This function is the `eval` equivilant of:
+// size, are sorted first).  This function is the `eval` equivalent of:
 //
 // ```
 // $ sockaddr eval -r '{{GetAllInterfaces | include "name" <<ARG>> | sort "type,size" | include "flag" "forwardable" | attr "address" }}'
