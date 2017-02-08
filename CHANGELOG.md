@@ -6,6 +6,10 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: Fixed a missing case where gossip would stop flowing to dead nodes for a short while. [GH-2722]
+* agent: Uses the go-sockaddr library to look for private IP addresses, which prefers non-loopback private addresses over loopback ones when trying to automatically determine the advertise address. [GH-2722]
+* agent: Properly seeds Go's random number generator using the seed library. [GH-2722]
+* agent: Serf snapshots no longer have the executable bit set on the file. [GH-2722]
 * cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
 
 BUG FIXES:
