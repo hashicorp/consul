@@ -6,15 +6,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 func testConfigTestCommand(t *testing.T) (*cli.MockUi, *ConfigTestCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ConfigTestCommand{
-		Meta: Meta{
+		Command: base.Command{
 			Ui:    ui,
-			Flags: FlagSetNone,
+			Flags: base.FlagSetNone,
 		},
 	}
 }

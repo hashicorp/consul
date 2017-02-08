@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/base"
 )
 
 const (
@@ -35,19 +36,14 @@ const (
 // LockCommand is a Command implementation that is used to setup
 // a "lock" which manages lock acquisition and invokes a sub-process
 type LockCommand struct {
-	Meta
+	base.Command
 
 	ShutdownCh <-chan struct{}
 
 	child     *os.Process
 	childLock sync.Mutex
 
-	limit        int
-	monitorRetry int
-	name         string
-	passStdin    bool
-	timeout      time.Duration
-	verbose      bool
+	verbose bool
 }
 
 func (c *LockCommand) Help() string {
@@ -69,7 +65,7 @@ Usage: consul lock [options] prefix child...
 
   The prefix provided must have write privileges.
 
-` + c.Meta.Help()
+` + c.Command.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -81,39 +77,44 @@ func (c *LockCommand) Run(args []string) int {
 
 func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var childDone chan struct{}
+	var limit int
+	var monitorRetry int
+	var name string
+	var passStdin bool
+	var timeout time.Duration
 
-	f := c.Meta.NewFlagSet(c)
-	f.IntVar(&c.limit, "n", 1,
+	f := c.Command.NewFlagSet(c)
+	f.IntVar(&limit, "n", 1,
 		"Optional limit on the number of concurrent lock holders. The underlying "+
 			"implementation switches from a lock to a semaphore when the value is "+
 			"greater than 1. The default value is 1.")
-	f.IntVar(&c.monitorRetry, "monitor-retry", defaultMonitorRetry,
-		"Number of times to retry Consul returns a 500 error while monitoring "+
+	f.IntVar(&monitorRetry, "monitor-retry", defaultMonitorRetry,
+		"Number of times to retry if Consul returns a 500 error while monitoring "+
 			"the lock. This allows riding out brief periods of unavailability "+
 			"without causing leader elections, but increases the amount of time "+
 			"required to detect a lost lock in some cases. The default value is 3, "+
 			"with a 1s wait between retries. Set this value to 0 to disable retires.")
-	f.StringVar(&c.name, "name", "",
+	f.StringVar(&name, "name", "",
 		"Optional name to associate with the lock session. It not provided, one "+
 			"is generated based on the provided child command.")
-	f.BoolVar(&c.passStdin, "pass-stdin", false,
+	f.BoolVar(&passStdin, "pass-stdin", false,
 		"Pass stdin to the child process.")
-	f.DurationVar(&c.timeout, "timeout", 0,
+	f.DurationVar(&timeout, "timeout", 0,
 		"Maximum amount of time to wait to acquire the lock, specified as a "+
 			"timestamp like \"1s\" or \"3h\". The default value is 0.")
 	f.BoolVar(&c.verbose, "verbose", false,
 		"Enable verbose (debugging) output.")
 
 	// Deprecations
-	f.DurationVar(&c.timeout, "try", 0,
+	f.DurationVar(&timeout, "try", 0,
 		"DEPRECATED. Use -timeout instead.")
 
-	if err := c.Meta.Parse(args); err != nil {
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	// Check the limit
-	if c.limit <= 0 {
+	if limit <= 0 {
 		c.Ui.Error(fmt.Sprintf("Lock holder limit must be positive"))
 		return 1
 	}
@@ -128,27 +129,27 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	prefix = strings.TrimPrefix(prefix, "/")
 	script := strings.Join(extra[1:], " ")
 
-	if c.timeout < 0 {
+	if timeout < 0 {
 		c.Ui.Error("Timeout must be positive")
 		return 1
 	}
 
 	// Calculate a session name if none provided
-	if c.name == "" {
-		c.name = fmt.Sprintf("Consul lock for '%s' at '%s'", script, prefix)
+	if name == "" {
+		name = fmt.Sprintf("Consul lock for '%s' at '%s'", script, prefix)
 	}
 
 	// Calculate oneshot
-	oneshot := c.timeout > 0
+	oneshot := timeout > 0
 
 	// Check the retry parameter
-	if c.monitorRetry < 0 {
+	if monitorRetry < 0 {
 		c.Ui.Error("Number for 'monitor-retry' must be >= 0")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.Meta.HTTPClient()
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -160,10 +161,10 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Setup the lock or semaphore
-	if c.limit == 1 {
-		*lu, err = c.setupLock(client, prefix, c.name, oneshot, c.timeout, c.monitorRetry)
+	if limit == 1 {
+		*lu, err = c.setupLock(client, prefix, name, oneshot, timeout, monitorRetry)
 	} else {
-		*lu, err = c.setupSemaphore(client, c.limit, prefix, c.name, oneshot, c.timeout, c.monitorRetry)
+		*lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, timeout, monitorRetry)
 	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Lock setup failed: %s", err))
@@ -195,7 +196,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	// Start the child process
 	childDone = make(chan struct{})
 	go func() {
-		if err := c.startChild(script, childDone, c.passStdin); err != nil {
+		if err := c.startChild(script, childDone, passStdin); err != nil {
 			c.Ui.Error(fmt.Sprintf("%s", err))
 		}
 	}()

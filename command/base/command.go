@@ -1,4 +1,4 @@
-package command
+package base
 
 import (
 	"bufio"
@@ -21,11 +21,14 @@ const maxLineLength int = 72
 type FlagSetFlags uint
 
 const (
-	FlagSetNone FlagSetFlags = iota << 1
-	FlagSetHTTP FlagSetFlags = iota << 1
+	FlagSetNone       FlagSetFlags = iota << 1
+	FlagSetClientHTTP FlagSetFlags = iota << 1
+	FlagSetServerHTTP FlagSetFlags = iota << 1
+
+	FlagSetHTTP = FlagSetClientHTTP | FlagSetServerHTTP
 )
 
-type Meta struct {
+type Command struct {
 	Ui    cli.Ui
 	Flags FlagSetFlags
 
@@ -33,47 +36,64 @@ type Meta struct {
 
 	// These are the options which correspond to the HTTP API options
 	httpAddr   string
-	datacenter string
 	token      string
+	datacenter string
 	stale      bool
 }
 
 // HTTPClient returns a client with the parsed flags. It panics if the command
 // does not accept HTTP flags or if the flags have not been parsed.
-func (m *Meta) HTTPClient() (*api.Client, error) {
-	if !m.hasHTTP() {
+func (c *Command) HTTPClient() (*api.Client, error) {
+	if !c.hasClientHTTP() && !c.hasServerHTTP() {
 		panic("no http flags defined")
 	}
-	if !m.flagSet.Parsed() {
+	if !c.flagSet.Parsed() {
 		panic("flags have not been parsed")
 	}
 
-	return api.NewClient(&api.Config{
-		Datacenter: m.datacenter,
-		Address:    m.httpAddr,
-		Token:      m.token,
-	})
+	config := api.DefaultConfig()
+	if c.datacenter != "" {
+		config.Datacenter = c.datacenter
+	}
+	if c.httpAddr != "" {
+		config.Address = c.httpAddr
+	}
+	if c.token != "" {
+		config.Token = c.token
+	}
+	c.Ui.Info(fmt.Sprintf("client http addr: %s", config.Address))
+	return api.NewClient(config)
 }
 
-// httpFlags is the list of flags that apply to HTTP connections.
-func (m *Meta) httpFlags(f *flag.FlagSet) *flag.FlagSet {
+// httpFlagsClient is the list of flags that apply to HTTP connections.
+func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	if f == nil {
 		f = flag.NewFlagSet("", flag.ContinueOnError)
 	}
 
-	f.StringVar(&m.datacenter, "datacenter", "",
-		"Name of the datacenter to query. If unspecified, this will default to "+
-			"the datacenter of the queried agent.")
-	f.StringVar(&m.httpAddr, "http-addr", "",
+	f.StringVar(&c.httpAddr, "http-addr", "",
 		"Address and port to the Consul HTTP agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can "+
 			"also be specified via the CONSUL_HTTP_ADDR environment variable. The "+
 			"default value is 127.0.0.1:8500.")
-	f.StringVar(&m.token, "token", "",
+	f.StringVar(&c.token, "token", "",
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_HTTP_TOKEN environment variable. If unspecified, the query will "+
 			"default to the token of the Consul agent at the HTTP address.")
-	f.BoolVar(&m.stale, "stale", false,
+
+	return f
+}
+
+// httpFlagsServer is the list of flags that apply to HTTP connections.
+func (c *Command) httpFlagsServer(f *flag.FlagSet) *flag.FlagSet {
+	if f == nil {
+		f = flag.NewFlagSet("", flag.ContinueOnError)
+	}
+
+	f.StringVar(&c.datacenter, "datacenter", "",
+		"Name of the datacenter to query. If unspecified, this will default to "+
+			"the datacenter of the queried agent.")
+	f.BoolVar(&c.stale, "stale", false,
 		"Permit any Consul server (non-leader) to respond to this request. This "+
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
@@ -84,71 +104,94 @@ func (m *Meta) httpFlags(f *flag.FlagSet) *flag.FlagSet {
 
 // NewFlagSet creates a new flag set for the given command. It automatically
 // generates help output and adds the appropriate API flags.
-func (m *Meta) NewFlagSet(c cli.Command) *flag.FlagSet {
+func (c *Command) NewFlagSet(command cli.Command) *flag.FlagSet {
 	f := flag.NewFlagSet("", flag.ContinueOnError)
-	f.Usage = func() { m.Ui.Error(c.Help()) }
+	f.Usage = func() { c.Ui.Error(command.Help()) }
 
-	if m.hasHTTP() {
-		m.httpFlags(f)
+	if c.hasClientHTTP() {
+		c.httpFlagsClient(f)
+	}
+
+	if c.hasServerHTTP() {
+		c.httpFlagsServer(f)
 	}
 
 	errR, errW := io.Pipe()
 	errScanner := bufio.NewScanner(errR)
 	go func() {
 		for errScanner.Scan() {
-			m.Ui.Error(errScanner.Text())
+			c.Ui.Error(errScanner.Text())
 		}
 	}()
 	f.SetOutput(errW)
 
-	m.flagSet = f
+	c.flagSet = f
 
 	return f
 }
 
 // Parse is used to parse the underlying flag set.
-func (m *Meta) Parse(args []string) error {
-	return m.flagSet.Parse(args)
+func (c *Command) Parse(args []string) error {
+	return c.flagSet.Parse(args)
 }
 
 // Help returns the help for this flagSet.
-func (m *Meta) Help() string {
-	return m.helpFlagsFor(m.flagSet)
+func (c *Command) Help() string {
+	return c.helpFlagsFor(c.flagSet)
 }
 
-// hasHTTP returns true if this meta command contains HTTP flags.
-func (m *Meta) hasHTTP() bool {
-	return m.Flags&FlagSetHTTP != 0
+// hasClientHTTP returns true if this meta command contains client HTTP flags.
+func (c *Command) hasClientHTTP() bool {
+	return c.Flags&FlagSetClientHTTP != 0
+}
+
+// hasServerHTTP returns true if this meta command contains server HTTP flags.
+func (c *Command) hasServerHTTP() bool {
+	return c.Flags&FlagSetServerHTTP != 0
 }
 
 // helpFlagsFor visits all flags in the given flag set and prints formatted
 // help output. This function is sad because there's no "merging" of command
 // line flags. We explicitly pull out our "common" options into another section
 // by doing string comparisons :(.
-func (m *Meta) helpFlagsFor(f *flag.FlagSet) string {
-	httpFlags := m.httpFlags(nil)
+func (c *Command) helpFlagsFor(f *flag.FlagSet) string {
+	httpFlagsClient := c.httpFlagsClient(nil)
+	httpFlagsServer := c.httpFlagsServer(nil)
 
 	var out bytes.Buffer
 
-	first := true
-	f.VisitAll(func(f *flag.Flag) {
-		// Skip HTTP flags as they will be grouped separately
-		if flagContains(httpFlags, f) {
-			return
+	firstHTTP := true
+	if c.hasClientHTTP() {
+		if firstHTTP {
+			printTitle(&out, "HTTP API Options")
+			firstHTTP = false
 		}
-		if first {
-			printTitle(&out, "Command Options")
-			first = false
-		}
-		printFlag(&out, f)
-	})
-
-	if m.hasHTTP() {
-		printTitle(&out, "HTTP API Options")
-		httpFlags.VisitAll(func(f *flag.Flag) {
+		httpFlagsClient.VisitAll(func(f *flag.Flag) {
 			printFlag(&out, f)
 		})
 	}
+	if c.hasServerHTTP() {
+		if firstHTTP {
+			printTitle(&out, "HTTP API Options")
+			firstHTTP = false
+		}
+		httpFlagsServer.VisitAll(func(f *flag.Flag) {
+			printFlag(&out, f)
+		})
+	}
+
+	firstCommand := true
+	f.VisitAll(func(f *flag.Flag) {
+		// Skip HTTP flags as they will be grouped separately
+		if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) {
+			return
+		}
+		if firstCommand {
+			printTitle(&out, "Command Options")
+			firstCommand = false
+		}
+		printFlag(&out, f)
+	})
 
 	return strings.TrimRight(out.String(), "\n")
 }
@@ -190,7 +233,7 @@ func flagContains(fs *flag.FlagSet, f *flag.Flag) bool {
 	return skip
 }
 
-// wrapAtLength wraps the given text at the maxLineLength, taxing into account
+// wrapAtLength wraps the given text at the maxLineLength, taking into account
 // any provided left padding.
 func wrapAtLength(s string, pad int) string {
 	wrapped := text.Wrap(s, maxLineLength-pad)

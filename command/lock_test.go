@@ -9,15 +9,16 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
 	ui := new(cli.MockUi)
 	return ui, &LockCommand{
-		Meta: Meta{
+		Command: base.Command{
 			Ui:    ui,
-			Flags: FlagSetHTTP,
+			Flags: base.FlagSetHTTP,
 		},
 	}
 }

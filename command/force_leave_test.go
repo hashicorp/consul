@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
@@ -13,9 +14,9 @@ import (
 func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ForceLeaveCommand{
-		Meta: Meta{
+		Command: base.Command{
 			Ui:    ui,
-			Flags: FlagSetHTTP,
+			Flags: base.FlagSetClientHTTP,
 		},
 	}
 }

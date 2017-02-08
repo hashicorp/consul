@@ -2,18 +2,19 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/command/base"
 	"strings"
 )
 
 // ForceLeaveCommand is a Command implementation that tells a running Consul
 // to force a member to enter the "left" state.
 type ForceLeaveCommand struct {
-	Meta
+	base.Command
 }
 
 func (c *ForceLeaveCommand) Run(args []string) int {
-	f := c.Meta.NewFlagSet(c)
-	if err := c.Meta.Parse(args); err != nil {
+	f := c.Command.NewFlagSet(c)
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
@@ -25,7 +26,7 @@ func (c *ForceLeaveCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.Meta.HTTPClient()
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -55,7 +56,7 @@ Usage: consul force-leave [options] name
   Consul will attempt to reconnect to those failed nodes for some period of
   time before eventually reaping them.
 
-` + c.Meta.Help()
+` + c.Command.Help()
 
 	return strings.TrimSpace(helpText)
 }
