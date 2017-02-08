@@ -707,8 +707,8 @@
 		{
 			"checksumSHA1": "GsqEEmGv6sj8DreS2SYXRkoZ9NI=",
 			"path": "github.com/shirou/gopsutil/host",
-			"revision": "36f5033d9787f85e97cc259fcb33bd699f3dbe0f",
-			"revisionTime": "2017-02-07T00:10:46Z"
+			"revision": "b62e301a8b9958eebb7299683eb57fab229a9501",
+			"revisionTime": "2017-02-08T02:55:55Z"
 		},
 		{
 			"checksumSHA1": "hz9RxkaV3Tnju2eiHBWO/Yv7n5c=",
