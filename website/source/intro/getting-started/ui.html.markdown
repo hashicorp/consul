@@ -17,7 +17,7 @@ key/value data. The UIs automatically support multi-datacenter.
 ![Consul Web UI](consul_web_ui.png)
 </div>
 
-To set up the [self-hosted UI](/downloads.html), start the Consul agent with the
+To set up the self-hosted UI, start the Consul agent with the
 [`-ui` parameter](/docs/agent/options.html#_ui):
 
 ```text
