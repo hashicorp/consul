@@ -6,6 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
+
 BUG FIXES:
 
 ## 0.7.4 (February 6, 2017)
