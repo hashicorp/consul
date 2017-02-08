@@ -13,34 +13,6 @@ box. UIs can be used for viewing all services and nodes, for viewing
 all health checks and their current status, and for reading and setting
 key/value data. The UIs automatically support multi-datacenter.
 
-There are two options for running a web UI for Consul: using
-[Atlas by HashiCorp](https://atlas.hashicorp.com) to host the
-dashboard for you or self-hosting the
-[open-source UI](/downloads.html).
-
-## Atlas-hosted Dashboard
-
-<div class="center">
-![Atlas Web UI](atlas_web_ui.png)
-</div>
-
-To set up the Atlas UI for Consul, you must add two fields to your
-configuration: the
-[name of your Atlas infrastructure](/docs/agent/options.html#_atlas)
-and [your Atlas token](/docs/agent/options.html#_atlas_token). Below is
-an example command-line invocation of the Consul agent providing these
-settings:
-
-```text
-$ consul agent -atlas=ATLAS_USERNAME/demo -atlas-token="ATLAS_TOKEN"
-```
-To get an Atlas username and token,
-[create an account](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started-ui&utm_campaign=consul)
-and replace the respective values in your Consul configuration with
-your credentials.
-
-## Self-hosted Dashboard
-
 <div class="center">
 ![Consul Web UI](consul_web_ui.png)
 </div>
