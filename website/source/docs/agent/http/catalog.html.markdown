@@ -106,16 +106,8 @@ an array of `Check` objects.
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
 
-An optional ACL token may be provided to perform the registration by including a
-`WriteRequest` block in the query payload, like this:
-
-```javascript
-{
-  "WriteRequest": {
-    "Token": "foo"
-  }
-}
-```
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
 
 If the API call succeeds, a 200 status code is returned.
 
@@ -159,16 +151,8 @@ all associated services and checks are deleted. If `CheckID` is provided, only
 that check is removed. If `ServiceID` is provided, the
 service and its associated health check (if any) are removed.
 
-An optional ACL token may be provided to perform the deregister action by adding
-a `WriteRequest` block to the payload, like this:
-
-```javascript
-{
-  "WriteRequest": {
-    "Token": "foo"
-  }
-}
-```
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
 
 If the API call succeeds a 200 status code is returned.
 
@@ -240,6 +224,9 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
+
 ### <a name="catalog_services"></a> /v1/catalog/services
 
 This endpoint is hit with a `GET` and returns the services registered
@@ -268,6 +255,9 @@ The keys are the service names, and the array values provide all known
 tags for a given service.
 
 This endpoint supports blocking queries and all consistency modes.
+
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
 
 ### <a name="catalog_service"></a> /v1/catalog/service/\<service\>
 
@@ -318,8 +308,6 @@ It returns a JSON body like this:
 ]
 ```
 
-This endpoint supports blocking queries and all consistency modes.
-
 The returned fields are as follows:
 
 - `Address`: IP address of the Consul node on which the service is registered
@@ -334,6 +322,11 @@ The returned fields are as follows:
 - `ServiceName`: Name of the service
 - `ServicePort`: Port number of the service
 - `ServiceTags`: List of tags for the service
+
+This endpoint supports blocking queries and all consistency modes.
+
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
 
 ### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
@@ -378,3 +371,6 @@ It returns a JSON body like this:
 ```
 
 This endpoint supports blocking queries and all consistency modes.
+
+The endpoint supports the use of ACL tokens using the ?token= query parameter
+or the `X-Consul-Token` request header.
