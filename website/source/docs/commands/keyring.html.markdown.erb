@@ -33,7 +33,11 @@ Usage: `consul keyring [options]`
 Only one actionable argument may be specified per run, including `-list`,
 `-install`, `-remove`, and `-use`.
 
-The list of available flags are:
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Command Options
 
 * `-list` - List all keys currently in use within the cluster.
 
@@ -46,15 +50,9 @@ The list of available flags are:
 * `-remove` - Remove the given key from the cluster. This operation may only be
   performed on keys which are not currently the primary key.
 
-* `-token=""` - ACL token to use during requests. Defaults to that of the agent.
-
 * `-relay-factor` - Added in Consul 0.7.4, setting this to a non-zero value will
   cause nodes to relay their response to the operation through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is 5.
-
-* `-rpc-addr` - Address to the RPC server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8400" which is the default RPC address of a Consul agent.
 
 ## Output
 

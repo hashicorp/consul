@@ -79,6 +79,11 @@ type QueryOptions struct {
 	// metadata key/value pairs. Currently, only one key/value pair can
 	// be provided for filtering.
 	NodeMeta map[string]string
+
+	// RelayFactor is used in keyring operations to cause reponses to be
+	// relayed back to the sender through N other random nodes. Must be
+	// a value from 0 to 5 (inclusive).
+	RelayFactor uint8
 }
 
 // WriteOptions are used to parameterize a write
@@ -90,6 +95,11 @@ type WriteOptions struct {
 	// Token is used to provide a per-request ACL token
 	// which overrides the agent's default token.
 	Token string
+
+	// RelayFactor is used in keyring operations to cause reponses to be
+	// relayed back to the sender through N other random nodes. Must be
+	// a value from 0 to 5 (inclusive).
+	RelayFactor uint8
 }
 
 // QueryMeta is used to return meta data about a query
@@ -396,6 +406,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 			r.params.Add("node-meta", key+":"+value)
 		}
 	}
+	if q.RelayFactor != 0 {
+		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
+	}
 }
 
 // durToMsec converts a duration to a millisecond specified string. If the
@@ -436,6 +449,9 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	}
 	if q.Token != "" {
 		r.header.Set("X-Consul-Token", q.Token)
+	}
+	if q.RelayFactor != 0 {
+		r.header.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
 }
 

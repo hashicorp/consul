@@ -94,6 +94,15 @@ func init() {
 			}, nil
 		},
 
+		"keyring": func() (cli.Command, error) {
+			return &command.KeyringCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
+			}, nil
+		},
+
 		"kv": func() (cli.Command, error) {
 			return &command.KVCommand{
 				Ui: ui,
@@ -126,12 +135,6 @@ func init() {
 
 		"kv import": func() (cli.Command, error) {
 			return &command.KVImportCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"keyring": func() (cli.Command, error) {
-			return &command.KeyringCommand{
 				Ui: ui,
 			}, nil
 		},
