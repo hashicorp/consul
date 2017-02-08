@@ -76,6 +76,15 @@ func init() {
 			}, nil
 		},
 
+		"join": func() (cli.Command, error) {
+			return &command.JoinCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
+			}, nil
+		},
+
 		"kv": func() (cli.Command, error) {
 			return &command.KVCommand{
 				Ui: ui,
@@ -108,12 +117,6 @@ func init() {
 
 		"kv import": func() (cli.Command, error) {
 			return &command.KVImportCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"join": func() (cli.Command, error) {
-			return &command.JoinCommand{
 				Ui: ui,
 			}, nil
 		},
