@@ -35,10 +35,10 @@ type Command struct {
 	flagSet *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
-	httpAddr   string
-	token      string
-	datacenter string
-	stale      bool
+	httpAddr   stringValue
+	token      stringValue
+	datacenter stringValue
+	stale      boolValue
 }
 
 // HTTPClient returns a client with the parsed flags. It panics if the command
@@ -52,15 +52,9 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	}
 
 	config := api.DefaultConfig()
-	if c.datacenter != "" {
-		config.Datacenter = c.datacenter
-	}
-	if c.httpAddr != "" {
-		config.Address = c.httpAddr
-	}
-	if c.token != "" {
-		config.Token = c.token
-	}
+	c.httpAddr.Merge(&config.Address)
+	c.token.Merge(&config.Token)
+	c.datacenter.Merge(&config.Datacenter)
 	c.Ui.Info(fmt.Sprintf("client http addr: %s", config.Address))
 	return api.NewClient(config)
 }
@@ -71,12 +65,12 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 		f = flag.NewFlagSet("", flag.ContinueOnError)
 	}
 
-	f.StringVar(&c.httpAddr, "http-addr", "",
+	f.Var(&c.httpAddr, "http-addr",
 		"Address and port to the Consul HTTP agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can "+
 			"also be specified via the CONSUL_HTTP_ADDR environment variable. The "+
 			"default value is 127.0.0.1:8500.")
-	f.StringVar(&c.token, "token", "",
+	f.Var(&c.token, "token",
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_HTTP_TOKEN environment variable. If unspecified, the query will "+
 			"default to the token of the Consul agent at the HTTP address.")
@@ -90,10 +84,10 @@ func (c *Command) httpFlagsServer(f *flag.FlagSet) *flag.FlagSet {
 		f = flag.NewFlagSet("", flag.ContinueOnError)
 	}
 
-	f.StringVar(&c.datacenter, "datacenter", "",
+	f.Var(&c.datacenter, "datacenter",
 		"Name of the datacenter to query. If unspecified, this will default to "+
 			"the datacenter of the queried agent.")
-	f.BoolVar(&c.stale, "stale", false,
+	f.Var(&c.stale, "stale",
 		"Permit any Consul server (non-leader) to respond to this request. This "+
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
