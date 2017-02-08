@@ -41,14 +41,20 @@ func init() {
 
 		"event": func() (cli.Command, error) {
 			return &command.EventCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"exec": func() (cli.Command, error) {
 			return &command.ExecCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -57,6 +63,15 @@ func init() {
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
 					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"info": func() (cli.Command, error) {
+			return &command.InfoCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
 				},
 			}, nil
 		},
@@ -152,12 +167,6 @@ func init() {
 
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"info": func() (cli.Command, error) {
-			return &command.InfoCommand{
 				Ui: ui,
 			}, nil
 		},

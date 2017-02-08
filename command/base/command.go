@@ -58,6 +58,10 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+func (c *Command) HTTPDatacenter() string {
+	return c.datacenter.String()
+}
+
 // httpFlagsClient is the list of flags that apply to HTTP connections.
 func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	if f == nil {
@@ -198,6 +202,10 @@ func printTitle(w io.Writer, s string) {
 func printFlag(w io.Writer, f *flag.Flag) {
 	example, _ := flag.UnquoteUsage(f)
 	if example != "" {
+		// Change 'value' to 'string' for consistency
+		if example == "value" {
+			example = "string"
+		}
 		fmt.Fprintf(w, "  -%s=<%s>\n", f.Name, example)
 	} else {
 		fmt.Fprintf(w, "  -%s\n", f.Name)

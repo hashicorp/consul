@@ -39,13 +39,12 @@ Usage: `consul event [options] [payload]`
 The only required option is `-name` which specifies the event name. An optional
 payload can be provided as the final argument.
 
-The list of available flags are:
+#### API Options
 
-* `-http-addr` - Address to the HTTP server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  `127.0.0.1:8500` which is the default HTTP address of a Consul agent.
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
 
-* `-datacenter` - Datacenter to query. Defaults to that of agent.
+#### Command Options
 
 * `-name` - The name of the event.
 
@@ -57,5 +56,3 @@ The list of available flags are:
   a matching tag. This must be used with `-service`. As an example, you may
   do `-service mysql -tag secondary`.
 
-* `-token` - The ACL token to use when firing the event. This token must have
-  write-level privileges for the event specified. Defaults to that of the agent.
