@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -31,7 +32,10 @@ func init() {
 
 		"configtest": func() (cli.Command, error) {
 			return &command.ConfigTestCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -50,7 +54,10 @@ func init() {
 
 		"force-leave": func() (cli.Command, error) {
 			return &command.ForceLeaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -117,7 +124,10 @@ func init() {
 		"lock": func() (cli.Command, error) {
 			return &command.LockCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 

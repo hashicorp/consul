@@ -45,11 +45,18 @@ of 5 seconds, a `SIGKILL` will be used to force termination. For Consul agents
 on Windows, the child process is always terminated with a `SIGKILL`, since
 Windows has no POSIX compatible notion for `SIGTERM`.
 
-The list of available flags are:
+#### API Options
 
-* `-http-addr` - Address to the HTTP server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
+   while monitoring the lock. This allows riding out brief periods of unavailability
+   without causing leader elections, but increases the amount of time required
+   to detect a lost lock in some cases. Defaults to 3, with a 1s wait between retries.
+   Set to 0 to disable.
 
 * `-n` - Optional, limit of lock holders. Defaults to 1. The underlying
   implementation switches from a lock to a semaphore when increased past
@@ -58,19 +65,11 @@ The list of available flags are:
 * `-name` - Optional name to associate with the underlying session.
   If not provided, one is generated based on the child command.
 
-* `-token` - ACL token to use. Defaults to that of agent.
-
 * `-pass-stdin` - Pass stdin to child process.
 
 * `-try` - Attempt to acquire the lock up to the given timeout. The timeout is a
   positive decimal number, with unit suffix, such as "500ms". Valid time units
   are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-
-* `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
-   while monitoring the lock. This allows riding out brief periods of unavailability
-   without causing leader elections, but increases the amount of time required
-   to detect a lost lock in some cases. Defaults to 3, with a 1s wait between retries.
-   Set to 0 to disable.
 
 * `-verbose` - Enables verbose output.
 

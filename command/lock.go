@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 const (
@@ -37,54 +36,37 @@ const (
 // LockCommand is a Command implementation that is used to setup
 // a "lock" which manages lock acquisition and invokes a sub-process
 type LockCommand struct {
+	base.Command
+
 	ShutdownCh <-chan struct{}
-	Ui         cli.Ui
 
 	child     *os.Process
 	childLock sync.Mutex
-	verbose   bool
+
+	verbose bool
 }
 
 func (c *LockCommand) Help() string {
 	helpText := `
 Usage: consul lock [options] prefix child...
 
-  Acquires a lock or semaphore at a given path, and invokes a child
-  process when successful. The child process can assume the lock is
-  held while it executes. If the lock is lost or communication is
-  disrupted the child process will be sent a SIGTERM signal and given
-  time to gracefully exit. After the grace period expires the process
-  will be hard terminated.
+  Acquires a lock or semaphore at a given path, and invokes a child process
+  when successful. The child process can assume the lock is held while it
+  executes. If the lock is lost or communication is disrupted the child
+  process will be sent a SIGTERM signal and given time to gracefully exit.
+  After the grace period expires the process will be hard terminated.
 
-  For Consul agents on Windows, the child process is always hard
-  terminated with a SIGKILL, since Windows has no POSIX compatible
-  notion for SIGTERM.
+  For Consul agents on Windows, the child process is always hard terminated
+  with a SIGKILL, since Windows has no POSIX compatible notion for SIGTERM.
 
-  When -n=1, only a single lock holder or leader exists providing
-  mutual exclusion. Setting a higher value switches to a semaphore
-  allowing multiple holders to coordinate.
+  When -n=1, only a single lock holder or leader exists providing mutual
+  exclusion. Setting a higher value switches to a semaphore allowing multiple
+  holders to coordinate.
 
   The prefix provided must have write privileges.
 
-Options:
+` + c.Command.Help()
 
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-  -n=1                       Maximum number of allowed lock holders. If this
-                             value is one, it operates as a lock, otherwise
-                             a semaphore is used.
-  -name=""                   Optional name to associate with lock session.
-  -token=""                  ACL token to use. Defaults to that of agent.
-  -pass-stdin                Pass stdin to child process.
-  -try=timeout               Attempt to acquire the lock up to the given
-                             timeout (eg. "15s").
-  -monitor-retry=n           Retry up to n times if Consul returns a 500 error
-                             while monitoring the lock. This allows riding out brief
-                             periods of unavailability without causing leader
-                             elections, but increases the amount of time required
-                             to detect a lost lock in some cases. Defaults to 3,
-                             with a 1s wait between retries. Set to 0 to disable.
-  -verbose                   Enables verbose output
-`
 	return strings.TrimSpace(helpText)
 }
 
@@ -93,25 +75,41 @@ func (c *LockCommand) Run(args []string) int {
 	return c.run(args, &lu)
 }
 
-// run exposes the underlying lock for testing.
 func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var childDone chan struct{}
-	var name, token string
 	var limit int
+	var monitorRetry int
+	var name string
 	var passStdin bool
-	var try string
-	var retry int
-	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.IntVar(&limit, "n", 1, "")
-	cmdFlags.StringVar(&name, "name", "", "")
-	cmdFlags.StringVar(&token, "token", "", "")
-	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
-	cmdFlags.StringVar(&try, "try", "", "")
-	cmdFlags.IntVar(&retry, "monitor-retry", defaultMonitorRetry, "")
-	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	var timeout time.Duration
+
+	f := c.Command.NewFlagSet(c)
+	f.IntVar(&limit, "n", 1,
+		"Optional limit on the number of concurrent lock holders. The underlying "+
+			"implementation switches from a lock to a semaphore when the value is "+
+			"greater than 1. The default value is 1.")
+	f.IntVar(&monitorRetry, "monitor-retry", defaultMonitorRetry,
+		"Number of times to retry if Consul returns a 500 error while monitoring "+
+			"the lock. This allows riding out brief periods of unavailability "+
+			"without causing leader elections, but increases the amount of time "+
+			"required to detect a lost lock in some cases. The default value is 3, "+
+			"with a 1s wait between retries. Set this value to 0 to disable retires.")
+	f.StringVar(&name, "name", "",
+		"Optional name to associate with the lock session. It not provided, one "+
+			"is generated based on the provided child command.")
+	f.BoolVar(&passStdin, "pass-stdin", false,
+		"Pass stdin to the child process.")
+	f.DurationVar(&timeout, "timeout", 0,
+		"Maximum amount of time to wait to acquire the lock, specified as a "+
+			"timestamp like \"1s\" or \"3h\". The default value is 0.")
+	f.BoolVar(&c.verbose, "verbose", false,
+		"Enable verbose (debugging) output.")
+
+	// Deprecations
+	f.DurationVar(&timeout, "try", 0,
+		"DEPRECATED. Use -timeout instead.")
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
@@ -122,52 +120,36 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Verify the prefix and child are provided
-	extra := cmdFlags.Args()
+	extra := f.Args()
 	if len(extra) < 2 {
 		c.Ui.Error("Key prefix and child command must be specified")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
 		return 1
 	}
 	prefix := extra[0]
 	prefix = strings.TrimPrefix(prefix, "/")
 	script := strings.Join(extra[1:], " ")
 
+	if timeout < 0 {
+		c.Ui.Error("Timeout must be positive")
+		return 1
+	}
+
 	// Calculate a session name if none provided
 	if name == "" {
 		name = fmt.Sprintf("Consul lock for '%s' at '%s'", script, prefix)
 	}
 
-	// Verify the duration if given.
-	oneshot := false
-	var wait time.Duration
-	if try != "" {
-		var err error
-		wait, err = time.ParseDuration(try)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error parsing try timeout: %s", err))
-			return 1
-		}
-
-		if wait <= 0 {
-			c.Ui.Error("Try timeout must be positive")
-			return 1
-		}
-
-		oneshot = true
-	}
+	// Calculate oneshot
+	oneshot := timeout > 0
 
 	// Check the retry parameter
-	if retry < 0 {
+	if monitorRetry < 0 {
 		c.Ui.Error("Number for 'monitor-retry' must be >= 0")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -180,9 +162,9 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 
 	// Setup the lock or semaphore
 	if limit == 1 {
-		*lu, err = c.setupLock(client, prefix, name, oneshot, wait, retry)
+		*lu, err = c.setupLock(client, prefix, name, oneshot, timeout, monitorRetry)
 	} else {
-		*lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, wait, retry)
+		*lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, timeout, monitorRetry)
 	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Lock setup failed: %s", err))

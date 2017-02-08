@@ -6,8 +6,19 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testConfigTestCommand(t *testing.T) (*cli.MockUi, *ConfigTestCommand) {
+	ui := new(cli.MockUi)
+	return ui, &ConfigTestCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetNone,
+		},
+	}
+}
 
 func TestConfigTestCommand_implements(t *testing.T) {
 	var _ cli.Command = &ConfigTestCommand{}
@@ -20,9 +31,7 @@ func TestConfigTestCommandFailOnEmptyFile(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpFile.Name())
 
-	cmd := &ConfigTestCommand{
-		Ui: new(cli.MockUi),
-	}
+	_, cmd := testConfigTestCommand(t)
 
 	args := []string{
 		"-config-file", tmpFile.Name(),
@@ -40,16 +49,14 @@ func TestConfigTestCommandSucceedOnEmptyDir(t *testing.T) {
 	}
 	defer os.RemoveAll(td)
 
-	cmd := &ConfigTestCommand{
-		Ui: new(cli.MockUi),
-	}
+	ui, cmd := testConfigTestCommand(t)
 
 	args := []string{
 		"-config-dir", td,
 	}
 
 	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
+		t.Fatalf("bad: %d, %s", code, ui.ErrorWriter.String())
 	}
 }
 
@@ -66,9 +73,7 @@ func TestConfigTestCommandSucceedOnMinimalConfigFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	cmd := &ConfigTestCommand{
-		Ui: new(cli.MockUi),
-	}
+	_, cmd := testConfigTestCommand(t)
 
 	args := []string{
 		"-config-file", fp,
@@ -91,9 +96,7 @@ func TestConfigTestCommandSucceedOnMinimalConfigDir(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	cmd := &ConfigTestCommand{
-		Ui: new(cli.MockUi),
-	}
+	_, cmd := testConfigTestCommand(t)
 
 	args := []string{
 		"-config-dir", td,
@@ -116,9 +119,7 @@ func TestConfigTestCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	cmd := &ConfigTestCommand{
-		Ui: new(cli.MockUi),
-	}
+	_, cmd := testConfigTestCommand(t)
 
 	args := []string{
 		"-config-dir", td,
