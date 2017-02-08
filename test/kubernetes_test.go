@@ -225,6 +225,13 @@ var dnsTestCases = []test.Case{
 			test.TXT("dns-version.cluster.local. 28800 IN TXT \"1.0.0\""),
 		},
 	},
+	{
+		Qname: "next-in-chain.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("next-in-chain.              0       IN      A       192.0.2.53"),
+		},
+	},
 }
 
 var dnsTestCasesPodsInsecure = []test.Case{
@@ -282,6 +289,13 @@ var dnsTestCasesCidrReverseZone = []test.Case{
 			test.PTR("115.0.0.10.in-addr.arpa.      303    IN      PTR       svc-c.test-1.svc.cluster.local."),
 		},
 	},
+	{
+		Qname: "next-in-chain.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("next-in-chain.              0       IN      A       192.0.2.53"),
+		},
+	},
 }
 
 var dnsTestCasesPartialCidrReverseZone = []test.Case{
@@ -312,6 +326,13 @@ var dnsTestCasesPartialCidrReverseZone = []test.Case{
 		Qname: "115.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Rcode:  dns.RcodeServerFailure,
 		Answer: []dns.RR{},
+	},
+	{
+		Qname: "next-in-chain.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("next-in-chain.              0       IN      A       192.0.2.53"),
+		},
 	},
 }
 
@@ -409,6 +430,9 @@ func TestKubernetesIntegration(t *testing.T) {
 		namespaces test-1
 		pods disabled
     }
+	erratic . {
+		drop 0
+	}
 `
 	doIntegrationTests(t, corefile, dnsTestCases)
 }
@@ -445,6 +469,9 @@ func TestKubernetesIntegrationCidrReverseZone(t *testing.T) {
                 namespaces test-1
 				cidrs 10.0.0.0/24				
     }
+	erratic . {
+		drop 0
+	}
 `
 	doIntegrationTests(t, corefile, dnsTestCasesCidrReverseZone)
 }
@@ -457,6 +484,9 @@ func TestKubernetesIntegrationPartialCidrReverseZone(t *testing.T) {
                 namespaces test-1
 				cidrs 10.0.0.96/28 10.0.0.120/32
     }
+	erratic . {
+		drop 0
+	}
 `
 	doIntegrationTests(t, corefile, dnsTestCasesPartialCidrReverseZone)
 }
