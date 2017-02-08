@@ -21,9 +21,9 @@ const maxLineLength int = 72
 type FlagSetFlags uint
 
 const (
-	FlagSetNone       FlagSetFlags = iota << 1
-	FlagSetClientHTTP FlagSetFlags = iota << 1
-	FlagSetServerHTTP FlagSetFlags = iota << 1
+	FlagSetNone       FlagSetFlags = 1 << iota
+	FlagSetClientHTTP FlagSetFlags = 1 << iota
+	FlagSetServerHTTP FlagSetFlags = 1 << iota
 
 	FlagSetHTTP = FlagSetClientHTTP | FlagSetServerHTTP
 )
@@ -55,7 +55,6 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	c.httpAddr.Merge(&config.Address)
 	c.token.Merge(&config.Token)
 	c.datacenter.Merge(&config.Datacenter)
-	c.Ui.Info(fmt.Sprintf("client http addr: %s", config.Address))
 	return api.NewClient(config)
 }
 

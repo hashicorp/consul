@@ -2,14 +2,14 @@ package base
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	"os"
-	"path/filepath"
-	"sort"
 )
 
 // TODO (slackpad) - Trying out a different pattern here for config handling.
