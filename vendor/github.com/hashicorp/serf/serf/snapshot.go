@@ -84,7 +84,7 @@ func NewSnapshotter(path string,
 	inCh := make(chan Event, 1024)
 
 	// Try to open the file
-	fh, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0755)
+	fh, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open snapshot: %v", err)
 	}

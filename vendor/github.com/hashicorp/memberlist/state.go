@@ -439,8 +439,8 @@ func (m *Memberlist) resetNodes() {
 	m.nodeLock.Lock()
 	defer m.nodeLock.Unlock()
 
-	// Move the dead nodes
-	deadIdx := moveDeadNodes(m.nodes)
+	// Move dead nodes, but respect gossip to the dead interval
+	deadIdx := moveDeadNodes(m.nodes, m.config.GossipToTheDeadTime)
 
 	// Deregister the dead nodes
 	for i := deadIdx; i < len(m.nodes); i++ {
@@ -484,7 +484,7 @@ func (m *Memberlist) gossip() {
 	m.nodeLock.RUnlock()
 
 	// Compute the bytes available
-	bytesAvail := udpSendBuf - compoundHeaderOverhead
+	bytesAvail := m.config.UDPBufferSize - compoundHeaderOverhead
 	if m.config.EncryptionEnabled() {
 		bytesAvail -= encryptOverhead(m.encryptionVersion())
 	}
@@ -496,13 +496,19 @@ func (m *Memberlist) gossip() {
 			return
 		}
 
-		// Create a compound message
-		compound := makeCompoundMessage(msgs)
-
-		// Send the compound message
 		destAddr := &net.UDPAddr{IP: node.Addr, Port: int(node.Port)}
-		if err := m.rawSendMsgUDP(destAddr, &node.Node, compound.Bytes()); err != nil {
-			m.logger.Printf("[ERR] memberlist: Failed to send gossip to %s: %s", destAddr, err)
+
+		if len(msgs) == 1 {
+			// Send single message as is
+			if err := m.rawSendMsgUDP(destAddr, &node.Node, msgs[0]); err != nil {
+				m.logger.Printf("[ERR] memberlist: Failed to send gossip to %s: %s", destAddr, err)
+			}
+		} else {
+			// Otherwise create and send a compound message
+			compound := makeCompoundMessage(msgs)
+			if err := m.rawSendMsgUDP(destAddr, &node.Node, compound.Bytes()); err != nil {
+				m.logger.Printf("[ERR] memberlist: Failed to send gossip to %s: %s", destAddr, err)
+			}
 		}
 	}
 }
