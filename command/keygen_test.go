@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/base64"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 	"testing"
 )
@@ -12,7 +13,12 @@ func TestKeygenCommand_implements(t *testing.T) {
 
 func TestKeygenCommand(t *testing.T) {
 	ui := new(cli.MockUi)
-	c := &KeygenCommand{Ui: ui}
+	c := &KeygenCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetNone,
+		},
+	}
 	code := c.Run(nil)
 	if code != 0 {
 		t.Fatalf("bad: %d", code)

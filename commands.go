@@ -85,6 +85,15 @@ func init() {
 			}, nil
 		},
 
+		"keygen": func() (cli.Command, error) {
+			return &command.KeygenCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
+			}, nil
+		},
+
 		"kv": func() (cli.Command, error) {
 			return &command.KVCommand{
 				Ui: ui,
@@ -117,12 +126,6 @@ func init() {
 
 		"kv import": func() (cli.Command, error) {
 			return &command.KVImportCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"keygen": func() (cli.Command, error) {
-			return &command.KeygenCommand{
 				Ui: ui,
 			}, nil
 		},
