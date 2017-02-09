@@ -136,7 +136,10 @@ func init() {
 
 		"maint": func() (cli.Command, error) {
 			return &command.MaintCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
