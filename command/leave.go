@@ -1,53 +1,47 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 	"strings"
 )
 
 // LeaveCommand is a Command implementation that instructs
 // the Consul agent to gracefully leave the cluster
 type LeaveCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *LeaveCommand) Help() string {
 	helpText := `
-Usage: consul leave
+Usage: consul leave [options]
 
   Causes the agent to gracefully leave the Consul cluster and shutdown.
 
-Options:
+` + c.Command.Help()
 
-  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *LeaveCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("leave", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	f := c.Command.NewFlagSet(c)
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
-	nonFlagArgs := cmdFlags.Args()
+	nonFlagArgs := f.Args()
 	if len(nonFlagArgs) > 0 {
 		c.Ui.Error(fmt.Sprintf("Error found unexpected args: %v", nonFlagArgs))
 		c.Ui.Output(c.Help())
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	if err := client.Leave(); err != nil {
+	if err := client.Agent().Leave(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error leaving: %s", err))
 		return 1
 	}

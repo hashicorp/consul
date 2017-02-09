@@ -117,7 +117,10 @@ func init() {
 
 		"leave": func() (cli.Command, error) {
 			return &command.LeaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
