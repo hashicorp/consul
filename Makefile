@@ -2,8 +2,8 @@ BUILD_VERBOSE := -v
 
 TEST_VERBOSE := -v
 
-DOCKER_IMAGE_NAME := $$USER/coredns
-DOCKER_VERSION := $(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
+DOCKER_IMAGE_NAME ?= $$USER/coredns
+DOCKER_VERSION ?= $(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 
 all: coredns
 
