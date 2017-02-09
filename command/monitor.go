@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	
+
 	"github.com/hashicorp/consul/command/base"
 )
 

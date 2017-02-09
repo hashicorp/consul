@@ -164,7 +164,10 @@ func init() {
 
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 

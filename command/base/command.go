@@ -58,6 +58,12 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+func (c *Command) HTTPStale() bool {
+	var stale bool
+	c.stale.Merge(&stale)
+	return stale
+}
+
 // httpFlagsClient is the list of flags that apply to HTTP connections.
 func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	if f == nil {
