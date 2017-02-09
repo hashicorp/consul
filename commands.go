@@ -145,7 +145,10 @@ func init() {
 
 		"members": func() (cli.Command, error) {
 			return &command.MembersCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
