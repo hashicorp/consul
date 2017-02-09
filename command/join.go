@@ -57,6 +57,11 @@ func (c *JoinCommand) Run(args []string) int {
 		}
 	}
 
+	if joins == 0 {
+		c.Ui.Error("Failed to join any nodes.")
+		return 1
+	}
+
 	c.Ui.Output(fmt.Sprintf(
 		"Successfully joined cluster by contacting %d nodes.", joins))
 	return 0
