@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: coredns
-        image: infoblox/coredns:latest
+        image: coredns/coredns:latest
         imagePullPolicy: Always
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
