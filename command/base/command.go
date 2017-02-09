@@ -62,6 +62,12 @@ func (c *Command) HTTPDatacenter() string {
 	return c.datacenter.String()
 }
 
+func (c *Command) HTTPStale() bool {
+	var stale bool
+	c.stale.Merge(&stale)
+	return stale
+}
+
 // httpFlagsClient is the list of flags that apply to HTTP connections.
 func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	if f == nil {
@@ -134,6 +140,9 @@ func (c *Command) Parse(args []string) error {
 
 // Help returns the help for this flagSet.
 func (c *Command) Help() string {
+	if c.flagSet == nil {
+		return ""
+	}
 	return c.helpFlagsFor(c.flagSet)
 }
 

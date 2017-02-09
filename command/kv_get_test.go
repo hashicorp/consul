@@ -6,8 +6,19 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testKVGetCommand(t *testing.T) (*cli.MockUi, *KVGetCommand) {
+	ui := new(cli.MockUi)
+	return ui, &KVGetCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
+}
 
 func TestKVGetCommand_implements(t *testing.T) {
 	var _ cli.Command = &KVGetCommand{}
@@ -18,8 +29,7 @@ func TestKVGetCommand_noTabs(t *testing.T) {
 }
 
 func TestKVGetCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -61,8 +71,7 @@ func TestKVGetCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -94,8 +103,7 @@ func TestKVGetCommand_Missing(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	_, c := testKVGetCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,
@@ -113,8 +121,7 @@ func TestKVGetCommand_Empty(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "empty",
@@ -141,8 +148,7 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -184,8 +190,7 @@ func TestKVGetCommand_Keys(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	keys := []string{"foo/bar", "foo/baz", "foo/zip"}
 	for _, key := range keys {
@@ -218,8 +223,7 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	keys := map[string]string{
 		"foo/a": "a",
@@ -257,8 +261,7 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	keys := map[string]string{
 		"foo/a": "Hello World 1",
@@ -297,8 +300,7 @@ func TestKVGetCommand_DetailedBase64(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVGetCommand{Ui: ui}
+	ui, c := testKVGetCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "foo",

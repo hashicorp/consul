@@ -3,20 +3,19 @@ package command
 import (
 	"bytes"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"io"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 // KVGetCommand is a Command implementation that is used to fetch the value of
 // a key from the key-value store.
 type KVGetCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *KVGetCommand) Help() string {
@@ -51,54 +50,39 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText + `
+` + c.Command.Help()
 
-KV Get Options:
-
-  -base64                 Base64 encode the value. The default value is false.
-
-  -detailed               Provide additional metadata about the key in addition
-                          to the value such as the ModifyIndex and any flags
-                          that may have been set on the key. The default value
-                          is false.
-
-  -keys                   List keys which start with the given prefix, but not
-                          their values. This is especially useful if you only
-                          need the key names themselves. This option is commonly
-                          combined with the -separator option. The default value
-                          is false.
-
-  -recurse                Recursively look at all keys prefixed with the given
-                          path. The default value is false.
-
-  -separator=<string>     String to use as a separator between keys. The default
-                          value is "/", but this option is only taken into
-                          account when paired with the -keys flag.
-
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *KVGetCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
-	detailed := cmdFlags.Bool("detailed", false, "")
-	keys := cmdFlags.Bool("keys", false, "")
-	base64encode := cmdFlags.Bool("base64", false, "")
-	recurse := cmdFlags.Bool("recurse", false, "")
-	separator := cmdFlags.String("separator", "/", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	f := c.Command.NewFlagSet(c)
+	detailed := f.Bool("detailed", false,
+		"Provide additional metadata about the key in addition to the value such "+
+			"as the ModifyIndex and any flags that may have been set on the key. "+
+			"The default value is false.")
+	keys := f.Bool("keys", false,
+		"List keys which start with the given prefix, but not their values. "+
+			"This is especially useful if you only need the key names themselves. "+
+			"This option is commonly combined with the -separator option. The default "+
+			"value is false.")
+	base64encode := f.Bool("base64", false,
+		"Base64 encode the value. The default value is false.")
+	recurse := f.Bool("recurse", false,
+		"Recursively look at all keys prefixed with the given path. The default "+
+			"value is false.")
+	separator := f.String("separator", "/",
+		"String to use as a separator between keys. The default value is \"/\", "+
+			"but this option is only taken into account when paired with the -keys flag.")
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 
 	// Check for arg validation
-	args = cmdFlags.Args()
+	args = f.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -124,10 +108,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -136,8 +117,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	switch {
 	case *keys:
 		keys, _, err := client.KV().Keys(key, *separator, &api.QueryOptions{
-			Datacenter: *datacenter,
-			AllowStale: *stale,
+			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -151,8 +131,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	case *recurse:
 		pairs, _, err := client.KV().List(key, &api.QueryOptions{
-			Datacenter: *datacenter,
-			AllowStale: *stale,
+			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -184,8 +163,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	default:
 		pair, _, err := client.KV().Get(key, &api.QueryOptions{
-			Datacenter: *datacenter,
-			AllowStale: *stale,
+			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))

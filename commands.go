@@ -105,37 +105,55 @@ func init() {
 
 		"kv": func() (cli.Command, error) {
 			return &command.KVCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
 			}, nil
 		},
 
 		"kv delete": func() (cli.Command, error) {
 			return &command.KVDeleteCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
 		"kv get": func() (cli.Command, error) {
 			return &command.KVGetCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
 		"kv put": func() (cli.Command, error) {
 			return &command.KVPutCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
 		"kv export": func() (cli.Command, error) {
 			return &command.KVExportCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
 		"kv import": func() (cli.Command, error) {
 			return &command.KVImportCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
