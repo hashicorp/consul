@@ -155,7 +155,10 @@ func init() {
 		"monitor": func() (cli.Command, error) {
 			return &command.MonitorCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 

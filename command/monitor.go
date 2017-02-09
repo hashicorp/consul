@@ -1,19 +1,19 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/hashicorp/logutils"
-	"github.com/mitchellh/cli"
 	"strings"
 	"sync"
+	
+	"github.com/hashicorp/consul/command/base"
 )
 
 // MonitorCommand is a Command implementation that queries a running
 // Consul agent what members are part of the cluster currently.
 type MonitorCommand struct {
+	base.Command
+
 	ShutdownCh <-chan struct{}
-	Ui         cli.Ui
 
 	lock     sync.Mutex
 	quitting bool
@@ -29,40 +29,34 @@ Usage: consul monitor [options]
   example your agent may only be logging at INFO level, but with the monitor
   you can see the DEBUG level logs.
 
-Options:
+` + c.Command.Help()
 
-  -log-level=info          Log level of the agent.
-  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *MonitorCommand) Run(args []string) int {
 	var logLevel string
-	cmdFlags := flag.NewFlagSet("monitor", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.StringVar(&logLevel, "log-level", "INFO", "log level")
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+
+	f := c.Command.NewFlagSet(c)
+	f.StringVar(&logLevel, "log-level", "INFO", "Log level of the agent.")
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	logCh := make(chan string, 1024)
-	monHandle, err := client.Monitor(logutils.LogLevel(logLevel), logCh)
+	eventDoneCh := make(chan struct{})
+	logCh, err := client.Agent().Monitor(logLevel, eventDoneCh, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1
 	}
-	defer client.Stop(monHandle)
 
-	eventDoneCh := make(chan struct{})
 	go func() {
 		defer close(eventDoneCh)
 	OUTER:
