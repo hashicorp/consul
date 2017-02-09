@@ -1,0 +1,146 @@
+package reverse
+
+import (
+	"net"
+	"sort"
+	"strings"
+	"strconv"
+	"regexp"
+
+	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/miekg/coredns/middleware"
+
+	"github.com/mholt/caddy"
+)
+
+func init() {
+	caddy.RegisterPlugin("reverse", caddy.Plugin{
+		ServerType: "dns",
+		Action:     setupReverse,
+	})
+}
+
+func setupReverse(c *caddy.Controller) error {
+	networks, err := reverseParse(c)
+	if err != nil {
+		return middleware.Error("reverse", err)
+	}
+
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
+		return Reverse{Next: next, Networks:networks}
+	})
+
+	return nil
+}
+
+func reverseParse(c *caddy.Controller) (networks, error) {
+	var err error
+
+	// normalize zones, validation is almost done by dnsserver
+	zones := make([]string, len(c.ServerBlockKeys))
+	for i, str := range c.ServerBlockKeys {
+		host, _, _ := net.SplitHostPort(str)
+		zones[i] = strings.ToLower(host)
+	}
+
+	networks := networks{}
+	for c.Next() {
+		if c.Val() == "reverse" {
+
+			var cidrs []*net.IPNet
+
+			// parse all networks
+			for _, cidr :=  range c.RemainingArgs() {
+				if cidr == "{" {
+					break
+				}
+				_, ipnet, err := net.ParseCIDR(cidr)
+				if err != nil {
+					return nil, c.Errf("%v needs to be an CIDR formatted Network\n", cidr)
+				}
+				cidrs = append(cidrs, ipnet)
+			}
+			if len(cidrs) == 0 {
+				return nil, c.ArgErr()
+			}
+
+			// set defaults
+			var (
+				template = "ip-" + templateNameIP + ".{zone[0]}"
+				ttl = 60
+				fall = false
+			)
+			for c.NextBlock() {
+				switch c.Val() {
+				case "hostname":
+					if !c.NextArg() {
+						return nil, c.ArgErr()
+					}
+					template = c.Val()
+
+				case "ttl":
+					if !c.NextArg() {
+						return nil, c.ArgErr()
+					}
+					ttl, err = strconv.Atoi(c.Val())
+					if err != nil {
+						return nil, err
+					}
+
+				case "fallthrough":
+					fall = true
+
+				default:
+					return nil, c.ArgErr()
+				}
+			}
+
+			// prepare template
+			// replace {zone[index]} by the listen zone/domain of this config block
+			for i, zone := range zones {
+				template = strings.Replace(template, "{zone[" + string(i + 48) + "]}", zone, 1)
+			}
+			if !strings.HasSuffix(template, ".") {
+				template += "."
+			}
+
+			// extract zone from template
+			templateZone := strings.SplitAfterN(template, ".", 2)
+			if len(templateZone) != 2 || templateZone[1] == "" {
+				return nil, c.Errf("Cannot find domain in template '%v'", template)
+			}
+
+			// Create for each configured network in this stanza
+			for _, ipnet := range cidrs {
+				// precompile regex for hostname to ip matching
+				regexIP := regexMatchV4
+				if ipnet.IP.To4() == nil {
+					regexIP = regexMatchV6
+				}
+				regex, err := regexp.Compile(
+					"^" + strings.Replace( // inject ip regex into template
+						regexp.QuoteMeta(template), // escape dots
+						regexp.QuoteMeta(templateNameIP),
+						regexIP,
+						1, ) + "$")
+				if err != nil {
+					// invalid regex
+					return nil, err
+				}
+
+				networks = append(networks, network{
+					IPnet: ipnet,
+					Zone: templateZone[1],
+					Template: template,
+					RegexMatchIP: regex,
+					TTL: uint32(ttl),
+					Fallthrough: fall,
+				})
+			}
+		}
+	}
+
+	// sort by cidr
+	sort.Sort(networks)
+	return networks, nil
+}
