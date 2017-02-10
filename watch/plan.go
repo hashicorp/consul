@@ -20,13 +20,15 @@ const (
 )
 
 // Run is used to run a watch plan
-func (p *WatchPlan) Run(address string) error {
+func (p *WatchPlan) Run(address string, conf *consulapi.Config) error {
 	// Setup the client
-	p.address = address
-	conf := consulapi.DefaultConfig()
-	conf.Address = address
-	conf.Datacenter = p.Datacenter
-	conf.Token = p.Token
+	if conf == nil {
+		conf = consulapi.DefaultConfig()
+		conf.Address = address
+		conf.Datacenter = p.Datacenter
+		conf.Token = p.Token
+	}
+	p.address = conf.Address
 	client, err := consulapi.NewClient(conf)
 	if err != nil {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
