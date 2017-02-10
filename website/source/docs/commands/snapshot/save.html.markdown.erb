@@ -23,6 +23,7 @@ Usage: `consul snapshot save [options] FILE`
 #### API Options
 
 <%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
 
 ## Examples
 
@@ -41,7 +42,7 @@ After the snapshot is written to the given file it is read back and verified for
 integrity.
 
 To create a potentially stale snapshot from any available server, use the stale
-consisentcy mode:
+consistency mode:
 
 ```text
 $ consul snapshot save -stale backup.snap

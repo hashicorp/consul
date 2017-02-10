@@ -203,19 +203,28 @@ func init() {
 
 		"snapshot restore": func() (cli.Command, error) {
 			return &command.SnapshotRestoreCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot save": func() (cli.Command, error) {
 			return &command.SnapshotSaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot inspect": func() (cli.Command, error) {
 			return &command.SnapshotInspectCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 

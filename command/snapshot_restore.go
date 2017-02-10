@@ -1,19 +1,17 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 // SnapshotRestoreCommand is a Command implementation that is used to restore
 // the state of the Consul servers for disaster recovery.
 type SnapshotRestoreCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *SnapshotRestoreCommand) Help() string {
@@ -38,24 +36,21 @@ Usage: consul snapshot restore [options] FILE
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText
+` + c.Command.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SnapshotRestoreCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.Command.NewFlagSet(c)
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
 		c.Ui.Error("Missing FILE argument")
@@ -68,11 +63,7 @@ func (c *SnapshotRestoreCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Datacenter = *datacenter
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

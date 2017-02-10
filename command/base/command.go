@@ -136,6 +136,9 @@ func (c *Command) Parse(args []string) error {
 
 // Help returns the help for this flagSet.
 func (c *Command) Help() string {
+	if c.flagSet == nil {
+		return ""
+	}
 	return c.helpFlagsFor(c.flagSet)
 }
 

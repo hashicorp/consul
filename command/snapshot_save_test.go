@@ -7,8 +7,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
+	ui := new(cli.MockUi)
+	return ui, &SnapshotSaveCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
+}
 
 func TestSnapshotSaveCommand_implements(t *testing.T) {
 	var _ cli.Command = &SnapshotSaveCommand{}
@@ -19,8 +30,7 @@ func TestSnapshotSaveCommand_noTabs(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &SnapshotSaveCommand{Ui: ui}
+	ui, c := testSnapshotSaveCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -62,8 +72,7 @@ func TestSnapshotSaveCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &SnapshotSaveCommand{Ui: ui}
+	ui, c := testSnapshotSaveCommand(t)
 
 	dir, err := ioutil.TempDir("", "snapshot")
 	if err != nil {
