@@ -58,6 +58,18 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+func (c *Command) HTTPAddr() string {
+	return c.httpAddr.String()
+}
+
+func (c *Command) HTTPToken() string {
+	return c.token.String()
+}
+
+func (c *Command) HTTPDatacenter() string {
+	return c.datacenter.String()
+}
+
 func (c *Command) HTTPStale() bool {
 	var stale bool
 	c.stale.Merge(&stale)

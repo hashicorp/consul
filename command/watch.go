@@ -3,22 +3,21 @@ package command
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/watch"
-	"github.com/mitchellh/cli"
 )
 
 // WatchCommand is a Command implementation that is used to setup
 // a "watch" which uses a sub-process
 type WatchCommand struct {
+	base.Command
 	ShutdownCh <-chan struct{}
-	Ui         cli.Ui
 }
 
 func (c *WatchCommand) Help() string {
@@ -32,49 +31,36 @@ Usage: consul watch [options] [child...]
   Providing the watch type is required, and other parameters may be required
   or supported depending on the watch type.
 
-Options:
+` + c.Command.Help()
 
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-  -datacenter=""             Datacenter to query. Defaults to that of agent.
-  -token=""                  ACL token to use. Defaults to that of agent.
-  -stale=[true|false]        Specifies if watch data is permitted to be stale.
-                             Defaults to false.
-
-Watch Specification:
-
-  -key=val                   Specifies the key to watch. Only for 'key' type.
-  -name=val                  Specifies an event name to watch. Only for 'event' type.
-  -passingonly=[true|false]  Specifies if only hosts passing all checks are displayed.
-                             Optional for 'service' type. Defaults false.
-  -prefix=val                Specifies the key prefix to watch. Only for 'keyprefix' type.
-  -service=val               Specifies the service to watch. Required for 'service' type,
-                             optional for 'checks' type.
-  -state=val                 Specifies the states to watch. Optional for 'checks' type.
-  -tag=val                   Specifies the service tag to filter on. Optional for 'service'
-                             type.
-  -type=val                  Specifies the watch type. One of key, keyprefix
-                             services, nodes, service, checks, or event.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WatchCommand) Run(args []string) int {
-	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, stale, state, name string
-	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.StringVar(&watchType, "type", "", "")
-	cmdFlags.StringVar(&datacenter, "datacenter", "", "")
-	cmdFlags.StringVar(&token, "token", "", "")
-	cmdFlags.StringVar(&key, "key", "", "")
-	cmdFlags.StringVar(&prefix, "prefix", "", "")
-	cmdFlags.StringVar(&service, "service", "", "")
-	cmdFlags.StringVar(&tag, "tag", "", "")
-	cmdFlags.StringVar(&passingOnly, "passingonly", "", "")
-	cmdFlags.StringVar(&stale, "stale", "", "")
-	cmdFlags.StringVar(&state, "state", "", "")
-	cmdFlags.StringVar(&name, "name", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	var watchType, key, prefix, service, tag, passingOnly, state, name string
+
+	f := c.Command.NewFlagSet(c)
+	f.StringVar(&watchType, "type", "",
+		"Specifies the watch type. One of key, keyprefix services, nodes, "+
+			"service, checks, or event.")
+	f.StringVar(&key, "key", "",
+		"Specifies the key to watch. Only for 'key' type.")
+	f.StringVar(&prefix, "prefix", "",
+		"Specifies the key prefix to watch. Only for 'keyprefix' type.")
+	f.StringVar(&service, "service", "",
+		"Specifies the service to watch. Required for 'service' type, "+
+			"optional for 'checks' type.")
+	f.StringVar(&tag, "tag", "",
+		"Specifies the service tag to filter on. Optional for 'service' type.")
+	f.StringVar(&passingOnly, "passingonly", "",
+		"Specifies if only hosts passing all checks are displayed. "+
+			"Optional for 'service' type, must be one of `[true|false]`. Defaults false.")
+	f.StringVar(&state, "state", "",
+		"Specifies the states to watch. Optional for 'checks' type.")
+	f.StringVar(&name, "name", "",
+		"Specifies an event name to watch. Only for 'event' type.")
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
@@ -87,18 +73,18 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 
 	// Grab the script to execute if any
-	script := strings.Join(cmdFlags.Args(), " ")
+	script := strings.Join(f.Args(), " ")
 
 	// Compile the watch parameters
 	params := make(map[string]interface{})
 	if watchType != "" {
 		params["type"] = watchType
 	}
-	if datacenter != "" {
-		params["datacenter"] = datacenter
+	if c.Command.HTTPDatacenter() != "" {
+		params["datacenter"] = c.Command.HTTPDatacenter()
 	}
-	if token != "" {
-		params["token"] = token
+	if c.Command.HTTPToken() != "" {
+		params["token"] = c.Command.HTTPToken()
 	}
 	if key != "" {
 		params["key"] = key
@@ -112,13 +98,8 @@ func (c *WatchCommand) Run(args []string) int {
 	if tag != "" {
 		params["tag"] = tag
 	}
-	if stale != "" {
-		b, err := strconv.ParseBool(stale)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to parse stale flag: %s", err))
-			return 1
-		}
-		params["stale"] = b
+	if c.Command.HTTPStale() {
+		params["stale"] = c.Command.HTTPStale()
 	}
 	if state != "" {
 		params["state"] = state
@@ -143,7 +124,7 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := HTTPClient(*httpAddr)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -213,7 +194,7 @@ func (c *WatchCommand) Run(args []string) int {
 	}()
 
 	// Run the watch
-	if err := wp.Run(*httpAddr); err != nil {
+	if err := wp.Run(c.Command.HTTPAddr()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}

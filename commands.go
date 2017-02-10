@@ -238,7 +238,10 @@ func init() {
 		"watch": func() (cli.Command, error) {
 			return &command.WatchCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 	}
