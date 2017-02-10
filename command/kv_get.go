@@ -57,6 +57,8 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
 func (c *KVGetCommand) Run(args []string) int {
 	f := c.Command.NewFlagSet(c)
+	base64encode := f.Bool("base64", false,
+		"Base64 encode the value. The default value is false.")
 	detailed := f.Bool("detailed", false,
 		"Provide additional metadata about the key in addition to the value such "+
 			"as the ModifyIndex and any flags that may have been set on the key. "+
@@ -66,8 +68,6 @@ func (c *KVGetCommand) Run(args []string) int {
 			"This is especially useful if you only need the key names themselves. "+
 			"This option is commonly combined with the -separator option. The default "+
 			"value is false.")
-	base64encode := f.Bool("base64", false,
-		"Base64 encode the value. The default value is false.")
 	recurse := f.Bool("recurse", false,
 		"Recursively look at all keys prefixed with the given path. The default "+
 			"value is false.")

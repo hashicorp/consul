@@ -451,7 +451,7 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 		r.header.Set("X-Consul-Token", q.Token)
 	}
 	if q.RelayFactor != 0 {
-		r.header.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
+		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
 }
 

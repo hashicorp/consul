@@ -37,7 +37,7 @@ func (c *EventCommand) Run(args []string) int {
 	f.StringVar(&node, "node", "",
 		"Regular expression to filter on node names.")
 	f.StringVar(&service, "service", "",
-		"Regular expression to filter on service instances")
+		"Regular expression to filter on service instances.")
 	f.StringVar(&tag, "tag", "",
 		"Regular expression to filter on service tags. Must be used with -service.")
 

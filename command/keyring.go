@@ -36,9 +36,9 @@ func (c *KeyringCommand) Run(args []string) int {
 	f.BoolVar(&listKeys, "list", false,
 		"List all keys currently in use within the cluster.")
 	f.IntVar(&relay, "relay-factor", 0,
-		"Added in Consul 0.7.4, setting this to a non-zero value will cause nodes "+
-			"to relay their response to the operation through this many randomly-chosen "+
-			"other nodes in the cluster. The maximum allowed value is 5.")
+		"Setting this to a non-zero value will cause nodes to relay their response "+
+			"to the operation through this many randomly-chosen other nodes in the "+
+			"cluster. The maximum allowed value is 5.")
 
 	if err := c.Command.Parse(args); err != nil {
 		return 1
