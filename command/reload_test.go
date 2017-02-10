@@ -19,7 +19,7 @@ func TestReloadCommandRun(t *testing.T) {
 
 	// Setup a dummy response to errCh to simulate a successful reload
 	go func() {
-		errCh := <- reloadCh
+		errCh := <-reloadCh
 		errCh <- nil
 	}()
 

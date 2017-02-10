@@ -188,7 +188,10 @@ func init() {
 
 		"rtt": func() (cli.Command, error) {
 			return &command.RTTCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
