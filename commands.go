@@ -179,7 +179,10 @@ func init() {
 
 		"reload": func() (cli.Command, error) {
 			return &command.ReloadCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 

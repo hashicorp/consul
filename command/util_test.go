@@ -44,7 +44,7 @@ func (a *agentWrapper) Shutdown() {
 }
 
 func testAgent(t *testing.T) *agentWrapper {
-	return testAgentWithConfig(t, func(c *agent.Config) {})
+	return testAgentWithConfig(t, nil)
 }
 
 func testAgentWithAPIClient(t *testing.T) (*agentWrapper, *api.Client) {
@@ -57,6 +57,10 @@ func testAgentWithAPIClient(t *testing.T) (*agentWrapper, *api.Client) {
 }
 
 func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
+	return testAgentWithConfigReload(t, cb, nil)
+}
+
+func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh chan chan error) *agentWrapper {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -66,7 +70,9 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
-	cb(conf)
+	if cb != nil {
+		cb(conf)
+	}
 
 	dir, err := ioutil.TempDir("", "agent")
 	if err != nil {
@@ -74,7 +80,7 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 	}
 	conf.DataDir = dir
 
-	a, err := agent.Create(conf, lw, nil, nil)
+	a, err := agent.Create(conf, lw, nil, reloadCh)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
