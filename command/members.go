@@ -40,10 +40,10 @@ func (c *MembersCommand) Run(args []string) int {
 		"Provides detailed information about nodes.")
 	f.BoolVar(&wan, "wan", false,
 		"If the agent is in server mode, this can be used to return the other "+
-			"peers in the WAN pool")
+			"peers in the WAN pool.")
 	f.StringVar(&statusFilter, "status", ".*",
 		"If provided, output is filtered to only nodes matching the regular "+
-			"expression for status")
+			"expression for status.")
 
 	if err := c.Command.Parse(args); err != nil {
 		return 1
