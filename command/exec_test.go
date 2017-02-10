@@ -82,7 +82,7 @@ func TestExecCommandRun_CrossDC(t *testing.T) {
 }
 
 func waitForLeader(t *testing.T, httpAddr string) {
-	client, err := HTTPClient(httpAddr)
+	client, err := httpClient(httpAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -92,6 +92,12 @@ func waitForLeader(t *testing.T, httpAddr string) {
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})
+}
+
+func httpClient(addr string) (*consulapi.Client, error) {
+	conf := consulapi.DefaultConfig()
+	conf.Address = addr
+	return consulapi.NewClient(conf)
 }
 
 func TestExecCommand_Validate(t *testing.T) {
@@ -134,7 +140,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	client, err := HTTPClient(a1.httpAddr)
+	client, err := httpClient(a1.httpAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -175,7 +181,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	client, err := HTTPClient(a1.httpAddr)
+	client, err := httpClient(a1.httpAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -226,7 +232,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	client, err := HTTPClient(a1.httpAddr)
+	client, err := httpClient(a1.httpAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -283,7 +289,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	client, err := HTTPClient(a1.httpAddr)
+	client, err := httpClient(a1.httpAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
