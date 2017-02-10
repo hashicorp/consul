@@ -74,6 +74,7 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 }
 
 // Serve starts the server with an existing listener. It blocks until the server stops.
+// This implements caddy.TCPServer interface.
 func (s *Server) Serve(l net.Listener) error {
 	s.m.Lock()
 	s.server[tcp] = &dns.Server{Listener: l, Net: "tcp", Handler: s.mux}
@@ -83,6 +84,7 @@ func (s *Server) Serve(l net.Listener) error {
 }
 
 // ServePacket starts the server with an existing packetconn. It blocks until the server stops.
+// This implements caddy.UDPServer interface.
 func (s *Server) ServePacket(p net.PacketConn) error {
 	s.m.Lock()
 	s.server[udp] = &dns.Server{PacketConn: p, Net: "udp", Handler: s.mux}
@@ -121,6 +123,7 @@ func (s *Server) ListenPacket() (net.PacketConn, error) {
 // connections to close (up to a max timeout of a few
 // seconds); on Windows it will close the listener
 // immediately.
+// This implements Caddy.Stopper interface.
 func (s *Server) Stop() (err error) {
 
 	if runtime.GOOS != "windows" {
@@ -150,18 +153,23 @@ func (s *Server) Stop() (err error) {
 	}
 
 	for _, s1 := range s.server {
-		err = s1.Shutdown()
+		// We might not have started and initialized the full set of servers
+		if s1 != nil {
+			err = s1.Shutdown()
+		}
 	}
 	s.m.Unlock()
 	return
 }
+
+// Address together with Stop() implement caddy.GracefulServer.
+func (s *Server) Address() string { return s.Addr }
 
 // ServeDNS is the entry point for every request to the address that s
 // is bound to. It acts as a multiplexer for the requests zonename as
 // defined in the request so that the correct zone
 // (configuration and middleware stack) will handle the request.
 func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	// TODO(miek): expensive to use defer
 	defer func() {
 		// In case the user doesn't enable error middleware, we still
 		// need to make sure that we stay alive up here

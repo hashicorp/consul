@@ -140,3 +140,5 @@ var (
 	// GracefulTimeout is the maximum duration of a graceful shutdown.
 	GracefulTimeout time.Duration
 )
+
+var _ caddy.GracefulServer = new(Server)
