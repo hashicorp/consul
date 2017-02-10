@@ -3,18 +3,17 @@ package command
 import (
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 // KVExportCommand is a Command implementation that is used to export
 // a KV tree as JSON
 type KVExportCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *KVExportCommand) Synopsis() string {
@@ -33,29 +32,20 @@ Usage: consul kv export [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText + `
+` + c.Command.Help()
 
-KV Export Options:
-
-  None.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *KVExportCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("export", flag.ContinueOnError)
-
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	f := c.Command.NewFlagSet(c)
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 	// Check for arg validation
-	args = cmdFlags.Args()
+	args = f.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -74,18 +64,14 @@ func (c *KVExportCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	pairs, _, err := client.KV().List(key, &api.QueryOptions{
-		Datacenter: *datacenter,
-		AllowStale: *stale,
+		AllowStale: c.Command.HTTPStale(),
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))

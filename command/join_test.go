@@ -5,8 +5,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
+	ui := new(cli.MockUi)
+	return ui, &JoinCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetClientHTTP,
+		},
+	}
+}
 
 func TestJoinCommand_implements(t *testing.T) {
 	var _ cli.Command = &JoinCommand{}
@@ -18,10 +29,9 @@ func TestJoinCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &JoinCommand{Ui: ui}
+	ui, c := testJoinCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
+		"-http-addr=" + a1.httpAddr,
 		fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan),
 	}
 
@@ -41,10 +51,9 @@ func TestJoinCommandRun_wan(t *testing.T) {
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &JoinCommand{Ui: ui}
+	ui, c := testJoinCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
+		"-http-addr=" + a1.httpAddr,
 		"-wan",
 		fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfWan),
 	}
@@ -60,9 +69,8 @@ func TestJoinCommandRun_wan(t *testing.T) {
 }
 
 func TestJoinCommandRun_noAddrs(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &JoinCommand{Ui: ui}
-	args := []string{"-rpc-addr=foo"}
+	ui, c := testJoinCommand(t)
+	args := []string{"-http-addr=foo"}
 
 	code := c.Run(args)
 	if code != 1 {

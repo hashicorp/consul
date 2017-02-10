@@ -14,6 +14,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* cli: Fixed `kv` commands not reading the `CONSUL_HTTP_TOKEN` environment variable. [GH-2566]
+
 ## 0.7.4 (February 6, 2017)
 
 IMPROVEMENTS:

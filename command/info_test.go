@@ -1,6 +1,7 @@
 package command
 
 import (
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
@@ -15,8 +16,13 @@ func TestInfoCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 
 	ui := new(cli.MockUi)
-	c := &InfoCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr}
+	c := &InfoCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetClientHTTP,
+		},
+	}
+	args := []string{"-http-addr=" + a1.httpAddr}
 
 	code := c.Run(args)
 	if code != 0 {
