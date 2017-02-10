@@ -2,9 +2,10 @@ package command
 
 import (
 	"fmt"
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
 )
 
 func TestJoinCommand_implements(t *testing.T) {
