@@ -2,10 +2,10 @@ package reverse
 
 import (
 	"net"
-	"sort"
-	"strings"
-	"strconv"
 	"regexp"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
@@ -27,7 +27,7 @@ func setupReverse(c *caddy.Controller) error {
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return Reverse{Next: next, Networks:networks}
+		return Reverse{Next: next, Networks: networks}
 	})
 
 	return nil
@@ -50,13 +50,13 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 			var cidrs []*net.IPNet
 
 			// parse all networks
-			for _, cidr :=  range c.RemainingArgs() {
+			for _, cidr := range c.RemainingArgs() {
 				if cidr == "{" {
 					break
 				}
 				_, ipnet, err := net.ParseCIDR(cidr)
 				if err != nil {
-					return nil, c.Errf("%v needs to be an CIDR formatted Network\n", cidr)
+					return nil, c.Errf("network needs to be CIDR formatted: %q\n", cidr)
 				}
 				cidrs = append(cidrs, ipnet)
 			}
@@ -66,9 +66,9 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 
 			// set defaults
 			var (
-				template = "ip-" + templateNameIP + ".{zone[0]}"
-				ttl = 60
-				fall = false
+				template = "ip-" + templateNameIP + ".{zone[1]}"
+				ttl      = 60
+				fall     = false
 			)
 			for c.NextBlock() {
 				switch c.Val() {
@@ -98,7 +98,9 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 			// prepare template
 			// replace {zone[index]} by the listen zone/domain of this config block
 			for i, zone := range zones {
-				template = strings.Replace(template, "{zone[" + string(i + 48) + "]}", zone, 1)
+				// TODO: we should be smarter about actually replacing this. This works, but silently allows "zone[-1]"
+				// for instance.
+				template = strings.Replace(template, "{zone["+strconv.Itoa(i+1)+"]}", zone, 1)
 			}
 			if !strings.HasSuffix(template, ".") {
 				template += "."
@@ -107,7 +109,7 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 			// extract zone from template
 			templateZone := strings.SplitAfterN(template, ".", 2)
 			if len(templateZone) != 2 || templateZone[1] == "" {
-				return nil, c.Errf("Cannot find domain in template '%v'", template)
+				return nil, c.Errf("cannot find domain in template '%v'", template)
 			}
 
 			// Create for each configured network in this stanza
@@ -122,19 +124,18 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 						regexp.QuoteMeta(template), // escape dots
 						regexp.QuoteMeta(templateNameIP),
 						regexIP,
-						1, ) + "$")
+						1) + "$")
 				if err != nil {
-					// invalid regex
 					return nil, err
 				}
 
 				networks = append(networks, network{
-					IPnet: ipnet,
-					Zone: templateZone[1],
-					Template: template,
+					IPnet:        ipnet,
+					Zone:         templateZone[1],
+					Template:     template,
 					RegexMatchIP: regex,
-					TTL: uint32(ttl),
-					Fallthrough: fall,
+					TTL:          uint32(ttl),
+					Fallthrough:  fall,
 				})
 			}
 		}

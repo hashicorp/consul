@@ -1,10 +1,10 @@
 package reverse
 
 import (
-	"testing"
 	"net"
 	"reflect"
 	"regexp"
+	"testing"
 
 	"github.com/mholt/caddy"
 )
@@ -19,7 +19,7 @@ func TestSetupParse(t *testing.T) {
 	regexIpv6dynamic, _ := regexp.Compile("^dynamic-" + regexMatchV6 + "-intern\\.dynamic\\.domain\\.com\\.$")
 	regexIpv4vpndynamic, _ := regexp.Compile("^dynamic-" + regexMatchV4 + "-vpn\\.dynamic\\.domain\\.com\\.$")
 
-	serverBlockKeys := []string{"domain.com.:8053", "dynamic.domain.com.:8053" }
+	serverBlockKeys := []string{"domain.com.:8053", "dynamic.domain.com.:8053"}
 
 	tests := []struct {
 		inputFileRules string
@@ -31,12 +31,12 @@ func TestSetupParse(t *testing.T) {
 			`reverse fd01::/64`,
 			false,
 			networks{network{
-				IPnet: net6,
-				Template: "ip-{ip}.domain.com.",
-				Zone: "domain.com.",
-				TTL: 60,
+				IPnet:        net6,
+				Template:     "ip-{ip}.domain.com.",
+				Zone:         "domain.com.",
+				TTL:          60,
 				RegexMatchIP: regexIP6,
-				Fallthrough: false,
+				Fallthrough:  false,
 			}},
 		},
 		{
@@ -98,52 +98,52 @@ func TestSetupParse(t *testing.T) {
 		},
 		{
 			`reverse fd01::/64 {
-				hostname dynamic-{ip}-intern.{zone[1]}
+				hostname dynamic-{ip}-intern.{zone[2]}
 				ttl 50
 			}
 			reverse 10.1.1.0/24 {
-				hostname dynamic-{ip}-vpn.{zone[1]}
+				hostname dynamic-{ip}-vpn.{zone[2]}
 				fallthrough
 			}`,
 			false,
 			networks{network{
-				IPnet: net6,
-				Template: "dynamic-{ip}-intern.dynamic.domain.com.",
-				Zone: "dynamic.domain.com.",
-				TTL: 50,
-				RegexMatchIP:regexIpv6dynamic,
-				Fallthrough: false,
+				IPnet:        net6,
+				Template:     "dynamic-{ip}-intern.dynamic.domain.com.",
+				Zone:         "dynamic.domain.com.",
+				TTL:          50,
+				RegexMatchIP: regexIpv6dynamic,
+				Fallthrough:  false,
 			}, network{
-				IPnet: net4,
-				Template: "dynamic-{ip}-vpn.dynamic.domain.com.",
-				Zone: "dynamic.domain.com.",
-				TTL: 60,
+				IPnet:        net4,
+				Template:     "dynamic-{ip}-vpn.dynamic.domain.com.",
+				Zone:         "dynamic.domain.com.",
+				TTL:          60,
 				RegexMatchIP: regexIpv4vpndynamic,
-				Fallthrough:true,
+				Fallthrough:  true,
 			}},
 		},
 		{
 			// multiple networks in one stanza
 			`reverse fd01::/64 10.1.1.0/24 {
-				hostname dynamic-{ip}-intern.{zone[1]}
+				hostname dynamic-{ip}-intern.{zone[2]}
 				ttl 50
 				fallthrough
 			}`,
 			false,
 			networks{network{
-				IPnet: net6,
-				Template: "dynamic-{ip}-intern.dynamic.domain.com.",
-				Zone: "dynamic.domain.com.",
-				TTL: 50,
-				RegexMatchIP:regexIpv6dynamic,
-				Fallthrough: true,
+				IPnet:        net6,
+				Template:     "dynamic-{ip}-intern.dynamic.domain.com.",
+				Zone:         "dynamic.domain.com.",
+				TTL:          50,
+				RegexMatchIP: regexIpv6dynamic,
+				Fallthrough:  true,
 			}, network{
-				IPnet: net4,
-				Template: "dynamic-{ip}-intern.dynamic.domain.com.",
-				Zone: "dynamic.domain.com.",
-				TTL: 50,
+				IPnet:        net4,
+				Template:     "dynamic-{ip}-intern.dynamic.domain.com.",
+				Zone:         "dynamic.domain.com.",
+				TTL:          50,
 				RegexMatchIP: regexIpv4dynamic,
-				Fallthrough: true,
+				Fallthrough:  true,
 			}},
 		},
 		{
@@ -155,15 +155,14 @@ func TestSetupParse(t *testing.T) {
 			}`,
 			false,
 			networks{network{
-				IPnet: net6,
-				Template: "dynamic-{ip}-intern.dynamic.domain.com.",
-				Zone: "dynamic.domain.com.",
-				TTL: 300,
-				RegexMatchIP:regexIpv6dynamic,
-				Fallthrough: true,
+				IPnet:        net6,
+				Template:     "dynamic-{ip}-intern.dynamic.domain.com.",
+				Zone:         "dynamic.domain.com.",
+				TTL:          300,
+				RegexMatchIP: regexIpv6dynamic,
+				Fallthrough:  true,
 			}},
 		},
-
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputFileRules)

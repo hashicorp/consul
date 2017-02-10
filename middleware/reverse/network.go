@@ -1,47 +1,46 @@
 package reverse
 
 import (
+	"bytes"
 	"net"
 	"regexp"
-	"bytes"
 	"strings"
 )
 
 type network struct {
 	IPnet        *net.IPNet
-	Zone 	     string // forward lookup zone
+	Zone         string // forward lookup zone
 	Template     string
 	TTL          uint32
 	RegexMatchIP *regexp.Regexp
 	Fallthrough  bool
 }
 
+// TODO: we might want to get rid of these regexes.
 const hexDigit = "0123456789abcdef"
 const templateNameIP = "{ip}"
 const regexMatchV4 = "((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\-){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))"
 const regexMatchV6 = "([0-9a-fA-F]{32})"
 
-// For forward lookup
-// converts the hostname back to an ip, based on the template
-// returns nil if there is no ip found
+// hostnameToIP converts the hostname back to an ip, based on the template
+// returns nil if there is no IP found.
 func (network *network) hostnameToIP(rname string) net.IP {
 	var matchedIP net.IP
 
-	// use precompiled regex by setup
 	match := network.RegexMatchIP.FindStringSubmatch(rname)
-	// regex did not matched
-	if (len(match) != 2) {
+	if len(match) != 2 {
 		return nil
 	}
 
 	if network.IPnet.IP.To4() != nil {
 		matchedIP = net.ParseIP(strings.Replace(match[1], "-", ".", 4))
 	} else {
+		// TODO: can probably just allocate a []byte and use that.
 		var buf bytes.Buffer
 		// convert back to an valid ipv6 string with colons
-		for i := 0; i < 8 * 4; i += 4 {
-			buf.WriteString(match[1][i:i + 4])
-			if (i < 28) {
+		for i := 0; i < 8*4; i += 4 {
+			buf.WriteString(match[1][i : i+4])
+			if i < 28 {
 				buf.WriteString(":")
 			}
 		}
@@ -56,13 +55,9 @@ func (network *network) hostnameToIP(rname string) net.IP {
 	return matchedIP
 }
 
-// For reverse lookup
-// Converts an Ip to an dns compatible hostname and injects it into the template.domain
-func (network *network) ipToHostname(ip net.IP) string {
-	var name string
-
-	ipv4 := ip.To4()
-	if ipv4 != nil {
+// ipToHostname converts an IP to an DNS compatible hostname and injects it into the template.domain.
+func (network *network) ipToHostname(ip net.IP) (name string) {
+	if ipv4 := ip.To4(); ipv4 != nil {
 		// replace . to -
 		name = uitoa(ipv4[0]) + "-" +
 			uitoa(ipv4[1]) + "-" +
@@ -71,11 +66,11 @@ func (network *network) ipToHostname(ip net.IP) string {
 	} else {
 		// assume v6
 		// ensure zeros are present in string
-		buf := make([]byte, 0, len(ip) * 4)
+		buf := make([]byte, 0, len(ip)*4)
 		for i := 0; i < len(ip); i++ {
 			v := ip[i]
-			buf = append(buf, hexDigit[v >> 4])
-			buf = append(buf, hexDigit[v & 0xF])
+			buf = append(buf, hexDigit[v>>4])
+			buf = append(buf, hexDigit[v&0xF])
 		}
 		name = string(buf)
 	}
@@ -93,7 +88,7 @@ func uitoa(val uint8) string {
 	i := len(buf) - 1
 	for val >= 10 {
 		q := val / 10
-		buf[i] = byte('0' + val - q * 10)
+		buf[i] = byte('0' + val - q*10)
 		i--
 		val = q
 	}
@@ -104,20 +99,12 @@ func uitoa(val uint8) string {
 
 type networks []network
 
-// implements the sort interface
-func (slice networks) Len() int {
-	return len(slice)
-}
+func (n networks) Len() int      { return len(n) }
+func (n networks) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
-// implements the sort interface
 // cidr closer to the ip wins (by netmask)
-func (slice networks) Less(i, j int) bool {
-	isize, _ := slice[i].IPnet.Mask.Size()
-	jsize, _ := slice[j].IPnet.Mask.Size()
+func (n networks) Less(i, j int) bool {
+	isize, _ := n[i].IPnet.Mask.Size()
+	jsize, _ := n[j].IPnet.Mask.Size()
 	return isize > jsize
-}
-
-// implements the sort interface
-func (slice networks) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
 }
