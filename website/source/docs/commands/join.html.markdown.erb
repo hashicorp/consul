@@ -31,14 +31,14 @@ You may call join with multiple addresses if you want to try to join
 multiple clusters. Consul will attempt to join all addresses, and the join
 command will fail only if Consul was unable to join with any.
 
-The command-line flags are all optional. The list of available flags are:
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Command Options
 
 * `-wan` - For agents running in server mode, the agent will attempt to join
   other servers gossiping in a WAN cluster. This is used to form a bridge between
   multiple datacenters.
 
-* `-rpc-addr` - Address to the RPC server of the agent you want to contact
-  to send this command. If this isn't specified, the command checks the
-  CONSUL_RPC_ADDR env variable. If this isn't set, the default RPC 
-  address will be set to "127.0.0.1:8400". 
 

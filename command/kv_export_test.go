@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
@@ -15,7 +16,12 @@ func TestKVExportCommand_Run(t *testing.T) {
 	waitForLeader(t, srv.httpAddr)
 
 	ui := new(cli.MockUi)
-	c := &KVExportCommand{Ui: ui}
+	c := KVExportCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
 
 	keys := map[string]string{
 		"foo/a": "a",

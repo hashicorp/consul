@@ -41,14 +41,20 @@ func init() {
 
 		"event": func() (cli.Command, error) {
 			return &command.EventCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"exec": func() (cli.Command, error) {
 			return &command.ExecCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -61,57 +67,93 @@ func init() {
 			}, nil
 		},
 
-		"kv": func() (cli.Command, error) {
-			return &command.KVCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv delete": func() (cli.Command, error) {
-			return &command.KVDeleteCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv get": func() (cli.Command, error) {
-			return &command.KVGetCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv put": func() (cli.Command, error) {
-			return &command.KVPutCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv export": func() (cli.Command, error) {
-			return &command.KVExportCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv import": func() (cli.Command, error) {
-			return &command.KVImportCommand{
-				Ui: ui,
+		"info": func() (cli.Command, error) {
+			return &command.InfoCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
 			}, nil
 		},
 
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
 			}, nil
 		},
 
 		"keygen": func() (cli.Command, error) {
 			return &command.KeygenCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
 			}, nil
 		},
 
 		"keyring": func() (cli.Command, error) {
 			return &command.KeyringCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
+			}, nil
+		},
+
+		"kv": func() (cli.Command, error) {
+			return &command.KVCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
+			}, nil
+		},
+
+		"kv delete": func() (cli.Command, error) {
+			return &command.KVDeleteCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv get": func() (cli.Command, error) {
+			return &command.KVGetCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv put": func() (cli.Command, error) {
+			return &command.KVPutCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv export": func() (cli.Command, error) {
+			return &command.KVExportCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv import": func() (cli.Command, error) {
+			return &command.KVImportCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
@@ -152,12 +194,6 @@ func init() {
 
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"info": func() (cli.Command, error) {
-			return &command.InfoCommand{
 				Ui: ui,
 			}, nil
 		},

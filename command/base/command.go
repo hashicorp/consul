@@ -58,6 +58,16 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+func (c *Command) HTTPDatacenter() string {
+	return c.datacenter.String()
+}
+
+func (c *Command) HTTPStale() bool {
+	var stale bool
+	c.stale.Merge(&stale)
+	return stale
+}
+
 // httpFlagsClient is the list of flags that apply to HTTP connections.
 func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	if f == nil {
@@ -65,7 +75,7 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 	}
 
 	f.Var(&c.httpAddr, "http-addr",
-		"Address and port to the Consul HTTP agent. The value can be an IP "+
+		"The `address` and port of the Consul HTTP agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can "+
 			"also be specified via the CONSUL_HTTP_ADDR environment variable. The "+
 			"default value is 127.0.0.1:8500.")
@@ -130,6 +140,11 @@ func (c *Command) Parse(args []string) error {
 
 // Help returns the help for this flagSet.
 func (c *Command) Help() string {
+	// Some commands with subcommands (kv/snapshot) call this without initializing
+	// any flags first, so exit early to avoid a panic
+	if c.flagSet == nil {
+		return ""
+	}
 	return c.helpFlagsFor(c.flagSet)
 }
 

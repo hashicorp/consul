@@ -1,9 +1,8 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 	"sort"
 	"strings"
 )
@@ -11,7 +10,7 @@ import (
 // InfoCommand is a Command implementation that queries a running
 // Consul agent for various debugging statistics for operators
 type InfoCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (i *InfoCommand) Help() string {
@@ -20,31 +19,32 @@ Usage: consul info [options]
 
 	Provides debugging information for operators
 
-Options:
+` + i.Command.Help()
 
-  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (i *InfoCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("info", flag.ContinueOnError)
-	cmdFlags.Usage = func() { i.Ui.Output(i.Help()) }
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	i.Command.NewFlagSet(i)
+
+	if err := i.Command.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := i.Command.HTTPClient()
 	if err != nil {
 		i.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	stats, err := client.Stats()
+	self, err := client.Agent().Self()
 	if err != nil {
 		i.Ui.Error(fmt.Sprintf("Error querying agent: %s", err))
+		return 1
+	}
+	stats, ok := self["Stats"]
+	if !ok {
+		i.Ui.Error(fmt.Sprintf("Agent response did not contain 'Stats' key: %v", self))
 		return 1
 	}
 
@@ -60,7 +60,11 @@ func (i *InfoCommand) Run(args []string) int {
 		i.Ui.Output(key + ":")
 
 		// Sort the sub-keys
-		subvals := stats[key]
+		subvals, ok := stats[key].(map[string]interface{})
+		if !ok {
+			i.Ui.Error(fmt.Sprintf("Got invalid subkey in stats: %v", subvals))
+			return 1
+		}
 		subkeys := make([]string, 0, len(subvals))
 		for k := range subvals {
 			subkeys = append(subkeys, k)
@@ -77,5 +81,5 @@ func (i *InfoCommand) Run(args []string) int {
 }
 
 func (i *InfoCommand) Synopsis() string {
-	return "Provides debugging information for operators"
+	return "Provides debugging information for operators."
 }

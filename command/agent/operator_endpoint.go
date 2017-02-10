@@ -154,7 +154,14 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 	var errs error
 	for _, response := range responses {
 		if response.Error != "" {
-			errs = multierror.Append(errs, fmt.Errorf(response.Error))
+			pool := response.Datacenter + " (LAN)"
+			if response.WAN {
+				pool = "WAN"
+			}
+			errs = multierror.Append(errs, fmt.Errorf("%s error: %s", pool, response.Error))
+			for key, message := range response.Messages {
+				errs = multierror.Append(errs, fmt.Errorf("%s: %s", key, message))
+			}
 		}
 	}
 	return errs

@@ -6,8 +6,19 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testKVDeleteCommand(t *testing.T) (*cli.MockUi, *KVDeleteCommand) {
+	ui := new(cli.MockUi)
+	return ui, &KVDeleteCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
+}
 
 func TestKVDeleteCommand_implements(t *testing.T) {
 	var _ cli.Command = &KVDeleteCommand{}
@@ -18,8 +29,7 @@ func TestKVDeleteCommand_noTabs(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVDeleteCommand{Ui: ui}
+	ui, c := testKVDeleteCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -73,8 +83,7 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVDeleteCommand{Ui: ui}
+	ui, c := testKVDeleteCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -109,8 +118,7 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVDeleteCommand{Ui: ui}
+	ui, c := testKVDeleteCommand(t)
 
 	keys := []string{"foo/a", "foo/b", "food"}
 
@@ -152,8 +160,7 @@ func TestKVDeleteCommand_CAS(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVDeleteCommand{Ui: ui}
+	ui, c := testKVDeleteCommand(t)
 
 	pair := &api.KVPair{
 		Key:   "foo",

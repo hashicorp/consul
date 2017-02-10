@@ -5,8 +5,19 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testKeyringCommand(t *testing.T) (*cli.MockUi, *KeyringCommand) {
+	ui := new(cli.MockUi)
+	return ui, &KeyringCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetClientHTTP,
+		},
+	}
+}
 
 func TestKeyringCommand_implements(t *testing.T) {
 	var _ cli.Command = &KeyringCommand{}
@@ -23,7 +34,7 @@ func TestKeyringCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 
 	// The LAN and WAN keyrings were initialized with key1
-	out := listKeys(t, a1.addr)
+	out := listKeys(t, a1.httpAddr)
 	if !strings.Contains(out, "dc1 (LAN):\n  "+key1) {
 		t.Fatalf("bad: %#v", out)
 	}
@@ -35,10 +46,10 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 
 	// Install the second key onto the keyring
-	installKey(t, a1.addr, key2)
+	installKey(t, a1.httpAddr, key2)
 
 	// Both keys should be present
-	out = listKeys(t, a1.addr)
+	out = listKeys(t, a1.httpAddr)
 	for _, key := range []string{key1, key2} {
 		if !strings.Contains(out, key) {
 			t.Fatalf("bad: %#v", out)
@@ -46,11 +57,11 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 
 	// Rotate to key2, remove key1
-	useKey(t, a1.addr, key2)
-	removeKey(t, a1.addr, key1)
+	useKey(t, a1.httpAddr, key2)
+	removeKey(t, a1.httpAddr, key1)
 
 	// Only key2 is present now
-	out = listKeys(t, a1.addr)
+	out = listKeys(t, a1.httpAddr)
 	if !strings.Contains(out, "dc1 (LAN):\n  "+key2) {
 		t.Fatalf("bad: %#v", out)
 	}
@@ -63,8 +74,7 @@ func TestKeyringCommandRun(t *testing.T) {
 }
 
 func TestKeyringCommandRun_help(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 	code := c.Run(nil)
 	if code != 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
@@ -77,9 +87,8 @@ func TestKeyringCommandRun_help(t *testing.T) {
 }
 
 func TestKeyringCommandRun_failedConnection(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
-	args := []string{"-list", "-rpc-addr=127.0.0.1:0"}
+	ui, c := testKeyringCommand(t)
+	args := []string{"-list", "-http-addr=127.0.0.1:0"}
 	code := c.Run(args)
 	if code != 1 {
 		t.Fatalf("bad: %d, %#v", code, ui.ErrorWriter.String())
@@ -90,8 +99,7 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 }
 
 func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 
 	args := []string{"-list", "-relay-factor=6"}
 	code := c.Run(args)
@@ -101,10 +109,9 @@ func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
 }
 
 func listKeys(t *testing.T, addr string) string {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 
-	args := []string{"-list", "-rpc-addr=" + addr}
+	args := []string{"-list", "-http-addr=" + addr}
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
@@ -114,10 +121,9 @@ func listKeys(t *testing.T, addr string) string {
 }
 
 func installKey(t *testing.T, addr string, key string) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 
-	args := []string{"-install=" + key, "-rpc-addr=" + addr}
+	args := []string{"-install=" + key, "-http-addr=" + addr}
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
@@ -125,10 +131,9 @@ func installKey(t *testing.T, addr string, key string) {
 }
 
 func useKey(t *testing.T, addr string, key string) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 
-	args := []string{"-use=" + key, "-rpc-addr=" + addr}
+	args := []string{"-use=" + key, "-http-addr=" + addr}
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
@@ -136,10 +141,9 @@ func useKey(t *testing.T, addr string, key string) {
 }
 
 func removeKey(t *testing.T, addr string, key string) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
+	ui, c := testKeyringCommand(t)
 
-	args := []string{"-remove=" + key, "-rpc-addr=" + addr}
+	args := []string{"-remove=" + key, "-http-addr=" + addr}
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
