@@ -2,20 +2,19 @@ package command
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/mitchellh/cli"
 )
 
 // SnapshotInspectCommand is a Command implementation that is used to display
 // metadata about a snapshot file
 type SnapshotInspectCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *SnapshotInspectCommand) Help() string {
@@ -35,15 +34,15 @@ Usage: consul snapshot inspect [options] FILE
 }
 
 func (c *SnapshotInspectCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.Command.NewFlagSet(c)
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
 		c.Ui.Error("Missing FILE argument")

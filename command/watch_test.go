@@ -1,9 +1,11 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/command/base"
+	"github.com/mitchellh/cli"
 )
 
 func TestWatchCommand_implements(t *testing.T) {
@@ -15,7 +17,12 @@ func TestWatchCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 
 	ui := new(cli.MockUi)
-	c := &WatchCommand{Ui: ui}
+	c := &WatchCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
 	args := []string{"-http-addr=" + a1.httpAddr, "-type=nodes"}
 
 	code := c.Run(args)

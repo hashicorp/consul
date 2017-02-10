@@ -159,7 +159,10 @@ func init() {
 
 		"leave": func() (cli.Command, error) {
 			return &command.LeaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -175,38 +178,56 @@ func init() {
 
 		"maint": func() (cli.Command, error) {
 			return &command.MaintCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"members": func() (cli.Command, error) {
 			return &command.MembersCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"monitor": func() (cli.Command, error) {
 			return &command.MonitorCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"reload": func() (cli.Command, error) {
 			return &command.ReloadCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"rtt": func() (cli.Command, error) {
 			return &command.RTTCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -218,19 +239,28 @@ func init() {
 
 		"snapshot restore": func() (cli.Command, error) {
 			return &command.SnapshotRestoreCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot save": func() (cli.Command, error) {
 			return &command.SnapshotSaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot inspect": func() (cli.Command, error) {
 			return &command.SnapshotInspectCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -244,7 +274,10 @@ func init() {
 		"watch": func() (cli.Command, error) {
 			return &command.WatchCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 	}

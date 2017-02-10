@@ -24,9 +24,11 @@ health check.
 
 Usage: `consul maint [options]`
 
-All of the command line arguments are optional.
+#### API Options
 
-The list of available flags are:
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Command Options
 
 * `-enable` - Enable maintenance mode on a given service or node. If
   combined with the `-service` flag, we operate on a specific service ID.
@@ -43,12 +45,6 @@ The list of available flags are:
 * `-service` - An optional service ID to control node maintenance mode for. By
   providing this flag, the `-enable` and `-disable` flags functionality is
   modified to operate on the given service ID.
-
-* `-token` - ACL token to use. Defaults to that of agent.
-
-* `-http-addr` - Address to the HTTP server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
 
 ## List mode
 

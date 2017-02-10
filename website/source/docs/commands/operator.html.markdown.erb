@@ -28,20 +28,17 @@ endpoint.
 
 ## Usage
 
-Usage: `consul operator <subcommand> [common options] [action] [options]`
+Usage: `consul operator <subcommand> [action] [options]`
 
 Run `consul operator <subcommand>` with no arguments for help on that
 subcommand. The following subcommands are available:
 
 * `raft` - View and modify Consul's Raft configuration.
 
-Options common to all subcommands include:
+#### API Options
 
-* `-http-addr` - Address to the HTTP server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
-
-* `-token` - ACL token to use. Defaults to that of agent.
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
 
 ## Raft Operations
 

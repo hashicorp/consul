@@ -4,8 +4,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testOperatorCommand(t *testing.T) (*cli.MockUi, *OperatorCommand) {
+	ui := new(cli.MockUi)
+	return ui, &OperatorCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
+}
 
 func TestOperator_Implements(t *testing.T) {
 	var _ cli.Command = &OperatorCommand{}
@@ -16,8 +27,7 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &OperatorCommand{Ui: ui}
+	ui, c := testOperatorCommand(t)
 	args := []string{"raft", "-http-addr=" + a1.httpAddr, "-list-peers"}
 
 	code := c.Run(args)
@@ -35,8 +45,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &OperatorCommand{Ui: ui}
+	ui, c := testOperatorCommand(t)
 	args := []string{"raft", "-http-addr=" + a1.httpAddr, "-remove-peer", "-address=nope"}
 
 	code := c.Run(args)
