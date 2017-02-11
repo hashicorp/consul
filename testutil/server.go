@@ -13,6 +13,7 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -223,7 +224,7 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	if strings.HasPrefix(consulConfig.Addresses.HTTP, "unix://") {
 		httpAddr = consulConfig.Addresses.HTTP
 		trans := cleanhttp.DefaultTransport()
-		trans.Dial = func(_, _ string) (net.Conn, error) {
+		trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", httpAddr[7:])
 		}
 		client = &http.Client{
