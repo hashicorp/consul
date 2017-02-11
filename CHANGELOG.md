@@ -11,6 +11,7 @@ IMPROVEMENTS:
 * agent: Properly seeds Go's random number generator using the seed library. [GH-2722]
 * agent: Serf snapshots no longer have the executable bit set on the file. [GH-2722]
 * cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
+* cli: Updated go-cleanhttp for better connection reuse behavior for CLI commands. [GH-2731]
 
 BUG FIXES:
 
