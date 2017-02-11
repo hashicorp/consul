@@ -1082,7 +1082,16 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get the new client http listener addr
-	httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+	var httpAddr net.Addr
+	var err error
+	if config.Ports.HTTP != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+	} else if config.Ports.HTTPS != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+	} else if len(config.WatchPlans) > 0 {
+		c.Ui.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
+		return 1
+	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -1092,7 +1101,12 @@ func (c *Command) Run(args []string) int {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
+			addr := httpAddr.String()
+			// If it's a unix socket, prefix with unix:// so the client initializes correctly
+			if httpAddr.Network() == "unix" {
+				addr = "unix://" + addr
+			}
+			if err := wp.Run(addr); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)

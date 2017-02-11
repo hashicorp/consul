@@ -346,13 +346,22 @@ func NewClient(config *Config) (*Client, error) {
 		config.HttpClient = defConfig.HttpClient
 	}
 
-	if parts := strings.SplitN(config.Address, "unix://", 2); len(parts) == 2 {
-		trans := cleanhttp.DefaultTransport()
-		trans.Dial = func(_, _ string) (net.Conn, error) {
-			return net.Dial("unix", parts[1])
-		}
-		config.HttpClient = &http.Client{
-			Transport: trans,
+	parts := strings.SplitN(config.Address, "://", 2)
+	if len(parts) == 2 {
+		switch parts[0] {
+		case "http":
+		case "https":
+			config.Scheme = "https"
+		case "unix":
+			trans := cleanhttp.DefaultTransport()
+			trans.Dial = func(_, _ string) (net.Conn, error) {
+				return net.Dial("unix", parts[1])
+			}
+			config.HttpClient = &http.Client{
+				Transport: trans,
+			}
+		default:
+			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
 	}
