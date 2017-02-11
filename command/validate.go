@@ -33,6 +33,7 @@ Usage: consul validate [options] FILE_OR_DIRECTORY...
 
 func (c *ValidateCommand) Run(args []string) int {
 	var configFiles []string
+	var quiet bool
 
 	f := c.Command.NewFlagSet(c)
 	f.Var((*agent.AppendSliceValue)(&configFiles), "config-file",
@@ -40,6 +41,8 @@ func (c *ValidateCommand) Run(args []string) int {
 	f.Var((*agent.AppendSliceValue)(&configFiles), "config-dir",
 		"Path to a directory to read configuration files from. This will read every file ending in "+
 			".json as configuration in this directory in alphabetical order.")
+	f.BoolVar(&quiet, "quiet", false,
+		"When given, a successful run will produce no output.")
 	c.Command.HideFlags("config-file", "config-dir")
 
 	if err := c.Command.Parse(args); err != nil {
@@ -61,7 +64,9 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output("Configuration is valid!")
+	if !quiet {
+		c.Ui.Output("Configuration is valid!")
+	}
 	return 0
 }
 

@@ -119,3 +119,22 @@ func TestValidateCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
 		t.Fatalf("bad: %d", code)
 	}
 }
+
+func TestValidateCommandQuiet(t *testing.T) {
+	td, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(td)
+
+	ui, cmd := testValidateCommand(t)
+
+	args := []string{"-quiet", td}
+
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d, %s", code, ui.ErrorWriter.String())
+	}
+	if ui.OutputWriter.String() != "<nil>" {
+		t.Fatalf("bad: %v", ui.OutputWriter.String())
+	}
+}
