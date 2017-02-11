@@ -42,7 +42,6 @@ func makeClientWithConfig(
 	if cb1 != nil {
 		cb1(conf)
 	}
-
 	// Create server
 	server := testutil.NewTestServerConfig(t, cb2)
 	conf.Address = server.HTTPAddr

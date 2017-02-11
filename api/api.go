@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -354,7 +355,7 @@ func NewClient(config *Config) (*Client, error) {
 			config.Scheme = "https"
 		case "unix":
 			trans := cleanhttp.DefaultTransport()
-			trans.Dial = func(_, _ string) (net.Conn, error) {
+			trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 				return net.Dial("unix", parts[1])
 			}
 			config.HttpClient = &http.Client{
