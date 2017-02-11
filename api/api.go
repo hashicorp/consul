@@ -348,9 +348,11 @@ func NewClient(config *Config) (*Client, error) {
 
 	parts := strings.SplitN(config.Address, "://", 2)
 	if len(parts) == 2 {
-		if parts[0] == "https" {
+		switch parts[0] {
+		case "http":
+		case "https":
 			config.Scheme = "https"
-		} else if parts[0] == "unix" {
+		case "unix":
 			trans := cleanhttp.DefaultTransport()
 			trans.Dial = func(_, _ string) (net.Conn, error) {
 				return net.Dial("unix", parts[1])
@@ -358,6 +360,8 @@ func NewClient(config *Config) (*Client, error) {
 			config.HttpClient = &http.Client{
 				Transport: trans,
 			}
+		default:
+			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
 	}

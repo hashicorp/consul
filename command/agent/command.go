@@ -1086,8 +1086,11 @@ func (c *Command) Run(args []string) int {
 	var err error
 	if config.Ports.HTTP != -1 {
 		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-	} else {
+	} else if config.Ports.HTTPS != -1 {
 		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+	} else if len(config.WatchPlans) > 0 {
+		c.Ui.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
+		return 1
 	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
