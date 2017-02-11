@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"time"
 
@@ -24,7 +25,7 @@ func (d *dnsEx) OnShutdown(p *Proxy) error { return nil }
 func (d *dnsEx) OnStartup(p *Proxy) error  { return nil }
 
 // Exchange implements the Exchanger interface.
-func (d *dnsEx) Exchange(addr string, state request.Request) (*dns.Msg, error) {
+func (d *dnsEx) Exchange(ctx context.Context, addr string, state request.Request) (*dns.Msg, error) {
 	co, err := net.DialTimeout(state.Proto(), addr, d.Timeout)
 	if err != nil {
 		return nil, err

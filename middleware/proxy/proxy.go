@@ -105,7 +105,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := upstream.Exchanger().Exchange(host.Name, state)
+			reply, backendErr := upstream.Exchanger().Exchange(ctx, host.Name, state)
 
 			atomic.AddInt64(&host.Conns, -1)
 

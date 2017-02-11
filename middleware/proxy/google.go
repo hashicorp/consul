@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -42,7 +43,7 @@ func newGoogle(endpoint string, bootstrap []string) *google {
 	return &google{client: client, endpoint: dns.Fqdn(endpoint), bootstrapProxy: boot, quit: make(chan bool)}
 }
 
-func (g *google) Exchange(addr string, state request.Request) (*dns.Msg, error) {
+func (g *google) Exchange(ctx context.Context, addr string, state request.Request) (*dns.Msg, error) {
 	v := url.Values{}
 
 	v.Set("name", state.Name())

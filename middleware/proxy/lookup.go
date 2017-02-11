@@ -3,6 +3,7 @@ package proxy
 // functions other middleware might want to use to do lookup in the same style as the proxy.
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
@@ -91,7 +92,7 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := upstream.Exchanger().Exchange(host.Name, state)
+			reply, backendErr := upstream.Exchanger().Exchange(context.TODO(), host.Name, state)
 
 			atomic.AddInt64(&host.Conns, -1)
 
