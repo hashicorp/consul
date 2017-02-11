@@ -16,7 +16,7 @@ type ValidateCommand struct {
 
 func (c *ValidateCommand) Help() string {
 	helpText := `
-Usage: consul validate [options] FILE_OR_DIRECTORY
+Usage: consul validate [options] FILE_OR_DIRECTORY...
 
   Performs a basic sanity test on Consul configuration files. For each file
   or directory given, the validate command will attempt to parse the

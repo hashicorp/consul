@@ -16,7 +16,7 @@ type ConfigTestCommand struct {
 
 func (c *ConfigTestCommand) Help() string {
 	helpText := `
-Usage: consul configtest [options] FILE_OR_DIRECTORY
+Usage: consul configtest [options]
 
   DEPRECATED. Use the 'consul validate' command instead.
 
