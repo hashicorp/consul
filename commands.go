@@ -264,6 +264,15 @@ func init() {
 			}, nil
 		},
 
+		"validate": func() (cli.Command, error) {
+			return &command.ValidateCommand{
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				HumanVersion: version.GetHumanVersion(),

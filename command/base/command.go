@@ -33,6 +33,7 @@ type Command struct {
 	Flags FlagSetFlags
 
 	flagSet *flag.FlagSet
+	hidden  *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
 	httpAddr   stringValue
@@ -138,8 +139,16 @@ func (c *Command) NewFlagSet(command cli.Command) *flag.FlagSet {
 	f.SetOutput(errW)
 
 	c.flagSet = f
+	c.hidden = flag.NewFlagSet("", flag.ContinueOnError)
 
 	return f
+}
+
+// HideFlags is used to set hidden flags that will not be shown in help text
+func (c *Command) HideFlags(flags ...string) {
+	for _, f := range flags {
+		c.hidden.String(f, "", "")
+	}
 }
 
 // Parse is used to parse the underlying flag set.
@@ -200,7 +209,7 @@ func (c *Command) helpFlagsFor(f *flag.FlagSet) string {
 	firstCommand := true
 	f.VisitAll(func(f *flag.Flag) {
 		// Skip HTTP flags as they will be grouped separately
-		if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) {
+		if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) || flagContains(c.hidden, f) {
 			return
 		}
 		if firstCommand {
@@ -241,7 +250,7 @@ func flagContains(fs *flag.FlagSet, f *flag.Flag) bool {
 			return
 		}
 
-		if f.Name == hf.Name && f.Usage == hf.Usage {
+		if f.Name == hf.Name {
 			skip = true
 			return
 		}
