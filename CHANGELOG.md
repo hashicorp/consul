@@ -4,6 +4,8 @@ BREAKING CHANGES:
 
 FEATURES:
 
+* **Validate command:** To provide consistency across our products, the `configtest` command has been deprecated and replaced with the `validate` command (to match Nomad and Terraform). The `configtest` command will be removed in Consul 0.9. [GH-2732]
+
 IMPROVEMENTS:
 
 * agent: Fixed a missing case where gossip would stop flowing to dead nodes for a short while. [GH-2722]
