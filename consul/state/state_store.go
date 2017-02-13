@@ -30,6 +30,18 @@ var (
 	ErrMissingQueryID = errors.New("Missing Query ID")
 )
 
+const (
+	// watchLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained. This isn't as bad as it
+	// seems since we have made the main culprits (nodes and services) more
+	// efficient by diffing before we update via register requests.
+	//
+	// Given the current size of aFew == 32 in memdb's watch_few.go, this
+	// will allow for up to ~64 goroutines per blocking query.
+	watchLimit = 2048
+)
+
 // StateStore is where we store all of Consul's state, including
 // records of node registrations, services, checks, key/value
 // pairs and more. The DB is entirely in-memory and is constructed
@@ -38,11 +50,9 @@ type StateStore struct {
 	schema *memdb.DBSchema
 	db     *memdb.MemDB
 
-	// tableWatches holds all the full table watches, indexed by table name.
-	tableWatches map[string]*FullTableWatch
-
-	// kvsWatch holds the special prefix watch for the key value store.
-	kvsWatch *PrefixWatchManager
+	// abandonCh is used to signal watchers that this state store has been
+	// abandoned (usually during a restore). This is only ever closed.
+	abandonCh chan struct{}
 
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
@@ -62,9 +72,8 @@ type StateSnapshot struct {
 // StateRestore is used to efficiently manage restoring a large amount of
 // data to a state store.
 type StateRestore struct {
-	store   *StateStore
-	tx      *memdb.Txn
-	watches *DumbWatchManager
+	store *StateStore
+	tx    *memdb.Txn
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -92,22 +101,11 @@ func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Build up the all-table watches.
-	tableWatches := make(map[string]*FullTableWatch)
-	for table, _ := range schema.Tables {
-		if table == "kvs" || table == "tombstones" {
-			continue
-		}
-
-		tableWatches[table] = NewFullTableWatch()
-	}
-
 	// Create and return the state store.
 	s := &StateStore{
 		schema:       schema,
 		db:           db,
-		tableWatches: tableWatches,
-		kvsWatch:     NewPrefixWatchManager(),
+		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
@@ -142,8 +140,7 @@ func (s *StateSnapshot) Close() {
 // transaction.
 func (s *StateStore) Restore() *StateRestore {
 	tx := s.db.Txn(true)
-	watches := NewDumbWatchManager(s.tableWatches)
-	return &StateRestore{s, tx, watches}
+	return &StateRestore{s, tx}
 }
 
 // Abort abandons the changes made by a restore. This or Commit should always be
@@ -155,12 +152,19 @@ func (s *StateRestore) Abort() {
 // Commit commits the changes made by a restore. This or Abort should always be
 // called.
 func (s *StateRestore) Commit() {
-	// Fire off a single KVS watch instead of a zillion prefix ones, and use
-	// a dumb watch manager to single-fire all the full table watches.
-	s.tx.Defer(func() { s.store.kvsWatch.Notify("", true) })
-	s.tx.Defer(func() { s.watches.Notify() })
-
 	s.tx.Commit()
+}
+
+// AbandonCh returns a channel you can wait on to know if the state store was
+// abandoned.
+func (s *StateStore) AbandonCh() <-chan struct{} {
+	return s.abandonCh
+}
+
+// Abandon is used to signal that the given state store has been abandoned.
+// Calling this more than one time will panic.
+func (s *StateStore) Abandon() {
+	close(s.abandonCh)
 }
 
 // maxIndex is a helper used to retrieve the highest known index
@@ -207,65 +211,4 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	}
 
 	return nil
-}
-
-// getWatchTables returns the list of tables that should be watched and used for
-// max index calculations for the given query method. This is used for all
-// methods except for KVS. This will panic if the method is unknown.
-func (s *StateStore) getWatchTables(method string) []string {
-	switch method {
-	case "GetNode", "Nodes":
-		return []string{"nodes"}
-	case "Services":
-		return []string{"services"}
-	case "NodeService", "NodeServices", "ServiceNodes":
-		return []string{"nodes", "services"}
-	case "NodeCheck", "NodeChecks", "ServiceChecks", "ChecksInState":
-		return []string{"checks"}
-	case "ChecksInStateByNodeMeta", "ServiceChecksByNodeMeta":
-		return []string{"nodes", "checks"}
-	case "CheckServiceNodes", "NodeInfo", "NodeDump":
-		return []string{"nodes", "services", "checks"}
-	case "SessionGet", "SessionList", "NodeSessions":
-		return []string{"sessions"}
-	case "ACLGet", "ACLList":
-		return []string{"acls"}
-	case "Coordinates":
-		return []string{"coordinates"}
-	case "PreparedQueryGet", "PreparedQueryResolve", "PreparedQueryList":
-		return []string{"prepared-queries"}
-	}
-
-	panic(fmt.Sprintf("Unknown method %s", method))
-}
-
-// getTableWatch returns a full table watch for the given table. This will panic
-// if the table doesn't have a full table watch.
-func (s *StateStore) getTableWatch(table string) Watch {
-	if watch, ok := s.tableWatches[table]; ok {
-		return watch
-	}
-
-	panic(fmt.Sprintf("Unknown watch for table %s", table))
-}
-
-// GetQueryWatch returns a watch for the given query method. This is
-// used for all methods except for KV; you should call GetKVSWatch instead.
-// This will panic if the method is unknown.
-func (s *StateStore) GetQueryWatch(method string) Watch {
-	tables := s.getWatchTables(method)
-	if len(tables) == 1 {
-		return s.getTableWatch(tables[0])
-	}
-
-	var watches []Watch
-	for _, table := range tables {
-		watches = append(watches, s.getTableWatch(table))
-	}
-	return NewMultiWatch(watches...)
-}
-
-// GetKVSWatch returns a watch for the given prefix in the key value store.
-func (s *StateStore) GetKVSWatch(prefix string) Watch {
-	return s.kvsWatch.NewPrefixWatch(prefix)
 }

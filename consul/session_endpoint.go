@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -39,7 +41,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		switch args.Op {
 		case structs.SessionDestroy:
 			state := s.srv.fsm.State()
-			_, existing, err := state.SessionGet(args.Session.ID)
+			_, existing, err := state.SessionGet(nil, args.Session.ID)
 			if err != nil {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
@@ -94,7 +96,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 				s.srv.logger.Printf("[ERR] consul.session: UUID generation failed: %v", err)
 				return err
 			}
-			_, sess, err := state.SessionGet(args.Session.ID)
+			_, sess, err := state.SessionGet(nil, args.Session.ID)
 			if err != nil {
 				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)
 				return err
@@ -139,14 +141,11 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("SessionGet"),
-		func() error {
-			index, session, err := state.SessionGet(args.Session)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, session, err := state.SessionGet(ws, args.Session)
 			if err != nil {
 				return err
 			}
@@ -171,14 +170,11 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("SessionList"),
-		func() error {
-			index, sessions, err := state.SessionList()
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, sessions, err := state.SessionList(ws)
 			if err != nil {
 				return err
 			}
@@ -198,14 +194,11 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(
+	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("NodeSessions"),
-		func() error {
-			index, sessions, err := state.NodeSessions(args.Node)
+		func(ws memdb.WatchSet, state *state.StateStore) error {
+			index, sessions, err := state.NodeSessions(ws, args.Node)
 			if err != nil {
 				return err
 			}
@@ -228,7 +221,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 
 	// Get the session, from local state.
 	state := s.srv.fsm.State()
-	index, session, err := state.SessionGet(args.Session)
+	index, session, err := state.SessionGet(nil, args.Session)
 	if err != nil {
 		return err
 	}

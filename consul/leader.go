@@ -185,7 +185,7 @@ func (s *Server) initializeACL() error {
 
 	// Look for the anonymous token
 	state := s.fsm.State()
-	_, acl, err := state.ACLGet(anonymousToken)
+	_, acl, err := state.ACLGet(nil, anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -214,7 +214,7 @@ func (s *Server) initializeACL() error {
 	}
 
 	// Look for the master token
-	_, acl, err = state.ACLGet(master)
+	_, acl, err = state.ACLGet(nil, master)
 	if err != nil {
 		return fmt.Errorf("failed to get master token: %v", err)
 	}
@@ -262,7 +262,7 @@ func (s *Server) reconcile() (err error) {
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(structs.HealthAny)
+	_, checks, err := state.ChecksInState(nil, structs.HealthAny)
 	if err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(check.Node)
+		_, services, err := state.NodeServices(nil, check.Node)
 		if err != nil {
 			return err
 		}
@@ -385,7 +385,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(member.Name)
+			_, services, err := state.NodeServices(nil, member.Name)
 			if err != nil {
 				return err
 			}
@@ -402,7 +402,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name)
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	}
 	if node != nil && node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name)
 		if err != nil {
 			return err
 		}

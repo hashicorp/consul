@@ -95,18 +95,19 @@ func (u UserEvent) String() string {
 	return fmt.Sprintf("user-event: %s", u.Name)
 }
 
-// Query is the struct used EventQuery type events
+// Query is the struct used by EventQuery type events
 type Query struct {
 	LTime   LamportTime
 	Name    string
 	Payload []byte
 
-	serf     *Serf
-	id       uint32    // ID is not exported, since it may change
-	addr     []byte    // Address to respond to
-	port     uint16    // Port to respond to
-	deadline time.Time // Must respond by this deadline
-	respLock sync.Mutex
+	serf        *Serf
+	id          uint32    // ID is not exported, since it may change
+	addr        []byte    // Address to respond to
+	port        uint16    // Port to respond to
+	deadline    time.Time // Must respond by this deadline
+	relayFactor uint8     // Number of duplicate responses to relay back to sender
+	respLock    sync.Mutex
 }
 
 func (q *Query) EventType() EventType {
@@ -129,12 +130,12 @@ func (q *Query) Respond(buf []byte) error {
 
 	// Check if we've already responded
 	if q.deadline.IsZero() {
-		return fmt.Errorf("Response already sent")
+		return fmt.Errorf("response already sent")
 	}
 
 	// Ensure we aren't past our response deadline
 	if time.Now().After(q.deadline) {
-		return fmt.Errorf("Response is past the deadline")
+		return fmt.Errorf("response is past the deadline")
 	}
 
 	// Create response
@@ -145,10 +146,10 @@ func (q *Query) Respond(buf []byte) error {
 		Payload: buf,
 	}
 
-	// Format the response
+	// Send a direct response
 	raw, err := encodeMessage(messageQueryResponseType, &resp)
 	if err != nil {
-		return fmt.Errorf("Failed to format response: %v", err)
+		return fmt.Errorf("failed to format response: %v", err)
 	}
 
 	// Check the size limit
@@ -156,13 +157,18 @@ func (q *Query) Respond(buf []byte) error {
 		return fmt.Errorf("response exceeds limit of %d bytes", q.serf.config.QueryResponseSizeLimit)
 	}
 
-	// Send the response
+	// Send the response directly to the originator
 	addr := net.UDPAddr{IP: q.addr, Port: int(q.port)}
 	if err := q.serf.memberlist.SendTo(&addr, raw); err != nil {
 		return err
 	}
 
-	// Clera the deadline, response sent
+	// Relay the response through up to relayFactor other nodes
+	if err := q.serf.relayResponse(q.relayFactor, addr, &resp); err != nil {
+		return err
+	}
+
+	// Clear the deadline, responses sent
 	q.deadline = time.Time{}
 	return nil
 }

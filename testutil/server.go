@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -292,10 +293,13 @@ func (s *TestServer) waitForAPI() {
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 1 or more to be observed to confirm leader election is done.
+// It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader() {
+	var index int64
 	WaitForResult(func() (bool, error) {
-		// Query the API and check the status code
-		resp, err := s.HttpClient.Get(s.url("/v1/catalog/nodes"))
+		// Query the API and check the status code.
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=10s", index))
+		resp, err := s.HttpClient.Get(url)
 		if err != nil {
 			return false, err
 		}
@@ -304,13 +308,33 @@ func (s *TestServer) waitForLeader() {
 			return false, err
 		}
 
-		// Ensure we have a leader and a node registration
+		// Ensure we have a leader and a node registration.
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			fmt.Println(leader)
 			return false, fmt.Errorf("Consul leader status: %#v", leader)
 		}
-		if resp.Header.Get("X-Consul-Index") == "0" {
+		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+		if err != nil {
+			return false, fmt.Errorf("Consul index was bad: %v", err)
+		}
+		if index == 0 {
 			return false, fmt.Errorf("Consul index is 0")
+		}
+
+		// Watch for the anti-entropy sync to finish.
+		var parsed []map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&parsed); err != nil {
+			return false, err
+		}
+		if len(parsed) < 1 {
+			return false, fmt.Errorf("No nodes")
+		}
+		taggedAddresses, ok := parsed[0]["TaggedAddresses"].(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("Missing tagged addresses")
+		}
+		if _, ok := taggedAddresses["lan"]; !ok {
+			return false, fmt.Errorf("No lan tagged addresses")
 		}
 		return true, nil
 	}, func(err error) {

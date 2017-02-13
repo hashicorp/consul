@@ -40,7 +40,7 @@ func TestSession_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(out)
+	_, s, err := state.SessionGet(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestSession_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(id)
+	_, s, err = state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestSession_DeleteApply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(out)
+	_, s, err := state.SessionGet(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestSession_DeleteApply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(id)
+	_, s, err = state.SessionGet(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

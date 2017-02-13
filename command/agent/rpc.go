@@ -106,7 +106,8 @@ type joinResponse struct {
 }
 
 type keyringRequest struct {
-	Key string
+	Key         string
+	RelayFactor uint8
 }
 
 type KeyringEntry struct {
@@ -604,21 +605,21 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd, token strin
 	var r keyringResponse
 	var err error
 
-	if cmd != listKeysCommand {
-		if err = client.dec.Decode(&req); err != nil {
-			return fmt.Errorf("decode failed: %v", err)
-		}
+	if err = client.dec.Decode(&req); err != nil {
+		return fmt.Errorf("decode failed: %v", err)
 	}
+
+	i.agent.logger.Printf("[INFO] agent: Sending rpc command with relay factor %d", req.RelayFactor)
 
 	switch cmd {
 	case listKeysCommand:
-		queryResp, err = i.agent.ListKeys(token)
+		queryResp, err = i.agent.ListKeys(token, req.RelayFactor)
 	case installKeyCommand:
-		queryResp, err = i.agent.InstallKey(req.Key, token)
+		queryResp, err = i.agent.InstallKey(req.Key, token, req.RelayFactor)
 	case useKeyCommand:
-		queryResp, err = i.agent.UseKey(req.Key, token)
+		queryResp, err = i.agent.UseKey(req.Key, token, req.RelayFactor)
 	case removeKeyCommand:
-		queryResp, err = i.agent.RemoveKey(req.Key, token)
+		queryResp, err = i.agent.RemoveKey(req.Key, token, req.RelayFactor)
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)

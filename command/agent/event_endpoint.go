@@ -97,7 +97,7 @@ func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (int
 		nameFilter = filt
 	}
 
-	// Lots of this logic is borrowed from consul/rpc.go:blockingRPC
+	// Lots of this logic is borrowed from consul/rpc.go:blockingQuery
 	// However we cannot use that directly since this code has some
 	// slight semantics differences...
 	var timeout <-chan time.Time

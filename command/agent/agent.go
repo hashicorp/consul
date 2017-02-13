@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/shirou/gopsutil/host"
 )
 
 const (
@@ -42,26 +43,11 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
-
-	// The meta key prefix reserved for Consul's internal use
-	metaKeyReservedPrefix = "consul-"
-
-	// The maximum number of metadata key pairs allowed to be registered
-	metaMaxKeyPairs = 64
-
-	// The maximum allowed length of a metadata key
-	metaKeyMaxLength = 128
-
-	// The maximum allowed length of a metadata value
-	metaValueMaxLength = 512
 )
 
 var (
 	// dnsNameRe checks if a name or tag is dns-compatible.
 	dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
-
-	// metaKeyFormat checks if a metadata key string is valid
-	metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
 )
 
 /*
@@ -444,6 +430,7 @@ func (a *Agent) consulConfig() *consul.Config {
 	base.KeyFile = a.config.KeyFile
 	base.ServerName = a.config.ServerName
 	base.Domain = a.config.Domain
+	base.TLSMinVersion = a.config.TLSMinVersion
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp
@@ -608,6 +595,43 @@ func (a *Agent) setupClient() error {
 	return nil
 }
 
+// makeRandomID will generate a random UUID for a node.
+func (a *Agent) makeRandomID() (string, error) {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		return "", err
+	}
+
+	a.logger.Printf("[DEBUG] Using random ID %q as node ID", id)
+	return id, nil
+}
+
+// makeNodeID will try to find a host-specific ID, or else will generate a
+// random ID. The returned ID will always be formatted as a GUID. We don't tell
+// the caller whether this ID is random or stable since the consequences are
+// high for us if this changes, so we will persist it either way. This will let
+// gopsutil change implementations without affecting in-place upgrades of nodes.
+func (a *Agent) makeNodeID() (string, error) {
+	// Try to get a stable ID associated with the host itself.
+	info, err := host.Info()
+	if err != nil {
+		a.logger.Printf("[DEBUG] Couldn't get a unique ID from the host: %v", err)
+		return a.makeRandomID()
+	}
+
+	// Make sure the host ID parses as a UUID, since we don't have complete
+	// control over this process.
+	id := strings.ToLower(info.HostID)
+	if _, err := uuid.ParseUUID(id); err != nil {
+		a.logger.Printf("[DEBUG] Unique ID %q from host isn't formatted as a UUID: %v",
+			id, err)
+		return a.makeRandomID()
+	}
+
+	a.logger.Printf("[DEBUG] Using unique ID %q from host as node ID", id)
+	return id, nil
+}
+
 // setupNodeID will pull the persisted node ID, if any, or create a random one
 // and persist it.
 func (a *Agent) setupNodeID(config *Config) error {
@@ -621,15 +645,14 @@ func (a *Agent) setupNodeID(config *Config) error {
 		return nil
 	}
 
-	// For dev mode we have no filesystem access so just make a GUID.
+	// For dev mode we have no filesystem access so just make one.
 	if a.config.DevMode {
-		id, err := uuid.GenerateUUID()
+		id, err := a.makeNodeID()
 		if err != nil {
 			return err
 		}
 
 		config.NodeID = types.NodeID(id)
-		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (will not be persisted in dev mode)", config.NodeID)
 		return nil
 	}
 
@@ -652,7 +675,7 @@ func (a *Agent) setupNodeID(config *Config) error {
 
 	// If we still don't have a valid node ID, make one.
 	if config.NodeID == "" {
-		id, err := uuid.GenerateUUID()
+		id, err := a.makeNodeID()
 		if err != nil {
 			return err
 		}
@@ -664,7 +687,6 @@ func (a *Agent) setupNodeID(config *Config) error {
 		}
 
 		config.NodeID = types.NodeID(id)
-		a.logger.Printf("[INFO] agent: Generated unique node ID %q for this agent (persisted)", config.NodeID)
 	}
 	return nil
 }
@@ -1787,41 +1809,6 @@ func parseMetaPair(raw string) (string, string) {
 	} else {
 		return pair[0], ""
 	}
-}
-
-// validateMeta validates a set of key/value pairs from the agent config
-func validateMetadata(meta map[string]string) error {
-	if len(meta) > metaMaxKeyPairs {
-		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
-	}
-
-	for key, value := range meta {
-		if err := validateMetaPair(key, value); err != nil {
-			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
-		}
-	}
-
-	return nil
-}
-
-// validateMetaPair checks that the given key/value pair is in a valid format
-func validateMetaPair(key, value string) error {
-	if key == "" {
-		return fmt.Errorf("Key cannot be blank")
-	}
-	if !metaKeyFormat(key) {
-		return fmt.Errorf("Key contains invalid characters")
-	}
-	if len(key) > metaKeyMaxLength {
-		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
-	}
-	if strings.HasPrefix(key, metaKeyReservedPrefix) {
-		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
-	}
-	if len(value) > metaValueMaxLength {
-		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)
-	}
-	return nil
 }
 
 // unloadMetadata resets the local metadata state

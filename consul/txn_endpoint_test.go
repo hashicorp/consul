@@ -55,7 +55,7 @@ func TestTxn_Apply(t *testing.T) {
 
 	// Verify the state store directly.
 	state := s1.fsm.State()
-	_, d, err := state.KVSGet("test")
+	_, d, err := state.KVSGet(nil, "test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

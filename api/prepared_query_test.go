@@ -20,6 +20,7 @@ func TestPreparedQuery(t *testing.T) {
 		TaggedAddresses: map[string]string{
 			"wan": "127.0.0.1",
 		},
+		NodeMeta: map[string]string{"somekey": "somevalue"},
 		Service: &AgentService{
 			ID:      "redis1",
 			Service: "redis",
@@ -47,7 +48,8 @@ func TestPreparedQuery(t *testing.T) {
 	def := &PreparedQueryDefinition{
 		Name: "test",
 		Service: ServiceQuery{
-			Service: "redis",
+			Service:  "redis",
+			NodeMeta: map[string]string{"somekey": "somevalue"},
 		},
 	}
 

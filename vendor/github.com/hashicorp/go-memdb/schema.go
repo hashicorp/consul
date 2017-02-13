@@ -38,7 +38,7 @@ func (s *TableSchema) Validate() error {
 		return fmt.Errorf("missing table name")
 	}
 	if len(s.Indexes) == 0 {
-		return fmt.Errorf("missing table schemas for '%s'", s.Name)
+		return fmt.Errorf("missing table indexes for '%s'", s.Name)
 	}
 	if _, ok := s.Indexes["id"]; !ok {
 		return fmt.Errorf("must have id index")

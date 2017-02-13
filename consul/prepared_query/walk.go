@@ -34,6 +34,20 @@ func visit(path string, v reflect.Value, t reflect.Type, fn visitor) error {
 				return err
 			}
 		}
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			value := v.MapIndex(key)
+
+			newValue := reflect.New(value.Type()).Elem()
+			newValue.SetString(value.String())
+
+			if err := visit(fmt.Sprintf("%s[%s]", path, key.String()), newValue, newValue.Type(), fn); err != nil {
+				return err
+			}
+
+			// overwrite the entry in case it was modified by the callback
+			v.SetMapIndex(key, newValue)
+		}
 	}
 	return nil
 }

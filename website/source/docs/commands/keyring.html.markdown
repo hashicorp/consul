@@ -48,6 +48,10 @@ The list of available flags are:
 
 * `-token=""` - ACL token to use during requests. Defaults to that of the agent.
 
+* `-relay-factor` - Added in Consul 0.7.4, setting this to a non-zero value will
+  cause nodes to relay their response to the operation through this many
+  randomly-chosen other nodes in the cluster. The maximum allowed value is 5.
+
 * `-rpc-addr` - Address to the RPC server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
   "127.0.0.1:8400" which is the default RPC address of a Consul agent.

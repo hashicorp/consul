@@ -78,7 +78,8 @@ query, like this example:
     },
     "Near": "node1",
     "OnlyPassing": false,
-    "Tags": ["primary", "!experimental"]
+    "Tags": ["primary", "!experimental"],
+    "NodeMeta": {"instance_type": "m3.large"}
   },
   "DNS": {
     "TTL": "10s"
@@ -162,6 +163,10 @@ to pass the tag filter it must have *all* of the required tags, and *none* of th
 excluded tags (prefixed with `!`). The default value is an empty list, which does
 no tag filtering.
 
+`NodeMeta` provides a list of user-defined key/value pairs that will be used for
+filtering the query results to nodes with the given metadata values present. This
+was added in Consul 0.7.3.
+
 `TTL` in the `DNS` structure is a duration string that can use `s` as a
 suffix for seconds. It controls how the TTL is set when query results are served
 over DNS. If this isn't specified, then the Consul agent configuration for the given
@@ -199,7 +204,8 @@ and features. Here's an example:
       "Datacenters": ["dc1", "dc2"]
     },
     "OnlyPassing": true,
-    "Tags": ["${match(2)}"]
+    "Tags": ["${match(2)}"],
+    "NodeMeta": {"instance_type": "m3.large"}
   }
 }
 ```
@@ -303,7 +309,8 @@ This returns a JSON list of prepared queries, which looks like:
         "Datacenters": ["dc1", "dc2"]
       },
       "OnlyPassing": false,
-      "Tags": ["primary", "!experimental"]
+      "Tags": ["primary", "!experimental"],
+      "NodeMeta": {"instance_type": "m3.large"}
     },
     "DNS": {
       "TTL": "10s"
@@ -408,7 +415,8 @@ a JSON body will be returned like this:
         "TaggedAddresses": {
           "lan": "10.1.10.12",
           "wan": "10.1.10.12"
-        }
+        },
+        "NodeMeta": {"instance_type": "m3.large"}
       },
       "Service": {
         "ID": "redis",
@@ -500,7 +508,8 @@ a JSON body will be returned like this:
         "Datacenters": ["dc1", "dc2"]
       },
       "OnlyPassing": true,
-      "Tags": ["primary"]
+      "Tags": ["primary"],
+      "NodeMeta": {"instance_type": "m3.large"}
     }
 }
 ```

@@ -364,11 +364,11 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	checkSame := func() (bool, error) {
-		index, remote, err := s1.fsm.State().ACLList()
+		index, remote, err := s1.fsm.State().ACLList(nil)
 		if err != nil {
 			return false, err
 		}
-		_, local, err := s2.fsm.State().ACLList()
+		_, local, err := s2.fsm.State().ACLList(nil)
 		if err != nil {
 			return false, err
 		}

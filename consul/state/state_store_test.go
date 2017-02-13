@@ -4,9 +4,11 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 )
 
 func testUUID() string {
@@ -122,6 +124,16 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	}
 }
 
+// watchFired is a helper for unit tests that returns if the given watch set
+// fired (it doesn't care which watch actually fired). This uses a fixed
+// timeout since we already expect the event happened before calling this and
+// just need to distinguish a fire from a timeout. We do need a little time to
+// allow the watch to set up any goroutines, though.
+func watchFired(ws memdb.WatchSet) bool {
+	timedOut := ws.Watch(time.After(50 * time.Millisecond))
+	return !timedOut
+}
+
 func TestStateStore_Restore_Abort(t *testing.T) {
 	s := testStateStore(t)
 
@@ -140,7 +152,7 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	restore.Abort()
 
-	idx, entries, err := s.KVSList("")
+	idx, entries, err := s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -149,6 +161,17 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("bad: %#v", entries)
+	}
+}
+
+func TestStateStore_Abandon(t *testing.T) {
+	s := testStateStore(t)
+	abandonCh := s.AbandonCh()
+	s.Abandon()
+	select {
+	case <-abandonCh:
+	default:
+		t.Fatalf("bad")
 	}
 }
 
@@ -178,52 +201,5 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 
 	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)
-	}
-}
-
-func TestStateStore_GetWatches(t *testing.T) {
-	s := testStateStore(t)
-
-	// This test does two things - it makes sure there's no full table
-	// watch for KVS, and it makes sure that asking for a watch that
-	// doesn't exist causes a panic.
-	func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatalf("didn't get expected panic")
-			}
-		}()
-		s.getTableWatch("kvs")
-	}()
-
-	// Similar for tombstones; those don't support watches at all.
-	func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatalf("didn't get expected panic")
-			}
-		}()
-		s.getTableWatch("tombstones")
-	}()
-
-	// Make sure requesting a bogus method causes a panic.
-	func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatalf("didn't get expected panic")
-			}
-		}()
-		s.GetQueryWatch("dogs")
-	}()
-
-	// Request valid watches.
-	if w := s.GetQueryWatch("Nodes"); w == nil {
-		t.Fatalf("didn't get a watch")
-	}
-	if w := s.GetQueryWatch("NodeDump"); w == nil {
-		t.Fatalf("didn't get a watch")
-	}
-	if w := s.GetKVSWatch("/dogs"); w == nil {
-		t.Fatalf("didn't get a watch")
 	}
 }
