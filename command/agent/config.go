@@ -129,8 +129,8 @@ type RetryJoinEC2 struct {
 	TagValue string `mapstructure:"tag_value"`
 
 	// The AWS credentials to use for making requests to EC2
-	AccessKeyID     string `mapstructure:"access_key_id"`
-	SecretAccessKey string `mapstructure:"secret_access_key"`
+	AccessKeyID     string `mapstructure:"access_key_id" json:"-"`
+	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
 }
 
 // RetryJoinECS is used to configure discovery of instances via Aliyun's ECS api
@@ -445,6 +445,9 @@ type Config struct {
 	// ServerName is used with the TLS certificates to ensure the name we
 	// provide matches the certificate
 	ServerName string `mapstructure:"server_name"`
+
+	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
+	TLSMinVersion string `mapstructure:"tls_min_version"`
 
 	// StartJoin is a list of addresses to attempt to join when the
 	// agent starts. If Serf is unable to communicate with any of these
@@ -791,6 +794,8 @@ func DefaultConfig() *Config {
 		ACLEnforceVersion8: Bool(false),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
+
+		TLSMinVersion: "tls10",
 	}
 }
 
@@ -1426,6 +1431,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ServerName != "" {
 		result.ServerName = b.ServerName
+	}
+	if b.TLSMinVersion != "" {
+		result.TLSMinVersion = b.TLSMinVersion
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)

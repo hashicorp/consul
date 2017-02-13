@@ -5,13 +5,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying ACLs with no results returns nil
-	idx, res, err := s.ACLGet("nope")
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.ACLGet(ws, "nope")
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -19,6 +21,9 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	// Inserting an ACL with empty ID is disallowed
 	if err := s.ACLSet(1, &structs.ACL{}); err == nil {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingACLID, err)
+	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
 	}
 
 	// Index is not updated if nothing is saved
@@ -36,6 +41,9 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	if err := s.ACLSet(1, acl); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Check that the index was updated
 	if idx := s.maxIndex("acls"); idx != 1 {
@@ -43,7 +51,8 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	}
 
 	// Retrieve the ACL again
-	idx, result, err := s.ACLGet("acl1")
+	ws = memdb.NewWatchSet()
+	idx, result, err := s.ACLGet(ws, "acl1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -76,6 +85,9 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	if err := s.ACLSet(2, acl); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Index was updated
 	if idx := s.maxIndex("acls"); idx != 2 {
@@ -102,7 +114,8 @@ func TestStateStore_ACLList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing when no ACLs exist returns nil
-	idx, res, err := s.ACLList()
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.ACLList(ws)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -133,9 +146,12 @@ func TestStateStore_ACLList(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Query the ACLs
-	idx, res, err = s.ACLList()
+	idx, res, err = s.ACLList(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -255,7 +271,7 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLList()
+		idx, res, err := s.ACLList(nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -271,28 +287,4 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 			t.Fatalf("bad index: %d", idx)
 		}
 	}()
-}
-
-func TestStateStore_ACL_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Call functions that update the acls table and make sure a watch fires
-	// each time.
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		if err := s.ACLDelete(2, "acl1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("acls"), func() {
-		restore := s.Restore()
-		if err := restore.ACL(&structs.ACL{ID: "acl1"}); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
-	})
 }

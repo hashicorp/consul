@@ -225,7 +225,7 @@ func TestInvalidateSession(t *testing.T) {
 	s1.invalidateSession(session.ID)
 
 	// Check it is gone
-	_, sess, err := state.SessionGet(session.ID)
+	_, sess, err := state.SessionGet(nil, session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

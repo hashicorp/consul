@@ -89,6 +89,17 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	}
 }
 
+func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &KeyringCommand{Ui: ui}
+
+	args := []string{"-list", "-relay-factor=6"}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
 func listKeys(t *testing.T, addr string) string {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}

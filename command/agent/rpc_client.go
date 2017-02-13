@@ -194,48 +194,49 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
-func (c *RPCClient) ListKeys(token string) (keyringResponse, error) {
+func (c *RPCClient) ListKeys(token string, relayFactor uint8) (keyringResponse, error) {
 	header := requestHeader{
 		Command: listKeysCommand,
 		Seq:     c.getSeq(),
 		Token:   token,
 	}
+	req := keyringRequest{RelayFactor: relayFactor}
 	var resp keyringResponse
-	err := c.genericRPC(&header, nil, &resp)
+	err := c.genericRPC(&header, req, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) InstallKey(key, token string) (keyringResponse, error) {
+func (c *RPCClient) InstallKey(key, token string, relayFactor uint8) (keyringResponse, error) {
 	header := requestHeader{
 		Command: installKeyCommand,
 		Seq:     c.getSeq(),
 		Token:   token,
 	}
-	req := keyringRequest{key}
+	req := keyringRequest{Key: key, RelayFactor: relayFactor}
 	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) UseKey(key, token string) (keyringResponse, error) {
+func (c *RPCClient) UseKey(key, token string, relayFactor uint8) (keyringResponse, error) {
 	header := requestHeader{
 		Command: useKeyCommand,
 		Seq:     c.getSeq(),
 		Token:   token,
 	}
-	req := keyringRequest{key}
+	req := keyringRequest{Key: key, RelayFactor: relayFactor}
 	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) RemoveKey(key, token string) (keyringResponse, error) {
+func (c *RPCClient) RemoveKey(key, token string, relayFactor uint8) (keyringResponse, error) {
 	header := requestHeader{
 		Command: removeKeyCommand,
 		Seq:     c.getSeq(),
 		Token:   token,
 	}
-	req := keyringRequest{key}
+	req := keyringRequest{Key: key, RelayFactor: relayFactor}
 	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err

@@ -19,6 +19,13 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
+// TLSLookup maps the tls_min_version configuration to the internal value
+var TLSLookup = map[string]uint16{
+	"tls10": tls.VersionTLS10,
+	"tls11": tls.VersionTLS11,
+	"tls12": tls.VersionTLS12,
+}
+
 // Config used to create tls.Config
 type Config struct {
 	// VerifyIncoming is used to verify the authenticity of incoming connections.
@@ -61,6 +68,9 @@ type Config struct {
 
 	// Domain is the Consul TLD being used. Defaults to "consul."
 	Domain string
+
+	// TLSMinVersion is the minimum accepted TLS version that can be used.
+	TLSMinVersion string
 }
 
 // AppendCA opens and parses the CA file and adds the certificates to
@@ -138,6 +148,15 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 		return nil, err
 	} else if cert != nil {
 		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
+	// Check if a minimum TLS version was set
+	if c.TLSMinVersion != "" {
+		tlsvers, ok := TLSLookup[c.TLSMinVersion]
+		if !ok {
+			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.TLSMinVersion)
+		}
+		tlsConfig.MinVersion = tlsvers
 	}
 
 	return tlsConfig, nil
@@ -309,6 +328,15 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 		if cert == nil {
 			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
+	}
+
+	// Check if a minimum TLS version was set
+	if c.TLSMinVersion != "" {
+		tlsvers, ok := TLSLookup[c.TLSMinVersion]
+		if !ok {
+			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.TLSMinVersion)
+		}
+		tlsConfig.MinVersion = tlsvers
 	}
 	return tlsConfig, nil
 }

@@ -876,8 +876,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 
 		// Add the extra record
 		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
-
-		if records != nil {
+		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
 				resp.Extra = append(resp.Extra, records...)
@@ -900,6 +899,10 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(record.AAAA), dc, d.domain)
 					record.Hdr.Name = srvRec.Target
 					resp.Extra = append(resp.Extra, record)
+
+				// Something else (probably a CNAME; just add the records).
+				default:
+					resp.Extra = append(resp.Extra, records...)
 				}
 			}
 		}

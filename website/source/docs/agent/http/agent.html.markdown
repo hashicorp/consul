@@ -220,10 +220,11 @@ The return code is 200 on success.
 
 ### <a name="agent_maintenance"></a> /v1/agent/maintenance
 
-The node maintenance endpoint can place the agent into "maintenance mode".
-During maintenance mode, the node will be marked as unavailable and will not be
-present in DNS or API queries. This API call is idempotent. Maintenance mode is
-persistent and will be automatically restored on agent restart.
+The node maintenance endpoint is hit with a PUT and is used to place the agent
+into "maintenance mode". During maintenance mode, the node will be marked as
+unavailable and will not be present in DNS or API queries. This API call is
+idempotent. Maintenance mode is persistent and will be automatically restored
+on agent restart.
 
 The `?enable` flag is required. Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).

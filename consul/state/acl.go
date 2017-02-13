@@ -26,7 +26,6 @@ func (s *StateRestore) ACL(acl *structs.ACL) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("acls")
 	return nil
 }
 
@@ -75,23 +74,24 @@ func (s *StateStore) aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) erro
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["acls"].Notify() })
 	return nil
 }
 
 // ACLGet is used to look up an existing ACL by ID.
-func (s *StateStore) ACLGet(aclID string) (uint64, *structs.ACL, error) {
+func (s *StateStore) ACLGet(ws memdb.WatchSet, aclID string) (uint64, *structs.ACL, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ACLGet")...)
+	idx := maxIndexTxn(tx, "acls")
 
 	// Query for the existing ACL
-	acl, err := tx.First("acls", "id", aclID)
+	watchCh, acl, err := tx.FirstWatch("acls", "id", aclID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
 	}
+	ws.Add(watchCh)
+
 	if acl != nil {
 		return idx, acl.(*structs.ACL), nil
 	}
@@ -99,15 +99,15 @@ func (s *StateStore) ACLGet(aclID string) (uint64, *structs.ACL, error) {
 }
 
 // ACLList is used to list out all of the ACLs in the state store.
-func (s *StateStore) ACLList() (uint64, structs.ACLs, error) {
+func (s *StateStore) ACLList(ws memdb.WatchSet) (uint64, structs.ACLs, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("ACLList")...)
+	idx := maxIndexTxn(tx, "acls")
 
 	// Return the ACLs.
-	acls, err := s.aclListTxn(tx)
+	acls, err := s.aclListTxn(tx, ws)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
 	}
@@ -116,16 +116,17 @@ func (s *StateStore) ACLList() (uint64, structs.ACLs, error) {
 
 // aclListTxn is used to list out all of the ACLs in the state store. This is a
 // function vs. a method so it can be called from the snapshotter.
-func (s *StateStore) aclListTxn(tx *memdb.Txn) (structs.ACLs, error) {
+func (s *StateStore) aclListTxn(tx *memdb.Txn, ws memdb.WatchSet) (structs.ACLs, error) {
 	// Query all of the ACLs in the state store
-	acls, err := tx.Get("acls", "id")
+	iter, err := tx.Get("acls", "id")
 	if err != nil {
 		return nil, fmt.Errorf("failed acl lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	// Go over all of the ACLs and build the response
 	var result structs.ACLs
-	for acl := acls.Next(); acl != nil; acl = acls.Next() {
+	for acl := iter.Next(); acl != nil; acl = iter.Next() {
 		a := acl.(*structs.ACL)
 		result = append(result, a)
 	}
@@ -167,6 +168,5 @@ func (s *StateStore) aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["acls"].Notify() })
 	return nil
 }

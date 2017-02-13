@@ -66,7 +66,7 @@ be used to establish blocking queries by setting the `?index` query parameter.
 You can even perform blocking queries against entire subtrees of the KV store:
 if `?recurse` is provided, the returned `X-Consul-Index` corresponds
 to the latest `ModifyIndex` within the prefix, and a blocking query using that
-"?index" will wait until any key within that prefix is updated.
+`?index` will wait until any key within that prefix is updated.
 
 `LockIndex` is the number of times this key has successfully been acquired in
 a lock. If the lock is held, the `Session` key provides the session that owns
@@ -119,7 +119,7 @@ be used with a `PUT` request:
   put the key if it does not already exist. If the index is non-zero,
   the key is only set if the index matches the `ModifyIndex` of that key.
 
-  * `?acquire=<session>` : This flag is used to turn the `PUT` into a lock acquisition
+* `?acquire=<session>` : This flag is used to turn the `PUT` into a lock acquisition
   operation. This is useful as it allows leader election to be built on top
   of Consul. If the lock is not held and the session is valid, this increments
   the `LockIndex` and sets the `Session` value of the key in addition to updating
@@ -129,7 +129,7 @@ be used with a `PUT` request:
   contents without having to give up the lock and reacquire it.
 
 * `?release=<session>` : This flag is used to turn the `PUT` into a lock release
-  operation. This is useful when paired with "?acquire=" as it allows clients to
+  operation. This is useful when paired with `?acquire=` as it allows clients to
   yield a lock. This will leave the `LockIndex` unmodified but will clear the associated
   `Session` of the key. The key must be held by this session to be unlocked.
 

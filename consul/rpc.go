@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -352,21 +353,21 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	return future.Response(), nil
 }
 
-// blockingRPC is used for queries that need to wait for a minimum index. This
-// is used to block and wait for changes.
-func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	watch state.Watch, run func() error) error {
+// queryFn is used to perform a query operation. If a re-query is needed, the
+// passed-in watch set will be used to block for changes. The passed-in state
+// store should be used (vs. calling fsm.State()) since the given state store
+// will be correctly watched for changes if the state store is restored from
+// a snapshot.
+type queryFn func(memdb.WatchSet, *state.StateStore) error
+
+// blockingQuery is used to process a potentially blocking query operation.
+func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+	fn queryFn) error {
 	var timeout *time.Timer
-	var notifyCh chan struct{}
 
 	// Fast path right to the non-blocking query.
 	if queryOpts.MinQueryIndex == 0 {
 		goto RUN_QUERY
-	}
-
-	// Make sure a watch was given if we were asked to block.
-	if watch == nil {
-		panic("no watch given for blocking query")
 	}
 
 	// Restrict the max query time, and ensure there is always one.
@@ -381,20 +382,7 @@ func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs
 
 	// Setup a query timeout.
 	timeout = time.NewTimer(queryOpts.MaxQueryTime)
-
-	// Setup the notify channel.
-	notifyCh = make(chan struct{}, 1)
-
-	// Ensure we tear down any watches on return.
-	defer func() {
-		timeout.Stop()
-		watch.Clear(notifyCh)
-	}()
-
-REGISTER_NOTIFY:
-	// Register the notification channel. This may be done multiple times if
-	// we haven't reached the target wait index.
-	watch.Wait(notifyCh)
+	defer timeout.Stop()
 
 RUN_QUERY:
 	// Update the query metadata.
@@ -409,14 +397,36 @@ RUN_QUERY:
 
 	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
-	err := run()
 
-	// Check for minimum query time.
+	// Operate on a consistent set of state. This makes sure that the
+	// abandon channel goes with the state that the caller is using to
+	// build watches.
+	state := s.fsm.State()
+
+	// We can skip all watch tracking if this isn't a blocking query.
+	var ws memdb.WatchSet
+	if queryOpts.MinQueryIndex > 0 {
+		ws = memdb.NewWatchSet()
+
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(state.AbandonCh())
+	}
+
+	// Block up to the timeout if we didn't see anything fresh.
+	err := fn(ws, state)
 	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
-		select {
-		case <-notifyCh:
-			goto REGISTER_NOTIFY
-		case <-timeout.C:
+		if expired := ws.Watch(timeout.C); !expired {
+			// If a restore may have woken us up then bail out from
+			// the query immediately. This is slightly race-ey since
+			// this might have been interrupted for other reasons,
+			// but it's OK to kick it back to the caller in either
+			// case.
+			select {
+			case <-state.AbandonCh():
+			default:
+				goto RUN_QUERY
+			}
 		}
 	}
 	return err

@@ -70,6 +70,11 @@ func (txn *Txn) writableIndex(table, index string) *iradix.Txn {
 	raw, _ := txn.rootTxn.Get(path)
 	indexTxn := raw.(*iradix.Tree).Txn()
 
+	// If we are the primary DB, enable mutation tracking. Snapshots should
+	// not notify, otherwise we will trigger watches on the primary DB when
+	// the writes will not be visible.
+	indexTxn.TrackMutate(txn.db.primary)
+
 	// Keep this open for the duration of the txn
 	txn.modified[key] = indexTxn
 	return indexTxn
@@ -352,13 +357,13 @@ func (txn *Txn) DeleteAll(table, index string, args ...interface{}) (int, error)
 	return num, nil
 }
 
-// First is used to return the first matching object for
-// the given constraints on the index
-func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, error) {
+// FirstWatch is used to return the first matching object for
+// the given constraints on the index along with the watch channel
+func (txn *Txn) FirstWatch(table, index string, args ...interface{}) (<-chan struct{}, interface{}, error) {
 	// Get the index value
 	indexSchema, val, err := txn.getIndexValue(table, index, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Get the index itself
@@ -366,18 +371,25 @@ func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, er
 
 	// Do an exact lookup
 	if indexSchema.Unique && val != nil && indexSchema.Name == index {
-		obj, ok := indexTxn.Get(val)
+		watch, obj, ok := indexTxn.GetWatch(val)
 		if !ok {
-			return nil, nil
+			return watch, nil, nil
 		}
-		return obj, nil
+		return watch, obj, nil
 	}
 
 	// Handle non-unique index by using an iterator and getting the first value
 	iter := indexTxn.Root().Iterator()
-	iter.SeekPrefix(val)
+	watch := iter.SeekPrefixWatch(val)
 	_, value, _ := iter.Next()
-	return value, nil
+	return watch, value, nil
+}
+
+// First is used to return the first matching object for
+// the given constraints on the index
+func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, error) {
+	_, val, err := txn.FirstWatch(table, index, args...)
+	return val, err
 }
 
 // LongestPrefix is used to fetch the longest prefix match for the given
@@ -468,6 +480,7 @@ func (txn *Txn) getIndexValue(table, index string, args ...interface{}) (*IndexS
 // ResultIterator is used to iterate over a list of results
 // from a Get query on a table.
 type ResultIterator interface {
+	WatchCh() <-chan struct{}
 	Next() interface{}
 }
 
@@ -488,11 +501,12 @@ func (txn *Txn) Get(table, index string, args ...interface{}) (ResultIterator, e
 	indexIter := indexRoot.Iterator()
 
 	// Seek the iterator to the appropriate sub-set
-	indexIter.SeekPrefix(val)
+	watchCh := indexIter.SeekPrefixWatch(val)
 
 	// Create an iterator
 	iter := &radixIterator{
-		iter: indexIter,
+		iter:    indexIter,
+		watchCh: watchCh,
 	}
 	return iter, nil
 }
@@ -506,10 +520,15 @@ func (txn *Txn) Defer(fn func()) {
 }
 
 // radixIterator is used to wrap an underlying iradix iterator.
-// This is much mroe efficient than a sliceIterator as we are not
+// This is much more efficient than a sliceIterator as we are not
 // materializing the entire view.
 type radixIterator struct {
-	iter *iradix.Iterator
+	iter    *iradix.Iterator
+	watchCh <-chan struct{}
+}
+
+func (r *radixIterator) WatchCh() <-chan struct{} {
+	return r.watchCh
 }
 
 func (r *radixIterator) Next() interface{} {

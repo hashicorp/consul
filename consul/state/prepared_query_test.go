@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_PreparedQuery_isUUID(t *testing.T) {
@@ -37,7 +38,8 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
-	idx, res, err := s.PreparedQueryGet(testUUID())
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.PreparedQueryGet(ws, testUUID())
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -50,6 +52,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	// Index is not updated if nothing is saved.
 	if idx := s.maxIndex("prepared-queries"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
+	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
 	}
 
 	// Build a legit-looking query with the most basic options.
@@ -71,6 +76,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Now register the service and remove the bogus session.
 	testRegisterNode(t, s, 1, "foo")
@@ -86,6 +94,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back out and verify it.
 	expected := &structs.PreparedQuery{
@@ -98,7 +109,8 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err := s.PreparedQueryGet(query.ID)
+	ws = memdb.NewWatchSet()
+	idx, actual, err := s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -119,11 +131,15 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Name = "test-query"
 	expected.ModifyIndex = 4
-	idx, actual, err = s.PreparedQueryGet(query.ID)
+	ws = memdb.NewWatchSet()
+	idx, actual, err = s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -145,6 +161,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Now make a session and try again.
 	session := &structs.Session{
@@ -162,11 +181,15 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Session = query.Session
 	expected.ModifyIndex = 6
-	idx, actual, err = s.PreparedQueryGet(query.ID)
+	ws = memdb.NewWatchSet()
+	idx, actual, err = s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -192,7 +215,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -220,7 +243,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -250,7 +273,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -266,6 +289,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Turn the query into a template with an empty name.
 	query.Name = ""
@@ -280,6 +306,9 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 9 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Name = ""
@@ -287,7 +316,8 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		Type: structs.QueryTemplateTypeNamePrefixMatch,
 	}
 	expected.ModifyIndex = 9
-	idx, actual, err = s.PreparedQueryGet(query.ID)
+	ws = memdb.NewWatchSet()
+	idx, actual, err = s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -316,7 +346,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -338,11 +368,15 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 11 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Name = "prefix"
 	expected.ModifyIndex = 11
-	idx, actual, err = s.PreparedQueryGet(query.ID)
+	ws = memdb.NewWatchSet()
+	idx, actual, err = s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -371,7 +405,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -401,7 +435,7 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 
 		// Sanity check to make sure it's not there.
-		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		idx, actual, err := s.PreparedQueryGet(nil, evil.ID)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -411,6 +445,10 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		if actual != nil {
 			t.Fatalf("bad: %v", actual)
 		}
+	}
+
+	if watchFired(ws) {
+		t.Fatalf("bad")
 	}
 }
 
@@ -460,7 +498,8 @@ func TestStateStore_PreparedQueryDelete(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err := s.PreparedQueryGet(query.ID)
+	ws := memdb.NewWatchSet()
+	idx, actual, err := s.PreparedQueryGet(ws, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -480,9 +519,12 @@ func TestStateStore_PreparedQueryDelete(t *testing.T) {
 	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Sanity check to make sure it's not there.
-	idx, actual, err = s.PreparedQueryGet(query.ID)
+	idx, actual, err = s.PreparedQueryGet(nil, query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -716,7 +758,8 @@ func TestStateStore_PreparedQueryList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Make sure nothing is returned for an empty query
-	idx, actual, err := s.PreparedQueryList()
+	ws := memdb.NewWatchSet()
+	idx, actual, err := s.PreparedQueryList(ws)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -761,6 +804,9 @@ func TestStateStore_PreparedQueryList(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
 
 	// Read it back and verify.
 	expected := structs.PreparedQueries{
@@ -787,7 +833,7 @@ func TestStateStore_PreparedQueryList(t *testing.T) {
 			},
 		},
 	}
-	idx, actual, err = s.PreparedQueryList()
+	idx, actual, err = s.PreparedQueryList(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -901,7 +947,7 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 
 		// Read the restored queries back out and verify that they
 		// match.
-		idx, actual, err := s.PreparedQueryList()
+		idx, actual, err := s.PreparedQueryList(nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -925,39 +971,4 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 			t.Fatalf("bad: %s", query.Service.Service)
 		}
 	}()
-}
-
-func TestStateStore_PreparedQuery_Watches(t *testing.T) {
-	s := testStateStore(t)
-
-	// Set up our test environment.
-	testRegisterNode(t, s, 1, "foo")
-	testRegisterService(t, s, 2, "foo", "redis")
-
-	query := &structs.PreparedQuery{
-		ID: testUUID(),
-		Service: structs.ServiceQuery{
-			Service: "redis",
-		},
-	}
-
-	// Call functions that update the queries table and make sure a watch
-	// fires each time.
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		if err := s.PreparedQuerySet(3, query); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		if err := s.PreparedQueryDelete(4, query.ID); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
-		restore := s.Restore()
-		if err := restore.PreparedQuery(query); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
-	})
 }

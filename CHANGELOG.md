@@ -1,20 +1,37 @@
-## 0.7.3 (UNRELEASED)
+## 0.7.4 (February 6, 2017)
+
+IMPROVEMENTS:
+
+* agent: Integrated gopsutil library to use built in host UUID as node ID, if available, instead of a randomly generated UUID. This makes it easier for other applications on the same host to generate the same node ID without coordinating with Consul. [GH-2697]
+* agent: Added a configuration option, `tls_min_version`, for setting the minimum allowed TLS version used for the HTTP API and RPC. [GH-2699]
+* agent: Added a `relay-factor` option to keyring operations to allow nodes to relay their response through N randomly-chosen other nodes in the cluster. [GH-2704]
+* build: Consul is now built with Go 1.7.5. [GH-2682]
+* dns: Add ability to lookup Consul agents by either their Node ID or Node Name through the node interface (e.g. DNS `(node-id|node-name).node.consul`). [GH-2702]
+
+BUG FIXES:
+
+* dns: Fixed an issue where SRV lookups for services on a node registered with non-IP addresses were missing the CNAME record in the additional section of the response. [GH-2695]
+
+## 0.7.3 (January 26, 2017)
 
 FEATURES:
 
 * **KV Import/Export CLI:** `consul kv export` and `consul kv import` can be used to move parts of the KV tree between disconnected consul clusters, using JSON as the intermediate representation. [GH-2633]
-* **Node Metadata:** Support for assigning user-defined metadata key/value pairs to nodes has been added. This can be viewed when looking up node info, and can be used to filter the results of various catalog and health endpoints. For more information, see the [Catalog](https://www.consul.io/docs/agent/http/catalog.html) and [Health](https://www.consul.io/docs/agent/http/health.html) endpoint documentation, as well as the [Node Meta](https://www.consul.io/docs/agent/options.html#_node_meta) section of the agent configuration. [GH-2654]
+* **Node Metadata:** Support for assigning user-defined metadata key/value pairs to nodes has been added. This can be viewed when looking up node info, and can be used to filter the results of various catalog and health endpoints. For more information, see the [Catalog](https://www.consul.io/docs/agent/http/catalog.html), [Health](https://www.consul.io/docs/agent/http/health.html), and [Prepared Query](https://www.consul.io/docs/agent/http/query.html) endpoint documentation, as well as the [Node Meta](https://www.consul.io/docs/agent/options.html#_node_meta) section of the agent configuration. [GH-2654]
 * **Node Identifiers:** Consul agents can now be configured with a unique identifier, or they will generate one at startup that will persist across agent restarts. This identifier is designed to represent a node across all time, even if the name or address of the node changes. Identifiers are currently only exposed in node-related endpoints, but they will be used in future versions of Consul to help manage Consul servers and the Raft quorum in a more robust manner, as the quorum is currently tracked via addresses, which can change. [GH-2661]
+* **Improved Blocking Queries:** Consul's [blocking query](https://www.consul.io/docs/agent/http.html#blocking-queries) implementation was improved to provide a much more fine-grained mechanism for detecting changes. For example, in previous versions of Consul blocking to wait on a change to a specific service would result in a wake up if any service changed. Now, wake ups are scoped to the specific service being watched, if possible. This support has been added to all endpoints that support blocking queries, nothing new is required to take advantage of this feature. [GH-2671]
 * **GCE auto-discovery:** New `-retry-join-gce` configuration options added to allow bootstrapping by automatically discovering Google Cloud instances with a given tag at startup. [GH-2570]
 
 IMPROVEMENTS:
 
+* build: Consul is now built with Go 1.7.4. [GH-2676]
 * cli: `consul kv get` now has a `-base64` flag to base 64 encode the value. [GH-2631]
 * cli: `consul kv put` now has a `-base64` flag for setting values which are base 64 encoded. [GH-2632]
 * ui: Added a notice that JS is required when viewing the web UI with JS disabled. [GH-2636]
 
 BUG FIXES:
 
+* agent: Redacted the AWS access key and secret key ID from the /v1/agent/self output so they are not disclosed. [GH-2677]
 * agent: Fixed a rare startup panic due to a Raft/Serf race condition. [GH-1899]
 * cli: Fixed a panic when an empty quoted argument was given to `consul kv put`. [GH-2635]
 * tests: Fixed a race condition with check mock's map usage. [GH-2578]
@@ -73,7 +90,7 @@ IMPROVEMENTS:
 * api: All session options can now be set when using `api.Lock()`. [GH-2372]
 * agent: Added the ability to bind Serf WAN and LAN to different interfaces than the general bind address. [GH-2007]
 * agent: Added a new `tls_skip_verify` configuration option for HTTP checks. [GH-1984]
-* agent: Consul is now built with Go 1.7.3. [GH-2281]
+* build: Consul is now built with Go 1.7.3. [GH-2281]
 
 BUG FIXES:
 

@@ -31,7 +31,6 @@ func (s *StateRestore) Coordinates(idx uint64, updates structs.Coordinates) erro
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	s.watches.Arm("coordinates")
 	return nil
 }
 
@@ -58,20 +57,22 @@ func (s *StateStore) CoordinateGetRaw(node string) (*coordinate.Coordinate, erro
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *StateStore) Coordinates() (uint64, structs.Coordinates, error) {
+func (s *StateStore) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("Coordinates")...)
+	idx := maxIndexTxn(tx, "coordinates")
 
 	// Pull all the coordinates.
-	coords, err := tx.Get("coordinates", "id")
+	iter, err := tx.Get("coordinates", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed coordinate lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
+
 	var results structs.Coordinates
-	for coord := coords.Next(); coord != nil; coord = coords.Next() {
+	for coord := iter.Next(); coord != nil; coord = iter.Next() {
 		results = append(results, coord.(*structs.Coordinate))
 	}
 	return idx, results, nil
@@ -111,7 +112,6 @@ func (s *StateStore) CoordinateBatchUpdate(idx uint64, updates structs.Coordinat
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["coordinates"].Notify() })
 	tx.Commit()
 	return nil
 }

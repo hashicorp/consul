@@ -81,7 +81,7 @@ KV Put Options:
   -modify-index=<int>     Unsigned integer representing the ModifyIndex of the
                           key. This is used in combination with the -cas flag.
 
-  -release                Forfeit the lock on the key at the givne path. This
+  -release                Forfeit the lock on the key at the given path. This
                           requires the -session flag to be set. The key must be
                           held by the session in order to be unlocked. The
                           default value is false.
