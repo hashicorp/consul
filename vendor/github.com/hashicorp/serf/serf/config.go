@@ -2,6 +2,7 @@ package serf
 
 import (
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -182,6 +183,12 @@ type Config struct {
 	// LogOutput is the location to write logs to. If this is not set,
 	// logs will go to stderr.
 	LogOutput io.Writer
+
+	// Logger is a custom logger which you provide. If Logger is set, it will use
+	// this for the internal logger. If Logger is not set, it will fall back to the
+	// behavior for using LogOutput. You cannot specify both LogOutput and Logger
+	// at the same time.
+	Logger *log.Logger
 
 	// SnapshotPath if provided is used to snapshot live nodes as well
 	// as lamport clock values. When Serf is started with a snapshot,

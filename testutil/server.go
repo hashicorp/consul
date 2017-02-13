@@ -13,6 +13,7 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -223,7 +224,7 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	if strings.HasPrefix(consulConfig.Addresses.HTTP, "unix://") {
 		httpAddr = consulConfig.Addresses.HTTP
 		trans := cleanhttp.DefaultTransport()
-		trans.Dial = func(_, _ string) (net.Conn, error) {
+		trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 			return net.Dial("unix", httpAddr[7:])
 		}
 		client = &http.Client{
@@ -298,7 +299,7 @@ func (s *TestServer) waitForLeader() {
 	var index int64
 	WaitForResult(func() (bool, error) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=10s", index))
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
 		resp, err := s.HttpClient.Get(url)
 		if err != nil {
 			return false, err

@@ -70,7 +70,6 @@ const (
 	compoundOverhead       = 2   // Assumed overhead per entry in compoundHeader
 	udpBufSize             = 65536
 	udpRecvBuf             = 2 * 1024 * 1024
-	udpSendBuf             = 1400
 	userMsgOverhead        = 1
 	blockingWarning        = 10 * time.Millisecond // Warn if a UDP packet takes this long to process
 	maxPushStateBytes      = 10 * 1024 * 1024
@@ -605,7 +604,7 @@ func (m *Memberlist) encodeAndSendMsg(to net.Addr, msgType messageType, msg inte
 // create a compoundMsg and piggy back other broadcasts
 func (m *Memberlist) sendMsg(to net.Addr, msg []byte) error {
 	// Check if we can piggy back any messages
-	bytesAvail := udpSendBuf - len(msg) - compoundHeaderOverhead
+	bytesAvail := m.config.UDPBufferSize - len(msg) - compoundHeaderOverhead
 	if m.config.EncryptionEnabled() {
 		bytesAvail -= encryptOverhead(m.encryptionVersion())
 	}

@@ -188,6 +188,12 @@ type Config struct {
 	// size of this determines the size of the queue which Memberlist will keep
 	// while UDP messages are handled.
 	HandoffQueueDepth int
+
+	// Maximum number of bytes that memberlist expects UDP messages to be. A safe
+	// value for this is typically 1400 bytes (which is the default.) However,
+	// depending on your network's MTU (Maximum Transmission Unit) you may be able
+	// to increase this.
+	UDPBufferSize int
 }
 
 // DefaultLANConfig returns a sane set of configurations for Memberlist.
@@ -228,6 +234,7 @@ func DefaultLANConfig() *Config {
 		DNSConfigPath: "/etc/resolv.conf",
 
 		HandoffQueueDepth: 1024,
+		UDPBufferSize:     1400,
 	}
 }
 

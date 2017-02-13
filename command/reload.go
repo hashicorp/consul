@@ -1,16 +1,15 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 	"strings"
 )
 
 // ReloadCommand is a Command implementation that instructs
 // the Consul agent to reload configurations
 type ReloadCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *ReloadCommand) Help() string {
@@ -20,29 +19,25 @@ Usage: consul reload
   Causes the agent to reload configurations. This can be used instead
   of sending the SIGHUP signal to the agent.
 
-Options:
+` + c.Command.Help()
 
-  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *ReloadCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("reload", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	c.Command.NewFlagSet(c)
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	if err := client.Reload(); err != nil {
+	if err := client.Agent().Reload(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error reloading: %s", err))
 		return 1
 	}

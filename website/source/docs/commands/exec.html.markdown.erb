@@ -37,14 +37,12 @@ The only required option is a command to execute. This is either given
 as trailing arguments, or by specifying `-`; STDIN will be read to
 completion as a script to evaluate.
 
-The list of available flags are:
+#### API Options
 
-* `-http-addr` - Address to the HTTP server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  `127.0.0.1:8500` which is the default HTTP address of a Consul agent.
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
 
-* `-datacenter` - Datacenter to query. Defaults to that of agent. In version
-  0.4, that is the only supported value.
+#### Command Options
 
 * `-prefix` - Key prefix in the KV store to use for storing request data.
   Defaults to `_rexec`.
@@ -67,7 +65,3 @@ The list of available flags are:
   to 200 msec.
 
 * `-verbose` - Enables verbose output.
-
-* `-token` - The ACL token to use during requests. This token must have access
-  to the prefix in the KV store as well as exec "write" access for the `_rexec`
-  event. Defaults to that of the agent.

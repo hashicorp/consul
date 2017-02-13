@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"unicode"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
@@ -53,9 +53,7 @@ const (
 
 // rExecConf is used to pass around configuration
 type rExecConf struct {
-	datacenter string
-	prefix     string
-	token      string
+	prefix string
 
 	foreignDC bool
 	localDC   string
@@ -118,8 +116,9 @@ type rExecExit struct {
 // ExecCommand is a Command implementation that is used to
 // do remote execution of commands
 type ExecCommand struct {
+	base.Command
+
 	ShutdownCh <-chan struct{}
-	Ui         cli.Ui
 	conf       rExecConf
 	client     *consulapi.Client
 	sessionID  string
@@ -127,24 +126,29 @@ type ExecCommand struct {
 }
 
 func (c *ExecCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("exec", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.StringVar(&c.conf.datacenter, "datacenter", "", "")
-	cmdFlags.StringVar(&c.conf.node, "node", "", "")
-	cmdFlags.StringVar(&c.conf.service, "service", "", "")
-	cmdFlags.StringVar(&c.conf.tag, "tag", "", "")
-	cmdFlags.StringVar(&c.conf.prefix, "prefix", rExecPrefix, "")
-	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait, "")
-	cmdFlags.DurationVar(&c.conf.wait, "wait", rExecQuietWait, "")
-	cmdFlags.BoolVar(&c.conf.verbose, "verbose", false, "")
-	cmdFlags.StringVar(&c.conf.token, "token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	f := c.Command.NewFlagSet(c)
+	f.StringVar(&c.conf.node, "node", "",
+		"Regular expression to filter on node names.")
+	f.StringVar(&c.conf.service, "service", "",
+		"Regular expression to filter on service instances.")
+	f.StringVar(&c.conf.tag, "tag", "",
+		"Regular expression to filter on service tags. Must be used with -service.")
+	f.StringVar(&c.conf.prefix, "prefix", rExecPrefix,
+		"Prefix in the KV store to use for request data.")
+	f.DurationVar(&c.conf.wait, "wait", rExecQuietWait,
+		"Period to wait with no responses before terminating execution.")
+	f.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait,
+		"Period to wait for replication before firing event. This is an "+
+			"optimization to allow stale reads to be performed.")
+	f.BoolVar(&c.conf.verbose, "verbose", false,
+		"Enables verbose output.")
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	// Join the commands to execute
-	c.conf.cmd = strings.Join(cmdFlags.Args(), " ")
+	c.conf.cmd = strings.Join(f.Args(), " ")
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
@@ -175,11 +179,7 @@ func (c *ExecCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := HTTPClientConfig(func(clientConf *consulapi.Config) {
-		clientConf.Address = *httpAddr
-		clientConf.Datacenter = c.conf.datacenter
-		clientConf.Token = c.conf.token
-	})
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -192,7 +192,7 @@ func (c *ExecCommand) Run(args []string) int {
 	c.client = client
 
 	// Check if this is a foreign datacenter
-	if c.conf.datacenter != "" && c.conf.datacenter != info["Config"]["Datacenter"] {
+	if c.Command.HTTPDatacenter() != "" && c.Command.HTTPDatacenter() != info["Config"]["Datacenter"] {
 		if c.conf.verbose {
 			c.Ui.Info("Remote exec in foreign datacenter, using Session TTL")
 		}
@@ -489,7 +489,7 @@ func (c *ExecCommand) createSessionForeign() (string, error) {
 	node := services[0].Node.Node
 	if c.conf.verbose {
 		c.Ui.Info(fmt.Sprintf("Binding session to remote node %s@%s",
-			node, c.conf.datacenter))
+			node, c.Command.HTTPDatacenter()))
 	}
 
 	session := c.client.Session()
@@ -618,22 +618,8 @@ Usage: consul exec [options] [-|command...]
   definitions. If a command is '-', stdin will be read until EOF
   and used as a script input.
 
-Options:
+` + c.Command.Help()
 
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-  -datacenter=""             Datacenter to dispatch in. Defaults to that of agent.
-  -prefix="_rexec"           Prefix in the KV store to use for request data
-  -node=""                   Regular expression to filter on node names
-  -service=""                Regular expression to filter on service instances
-  -tag=""                    Regular expression to filter on service tags. Must be used
-                             with -service.
-  -wait=2s                   Period to wait with no responses before terminating execution.
-  -wait-repl=200ms           Period to wait for replication before firing event. This is an
-                             optimization to allow stale reads to be performed.
-  -verbose                   Enables verbose output
-  -token=""                  ACL token to use during requests. Defaults to that
-                             of the agent.
-`
 	return strings.TrimSpace(helpText)
 }
 

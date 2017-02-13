@@ -8,8 +8,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testSnapshotInspectCommand(t *testing.T) (*cli.MockUi, *SnapshotInspectCommand) {
+	ui := new(cli.MockUi)
+	return ui, &SnapshotInspectCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetNone,
+		},
+	}
+}
 
 func TestSnapshotInspectCommand_implements(t *testing.T) {
 	var _ cli.Command = &SnapshotInspectCommand{}
@@ -20,8 +31,7 @@ func TestSnapshotInspectCommand_noTabs(t *testing.T) {
 }
 
 func TestSnapshotInspectCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &SnapshotInspectCommand{Ui: ui}
+	ui, c := testSnapshotInspectCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -63,8 +73,6 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-
 	dir, err := ioutil.TempDir("", "snapshot")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -93,10 +101,10 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 	}
 
 	// Inspect the snapshot
-	inspect := &SnapshotInspectCommand{Ui: ui}
+	ui, c := testSnapshotInspectCommand(t)
 	args := []string{file}
 
-	code := inspect.Run(args)
+	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}

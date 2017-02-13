@@ -2,10 +2,21 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
 )
+
+func testMembersCommand(t *testing.T) (*cli.MockUi, *MembersCommand) {
+	ui := new(cli.MockUi)
+	return ui, &MembersCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetClientHTTP,
+		},
+	}
+}
 
 func TestMembersCommand_implements(t *testing.T) {
 	var _ cli.Command = &MembersCommand{}
@@ -15,9 +26,8 @@ func TestMembersCommandRun(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &MembersCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr}
+	ui, c := testMembersCommand(t)
+	args := []string{"-http-addr=" + a1.httpAddr}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -44,9 +54,8 @@ func TestMembersCommandRun_WAN(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &MembersCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr, "-wan"}
+	ui, c := testMembersCommand(t)
+	args := []string{"-http-addr=" + a1.httpAddr, "-wan"}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -62,10 +71,9 @@ func TestMembersCommandRun_statusFilter(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &MembersCommand{Ui: ui}
+	ui, c := testMembersCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
+		"-http-addr=" + a1.httpAddr,
 		"-status=a.*e",
 	}
 
@@ -83,10 +91,9 @@ func TestMembersCommandRun_statusFilter_failed(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &MembersCommand{Ui: ui}
+	ui, c := testMembersCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
+		"-http-addr=" + a1.httpAddr,
 		"-status=(fail|left)",
 	}
 

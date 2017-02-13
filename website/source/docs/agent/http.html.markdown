@@ -45,7 +45,10 @@ to wait for any changes subsequent to that index.
 In addition to `index`, endpoints that support blocking will also honor a `wait`
 parameter specifying a maximum duration for the blocking request. This is limited to
 10 minutes. If not set, the wait time defaults to 5 minutes. This value can be specified
-in the form of "10s" or "5m" (i.e., 10 seconds or 5 minutes, respectively).
+in the form of "10s" or "5m" (i.e., 10 seconds or 5 minutes, respectively). A small random
+amount of additional wait time is added to the supplied maximum `wait` time to spread out
+the wake up time of any concurrent requests. This adds up to `wait / 16` additional time
+to the maximum duration.
 
 A critical note is that the return of a blocking request is **no guarantee** of a change. It
 is possible that the timeout was reached or that there was an idempotent write that does

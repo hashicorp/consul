@@ -19,7 +19,7 @@ func NewRouteInfo() (routeInfo, error) {
 	}, nil
 }
 
-// GetDefaultInterfaceName returns the interace name attached to the default
+// GetDefaultInterfaceName returns the interface name attached to the default
 // route on the default interface.
 func (ri routeInfo) GetDefaultInterfaceName() (string, error) {
 	ifNameOut, err := exec.Command(cmds["netstat"][0], cmds["netstat"][1:]...).Output()

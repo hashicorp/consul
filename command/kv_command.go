@@ -3,13 +3,14 @@ package command
 import (
 	"strings"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 // KVCommand is a Command implementation that just shows help for
 // the subcommands nested below it.
 type KVCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *KVCommand) Run(args []string) int {

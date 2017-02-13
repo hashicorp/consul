@@ -1,24 +1,24 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
+	"flag"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/ryanuber/columnize"
 )
 
 // OperatorCommand is used to provide various low-level tools for Consul
 // operators.
 type OperatorCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *OperatorCommand) Help() string {
 	helpText := `
-Usage: consul operator <subcommand> [common options] [action] [options]
+Usage: consul operator <subcommand> [action] [options]
 
   Provides cluster-level tools for Consul operators, such as interacting with
   the Raft subsystem. NOTE: Use this command with extreme caution, as improper
@@ -30,11 +30,6 @@ Usage: consul operator <subcommand> [common options] [action] [options]
 
   Run consul operator <subcommand> with no arguments for help on that
   subcommand.
-
-Common Options:
-
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-  -token=""                  ACL token to use. Defaults to that of agent.
 
 Subcommands:
 
@@ -73,17 +68,15 @@ func (c *OperatorCommand) Synopsis() string {
 }
 
 const raftHelp = `
-Raft Subcommand Actions:
+Operator Raft Subcommand:
 
-  raft -list-peers -stale=[true|false]
+  The raft subcommand can be used in two modes:
+
+  consul operator raft -list-peers
 
      Displays the current Raft peer configuration.
 
-     The -stale argument defaults to "false" which means the leader provides the
-     result. If the cluster is in an outage state without a leader, you may need
-     to set -stale to "true" to get the configuration from a non-leader server.
-
-  raft -remove-peer -address="IP:port"
+  consul operator raft -remove-peer -address="IP:port"
 
      Removes Consul server with given -address from the Raft configuration.
 
@@ -93,33 +86,39 @@ Raft Subcommand Actions:
      affects the Raft quorum. If the server still shows in the output of the
      "consul members" command, it is preferable to clean up by simply running
      "consul force-leave" instead of this command.
+
 `
 
 // raft handles the raft subcommands.
 func (c *OperatorCommand) raft(args []string) error {
-	cmdFlags := flag.NewFlagSet("raft", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+	f := c.Command.NewFlagSet(c)
 
 	// Parse verb arguments.
 	var listPeers, removePeer bool
-	cmdFlags.BoolVar(&listPeers, "list-peers", false, "")
-	cmdFlags.BoolVar(&removePeer, "remove-peer", false, "")
+	f.BoolVar(&listPeers, "list-peers", false,
+		"If this flag is provided, the current Raft peer configuration will be "+
+			"displayed. If the cluster is in an outage state without a leader, you may need "+
+			"to set -stale to 'true' to get the configuration from a non-leader server.")
+	f.BoolVar(&removePeer, "remove-peer", false,
+		"If this flag is provided, the Consul server with the given -address will be "+
+			"removed from the Raft configuration.")
 
 	// Parse other arguments.
-	var stale bool
-	var address, token string
-	cmdFlags.StringVar(&address, "address", "", "")
-	cmdFlags.BoolVar(&stale, "stale", false, "")
-	cmdFlags.StringVar(&token, "token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	var address string
+	f.StringVar(&address, "address", "",
+		"The address to remove from the Raft configuration.")
+
+	if err := c.Command.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			c.Ui.Output("")
+			c.Ui.Output(strings.TrimSpace(raftHelp + c.Command.Help()))
+			return nil
+		}
 		return err
 	}
 
 	// Set up a client.
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		return fmt.Errorf("error connecting to Consul agent: %s", err)
 	}
@@ -129,8 +128,7 @@ func (c *OperatorCommand) raft(args []string) error {
 	if listPeers {
 		// Fetch the current configuration.
 		q := &api.QueryOptions{
-			AllowStale: stale,
-			Token:      token,
+			AllowStale: c.Command.HTTPStale(),
 		}
 		reply, err := operator.RaftGetConfiguration(q)
 		if err != nil {
@@ -156,17 +154,14 @@ func (c *OperatorCommand) raft(args []string) error {
 		}
 
 		// Try to kick the peer.
-		w := &api.WriteOptions{
-			Token: token,
-		}
-		if err := operator.RaftRemovePeerByAddress(address, w); err != nil {
+		if err := operator.RaftRemovePeerByAddress(address, nil); err != nil {
 			return err
 		}
 		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
 	} else {
 		c.Ui.Output(c.Help())
 		c.Ui.Output("")
-		c.Ui.Output(strings.TrimSpace(raftHelp))
+		c.Ui.Output(strings.TrimSpace(raftHelp + c.Command.Help()))
 	}
 
 	return nil

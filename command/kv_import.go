@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,13 +12,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 // KVImportCommand is a Command implementation that is used to import
 // a KV tree stored as JSON
 type KVImportCommand struct {
-	Ui cli.Ui
+	base.Command
 
 	// testStdin is the input for testing.
 	testStdin io.Reader
@@ -50,27 +49,20 @@ Usage: consul kv import [DATA]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText + `
+` + c.Command.Help()
 
-KV Import Options:
-
-  None.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *KVImportCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("import", flag.ContinueOnError)
+	f := c.Command.NewFlagSet(c)
 
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	// Check for arg validation
-	args = cmdFlags.Args()
+	args = f.Args()
 	data, err := c.dataFromArgs(args)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error! %s", err))
@@ -78,10 +70,7 @@ func (c *KVImportCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -106,12 +95,7 @@ func (c *KVImportCommand) Run(args []string) int {
 			Value: value,
 		}
 
-		wo := &api.WriteOptions{
-			Datacenter: *datacenter,
-			Token:      *token,
-		}
-
-		if _, err := client.KV().Put(pair, wo); err != nil {
+		if _, err := client.KV().Put(pair, nil); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
 			return 1
 		}

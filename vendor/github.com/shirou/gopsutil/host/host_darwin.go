@@ -59,7 +59,7 @@ func Info() (*InfoStat, error) {
 
 	values, err := common.DoSysctrl("kern.uuid")
 	if err == nil && len(values) == 1 && values[0] != "" {
-		ret.HostID = values[0]
+		ret.HostID = strings.ToLower(values[0])
 	}
 
 	return ret, nil

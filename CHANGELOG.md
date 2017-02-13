@@ -1,3 +1,26 @@
+## 0.8.0 (UNRELEASED)
+
+BREAKING CHANGES:
+
+FEATURES:
+
+* **Validate command:** To provide consistency across our products, the `configtest` command has been deprecated and replaced with the `validate` command (to match Nomad and Terraform). The `configtest` command will be removed in Consul 0.9. [GH-2732]
+
+IMPROVEMENTS:
+
+* agent: Fixed a missing case where gossip would stop flowing to dead nodes for a short while. [GH-2722]
+* agent: Uses the go-sockaddr library to look for private IP addresses, which prefers non-loopback private addresses over loopback ones when trying to automatically determine the advertise address. [GH-2722]
+* agent: Properly seeds Go's random number generator using the seed library. [GH-2722]
+* agent: Serf snapshots no longer have the executable bit set on the file. [GH-2722]
+* cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
+* cli: Updated go-cleanhttp library for better HTTP connection handling between CLI commands and the Consul agent (tunes reuse settings). [GH-2735]
+
+BUG FIXES:
+
+* agent: Fixed an issue with consul watch not working when http was listening on a unix socket. [GH-2385]
+* cli: Fixed `kv` commands not reading the `CONSUL_HTTP_TOKEN` environment variable. [GH-2566]
+* cli: Fixed an issue where prefixing an address with a protocol (such as 'http://' or 'https://') in `-http-addr` or `CONSUL_HTTP_ADDR` would give an error.
+
 ## 0.7.4 (February 6, 2017)
 
 IMPROVEMENTS:

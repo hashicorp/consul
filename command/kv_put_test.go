@@ -11,20 +11,30 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
+
+func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
+	ui := new(cli.MockUi)
+	return ui, &KVPutCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetHTTP,
+		},
+	}
+}
 
 func TestKVPutCommand_implements(t *testing.T) {
 	var _ cli.Command = &KVPutCommand{}
 }
 
 func TestKVPutCommand_noTabs(t *testing.T) {
-	assertNoTabs(t, new(KVPutCommand))
+	assertNoTabs(t, new(KVDeleteCommand))
 }
 
 func TestKVPutCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -78,8 +88,7 @@ func TestKVPutCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,
@@ -106,8 +115,7 @@ func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,
@@ -134,8 +142,7 @@ func TestKVPutCommand_RunBase64(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	const encodedString = "aGVsbG8gd29ybGQK"
 
@@ -170,8 +177,7 @@ func TestKVPutCommand_File(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	f, err := ioutil.TempFile("", "kv-put-command-file")
 	if err != nil {
@@ -203,8 +209,7 @@ func TestKVPutCommand_File(t *testing.T) {
 }
 
 func TestKVPutCommand_FileNoExist(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"foo", "@/nope/definitely/not-a-real-file.txt",
@@ -228,11 +233,8 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 
 	stdinR, stdinW := io.Pipe()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{
-		Ui:        ui,
-		testStdin: stdinR,
-	}
+	ui, c := testKVPutCommand(t)
+	c.testStdin = stdinR
 
 	go func() {
 		stdinW.Write([]byte("bar"))
@@ -264,8 +266,7 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,
@@ -292,8 +293,7 @@ func TestKVPutCommand_Flags(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,
@@ -330,8 +330,7 @@ func TestKVPutCommand_CAS(t *testing.T) {
 		t.Fatalf("err: %#v", err)
 	}
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"-http-addr=" + srv.httpAddr,

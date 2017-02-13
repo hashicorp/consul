@@ -141,29 +141,7 @@ learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
 
 ## Auto-joining a Cluster on Start
-Ideally, whenever a new node is brought up in your datacenter, it should
-automatically join the Consul cluster without human intervention. To
-accomplish this, you can use
-[Atlas by HashiCorp](https://atlas.hashicorp.com?utm_source=oss&utm_medium=getting-started-join&utm_campaign=consul)
-and the [`-atlas-join` flag](/docs/agent/options.html#_atlas_join).
-An example configuration is shown below:
-
-```text
-$ consul agent -atlas-join \
-  -atlas=ATLAS_USERNAME/infrastructure \
-  -atlas-token="YOUR_ATLAS_TOKEN"
-```
-To get an Atlas username and token,
-[create an account](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started-join&utm_campaign=consul)
-and replace the respective values in your Consul configuration with your
-credentials. Now, whenever a new node comes up with a Consul agent, it
-will automatically join your Consul cluster without any hardcoded
-configuration.
-
-Alternatively, you can join a cluster at startup using the
-[`-join` flag](https://www.consul.io/docs/agent/options.html#_join) or
-[`start_join` setting](https://www.consul.io/docs/agent/options.html#start_join)
-with hardcoded addresses of other known Consul agents.
+Ideally, whenever a new node is brought up in your datacenter, it should automatically join the Consul cluster without human intervention. Consul facilitates auto-join by enabling the auto-discovery of instances in AWS or Google Cloud with a given tag key/value. To use the integration, add the [`retry_join_ec2`](/docs/agent/options.html?#retry_join_ec2) or the [`retry_join_gce`](/docs/agent/options.html?#retry_join_gce) nested object to your Consul configuration file. This will allow a new node to join the cluster without any hardcoded configuration. Alternatively, you can join a cluster at startup using the [`-join` flag](/docs/agent/options.html#_join) or [`start_join` setting](/docs/agent/options.html#start_join) with hardcoded addresses of other known Consul agents.
 
 ## Querying Nodes
 

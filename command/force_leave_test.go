@@ -3,12 +3,23 @@ package command
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
 )
+
+func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
+	ui := new(cli.MockUi)
+	return ui, &ForceLeaveCommand{
+		Command: base.Command{
+			Ui:    ui,
+			Flags: base.FlagSetClientHTTP,
+		},
+	}
+}
 
 func TestForceLeaveCommand_implements(t *testing.T) {
 	var _ cli.Command = &ForceLeaveCommand{}
@@ -29,10 +40,9 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	// Forcibly shutdown a2 so that it appears "failed" in a1
 	a2.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &ForceLeaveCommand{Ui: ui}
+	ui, c := testForceLeaveCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
+		"-http-addr=" + a1.httpAddr,
 		a2.config.NodeName,
 	}
 
@@ -57,8 +67,8 @@ func TestForceLeaveCommandRun(t *testing.T) {
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
 	ui := new(cli.MockUi)
-	c := &ForceLeaveCommand{Ui: ui}
-	args := []string{"-rpc-addr=foo"}
+	ui, c := testForceLeaveCommand(t)
+	args := []string{"-http-addr=foo"}
 
 	code := c.Run(args)
 	if code != 1 {

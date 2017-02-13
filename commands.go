@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -31,136 +32,202 @@ func init() {
 
 		"configtest": func() (cli.Command, error) {
 			return &command.ConfigTestCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"event": func() (cli.Command, error) {
 			return &command.EventCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"exec": func() (cli.Command, error) {
 			return &command.ExecCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"force-leave": func() (cli.Command, error) {
 			return &command.ForceLeaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
-		"kv": func() (cli.Command, error) {
-			return &command.KVCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv delete": func() (cli.Command, error) {
-			return &command.KVDeleteCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv get": func() (cli.Command, error) {
-			return &command.KVGetCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv put": func() (cli.Command, error) {
-			return &command.KVPutCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv export": func() (cli.Command, error) {
-			return &command.KVExportCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"kv import": func() (cli.Command, error) {
-			return &command.KVImportCommand{
-				Ui: ui,
+		"info": func() (cli.Command, error) {
+			return &command.InfoCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
 			}, nil
 		},
 
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
 			}, nil
 		},
 
 		"keygen": func() (cli.Command, error) {
 			return &command.KeygenCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
 			}, nil
 		},
 
 		"keyring": func() (cli.Command, error) {
 			return &command.KeyringCommand{
-				Ui: ui,
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetClientHTTP,
+				},
+			}, nil
+		},
+
+		"kv": func() (cli.Command, error) {
+			return &command.KVCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetNone,
+				},
+			}, nil
+		},
+
+		"kv delete": func() (cli.Command, error) {
+			return &command.KVDeleteCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv get": func() (cli.Command, error) {
+			return &command.KVGetCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv put": func() (cli.Command, error) {
+			return &command.KVPutCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv export": func() (cli.Command, error) {
+			return &command.KVExportCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
+			}, nil
+		},
+
+		"kv import": func() (cli.Command, error) {
+			return &command.KVImportCommand{
+				Command: base.Command{
+					Ui:    ui,
+					Flags: base.FlagSetHTTP,
+				},
 			}, nil
 		},
 
 		"leave": func() (cli.Command, error) {
 			return &command.LeaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"lock": func() (cli.Command, error) {
 			return &command.LockCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"maint": func() (cli.Command, error) {
 			return &command.MaintCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"members": func() (cli.Command, error) {
 			return &command.MembersCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"monitor": func() (cli.Command, error) {
 			return &command.MonitorCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
-				Ui: ui,
-			}, nil
-		},
-
-		"info": func() (cli.Command, error) {
-			return &command.InfoCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"reload": func() (cli.Command, error) {
 			return &command.ReloadCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"rtt": func() (cli.Command, error) {
 			return &command.RTTCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetClientHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -172,19 +239,37 @@ func init() {
 
 		"snapshot restore": func() (cli.Command, error) {
 			return &command.SnapshotRestoreCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot save": func() (cli.Command, error) {
 			return &command.SnapshotSaveCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
 		"snapshot inspect": func() (cli.Command, error) {
 			return &command.SnapshotInspectCommand{
-				Ui: ui,
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"validate": func() (cli.Command, error) {
+			return &command.ValidateCommand{
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 			}, nil
 		},
 
@@ -198,7 +283,10 @@ func init() {
 		"watch": func() (cli.Command, error) {
 			return &command.WatchCommand{
 				ShutdownCh: makeShutdownCh(),
-				Ui:         ui,
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
 			}, nil
 		},
 	}

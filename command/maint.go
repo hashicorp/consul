@@ -1,18 +1,16 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/command/base"
 )
 
 // MaintCommand is a Command implementation that enables or disables
 // node or service maintenance mode.
 type MaintCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *MaintCommand) Help() string {
@@ -40,15 +38,8 @@ Usage: consul maint [options]
   If no arguments are given, the agent's maintenance status will be shown.
   This will return blank if nothing is currently under maintenance.
 
-Options:
+` + c.Command.Help()
 
-  -enable                    Enable maintenance mode.
-  -disable                   Disable maintenance mode.
-  -reason=<string>           Text string describing the maintenance reason
-  -service=<serviceID>       Control maintenance mode for a specific service ID
-  -token=""                  ACL token to use. Defaults to that of agent.
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
@@ -57,19 +48,15 @@ func (c *MaintCommand) Run(args []string) int {
 	var disable bool
 	var reason string
 	var serviceID string
-	var token string
 
-	cmdFlags := flag.NewFlagSet("maint", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+	f := c.Command.NewFlagSet(c)
 
-	cmdFlags.BoolVar(&enable, "enable", false, "enable maintenance mode")
-	cmdFlags.BoolVar(&disable, "disable", false, "disable maintenance mode")
-	cmdFlags.StringVar(&reason, "reason", "", "maintenance reason")
-	cmdFlags.StringVar(&serviceID, "service", "", "service maintenance")
-	cmdFlags.StringVar(&token, "token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
+	f.BoolVar(&enable, "enable", false, "Enable maintenance mode.")
+	f.BoolVar(&disable, "disable", false, "Disable maintenance mode.")
+	f.StringVar(&reason, "reason", "", "Text describing the maintenance reason.")
+	f.StringVar(&serviceID, "service", "", "Control maintenance mode for a specific service ID.")
 
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
@@ -88,10 +75,7 @@ func (c *MaintCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

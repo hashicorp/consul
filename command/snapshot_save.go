@@ -1,21 +1,20 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/mitchellh/cli"
 )
 
 // SnapshotSaveCommand is a Command implementation that is used to save the
 // state of the Consul servers for disaster recovery.
 type SnapshotSaveCommand struct {
-	Ui cli.Ui
+	base.Command
 }
 
 func (c *SnapshotSaveCommand) Help() string {
@@ -40,25 +39,21 @@ Usage: consul snapshot save [options] FILE
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText
+` + c.Command.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SnapshotSaveCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.Command.NewFlagSet(c)
+
+	if err := c.Command.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
 		c.Ui.Error("Missing FILE argument")
@@ -71,11 +66,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Datacenter = *datacenter
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.Command.HTTPClient()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -83,7 +74,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 
 	// Take the snapshot.
 	snap, qm, err := client.Snapshot().Save(&api.QueryOptions{
-		AllowStale: *stale,
+		AllowStale: c.Command.HTTPStale(),
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error saving snapshot: %s", err))
