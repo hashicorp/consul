@@ -71,7 +71,7 @@ type Txn struct {
 	// trackOverflow flag, which will cause us to use a more expensive
 	// algorithm to perform the notifications. Mutation tracking is only
 	// performed if trackMutate is true.
-	trackChannels map[*chan struct{}]struct{}
+	trackChannels map[chan struct{}]struct{}
 	trackOverflow bool
 	trackMutate   bool
 }
@@ -97,22 +97,28 @@ func (t *Txn) TrackMutate(track bool) {
 // overflow flag if we can no longer track any more. This limits the amount of
 // state that will accumulate during a transaction and we have a slower algorithm
 // to switch to if we overflow.
-func (t *Txn) trackChannel(ch *chan struct{}) {
+func (t *Txn) trackChannel(ch chan struct{}) {
 	// In overflow, make sure we don't store any more objects.
 	if t.trackOverflow {
 		return
 	}
 
-	// Create the map on the fly when we need it.
-	if t.trackChannels == nil {
-		t.trackChannels = make(map[*chan struct{}]struct{})
-	}
-
 	// If this would overflow the state we reject it and set the flag (since
 	// we aren't tracking everything that's required any longer).
 	if len(t.trackChannels) >= defaultModifiedCache {
+		// Mark that we are in the overflow state
 		t.trackOverflow = true
+
+		// Clear the map so that the channels can be garbage collected. It is
+		// safe to do this since we have already overflowed and will be using
+		// the slow notify algorithm.
+		t.trackChannels = nil
 		return
+	}
+
+	// Create the map on the fly when we need it.
+	if t.trackChannels == nil {
+		t.trackChannels = make(map[chan struct{}]struct{})
 	}
 
 	// Otherwise we are good to track it.
@@ -134,25 +140,31 @@ func (t *Txn) writeNode(n *Node, forLeafUpdate bool) *Node {
 	}
 
 	// If this node has already been modified, we can continue to use it
-	// during this transaction. If a node gets kicked out of cache then we
-	// *may* notify for its mutation if we end up copying the node again,
-	// but we don't make any guarantees about notifying for intermediate
-	// mutations that were never exposed outside of a transaction.
+	// during this transaction. We know that we don't need to track it for
+	// a node update since the node is writable, but if this is for a leaf
+	// update we track it, in case the initial write to this node didn't
+	// update the leaf.
 	if _, ok := t.writable.Get(n); ok {
+		if t.trackMutate && forLeafUpdate && n.leaf != nil {
+			t.trackChannel(n.leaf.mutateCh)
+		}
 		return n
 	}
 
 	// Mark this node as being mutated.
 	if t.trackMutate {
-		t.trackChannel(&(n.mutateCh))
+		t.trackChannel(n.mutateCh)
 	}
 
 	// Mark its leaf as being mutated, if appropriate.
 	if t.trackMutate && forLeafUpdate && n.leaf != nil {
-		t.trackChannel(&(n.leaf.mutateCh))
+		t.trackChannel(n.leaf.mutateCh)
 	}
 
-	// Copy the existing node.
+	// Copy the existing node. If you have set forLeafUpdate it will be
+	// safe to replace this leaf with another after you get your node for
+	// writing. You MUST replace it, because the channel associated with
+	// this leaf will be closed when this transaction is committed.
 	nc := &Node{
 		mutateCh: make(chan struct{}),
 		leaf:     n.leaf,
@@ -169,6 +181,29 @@ func (t *Txn) writeNode(n *Node, forLeafUpdate bool) *Node {
 	// Mark this node as writable.
 	t.writable.Add(nc, nil)
 	return nc
+}
+
+// mergeChild is called to collapse the given node with its child. This is only
+// called when the given node is not a leaf and has a single edge.
+func (t *Txn) mergeChild(n *Node) {
+	// Mark the child node as being mutated since we are about to abandon
+	// it. We don't need to mark the leaf since we are retaining it if it
+	// is there.
+	e := n.edges[0]
+	child := e.node
+	if t.trackMutate {
+		t.trackChannel(child.mutateCh)
+	}
+
+	// Merge the nodes.
+	n.prefix = concat(n.prefix, child.prefix)
+	n.leaf = child.leaf
+	if len(child.edges) != 0 {
+		n.edges = make([]edge, len(child.edges))
+		copy(n.edges, child.edges)
+	} else {
+		n.edges = nil
+	}
 }
 
 // insert does a recursive insertion
@@ -285,7 +320,7 @@ func (t *Txn) delete(parent, n *Node, search []byte) (*Node, *leafNode) {
 
 		// Check if this node should be merged
 		if n != t.root && len(nc.edges) == 1 {
-			nc.mergeChild()
+			t.mergeChild(nc)
 		}
 		return nc, n.leaf
 	}
@@ -305,7 +340,7 @@ func (t *Txn) delete(parent, n *Node, search []byte) (*Node, *leafNode) {
 	}
 
 	// Copy this node. WATCH OUT - it's safe to pass "false" here because we
-	// will only ADD a leaf via nc.mergeChilde() if there isn't one due to
+	// will only ADD a leaf via nc.mergeChild() if there isn't one due to
 	// the !nc.isLeaf() check in the logic just below. This is pretty subtle,
 	// so be careful if you change any of the logic here.
 	nc := t.writeNode(n, false)
@@ -314,7 +349,7 @@ func (t *Txn) delete(parent, n *Node, search []byte) (*Node, *leafNode) {
 	if newChild.leaf == nil && len(newChild.edges) == 0 {
 		nc.delEdge(label)
 		if n != t.root && len(nc.edges) == 1 && !nc.isLeaf() {
-			nc.mergeChild()
+			t.mergeChild(nc)
 		}
 	} else {
 		nc.edges[idx].node = newChild
@@ -371,15 +406,16 @@ func (t *Txn) GetWatch(k []byte) (<-chan struct{}, interface{}, bool) {
 // Commit is used to finalize the transaction and return a new tree. If mutation
 // tracking is turned on then notifications will also be issued.
 func (t *Txn) Commit() *Tree {
-	nt := t.commit()
+	nt := t.CommitOnly()
 	if t.trackMutate {
-		t.notify()
+		t.Notify()
 	}
 	return nt
 }
 
-// commit is an internal helper for Commit(), useful for unit tests.
-func (t *Txn) commit() *Tree {
+// CommitOnly is used to finalize the transaction and return a new tree, but
+// does not issue any notifications until Notify is called.
+func (t *Txn) CommitOnly() *Tree {
 	nt := &Tree{t.root, t.size}
 	t.writable = nil
 	return nt
@@ -448,16 +484,21 @@ func (t *Txn) slowNotify() {
 	}
 }
 
-// notify is used along with TrackMutate to trigger notifications. This should
-// only be done once a transaction is committed.
-func (t *Txn) notify() {
+// Notify is used along with TrackMutate to trigger notifications. This must
+// only be done once a transaction is committed via CommitOnly, and it is called
+// automatically by Commit.
+func (t *Txn) Notify() {
+	if !t.trackMutate {
+		return
+	}
+
 	// If we've overflowed the tracking state we can't use it in any way and
 	// need to do a full tree compare.
 	if t.trackOverflow {
 		t.slowNotify()
 	} else {
 		for ch := range t.trackChannels {
-			close(*ch)
+			close(ch)
 		}
 	}
 
