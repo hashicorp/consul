@@ -50,7 +50,7 @@ clean:
 
 .PHONY: gen
 gen:
-	go generate ./core/...
+	go generate coredns.go
 
 .PHONY: distclean
 distclean: clean
