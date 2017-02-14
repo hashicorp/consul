@@ -25,7 +25,7 @@ BUG FIXES:
 
 BUG FIXES:
 
-* server: Fixed a rare but serious issue where Consul servers could panic after a specific series of large delete operations, such in the KV store or for sessions expiring. [GH-2724]
+* server: Fixed a rare but serious issue where Consul servers could panic after a specific sequence of large delete operations, such in the KV store or for sessions expiring. [GH-2724]
 
 ## 0.7.4 (February 6, 2017)
 
