@@ -91,24 +91,6 @@ func (n *Node) delEdge(label byte) {
 	}
 }
 
-func (n *Node) mergeChild() {
-	e := n.edges[0]
-	child := e.node
-	n.prefix = concat(n.prefix, child.prefix)
-	if child.leaf != nil {
-		n.leaf = new(leafNode)
-		*n.leaf = *child.leaf
-	} else {
-		n.leaf = nil
-	}
-	if len(child.edges) != 0 {
-		n.edges = make([]edge, len(child.edges))
-		copy(n.edges, child.edges)
-	} else {
-		n.edges = nil
-	}
-}
-
 func (n *Node) GetWatch(k []byte) (<-chan struct{}, interface{}, bool) {
 	search := k
 	watch := n.mutateCh

@@ -444,10 +444,10 @@
 			"revisionTime": "2017-02-11T01:34:15Z"
 		},
 		{
-			"checksumSHA1": "jPxyofQxI1PRPq6LPc6VlcRn5fI=",
+			"checksumSHA1": "zvmksNyW6g+Fd/bywd4vcn8rp+M=",
 			"path": "github.com/hashicorp/go-immutable-radix",
-			"revision": "76b5f4e390910df355bfb9b16b41899538594a05",
-			"revisionTime": "2017-01-13T02:29:29Z"
+			"revision": "d0852f9e7b91ec9633735052bdab00bf802b353c",
+			"revisionTime": "2017-02-14T00:45:45Z"
 		},
 		{
 			"checksumSHA1": "K8Fsgt1llTXP0EwqdBzvSGdKOKc=",
