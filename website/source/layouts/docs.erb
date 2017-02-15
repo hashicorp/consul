@@ -15,7 +15,7 @@
 
 					<li<%= sidebar_current("docs-upgrading-compat") %>>
 					<a href="/docs/compatibility.html">Compatibility Promise</a>
-                                        </li>
+					</li>
 
 					<li<%= sidebar_current("docs-upgrading-specific") %>>
 					<a href="/docs/upgrade-specific.html">Specific Version Details</a>
@@ -141,6 +141,19 @@
 
 					<li<%= sidebar_current("docs-commands-operator") %>>
 					<a href="/docs/commands/operator.html">operator</a>
+					<ul class="subnav">
+						<li<%= sidebar_current("docs-commands-operator-raft") %>>
+							<a href="/docs/commands/operator/raft.html">raft</a>
+							<ul class="subnav">
+								<li<%= sidebar_current("docs-commands-operator-raft-list-peers") %>>
+									<a href="/docs/commands/operator/raft/list-peers.html">list-peers</a>
+								</li>
+								<li<%= sidebar_current("docs-commands-operator-raft-remove-peer") %>>
+									<a href="/docs/commands/operator/raft/remove-peer.html">remove-peer</a>
+								</li>
+							</ul>
+						</li>
+					</ul>
 					</li>
 
 					<li<%= sidebar_current("docs-commands-reload") %>>
@@ -279,7 +292,7 @@
 
 				<li<%= sidebar_current("docs-guides") %>>
 				<a href="/docs/guides/index.html">Guides</a>
-                <ul class="nav">
+				<ul class="nav">
 					<li<%= sidebar_current("docs-guides-atlas") %>>
 					<a href="/docs/guides/atlas.html">Atlas Integration</a>
 					</li>
@@ -314,16 +327,16 @@
 
 					<li<%= sidebar_current("docs-guides-outage") %>>
 					<a href="/docs/guides/outage.html">Outage Recovery</a>
-                                        </li>
+					</li>
 
-                                        <li<%= sidebar_current("docs-guides-semaphore") %>>
+					<li<%= sidebar_current("docs-guides-semaphore") %>>
 					<a href="/docs/guides/semaphore.html">Semaphore</a>
-                                        </li>
+					</li>
 
 					<li<%= sidebar_current("docs-guides-performance") %>>
 					<a href="/docs/guides/performance.html">Server Performance</a>
 					</li>
-                                 </ul>
+				</ul>
 
 				<li<%= sidebar_current("docs-faq") %>>
 				<a href="/docs/faq.html">Frequently Asked Questions</a>

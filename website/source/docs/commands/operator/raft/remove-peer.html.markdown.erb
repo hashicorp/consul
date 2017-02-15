@@ -1,0 +1,29 @@
+---
+layout: "docs"
+page_title: "Commands: Operator Raft Remove-Peer"
+sidebar_current: "docs-commands-operator-raft-remove-peer"
+description: >
+  The operator command provides cluster-level tools for Consul operators.
+---
+
+# Operator Raft Remove-Peer
+
+Command: `consul operator raft remove-peer`
+
+This command removes the Consul server with given address from the Raft configuration.
+
+There are rare cases where a peer may be left behind in the Raft configuration
+even though the server is no longer present and known to the cluster. This command
+can be used to remove the failed server so that it is no longer affects the
+Raft quorum. If the server still shows in the output of the
+[`consul members`](/docs/commands/members.html) command, it is preferable to
+clean up by simply running
+[`consul force-leave`](/docs/commands/force-leave.html)
+instead of this command.
+
+Usage: `consul operator raft remove-peer -address="IP:port"`
+
+* `-address` - "IP:port" for the server to remove. The port number is usually
+8300, unless configured otherwise.
+
+The return code will indicate success or failure.
