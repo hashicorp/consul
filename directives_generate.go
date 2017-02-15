@@ -56,7 +56,7 @@ func genImports(file, pack string, mi map[string]string) {
 	}
 
 	for _, v := range mi {
-		outs += `_ "` + v + `\` + "\n"
+		outs += `_ "` + v + `"` + "\n"
 	}
 	outs += ")\n"
 
