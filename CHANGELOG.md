@@ -17,8 +17,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* agent: Fixed an issue with consul watch not working when http was listening on a unix socket. [GH-2385]
-* cli: Fixed `kv` commands not reading the `CONSUL_HTTP_TOKEN` environment variable. [GH-2566]
+* agent: Fixed an issue with `consul watch` not working when http was listening on a unix socket. [GH-2385]
+* cli: Fixed `consul kv` commands not reading the `CONSUL_HTTP_TOKEN` environment variable. [GH-2566]
 * cli: Fixed an issue where prefixing an address with a protocol (such as 'http://' or 'https://') in `-http-addr` or `CONSUL_HTTP_ADDR` would give an error.
 
 ## 0.7.5 (February 15, 2017)
