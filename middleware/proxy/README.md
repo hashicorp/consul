@@ -26,7 +26,7 @@ proxy FROM TO... {
     health_check PATH:PORT [DURATION]
     except IGNORED_NAMES...
     spray
-    protocol [dns|https_google [bootstrap ADDRESS...]]
+    protocol [dns|https_google [bootstrap ADDRESS...]|grpc [insecure|CA-PEM|KEY-PEM CERT-PEM|KEY-PEM CERT-PEM CA-PEM]]
 }
 ~~~
 
@@ -40,7 +40,8 @@ proxy FROM TO... {
 * `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is a failsafe.)
 * `protocol` specifies what protocol to use to speak to an upstream, `dns` (the default) is plain old DNS, and
   `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect. Note when using this
-  **TO** must be `dns.google.com`.
+  **TO** must be `dns.google.com`. The `grpc` option will talk to a server that has implemented the DnsService defined
+  in https://github.com/miekg/coredns/middleware/proxy/pb/dns.proto.
 
 ## Policies
 
@@ -82,6 +83,16 @@ example.org.		1799	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016110711 7200 
 ;; ADDITIONAL SECTION:
 .			0	CH	TXT	"Response from 199.43.133.53"
 ~~~
+* `grpc`: options are used to control how the TLS connection is made to the gRPC server.
+  * None - No client authentication is used, and the system CAs are used to verify the server certificate.
+  * `insecure` - TLS is not used, the connection is made in plaintext (not good in production).
+  * CA-PEM - No client authentication is used, and the file CA-PEM is used to verify the server certificate.
+  * KEY-PEM CERT-PEM - Client authentication is used with the specified key/cert pair. The server certificate is verified
+    with the system CAs.
+  * KEY-PEM CERT-PEM CA-PEM - Client authentication is used with the specified key/cert pair. The server certificate is
+    verified using the CA-PEM file.
+
+  An out-of-tree middleware that implements the server side of this can be found at https://github.com/infobloxopen/coredns-grpc.
 
 ## Metrics
 

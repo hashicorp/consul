@@ -13,6 +13,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	"github.com/miekg/coredns/middleware/pkg/tls"
 
 	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"
@@ -197,6 +198,16 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 			}
 
 			u.ex = newGoogle("", boot) // "" for default in google.go
+		case "grpc":
+			if len(encArgs) == 2 && encArgs[1] == "insecure" {
+				u.ex = newGrpcClient(nil, u)
+				return nil
+			}
+			tls, err := tls.NewTLSConfigFromArgs(encArgs[1:]...)
+			if err != nil {
+				return err
+			}
+			u.ex = newGrpcClient(tls, u)
 		default:
 			return fmt.Errorf("%s: %s", errInvalidProtocol, encArgs[0])
 		}
