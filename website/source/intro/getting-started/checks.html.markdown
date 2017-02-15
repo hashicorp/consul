@@ -50,7 +50,7 @@ request every 10 seconds via curl to verify that the web server is accessible.
 As with the host-level health check, if the script exits with a non-zero exit code,
 the service will be flagged unhealthy.
 
-Now, restart the second agent or send it a `SIGHUP` signal. You should see the
+Now, restart the second agent, reload it with `consul reload`, or send it a `SIGHUP` signal. You should see the
 following log lines:
 
 ```text
