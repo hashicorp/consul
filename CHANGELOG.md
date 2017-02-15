@@ -1,4 +1,4 @@
-## 0.7.5 (UNRELEASED)
+## 0.7.5 (February 15, 2017)
 
 BUG FIXES:
 
