@@ -10,7 +10,7 @@ all: coredns
 # Phony this to ensure we always build the binary.
 # TODO: Add .go file dependencies.
 .PHONY: coredns
-coredns: deps
+coredns: deps core/zmiddleware.go core/dnsserver/zdirectives.go
 	go build $(BUILD_VERBOSE) -ldflags="-s -w"
 
 .PHONY: docker
@@ -47,6 +47,9 @@ coverage: deps
 clean:
 	go clean
 	rm -f coredns
+
+core/zmiddleware.go core/dnsserver/zdirectives.go: middleware.cfg
+	go generate coredns.go
 
 .PHONY: gen
 gen:
