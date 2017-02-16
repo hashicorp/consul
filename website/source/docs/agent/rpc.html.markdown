@@ -243,7 +243,7 @@ response body looks like:
     "check_monitors": 0,
     ...
   },
-  "consul: {
+  "consul": {
     "server": "true",
     ...
   },
