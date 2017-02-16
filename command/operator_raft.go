@@ -61,6 +61,8 @@ func (c *OperatorRaftCommand) raft(args []string) error {
 	f.StringVar(&address, "address", "",
 		"The address to remove from the Raft configuration.")
 
+	// Leave these flags for backwards compatibility, but hide them
+	// TODO: remove flags/behavior from this command in Consul 0.9
 	c.Command.HideFlags("list-peers", "remove-peer", "address")
 
 	if err := c.Command.Parse(args); err != nil {

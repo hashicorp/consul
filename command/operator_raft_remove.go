@@ -17,7 +17,7 @@ func (c *OperatorRaftRemoveCommand) Help() string {
 	helpText := `
 Usage: consul operator raft remove-peer [options]
 
-Remove the Consul server with given -peer-address from the Raft configuration.
+Remove the Consul server with given -address from the Raft configuration.
 
 There are rare cases where a peer may be left behind in the Raft quorum even
 though the server is no longer present and known to the cluster. This command
