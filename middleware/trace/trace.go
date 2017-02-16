@@ -4,13 +4,14 @@ package trace
 import (
 	"fmt"
 	"sync"
-
-	"golang.org/x/net/context"
+	"sync/atomic"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+
+	"golang.org/x/net/context"
 )
 
 // Trace holds the tracer and endpoint info
@@ -20,6 +21,10 @@ type Trace struct {
 	Endpoint        string
 	EndpointType    string
 	Tracer          ot.Tracer
+	serviceName	string
+	clientServer	bool
+	every		uint64
+	count		uint64
 	Once            sync.Once
 }
 
@@ -44,8 +49,8 @@ func (t *Trace) setupZipkin() error {
 		return err
 	}
 
-	recorder := zipkin.NewRecorder(collector, false, t.ServiceEndpoint, "coredns")
-	t.Tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(false))
+	recorder := zipkin.NewRecorder(collector, false, t.ServiceEndpoint, t.serviceName)
+	t.Tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
 	if err != nil {
 		return err
 	}
@@ -59,8 +64,18 @@ func (t *Trace) Name() string {
 
 // ServeDNS implements the middleware.Handle interface.
 func (t *Trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	span := t.Tracer.StartSpan("servedns")
-	defer span.Finish()
-	ctx = ot.ContextWithSpan(ctx, span)
+	trace := false
+	if t.every > 0 {
+		queryNr := atomic.AddUint64(&t.count, 1)
+
+		if queryNr%t.every == 0 {
+			trace = true
+		}
+	}
+	if span := ot.SpanFromContext(ctx); span == nil && trace {
+		span := t.Tracer.StartSpan("servedns")
+		defer span.Finish()
+		ctx = ot.ContextWithSpan(ctx, span)
+	}
 	return middleware.NextOrFailure(t.Name(), t.Next, ctx, w, r)
 }
