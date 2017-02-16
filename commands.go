@@ -207,6 +207,33 @@ func init() {
 		"operator": func() (cli.Command, error) {
 			return &command.OperatorCommand{
 				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"operator raft": func() (cli.Command, error) {
+			return &command.OperatorRaftCommand{
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"operator raft list-peers": func() (cli.Command, error) {
+			return &command.OperatorRaftListCommand{
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"operator raft remove-peer": func() (cli.Command, error) {
+			return &command.OperatorRaftRemoveCommand{
+				Command: base.Command{
 					Flags: base.FlagSetHTTP,
 					Ui:    ui,
 				},
