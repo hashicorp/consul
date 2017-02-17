@@ -622,3 +622,72 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	})
 }
+
+func TestLeader_DeadServerCleanup(t *testing.T) {
+	dir1, s1 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Kill a non-leader server (s2 or s3, so s4 can still join s1)
+	var nonLeader *Server
+	var removedIndex int
+	for i, s := range servers {
+		if !s.IsLeader() && i > 0 {
+			nonLeader = s
+			removedIndex = i
+			break
+		}
+	}
+	nonLeader.Shutdown()
+
+	time.Sleep(1 * time.Second)
+
+	// Bring up and join a new server
+	dir4, s4 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the dead server is removed and we're back to 3 total peers
+	servers[removedIndex] = s4
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+}

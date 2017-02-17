@@ -567,6 +567,20 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
 		return err
 	}
+
+	// Look for dead servers to clean up
+	if s.config.AutopilotServerCleanup {
+		for _, member := range s.serfLAN.Members() {
+			valid, _ := agent.IsConsulServer(member)
+			if valid && member.Name != m.Name && member.Status == serf.StatusFailed {
+				if err := s.handleDeregisterMember("Removing failed server", member); err != nil {
+					return fmt.Errorf("[ERROR] consul: Couldn't deregister failed server (%s): %v", member.Name, err)
+				}
+				s.logger.Printf("[INFO] consul: Removed failed server: %v", member.Name)
+			}
+		}
+	}
+
 	return nil
 }
 

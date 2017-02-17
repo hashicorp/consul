@@ -274,6 +274,10 @@ type Config struct {
 	// This period is meant to be long enough for a leader election to take
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
+
+	// AutopilotServerCleanup controls whether to remove dead servers when a new
+	// server is added to the Raft peers
+	AutopilotServerCleanup bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -346,6 +350,8 @@ func DefaultConfig() *Config {
 		RPCHoldTimeout: 7 * time.Second,
 
 		TLSMinVersion: "tls10",
+
+		AutopilotServerCleanup: true,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
