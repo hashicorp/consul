@@ -139,13 +139,17 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 			return nil, ret, nil, NoData
 		}
 
+		// Additional section processing for MX, SRV. Check response and see if any of the names are in baliwick -
+		// if so add IP addresses to the additional section.
+		additional := additionalProcessing(z, rrs, do)
+
 		if do {
 			sigs := elem.Types(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, qtype)
 			rrs = append(rrs, sigs...)
 		}
 
-		return rrs, z.ns(do), nil, Success
+		return rrs, z.ns(do), additional, Success
 
 	}
 
@@ -189,7 +193,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	rcode := NameError
 
 	// Hacky way to get around empty-non-terminals. If a longer name does exist, but this qname, does not, it
-	// must be an empty-non-terminal. If so, we do the proper NXDOMAIN handling, but the the rcode to be success.
+	// must be an empty-non-terminal. If so, we do the proper NXDOMAIN handling, but set the rcode to be success.
 	if x, found := z.Tree.Next(qname); found {
 		if dns.IsSubDomain(qname, x.Name()) {
 			rcode = Success
@@ -255,6 +259,7 @@ func (z *Zone) ns(do bool) []dns.RR {
 	return z.Apex.NS
 }
 
+// TODO(miek): should be better named, like aditionalProcessing?
 func (z *Zone) searchCNAME(state request.Request, elem *tree.Elem, rrs []dns.RR) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 
 	qtype := state.QType()
@@ -393,6 +398,41 @@ func (z *Zone) searchGlue(name string, do bool) []dns.RR {
 		}
 	}
 	return glue
+}
+
+// additionalProcessing checks the current answer section and retrieves A or AAAA records
+// (and possible SIGs) to need to be put in the additional section.
+func additionalProcessing(z *Zone, answer []dns.RR, do bool) (extra []dns.RR) {
+	for _, rr := range answer {
+		name := ""
+		switch x := rr.(type) {
+		case *dns.SRV:
+			name = x.Target
+		case *dns.MX:
+			name = x.Mx
+		}
+		if !dns.IsSubDomain(z.origin, name) {
+			continue
+		}
+
+		elem, _ := z.Tree.Search(name)
+		if elem == nil {
+			continue
+		}
+
+		sigs := elem.Types(dns.TypeRRSIG)
+		for _, addr := range []uint16{dns.TypeA, dns.TypeAAAA} {
+			if a := elem.Types(addr); a != nil {
+				extra = append(extra, a...)
+				if do {
+					sig := signatureForSubType(sigs, addr)
+					extra = append(extra, sig...)
+				}
+			}
+		}
+	}
+
+	return extra
 }
 
 const maxChain = 8

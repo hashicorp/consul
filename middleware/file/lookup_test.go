@@ -74,6 +74,28 @@ var dnsTestCases = []test.Case{
 			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	},
+	{
+		Qname: "srv.miek.nl.", Qtype: dns.TypeSRV,
+		Answer: []dns.RR{
+			test.SRV("srv.miek.nl.	1800	IN	SRV	10 10 8080  a.miek.nl."),
+		},
+		Extra: []dns.RR{
+			test.A("a.miek.nl.	1800	IN	A       139.162.196.78"),
+			test.AAAA("a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
+		},
+		Ns: miekAuth,
+	},
+	{
+		Qname: "mx.miek.nl.", Qtype: dns.TypeMX,
+		Answer: []dns.RR{
+			test.MX("mx.miek.nl.	1800	IN	MX	10 a.miek.nl."),
+		},
+		Extra: []dns.RR{
+			test.A("a.miek.nl.	1800	IN	A       139.162.196.78"),
+			test.AAAA("a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
+		},
+		Ns: miekAuth,
+	},
 }
 
 const (
@@ -185,4 +207,7 @@ $ORIGIN miek.nl.
 a               IN      A       139.162.196.78
                 IN      AAAA    2a01:7e00::f03c:91ff:fef1:6735
 www             IN      CNAME   a
-archive         IN      CNAME   a`
+archive         IN      CNAME   a
+
+srv		IN	SRV     10 10 8080 a.miek.nl.
+mx		IN	MX      10 a.miek.nl.`
