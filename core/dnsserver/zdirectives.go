@@ -30,7 +30,6 @@ var directives = []string{
 	"kubernetes",
 	"reverse",
 	"proxy",
-	"httpprox",
 	"whoami",
 	"erratic",
 }

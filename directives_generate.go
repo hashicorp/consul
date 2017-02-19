@@ -25,22 +25,23 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !strings.HasPrefix(line, `//`) && !strings.HasPrefix(line, "#") {
-			items := strings.Split(line, ":")
-			if len(items) == 3 {
-				if priority, err := strconv.Atoi(items[0]); err == nil {
-					md[priority] = items[1]
-				}
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 
-				if items[2] != "" {
-					if strings.Contains(items[2], "/") {
-						mi[items[1]] = items[2]
-					} else {
-						mi[items[1]] = middlewarePath + items[2]
-					}
-				}
+		items := strings.Split(line, ":")
+		if len(items) != 3 {
+			// ignore
+			continue
+		}
+		priority, err := strconv.Atoi(items[0])
+		fatalIfErr(err)
 
-			}
+		md[priority] = items[1]
+		mi[items[1]] = middlewarePath + items[2] // Default, unless overriden by 3rd arg
+
+		if strings.Contains(items[2], "/") { // External package has been given
+			mi[items[1]] = items[2]
 		}
 	}
 
