@@ -13,7 +13,6 @@ type network struct {
 	Template     string
 	TTL          uint32
 	RegexMatchIP *regexp.Regexp
-	Fallthrough  bool
 }
 
 // TODO: we might want to get rid of these regexes.

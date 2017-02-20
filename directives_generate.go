@@ -37,6 +37,9 @@ func main() {
 		priority, err := strconv.Atoi(items[0])
 		fatalIfErr(err)
 
+		if v, ok := md[priority]; ok {
+			log.Fatalf("Duplicate priority '%d', slot already taken by %q", priority, v)
+		}
 		md[priority] = items[1]
 		mi[items[1]] = middlewarePath + items[2] // Default, unless overriden by 3rd arg
 

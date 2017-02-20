@@ -21,29 +21,29 @@ func init() {
 }
 
 func setupReverse(c *caddy.Controller) error {
-	networks, err := reverseParse(c)
+	networks, fallThrough, err := reverseParse(c)
 	if err != nil {
 		return middleware.Error("reverse", err)
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return Reverse{Next: next, Networks: networks}
+		return Reverse{Next: next, Networks: networks, Fallthrough: fallThrough}
 	})
 
 	return nil
 }
 
-func reverseParse(c *caddy.Controller) (networks, error) {
-	var err error
+func reverseParse(c *caddy.Controller) (nets networks, fall bool, err error) {
 
 	// normalize zones, validation is almost done by dnsserver
+	// TODO(miek): need sane helpers for these.
 	zones := make([]string, len(c.ServerBlockKeys))
+
 	for i, str := range c.ServerBlockKeys {
 		host, _, _ := net.SplitHostPort(str)
 		zones[i] = strings.ToLower(host)
 	}
 
-	networks := networks{}
 	for c.Next() {
 		if c.Val() == "reverse" {
 
@@ -56,42 +56,41 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 				}
 				_, ipnet, err := net.ParseCIDR(cidr)
 				if err != nil {
-					return nil, c.Errf("network needs to be CIDR formatted: %q\n", cidr)
+					return nil, false, c.Errf("network needs to be CIDR formatted: %q\n", cidr)
 				}
 				cidrs = append(cidrs, ipnet)
 			}
 			if len(cidrs) == 0 {
-				return nil, c.ArgErr()
+				return nil, false, c.ArgErr()
 			}
 
 			// set defaults
 			var (
 				template = "ip-" + templateNameIP + ".{zone[1]}"
 				ttl      = 60
-				fall     = false
 			)
 			for c.NextBlock() {
 				switch c.Val() {
 				case "hostname":
 					if !c.NextArg() {
-						return nil, c.ArgErr()
+						return nil, false, c.ArgErr()
 					}
 					template = c.Val()
 
 				case "ttl":
 					if !c.NextArg() {
-						return nil, c.ArgErr()
+						return nil, false, c.ArgErr()
 					}
 					ttl, err = strconv.Atoi(c.Val())
 					if err != nil {
-						return nil, err
+						return nil, false, err
 					}
 
 				case "fallthrough":
 					fall = true
 
 				default:
-					return nil, c.ArgErr()
+					return nil, false, c.ArgErr()
 				}
 			}
 
@@ -109,7 +108,7 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 			// extract zone from template
 			templateZone := strings.SplitAfterN(template, ".", 2)
 			if len(templateZone) != 2 || templateZone[1] == "" {
-				return nil, c.Errf("cannot find domain in template '%v'", template)
+				return nil, false, c.Errf("cannot find domain in template '%v'", template)
 			}
 
 			// Create for each configured network in this stanza
@@ -126,22 +125,21 @@ func reverseParse(c *caddy.Controller) (networks, error) {
 						regexIP,
 						1) + "$")
 				if err != nil {
-					return nil, err
+					return nil, false, err
 				}
 
-				networks = append(networks, network{
+				nets = append(nets, network{
 					IPnet:        ipnet,
 					Zone:         templateZone[1],
 					Template:     template,
 					RegexMatchIP: regex,
 					TTL:          uint32(ttl),
-					Fallthrough:  fall,
 				})
 			}
 		}
 	}
 
 	// sort by cidr
-	sort.Sort(networks)
-	return networks, nil
+	sort.Sort(nets)
+	return nets, fall, nil
 }

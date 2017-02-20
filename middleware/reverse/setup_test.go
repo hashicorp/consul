@@ -36,7 +36,6 @@ func TestSetupParse(t *testing.T) {
 				Zone:         "domain.com.",
 				TTL:          60,
 				RegexMatchIP: regexIP6,
-				Fallthrough:  false,
 			}},
 		},
 		{
@@ -112,14 +111,12 @@ func TestSetupParse(t *testing.T) {
 				Zone:         "dynamic.domain.com.",
 				TTL:          50,
 				RegexMatchIP: regexIpv6dynamic,
-				Fallthrough:  false,
 			}, network{
 				IPnet:        net4,
 				Template:     "dynamic-{ip}-vpn.dynamic.domain.com.",
 				Zone:         "dynamic.domain.com.",
 				TTL:          60,
 				RegexMatchIP: regexIpv4vpndynamic,
-				Fallthrough:  true,
 			}},
 		},
 		{
@@ -136,14 +133,12 @@ func TestSetupParse(t *testing.T) {
 				Zone:         "dynamic.domain.com.",
 				TTL:          50,
 				RegexMatchIP: regexIpv6dynamic,
-				Fallthrough:  true,
 			}, network{
 				IPnet:        net4,
 				Template:     "dynamic-{ip}-intern.dynamic.domain.com.",
 				Zone:         "dynamic.domain.com.",
 				TTL:          50,
 				RegexMatchIP: regexIpv4dynamic,
-				Fallthrough:  true,
 			}},
 		},
 		{
@@ -160,25 +155,23 @@ func TestSetupParse(t *testing.T) {
 				Zone:         "dynamic.domain.com.",
 				TTL:          300,
 				RegexMatchIP: regexIpv6dynamic,
-				Fallthrough:  true,
 			}},
 		},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputFileRules)
 		c.ServerBlockKeys = serverBlockKeys
-		networks, err := reverseParse(c)
+		networks, _, err := reverseParse(c)
 
 		if err == nil && test.shouldErr {
 			t.Fatalf("Test %d expected errors, but got no error", i)
 		} else if err != nil && !test.shouldErr {
 			t.Fatalf("Test %d expected no errors, but got '%v'", i, err)
-		} else {
-			for j, n := range networks {
-				reflect.DeepEqual(test.networks[j], n)
-				if !reflect.DeepEqual(test.networks[j], n) {
-					t.Fatalf("Test %d/%d expected %v, got %v", i, j, test.networks[j], n)
-				}
+		}
+		for j, n := range networks {
+			reflect.DeepEqual(test.networks[j], n)
+			if !reflect.DeepEqual(test.networks[j], n) {
+				t.Fatalf("Test %d/%d expected %v, got %v", i, j, test.networks[j], n)
 			}
 		}
 	}
