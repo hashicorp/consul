@@ -107,29 +107,26 @@ body.page-home{
   }
 
   p{
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-size: 18px;
     line-height: 1.5em;
     color: $consul-gray;
     font-weight: $font-weight-sb;
   }
 
-
-
   .outline-btn {
     padding: 8px;
     display: inline-block;
+
     &:focus {
       outline: 0;
     }
-
   }
 
   a {
     font-weight: 500;
     font-size: 16px;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 1px;
     color: $purple;
     &:hover {
       text-decoration: none;
@@ -154,7 +151,6 @@ body.page-home{
 
     p{
       font-size: 16px;
-      letter-spacing: 1px;
       line-height: 1.5em;
       color: $consul-gray;
       font-family: $font-family-open-sans;
