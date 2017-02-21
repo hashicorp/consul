@@ -22,15 +22,14 @@ body.page-home{
     letter-spacing: 2px;
     color: $purple;
     font-family: $font-family-klavika;
-    font-weight: $font-weight-museo-xb;
+    font-weight: font-weight-xb;
   }
   p{
     font-size: 16px;
-    letter-spacing: 1px;
     line-height: 1.5em;
     color: $consul-gray;
     font-family: $font-family-open-sans;
-    font-weight: $font-weight-museo-sb;
+    font-weight: $font-weight-sb;
   }
 
   .icn{
@@ -112,7 +111,7 @@ body.page-home{
     letter-spacing: 1px;
     line-height: 1.5em;
     color: $consul-gray;
-    font-weight: $font-weight-museo-sb;
+    font-weight: $font-weight-sb;
   }
 
 
@@ -150,7 +149,7 @@ body.page-home{
       font-size: 22px;
       text-transform: uppercase;
       font-family: $font-family-klavika;
-      font-weight: $font-weight-museo-xb;
+      font-weight: font-weight-xb;
     }
 
     p{
@@ -159,7 +158,7 @@ body.page-home{
       line-height: 1.5em;
       color: $consul-gray;
       font-family: $font-family-open-sans;
-      font-weight: $font-weight-museo-sb;
+      font-weight: $font-weight-sb;
     }
   }
 
@@ -213,7 +212,7 @@ body.page-home{
             letter-spacing: 1px;
             color: $gray-darker;
             font-family: $font-family-klavika;
-            font-weight: $font-weight-museo-xb;
+            font-weight: font-weight-xb;
           }
 
           ul.shell-dots{

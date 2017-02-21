@@ -15,13 +15,14 @@ body {
 
 h1, h2, h3, h4, h5 {
   font-family: $font-family-klavika;
+  text-transform: uppercase;
 }
 
 h1{
   font-size: 42px;
   line-height: 42px;
   font-family: $font-family-klavika;
-  font-weight: $font-weight-museo-sb;
+  font-weight: $font-weight-sb;
   margin-bottom: 24px;
 }
 
@@ -29,7 +30,7 @@ h3{
   font-size: 28px;
   line-height: 28px;
   font-family: $font-family-klavika;
-  font-weight: $font-weight-museo-sb;
+  font-weight: $font-weight-sb;
 }
 
 p {
