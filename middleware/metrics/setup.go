@@ -28,9 +28,10 @@ func setup(c *caddy.Controller) error {
 		return m
 	})
 
+	// During restarts we will keep this handler running.
 	metricsOnce.Do(func() {
-		c.OnStartup(m.OnStartup)
-		c.OnShutdown(m.OnShutdown)
+		c.OncePerServerBlock(m.OnStartup)
+		c.OnFinalShutdown(m.OnShutdown)
 	})
 
 	return nil

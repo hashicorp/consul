@@ -27,6 +27,7 @@ Extra labels used are:
 If monitoring is enabled, queries that do not enter the middleware chain are exported under the fake
 name "dropped" (without a closing dot - this is never a valid domain name).
 
+
 ## Syntax
 
 ~~~
@@ -45,3 +46,8 @@ Use an alternative address:
 ~~~
 prometheus localhost:9253
 ~~~
+
+# Bugs
+
+When reloading, we keep the handler running, meaning that any changes to the handler aren't picked
+up. You'll need to restart CoreDNS for that to happen.

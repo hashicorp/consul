@@ -13,13 +13,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+func init() {
+	prometheus.MustRegister(vars.RequestCount)
+	prometheus.MustRegister(vars.RequestDuration)
+	prometheus.MustRegister(vars.RequestSize)
+	prometheus.MustRegister(vars.RequestDo)
+	prometheus.MustRegister(vars.RequestType)
+
+	prometheus.MustRegister(vars.ResponseSize)
+	prometheus.MustRegister(vars.ResponseRcode)
+}
+
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
 type Metrics struct {
 	Next middleware.Handler
 	Addr string
 	ln   net.Listener
 	mux  *http.ServeMux
-	Once sync.Once
 
 	zoneNames []string
 	zoneMap   map[string]bool
@@ -52,38 +62,25 @@ func (m *Metrics) ZoneNames() []string {
 
 // OnStartup sets up the metrics on startup.
 func (m *Metrics) OnStartup() error {
-	m.Once.Do(func() {
+	ln, err := net.Listen("tcp", m.Addr)
+	if err != nil {
+		log.Printf("[ERROR] Failed to start metrics handler: %s", err)
+		return err
+	}
 
-		ln, err := net.Listen("tcp", m.Addr)
-		if err != nil {
-			log.Printf("[ERROR] Failed to start metrics handler: %s", err)
-			return
-		}
+	m.ln = ln
+	ListenAddr = m.ln.Addr().String()
 
-		m.ln = ln
-		ListenAddr = m.ln.Addr().String()
+	m.mux = http.NewServeMux()
+	m.mux.Handle("/metrics", prometheus.Handler())
 
-		m.mux = http.NewServeMux()
-
-		prometheus.MustRegister(vars.RequestCount)
-		prometheus.MustRegister(vars.RequestDuration)
-		prometheus.MustRegister(vars.RequestSize)
-		prometheus.MustRegister(vars.RequestDo)
-		prometheus.MustRegister(vars.RequestType)
-
-		prometheus.MustRegister(vars.ResponseSize)
-		prometheus.MustRegister(vars.ResponseRcode)
-
-		m.mux.Handle("/metrics", prometheus.Handler())
-
-		go func() {
-			http.Serve(m.ln, m.mux)
-		}()
-	})
+	go func() {
+		http.Serve(m.ln, m.mux)
+	}()
 	return nil
 }
 
-// OnShutdown tears down the metrics on shutdown.
+// OnShutdown tears down the metrics on shutdown and restart.
 func (m *Metrics) OnShutdown() error {
 	if m.ln != nil {
 		return m.ln.Close()
