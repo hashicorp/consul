@@ -13,10 +13,14 @@ body {
   font-weight: 300;
 }
 
+h1, h2, h3, h4, h5 {
+  font-family: $font-family-klavika;
+}
+
 h1{
   font-size: 42px;
   line-height: 42px;
-  font-family: $font-family-museo;
+  font-family: $font-family-klavika;
   font-weight: $font-weight-museo-sb;
   margin-bottom: 24px;
 }
@@ -24,8 +28,12 @@ h1{
 h3{
   font-size: 28px;
   line-height: 28px;
-  font-family: $font-family-museo;
+  font-family: $font-family-klavika;
   font-weight: $font-weight-museo-sb;
+}
+
+p {
+  font-family: $font-family-open-sans;
 }
 
 //an alternative color for buttons in the doc body

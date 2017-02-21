@@ -46,8 +46,9 @@ $link-hover-color:           darken($link-color, 15%);
 
 // Typography
 // -------------------------
-$font-family-museo:          'museo-sans', "Helvetica Neue", Helvetica, Arial, sans-serif;
-$font-family-source-sans:    'Source Sans Pro', "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-open-sans:      "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-klavika:        "klavika-web", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-mono:           "Courier New", Monaco, Menlo, Consolas, monospace;
 $font-weight-museo-xl:       100;
 $font-weight-museo-reg:      300;
 $font-weight-museo-sb:       500;
