@@ -237,7 +237,6 @@ body.page-home{
           padding: 20px;
           font-size: 15px;
           font-weight: normal;
-          font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
           color: $white;
 
           .txt-r {
@@ -249,6 +248,7 @@ body.page-home{
           }
           p{
             margin-bottom: 2px;
+            font-family: $font-family-mono;
             white-space: pre-wrap;
           }
           .cursor {
