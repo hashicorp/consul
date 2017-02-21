@@ -43,6 +43,7 @@
     position: relative;
     height: 100%;
     margin-top: $header-height;
+    padding-left: 0;
     -webkit-backface-visibility:hidden;
 
     .jumbo-logo-wrap{
@@ -58,18 +59,17 @@
     }
 
     h2{
-      margin-top: 175px;
+      margin-top: 220px;
       font-size: 40px;
       line-height: 48px;
       letter-spacing: 1px;
-      margin-left: 40px;
     }
   }
 }
 
 @media (max-width: 992px) {
   #jumbotron .container {
-    h2{
+    h2, p.lead{
       text-align: center;
       margin-left: 0;
     }
