@@ -64,6 +64,12 @@
       line-height: 48px;
       letter-spacing: 1px;
     }
+
+    .lead {
+      font-weight: $font-weight-sb;
+      letter-spacing: .5px;
+      opacity: .89;
+    }
   }
 }
 
