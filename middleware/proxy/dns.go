@@ -20,7 +20,7 @@ func newDNSEx() *dnsEx {
 	return &dnsEx{group: new(singleflight.Group), Timeout: defaultTimeout * time.Second}
 }
 
-func (g *dnsEx) Protocol() string          { return "dns" }
+func (d *dnsEx) Protocol() string          { return "dns" }
 func (d *dnsEx) OnShutdown(p *Proxy) error { return nil }
 func (d *dnsEx) OnStartup(p *Proxy) error  { return nil }
 

@@ -21,10 +21,10 @@ type Trace struct {
 	Endpoint        string
 	EndpointType    string
 	Tracer          ot.Tracer
-	serviceName	string
-	clientServer	bool
-	every		uint64
-	count		uint64
+	serviceName     string
+	clientServer    bool
+	every           uint64
+	count           uint64
 	Once            sync.Once
 }
 

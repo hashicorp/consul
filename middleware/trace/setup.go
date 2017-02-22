@@ -59,22 +59,22 @@ func traceParse(c *caddy.Controller) (*Trace, error) {
 		if err != nil {
 			return tr, err
 		}
-                for c.NextBlock() {
-                        switch c.Val() {
-                        case "every":
-                                args := c.RemainingArgs()
-                                if len(args) != 1 {
-                                        return nil, c.ArgErr()
-                                }
-                                tr.every, err = strconv.ParseUint(args[0], 10, 64)
-                                if err != nil {
-                                        return nil, err
-                                }
+		for c.NextBlock() {
+			switch c.Val() {
+			case "every":
+				args := c.RemainingArgs()
+				if len(args) != 1 {
+					return nil, c.ArgErr()
+				}
+				tr.every, err = strconv.ParseUint(args[0], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 			case "service":
 				args := c.RemainingArgs()
-                                if len(args) != 1 {
-                                        return nil, c.ArgErr()
-                                }
+				if len(args) != 1 {
+					return nil, c.ArgErr()
+				}
 				tr.serviceName = args[0]
 			case "client_server":
 				args := c.RemainingArgs()
@@ -102,12 +102,12 @@ func normalizeEndpoint(epType, ep string) (string, error) {
 		}
 		return ep, nil
 	default:
-		return "", fmt.Errorf("Tracing endpoint type '%s' is not supported.", epType)
+		return "", fmt.Errorf("tracing endpoint type '%s' is not supported", epType)
 	}
 }
 
 const (
-	defEP     = "localhost:9411"
-	defEpType = "zipkin"
+	defEP          = "localhost:9411"
+	defEpType      = "zipkin"
 	defServiceName = "coredns"
 )

@@ -67,7 +67,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 			middleware.Zones(k8s.Zones).Normalize()
 
 			if k8s.Zones == nil || len(k8s.Zones) < 1 {
-				return nil, errors.New("Zone name must be provided for kubernetes middleware.")
+				return nil, errors.New("zone name must be provided for kubernetes middleware")
 			}
 
 			k8s.primaryZone = -1
@@ -80,7 +80,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 			}
 
 			if k8s.primaryZone == -1 {
-				return nil, errors.New("A non-reverse zone name must be given for Kubernetes.")
+				return nil, errors.New("non-reverse zone name must be given for Kubernetes")
 			}
 
 			for c.NextBlock() {

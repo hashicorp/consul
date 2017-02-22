@@ -12,7 +12,7 @@ type ClassRule struct {
 	fromClass, toClass uint16
 }
 
-// Initializer
+// New initializes rule.
 func (rule ClassRule) New(args ...string) Rule {
 	from, to := args[0], strings.Join(args[1:], " ")
 	return &ClassRule{dns.StringToClass[from], dns.StringToClass[to]}

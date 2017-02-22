@@ -12,7 +12,7 @@ type TypeRule struct {
 	fromType, toType uint16
 }
 
-// Initializer
+// New initializes a rule.
 func (rule TypeRule) New(args ...string) Rule {
 	from, to := args[0], strings.Join(args[1:], " ")
 	return &TypeRule{dns.StringToType[from], dns.StringToType[to]}

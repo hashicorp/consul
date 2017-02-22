@@ -8,12 +8,12 @@ import (
 
 func TestTraceParse(t *testing.T) {
 	tests := []struct {
-		input     string
-		shouldErr bool
-		endpoint  string
-		every	uint64
-		serviceName	string
-		clientServer	bool
+		input        string
+		shouldErr    bool
+		endpoint     string
+		every        uint64
+		serviceName  string
+		clientServer bool
 	}{
 		// oks
 		{`trace`, false, "http://localhost:9411/api/v1/spans", 1, `coredns`, false},
