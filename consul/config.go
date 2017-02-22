@@ -275,9 +275,9 @@ type Config struct {
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
 
-	// AutopilotServerCleanup controls whether to remove dead servers when a new
+	// DeadServerCleanup controls whether to remove dead servers when a new
 	// server is added to the Raft peers
-	AutopilotServerCleanup bool
+	DeadServerCleanup bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -351,7 +351,7 @@ func DefaultConfig() *Config {
 
 		TLSMinVersion: "tls10",
 
-		AutopilotServerCleanup: true,
+		DeadServerCleanup: true,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -368,7 +368,7 @@ func DefaultConfig() *Config {
 
 	// Enable interoperability with unversioned Raft library, and don't
 	// start using new ID-based features yet.
-	conf.RaftConfig.ProtocolVersion = 1
+	conf.RaftConfig.ProtocolVersion = 2
 	conf.ScaleRaft(DefaultRaftMultiplier)
 
 	// Disable shutdown on removal

@@ -56,9 +56,11 @@ func TestIsConsulServer(t *testing.T) {
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
 			"role": "consul",
+			"id":   "asdf",
 			"dc":   "east-aws",
 			"port": "10000",
 			"vsn":  "1",
+			"raft_vsn": "3",
 		},
 	}
 	ok, parts := agent.IsConsulServer(m)
@@ -68,11 +70,17 @@ func TestIsConsulServer(t *testing.T) {
 	if parts.Name != "foo" {
 		t.Fatalf("bad: %v", parts)
 	}
+	if parts.ID != "asdf" {
+		t.Fatalf("bad: %v", parts.ID)
+	}
 	if parts.Bootstrap {
 		t.Fatalf("unexpected bootstrap")
 	}
 	if parts.Expect != 0 {
 		t.Fatalf("bad: %v", parts.Expect)
+	}
+	if parts.RaftVersion != 3 {
+		t.Fatalf("bad: %v", parts.RaftVersion)
 	}
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"

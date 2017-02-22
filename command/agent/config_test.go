@@ -1098,6 +1098,20 @@ func TestDecodeConfig_Performance(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_Autopilot(t *testing.T) {
+	input := `{"autopilot": { "raft_protocol": 3, "dead_server_cleanup": true }}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Autopilot.RaftProtocolVersion != 3 {
+		t.Fatalf("bad: raft_protocol isn't set: %#v", config)
+	}
+	if config.Autopilot.DeadServerCleanup == nil || !*config.Autopilot.DeadServerCleanup {
+		t.Fatalf("bad: dead_server_cleanup isn't set: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Services(t *testing.T) {
 	input := `{
 		"services": [
@@ -1619,6 +1633,10 @@ func TestMergeConfig(t *testing.T) {
 		Server:                 true,
 		LeaveOnTerm:            Bool(true),
 		SkipLeaveOnInt:         Bool(true),
+		Autopilot:              Autopilot{
+			RaftProtocolVersion: 3,
+			DeadServerCleanup:   Bool(true),
+		},
 		EnableDebug:            true,
 		VerifyIncoming:         true,
 		VerifyOutgoing:         true,

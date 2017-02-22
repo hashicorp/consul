@@ -379,9 +379,12 @@ func (s *Server) setupRaft() error {
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
 
-	// Our version of Raft protocol requires the LocalID to match the network
+	// Versions of the Raft protocol below 3 require the LocalID to match the network
 	// address of the transport.
 	s.config.RaftConfig.LocalID = raft.ServerID(trans.LocalAddr())
+	if s.config.RaftConfig.ProtocolVersion >= 3 {
+		s.config.RaftConfig.LocalID = raft.ServerID(s.config.NodeID)
+	}
 
 	// Build an all in-memory setup for dev mode, otherwise prepare a full
 	// disk-based setup.
@@ -479,7 +482,7 @@ func (s *Server) setupRaft() error {
 			configuration := raft.Configuration{
 				Servers: []raft.Server{
 					raft.Server{
-						ID:      raft.ServerID(trans.LocalAddr()),
+						ID:      s.config.RaftConfig.LocalID,
 						Address: trans.LocalAddr(),
 					},
 				},

@@ -562,21 +562,32 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	}
 
 	// Attempt to add as a peer
-	addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
-	if err := addFuture.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+	if err != nil {
 		return err
 	}
 
+	if minRaftProtocol >= 2 && parts.RaftVersion >= 3 {
+		addFuture := s.raft.AddVoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
+		if err := addFuture.Error(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			return err
+		}
+	} else {
+		addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
+		if err := addFuture.Error(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			return err
+		}
+	}
+
 	// Look for dead servers to clean up
-	if s.config.AutopilotServerCleanup {
+	if s.config.DeadServerCleanup {
 		for _, member := range s.serfLAN.Members() {
 			valid, _ := agent.IsConsulServer(member)
 			if valid && member.Name != m.Name && member.Status == serf.StatusFailed {
-				if err := s.handleDeregisterMember("Removing failed server", member); err != nil {
-					return fmt.Errorf("[ERROR] consul: Couldn't deregister failed server (%s): %v", member.Name, err)
-				}
-				s.logger.Printf("[INFO] consul: Removed failed server: %v", member.Name)
+				s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", member.Name)
+				go s.serfLAN.RemoveFailedNode(member.Name)
 			}
 		}
 	}
@@ -597,21 +608,38 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
 		return err
 	}
-	for _, server := range configFuture.Configuration().Servers {
-		if server.Address == raft.ServerAddress(addr) {
-			goto REMOVE
-		}
-	}
-	return nil
 
-REMOVE:
-	// Attempt to remove as a peer.
-	future := s.raft.RemovePeer(raft.ServerAddress(addr))
-	if err := future.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-			addr, err)
+	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+	if err != nil {
 		return err
 	}
+
+	_, parts := agent.IsConsulServer(m)
+
+	// Pick which remove API to use based on how the server was added.
+	for _, server := range configFuture.Configuration().Servers {
+		// If we understand the new add/remove APIs and the server was added by ID, use the new remove API
+		if minRaftProtocol >= 2 && server.ID == raft.ServerID(parts.ID) {
+			s.logger.Printf("[INFO] consul: removing server via new api, %q %q", server.ID, server.Address)
+			future := s.raft.RemoveServer(raft.ServerID(parts.ID), 0, 0)
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
+					addr, err)
+				return err
+			}
+			break
+		} else if server.Address == raft.ServerAddress(addr) {
+			// If not, use the old remove API
+			future := s.raft.RemovePeer(raft.ServerAddress(addr))
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
+					addr, err)
+				return err
+			}
+			break
+		}
+	}
+
 	return nil
 }
 

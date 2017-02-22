@@ -25,13 +25,15 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name       string
-	Datacenter string
-	Port       int
-	Bootstrap  bool
-	Expect     int
-	Version    int
-	Addr       net.Addr
+	Name        string
+	ID          string
+	Datacenter  string
+	Port        int
+	Bootstrap   bool
+	Expect      int
+	Version     int
+	RaftVersion int
+	Addr        net.Addr
 }
 
 // Key returns the corresponding Key
@@ -84,16 +86,24 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
+	raft_vsn_str := m.Tags["raft_vsn"]
+	raft_vsn, err := strconv.Atoi(raft_vsn_str)
+	if err != nil {
+		return false, nil
+	}
+
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
 		Name:       m.Name,
+		ID:         m.Tags["id"],
 		Datacenter: datacenter,
 		Port:       port,
 		Bootstrap:  bootstrap,
 		Expect:     expect,
 		Addr:       addr,
 		Version:    vsn,
+		RaftVersion: raft_vsn,
 	}
 	return true, parts
 }

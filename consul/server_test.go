@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/consul/types"
 )
 
 var nextPort int32 = 15000
@@ -46,6 +48,11 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 		IP:   []byte{127, 0, 0, 1},
 		Port: getPort(),
 	}
+	nodeID, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.NodeID = types.NodeID(nodeID)
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfLANConfig.MemberlistConfig.SuspicionMult = 2

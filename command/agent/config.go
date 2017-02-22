@@ -262,6 +262,16 @@ type Telemetry struct {
 	CirconusBrokerSelectTag string `mapstructure:"circonus_broker_select_tag"`
 }
 
+// Autopilot is used to configure helpful features for operating Consul servers.
+type Autopilot struct {
+	// RaftProtocolVersion sets the Raft protocol version to use on this server.
+	RaftProtocolVersion int `mapstructure:"raft_protocol"`
+
+	// DeadServerCleanup enables the automatic cleanup of dead servers when new ones
+	// are added to the peer list. Defaults to true.
+	DeadServerCleanup *bool `mapstructure:"dead_server_cleanup"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -386,6 +396,9 @@ type Config struct {
 	// receiving the INT signal. Defaults false on clients, true on
 	// servers. This can be changed on reload.
 	SkipLeaveOnInt *bool `mapstructure:"skip_leave_on_interrupt"`
+
+	// Autopilot is used to configure helpful features for operating Consul servers.
+	Autopilot Autopilot `mapstructure:"autopilot"`
 
 	Telemetry Telemetry `mapstructure:"telemetry"`
 
@@ -759,6 +772,9 @@ func DefaultConfig() *Config {
 		CheckReapInterval:          30 * time.Second,
 		AEInterval:                 time.Minute,
 		DisableCoordinates:         false,
+		Autopilot:                  Autopilot{
+			DeadServerCleanup: Bool(true),
+		},
 
 		// SyncCoordinateRateTarget is set based on the rate that we want
 		// the server to handle as an aggregate across the entire cluster.
@@ -1330,6 +1346,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SkipLeaveOnInt != nil {
 		result.SkipLeaveOnInt = b.SkipLeaveOnInt
+	}
+	if b.Autopilot.RaftProtocolVersion != 0 {
+		result.Autopilot.RaftProtocolVersion = b.Autopilot.RaftProtocolVersion
+	}
+	if b.Autopilot.DeadServerCleanup != nil {
+		result.Autopilot.DeadServerCleanup = b.Autopilot.DeadServerCleanup
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
