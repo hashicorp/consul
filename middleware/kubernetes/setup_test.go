@@ -198,7 +198,7 @@ func TestKubernetesParse(t *testing.T) {
 			"kubernetes keyword without a zone",
 			`kubernetes`,
 			true,
-			"Zone name must be provided for kubernetes middleware",
+			"zone name must be provided for kubernetes middleware",
 			-1,
 			0,
 			defaultResyncPeriod,
