@@ -20,7 +20,7 @@ docker: deps
 	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(DOCKER_VERSION)
 
 .PHONY: deps
-deps:
+deps: fmt
 	go get ${BUILD_VERBOSE}
 
 .PHONY: test
@@ -54,6 +54,12 @@ core/zmiddleware.go core/dnsserver/zdirectives.go: middleware.cfg
 .PHONY: gen
 gen:
 	go generate coredns.go
+
+.PHONY: fmt
+fmt:
+	## run go fmt
+	@test -z "$$(gofmt -s -l . | grep -v vendor/ | tee /dev/stderr)" || \
+		(echo "please format Go code with 'gofmt -s -w'" && false)
 
 .PHONY: distclean
 distclean: clean
