@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/miekg/dns"
-        ot "github.com/opentracing/opentracing-go"
+	ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 )
 

@@ -22,7 +22,7 @@ type Config struct {
 	Root string
 
 	// Server is the server that handles this config
-	Server  *Server
+	Server *Server
 
 	// Middleware stack.
 	Middleware []middleware.Middleware

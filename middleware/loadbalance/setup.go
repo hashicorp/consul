@@ -1,9 +1,9 @@
 package loadbalance
 
 import (
-	"github.com/mholt/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
+	"github.com/mholt/caddy"
 )
 
 func init() {

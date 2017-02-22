@@ -1,10 +1,10 @@
 package reverse
 
 import (
-	"testing"
 	"net"
 	"reflect"
 	"regexp"
+	"testing"
 )
 
 // Test converting from hostname to IP and back again to hostname
@@ -23,18 +23,18 @@ func TestNetworkConversion(t *testing.T) {
 	}{
 		{
 			network{
-				IPnet:net4,
-				Template: "dns-{ip}.domain.internal.",
-				RegexMatchIP:regexIP4,
+				IPnet:        net4,
+				Template:     "dns-{ip}.domain.internal.",
+				RegexMatchIP: regexIP4,
 			},
 			"dns-10-1-1-23.domain.internal.",
 			net.ParseIP("10.1.1.23"),
 		},
 		{
 			network{
-				IPnet:net6,
-				Template: "dns-{ip}.domain.internal.",
-				RegexMatchIP:regexIP6,
+				IPnet:        net6,
+				Template:     "dns-{ip}.domain.internal.",
+				RegexMatchIP: regexIP6,
 			},
 			"dns-fd01000000000000000000000000a32f.domain.internal.",
 			net.ParseIP("fd01::a32f"),
@@ -70,56 +70,56 @@ func TestNetworkHostnameToIP(t *testing.T) {
 	}{
 		{
 			network{
-				IPnet:net4,
-				RegexMatchIP:regexIP4,
+				IPnet:        net4,
+				RegexMatchIP: regexIP4,
 			},
 			// domain does not match
 			"dns-10-1-1-23.domain.internals.",
 		},
 		{
 			network{
-				IPnet:net4,
-				RegexMatchIP:regexIP4,
+				IPnet:        net4,
+				RegexMatchIP: regexIP4,
 			},
 			// IP does match / contain in subnet
 			"dns-200-1-1-23.domain.internals.",
 		},
 		{
 			network{
-				IPnet:net4,
-				RegexMatchIP:regexIP4,
+				IPnet:        net4,
+				RegexMatchIP: regexIP4,
 			},
 			// template does not match
 			"dns-10-1-1-23-x.domain.internal.",
 		},
 		{
 			network{
-				IPnet:net4,
-				RegexMatchIP:regexIP4,
+				IPnet:        net4,
+				RegexMatchIP: regexIP4,
 			},
 			// template does not match
 			"IP-dns-10-1-1-23.domain.internal.",
 		},
 		{
 			network{
-				IPnet:net6,
-				RegexMatchIP:regexIP6,
+				IPnet:        net6,
+				RegexMatchIP: regexIP6,
 			},
 			// template does not match
 			"dnx-fd01000000000000000000000000a32f.domain.internal.",
 		},
 		{
 			network{
-				IPnet:net6,
-				RegexMatchIP:regexIP6,
+				IPnet:        net6,
+				RegexMatchIP: regexIP6,
 			},
 			// no valid v6 (missing one 0, only 31 chars)
 			"dns-fd0100000000000000000000000a32f.domain.internal.",
 		},
 		{
 			network{
-				IPnet:net6,
-				RegexMatchIP:regexIP6,
+				IPnet:        net6,
+				RegexMatchIP: regexIP6,
 			},
 			// IP does match / contain in subnet
 			"dns-ed01000000000000000000000000a32f.domain.internal.",
