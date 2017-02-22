@@ -2,7 +2,7 @@
 
 [![Documentation](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/coredns/coredns)
 [![Build Status](https://img.shields.io/travis/coredns/coredns.svg?style=flat-square&label=build)](https://travis-ci.org/coredns/coredns)
-[![Code Coverage](https://img.shields.io/codecov/c/github/coredns/coredns.svg?style=flat-square)](github.com/coredns/coredns)
+[![Code Coverage](https://img.shields.io/codecov/c/github/coredns/coredns/master.svg?style=flat-square)](https://codecov.io/github/coredns/coredns?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/coredns/coredns?style=flat-square)](https://goreportcard.com/report/coredns/coredns)
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
