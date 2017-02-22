@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/metrics/vars"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/metrics/vars"
 
 	"github.com/prometheus/client_golang/prometheus"
 )

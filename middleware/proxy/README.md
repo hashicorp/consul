@@ -51,7 +51,7 @@ proxy FROM TO... {
 * `protocol` specifies what protocol to use to speak to an upstream, `dns` (the default) is plain
   old DNS, and `https_google` uses `https://dns.google.com` and speaks a JSON DNS dialect. Note when
   using this **TO** will be ignored. The `grpc` option will talk to a server that has implemented
-  the [DnsService](https://github.com/miekg/coredns/middleware/proxy/pb/dns.proto).
+  the [DnsService](https://github.com/coredns/coredns/middleware/proxy/pb/dns.proto).
   An out-of-tree middleware that implements the server side of this can be found at
   [here](https://github.com/infobloxopen/coredns-grpc).
 

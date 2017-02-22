@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/miekg/coredns/middleware/etcd/msg"
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )

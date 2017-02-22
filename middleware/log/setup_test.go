@@ -3,7 +3,7 @@ package log
 import (
 	"testing"
 
-	"github.com/miekg/coredns/middleware/pkg/response"
+	"github.com/coredns/coredns/middleware/pkg/response"
 
 	"github.com/mholt/caddy"
 )

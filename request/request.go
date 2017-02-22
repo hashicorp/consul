@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/miekg/coredns/middleware/pkg/edns"
+	"github.com/coredns/coredns/middleware/pkg/edns"
 
 	"github.com/miekg/dns"
 )

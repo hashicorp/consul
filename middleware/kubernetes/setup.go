@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/mholt/caddy"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"

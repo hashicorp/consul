@@ -4,7 +4,7 @@ package rewrite
 import (
 	"strings"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 	"github.com/miekg/dns"
 )
 

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/file"
-	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/file"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"

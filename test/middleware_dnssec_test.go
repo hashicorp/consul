@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )

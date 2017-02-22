@@ -5,10 +5,10 @@ package dnssec
 import (
 	"time"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/response"
-	"github.com/miekg/coredns/middleware/pkg/singleflight"
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/response"
+	"github.com/coredns/coredns/middleware/pkg/singleflight"
+	"github.com/coredns/coredns/request"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"

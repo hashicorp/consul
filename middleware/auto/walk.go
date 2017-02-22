@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/miekg/coredns/middleware/file"
+	"github.com/coredns/coredns/middleware/file"
 
 	"github.com/miekg/dns"
 )

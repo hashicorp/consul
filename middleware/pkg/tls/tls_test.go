@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/test"
 )
 
 func getPEMFiles(t *testing.T) (rmFunc func(), cert, key, ca string) {

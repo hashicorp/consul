@@ -1,9 +1,9 @@
 package secondary
 
 import (
-	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/file"
+	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/file"
 
 	"github.com/mholt/caddy"
 )

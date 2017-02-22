@@ -1,7 +1,7 @@
 package vars
 
 import (
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/prometheus/client_golang/prometheus"
 )

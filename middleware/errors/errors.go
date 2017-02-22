@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

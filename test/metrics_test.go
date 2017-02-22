@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware/cache"
-	"github.com/miekg/coredns/middleware/metrics"
-	mtest "github.com/miekg/coredns/middleware/metrics/test"
-	"github.com/miekg/coredns/middleware/metrics/vars"
+	"github.com/coredns/coredns/middleware/cache"
+	"github.com/coredns/coredns/middleware/metrics"
+	mtest "github.com/coredns/coredns/middleware/metrics/test"
+	"github.com/coredns/coredns/middleware/metrics/vars"
 
 	"github.com/miekg/dns"
 )

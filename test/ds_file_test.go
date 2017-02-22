@@ -6,9 +6,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/proxy"
-	mtest "github.com/miekg/coredns/middleware/test"
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/middleware/proxy"
+	mtest "github.com/coredns/coredns/middleware/test"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )

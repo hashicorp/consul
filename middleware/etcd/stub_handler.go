@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

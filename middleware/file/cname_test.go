@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
-	"github.com/miekg/coredns/middleware/proxy"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/proxy"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

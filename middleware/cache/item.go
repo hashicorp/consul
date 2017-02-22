@@ -3,7 +3,7 @@ package cache
 import (
 	"time"
 
-	"github.com/miekg/coredns/middleware/pkg/response"
+	"github.com/coredns/coredns/middleware/pkg/response"
 	"github.com/miekg/dns"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/mholt/caddy"
 )

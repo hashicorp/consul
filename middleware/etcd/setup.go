@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/dnsutil"
-	"github.com/miekg/coredns/middleware/pkg/singleflight"
-	mwtls "github.com/miekg/coredns/middleware/pkg/tls"
-	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/pkg/singleflight"
+	mwtls "github.com/coredns/coredns/middleware/pkg/tls"
+	"github.com/coredns/coredns/middleware/proxy"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"

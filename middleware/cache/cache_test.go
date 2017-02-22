@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/response"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/response"
+	"github.com/coredns/coredns/middleware/test"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"

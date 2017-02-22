@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/dnsutil"
-	"github.com/miekg/coredns/middleware/pkg/tls"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/pkg/tls"
 
 	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"

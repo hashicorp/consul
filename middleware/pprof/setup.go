@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/mholt/caddy"
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 )
 
 func init() {

@@ -5,10 +5,10 @@ can be. We gladly accept contributions and encourage you to get involved!
 
 ### Bug reports
 
-First, please [search this repository](https://github.com/miekg/coredns/search?q=&type=Issues&utf8=%E2%9C%93)
+First, please [search this repository](https://github.com/coredns/coredns/search?q=&type=Issues&utf8=%E2%9C%93)
 with a variety of keywords to ensure your bug is not already reported.
 
-If not, [open an issue](https://github.com/miekg/coredns/issues) and answer the
+If not, [open an issue](https://github.com/coredns/coredns/issues) and answer the
 questions so we can understand and reproduce the problematic behavior.
 
 The burden is on you to convince us that it is actually a bug in CoreDNS. This is
@@ -23,14 +23,14 @@ getting free help.
 
 ### Minor improvements and new tests
 
-Submit [pull requests](https://github.com/miekg/coredns/pulls) at any time. Make
+Submit [pull requests](https://github.com/coredns/coredns/pulls) at any time. Make
 sure to write tests to assert your change is working properly and is thoroughly
 covered.
 
 
 ### Proposals, suggestions, ideas, new features
 
-First, please [search](https://github.com/miekg/coredns/search?q=&type=Issues&utf8=%E2%9C%93)
+First, please [search](https://github.com/coredns/coredns/search?q=&type=Issues&utf8=%E2%9C%93)
 with a variety of keywords to ensure your suggestion/proposal is new.
 
 If so, you may open either an issue or a pull request for discussion and

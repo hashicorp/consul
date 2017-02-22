@@ -44,7 +44,7 @@ Each of the middlewares has a README.md of its own.
 CoreDNS can be used as a authoritative nameserver for your domains, and should be stable enough to
 provide you with good DNS(SEC) service.
 
-There are still few [issues](https://github.com/miekg/coredns/issues), and work is ongoing on making
+There are still few [issues](https://github.com/coredns/coredns/issues), and work is ongoing on making
 things fast and to reduce the memory usage.
 
 All in all, CoreDNS should be able to provide you with enough functionality to replace parts of BIND
@@ -174,7 +174,7 @@ example.org {
 Website: <https://coredns.io>
 Twitter: [@corednsio](https://twitter.com/corednsio)
 Docs: <https://miek.nl/tags/coredns/>
-Github: <https://github.com/miekg/coredns>
+Github: <https://github.com/coredns/coredns>
 
 
 ## Systemd Service File

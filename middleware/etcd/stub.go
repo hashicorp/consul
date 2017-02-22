@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/coredns/middleware/etcd/msg"
-	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
 )

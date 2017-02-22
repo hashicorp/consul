@@ -3,7 +3,7 @@ package bind
 import (
 	"testing"
 
-	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/coredns/coredns/core/dnsserver"
 
 	"github.com/mholt/caddy"
 )

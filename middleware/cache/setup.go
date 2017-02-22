@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/mholt/caddy"

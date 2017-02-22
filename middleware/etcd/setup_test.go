@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware/etcd/msg"
-	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
-	"github.com/miekg/coredns/middleware/pkg/singleflight"
-	"github.com/miekg/coredns/middleware/pkg/tls"
-	"github.com/miekg/coredns/middleware/proxy"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/pkg/singleflight"
+	"github.com/coredns/coredns/middleware/pkg/tls"
+	"github.com/coredns/coredns/middleware/proxy"
+	"github.com/coredns/coredns/middleware/test"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"

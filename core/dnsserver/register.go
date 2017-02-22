@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"

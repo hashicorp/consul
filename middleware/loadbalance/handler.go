@@ -2,7 +2,7 @@
 package loadbalance
 
 import (
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

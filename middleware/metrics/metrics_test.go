@@ -3,10 +3,10 @@ package metrics
 import (
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
-	mtest "github.com/miekg/coredns/middleware/metrics/test"
-	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
-	"github.com/miekg/coredns/middleware/test"
+	"github.com/coredns/coredns/middleware"
+	mtest "github.com/coredns/coredns/middleware/metrics/test"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"

@@ -5,10 +5,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/dnsutil"
-	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/proxy"
 
 	"github.com/mholt/caddy"
 )

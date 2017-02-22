@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"log"
 
-	"github.com/miekg/coredns/middleware/proxy/pb"
-	"github.com/miekg/coredns/request"
+	"github.com/coredns/coredns/middleware/proxy/pb"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 	"google.golang.org/grpc"

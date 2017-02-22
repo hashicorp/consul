@@ -1,7 +1,7 @@
 package dnsserver
 
 import (
-	"github.com/miekg/coredns/middleware"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/mholt/caddy"
 )
