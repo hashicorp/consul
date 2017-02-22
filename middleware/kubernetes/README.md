@@ -128,14 +128,7 @@ all values.  The labels that accept wildcards are:
 * multiple wild cards are allowed in a single query.
    * e.g. `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
 
-## deploy.sh and coredns.yaml.sed
+## Deployment in Kubernetes
 
-A convenience script to generate a manifest for running CoreDNS on a cluster that is currently
-running standard kube-dns. It creates a ConfigMap and a CoreDNS deployment, then updates the
-Kube-DNS service selector to use the CoreDNS deployment. It doesn't delete the kube-dns
-deployment or replication controller - you'll have to do that manually.
-
-~~~
-$ ./deploy.sh 10.3.0.0/24 | kubectl apply -f -
-$ kubectl delete --namespace=kube-system deployment kube-dns
-~~~
+See the [deployment](https://github.com/coredns/deployment) repository for details on how
+to deploy CoreDNS in Kubernetes.
