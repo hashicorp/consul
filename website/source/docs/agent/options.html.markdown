@@ -555,6 +555,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
   [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
+* <a name="autopilot"></a><a href="#autopilot">`autopilot`</a> Added in Consul 0.8, this object
+  allows a number of sub-keys to be set which can configure operator-friendly settings for Consul servers.
+  <br><br>
+  The following sub-keys are available:
+
+  * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> - This controls the internal
+  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
+  be set to 3 in order to gain access to other Autopilot features, with the exception of
+  [`dead_server_cleanup`](#dead_server_cleanup).
+
+  * <a name="dead_server_cleanup"></a><a href="#dead_server_cleanup">`dead_server_cleanup`</a> - This controls
+  the automatic removal of dead server nodes whenever a new server is added to the cluster. Defaults to `true`.
+
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
 
