@@ -264,9 +264,6 @@ type Telemetry struct {
 
 // Autopilot is used to configure helpful features for operating Consul servers.
 type Autopilot struct {
-	// RaftProtocolVersion sets the Raft protocol version to use on this server.
-	RaftProtocolVersion int `mapstructure:"raft_protocol"`
-
 	// DeadServerCleanup enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
 	DeadServerCleanup *bool `mapstructure:"dead_server_cleanup"`
@@ -404,6 +401,9 @@ type Config struct {
 
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
+
+	// RaftProtocol sets the Raft protocol version to use on this server.
+	RaftProtocol int `mapstructure:"raft_protocol"`
 
 	// EnableDebug is used to enable various debugging features
 	EnableDebug bool `mapstructure:"enable_debug"`
@@ -1299,6 +1299,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Protocol > 0 {
 		result.Protocol = b.Protocol
 	}
+	if b.RaftProtocol != 0 {
+		result.RaftProtocol = b.RaftProtocol
+	}
 	if b.NodeID != "" {
 		result.NodeID = b.NodeID
 	}
@@ -1346,9 +1349,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SkipLeaveOnInt != nil {
 		result.SkipLeaveOnInt = b.SkipLeaveOnInt
-	}
-	if b.Autopilot.RaftProtocolVersion != 0 {
-		result.Autopilot.RaftProtocolVersion = b.Autopilot.RaftProtocolVersion
 	}
 	if b.Autopilot.DeadServerCleanup != nil {
 		result.Autopilot.DeadServerCleanup = b.Autopilot.DeadServerCleanup

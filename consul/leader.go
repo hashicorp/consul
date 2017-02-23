@@ -620,16 +620,17 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	for _, server := range configFuture.Configuration().Servers {
 		// If we understand the new add/remove APIs and the server was added by ID, use the new remove API
 		if minRaftProtocol >= 2 && server.ID == raft.ServerID(parts.ID) {
-			s.logger.Printf("[INFO] consul: removing server via new api, %q %q", server.ID, server.Address)
+			s.logger.Printf("[INFO] consul: removing server by ID: %q", server.ID)
 			future := s.raft.RemoveServer(raft.ServerID(parts.ID), 0, 0)
 			if err := future.Error(); err != nil {
 				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-					addr, err)
+					server.ID, err)
 				return err
 			}
 			break
 		} else if server.Address == raft.ServerAddress(addr) {
 			// If not, use the old remove API
+			s.logger.Printf("[INFO] consul: removing server by address: %q", server.Address)
 			future := s.raft.RemovePeer(raft.ServerAddress(addr))
 			if err := future.Error(); err != nil {
 				s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",

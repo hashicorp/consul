@@ -112,6 +112,11 @@ func ServerMinRaftProtocol(members []serf.Member) (int, error) {
 			minVersion = raftVsn
 		}
 	}
+
+	if minVersion == -1 {
+		return minVersion, fmt.Errorf("No servers found")
+	}
+
 	return minVersion, nil
 }
 

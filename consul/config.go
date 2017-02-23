@@ -366,8 +366,9 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
-	// Enable interoperability with unversioned Raft library, and don't
-	// start using new ID-based features yet.
+	// TODO: default to 3 in Consul 0.9
+	// Use a transitional version of the raft protocol to interoperate with
+	// versions 1 and 3
 	conf.RaftConfig.ProtocolVersion = 2
 	conf.ScaleRaft(DefaultRaftMultiplier)
 
