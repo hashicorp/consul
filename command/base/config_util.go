@@ -20,32 +20,32 @@ import (
 
 // configDecodeHook should be passed to mapstructure in order to decode into
 // the *Value objects here.
-var configDecodeHook = mapstructure.ComposeDecodeHookFunc(
-	boolToBoolValueFunc(),
-	stringToDurationValueFunc(),
-	stringToStringValueFunc(),
-	float64ToUintValueFunc(),
+var ConfigDecodeHook = mapstructure.ComposeDecodeHookFunc(
+	BoolToBoolValueFunc(),
+	StringToDurationValueFunc(),
+	StringToStringValueFunc(),
+	Float64ToUintValueFunc(),
 )
 
-// boolValue provides a flag value that's aware if it has been set.
-type boolValue struct {
+// BoolValue provides a flag value that's aware if it has been set.
+type BoolValue struct {
 	v *bool
 }
 
 // See flag.Value.
-func (b *boolValue) IsBoolFlag() bool {
+func (b *BoolValue) IsBoolFlag() bool {
 	return true
 }
 
 // Merge will overlay this value if it has been set.
-func (b *boolValue) Merge(onto *bool) {
+func (b *BoolValue) Merge(onto *bool) {
 	if b.v != nil {
 		*onto = *(b.v)
 	}
 }
 
 // See flag.Value.
-func (b *boolValue) Set(v string) error {
+func (b *BoolValue) Set(v string) error {
 	if b.v == nil {
 		b.v = new(bool)
 	}
@@ -55,7 +55,7 @@ func (b *boolValue) Set(v string) error {
 }
 
 // See flag.Value.
-func (b *boolValue) String() string {
+func (b *BoolValue) String() string {
 	var current bool
 	if b.v != nil {
 		current = *(b.v)
@@ -63,9 +63,9 @@ func (b *boolValue) String() string {
 	return fmt.Sprintf("%v", current)
 }
 
-// boolToBoolValueFunc is a mapstructure hook that looks for an incoming bool
-// mapped to a boolValue and does the translation.
-func boolToBoolValueFunc() mapstructure.DecodeHookFunc {
+// BoolToBoolValueFunc is a mapstructure hook that looks for an incoming bool
+// mapped to a BoolValue and does the translation.
+func BoolToBoolValueFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -74,7 +74,7 @@ func boolToBoolValueFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		val := boolValue{}
+		val := BoolValue{}
 		if t != reflect.TypeOf(val) {
 			return data, nil
 		}
@@ -85,20 +85,20 @@ func boolToBoolValueFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// durationValue provides a flag value that's aware if it has been set.
-type durationValue struct {
+// DurationValue provides a flag value that's aware if it has been set.
+type DurationValue struct {
 	v *time.Duration
 }
 
 // Merge will overlay this value if it has been set.
-func (d *durationValue) Merge(onto *time.Duration) {
+func (d *DurationValue) Merge(onto *time.Duration) {
 	if d.v != nil {
 		*onto = *(d.v)
 	}
 }
 
 // See flag.Value.
-func (d *durationValue) Set(v string) error {
+func (d *DurationValue) Set(v string) error {
 	if d.v == nil {
 		d.v = new(time.Duration)
 	}
@@ -108,7 +108,7 @@ func (d *durationValue) Set(v string) error {
 }
 
 // See flag.Value.
-func (d *durationValue) String() string {
+func (d *DurationValue) String() string {
 	var current time.Duration
 	if d.v != nil {
 		current = *(d.v)
@@ -116,9 +116,9 @@ func (d *durationValue) String() string {
 	return current.String()
 }
 
-// stringToDurationValueFunc is a mapstructure hook that looks for an incoming
-// string mapped to a durationValue and does the translation.
-func stringToDurationValueFunc() mapstructure.DecodeHookFunc {
+// StringToDurationValueFunc is a mapstructure hook that looks for an incoming
+// string mapped to a DurationValue and does the translation.
+func StringToDurationValueFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -127,7 +127,7 @@ func stringToDurationValueFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		val := durationValue{}
+		val := DurationValue{}
 		if t != reflect.TypeOf(val) {
 			return data, nil
 		}
@@ -138,20 +138,20 @@ func stringToDurationValueFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// stringValue provides a flag value that's aware if it has been set.
-type stringValue struct {
+// StringValue provides a flag value that's aware if it has been set.
+type StringValue struct {
 	v *string
 }
 
 // Merge will overlay this value if it has been set.
-func (s *stringValue) Merge(onto *string) {
+func (s *StringValue) Merge(onto *string) {
 	if s.v != nil {
 		*onto = *(s.v)
 	}
 }
 
 // See flag.Value.
-func (s *stringValue) Set(v string) error {
+func (s *StringValue) Set(v string) error {
 	if s.v == nil {
 		s.v = new(string)
 	}
@@ -160,7 +160,7 @@ func (s *stringValue) Set(v string) error {
 }
 
 // See flag.Value.
-func (s *stringValue) String() string {
+func (s *StringValue) String() string {
 	var current string
 	if s.v != nil {
 		current = *(s.v)
@@ -168,9 +168,9 @@ func (s *stringValue) String() string {
 	return current
 }
 
-// stringToStringValueFunc is a mapstructure hook that looks for an incoming
-// string mapped to a stringValue and does the translation.
-func stringToStringValueFunc() mapstructure.DecodeHookFunc {
+// StringToStringValueFunc is a mapstructure hook that looks for an incoming
+// string mapped to a StringValue and does the translation.
+func StringToStringValueFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -179,7 +179,7 @@ func stringToStringValueFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		val := stringValue{}
+		val := StringValue{}
 		if t != reflect.TypeOf(val) {
 			return data, nil
 		}
@@ -189,20 +189,20 @@ func stringToStringValueFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// uintValue provides a flag value that's aware if it has been set.
-type uintValue struct {
+// UintValue provides a flag value that's aware if it has been set.
+type UintValue struct {
 	v *uint
 }
 
 // Merge will overlay this value if it has been set.
-func (u *uintValue) Merge(onto *uint) {
+func (u *UintValue) Merge(onto *uint) {
 	if u.v != nil {
 		*onto = *(u.v)
 	}
 }
 
 // See flag.Value.
-func (u *uintValue) Set(v string) error {
+func (u *UintValue) Set(v string) error {
 	if u.v == nil {
 		u.v = new(uint)
 	}
@@ -212,7 +212,7 @@ func (u *uintValue) Set(v string) error {
 }
 
 // See flag.Value.
-func (u *uintValue) String() string {
+func (u *UintValue) String() string {
 	var current uint
 	if u.v != nil {
 		current = *(u.v)
@@ -220,9 +220,9 @@ func (u *uintValue) String() string {
 	return fmt.Sprintf("%v", current)
 }
 
-// float64ToUintValueFunc is a mapstructure hook that looks for an incoming
-// float64 mapped to a uintValue and does the translation.
-func float64ToUintValueFunc() mapstructure.DecodeHookFunc {
+// Float64ToUintValueFunc is a mapstructure hook that looks for an incoming
+// float64 mapped to a UintValue and does the translation.
+func Float64ToUintValueFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -231,7 +231,7 @@ func float64ToUintValueFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		val := uintValue{}
+		val := UintValue{}
 		if t != reflect.TypeOf(val) {
 			return data, nil
 		}

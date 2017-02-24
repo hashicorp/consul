@@ -14,10 +14,10 @@ import (
 
 func TestConfigUtil_Values(t *testing.T) {
 	type config struct {
-		B boolValue     `mapstructure:"bool"`
-		D durationValue `mapstructure:"duration"`
-		S stringValue   `mapstructure:"string"`
-		U uintValue     `mapstructure:"uint"`
+		B BoolValue     `mapstructure:"bool"`
+		D DurationValue `mapstructure:"duration"`
+		S StringValue   `mapstructure:"string"`
+		U UintValue     `mapstructure:"uint"`
 	}
 
 	cases := []struct {
@@ -70,7 +70,7 @@ func TestConfigUtil_Values(t *testing.T) {
 
 		var r config
 		msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-			DecodeHook:  configDecodeHook,
+			DecodeHook:  ConfigDecodeHook,
 			Result:      &r,
 			ErrorUnused: true,
 		})
