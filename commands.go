@@ -213,6 +213,33 @@ func init() {
 			}, nil
 		},
 
+		"operator autopilot": func() (cli.Command, error) {
+			return &command.OperatorAutopilotCommand{
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"operator autopilot get-config": func() (cli.Command, error) {
+			return &command.OperatorAutopilotGetCommand{
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
+		"operator autopilot set-config": func() (cli.Command, error) {
+			return &command.OperatorAutopilotSetCommand{
+				Command: base.Command{
+					Flags: base.FlagSetHTTP,
+					Ui:    ui,
+				},
+			}, nil
+		},
+
 		"operator raft": func() (cli.Command, error) {
 			return &command.OperatorRaftCommand{
 				Command: base.Command{
