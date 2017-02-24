@@ -63,6 +63,13 @@ type KeyringResponse struct {
 	NumNodes int
 }
 
+// AutopilotConfiguration is used for querying/setting the Autopilot configuration
+type AutopilotConfiguration struct {
+	// DeadServerCleanup controls whether to remove dead servers from the Raft peer list
+	// when a new server joins
+	DeadServerCleanup bool
+}
+
 // RaftGetConfiguration is used to query the current Raft peer set.
 func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/raft/configuration")
@@ -154,6 +161,36 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// RaftGetConfiguration is used to query the current Raft peer set.
+func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
+	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
+	r.setQueryOptions(q)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out AutopilotConfiguration
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RaftGetConfiguration is used to query the current Raft peer set.
+func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *WriteOptions) error {
+	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
+	r.setWriteOptions(q)
+	r.obj = conf
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err

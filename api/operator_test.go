@@ -104,3 +104,31 @@ func TestOperator_KeyringInstallListPutRemove(t *testing.T) {
 		}
 	}
 }
+
+func TestOperator_AutopilotGetSetConfiguration(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	operator := c.Operator()
+	config, err := operator.AutopilotGetConfiguration(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !config.DeadServerCleanup {
+		t.Fatalf("bad: %v", config)
+	}
+
+	// Change a config setting
+	if err := operator.AutopilotSetConfiguration(&AutopilotConfiguration{false}, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	config, err = operator.AutopilotGetConfiguration(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if config.DeadServerCleanup {
+		t.Fatalf("bad: %v", config)
+	}
+}
