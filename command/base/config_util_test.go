@@ -108,10 +108,10 @@ func TestConfigUtil_Visit(t *testing.T) {
 	}
 
 	basePath := "../../test/command/merge"
-	if err := visit(basePath, visitor); err != nil {
+	if err := Visit(basePath, visitor); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := visit(path.Join(basePath, "subdir", "c.json"), visitor); err != nil {
+	if err := Visit(path.Join(basePath, "subdir", "c.json"), visitor); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

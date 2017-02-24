@@ -254,14 +254,14 @@ func float64ToUintValueFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// visitFn is a callback that gets a chance to visit each file found during a
+// VisitFn is a callback that gets a chance to visit each file found during a
 // traversal with visit().
-type visitFn func(path string) error
+type VisitFn func(path string) error
 
 // visit will call the visitor function on the path if it's a file, or for each
 // file in the path if it's a directory. Directories will not be recursed into,
 // and files in the directory will be visited in alphabetical order.
-func visit(path string, visitor visitFn) error {
+func Visit(path string, visitor VisitFn) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("error reading %q: %v", path, err)
