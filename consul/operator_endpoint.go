@@ -144,7 +144,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	// We can't fetch the leader and the configuration atomically with
 	// the current Raft API.
 	state := op.srv.fsm.State()
-	config, err := state.AutopilotConfig()
+	_, config, err := state.AutopilotConfig()
 	if err != nil {
 		return err
 	}
@@ -154,8 +154,8 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	return nil
 }
 
-// AutopilotGetConfiguration is used to set the current Autopilot configuration.
-func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *struct{}) error {
+// AutopilotSetConfiguration is used to set the current Autopilot configuration.
+func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *bool) error {
 	if done, err := op.srv.forward("Operator.AutopilotSetConfiguration", args, args, reply); done {
 		return err
 	}
@@ -169,11 +169,19 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 		return permissionDeniedErr
 	}
 
-	// Update the autopilot config
-	state := op.srv.fsm.State()
-	if err := state.UpdateAutopilotConfig(&args.Config); err != nil {
+	// Apply the update
+	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
+	if err != nil {
+		op.srv.logger.Printf("[ERR] consul.operator: Apply failed: %v", err)
 		return err
 	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
 
+	// Check if the return type is a bool.
+	if respBool, ok := resp.(bool); ok {
+		*reply = respBool
+	}
 	return nil
 }

@@ -8,6 +8,9 @@ type AutopilotConfig struct {
 	// DeadServerCleanup controls whether to remove dead servers when a new
 	// server is added to the Raft peers
 	DeadServerCleanup bool
+
+	// RaftIndex stores the create/modify indexes of this configuration
+	RaftIndex
 }
 
 // RaftServer has information about a server in the Raft configuration.
@@ -70,6 +73,9 @@ type AutopilotSetConfigRequest struct {
 
 	// Config is the new Autopilot configuration to use.
 	Config AutopilotConfig
+
+	// CAS controls whether to use check-and-set semantics for this request.
+	CAS bool
 
 	// WriteRequest holds the ACL token to go along with this request.
 	WriteRequest

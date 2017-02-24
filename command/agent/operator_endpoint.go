@@ -189,18 +189,36 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		s.parseDC(req, &args.Datacenter)
 		s.parseToken(req, &args.Token)
 
+		// Check for cas value
+		params := req.URL.Query()
+		if _, ok := params["cas"]; ok {
+			casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
+			if err != nil {
+				resp.WriteHeader(400)
+				resp.Write([]byte(fmt.Sprintf("Error parsing cas value: %v", err)))
+				return nil, nil
+			}
+			args.Config.ModifyIndex = casVal
+			args.CAS = true
+		}
+
 		if err := decodeBody(req, &args.Config, nil); err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Error parsing relay factor: %v", err)))
+			resp.Write([]byte(fmt.Sprintf("Error parsing autopilot config: %v", err)))
 			return nil, nil
 		}
 
-		var reply struct{}
+		var reply bool
 		if err := s.agent.RPC("Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
 
-		return nil, nil
+		// Only use the out value if this was a CAS
+		if !args.CAS {
+			return true, nil
+		} else {
+			return reply, nil
+		}
 	default:
 		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil

@@ -1,5 +1,13 @@
 package api
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+)
+
 // Operator can be used to perform low-level operator tasks for Consul.
 type Operator struct {
 	c *Client
@@ -65,9 +73,16 @@ type KeyringResponse struct {
 
 // AutopilotConfiguration is used for querying/setting the Autopilot configuration
 type AutopilotConfiguration struct {
-	// DeadServerCleanup controls whether to remove dead servers from the Raft peer list
-	// when a new server joins
+	// DeadServerCleanup controls whether to remove dead servers from the Raft
+	// peer list when a new server joins
 	DeadServerCleanup bool
+
+	// CreateIndex holds the index corresponding the creation of this configuration.
+	// This is a read-only field.
+	CreateIndex uint64
+
+	// ModifyIndex is used for doing a Check-And-Set update operation.
+	ModifyIndex uint64
 }
 
 // RaftGetConfiguration is used to query the current Raft peer set.
@@ -169,7 +184,7 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	return nil
 }
 
-// RaftGetConfiguration is used to query the current Raft peer set.
+// AutopilotGetConfiguration is used to query the current Autopilot configuration.
 func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
 	r.setQueryOptions(q)
@@ -186,7 +201,7 @@ func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfig
 	return &out, nil
 }
 
-// RaftGetConfiguration is used to query the current Raft peer set.
+// AutopilotSetConfiguration is used to set the current Autopilot configuration.
 func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *WriteOptions) error {
 	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
 	r.setWriteOptions(q)
@@ -197,4 +212,27 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// AutopilotCASConfiguration is used to perform a Check-And-Set update on the
+// Autopilot configuration. The ModifyIndex value will be respected. Returns
+// true on success or false on failures.
+func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *WriteOptions) (bool, error) {
+	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
+	r.setWriteOptions(q)
+	r.params.Set("cas", strconv.FormatUint(conf.ModifyIndex, 10))
+	r.obj = conf
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, fmt.Errorf("Failed to read response: %v", err)
+	}
+	res := strings.Contains(string(buf.Bytes()), "true")
+
+	return res, nil
 }

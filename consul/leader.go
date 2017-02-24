@@ -249,7 +249,7 @@ func (s *Server) initializeACL() error {
 func (s *Server) initializeAutopilot() error {
 	// Bail if the config has already been initialized
 	state := s.fsm.State()
-	config, err := state.AutopilotConfig()
+	_, config, err := state.AutopilotConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get autopilot config: %v", err)
 	}
@@ -257,8 +257,11 @@ func (s *Server) initializeAutopilot() error {
 		return nil
 	}
 
-	if err := state.UpdateAutopilotConfig(s.config.AutopilotConfig); err != nil {
-		return err
+	req := structs.AutopilotSetConfigRequest{
+		Config: *s.config.AutopilotConfig,
+	}
+	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
+		return fmt.Errorf("failed to initialize autopilot config")
 	}
 
 	return nil
@@ -609,7 +612,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	}
 
 	state := s.fsm.State()
-	autopilotConf, err := state.AutopilotConfig()
+	_, autopilotConf, err := state.AutopilotConfig()
 	if err != nil {
 		return err
 	}
