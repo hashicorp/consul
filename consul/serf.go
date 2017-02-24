@@ -289,7 +289,7 @@ func (s *Server) maybeBootstrap() {
 		addr := server.Addr.String()
 		addrs = append(addrs, addr)
 		var id raft.ServerID
-		if server.ID != "" && minRaftVersion >= 3 {
+		if minRaftVersion >= 3 {
 			id = raft.ServerID(server.ID)
 		} else {
 			id = raft.ServerID(addr)

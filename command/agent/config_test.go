@@ -1638,12 +1638,12 @@ func TestMergeConfig(t *testing.T) {
 			RPC:   "127.0.0.3",
 			HTTPS: "127.0.0.4",
 		},
-		Server:                 true,
-		LeaveOnTerm:            Bool(true),
-		SkipLeaveOnInt:         Bool(true),
-		RaftProtocol:           3,
-		Autopilot:              Autopilot{
-			DeadServerCleanup:   Bool(true),
+		Server:         true,
+		LeaveOnTerm:    Bool(true),
+		SkipLeaveOnInt: Bool(true),
+		RaftProtocol:   3,
+		Autopilot: Autopilot{
+			DeadServerCleanup: Bool(true),
 		},
 		EnableDebug:            true,
 		VerifyIncoming:         true,

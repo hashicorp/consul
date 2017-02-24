@@ -152,6 +152,13 @@ func (s *Server) establishLeadership() error {
 			err)
 		return err
 	}
+
+	// Setup autopilot config if we are the leader and need to
+	if err := s.initializeAutopilot(); err != nil {
+		s.logger.Printf("[ERR] consul: Autopilot initialization failed: %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -234,6 +241,26 @@ func (s *Server) initializeACL() error {
 		}
 
 	}
+	return nil
+}
+
+// initializeAutopilot is used to setup the autopilot config if we are
+// the leader and need to do this
+func (s *Server) initializeAutopilot() error {
+	// Bail if the config has already been initialized
+	state := s.fsm.State()
+	config, err := state.AutopilotConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get autopilot config: %v", err)
+	}
+	if config != nil {
+		return nil
+	}
+
+	if err := state.UpdateAutopilotConfig(s.config.AutopilotConfig); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -581,8 +608,14 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
+	state := s.fsm.State()
+	autopilotConf, err := state.AutopilotConfig()
+	if err != nil {
+		return err
+	}
+
 	// Look for dead servers to clean up
-	if s.config.DeadServerCleanup {
+	if autopilotConf.DeadServerCleanup {
 		for _, member := range s.serfLAN.Members() {
 			valid, _ := agent.IsConsulServer(member)
 			if valid && member.Name != m.Name && member.Status == serf.StatusFailed {

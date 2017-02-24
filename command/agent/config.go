@@ -772,9 +772,6 @@ func DefaultConfig() *Config {
 		CheckReapInterval:          30 * time.Second,
 		AEInterval:                 time.Minute,
 		DisableCoordinates:         false,
-		Autopilot:                  Autopilot{
-			DeadServerCleanup: Bool(true),
-		},
 
 		// SyncCoordinateRateTarget is set based on the rate that we want
 		// the server to handle as an aggregate across the entire cluster.

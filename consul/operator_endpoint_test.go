@@ -243,3 +243,189 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.AutopilotConfig.DeadServerCleanup = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Change the autopilot config from the default
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var reply structs.AutopilotConfig
+	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.DeadServerCleanup {
+		t.Fatalf("bad: %#v", reply)
+	}
+}
+
+func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.AutopilotConfig.DeadServerCleanup = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Change the autopilot config from the default
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var reply structs.AutopilotConfig
+	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create an ACL with operator read permissions.
+	var token string
+	{
+		var rules = `
+                    operator = "read"
+                `
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Now it should kick back for being an invalid config, which means it
+	// tried to do the operation.
+	arg.Token = token
+	err = msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.DeadServerCleanup {
+		t.Fatalf("bad: %#v", reply)
+	}
+}
+
+func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.AutopilotConfig.DeadServerCleanup = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Change the autopilot config from the default
+	arg := structs.AutopilotSetConfigRequest{
+		Datacenter: "dc1",
+		Config: structs.AutopilotConfig{
+			DeadServerCleanup: true,
+		},
+	}
+	var reply struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure it's changed
+	state := s1.fsm.State()
+	config, err := state.AutopilotConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !config.DeadServerCleanup {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.AutopilotConfig.DeadServerCleanup = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Change the autopilot config from the default
+	arg := structs.AutopilotSetConfigRequest{
+		Datacenter: "dc1",
+		Config: structs.AutopilotConfig{
+			DeadServerCleanup: true,
+		},
+	}
+	var reply struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create an ACL with operator write permissions.
+	var token string
+	{
+		var rules = `
+                    operator = "write"
+                `
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Now it should kick back for being an invalid config, which means it
+	// tried to do the operation.
+	arg.Token = token
+	err = msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure it's changed
+	state := s1.fsm.State()
+	config, err := state.AutopilotConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !config.DeadServerCleanup {
+		t.Fatalf("bad: %#v", config)
+	}
+}

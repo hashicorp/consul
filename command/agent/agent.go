@@ -25,10 +25,10 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shirou/gopsutil/host"
-	"github.com/hashicorp/raft"
 )
 
 const (
@@ -383,6 +383,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Protocol > 0 {
 		base.ProtocolVersion = uint8(a.config.Protocol)
 	}
+	if a.config.RaftProtocol != 0 {
+		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	}
 	if a.config.ACLToken != "" {
 		base.ACLToken = a.config.ACLToken
 	}
@@ -413,11 +416,8 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
-	if a.config.Autopilot.RaftProtocolVersion != 0 {
-		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.Autopilot.RaftProtocolVersion)
-	}
 	if a.config.Autopilot.DeadServerCleanup != nil {
-		base.DeadServerCleanup = *a.config.Autopilot.DeadServerCleanup
+		base.AutopilotConfig.DeadServerCleanup = *a.config.Autopilot.DeadServerCleanup
 	}
 
 	// Format the build string

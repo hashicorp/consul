@@ -55,11 +55,11 @@ func TestIsConsulServer(t *testing.T) {
 		Name: "foo",
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
-			"role": "consul",
-			"id":   "asdf",
-			"dc":   "east-aws",
-			"port": "10000",
-			"vsn":  "1",
+			"role":     "consul",
+			"id":       "asdf",
+			"dc":       "east-aws",
+			"port":     "10000",
+			"vsn":      "1",
 			"raft_vsn": "3",
 		},
 	}

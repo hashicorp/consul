@@ -3,11 +3,11 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/consul/consul/structs"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
-	"strconv"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -105,7 +105,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 	case "DELETE":
 		return s.KeyringRemove(resp, req, &args)
 	default:
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 }
@@ -165,4 +165,44 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 		}
 	}
 	return errs
+}
+
+// OperatorAutopilotConfiguration is used to inspect the current Autopilot configuration.
+// This supports the stale query mode in case the cluster doesn't have a leader.
+func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Switch on the method
+	switch req.Method {
+	case "GET":
+		var args structs.DCSpecificRequest
+		if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+			return nil, nil
+		}
+
+		var reply structs.AutopilotConfig
+		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+			return nil, err
+		}
+
+		return reply, nil
+	case "PUT":
+		var args structs.AutopilotSetConfigRequest
+		s.parseDC(req, &args.Datacenter)
+		s.parseToken(req, &args.Token)
+
+		if err := decodeBody(req, &args.Config, nil); err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Error parsing relay factor: %v", err)))
+			return nil, nil
+		}
+
+		var reply struct{}
+		if err := s.agent.RPC("Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	default:
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
 }

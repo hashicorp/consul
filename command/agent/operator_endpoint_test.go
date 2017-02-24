@@ -285,3 +285,60 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		}
 	}, configFunc)
 }
+
+func TestOperator_AutopilotGetConfiguration(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/operator/autopilot/configuration", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.OperatorAutopilotConfiguration(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		out, ok := obj.(structs.AutopilotConfig)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if !out.DeadServerCleanup {
+			t.Fatalf("bad: %#v", out)
+		}
+	})
+}
+
+func TestOperator_AutopilotSetConfiguration(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer([]byte(`{"DeadServerCleanup": false}`))
+		req, err := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err = srv.OperatorAutopilotConfiguration(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+
+		args := structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+
+		var reply structs.AutopilotConfig
+		if err := srv.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if reply.DeadServerCleanup {
+			t.Fatalf("bad: %#v", reply)
+		}
+	})
+}

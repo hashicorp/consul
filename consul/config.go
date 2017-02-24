@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/memberlist"
@@ -275,9 +276,9 @@ type Config struct {
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
 
-	// DeadServerCleanup controls whether to remove dead servers when a new
-	// server is added to the Raft peers
-	DeadServerCleanup bool
+	// AutopilotConfig is used to apply the initial autopilot config when
+	// bootstrapping.
+	AutopilotConfig *structs.AutopilotConfig
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -351,7 +352,9 @@ func DefaultConfig() *Config {
 
 		TLSMinVersion: "tls10",
 
-		DeadServerCleanup: true,
+		AutopilotConfig: &structs.AutopilotConfig{
+			DeadServerCleanup: true,
+		},
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

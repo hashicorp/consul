@@ -95,14 +95,14 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
-		Name:       m.Name,
-		ID:         m.Tags["id"],
-		Datacenter: datacenter,
-		Port:       port,
-		Bootstrap:  bootstrap,
-		Expect:     expect,
-		Addr:       addr,
-		Version:    vsn,
+		Name:        m.Name,
+		ID:          m.Tags["id"],
+		Datacenter:  datacenter,
+		Port:        port,
+		Bootstrap:   bootstrap,
+		Expect:      expect,
+		Addr:        addr,
+		Version:     vsn,
 		RaftVersion: raft_vsn,
 	}
 	return true, parts

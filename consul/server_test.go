@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-uuid"
 )
 
 var nextPort int32 = 15000
