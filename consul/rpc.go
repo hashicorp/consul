@@ -29,6 +29,7 @@ const (
 	rpcTLS
 	rpcMultiplexV2
 	rpcSnapshot
+	rpcGossip
 )
 
 const (

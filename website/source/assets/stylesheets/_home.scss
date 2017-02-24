@@ -19,18 +19,17 @@ body.page-home{
 
   h2{
     font-size: 24px;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     color: $purple;
-    font-family: $font-family-museo;
-    font-weight: $font-weight-museo-xb;
+    font-family: $font-family-klavika;
+    font-weight: font-weight-xb;
   }
   p{
     font-size: 16px;
-    letter-spacing: 1px;
     line-height: 1.5em;
     color: $consul-gray;
-    font-family: $font-family-museo;
-    font-weight: $font-weight-museo-sb;
+    font-family: $font-family-open-sans;
+    font-weight: $font-weight-sb;
   }
 
   .icn{
@@ -108,30 +107,26 @@ body.page-home{
   }
 
   p{
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-size: 18px;
     line-height: 1.5em;
     color: $consul-gray;
-    font-family: $font-family-museo;
-    font-weight: $font-weight-museo-sb;
+    font-weight: $font-weight-sb;
   }
-
-
 
   .outline-btn {
     padding: 8px;
     display: inline-block;
+
     &:focus {
       outline: 0;
     }
-
   }
 
   a {
     font-weight: 500;
     font-size: 16px;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 1px;
     color: $purple;
     &:hover {
       text-decoration: none;
@@ -150,17 +145,16 @@ body.page-home{
     h2 {
       font-size: 22px;
       text-transform: uppercase;
-      font-family: $font-family-museo;
-      font-weight: $font-weight-museo-xb;
+      font-family: $font-family-klavika;
+      font-weight: font-weight-xb;
     }
 
     p{
       font-size: 16px;
-      letter-spacing: 1px;
       line-height: 1.5em;
       color: $consul-gray;
-      font-family: $font-family-museo;
-      font-weight: $font-weight-museo-sb;
+      font-family: $font-family-open-sans;
+      font-weight: $font-weight-sb;
     }
   }
 
@@ -213,8 +207,8 @@ body.page-home{
             font-size: 14px;
             letter-spacing: 1px;
             color: $gray-darker;
-            font-family: $font-family-museo;
-            font-weight: $font-weight-museo-xb;
+            font-family: $font-family-klavika;
+            font-weight: font-weight-xb;
           }
 
           ul.shell-dots{
@@ -239,7 +233,6 @@ body.page-home{
           padding: 20px;
           font-size: 15px;
           font-weight: normal;
-          font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
           color: $white;
 
           .txt-r {
@@ -251,6 +244,7 @@ body.page-home{
           }
           p{
             margin-bottom: 2px;
+            font-family: $font-family-mono;
             white-space: pre-wrap;
           }
           .cursor {

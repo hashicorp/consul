@@ -36,10 +36,10 @@ type Command struct {
 	hidden  *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
-	httpAddr   stringValue
-	token      stringValue
-	datacenter stringValue
-	stale      boolValue
+	httpAddr   StringValue
+	token      StringValue
+	datacenter StringValue
+	stale      BoolValue
 }
 
 // HTTPClient returns a client with the parsed flags. It panics if the command

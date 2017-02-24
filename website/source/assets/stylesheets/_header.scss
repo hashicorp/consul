@@ -27,8 +27,8 @@ body.page-sub{
       background-position: 0 center;
       font-size: 0;
       text-transform: uppercase;
-      @include img-retina("../images/consul-header-lockup.png", "../images/consul-header-lockup@2x.png", $project-logo-width, $project-logo-height);
-      background-position: 0 center;
+      background: url("../images/logo-header.svg") center no-repeat;
+      background-size: 100%;
 
       &:hover{
         opacity: .4;
@@ -56,18 +56,9 @@ body.page-sub{
     .navbar-brand {
       .logo{
         width: $project-logo-width * .75;
-        @include img-retina("../images/consul-header-lockup.png", "../images/consul-header-lockup@2x.png", $project-logo-width * .75, $project-logo-height * .75);
       }
-    }
-  }
-}
-
-
-@media (max-width: 320px) {
-  #header {
-    .navbar-brand {
-      .logo{
-
+      .by-hashicorp{
+        margin-top: 2px;
       }
     }
   }
