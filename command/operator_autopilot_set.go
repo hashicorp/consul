@@ -28,11 +28,11 @@ func (c *OperatorAutopilotSetCommand) Synopsis() string {
 }
 
 func (c *OperatorAutopilotSetCommand) Run(args []string) int {
-	var deadServerCleanup string
+	var deadServerCleanup base.BoolValue
 
 	f := c.Command.NewFlagSet(c)
 
-	f.StringVar(&deadServerCleanup, "dead-server-cleanup", "",
+	f.Var(&deadServerCleanup, "dead-server-cleanup",
 		"Controls whether Consul will automatically remove dead servers "+
 			"when new ones are successfully added. Must be one of `true|false`.")
 
@@ -59,17 +59,10 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 		return 1
 	}
 
-	if deadServerCleanup != "" {
-		switch deadServerCleanup {
-		case "true":
-			conf.DeadServerCleanup = true
-		case "false":
-			conf.DeadServerCleanup = false
-		default:
-			c.Ui.Error(fmt.Sprintf("Invalid value for dead-server-cleanup: %q", deadServerCleanup))
-		}
-	}
+	// Update the config values.
+	deadServerCleanup.Merge(&conf.DeadServerCleanup)
 
+	// Check-and-set the new configuration.
 	result, err := operator.AutopilotCASConfiguration(conf, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error setting Autopilot configuration: %s", err))
