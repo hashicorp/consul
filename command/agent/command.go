@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,10 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	compute "google.golang.org/api/compute/v1"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
@@ -31,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
@@ -38,8 +34,11 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
-	scada "github.com/hashicorp/scada-client/scada"
+	"github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	compute "google.golang.org/api/compute/v1"
 )
 
 // gracefulTimeout controls how long we wait before forcefully terminating
@@ -53,11 +52,11 @@ var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type Command struct {
+	base.Command
 	Revision          string
 	Version           string
 	VersionPrerelease string
 	HumanVersion      string
-	Ui                cli.Ui
 	ShutdownCh        <-chan struct{}
 	configReloadCh    chan chan error
 	args              []string
@@ -82,83 +81,95 @@ func (c *Command) readConfig() *Config {
 	var dev bool
 	var dcDeprecated string
 	var nodeMeta []string
-	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
-	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
-	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
-	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
-	cmdFlags.Var((*AppendSliceValue)(&nodeMeta), "node-meta", "arbitrary metadata key/value pair")
-	cmdFlags.BoolVar(&dev, "dev", false, "development server mode")
+	f := c.Command.NewFlagSet(c)
 
-	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
-	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
-	cmdFlags.StringVar((*string)(&cmdConfig.NodeID), "node-id", "", "node ID")
-	cmdFlags.StringVar(&dcDeprecated, "dc", "", "node datacenter (deprecated: use 'datacenter' instead)")
-	cmdFlags.StringVar(&cmdConfig.Datacenter, "datacenter", "", "node datacenter")
-	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
-	cmdFlags.BoolVar(&cmdConfig.EnableUi, "ui", false, "enable the built-in web UI")
-	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
-	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
-	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
+	f.Var((*AppendSliceValue)(&configFiles), "config-file",
+		"Path to a JSON file to read configuration from. This can be specified multiple times.")
+	f.Var((*AppendSliceValue)(&configFiles), "config-dir",
+		"Path to a directory to read configuration files from. This will read every file ending "+
+			"in '.json' as configuration in this directory in alphabetical order. This can be "+
+			"specified multiple times.")
+	f.Var((*AppendSliceValue)(&dnsRecursors), "recursor",
+		"Address of an upstream DNS server. Can be specified multiple times.")
+	f.Var((*AppendSliceValue)(&nodeMeta), "node-meta",
+		"An arbitrary metadata key/value pair for this node. Can be specified multiple times.")
+	f.BoolVar(&dev, "dev", false, "Starts the agent in development mode.")
 
-	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
-	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
-	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
-	cmdFlags.StringVar(&cmdConfig.Domain, "domain", "", "domain to use for DNS interface")
+	f.StringVar(&cmdConfig.LogLevel, "log-level", "", "Log level of the agent.")
+	f.StringVar(&cmdConfig.NodeName, "node", "", "Name of this node. Must be unique in the cluster.")
+	f.StringVar((*string)(&cmdConfig.NodeID), "node-id", "",
+		"A unique ID for this node across space and time. Defaults to a randomly-generated ID"+
+			" that persists in the data-dir.")
+	f.StringVar(&dcDeprecated, "dc", "", "Datacenter of the agent (deprecated: use 'datacenter' instead).")
+	f.StringVar(&cmdConfig.Datacenter, "datacenter", "", "Datacenter of the agent.")
+	f.StringVar(&cmdConfig.DataDir, "data-dir", "", "Path to a data directory to store agent state.")
+	f.BoolVar(&cmdConfig.EnableUi, "ui", false, "Enables the built-in static web UI server.")
+	f.StringVar(&cmdConfig.UiDir, "ui-dir", "", "Path to directory containing the Web UI resources.")
+	f.StringVar(&cmdConfig.PidFile, "pid-file", "", "Path to file to store agent PID.")
+	f.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "Provides the gossip encryption key.")
 
-	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
-	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
-	cmdFlags.StringVar(&cmdConfig.SerfWanBindAddr, "serf-wan-bind", "", "address to bind Serf WAN listeners to")
-	cmdFlags.StringVar(&cmdConfig.SerfLanBindAddr, "serf-lan-bind", "", "address to bind Serf LAN listeners to")
-	cmdFlags.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "http port to use")
-	cmdFlags.IntVar(&cmdConfig.Ports.DNS, "dns-port", 0, "DNS port to use")
-	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
-	cmdFlags.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "", "address to advertise on wan instead of bind or advertise addr")
+	f.BoolVar(&cmdConfig.Server, "server", false, "Switches agent to server mode.")
+	f.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "Sets server to bootstrap mode.")
+	f.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "Sets server to expect bootstrap mode.")
+	f.StringVar(&cmdConfig.Domain, "domain", "", "Domain to use for DNS interface.")
 
-	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
-	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
-	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
-	cmdFlags.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "endpoint for Atlas integration")
+	f.StringVar(&cmdConfig.ClientAddr, "client", "",
+		"Sets the address to bind for client access. This includes RPC, DNS, HTTP and HTTPS (if configured)")
+	f.StringVar(&cmdConfig.BindAddr, "bind", "", "Sets the bind address for cluster communication.")
+	f.StringVar(&cmdConfig.SerfWanBindAddr, "serf-wan-bind", "", "Address to bind Serf WAN listeners to.")
+	f.StringVar(&cmdConfig.SerfLanBindAddr, "serf-lan-bind", "", "Address to bind Serf LAN listeners to.")
+	f.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "Sets the HTTP API port to listen on.")
+	f.IntVar(&cmdConfig.Ports.DNS, "dns-port", 0, "DNS port to use")
+	f.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "Sets the advertise address to use.")
+	f.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "",
+		"Sets address to advertise on wan instead of advertise addr.")
 
-	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
+	f.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "Sets the Atlas infrastructure name, enables SCADA.")
+	f.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "Provides the Atlas API token.")
+	f.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "Enables auto-joining the Atlas cluster.")
+	f.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "The address of the endpoint for Atlas integration.")
 
-	cmdFlags.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
-		"enable logging to syslog facility")
-	cmdFlags.BoolVar(&cmdConfig.RejoinAfterLeave, "rejoin", false,
-		"enable re-joining after a previous leave")
-	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
-		"address of agent to join on startup")
-	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoinWan), "join-wan",
-		"address of agent to join -wan on startup")
-	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoin), "retry-join",
-		"address of agent to join on startup with retry")
-	cmdFlags.IntVar(&cmdConfig.RetryMaxAttempts, "retry-max", 0,
-		"number of retries for joining")
-	cmdFlags.StringVar(&retryInterval, "retry-interval", "",
-		"interval between join attempts")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.Region, "retry-join-ec2-region", "",
-		"EC2 Region to discover servers in")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "",
-		"EC2 tag key to filter on for server discovery")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "",
-		"EC2 tag value to filter on for server discovery")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinGCE.ProjectName, "retry-join-gce-project-name", "",
-		"Google Compute Engine project to discover servers in")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinGCE.ZonePattern, "retry-join-gce-zone-pattern", "",
-		"Google Compute Engine region or zone to discover servers in (regex pattern)")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinGCE.TagValue, "retry-join-gce-tag-value", "",
-		"Google Compute Engine tag value to filter on for server discovery")
-	cmdFlags.StringVar(&cmdConfig.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
-		"Path to credentials JSON file to use with Google Compute Engine")
-	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
-		"address of agent to join -wan on startup with retry")
-	cmdFlags.IntVar(&cmdConfig.RetryMaxAttemptsWan, "retry-max-wan", 0,
-		"number of retries for joining -wan")
-	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
-		"interval between join -wan attempts")
+	f.IntVar(&cmdConfig.Protocol, "protocol", -1,
+		"Sets the protocol version. Defaults to latest.")
 
-	if err := cmdFlags.Parse(c.args); err != nil {
+	f.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
+		"Enables logging to syslog.")
+	f.BoolVar(&cmdConfig.RejoinAfterLeave, "rejoin", false,
+		"Ignores a previous leave and attempts to rejoin the cluster.")
+	f.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
+		"Address of an agent to join at start time. Can be specified multiple times.")
+	f.Var((*AppendSliceValue)(&cmdConfig.StartJoinWan), "join-wan",
+		"Address of an agent to join -wan at start time. Can be specified multiple times.")
+	f.Var((*AppendSliceValue)(&cmdConfig.RetryJoin), "retry-join",
+		"Address of an agent to join at start time with retries enabled. Can be specified multiple times.")
+	f.IntVar(&cmdConfig.RetryMaxAttempts, "retry-max", 0,
+		"Maximum number of join attempts. Defaults to 0, which will retry indefinitely.")
+	f.StringVar(&retryInterval, "retry-interval", "",
+		"Time to wait between join attempts.")
+	f.StringVar(&cmdConfig.RetryJoinEC2.Region, "retry-join-ec2-region", "",
+		"EC2 Region to discover servers in.")
+	f.StringVar(&cmdConfig.RetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "",
+		"EC2 tag key to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "",
+		"EC2 tag value to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinGCE.ProjectName, "retry-join-gce-project-name", "",
+		"Google Compute Engine project to discover servers in.")
+	f.StringVar(&cmdConfig.RetryJoinGCE.ZonePattern, "retry-join-gce-zone-pattern", "",
+		"Google Compute Engine region or zone to discover servers in (regex pattern).")
+	f.StringVar(&cmdConfig.RetryJoinGCE.TagValue, "retry-join-gce-tag-value", "",
+		"Google Compute Engine tag value to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
+		"Path to credentials JSON file to use with Google Compute Engine.")
+	f.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
+		"Address of an agent to join -wan at start time with retries enabled. "+
+			"Can be specified multiple times.")
+	f.IntVar(&cmdConfig.RetryMaxAttemptsWan, "retry-max-wan", 0,
+		"Maximum number of join -wan attempts. Defaults to 0, which will retry indefinitely.")
+	f.StringVar(&retryIntervalWan, "retry-interval-wan", "",
+		"Time to wait between join -wan attempts.")
+
+	if err := c.Command.Parse(c.args); err != nil {
 		return nil
 	}
 
@@ -1396,89 +1407,7 @@ Usage: consul agent [options]
   Starts the Consul agent and runs until an interrupt is received. The
   agent represents a single node in a cluster.
 
-Options:
+ ` + c.Command.Help()
 
-  -advertise=addr                  Sets the advertise address to use
-  -advertise-wan=addr              Sets address to advertise on wan instead of
-                                   advertise addr
-  -atlas=org/name                  Sets the Atlas infrastructure name, enables
-                                   SCADA.
-  -atlas-join                      Enables auto-joining the Atlas cluster
-  -atlas-token=token               Provides the Atlas API token
-  -atlas-endpoint=1.2.3.4          The address of the endpoint for Atlas
-                                   integration.
-  -bootstrap                       Sets server to bootstrap mode
-  -bind=0.0.0.0                    Sets the bind address for cluster
-                                   communication
-  -http-port=8500                  Sets the HTTP API port to listen on
-  -bootstrap-expect=0              Sets server to expect bootstrap mode.
-  -client=127.0.0.1                Sets the address to bind for client access.
-                                   This includes RPC, DNS, HTTP and HTTPS (if
-                                   configured)
-  -config-file=foo                 Path to a JSON file to read configuration
-                                   from. This can be specified multiple times.
-  -config-dir=foo                  Path to a directory to read configuration
-                                   files from. This will read every file ending
-                                   in ".json" as configuration in this
-                                   directory in alphabetical order. This can be
-                                   specified multiple times.
-  -data-dir=path                   Path to a data directory to store agent
-                                   state
-  -dev                             Starts the agent in development mode.
-  -recursor=1.2.3.4                Address of an upstream DNS server.
-                                   Can be specified multiple times.
-  -dc=east-aws                     Datacenter of the agent (deprecated: use
-                                   'datacenter' instead).
-  -datacenter=east-aws             Datacenter of the agent.
-  -encrypt=key                     Provides the gossip encryption key
-  -join=1.2.3.4                    Address of an agent to join at start time.
-                                   Can be specified multiple times.
-  -join-wan=1.2.3.4                Address of an agent to join -wan at start
-                                   time. Can be specified multiple times.
-  -retry-join=1.2.3.4              Address of an agent to join at start time
-                                   with retries enabled. Can be specified
-                                   multiple times.
-  -retry-interval=30s              Time to wait between join attempts.
-  -retry-max=0                     Maximum number of join attempts. Defaults to
-                                   0, which will retry indefinitely.
-  -retry-join-ec2-region           EC2 Region to use for discovering servers to
-                                   join.
-  -retry-join-ec2-tag-key          EC2 tag key to filter on for server
-                                   discovery
-  -retry-join-ec2-tag-value        EC2 tag value to filter on for server
-                                   discovery
-  -retry-join-gce-project-name     Google Compute Engine project to discover
-                                   servers in
-  -retry-join-gce-zone-pattern     Google Compute Engine region or zone to
-                                   discover servers in (regex pattern)
-  -retry-join-gce-tag-value        Google Compute Engine tag value to filter
-                                   for server discovery
-  -retry-join-gce-credentials-file Path to credentials JSON file to use with
-                                   Google Compute Engine
-  -retry-join-wan=1.2.3.4          Address of an agent to join -wan at start
-                                   time with retries enabled. Can be specified
-                                   multiple times.
-  -retry-interval-wan=30s          Time to wait between join -wan attempts.
-  -retry-max-wan=0                 Maximum number of join -wan attempts.
-                                   Defaults to 0, which will retry
-                                   indefinitely.
-  -log-level=info                  Log level of the agent.
-  -node=hostname                   Name of this node. Must be unique in the
-                                   cluster
-  -node-meta=key:value             An arbitrary metadata key/value pair for
-                                   this node.
-                                   This can be specified multiple times.
-  -protocol=N                      Sets the protocol version. Defaults to
-                                   latest.
-  -rejoin                          Ignores a previous leave and attempts to
-                                   rejoin the cluster.
-  -server                          Switches agent to server mode.
-  -syslog                          Enables logging to syslog
-  -ui                              Enables the built-in static web UI server
-  -ui-dir=path                     Path to directory containing the Web UI
-                                   resources
-  -pid-file=path                   Path to file to store agent PID
-
- `
 	return strings.TrimSpace(helpText)
 }

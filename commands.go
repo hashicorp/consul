@@ -21,11 +21,14 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
 			return &agent.Command{
+				Command: base.Command{
+					Flags: base.FlagSetNone,
+					Ui:    ui,
+				},
 				Revision:          version.GitCommit,
 				Version:           version.Version,
 				VersionPrerelease: version.VersionPrerelease,
 				HumanVersion:      version.GetHumanVersion(),
-				Ui:                ui,
 				ShutdownCh:        make(chan struct{}),
 			}, nil
 		},
