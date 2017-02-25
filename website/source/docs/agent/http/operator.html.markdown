@@ -287,7 +287,9 @@ A JSON body is returned that looks like this:
 
 ```javascript
 {
-    "DeadServerCleanup": true
+    "DeadServerCleanup": true,
+    "CreateIndex": 4,
+    "ModifyIndex": 4
 }
 ```
 
@@ -298,6 +300,10 @@ a new server is added to the cluster.
 
 Using the `PUT` method, this endpoint will update the Autopilot configuration
 of the cluster.
+
+The `?cas=<index>` can optionally be specified to update the configuration as a
+Check-And-Set operation. The update will only happen if the given index matches
+the `ModifyIndex` of the configuration at the time of writing.
 
 If ACLs are enabled, the client will need to supply an ACL Token with
 [`operator`](/docs/internals/acl.html#operator) write privileges.

@@ -255,7 +255,6 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Change the autopilot config from the default
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
@@ -283,7 +282,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Change the autopilot config from the default
+	// Try to get config without permissions
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
@@ -315,8 +314,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 		}
 	}
 
-	// Now it should kick back for being an invalid config, which means it
-	// tried to do the operation.
+	// Now we can read and verify the config
 	arg.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
 	if err != nil {
@@ -345,7 +343,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 			DeadServerCleanup: true,
 		},
 	}
-	var reply struct{}
+	var reply *bool
 	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -353,7 +351,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 
 	// Make sure it's changed
 	state := s1.fsm.State()
-	config, err := state.AutopilotConfig()
+	_, config, err := state.AutopilotConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,14 +374,14 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Change the autopilot config from the default
+	// Try to set config without permissions
 	arg := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
 		Config: structs.AutopilotConfig{
 			DeadServerCleanup: true,
 		},
 	}
-	var reply struct{}
+	var reply *bool
 	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
@@ -411,8 +409,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 		}
 	}
 
-	// Now it should kick back for being an invalid config, which means it
-	// tried to do the operation.
+	// Now we can update the config
 	arg.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Operator.AutopilotSetConfiguration", &arg, &reply)
 	if err != nil {
@@ -421,7 +418,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 
 	// Make sure it's changed
 	state := s1.fsm.State()
-	config, err := state.AutopilotConfig()
+	_, config, err := state.AutopilotConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

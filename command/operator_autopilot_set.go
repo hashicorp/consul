@@ -69,10 +69,10 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 		return 1
 	}
 	if result {
-		c.Ui.Output("Configuration updated")
+		c.Ui.Output("Configuration updated!")
+		return 0
 	} else {
 		c.Ui.Output("Configuration could not be atomically updated")
+		return 1
 	}
-
-	return 0
 }
