@@ -1018,6 +1018,10 @@ func (c *Command) Run(args []string) int {
 		cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
 		cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
 
+		if cfg.CheckManager.Check.DisplayName == "" {
+			cfg.CheckManager.Check.DisplayName = "Consul"
+		}
+
 		if cfg.CheckManager.API.TokenApp == "" {
 			cfg.CheckManager.API.TokenApp = "consul"
 		}
