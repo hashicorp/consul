@@ -41,10 +41,10 @@ Each of the middlewares has a README.md of its own.
 
 ## Status
 
-CoreDNS can be used as a authoritative nameserver for your domains, and should be stable enough to
+CoreDNS can be used as an authoritative nameserver for your domains, and should be stable enough to
 provide you with good DNS(SEC) service.
 
-There are still few [issues](https://github.com/coredns/coredns/issues), and work is ongoing on making
+There are still a few known [issues](https://github.com/coredns/coredns/issues), and work is ongoing on making
 things fast and to reduce the memory usage.
 
 All in all, CoreDNS should be able to provide you with enough functionality to replace parts of BIND
