@@ -218,6 +218,22 @@ will exit with an error at startup.
    will use the local instance's [EC2 metadata endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html)
    to discover the region.
 
+* <a name="_retry_join_ecs_tag_key"></a><a href="#_retry_join_ecs_tag_key">`-retry-join-ecs-tag-key`
+    </a> - The Aliyun ECS instance tag key to filter on. When used with
+    [`-retry-join-ecs-tag-value`](#_retry_join_ecs_tag_value), Consul will attempt to join Aliyun ECS
+    instances with the given tag key and value on startup.
+    </br></br>For Aliyun authentication the following methods are supported:
+    - Environment variables (`ALIYUN_ACCESS_KEY_ID` and `ALIYUN_SECRET_ACCESS_KEY`), use RAM sub account AK are strong recommended.
+
+* <a name="_retry_join_ecs_tag_value"></a><a href="#_retry_join_ecs_tag_value">`-retry-join-ecs-tag-value`
+  </a> - The Aliyun ECS instance tag value to filter on.
+
+* <a name="_retry_join_ecs_region"></a><a href="#_retry_join_ecs_region">`-retry-join-ecs-region`
+  </a> - The Aliyun ECS region to use.
+
+* <a name="_retry_join_ecs_region"></a><a href="#_retry_join_ecs_region">`-retry-join-ecs-network-type`
+  </a> - The Aliyun ECS instance network type to filter on.
+
 * <a name="_retry_join_gce_tag_value"></a><a href="#_retry_join_gce_tag_value">`-retry-join-gce-tag-value`
   </a> - A Google Compute Engine instance tag to filter on. Much like the
   `-retry-join-ec2-*` options, this gives Consul the option of doing server
@@ -811,6 +827,21 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     [`-retry-join-ec2-tag-value` command-line flag](#_retry_join_ec2_tag_value).
   * `access_key_id` - The AWS access key ID to use for authentication.
   * `secret_access_key` - The AWS secret access key to use for authentication.
+
+* <a name="retry_join_ecs"></a><a href="#retry_join_ecs">`retry_join_ecs`</a> - This is a nested object
+  that allows the setting of Aliyun ECS-related [`-retry-join`](#_retry_join) options.
+  <br><br>
+  The following keys are valid:
+  * `region` - The Aliyun region. Equivalent to the
+    [`-retry-join-ecs-region` command-line flag](#_retry_join_ecs_region).
+  * `network_type` - The Aliyun ECS instance network type to filter on. Equivalent to the</br>
+    [`-retry-join-ecs-network-type` command-line flag]
+  * `tag_key` - The Aliyun ECS instance tag key to filter on. Equivalent to the</br>
+    [`-retry-join-ecs-tag-key` command-line flag](#_retry_join_ecs_tag_key).
+  * `tag_value` - The Aliyun ECS instance tag value to filter on. Equivalent to the</br>
+    [`-retry-join-ecs-tag-value` command-line flag](#_retry_join_ecs_tag_value).
+  * `access_key_id` - The Aliyun access key ID to use for authentication.
+  * `secret_access_key` - The Aliyun secret access key to use for authentication.
 
 * <a name="retry_join_gce"></a><a href="#retry_join_gce">`retry_join_gce`</a> - This is a nested object
   that allows the setting of GCE-related [`-retry-join`](#_retry_join) options.

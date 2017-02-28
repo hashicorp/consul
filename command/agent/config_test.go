@@ -1027,7 +1027,7 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 
 func TestRetryJoinEC2(t *testing.T) {
 	input := `{"retry_join_ec2": {
-	  "region": "us-east-1",
+	    "region": "us-east-1",
 		"tag_key": "ConsulRole",
 		"tag_value": "Server",
 		"access_key_id": "asdf",
@@ -1051,6 +1051,40 @@ func TestRetryJoinEC2(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.RetryJoinEC2.SecretAccessKey != "qwerty" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestRetryJoinECS(t *testing.T) {
+	input := `{"retry_join_ecs": {
+	    "region": "cn-hangzhou",
+	    "network_type": "classic",
+		"tag_key": "ConsulRole",
+		"tag_value": "Server",
+		"access_key_id": "asdf",
+		"secret_access_key": "qwerty"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinECS.Region != "cn-hangzhou" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinECS.NetworkType != "classic" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinECS.TagKey != "ConsulRole" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinECS.TagValue != "Server" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinECS.AccessKeyID != "asdf" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinECS.SecretAccessKey != "qwerty" {
 		t.Fatalf("bad: %#v", config)
 	}
 }
@@ -1559,6 +1593,14 @@ func TestMergeConfig(t *testing.T) {
 			AccessKeyID:     "nope",
 			SecretAccessKey: "nope",
 		},
+		RetryJoinECS: RetryJoinECS{
+			Region:          "cn-hangzhou",
+			NetworkType:     "classic",
+			TagKey:          "Key1",
+			TagValue:        "Value1",
+			AccessKeyID:     "nope",
+			SecretAccessKey: "nope",
+		},
 		Telemetry: Telemetry{
 			DisableHostname: false,
 			StatsdAddr:      "nope",
@@ -1694,6 +1736,14 @@ func TestMergeConfig(t *testing.T) {
 		AtlasJoin:           true,
 		RetryJoinEC2: RetryJoinEC2{
 			Region:          "us-east-2",
+			TagKey:          "Key2",
+			TagValue:        "Value2",
+			AccessKeyID:     "foo",
+			SecretAccessKey: "bar",
+		},
+		RetryJoinECS: RetryJoinECS{
+			Region:          "cn-hangzhou",
+			NetworkType:     "classic",
 			TagKey:          "Key2",
 			TagValue:        "Value2",
 			AccessKeyID:     "foo",
