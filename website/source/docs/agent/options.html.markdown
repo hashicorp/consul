@@ -115,10 +115,8 @@ will exit with an error at startup.
   [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
 
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
-  Consul will bind client interfaces,
-  including the HTTP, DNS, and RPC servers. By default, this is "127.0.0.1",
-  allowing only loopback connections. The RPC address is used by other Consul
-  commands, such as `consul members`, in order to query a running Consul agent.
+  Consul will bind client interfaces, including the HTTP and DNS servers. By default,
+  this is "127.0.0.1", allowing only loopback connections.
 
 * <a name="_config_file"></a><a href="#_config_file">`-config-file`</a> - A configuration file
   to load. For more information on
@@ -492,16 +490,15 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="addresses"></a><a href="#addresses">`addresses`</a> - This is a nested object that allows
   setting bind addresses.
   <br><br>
-  Both `rpc` and `http` support binding to Unix domain sockets. A socket can be
+  `http` supports binding to a Unix domain socket. A socket can be
   specified in the form `unix:///path/to/socket`. A new domain socket will be
   created at the given path. If the specified file path already exists, Consul
   will attempt to clear the file and create the domain socket in its place. The
   permissions of the socket file are tunable via the [`unix_sockets` config construct](#unix_sockets).
   <br><br>
   When running Consul agent commands against Unix socket interfaces, use the
-  `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
-  can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
-  environment variables.
+  `-http-addr` argument to specify the path to the socket. You can also place
+  the desired values in the `CONSUL_HTTP_ADDR` environment variable.
   <br><br>
   For TCP addresses, the variable values should be an IP address with the port. For
   example: `10.0.0.1:8500` and not `10.0.0.1`. However, ports are set separately in the
@@ -511,7 +508,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * `dns` - The DNS server. Defaults to `client_addr`
   * `http` - The HTTP API. Defaults to `client_addr`
   * `https` - The HTTPS API. Defaults to `client_addr`
-  * `rpc` - The CLI RPC endpoint. Defaults to `client_addr`
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
@@ -753,7 +749,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS API, -1 to disable. Default -1 (disabled).
-    * <a name="rpc_port"></a><a href="#rpc_port">`rpc`</a> - The CLI RPC endpoint. Default 8400.
     * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
@@ -998,7 +993,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="unix_sockets"></a><a href="#unix_sockets">`unix_sockets`</a> - This
   allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
-  the HTTP or RPC addresses are configured with the `unix://` prefix.
+  the HTTP address is configured with the `unix://` prefix.
   <br>
   <br>
   It is important to note that this option may have different effects on
@@ -1060,9 +1055,6 @@ port.
 
 * Serf WAN (Default 8302). This is used by servers to gossip over the
   WAN to other servers. TCP and UDP.
-
-* CLI RPC (Default 8400). This is used by all agents to handle RPC
-  from the CLI. TCP only.
 
 * HTTP API (Default 8500). This is used by clients to talk to the HTTP
   API. TCP only.

@@ -58,12 +58,25 @@ Usage: consul join [options] address ...
   Tells a running Consul agent (with "consul agent") to join the cluster
   by specifying at least one existing member.
 
-Options:
+HTTP API Options
 
-  -rpc-addr=127.0.0.1:8400  Address to the RPC server of the agent you want to contact
-                            to send this command. If this isn't specified, the command checks the
-                            CONSUL_RPC_ADDR env variable.
-  -wan                      Joins a server to another server in the WAN pool
+  -http-addr=<address>
+     The `address` and port of the Consul HTTP agent. The value can be
+     an IP address or DNS address, but it must also include the port.
+     This can also be specified via the CONSUL_HTTP_ADDR environment
+     variable. The default value is http://127.0.0.1:8500. The scheme
+     can also be set to HTTPS by setting the environment variable
+     CONSUL_HTTP_SSL=true.
+
+  -token=<value>
+     ACL token to use in the request. This can also be specified via the
+     CONSUL_HTTP_TOKEN environment variable. If unspecified, the query
+     will default to the token of the Consul agent at the HTTP address.
+
+Command Options
+
+  -wan
+     Joins a server to another server in the WAN pool.
 ```
 
 ## Environment Variables
@@ -123,18 +136,4 @@ for development purposes:
 
 ```
 CONSUL_HTTP_SSL_VERIFY=false
-```
-
-### `CONSUL_RPC_ADDR`
-
-This is the RPC interface address for the local agent specified as a URI:
-
-```
-CONSUL_RPC_ADDR=127.0.0.1:8300
-```
-
-or as a Unix socket path:
-
-```
-CONSUL_RPC_ADDR=unix://var/run/consul_rpc.sock
 ```

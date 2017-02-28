@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
@@ -337,7 +338,10 @@ func TestAgent_Reload(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
+		Command: base.Command{
+			Flags: base.FlagSetNone,
+			Ui:    new(cli.MockUi),
+		},
 	}
 
 	args := []string{

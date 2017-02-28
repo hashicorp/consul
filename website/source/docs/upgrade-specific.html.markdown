@@ -14,6 +14,25 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 0.8.0
+
+#### Command-Line Interface RPC Deprecation
+
+The RPC client interface has been removed. All CLI commands that used RPC and the
+`-rpc-addr` flag to communicate with Consul have been converted to use the HTTP API
+and the appropriate flags for it, and the `rpc` field has been removed from the port
+and address binding configs. You will need to remove these fields from your config files
+and update any scripts that passed a custom `-rpc-addr` to the following commands:
+
+* `force-leave`
+* `info`
+* `join`
+* `keyring`
+* `leave`
+* `members`
+* `monitor`
+* `reload`
+
 ## Consul 0.7.1
 
 #### Child Process Reaping

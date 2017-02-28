@@ -40,7 +40,6 @@ type TestPerformanceConfig struct {
 type TestPortConfig struct {
 	DNS     int `json:"dns,omitempty"`
 	HTTP    int `json:"http,omitempty"`
-	RPC     int `json:"rpc,omitempty"`
 	SerfLan int `json:"serf_lan,omitempty"`
 	SerfWan int `json:"serf_wan,omitempty"`
 	Server  int `json:"server,omitempty"`
@@ -95,7 +94,6 @@ func defaultServerConfig() *TestServerConfig {
 		Ports: &TestPortConfig{
 			DNS:     randomPort(),
 			HTTP:    randomPort(),
-			RPC:     randomPort(),
 			SerfLan: randomPort(),
 			SerfWan: randomPort(),
 			Server:  randomPort(),

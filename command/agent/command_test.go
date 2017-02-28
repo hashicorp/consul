@@ -1,20 +1,26 @@
 package agent
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
-	"reflect"
 )
+
+func baseCommand(ui *cli.MockUi) base.Command {
+	return base.Command{
+		Flags: base.FlagSetNone,
+		Ui:    ui,
+	}
+}
 
 func TestCommand_implements(t *testing.T) {
 	var _ cli.Command = new(Command)
@@ -65,7 +71,7 @@ func TestRetryJoin(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
+		Command:    baseCommand(new(cli.MockUi)),
 	}
 
 	serfAddr := fmt.Sprintf(
@@ -133,7 +139,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-node-meta", "somekey:somevalue",
 			},
 			ShutdownCh: shutdownCh,
-			Ui:         new(cli.MockUi),
+			Command:    baseCommand(new(cli.MockUi)),
 		}
 
 		config := cmd.readConfig()
@@ -160,7 +166,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-node-meta", "otherkey:othervalue",
 			},
 			ShutdownCh: shutdownCh,
-			Ui:         new(cli.MockUi),
+			Command:    baseCommand(new(cli.MockUi)),
 		}
 		expected := map[string]string{
 			"somekey":  "somevalue",
@@ -182,7 +188,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-data-dir", tmpDir,
 			},
 			ShutdownCh: shutdownCh,
-			Ui:         ui,
+			Command:    baseCommand(ui),
 		}
 
 		config := cmd.readConfig()
@@ -209,7 +215,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-node", `"client"`,
 			},
 			ShutdownCh: shutdownCh,
-			Ui:         ui,
+			Command:    baseCommand(ui),
 		}
 
 		config := cmd.readConfig()
@@ -232,7 +238,7 @@ func TestReadCliConfig(t *testing.T) {
 		cmd := &Command{
 			args:       []string{"-node", `""`},
 			ShutdownCh: shutdownCh,
-			Ui:         new(cli.MockUi),
+			Command:    baseCommand(new(cli.MockUi)),
 		}
 
 		config := cmd.readConfig()
@@ -255,7 +261,7 @@ func TestRetryJoinFail(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
+		Command:    baseCommand(new(cli.MockUi)),
 	}
 
 	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfLan)
@@ -284,7 +290,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
+		Command:    baseCommand(new(cli.MockUi)),
 	}
 
 	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfWan)
@@ -358,62 +364,6 @@ func TestDiscoverGCEHosts(t *testing.T) {
 	}
 }
 
-func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
-	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := ioutil.TempFile("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	socketPath := tmpFile.Name()
-
-	conf.DataDir = tmpDir
-	conf.Server = true
-	conf.Bootstrap = true
-
-	// Set socket address to an existing file.
-	conf.Addresses.RPC = "unix://" + socketPath
-
-	// Custom mode for socket file
-	conf.UnixSockets.Perms = "0777"
-
-	shutdownCh := make(chan struct{})
-	defer close(shutdownCh)
-
-	cmd := &Command{
-		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
-	}
-
-	logWriter := logger.NewLogWriter(512)
-	logOutput := new(bytes.Buffer)
-
-	// Ensure the server is created
-	if err := cmd.setupAgent(conf, logOutput, logWriter); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Ensure the file was replaced by the socket
-	fi, err := os.Stat(socketPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if fi.Mode()&os.ModeSocket == 0 {
-		t.Fatalf("expected socket to replace file")
-	}
-
-	// Ensure permissions were applied to the socket file
-	if fi.Mode().String() != "Srwxrwxrwx" {
-		t.Fatalf("bad permissions: %s", fi.Mode())
-	}
-}
-
 func TestSetupScadaConn(t *testing.T) {
 	// Create a config and assign an infra name
 	conf1 := nextConfig()
@@ -426,7 +376,7 @@ func TestSetupScadaConn(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: make(chan struct{}),
-		Ui:         new(cli.MockUi),
+		Command:    baseCommand(new(cli.MockUi)),
 		agent:      agent,
 	}
 
@@ -483,8 +433,8 @@ func TestProtectDataDir(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	cmd := &Command{
-		Ui:   ui,
-		args: []string{"-config-file=" + cfgFile.Name()},
+		Command: baseCommand(ui),
+		args:    []string{"-config-file=" + cfgFile.Name()},
 	}
 	if conf := cmd.readConfig(); conf != nil {
 		t.Fatalf("should fail")
@@ -509,8 +459,8 @@ func TestBadDataDirPermissions(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	cmd := &Command{
-		Ui:   ui,
-		args: []string{"-data-dir=" + dataDir, "-server=true"},
+		Command: baseCommand(ui),
+		args:    []string{"-data-dir=" + dataDir, "-server=true"},
 	}
 	if conf := cmd.readConfig(); conf != nil {
 		t.Fatalf("Should fail with bad data directory permissions")
