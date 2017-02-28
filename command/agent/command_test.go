@@ -1,20 +1,18 @@
 package agent
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
-	"reflect"
 )
 
 func baseCommand(ui *cli.MockUi) base.Command {
@@ -363,62 +361,6 @@ func TestDiscoverGCEHosts(t *testing.T) {
 	}
 	if len(servers) != 3 {
 		t.Fatalf("bad: %v", servers)
-	}
-}
-
-func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
-	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	tmpFile, err := ioutil.TempFile("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	socketPath := tmpFile.Name()
-
-	conf.DataDir = tmpDir
-	conf.Server = true
-	conf.Bootstrap = true
-
-	// Set socket address to an existing file.
-	conf.Addresses.RPC = "unix://" + socketPath
-
-	// Custom mode for socket file
-	conf.UnixSockets.Perms = "0777"
-
-	shutdownCh := make(chan struct{})
-	defer close(shutdownCh)
-
-	cmd := &Command{
-		ShutdownCh: shutdownCh,
-		Command:    baseCommand(new(cli.MockUi)),
-	}
-
-	logWriter := logger.NewLogWriter(512)
-	logOutput := new(bytes.Buffer)
-
-	// Ensure the server is created
-	if err := cmd.setupAgent(conf, logOutput, logWriter); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Ensure the file was replaced by the socket
-	fi, err := os.Stat(socketPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if fi.Mode()&os.ModeSocket == 0 {
-		t.Fatalf("expected socket to replace file")
-	}
-
-	// Ensure permissions were applied to the socket file
-	if fi.Mode().String() != "Srwxrwxrwx" {
-		t.Fatalf("bad permissions: %s", fi.Mode())
 	}
 }
 

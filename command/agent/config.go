@@ -26,7 +26,6 @@ type PortConfig struct {
 	DNS     int // DNS Query interface
 	HTTP    int // HTTP API
 	HTTPS   int // HTTPS API
-	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
 	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server only)
 	Server  int // Server internal RPC
@@ -39,7 +38,6 @@ type AddressConfig struct {
 	DNS   string // DNS Query interface
 	HTTP  string // HTTP API
 	HTTPS string // HTTPS API
-	RPC   string // CLI RPC
 }
 
 type AdvertiseAddrsConfig struct {
@@ -737,7 +735,6 @@ func DefaultConfig() *Config {
 			DNS:     8600,
 			HTTP:    8500,
 			HTTPS:   -1,
-			RPC:     8400,
 			SerfLan: consul.DefaultLANSerfPort,
 			SerfWan: consul.DefaultWANSerfPort,
 			Server:  8300,
@@ -1430,9 +1427,6 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Ports.HTTPS != 0 {
 		result.Ports.HTTPS = b.Ports.HTTPS
 	}
-	if b.Ports.RPC != 0 {
-		result.Ports.RPC = b.Ports.RPC
-	}
 	if b.Ports.SerfLan != 0 {
 		result.Ports.SerfLan = b.Ports.SerfLan
 	}
@@ -1450,9 +1444,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.HTTPS != "" {
 		result.Addresses.HTTPS = b.Addresses.HTTPS
-	}
-	if b.Addresses.RPC != "" {
-		result.Addresses.RPC = b.Addresses.RPC
 	}
 	if b.EnableUi {
 		result.EnableUi = true

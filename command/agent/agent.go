@@ -503,14 +503,6 @@ func (a *Agent) resolveTmplAddrs() error {
 		a.config.Addresses.HTTPS = ipStr
 	}
 
-	if a.config.Addresses.RPC != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.RPC)
-		if err != nil {
-			return fmt.Errorf("RPC address resolution failed: %v", err)
-		}
-		a.config.Addresses.RPC = ipStr
-	}
-
 	if a.config.AdvertiseAddrWan != "" {
 		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
 		if err != nil {

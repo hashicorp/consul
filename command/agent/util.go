@@ -26,6 +26,13 @@ const (
 	aeScaleThreshold = 128
 )
 
+// msgpackHandle is a shared handle for encoding/decoding of
+// messages
+var msgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+	WriteExt:    true,
+}
+
 // aeScale is used to scale the time interval at which anti-entropy updates take
 // place. It is used to prevent saturation as the cluster size grows.
 func aeScale(interval time.Duration, n int) time.Duration {

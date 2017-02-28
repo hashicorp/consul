@@ -18,9 +18,11 @@ standard upgrade flow.
 
 #### Command-Line Interface RPC Deprecation
 
-All CLI commands that used RPC and the `-rpc-addr` flag to communicate with Consul
-have been converted to use the HTTP API and the appropriate flags for it. You will
-need to update any scripts that passed a custom `-rpc-addr` to the following commands:
+The RPC client interface has been removed. All CLI commands that used RPC and the
+`-rpc-addr` flag to communicate with Consul have been converted to use the HTTP API
+and the appropriate flags for it, and the `rpc` field has been removed from the port
+and address binding configs. You will need to remove these fields from your config files
+and update any scripts that passed a custom `-rpc-addr` to the following commands:
 
 * `force-leave`
 * `info`

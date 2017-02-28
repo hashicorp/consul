@@ -29,7 +29,6 @@ const (
 
 	portOffsetDNS = iota
 	portOffsetHTTP
-	portOffsetRPC
 	portOffsetSerfLan
 	portOffsetSerfWan
 	portOffsetServer
@@ -53,7 +52,6 @@ func nextConfig() *Config {
 	conf.BindAddr = "127.0.0.1"
 	conf.Ports.DNS = basePortNumber + idx + portOffsetDNS
 	conf.Ports.HTTP = basePortNumber + idx + portOffsetHTTP
-	conf.Ports.RPC = basePortNumber + idx + portOffsetRPC
 	conf.Ports.SerfLan = basePortNumber + idx + portOffsetSerfLan
 	conf.Ports.SerfWan = basePortNumber + idx + portOffsetSerfWan
 	conf.Ports.Server = basePortNumber + idx + portOffsetServer

@@ -63,7 +63,6 @@ type Command struct {
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
 	agent             *Agent
-	rpcServer         *AgentRPC
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
 	scadaProvider     *scada.Provider
@@ -93,7 +92,7 @@ func (c *Command) readConfig() *Config {
 	f.Var((*AppendSliceValue)(&dnsRecursors), "recursor",
 		"Address of an upstream DNS server. Can be specified multiple times.")
 	f.Var((*AppendSliceValue)(&nodeMeta), "node-meta",
-		"An arbitrary metadata key/value pair for this node. Can be specified multiple times.")
+		"An arbitrary metadata key/value pair for this node, of the format `key:value`. Can be specified multiple times.")
 	f.BoolVar(&dev, "dev", false, "Starts the agent in development mode.")
 
 	f.StringVar(&cmdConfig.LogLevel, "log-level", "", "Log level of the agent.")
@@ -105,7 +104,7 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&cmdConfig.Datacenter, "datacenter", "", "Datacenter of the agent.")
 	f.StringVar(&cmdConfig.DataDir, "data-dir", "", "Path to a data directory to store agent state.")
 	f.BoolVar(&cmdConfig.EnableUi, "ui", false, "Enables the built-in static web UI server.")
-	f.StringVar(&cmdConfig.UiDir, "ui-dir", "", "Path to directory containing the Web UI resources.")
+	f.StringVar(&cmdConfig.UiDir, "ui-dir", "", "Path to directory containing the web UI resources.")
 	f.StringVar(&cmdConfig.PidFile, "pid-file", "", "Path to file to store agent PID.")
 	f.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "Provides the gossip encryption key.")
 
@@ -115,20 +114,24 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&cmdConfig.Domain, "domain", "", "Domain to use for DNS interface.")
 
 	f.StringVar(&cmdConfig.ClientAddr, "client", "",
-		"Sets the address to bind for client access. This includes RPC, DNS, HTTP and HTTPS (if configured)")
+		"Sets the address to bind for client access. This includes RPC, DNS, HTTP and HTTPS (if configured).")
 	f.StringVar(&cmdConfig.BindAddr, "bind", "", "Sets the bind address for cluster communication.")
 	f.StringVar(&cmdConfig.SerfWanBindAddr, "serf-wan-bind", "", "Address to bind Serf WAN listeners to.")
 	f.StringVar(&cmdConfig.SerfLanBindAddr, "serf-lan-bind", "", "Address to bind Serf LAN listeners to.")
 	f.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "Sets the HTTP API port to listen on.")
-	f.IntVar(&cmdConfig.Ports.DNS, "dns-port", 0, "DNS port to use")
+	f.IntVar(&cmdConfig.Ports.DNS, "dns-port", 0, "DNS port to use.")
 	f.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "Sets the advertise address to use.")
 	f.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "",
-		"Sets address to advertise on wan instead of advertise addr.")
+		"Sets address to advertise on WAN instead of -advertise address.")
 
-	f.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "Sets the Atlas infrastructure name, enables SCADA.")
-	f.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "Provides the Atlas API token.")
-	f.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "Enables auto-joining the Atlas cluster.")
-	f.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "The address of the endpoint for Atlas integration.")
+	f.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "",
+		"(deprecated) Sets the Atlas infrastructure name, enables SCADA.")
+	f.StringVar(&cmdConfig.AtlasToken, "atlas-token", "",
+		"(deprecated) Provides the Atlas API token.")
+	f.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false,
+		"(deprecated) Enables auto-joining the Atlas cluster.")
+	f.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "",
+		"(deprecated) The address of the endpoint for Atlas integration.")
 
 	f.IntVar(&cmdConfig.Protocol, "protocol", -1,
 		"Sets the protocol version. Defaults to latest.")
@@ -430,7 +433,6 @@ func (config *Config) verifyUniqueListeners() error {
 		port  int
 		descr string
 	}{
-		{config.Addresses.RPC, config.Ports.RPC, "RPC"},
 		{config.Addresses.DNS, config.Ports.DNS, "DNS"},
 		{config.Addresses.HTTP, config.Ports.HTTP, "HTTP"},
 		{config.Addresses.HTTPS, config.Ports.HTTPS, "HTTPS"},
@@ -681,45 +683,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 	c.agent = agent
-
-	// Setup the RPC listener
-	rpcAddr, err := config.ClientListener(config.Addresses.RPC, config.Ports.RPC)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Invalid RPC bind address: %s", err))
-		return err
-	}
-
-	// Clear the domain socket file if it exists
-	socketPath, isSocket := unixSocketAddr(config.Addresses.RPC)
-	if isSocket {
-		if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
-			agent.logger.Printf("[WARN] agent: Replacing socket %q", socketPath)
-		}
-		if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-			c.Ui.Output(fmt.Sprintf("Error removing socket file: %s", err))
-			return err
-		}
-	}
-
-	rpcListener, err := net.Listen(rpcAddr.Network(), rpcAddr.String())
-	if err != nil {
-		agent.Shutdown()
-		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
-		return err
-	}
-
-	// Set up ownership/permission bits on the socket file
-	if isSocket {
-		if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error setting up socket: %s", err))
-			return err
-		}
-	}
-
-	// Start the IPC layer
-	c.Ui.Output("Starting Consul agent RPC...")
-	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	// Enable the SCADA integration
 	if err := c.setupScadaConn(config); err != nil {
@@ -1060,9 +1023,6 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 	defer c.agent.Shutdown()
-	if c.rpcServer != nil {
-		defer c.rpcServer.Shutdown()
-	}
 	if c.dnsServer != nil {
 		defer c.dnsServer.Shutdown()
 	}
@@ -1146,8 +1106,8 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
-	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d, RPC: %d)", config.ClientAddr,
-		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS, config.Ports.RPC))
+	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddr,
+		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS))
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
@@ -1184,8 +1144,6 @@ WAIT:
 	select {
 	case s := <-signalCh:
 		sig = s
-	case <-c.rpcServer.ReloadCh():
-		sig = syscall.SIGHUP
 	case ch := <-c.configReloadCh:
 		sig = syscall.SIGHUP
 		reloadErrCh = ch
