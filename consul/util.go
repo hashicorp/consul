@@ -91,6 +91,35 @@ func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, e
 	return (numServers > 0) && (numWhoGrok == numServers), nil
 }
 
+// ServerMinRaftProtocol returns the lowest supported Raft protocol among alive servers
+func ServerMinRaftProtocol(members []serf.Member) (int, error) {
+	minVersion := -1
+	for _, m := range members {
+		if m.Tags["role"] != "consul" || m.Status != serf.StatusAlive {
+			continue
+		}
+
+		vsn, ok := m.Tags["raft_vsn"]
+		if !ok {
+			vsn = "1"
+		}
+		raftVsn, err := strconv.Atoi(vsn)
+		if err != nil {
+			return -1, err
+		}
+
+		if minVersion == -1 || raftVsn < minVersion {
+			minVersion = raftVsn
+		}
+	}
+
+	if minVersion == -1 {
+		return minVersion, fmt.Errorf("No servers found")
+	}
+
+	return minVersion, nil
+}
+
 // Returns if a member is a consul node. Returns a bool,
 // and the datacenter.
 func isConsulNode(m serf.Member) (bool, string) {

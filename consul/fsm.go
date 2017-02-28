@@ -105,6 +105,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyPreparedQueryOperation(buf[1:], log.Index)
 	case structs.TxnRequestType:
 		return c.applyTxn(buf[1:], log.Index)
+	case structs.AutopilotRequestType:
+		return c.applyAutopilotUpdate(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -308,6 +310,25 @@ func (c *consulFSM) applyTxn(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "txn"}, time.Now())
 	results, errors := c.state.TxnRW(index, req.Ops)
 	return structs.TxnResponse{results, errors}
+}
+
+func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
+	var req structs.AutopilotSetConfigRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "autopilot"}, time.Now())
+
+	if req.CAS {
+		act, err := c.state.AutopilotCASConfig(index, req.Config.ModifyIndex, &req.Config)
+		if err != nil {
+			return err
+		} else {
+			return act
+		}
+	} else {
+		return c.state.AutopilotSetConfig(index, &req.Config)
+	}
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {

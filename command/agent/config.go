@@ -260,6 +260,13 @@ type Telemetry struct {
 	CirconusBrokerSelectTag string `mapstructure:"circonus_broker_select_tag"`
 }
 
+// Autopilot is used to configure helpful features for operating Consul servers.
+type Autopilot struct {
+	// CleanupDeadServers enables the automatic cleanup of dead servers when new ones
+	// are added to the peer list. Defaults to true.
+	CleanupDeadServers *bool `mapstructure:"cleanup_dead_servers"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -385,10 +392,16 @@ type Config struct {
 	// servers. This can be changed on reload.
 	SkipLeaveOnInt *bool `mapstructure:"skip_leave_on_interrupt"`
 
+	// Autopilot is used to configure helpful features for operating Consul servers.
+	Autopilot Autopilot `mapstructure:"autopilot"`
+
 	Telemetry Telemetry `mapstructure:"telemetry"`
 
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
+
+	// RaftProtocol sets the Raft protocol version to use on this server.
+	RaftProtocol int `mapstructure:"raft_protocol"`
 
 	// EnableDebug is used to enable various debugging features
 	EnableDebug bool `mapstructure:"enable_debug"`
@@ -1280,6 +1293,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Protocol > 0 {
 		result.Protocol = b.Protocol
 	}
+	if b.RaftProtocol != 0 {
+		result.RaftProtocol = b.RaftProtocol
+	}
 	if b.NodeID != "" {
 		result.NodeID = b.NodeID
 	}
@@ -1327,6 +1343,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SkipLeaveOnInt != nil {
 		result.SkipLeaveOnInt = b.SkipLeaveOnInt
+	}
+	if b.Autopilot.CleanupDeadServers != nil {
+		result.Autopilot.CleanupDeadServers = b.Autopilot.CleanupDeadServers
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true

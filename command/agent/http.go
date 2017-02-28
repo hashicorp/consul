@@ -297,6 +297,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
 	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
 	s.handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
+	s.handleFuncMetrics("/v1/operator/autopilot/configuration", s.wrap(s.OperatorAutopilotConfiguration))
 	s.handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
 	s.handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
 	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))

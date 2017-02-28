@@ -622,3 +622,162 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	})
 }
+
+func TestLeader_CleanupDeadServers(t *testing.T) {
+	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Kill a non-leader server
+	s2.Shutdown()
+
+	testutil.WaitForResult(func() (bool, error) {
+		alive := 0
+		for _, m := range s1.LANMembers() {
+			if m.Status == serf.StatusAlive {
+				alive++
+			}
+		}
+		return alive == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 alive members")
+	})
+
+	// Bring up and join a new server
+	dir4, s4 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	servers[1] = s4
+
+	// Make sure the dead server is removed and we're back to 3 total peers
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+}
+
+func TestLeader_RollRaftServer(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 1
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Kill the v1 server
+	s2.Shutdown()
+
+	for _, s := range []*Server{s1, s3} {
+		testutil.WaitForResult(func() (bool, error) {
+			minVer, err := ServerMinRaftProtocol(s.LANMembers())
+			return minVer == 2, err
+		}, func(err error) {
+			t.Fatalf("minimum protocol version among servers should be 2")
+		})
+	}
+
+	// Replace the dead server with one running raft protocol v3
+	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+	})
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	servers[1] = s4
+
+	// Make sure the dead server is removed and we're back to 3 total peers
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			addrs := 0
+			ids := 0
+			future := s.raft.GetConfiguration()
+			if err := future.Error(); err != nil {
+				return false, err
+			}
+			for _, server := range future.Configuration().Servers {
+				if string(server.ID) == string(server.Address) {
+					addrs++
+				} else {
+					ids++
+				}
+			}
+			return addrs == 2 && ids == 1, nil
+		}, func(err error) {
+			t.Fatalf("should see 2 legacy IDs and 1 GUID")
+		})
+	}
+}

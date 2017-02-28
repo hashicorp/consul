@@ -1,5 +1,13 @@
 package api
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+)
+
 // Operator can be used to perform low-level operator tasks for Consul.
 type Operator struct {
 	c *Client
@@ -61,6 +69,25 @@ type KeyringResponse struct {
 
 	// The total number of nodes in this ring
 	NumNodes int
+}
+
+// AutopilotConfiguration is used for querying/setting the Autopilot configuration.
+// Autopilot helps manage operator tasks related to Consul servers like removing
+// failed servers from the Raft quorum.
+type AutopilotConfiguration struct {
+	// CleanupDeadServers controls whether to remove dead servers from the Raft
+	// peer list when a new server joins
+	CleanupDeadServers bool
+
+	// CreateIndex holds the index corresponding the creation of this configuration.
+	// This is a read-only field.
+	CreateIndex uint64
+
+	// ModifyIndex will be set to the index of the last update when retrieving the
+	// Autopilot configuration. Resubmitting a configuration with
+	// AutopilotCASConfiguration will perform a check-and-set operation which ensures
+	// there hasn't been a subsequent update since the configuration was retrieved.
+	ModifyIndex uint64
 }
 
 // RaftGetConfiguration is used to query the current Raft peer set.
@@ -160,4 +187,57 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// AutopilotGetConfiguration is used to query the current Autopilot configuration.
+func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
+	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
+	r.setQueryOptions(q)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out AutopilotConfiguration
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// AutopilotSetConfiguration is used to set the current Autopilot configuration.
+func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *WriteOptions) error {
+	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
+	r.setWriteOptions(q)
+	r.obj = conf
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// AutopilotCASConfiguration is used to perform a Check-And-Set update on the
+// Autopilot configuration. The ModifyIndex value will be respected. Returns
+// true on success or false on failures.
+func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *WriteOptions) (bool, error) {
+	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
+	r.setWriteOptions(q)
+	r.params.Set("cas", strconv.FormatUint(conf.ModifyIndex, 10))
+	r.obj = conf
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, fmt.Errorf("Failed to read response: %v", err)
+	}
+	res := strings.Contains(string(buf.Bytes()), "true")
+
+	return res, nil
 }

@@ -125,3 +125,61 @@ REMOVE:
 	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q", args.Address)
 	return nil
 }
+
+// AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.
+func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *structs.AutopilotConfig) error {
+	if done, err := op.srv.forward("Operator.AutopilotGetConfiguration", args, args, reply); done {
+		return err
+	}
+
+	// This action requires operator read access.
+	acl, err := op.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && !acl.OperatorRead() {
+		return permissionDeniedErr
+	}
+
+	state := op.srv.fsm.State()
+	_, config, err := state.AutopilotConfig()
+	if err != nil {
+		return err
+	}
+
+	*reply = *config
+
+	return nil
+}
+
+// AutopilotSetConfiguration is used to set the current Autopilot configuration.
+func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *bool) error {
+	if done, err := op.srv.forward("Operator.AutopilotSetConfiguration", args, args, reply); done {
+		return err
+	}
+
+	// This action requires operator write access.
+	acl, err := op.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && !acl.OperatorWrite() {
+		return permissionDeniedErr
+	}
+
+	// Apply the update
+	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
+	if err != nil {
+		op.srv.logger.Printf("[ERR] consul.operator: Apply failed: %v", err)
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	// Check if the return type is a bool.
+	if respBool, ok := resp.(bool); ok {
+		*reply = respBool
+	}
+	return nil
+}

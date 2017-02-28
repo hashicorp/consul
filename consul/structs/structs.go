@@ -40,6 +40,7 @@ const (
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
 	TxnRequestType
+	AutopilotRequestType
 )
 
 const (

@@ -31,6 +31,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		aclsTableSchema,
 		coordinatesTableSchema,
 		preparedQueriesTableSchema,
+		autopilotConfigTableSchema,
 	}
 
 	// Add the tables to the root schema
@@ -435,6 +436,24 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
 					Field: "Session",
+				},
+			},
+		},
+	}
+}
+
+// autopilotConfigTableSchema returns a new table schema used for storing
+// the autopilot configuration
+func autopilotConfigTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "autopilot-config",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) { return true, nil },
 				},
 			},
 		},

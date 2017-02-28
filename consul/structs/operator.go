@@ -4,6 +4,15 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+type AutopilotConfig struct {
+	// CleanupDeadServers controls whether to remove dead servers when a new
+	// server is added to the Raft peers
+	CleanupDeadServers bool
+
+	// RaftIndex stores the create/modify indexes of this configuration
+	RaftIndex
+}
+
 // RaftServer has information about a server in the Raft configuration.
 type RaftServer struct {
 	// ID is the unique ID for the server. These are currently the same
@@ -53,5 +62,26 @@ type RaftPeerByAddressRequest struct {
 
 // RequestDatacenter returns the datacenter for a given request.
 func (op *RaftPeerByAddressRequest) RequestDatacenter() string {
+	return op.Datacenter
+}
+
+// AutopilotSetConfigRequest is used by the Operator endpoint to update the
+// current Autopilot configuration of the cluster.
+type AutopilotSetConfigRequest struct {
+	// Datacenter is the target this request is intended for.
+	Datacenter string
+
+	// Config is the new Autopilot configuration to use.
+	Config AutopilotConfig
+
+	// CAS controls whether to use check-and-set semantics for this request.
+	CAS bool
+
+	// WriteRequest holds the ACL token to go along with this request.
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (op *AutopilotSetConfigRequest) RequestDatacenter() string {
 	return op.Datacenter
 }

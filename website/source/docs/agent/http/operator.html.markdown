@@ -28,6 +28,7 @@ The following endpoints are supported:
 * [`/v1/operator/raft/configuration`](#raft-configuration): Inspects the Raft configuration
 * [`/v1/operator/raft/peer`](#raft-peer): Operates on Raft peers
 * [`/v1/operator/keyring`](#keyring): Operates on gossip keyring
+* [`/v1/operator/autopilot/configuration`](#autopilot-configuration): Operates on the Autopilot configuration
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -256,5 +257,67 @@ cluster.
 
 If ACLs are enabled, the client will need to supply an ACL Token with
 [`keyring`](/docs/internals/acl.html#keyring) write privileges.
+
+The return code will indicate success or failure.
+
+### <a name="autopilot-configuration"></a> /v1/operator/autopilot/configuration
+
+Available in Consul 0.8.0 and later, the autopilot configuration endpoint supports the
+`GET` and `PUT` methods.
+
+This endpoint supports the use of ACL tokens using either the `X-CONSUL-TOKEN`
+header or the `?token=` query parameter.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+#### GET Method
+
+When using the `GET` method, the request will be forwarded to the cluster
+leader to retrieve its latest Autopilot configuration.
+
+If the cluster doesn't currently have a leader an error will be returned. You
+can use the `?stale` query parameter to read the Raft configuration from any
+of the Consul servers.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`operator`](/docs/internals/acl.html#operator) read privileges.
+
+A JSON body is returned that looks like this:
+
+```javascript
+{
+    "CleanupDeadServers": true,
+    "CreateIndex": 4,
+    "ModifyIndex": 4
+}
+```
+
+`CleanupDeadServers` is whether dead servers should be removed automatically when
+a new server is added to the cluster.
+
+#### PUT Method
+
+Using the `PUT` method, this endpoint will update the Autopilot configuration
+of the cluster.
+
+The `?cas=<index>` can optionally be specified to update the configuration as a
+Check-And-Set operation. The update will only happen if the given index matches
+the `ModifyIndex` of the configuration at the time of writing.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`operator`](/docs/internals/acl.html#operator) write privileges.
+
+The `PUT` method expects a JSON request body to be submitted. The request
+body must look like:
+
+```javascript
+{
+    "CleanupDeadServers": true
+}
+```
+
+`CleanupDeadServers` is whether dead servers should be removed automatically when
+a new server is added to the cluster.
 
 The return code will indicate success or failure.
