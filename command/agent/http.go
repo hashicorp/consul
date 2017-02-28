@@ -50,105 +50,129 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
-		if err != nil {
-			return nil, err
+		var addr string
+		if config.Addresses.HTTPS != "" {
+			addr = config.Addresses.HTTPS
+		} else {
+			addr = config.ClientAddr
 		}
 
-		tlsConf := &tlsutil.Config{
-			VerifyIncoming: config.VerifyIncoming,
-			VerifyOutgoing: config.VerifyOutgoing,
-			CAFile:         config.CAFile,
-			CertFile:       config.CertFile,
-			KeyFile:        config.KeyFile,
-			NodeName:       config.NodeName,
-			ServerName:     config.ServerName,
-			TLSMinVersion:  config.TLSMinVersion,
+		// Split the addresses if we have multiples.
+		addrList := strings.Fields(addr)
+
+		// Server for each interface
+		for _, addr := range addrList {
+			httpAddr, err := config.ClientListener(addr, config.Ports.HTTPS)
+			if err != nil {
+				return nil, err
+			}
+
+			tlsConf := &tlsutil.Config{
+				VerifyIncoming: config.VerifyIncoming,
+				VerifyOutgoing: config.VerifyOutgoing,
+				CAFile:         config.CAFile,
+				CertFile:       config.CertFile,
+				KeyFile:        config.KeyFile,
+				NodeName:       config.NodeName,
+				ServerName:     config.ServerName,
+				TLSMinVersion:  config.TLSMinVersion}
+
+			tlsConfig, err := tlsConf.IncomingTLSConfig()
+			if err != nil {
+				return nil, err
+			}
+
+			ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
+			}
+
+			list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
+
+			// Create the mux
+			mux := http.NewServeMux()
+
+			// Create the server
+			srv := &HTTPServer{
+				agent:    agent,
+				mux:      mux,
+				listener: list,
+				logger:   log.New(logOutput, "", log.LstdFlags),
+				uiDir:    config.UiDir,
+				addr:     httpAddr.String(),
+			}
+			srv.registerHandlers(config.EnableDebug)
+
+			// Start the server
+			go http.Serve(list, mux)
+			servers = append(servers, srv)
 		}
-
-		tlsConfig, err := tlsConf.IncomingTLSConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
-		}
-
-		list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
-
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     httpAddr.String(),
-		}
-		srv.registerHandlers(config.EnableDebug)
-
-		// Start the server
-		go http.Serve(list, mux)
-		servers = append(servers, srv)
 	}
 
 	if config.Ports.HTTP > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
-		}
-
-		// Error if we are trying to bind a domain socket to an existing path
-		socketPath, isSocket := unixSocketAddr(config.Addresses.HTTP)
-		if isSocket {
-			if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
-				agent.logger.Printf("[WARN] agent: Replacing socket %q", socketPath)
-			}
-			if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-				return nil, fmt.Errorf("error removing socket file: %s", err)
-			}
-		}
-
-		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
-		}
-
-		var list net.Listener
-		if isSocket {
-			// Set up ownership/permission bits on the socket file
-			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
-				return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
-			}
-			list = ln
+		var addr string
+		if config.Addresses.HTTP != "" {
+			addr = config.Addresses.HTTP
 		} else {
-			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
+			addr = config.ClientAddr
 		}
 
-		// Create the mux
-		mux := http.NewServeMux()
+		// Split the addresses if we have multiples.
+		addrList := strings.Fields(addr)
 
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     httpAddr.String(),
+		// Server for each interface
+		for _, addr := range addrList {
+			httpAddr, err := config.ClientListener(addr, config.Ports.HTTP)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
+			}
+
+			// Error if we are trying to bind a domain socket to an existing path
+			socketPath, isSocket := unixSocketAddr(addr)
+			if isSocket {
+				if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
+					agent.logger.Printf("[WARN] agent: Replacing socket %q", socketPath)
+				}
+				if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+					return nil, fmt.Errorf("error removing socket file: %s", err)
+				}
+			}
+
+			ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
+			}
+
+			var list net.Listener
+			if isSocket {
+				// Set up ownership/permission bits on the socket file
+				if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
+					return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
+				}
+				list = ln
+			} else {
+				list = tcpKeepAliveListener{ln.(*net.TCPListener)}
+			}
+
+			// Create the mux
+			mux := http.NewServeMux()
+
+			// Create the server
+			srv := &HTTPServer{
+				agent:    agent,
+				mux:      mux,
+				listener: list,
+				logger:   log.New(logOutput, "", log.LstdFlags),
+				uiDir:    config.UiDir,
+				addr:     httpAddr.String(),
+			}
+			srv.registerHandlers(config.EnableDebug)
+
+			// Start the server
+			go http.Serve(list, mux)
+			servers = append(servers, srv)
 		}
-		srv.registerHandlers(config.EnableDebug)
-
-		// Start the server
-		go http.Serve(list, mux)
-		servers = append(servers, srv)
 	}
-
 	return servers, nil
 }
 

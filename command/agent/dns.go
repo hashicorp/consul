@@ -52,6 +52,43 @@ func (d *DNSServer) Shutdown() {
 	}
 }
 
+// Create new DNS Servers.
+func NewDNSServers(agent *Agent, config *Config, logOutput io.Writer) ([]*DNSServer, error) {
+	if logOutput == nil {
+		return nil, fmt.Errorf("Please provide a valid logOutput(io.Writer)")
+	}
+
+	var servers []*DNSServer
+	if config.Ports.DNS > 0 {
+		var addr string
+		if config.Addresses.DNS != "" {
+			addr = config.Addresses.DNS
+		} else {
+			addr = config.ClientAddr
+		}
+
+		// Split the addresses if we have multiples.
+		addrList := strings.Fields(addr)
+
+		// Server for each interface
+		for _, addr := range addrList {
+			dnsAddr, err := config.ClientListener(addr, config.Ports.DNS)
+			if err != nil {
+				agent.Shutdown()
+				return nil, fmt.Errorf("Invalid dns bind address: %v", err)
+			}
+
+			server, err := NewDNSServer(agent, &config.DNSConfig, logOutput, config.Domain, dnsAddr.String(), config.DNSRecursors)
+			if err != nil {
+				agent.Shutdown()
+				return nil, fmt.Errorf("Error setting up dns server: %v", err)
+			}
+			servers = append(servers, server)
+		}
+	}
+	return servers, nil
+}
+
 // NewDNSServer starts a new DNS server to provide an agent interface
 func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
 	// Make sure domain is FQDN, make it case insensitive for ServeMux
