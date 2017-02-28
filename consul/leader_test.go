@@ -623,7 +623,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	})
 }
 
-func TestLeader_DeadServerCleanup(t *testing.T) {
+func TestLeader_CleanupDeadServers(t *testing.T) {
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

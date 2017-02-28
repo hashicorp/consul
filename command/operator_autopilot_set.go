@@ -28,11 +28,11 @@ func (c *OperatorAutopilotSetCommand) Synopsis() string {
 }
 
 func (c *OperatorAutopilotSetCommand) Run(args []string) int {
-	var deadServerCleanup base.BoolValue
+	var cleanupDeadServers base.BoolValue
 
 	f := c.Command.NewFlagSet(c)
 
-	f.Var(&deadServerCleanup, "dead-server-cleanup",
+	f.Var(&cleanupDeadServers, "cleanup-dead-servers",
 		"Controls whether Consul will automatically remove dead servers "+
 			"when new ones are successfully added. Must be one of `true|false`.")
 
@@ -60,7 +60,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	}
 
 	// Update the config values.
-	deadServerCleanup.Merge(&conf.DeadServerCleanup)
+	cleanupDeadServers.Merge(&conf.CleanupDeadServers)
 
 	// Check-and-set the new configuration.
 	result, err := operator.AutopilotCASConfiguration(conf, nil)
@@ -72,7 +72,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 		c.Ui.Output("Configuration updated!")
 		return 0
 	} else {
-		c.Ui.Output("Configuration could not be atomically updated")
+		c.Ui.Output("Configuration could not be atomically updated, please try again")
 		return 1
 	}
 }

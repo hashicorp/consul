@@ -287,13 +287,13 @@ A JSON body is returned that looks like this:
 
 ```javascript
 {
-    "DeadServerCleanup": true,
+    "CleanupDeadServers": true,
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
 ```
 
-`DeadServerCleanup` is whether dead servers should be removed automatically when
+`CleanupDeadServers` is whether dead servers should be removed automatically when
 a new server is added to the cluster.
 
 #### PUT Method
@@ -313,11 +313,11 @@ body must look like:
 
 ```javascript
 {
-    "DeadServerCleanup": true
+    "CleanupDeadServers": true
 }
 ```
 
-`DeadServerCleanup` is whether dead servers should be removed automatically when
+`CleanupDeadServers` is whether dead servers should be removed automatically when
 a new server is added to the cluster.
 
 The return code will indicate success or failure.

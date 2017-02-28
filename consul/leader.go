@@ -618,7 +618,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	}
 
 	// Look for dead servers to clean up
-	if autopilotConf.DeadServerCleanup {
+	if autopilotConf.CleanupDeadServers {
 		for _, member := range s.serfLAN.Members() {
 			valid, _ := agent.IsConsulServer(member)
 			if valid && member.Name != m.Name && member.Status == serf.StatusFailed {

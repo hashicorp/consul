@@ -246,7 +246,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 
 func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.AutopilotConfig.DeadServerCleanup = false
+		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -263,7 +263,7 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if reply.DeadServerCleanup {
+	if reply.CleanupDeadServers {
 		t.Fatalf("bad: %#v", reply)
 	}
 }
@@ -273,7 +273,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.AutopilotConfig.DeadServerCleanup = false
+		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -320,14 +320,14 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if reply.DeadServerCleanup {
+	if reply.CleanupDeadServers {
 		t.Fatalf("bad: %#v", reply)
 	}
 }
 
 func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.AutopilotConfig.DeadServerCleanup = false
+		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -340,7 +340,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	arg := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
 		Config: structs.AutopilotConfig{
-			DeadServerCleanup: true,
+			CleanupDeadServers: true,
 		},
 	}
 	var reply *bool
@@ -355,7 +355,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !config.DeadServerCleanup {
+	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %#v", config)
 	}
 }
@@ -365,7 +365,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.AutopilotConfig.DeadServerCleanup = false
+		c.AutopilotConfig.CleanupDeadServers = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -378,7 +378,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 	arg := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
 		Config: structs.AutopilotConfig{
-			DeadServerCleanup: true,
+			CleanupDeadServers: true,
 		},
 	}
 	var reply *bool
@@ -422,7 +422,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !config.DeadServerCleanup {
+	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %#v", config)
 	}
 }

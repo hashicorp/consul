@@ -55,7 +55,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error querying Autopilot configuration: %s", err))
 		return 1
 	}
-	c.Ui.Output(fmt.Sprintf("DeadServerCleanup = %v", config.DeadServerCleanup))
+	c.Ui.Output(fmt.Sprintf("CleanupDeadServers = %v", config.CleanupDeadServers))
 
 	return 0
 }

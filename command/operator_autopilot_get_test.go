@@ -31,7 +31,7 @@ func TestOperator_Autopilot_Get(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 	output := strings.TrimSpace(ui.OutputWriter.String())
-	if !strings.Contains(output, "DeadServerCleanup = true") {
+	if !strings.Contains(output, "CleanupDeadServers = true") {
 		t.Fatalf("bad: %s", output)
 	}
 }

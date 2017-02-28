@@ -71,17 +71,22 @@ type KeyringResponse struct {
 	NumNodes int
 }
 
-// AutopilotConfiguration is used for querying/setting the Autopilot configuration
+// AutopilotConfiguration is used for querying/setting the Autopilot configuration.
+// Autopilot helps manage operator tasks related to Consul servers like removing
+// failed servers from the Raft quorum.
 type AutopilotConfiguration struct {
-	// DeadServerCleanup controls whether to remove dead servers from the Raft
+	// CleanupDeadServers controls whether to remove dead servers from the Raft
 	// peer list when a new server joins
-	DeadServerCleanup bool
+	CleanupDeadServers bool
 
 	// CreateIndex holds the index corresponding the creation of this configuration.
 	// This is a read-only field.
 	CreateIndex uint64
 
-	// ModifyIndex is used for doing a Check-And-Set update operation.
+	// ModifyIndex will be set to the index of the last update when retrieving the
+	// Autopilot configuration. Resubmitting a configuration with
+	// AutopilotCASConfiguration will perform a check-and-set operation which ensures
+	// there hasn't been a subsequent update since the configuration was retrieved.
 	ModifyIndex uint64
 }
 

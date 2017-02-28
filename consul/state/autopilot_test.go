@@ -11,7 +11,7 @@ func TestStateStore_Autopilot(t *testing.T) {
 	s := testStateStore(t)
 
 	expected := &structs.AutopilotConfig{
-		DeadServerCleanup: true,
+		CleanupDeadServers: true,
 	}
 
 	if err := s.AutopilotSetConfig(0, expected); err != nil {
@@ -34,7 +34,7 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	s := testStateStore(t)
 
 	expected := &structs.AutopilotConfig{
-		DeadServerCleanup: true,
+		CleanupDeadServers: true,
 	}
 
 	if err := s.AutopilotSetConfig(0, expected); err != nil {
@@ -46,14 +46,14 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 
 	// Do a CAS with an index lower than the entry
 	ok, err := s.AutopilotCASConfig(2, 0, &structs.AutopilotConfig{
-		DeadServerCleanup: false,
+		CleanupDeadServers: false,
 	})
 	if ok || err != nil {
 		t.Fatalf("expected (false, nil), got: (%v, %#v)", ok, err)
 	}
 
 	// Check that the index is untouched and the entry
-	// has not been deleted.
+	// has not been updated.
 	idx, config, err := s.AutopilotConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -61,20 +61,19 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	if idx != 1 {
 		t.Fatalf("bad: %d", idx)
 	}
-	if !config.DeadServerCleanup {
+	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %#v", config)
 	}
 
 	// Do another CAS, this time with the correct index
 	ok, err = s.AutopilotCASConfig(2, 1, &structs.AutopilotConfig{
-		DeadServerCleanup: false,
+		CleanupDeadServers: false,
 	})
 	if !ok || err != nil {
 		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
 	}
 
-	// Check that the index is untouched and the entry
-	// has not been deleted.
+	// Make sure the config was updated
 	idx, config, err = s.AutopilotConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +81,7 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	if idx != 2 {
 		t.Fatalf("bad: %d", idx)
 	}
-	if config.DeadServerCleanup {
+	if config.CleanupDeadServers {
 		t.Fatalf("bad: %#v", config)
 	}
 }

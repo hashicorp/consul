@@ -416,8 +416,8 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
-	if a.config.Autopilot.DeadServerCleanup != nil {
-		base.AutopilotConfig.DeadServerCleanup = *a.config.Autopilot.DeadServerCleanup
+	if a.config.Autopilot.CleanupDeadServers != nil {
+		base.AutopilotConfig.CleanupDeadServers = *a.config.Autopilot.CleanupDeadServers
 	}
 
 	// Format the build string

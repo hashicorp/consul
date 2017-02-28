@@ -141,8 +141,6 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 		return permissionDeniedErr
 	}
 
-	// We can't fetch the leader and the configuration atomically with
-	// the current Raft API.
 	state := op.srv.fsm.State()
 	_, config, err := state.AutopilotConfig()
 	if err != nil {
@@ -160,7 +158,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 		return err
 	}
 
-	// This action requires operator read access.
+	// This action requires operator write access.
 	acl, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err

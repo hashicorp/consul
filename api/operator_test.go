@@ -115,12 +115,12 @@ func TestOperator_AutopilotGetSetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !config.DeadServerCleanup {
+	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %v", config)
 	}
 
 	// Change a config setting
-	newConf := &AutopilotConfiguration{DeadServerCleanup: false}
+	newConf := &AutopilotConfiguration{CleanupDeadServers: false}
 	if err := operator.AutopilotSetConfiguration(newConf, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestOperator_AutopilotGetSetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if config.DeadServerCleanup {
+	if config.CleanupDeadServers {
 		t.Fatalf("bad: %v", config)
 	}
 }
@@ -144,15 +144,15 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !config.DeadServerCleanup {
+	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %v", config)
 	}
 
 	// Pass an invalid ModifyIndex
 	{
 		newConf := &AutopilotConfiguration{
-			DeadServerCleanup: false,
-			ModifyIndex:       config.ModifyIndex - 1,
+			CleanupDeadServers: false,
+			ModifyIndex:        config.ModifyIndex - 1,
 		}
 		resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 		if err != nil {
@@ -166,8 +166,8 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	// Pass a valid ModifyIndex
 	{
 		newConf := &AutopilotConfiguration{
-			DeadServerCleanup: false,
-			ModifyIndex:       config.ModifyIndex,
+			CleanupDeadServers: false,
+			ModifyIndex:        config.ModifyIndex,
 		}
 		resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 		if err != nil {

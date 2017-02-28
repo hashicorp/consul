@@ -25,7 +25,7 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 			Flags: base.FlagSetHTTP,
 		},
 	}
-	args := []string{"-http-addr=" + a1.httpAddr, "-dead-server-cleanup=false"}
+	args := []string{"-http-addr=" + a1.httpAddr, "-cleanup-dead-servers=false"}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -44,7 +44,7 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if reply.DeadServerCleanup {
+	if reply.CleanupDeadServers {
 		t.Fatalf("bad: %#v", reply)
 	}
 }

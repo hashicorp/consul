@@ -5,9 +5,9 @@ import (
 )
 
 type AutopilotConfig struct {
-	// DeadServerCleanup controls whether to remove dead servers when a new
+	// CleanupDeadServers controls whether to remove dead servers when a new
 	// server is added to the Raft peers
-	DeadServerCleanup bool
+	CleanupDeadServers bool
 
 	// RaftIndex stores the create/modify indexes of this configuration
 	RaftIndex

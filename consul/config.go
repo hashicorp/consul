@@ -353,7 +353,7 @@ func DefaultConfig() *Config {
 		TLSMinVersion: "tls10",
 
 		AutopilotConfig: &structs.AutopilotConfig{
-			DeadServerCleanup: true,
+			CleanupDeadServers: true,
 		},
 	}
 

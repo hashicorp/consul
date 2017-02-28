@@ -563,9 +563,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This defaults to 2 but must
   be set to 3 in order to gain access to other Autopilot features, with the exception of
-  [`dead_server_cleanup`](#dead_server_cleanup).
+  [`cleanup_dead_servers`](#cleanup_dead_servers).
 
-  * <a name="dead_server_cleanup"></a><a href="#dead_server_cleanup">`dead_server_cleanup`</a> - This controls
+  * <a name="cleanup_dead_servers"></a><a href="#cleanup_dead_servers">`cleanup_dead_servers`</a> - This controls
   the automatic removal of dead server nodes whenever a new server is added to the cluster. Defaults to `true`.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the

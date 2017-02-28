@@ -39,7 +39,7 @@ Usage: `consul operator autopilot get-config [options]`
 The output looks like this:
 
 ```
-DeadServerCleanup = true
+CleanupDeadServers = true
 ```
 
 ## set-config
@@ -55,7 +55,7 @@ Usage: `consul operator autopilot set-config [options]`
 
 #### Command Options
 
-* `-dead-server-cleanup` - Specifies whether to enable automatic removal of dead servers
+* `-cleanup-dead-servers` - Specifies whether to enable automatic removal of dead servers
 upon the successful joining of new servers to the cluster. Must be one of `[true|false]`.
 
 The output looks like this:

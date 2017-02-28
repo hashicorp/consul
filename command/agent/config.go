@@ -264,9 +264,9 @@ type Telemetry struct {
 
 // Autopilot is used to configure helpful features for operating Consul servers.
 type Autopilot struct {
-	// DeadServerCleanup enables the automatic cleanup of dead servers when new ones
+	// CleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
-	DeadServerCleanup *bool `mapstructure:"dead_server_cleanup"`
+	CleanupDeadServers *bool `mapstructure:"cleanup_dead_servers"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -1347,8 +1347,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SkipLeaveOnInt != nil {
 		result.SkipLeaveOnInt = b.SkipLeaveOnInt
 	}
-	if b.Autopilot.DeadServerCleanup != nil {
-		result.Autopilot.DeadServerCleanup = b.Autopilot.DeadServerCleanup
+	if b.Autopilot.CleanupDeadServers != nil {
+		result.Autopilot.CleanupDeadServers = b.Autopilot.CleanupDeadServers
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
