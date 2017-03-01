@@ -12,6 +12,8 @@ The Consul agent supports encrypting all of its network traffic. The exact
 method of encryption is described on the [encryption internals page](/docs/internals/security.html).
 There are two separate encryption systems, one for gossip traffic and one for RPC.
 
+-> **Note:** When using Consul in [dev mode](/docs/agent/options.html#_dev), encryption is disabled.
+
 ## Gossip Encryption
 
 Enabling gossip encryption only requires that you set an encryption key when
@@ -59,7 +61,7 @@ Consul requires that all clients and servers have key pairs that are generated b
 Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents, as in
 [this tutorial on generating both a CA and signing keys](http://russellsimpkins.blogspot.com/2015/10/consul-adding-tls-using-self-signed.html)
-using OpenSSL. 
+using OpenSSL.
 
 -> **Note:** Client certificates must have [Extended Key Usage](https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Extended-Key-Usage) enabled for client and server authentication.
 
