@@ -34,9 +34,9 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func traceParse(c *caddy.Controller) (*Trace, error) {
+func traceParse(c *caddy.Controller) (*trace, error) {
 	var (
-		tr  = &Trace{Endpoint: defEP, EndpointType: defEpType, every: 1, serviceName: defServiceName}
+		tr  = &trace{Endpoint: defEP, EndpointType: defEpType, every: 1, serviceName: defServiceName}
 		err error
 	)
 

@@ -155,6 +155,10 @@ func (s *Server) Address() string { return s.Addr }
 // defined in the request so that the correct zone
 // (configuration and middleware stack) will handle the request.
 func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	s.ServeDNSWithContext(context.Background(), w, r)
+}
+
+func (s *Server) ServeDNSWithContext(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	defer func() {
 		// In case the user doesn't enable error middleware, we still
 		// need to make sure that we stay alive up here
@@ -171,7 +175,6 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	q := r.Question[0].Name
 	b := make([]byte, len(q))
 	off, end := 0, false
-	ctx := context.Background()
 
 	var dshandler *Config
 

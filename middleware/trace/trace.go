@@ -15,12 +15,17 @@ import (
 )
 
 // Trace holds the tracer and endpoint info
-type Trace struct {
+type Trace interface {
+	middleware.Handler
+	Tracer() ot.Tracer
+}
+
+type trace struct {
 	Next            middleware.Handler
 	ServiceEndpoint string
 	Endpoint        string
 	EndpointType    string
-	Tracer          ot.Tracer
+	tracer          ot.Tracer
 	serviceName     string
 	clientServer    bool
 	every           uint64
@@ -28,8 +33,12 @@ type Trace struct {
 	Once            sync.Once
 }
 
+func (t *trace) Tracer() ot.Tracer {
+	return t.tracer
+}
+
 // OnStartup sets up the tracer
-func (t *Trace) OnStartup() error {
+func (t *trace) OnStartup() error {
 	var err error
 	t.Once.Do(func() {
 		switch t.EndpointType {
@@ -42,7 +51,7 @@ func (t *Trace) OnStartup() error {
 	return err
 }
 
-func (t *Trace) setupZipkin() error {
+func (t *trace) setupZipkin() error {
 
 	collector, err := zipkin.NewHTTPCollector(t.Endpoint)
 	if err != nil {
@@ -50,7 +59,7 @@ func (t *Trace) setupZipkin() error {
 	}
 
 	recorder := zipkin.NewRecorder(collector, false, t.ServiceEndpoint, t.serviceName)
-	t.Tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
+	t.tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
 	if err != nil {
 		return err
 	}
@@ -58,12 +67,12 @@ func (t *Trace) setupZipkin() error {
 }
 
 // Name implements the Handler interface.
-func (t *Trace) Name() string {
+func (t *trace) Name() string {
 	return "trace"
 }
 
 // ServeDNS implements the middleware.Handle interface.
-func (t *Trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (t *trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	trace := false
 	if t.every > 0 {
 		queryNr := atomic.AddUint64(&t.count, 1)
@@ -73,7 +82,7 @@ func (t *Trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		}
 	}
 	if span := ot.SpanFromContext(ctx); span == nil && trace {
-		span := t.Tracer.StartSpan("servedns")
+		span := t.Tracer().StartSpan("servedns")
 		defer span.Finish()
 		ctx = ot.ContextWithSpan(ctx, span)
 	}

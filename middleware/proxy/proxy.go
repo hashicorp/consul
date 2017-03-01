@@ -28,6 +28,10 @@ type Proxy struct {
 	// midway.
 
 	Upstreams *[]Upstream
+
+	// Trace is the Trace middleware, if it is installed
+	// This is used by the grpc exchanger to trace through the grpc calls
+	Trace middleware.Handler
 }
 
 // Upstream manages a pool of proxy upstream hosts. Select should return a
