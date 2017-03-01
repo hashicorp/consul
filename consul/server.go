@@ -76,6 +76,12 @@ type Server struct {
 	// aclCache is the non-authoritative ACL cache.
 	aclCache *aclCache
 
+	// autopilot
+	autopilotHealth       map[string]*structs.ServerHealth
+	autopilotLock         sync.RWMutex
+	autopilotShutdownCh   chan struct{}
+	autopilotRemoveDeadCh chan struct{}
+
 	// Consul configuration
 	config *Config
 
@@ -222,18 +228,20 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Create server.
 	s := &Server{
-		config:        config,
-		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
-		eventChLAN:    make(chan serf.Event, 256),
-		eventChWAN:    make(chan serf.Event, 256),
-		localConsuls:  make(map[raft.ServerAddress]*agent.Server),
-		logger:        logger,
-		reconcileCh:   make(chan serf.Member, 32),
-		remoteConsuls: make(map[string][]*agent.Server, 4),
-		rpcServer:     rpc.NewServer(),
-		rpcTLS:        incomingTLS,
-		tombstoneGC:   gc,
-		shutdownCh:    make(chan struct{}),
+		autopilotRemoveDeadCh: make(chan struct{}),
+		autopilotShutdownCh:   make(chan struct{}),
+		config:                config,
+		connPool:              NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
+		eventChLAN:            make(chan serf.Event, 256),
+		eventChWAN:            make(chan serf.Event, 256),
+		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
+		logger:                logger,
+		reconcileCh:           make(chan serf.Member, 32),
+		remoteConsuls:         make(map[string][]*agent.Server, 4),
+		rpcServer:             rpc.NewServer(),
+		rpcTLS:                incomingTLS,
+		tombstoneGC:           gc,
+		shutdownCh:            make(chan struct{}),
 	}
 
 	// Initialize the authoritative ACL cache.

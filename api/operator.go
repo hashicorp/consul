@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Operator can be used to perform low-level operator tasks for Consul.
@@ -78,6 +79,19 @@ type AutopilotConfiguration struct {
 	// CleanupDeadServers controls whether to remove dead servers from the Raft
 	// peer list when a new server joins
 	CleanupDeadServers bool
+
+	// LastContactThreshold is the limit on the amount of time a server can go
+	// without leader contact before being considered unhealthy.
+	LastContactThreshold time.Duration
+
+	// MaxTrailingLogs is the amount of entries in the Raft Log that a server can
+	// be behind before being considered unhealthy.
+	MaxTrailingLogs uint64
+
+	// ServerStabilizationTime is the minimum amount of time a server must be
+	// in a stable, healthy state before it can be added to the cluster. Only
+	// applicable with Raft protocol version 3 or higher.
+	ServerStabilizationTime time.Duration
 
 	// CreateIndex holds the index corresponding the creation of this configuration.
 	// This is a read-only field.

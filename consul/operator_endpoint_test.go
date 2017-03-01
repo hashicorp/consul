@@ -426,3 +426,79 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 }
+
+func TestOperator_ServerHealth(t *testing.T) {
+	for i := 1; i <= 3; i++ {
+		testServerHealth(t, i)
+	}
+}
+
+func testServerHealth(t *testing.T, protocol int) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(protocol)
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(protocol)
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(protocol)
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	testutil.WaitForResult(func() (bool, error) {
+		arg := structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply structs.OperatorHealthReply
+		err := msgpackrpc.CallWithCodec(codec, "Operator.ServerHealth", &arg, &reply)
+		if err != nil {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		if !reply.Healthy {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		if reply.FailureTolerance != 1 {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		if len(reply.Servers) != 3 {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		if reply.Servers[0].LastContact != "leader" {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		if reply.Servers[1].LastContactRaw <= 0 {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		if reply.Servers[2].LastContactRaw <= 0 {
+			return false, fmt.Errorf("bad: %v", reply)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
+}

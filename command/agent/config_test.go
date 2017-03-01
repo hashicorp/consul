@@ -1103,13 +1103,27 @@ func TestDecodeConfig_Performance(t *testing.T) {
 }
 
 func TestDecodeConfig_Autopilot(t *testing.T) {
-	input := `{"autopilot": { "cleanup_dead_servers": true }}`
+	input := `{"autopilot": {
+	  "cleanup_dead_servers": true,
+	  "last_contact_threshold": "100ms",
+	  "max_trailing_logs": 10,
+	  "server_stabilization_time": "10s"
+	 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if config.Autopilot.CleanupDeadServers == nil || !*config.Autopilot.CleanupDeadServers {
-		t.Fatalf("bad: cleanup_dead_servers isn't set: %#v", config)
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Autopilot.LastContactThreshold == nil || *config.Autopilot.LastContactThreshold != 100*time.Millisecond {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Autopilot.MaxTrailingLogs == nil || *config.Autopilot.MaxTrailingLogs != 10 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Autopilot.ServerStabilizationTime == nil || *config.Autopilot.ServerStabilizationTime != 10*time.Second {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 
@@ -1629,7 +1643,10 @@ func TestMergeConfig(t *testing.T) {
 		SkipLeaveOnInt: Bool(true),
 		RaftProtocol:   3,
 		Autopilot: Autopilot{
-			CleanupDeadServers: Bool(true),
+			CleanupDeadServers:      Bool(true),
+			LastContactThreshold:    Duration(time.Duration(10)),
+			MaxTrailingLogs:         Uint64(10),
+			ServerStabilizationTime: Duration(time.Duration(100)),
 		},
 		EnableDebug:            true,
 		VerifyIncoming:         true,

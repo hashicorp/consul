@@ -1,15 +1,31 @@
 package structs
 
 import (
+	"time"
+
 	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 type AutopilotConfig struct {
 	// CleanupDeadServers controls whether to remove dead servers when a new
-	// server is added to the Raft peers
+	// server is added to the Raft peers.
 	CleanupDeadServers bool
 
-	// RaftIndex stores the create/modify indexes of this configuration
+	// LastContactThreshold is the limit on the amount of time a server can go
+	// without leader contact before being considered unhealthy.
+	LastContactThreshold time.Duration
+
+	// MaxTrailingLogs is the amount of entries in the Raft Log that a server can
+	// be behind before being considered unhealthy.
+	MaxTrailingLogs uint64
+
+	// ServerStabilizationTime is the minimum amount of time a server must be
+	// in a stable, healthy state before it can be added to the cluster. Only
+	// applicable with Raft protocol version 3 or higher.
+	ServerStabilizationTime time.Duration
+
+	// RaftIndex stores the create/modify indexes of this configuration.
 	RaftIndex
 }
 
@@ -84,4 +100,47 @@ type AutopilotSetConfigRequest struct {
 // RequestDatacenter returns the datacenter for a given request.
 func (op *AutopilotSetConfigRequest) RequestDatacenter() string {
 	return op.Datacenter
+}
+
+// ServerHealth is the health (from the leader's point of view) of a server.
+type ServerHealth struct {
+	// ID is the raft ID of the server.
+	ID string
+
+	// Name is the node name of the server.
+	Name string
+
+	// The status of the SerfHealth check for the server.
+	SerfStatusRaw serf.MemberStatus `json:"-"`
+	SerfStatus    string
+
+	// LastContact is the time since this node's last contact with the leader.
+	LastContactRaw time.Duration `json:"-"`
+	LastContact    string
+
+	// LastTerm is the highest leader term this server has a record of in its Raft log.
+	LastTerm uint64
+
+	// LastIndex is the last log index this server has a record of in its Raft log.
+	LastIndex uint64
+
+	// Healthy is whether or not the server is healthy according to the current
+	// Autopilot config.
+	Healthy bool
+
+	// StableSince is the amount of time since this server's Healthy value last changed.
+	StableSince time.Time
+}
+
+// OperatorHealthReply is a representation of the overall health of the cluster
+type OperatorHealthReply struct {
+	// Healthy is true if all the servers in the cluster are healthy.
+	Healthy bool
+
+	// FailureTolerance is the number of healthy servers that could be lost without
+	// an outage occurring.
+	FailureTolerance int
+
+	// Servers holds the health of each server.
+	Servers []ServerHealth
 }

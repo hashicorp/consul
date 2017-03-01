@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"time"
 )
 
 // Operator endpoint is used to perform low-level operator tasks for Consul.
@@ -181,5 +182,65 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	if respBool, ok := resp.(bool); ok {
 		*reply = respBool
 	}
+	return nil
+}
+
+// Used by Autopilot to query the raft stats of the local server.
+func (op *Operator) RaftStats(args struct{}, reply *map[string]string) error {
+	*reply = op.srv.raft.Stats()
+	return nil
+}
+
+// ServerHealth is used to get the current health of the servers.
+func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs.OperatorHealthReply) error {
+	// This must be sent to the leader, so we fix the args since we are
+	// re-using a structure where we don't support all the options.
+	args.RequireConsistent = true
+	args.AllowStale = false
+	if done, err := op.srv.forward("Operator.ServerHealth", args, args, reply); done {
+		return err
+	}
+
+	// This action requires operator read access.
+	acl, err := op.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && !acl.OperatorRead() {
+		return permissionDeniedErr
+	}
+
+	status := structs.OperatorHealthReply{
+		Healthy: true,
+	}
+	future := op.srv.raft.GetConfiguration()
+	if err := future.Error(); err != nil {
+		return err
+	}
+
+	healthyCount := 0
+	servers := future.Configuration().Servers
+	for _, s := range servers {
+		health := op.srv.getServerHealth(string(s.Address))
+		if health != nil {
+			// Fix up StableSince to be more readable
+			health.StableSince = health.StableSince.Round(time.Second).UTC()
+
+			if !health.Healthy {
+				status.Healthy = false
+			} else {
+				healthyCount++
+			}
+			status.Servers = append(status.Servers, *health)
+		}
+	}
+
+	// If we have extra healthy servers, set FailureTolerance
+	if healthyCount > len(servers)/2+1 {
+		status.FailureTolerance = healthyCount - (len(servers)/2 + 1)
+	}
+
+	*reply = status
+
 	return nil
 }

@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul-enterprise/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestOperator_OperatorRaftConfiguration(t *testing.T) {
@@ -418,5 +420,42 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 		if !reply.CleanupDeadServers {
 			t.Fatalf("bad: %#v", reply)
 		}
+	})
+}
+
+func TestOperator_OperatorServerHealth(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		testutil.WaitForResult(func() (bool, error) {
+			resp := httptest.NewRecorder()
+			obj, err := srv.OperatorServerHealth(resp, req)
+			if err != nil {
+				return false, fmt.Errorf("err: %v", err)
+			}
+			if resp.Code != 200 {
+				return false, fmt.Errorf("bad code: %d", resp.Code)
+			}
+			out, ok := obj.(structs.OperatorHealthReply)
+			if !ok {
+				return false, fmt.Errorf("unexpected: %T", obj)
+			}
+			if len(out.Servers) != 1 ||
+				!out.Servers[0].Healthy ||
+				out.Servers[0].Name != srv.agent.config.NodeName ||
+				out.Servers[0].SerfStatusRaw != serf.StatusAlive ||
+				out.FailureTolerance != 0 {
+				return false, fmt.Errorf("bad: %v", out)
+			}
+
+			return true, nil
+		}, func(err error) {
+			t.Fatal(err)
+		})
+
 	})
 }

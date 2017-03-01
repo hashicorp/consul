@@ -224,3 +224,23 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		return nil, nil
 	}
 }
+
+// OperatorServerHealth is used to get the health of the servers in the local DC
+func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
+
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.OperatorHealthReply
+	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return reply, nil
+}

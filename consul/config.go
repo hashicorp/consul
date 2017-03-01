@@ -279,6 +279,14 @@ type Config struct {
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
+
+	// ServerHealthInterval is the frequency with which the leader will check
+	// the health of the servers in the cluster
+	ServerHealthInterval time.Duration
+
+	// RemoveDeadInterval is the frequency with which the leader will look for
+	// dead servers to remove from the cluster
+	RemoveDeadInterval time.Duration
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -353,8 +361,13 @@ func DefaultConfig() *Config {
 		TLSMinVersion: "tls10",
 
 		AutopilotConfig: &structs.AutopilotConfig{
-			CleanupDeadServers: true,
+			CleanupDeadServers:      true,
+			LastContactThreshold:    200 * time.Millisecond,
+			MaxTrailingLogs:         250,
+			ServerStabilizationTime: 10 * time.Second,
 		},
+		ServerHealthInterval: 1 * time.Second,
+		RemoveDeadInterval:   30 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
