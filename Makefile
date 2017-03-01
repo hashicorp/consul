@@ -2,9 +2,6 @@ BUILD_VERBOSE := -v
 
 TEST_VERBOSE := -v
 
-DOCKER_IMAGE_NAME ?= $$USER/coredns
-DOCKER_VERSION ?= $(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
-
 all: coredns
 
 # Phony this to ensure we always build the binary.
@@ -12,12 +9,6 @@ all: coredns
 .PHONY: coredns
 coredns: deps core/zmiddleware.go core/dnsserver/zdirectives.go
 	go build $(BUILD_VERBOSE) -ldflags="-s -w"
-
-.PHONY: docker
-docker: deps
-	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
-	docker build -t $(DOCKER_IMAGE_NAME) .
-	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(DOCKER_VERSION)
 
 .PHONY: deps
 deps: fmt

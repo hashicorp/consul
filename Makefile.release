@@ -24,13 +24,23 @@
 #   * will commit your change with 'Release $VERSION'
 #   * push to github
 #   * build the release and do all that fluff.
+#
+# Steps for docker
+# * Login into docker: docker login (should have push creds for coredns registry)
+# * Run: make -f Makefile.release docker
+# 
+# Docker push should happen after you make the new release and uploaded it to Github.
 
 NAME:=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 ARCH:=$(shell uname -m)
 GITHUB:=coredns
+DOCKER:=coredns
+DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 
 all:	commit push build tar release
+
+docker: docker-build docker-release
 
 .PHONY: push
 push:
@@ -61,6 +71,17 @@ tar:
 release:
 	@echo Releasing: $(VERSION)
 	gh-release create $(GITHUB)/$(NAME) $(VERSION)
+
+.PHONY: docker-build
+docker:
+	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
+	docker build -t $(DOCKER_IMAGE_NAME) .
+	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
+
+.PHONY: docker-release
+docker-release:
+	@echo Pushing: $(VERSION)
+	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
 
 .PHONY: clean
 clean:
