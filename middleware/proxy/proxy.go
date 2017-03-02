@@ -142,6 +142,10 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 }
 
 func (p Proxy) match(state request.Request) (u Upstream) {
+	if p.Upstreams == nil {
+		return nil
+	}
+
 	longestMatch := 0
 	for _, upstream := range *p.Upstreams {
 		from := upstream.From()

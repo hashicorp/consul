@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/middleware/proxy"
 	"github.com/coredns/coredns/middleware/test"
@@ -13,7 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestZoneReload(t *testing.T) {
+func TestZoneExternalCNAMELookup(t *testing.T) {
 	t.Parallel()
 	log.SetOutput(ioutil.Discard)
 
@@ -23,13 +22,9 @@ func TestZoneReload(t *testing.T) {
 	}
 	defer rm()
 
-	// Corefile with two stanzas
+	// Corefile with for example without proxy section.
 	corefile := `example.org:0 {
        file ` + name + `
-}
-
-example.net:0 {
-	file ` + name + `
 }
 `
 	i, err := CoreDNSServer(corefile)
@@ -46,32 +41,12 @@ example.net:0 {
 	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
-	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
+	resp, err := p.Lookup(state, "cname.example.org.", dns.TypeA)
 	if err != nil {
 		t.Fatalf("Expected to receive reply, but didn't: %s", err)
 	}
-	if len(resp.Answer) != 2 {
-		t.Fatalf("Expected two RR in answer section got %d", len(resp.Answer))
-	}
-
-	// Remove RR from the Apex
-	ioutil.WriteFile(name, []byte(exampleOrgUpdated), 0644)
-
-	time.Sleep(1 * time.Second) // fsnotify
-
-	resp, err = p.Lookup(state, "example.org.", dns.TypeA)
-	if err != nil {
-		t.Fatal("Expected to receive reply, but didn't")
-	}
-
+	// There should only be a CNAME in the answer section.
 	if len(resp.Answer) != 1 {
-		t.Fatalf("Expected two RR in answer section got %d", len(resp.Answer))
+		t.Fatalf("Expected 1 RR in answer section got %d", len(resp.Answer))
 	}
 }
-
-const exampleOrgUpdated = `; example.org test file
-example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2016082541 7200 3600 1209600 3600
-example.org.		IN	NS	b.iana-servers.net.
-example.org.		IN	NS	a.iana-servers.net.
-example.org.		IN	A	127.0.0.2
-`

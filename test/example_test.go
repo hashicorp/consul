@@ -8,4 +8,5 @@ example.org.		IN	A	127.0.0.1
 example.org.		IN	A	127.0.0.2
 *.w.example.org.        IN      TXT     "Wildcard"
 a.b.c.w.example.org.    IN      TXT     "Not a wildcard"
+cname.example.org.      IN      CNAME   www.example.net.
 `

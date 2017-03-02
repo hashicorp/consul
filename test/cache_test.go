@@ -18,7 +18,7 @@ func TestLookupCache(t *testing.T) {
 	// Start auth. CoreDNS holding the auth zone.
 	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
-		t.Fatalf("failed to created zone: %s", err)
+		t.Fatalf("failed to create zone: %s", err)
 	}
 	defer rm()
 
