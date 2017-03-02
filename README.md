@@ -7,7 +7,7 @@
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware. In fact it's so similar that CoreDNS is now a server type plugin for
-Caddy.
+Caddy. CoreDNS is also a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
 
 CoreDNS is the successor to [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
 layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
