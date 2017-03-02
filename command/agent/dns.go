@@ -304,12 +304,20 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
-	// The last label is either "node", "service", "query", or a datacenter name
+	// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
 PARSE:
 	n := len(labels)
 	if n == 0 {
 		goto INVALID
 	}
+
+	// If this is a SRV query the "service" label is optional, we add it back to use the
+	// existing code-path.
+	if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[n-1], "_") {
+		labels = append(labels, "service")
+		n = n + 1
+	}
+
 	switch labels[n-1] {
 	case "service":
 		if n == 1 {
