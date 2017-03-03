@@ -9,3 +9,5 @@
 #= require _app/app
 #= require _app/homepage
 #= require _app/util
+
+#= require hashicorp/mega-nav
