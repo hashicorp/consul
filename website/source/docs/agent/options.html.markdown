@@ -556,11 +556,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <br><br>
   The following sub-keys are available:
 
-  * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> - This controls the internal
-  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
-  be set to 3 in order to gain access to other Autopilot features, with the exception of
-  [`cleanup_dead_servers`](#cleanup_dead_servers).
-
   * <a name="cleanup_dead_servers"></a><a href="#cleanup_dead_servers">`cleanup_dead_servers`</a> - This controls
   the automatic removal of dead server nodes whenever a new server is added to the cluster. Defaults to `true`.
 
@@ -769,6 +764,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
 
+* <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> - This controls the internal
+  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
+  be set to 3 in order to gain access to other [Autopilot](#autopilot) features, with the exception of
+  [`cleanup_dead_servers`](#cleanup_dead_servers).
+ 
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
   automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
