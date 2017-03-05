@@ -38,7 +38,7 @@ type Conn struct {
 	refCount    int32
 	shouldClose int32
 
-	addr     net.Addr
+	addr     string
 	session  muxSession
 	lastUsed time.Time
 	version  int
@@ -187,12 +187,12 @@ func (p *ConnPool) Shutdown() error {
 // wait for an existing connection attempt to finish, if one if in progress,
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
-func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) acquire(dc string, addr string, version int) (*Conn, error) {
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the the vastly more common case than the rest
 	// of the code here.
 	p.Lock()
-	c := p.pool[addr.String()]
+	c := p.pool[addr]
 	if c != nil {
 		c.markForUse()
 		p.Unlock()
@@ -204,9 +204,9 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	// attempt is done.
 	var wait chan struct{}
 	var ok bool
-	if wait, ok = p.limiter[addr.String()]; !ok {
+	if wait, ok = p.limiter[addr]; !ok {
 		wait = make(chan struct{})
-		p.limiter[addr.String()] = wait
+		p.limiter[addr] = wait
 	}
 	isLeadThread := !ok
 	p.Unlock()
@@ -216,14 +216,14 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	if isLeadThread {
 		c, err := p.getNewConn(dc, addr, version)
 		p.Lock()
-		delete(p.limiter, addr.String())
+		delete(p.limiter, addr)
 		close(wait)
 		if err != nil {
 			p.Unlock()
 			return nil, err
 		}
 
-		p.pool[addr.String()] = c
+		p.pool[addr] = c
 		p.Unlock()
 		return c, nil
 	}
@@ -238,7 +238,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 
 	// See if the lead thread was able to get us a connection.
 	p.Lock()
-	if c := p.pool[addr.String()]; c != nil {
+	if c := p.pool[addr]; c != nil {
 		c.markForUse()
 		p.Unlock()
 		return c, nil
@@ -257,10 +257,11 @@ type HalfCloser interface {
 	CloseWrite() error
 }
 
-// Dial is used to establish a raw connection to the given server.
-func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, HalfCloser, error) {
+// DialTimeout is used to establish a raw connection to the given server, with a
+// given connection timeout.
+func (p *ConnPool) DialTimeout(dc string, addr string, timeout time.Duration) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -294,9 +295,9 @@ func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, HalfCloser, error) 
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, addr string, version int) (*Conn, error) {
 	// Get a new, raw connection.
-	conn, _, err := p.Dial(dc, addr)
+	conn, _, err := p.DialTimeout(dc, addr, 10*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -341,8 +342,8 @@ func (p *ConnPool) clearConn(conn *Conn) {
 
 	// Clear from the cache
 	p.Lock()
-	if c, ok := p.pool[conn.addr.String()]; ok && c == conn {
-		delete(p.pool, conn.addr.String())
+	if c, ok := p.pool[conn.addr]; ok && c == conn {
+		delete(p.pool, conn.addr)
 	}
 	p.Unlock()
 
@@ -361,7 +362,7 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 }
 
 // getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(dc string, addr net.Addr, version int) (*Conn, *StreamClient, error) {
+func (p *ConnPool) getClient(dc string, addr string, version int) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
@@ -387,7 +388,7 @@ START:
 }
 
 // RPC is used to make an RPC call to a remote host
-func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) RPC(dc string, addr string, version int, method string, args interface{}, reply interface{}) error {
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, addr, version)
 	if err != nil {
@@ -412,7 +413,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) PingConsulServer(s *agent.Server) (bool, error) {
 	// Get a usable client
-	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
+	conn, sc, err := p.getClient(s.Datacenter, s.Addr.String(), s.Version)
 	if err != nil {
 		return false, err
 	}
