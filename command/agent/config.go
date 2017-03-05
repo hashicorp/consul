@@ -742,7 +742,6 @@ func DefaultConfig() *Config {
 		Datacenter:      consul.DefaultDC,
 		Domain:          "consul.",
 		LogLevel:        "INFO",
-		ClientAddr:      "127.0.0.1",
 		BindAddr:        "0.0.0.0",
 		Ports: PortConfig{
 			DNS:     8600,
