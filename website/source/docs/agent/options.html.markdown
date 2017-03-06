@@ -116,8 +116,8 @@ will exit with an error at startup.
 
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. When
-  not specified, the default value is the same as
-  the [`_bind` command-line flag](#_bind) address.
+  not specified, the default value is the same as the [`_bind` command-line
+  flag](#_bind) address (prior to 0.8 the default value was `127.0.0.1`).
 
 * <a name="_config_file"></a><a href="#_config_file">`-config-file`</a> - A configuration file
   to load. For more information on
@@ -589,10 +589,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="client_addr"></a><a href="#client_addr">`client_addr`</a> Equivalent
   to the [`-client` command-line flag](#_client).  When not specified, the
-  default value is the same as the [`bind_addr`](#bind_addr) address.  It is not
-  normally necessary to specify this value, however, may be necessary in more
-  complex setups where agents are NATed or when an agent is running in client
-  and server mode (common in development).
+  default value is the same as the [`bind_addr`](#bind_addr) address (prior to
+  `0.8` the default value was `127.0.0.1`).  It is not normally necessary to
+  specify this value, however, may be necessary in more complex setups where
+  agents are NATed or when an agent is running in client and server mode (common
+  in development).
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
