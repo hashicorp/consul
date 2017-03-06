@@ -45,7 +45,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	)
 	switch state.Type() {
 	case "A":
-		records, _, err = middleware.A(&k, zone, state, nil, middleware.Options{}) // Hmm wrt to '&k'
+		records, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
 	case "AAAA":
 		records, _, err = middleware.AAAA(&k, zone, state, nil, middleware.Options{})
 	case "TXT":

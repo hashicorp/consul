@@ -84,7 +84,6 @@ func TestParseRequest(t *testing.T) {
 	}
 
 	// Test A request of endpoint
-	//
 	query = "1-2-3-4.webs.mynamespace.svc.inter.webs.test."
 	r, e = k.parseRequest(query, "A")
 	if e != nil {
@@ -104,8 +103,6 @@ func TestParseRequest(t *testing.T) {
 	}
 
 	// Invalid query tests
-	//
-
 	invalidAQueries := []string{
 		"_http._tcp.webs.mynamespace.svc.inter.webs.test.", // A requests cannot have port or protocol
 		"servname.ns1.srv.inter.nets.test.",                // A requests must have zone that matches corefile

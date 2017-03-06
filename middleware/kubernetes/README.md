@@ -1,10 +1,8 @@
 # kubernetes
 
 *kubernetes* enables reading zone data from a kubernetes cluster.
-It implements the spec defined for kubernetes DNS-Based service discovery:
-   https://github.com/kubernetes/dns/blob/master/docs/specification.md
-
-Examples:
+It implements the [spec](https://github.com/kubernetes/dns/blob/master/docs/specification.md)
+defined for kubernetes DNS-Based service discovery:
 
 Service `A` records are constructed as "myservice.mynamespace.svc.coredns.local" where:
 
@@ -30,29 +28,29 @@ Endpoint `A` records are constructed as "epname.myservice.mynamespace.svc.coredn
 
 Also supported are PTR and SRV records for services/endpoints.
 
-## Configuration Syntax
+## Syntax
 
-This is an example kubernetes middle configuration block, with all options described:
+This is an example kubernetes configuration block, with all options described:
 
 ```
 # kubernetes <zone> [<zone>] ...
 #
 # Use kubernetes middleware for domain "coredns.local"
-# Reverse domain zones can be defined here (e.g. 0.0.10.in-addr.arpa), 
+# Reverse domain zones can be defined here (e.g. 0.0.10.in-addr.arpa),
 # or instead with the "cidrs" option.
 #
 kubernetes coredns.local {
-	
+
 	# resyncperiod <period>
 	#
 	# Kubernetes data API resync period. Default is 5m
 	# Example values: 60s, 5m, 1h
 	#
 	resyncperiod 5m
-	
+
 	# endpoint <url>
 	#
-	# Use url for a remote k8s API endpoint.  If omitted, it will connect to 
+	# Use url for a remote k8s API endpoint.  If omitted, it will connect to
 	# k8s in-cluster using the cluster service account.
 	#
 	endpoint https://k8s-endpoint:8080
@@ -64,14 +62,14 @@ kubernetes coredns.local {
 	# specified).
 	#
 	tls cert key cacert
-	
+
 	# namespaces <namespace> [<namespace>] ...
 	#
 	# Only expose the k8s namespaces listed.  If this option is omitted
 	# all namespaces are exposed
 	#
 	namespaces demo
-	
+
 	# lables <expression> [,<expression>] ...
 	#
 	# Only expose the records for kubernetes objects
@@ -82,25 +80,25 @@ kubernetes coredns.local {
 	# "application=nginx" in the staging or qa environments.
 	#
 	labels environment in (staging, qa),application=nginx
-	
+
 	# pods <disabled|insecure|verified>
 	#
-	# Set the mode of responding to pod A record requests. 
+	# Set the mode of responding to pod A record requests.
 	# e.g 1-2-3-4.ns.pod.zone.  This option is provided to allow use of
 	# SSL certs when connecting directly to pods.
 	# Valid values: disabled, verified, insecure
 	#  disabled: Do not process pod requests, always returning NXDOMAIN
-	#  insecure: Always return an A record with IP from request (without 
+	#  insecure: Always return an A record with IP from request (without
 	#            checking k8s).  This option is is vulnerable to abuse if
 	#            used maliciously in conjuction with wildcard SSL certs.
-	#  verified: Return an A record if there exists a pod in same 
+	#  verified: Return an A record if there exists a pod in same
 	#            namespace with matching IP.  This option requires
-	#            substantially more memory than in insecure mode, since it 
-	#            will maintain a watch on all pods.         
+	#            substantially more memory than in insecure mode, since it
+	#            will maintain a watch on all pods.
 	# Default value is "disabled".
 	#
 	pods disabled
-	
+
 	# cidrs <cidr> [<cidr>] ...
 	#
 	# Expose cidr ranges to reverse lookups.  Include any number of space
@@ -109,15 +107,15 @@ kubernetes coredns.local {
 	# that fall within these ranges.
 	#
 	cidrs 10.0.0.0/24 10.0.10.0/25
-		
+
 }
 
 ```
 
 ## Wildcards
 
-Some query labels accept a wildcard value to match any value. 
-If a label is a valid wildcard (\*, or the word "any"), then that label will match 
+Some query labels accept a wildcard value to match any value.
+If a label is a valid wildcard (\*, or the word "any"), then that label will match
 all values.  The labels that accept wildcards are:
 * _service_ in an `A` record request: _service_.namespace.svc.zone.
    * e.g. `*.ns.svc.myzone.local`

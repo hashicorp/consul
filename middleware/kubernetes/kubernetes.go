@@ -151,9 +151,7 @@ func (k *Kubernetes) IsNameError(err error) bool {
 }
 
 // Debug implements the ServiceBackend interface.
-func (k *Kubernetes) Debug() string {
-	return "debug"
-}
+func (k *Kubernetes) Debug() string { return "debug" }
 
 func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	// For a custom api server or running outside a k8s cluster
