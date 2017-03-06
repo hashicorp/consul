@@ -71,7 +71,8 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		_, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
 	}
 	if k.IsNameError(err) {
-		return middleware.BackendError(&k, zone, dns.RcodeNameError, state, nil /*debug*/, err, middleware.Options{})
+		// Make err nil when returning here, so we don't log spam for NXDOMAIN.
+		return middleware.BackendError(&k, zone, dns.RcodeNameError, state, nil /*debug*/, nil /* err */, middleware.Options{})
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
