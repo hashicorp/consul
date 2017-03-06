@@ -264,6 +264,12 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
+	// If the client address is empty, default to using the value specified by the
+	// bind address.
+	if config.ClientAddr == "" {
+		config.ClientAddr = config.BindAddr
+	}
+
 	// Ensure all endpoints are unique
 	if err := config.verifyUniqueListeners(); err != nil {
 		c.Ui.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
