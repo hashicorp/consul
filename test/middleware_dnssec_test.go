@@ -23,7 +23,7 @@ func TestLookupBalanceRewriteCacheDnssec(t *testing.T) {
 
 	corefile := `example.org:0 {
     file ` + name + `
-    rewrite ANY HINFO
+    rewrite type ANY HINFO
     dnssec {
         key file ` + base + `
     }

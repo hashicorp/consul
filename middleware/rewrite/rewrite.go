@@ -1,9 +1,13 @@
-// Package rewrite is middleware for rewriting requests internally to something different.
 package rewrite
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/coredns/coredns/middleware"
+
 	"github.com/miekg/dns"
+
 	"golang.org/x/net/context"
 )
 
@@ -52,10 +56,31 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 // Name implements the Handler interface.
 func (rw Rewrite) Name() string { return "rewrite" }
 
-// Rule describes an internal location rewrite rule.
+// Rule describes a rewrite rule.
 type Rule interface {
-	// Rewrite rewrites the internal location of the current request.
+	// Rewrite rewrites the current request.
 	Rewrite(*dns.Msg) Result
-	// New returns a new rule.
-	New(...string) Rule
+}
+
+func newRule(args ...string) (Rule, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("No rule type specified for rewrite")
+	}
+
+	ruleType := strings.ToLower(args[0])
+	if ruleType != "edns0" && len(args) != 3 {
+		return nil, fmt.Errorf("%s rules must have exactly two arguments", ruleType)
+	}
+	switch ruleType {
+	case "name":
+		return newNameRule(args[1], args[2])
+	case "class":
+		return newClassRule(args[1], args[2])
+	case "type":
+		return newTypeRule(args[1], args[2])
+	case "edns0":
+		return newEdns0Rule(args[1:]...)
+	default:
+		return nil, fmt.Errorf("invalid rule type %q", args[0])
+	}
 }

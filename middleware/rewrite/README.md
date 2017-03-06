@@ -23,79 +23,37 @@ rewritten; e.g., to rewrite CH queries to IN use `rewrite class CH IN`.
 When the FIELD is `name` the query name in the message is rewritten; this
 needs to be a full match of the name, e.g., `rewrite name miek.nl example.org`.
 
+When the FIELD is `edns0` an EDNS0 option can be appended to the request as described below.
+
 If you specify multiple rules and an incoming query matches on multiple (simple) rules, only
 the first rewrite is applied.
 
+## EDNS0 Options
 
-> Everything below this line has not been implemented, yet.
+Using FIELD edns0, you can set, append, or replace specific EDNS0 options on the request.
 
-~~~
-rewrite [basename] {
-    regexp pattern
-    ext    extensions...
-    if     a cond b
-    status code
-    to     destinations...
-}
-~~~
+* `replace` will modify any matching (what that means may vary based on EDNS0 type) option with the specified option
+* `append` will add the option regardless of what options already exist
+* `set` will modify a matching option or add one if none is found
 
-* basepath is the base path to match before rewriting with a regular expression. Default is /.
-* regexp (shorthand: r) will match the path with the given regular expression pattern. Extremely high-load servers should avoid using regular expressions.
-* extensions... is a space-separated list of file extensions to include or ignore. Prefix an extension with ! to exclude an extension. The forward slash / symbol matches paths without file extensions.
-* if specifies a rewrite condition. Multiple ifs are AND-ed together. a and b are any string and may use request placeholders. cond is the condition, with possible values explained below.
-* status will respond with the given status code instead of performing a rewrite. In other words, use either "status" or "to" in your rule, but not both. The code must be a number in the format 2xx or 4xx.
-* destinations... is one or more space-separated paths to rewrite to, with support for request placeholders as well as numbered regular expression captures such as {1}, {2}, etc. Rewrite will check each destination in order and rewrite to the first destination that exists. Each one is checked as a file or, if it ends with /, as a directory. The last destination will act as the default if no other destination exists.
-"if" Conditions
+Currently supported are `EDNS0_LOCAL` and `EDNS0_NSID`.
 
-The if keyword is a powerful way to describe your rule. It takes the format a cond b, where the values a and b are separated by cond, a condition. The condition can be any of these:
+### `EDNS0_LOCAL`
+
+This has two fields, code and data. A match is defined as having the same code. Data may be a string, or if
+it starts with `0x` it will be treated as hex. Example:
 
 ~~~
-is = a equals b
-not = a does NOT equal b
-has = a has b as a substring (b is a substring of a)
-not_has = b is NOT a substring of a
-starts_with = b is a prefix of a
-ends_with = b is a suffix of a
-match = a matches b, where b is a regular expression
-not_match = a does NOT match b, where b is a regular expression
+rewrite edns0 local set 0xffee 0x61626364
 ~~~
 
-## Examples
-
-When requests come in for /mobile, actually serve /mobile/index.
-rewrite /mobile /mobile/index
-If the file is not favicon.ico and it is not a valid file or directory, serve the maintenance page if present, or finally, rewrite to index.php.
+rewrites the first local option with code 0xffee, setting the data to "abcd". Equivalent:
 
 ~~~
-rewrite {
-    if {file} not favicon.ico
-    to {path} {path}/ /maintenance.html /index.php
-}
+rewrite edns0 local set 0xffee abcd
 ~~~
 
-If user agent includes "mobile" and path is not a valid file/directory, rewrite to the mobile index page.
+### `EDNS0_NSID`
 
-~~~
-rewrite {
-    if if {>User-agent} has mobile
-    to {path} {path}/ /mobile/index.php
-}
-~~~
-
-If the request path starts with /source, respond with HTTP 403 Forbidden.
-
-~~~
-rewrite {
-    regexp ^/source
-    status 403
-}
-~~~
-
-Rewrite /app to /index with a query string. {1} is the matched group (.*).
-
-~~~
-rewrite /app {
-    r  (.*)
-    to /index?path={1}
-}
-~~~
+This has no fields; it will add an NSID option with an empty string for the NSID. If the option already exists
+and the action is `replace` or `set`, then the NSID in the option will be set to the empty string.

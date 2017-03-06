@@ -1,8 +1,6 @@
 package rewrite
 
 import (
-	"log"
-
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
 
@@ -30,93 +28,15 @@ func setup(c *caddy.Controller) error {
 }
 
 func rewriteParse(c *caddy.Controller) ([]Rule, error) {
-	var simpleRules []Rule
-	var regexpRules []Rule
+	var rules []Rule
 
 	for c.Next() {
-		var rule Rule
-		/*
-			var base = "."
-			var err error
-			var pattern, to string
-			var status int
-			var ifs []If
-			var ext []string
-		*/
-
 		args := c.RemainingArgs()
-
-		switch len(args) {
-		case 1:
-			/*
-				base = args[0]
-				fallthrough
-			*/
-		case 0:
-			/*
-				for c.NextBlock() {
-					switch c.Val() {
-					case "r", "regexp":
-						if !c.NextArg() {
-							return nil, c.ArgErr()
-						}
-						pattern = c.Val()
-					case "to":
-						args1 := c.RemainingArgs()
-						if len(args1) == 0 {
-							return nil, c.ArgErr()
-						}
-						to = strings.Join(args1, " ")
-					case "ext": // TODO(miek): fix or remove
-						args1 := c.RemainingArgs()
-						if len(args1) == 0 {
-							return nil, c.ArgErr()
-						}
-						ext = args1
-					case "if":
-						args1 := c.RemainingArgs()
-						if len(args1) != 3 {
-							return nil, c.ArgErr()
-						}
-						ifCond, err := NewIf(args1[0], args1[1], args1[2])
-						if err != nil {
-							return nil, err
-						}
-						ifs = append(ifs, ifCond)
-					case "status": // TODO(miek): fix or remove
-						if !c.NextArg() {
-							return nil, c.ArgErr()
-						}
-						status, _ = strconv.Atoi(c.Val())
-						if status < 200 || (status > 299 && status < 400) || status > 499 {
-							return nil, c.Err("status must be 2xx or 4xx")
-						}
-					default:
-						return nil, c.ArgErr()
-					}
-				}
-				// ensure to or status is specified
-				if to == "" && status == 0 {
-					return nil, c.ArgErr()
-				}
-				// TODO(miek): complex rules
-				if rule, err = NewComplexRule(base, pattern, to, status, ext, ifs); err != nil {
-					return nil, err
-				}
-				regexpRules = append(regexpRules, rule)
-			*/
-
-		// the only unhandled case is 2 and above
-		default:
-			if _, ok := Fields[args[0]]; ok {
-				rule = Fields[args[0]].New(args[1:]...)
-				simpleRules = append(simpleRules, rule)
-			} else {
-				log.Printf("[WARN] %s is not a valid field, ignore %s", args[0], args)
-			}
+		rule, err := newRule(args...)
+		if err != nil {
+			return nil, err
 		}
+		rules = append(rules, rule)
 	}
-
-	// put simple rules in front to avoid regexp computation for them
-	return append(simpleRules, regexpRules...), nil
+	return rules, nil
 }

@@ -20,7 +20,7 @@ func benchmarkLookupBalanceRewriteCache(b *testing.B) {
 
 	corefile := `example.org:0 {
     file ` + name + `
-    rewrite ANY HINFO
+    rewrite type ANY HINFO
     loadbalance
 }
 `
