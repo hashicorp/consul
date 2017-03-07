@@ -311,7 +311,7 @@ will exit with an error at startup.
   use. This defaults to the latest version. This should be set only when [upgrading](/docs/upgrading.html).
   You can view the protocol versions supported by Consul by running `consul -v`.
 
-* <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft_protocol`</a> - This controls the internal
+* <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This defaults to 2 but must
   be set to 3 in order to gain access to Autopilot features, with the exception of
   [`cleanup_dead_servers`](#cleanup_dead_servers).
