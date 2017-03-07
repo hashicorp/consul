@@ -1,3 +1,15 @@
+GIT
+  remote: https://github.com/hashicorp/middleman-hashicorp.git
+  revision: 8a95c5854a4497fdb81ebf9f82103010691a1fa2
+  specs:
+    middleman-hashicorp (0.3.10)
+      bootstrap-sass (~> 3.3)
+      builder (~> 3.2)
+      middleman (~> 3.4)
+      middleman-livereload (~> 3.4)
+      middleman-syntax (~> 3.0)
+      redcarpet (~> 3.3)
+
 GEM
   remote: https://rubygems.org/
   specs:
