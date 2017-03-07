@@ -624,9 +624,10 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	}
 
 	// Trigger a check to remove dead servers
-	go func() {
-		s.autopilotRemoveDeadCh <- struct{}{}
-	}()
+	select {
+	case s.autopilotRemoveDeadCh <- struct{}{}:
+	default:
+	}
 
 	return nil
 }

@@ -185,12 +185,6 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	return nil
 }
 
-// Used by Autopilot to query the raft stats of the local server.
-func (op *Operator) RaftStats(args struct{}, reply *map[string]string) error {
-	*reply = op.srv.raft.Stats()
-	return nil
-}
-
 // ServerHealth is used to get the current health of the servers.
 func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs.OperatorHealthReply) error {
 	// This must be sent to the leader, so we fix the args since we are

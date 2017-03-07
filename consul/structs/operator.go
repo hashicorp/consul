@@ -132,6 +132,18 @@ type ServerHealth struct {
 	StableSince time.Time
 }
 
+// ServerStats holds miscellaneous Raft metrics for a server
+type ServerStats struct {
+	// LastContact is the time since this node's last contact with the leader.
+	LastContact string
+
+	// LastTerm is the highest leader term this server has a record of in its Raft log.
+	LastTerm uint64
+
+	// LastIndex is the last log index this server has a record of in its Raft log.
+	LastIndex uint64
+}
+
 // OperatorHealthReply is a representation of the overall health of the cluster
 type OperatorHealthReply struct {
 	// Healthy is true if all the servers in the cluster are healthy.

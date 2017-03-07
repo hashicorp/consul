@@ -242,5 +242,10 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
+	// Reply with status 429 if something is unhealthy
+	if !reply.Healthy {
+		resp.WriteHeader(http.StatusTooManyRequests)
+	}
+
 	return reply, nil
 }
