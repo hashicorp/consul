@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// AutopilotConfig holds the Autopilot configuration for a cluster.
 type AutopilotConfig struct {
 	// CleanupDeadServers controls whether to remove dead servers when a new
 	// server is added to the Raft peers.

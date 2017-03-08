@@ -76,11 +76,18 @@ type Server struct {
 	// aclCache is the non-authoritative ACL cache.
 	aclCache *aclCache
 
-	// autopilot
-	autopilotHealth       map[string]*structs.ServerHealth
-	autopilotLock         sync.RWMutex
-	autopilotShutdownCh   chan struct{}
+	// autopilotHealth stores the current view of server healths.
+	autopilotHealth map[string]*structs.ServerHealth
+	autopilotLock   sync.RWMutex
+
+	// autopilotPolicy controls the behavior of Autopilot for certain tasks.
+	autopilotPolicy AutopilotPolicy
+
+	// autopilotRemoveDeadCh is used to trigger a check for dead server removals.
 	autopilotRemoveDeadCh chan struct{}
+
+	// autopilotShutdownCh is used to stop the Autopilot loop.
+	autopilotShutdownCh chan struct{}
 
 	// Consul configuration
 	config *Config
@@ -243,6 +250,7 @@ func NewServer(config *Config) (*Server, error) {
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
+	s.autopilotPolicy = &BasicAutopilot{s}
 
 	// Initialize the authoritative ACL cache.
 	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)
