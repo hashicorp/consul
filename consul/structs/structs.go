@@ -41,6 +41,7 @@ const (
 	PreparedQueryRequestType
 	TxnRequestType
 	AutopilotRequestType
+	AreaRequestType
 )
 
 const (
