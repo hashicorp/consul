@@ -26,7 +26,6 @@ import (
 // graceful termination (POSIX only).
 type Server struct {
 	Addr string // Address we listen on
-	mux  *dns.ServeMux
 
 	server [2]*dns.Server // 0 is a net.Listener, 1 is a net.PacketConn (a *UDPConn) in our case.
 	m      sync.Mutex     // protects the servers
@@ -44,9 +43,6 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		zones:       make(map[string]*Config),
 		connTimeout: 5 * time.Second, // TODO(miek): was configurable
 	}
-	mux := dns.NewServeMux()
-	mux.Handle(".", s) // wildcard handler, everything will go through here
-	s.mux = mux
 
 	// We have to bound our wg with one increment
 	// to prevent a "race condition" that is hard-coded
@@ -75,7 +71,10 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 // This implements caddy.TCPServer interface.
 func (s *Server) Serve(l net.Listener) error {
 	s.m.Lock()
-	s.server[tcp] = &dns.Server{Listener: l, Net: "tcp", Handler: s.mux}
+	s.server[tcp] = &dns.Server{Listener: l, Net: "tcp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		ctx := context.Background()
+		s.ServeDNS(ctx, w, r)
+	})}
 	s.m.Unlock()
 
 	return s.server[tcp].ActivateAndServe()
@@ -85,7 +84,10 @@ func (s *Server) Serve(l net.Listener) error {
 // This implements caddy.UDPServer interface.
 func (s *Server) ServePacket(p net.PacketConn) error {
 	s.m.Lock()
-	s.server[udp] = &dns.Server{PacketConn: p, Net: "udp", Handler: s.mux}
+	s.server[udp] = &dns.Server{PacketConn: p, Net: "udp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		ctx := context.Background()
+		s.ServeDNS(ctx, w, r)
+	})}
 	s.m.Unlock()
 
 	return s.server[udp].ActivateAndServe()
@@ -154,13 +156,7 @@ func (s *Server) Address() string { return s.Addr }
 // is bound to. It acts as a multiplexer for the requests zonename as
 // defined in the request so that the correct zone
 // (configuration and middleware stack) will handle the request.
-func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	s.ServeDNSWithContext(context.Background(), w, r)
-}
-
-// ServeDNSWithContext may be used as an entrypoint for requests that
-// come from transports that may include a Context (such as gRPC)
-func (s *Server) ServeDNSWithContext(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
+func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	defer func() {
 		// In case the user doesn't enable error middleware, we still
 		// need to make sure that we stay alive up here
