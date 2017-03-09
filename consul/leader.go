@@ -548,8 +548,9 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	// Deregister the node
 	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
 	req := structs.DeregisterRequest{
-		Datacenter: s.config.Datacenter,
-		Node:       member.Name,
+		Datacenter:   s.config.Datacenter,
+		Node:         member.Name,
+		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Deregister(&req, &out)
