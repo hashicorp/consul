@@ -43,14 +43,13 @@
     <!-- End Google Tag Manager (noscript) -->
 
     <div id="header" class="navigation <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
-      <%= partial "layouts/announcement-bnr" %>
+      <%= mega_nav :consul %>
       <div class="container">
     		<div class="row">
     			<div class="col-xs-12">
     				<div class="navbar-header">
     					<div class="navbar-brand">
     						<a class="logo" href="/">Consul</a>
-    						<a class="by-hashicorp white" href="https://www.hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
     					</div>
     					<button class="navbar-toggle white" type="button">
     						<span class="sr-only">Toggle navigation</span>

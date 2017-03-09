@@ -10,6 +10,7 @@ text-rendering: optimizeLegibility;
 body {
   font-size: 15px;
   color: $black;
+  font-family: $font-family-open-sans;
   font-weight: 300;
 }
 
@@ -32,7 +33,7 @@ h3{
 }
 
 p, a, input, .alert {
-  font-family: $font-family-open-sans;
+
 }
 
 //an alternative color for buttons in the doc body
