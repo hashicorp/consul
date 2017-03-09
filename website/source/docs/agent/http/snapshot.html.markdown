@@ -61,7 +61,7 @@ bounding the acceptable staleness of snapshots, responses provide the `X-Consul-
 header containing the time in milliseconds that a server was last contacted by
 the leader node. The `X-Consul-KnownLeader` header also indicates if there is a
 known leader. These can be used by clients to gauge the staleness of a snapshot
-and take appropriate action. The stale mode is particularly useful from taking a
+and take appropriate action. The stale mode is particularly useful for taking a
 snapshot of a cluster in a failed state with no current leader.
 
 If ACLs are enabled, the client will need to supply an ACL Token with management
