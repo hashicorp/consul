@@ -15,7 +15,9 @@ servers, monitoring the of the Raft cluster, and stable server introduction.
 To enable Autopilot features (with the exception of dead server cleanup),
 the [`raft_protocol`](/docs/agent/options.html#_raft_protocol) setting in
 the Agent configuration must be set to 3 or higher on all servers. In Consul
-0.8 this setting defaults to 2; in Consul 0.9 it will default to 3.
+0.8 this setting defaults to 2; in Consul 0.9 it will default to 3. For more
+information, see the [Version Upgrade section](/docs/upgrade-specific.html#raft_protocol)
+on Raft Protocol versions.
 
 ## Configuration
 
@@ -50,6 +52,12 @@ Dead servers will periodically be cleaned up and removed from the Raft peer
 set, to prevent them from interfering with the quorum size and leader elections.
 This cleanup will also happen whenever a new server is successfully added to the
 cluster.
+
+Prior to Autopilot, it would take 72 hours for dead servers to be automatically reaped,
+or operators had to script a `consul force-leave`. If another server failure occurred,
+it could jeopardize the quorum, even if the failed Consul server had been automatically
+replaced. Autopilot helps prevent these kinds of outages by quickly removing failed
+servers as soon as a replacement Consul server comes online.
 
 This option can be disabled by running `consul operator autopilot set-config`
 with the `-cleanup-dead-servers=false` option.

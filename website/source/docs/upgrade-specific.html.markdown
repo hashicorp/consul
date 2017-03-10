@@ -33,7 +33,7 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 * `monitor`
 * `reload`
 
-#### Raft Protocol version compatibility
+#### <a name="raft_protocol"></a><a href="#raft_protocol">Raft Protocol Version Compatibility</a>
 
 When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need to
 set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option to 1 in
@@ -42,8 +42,8 @@ After the servers have been migrated to version 0.8.0, `-raft-protocol` can be m
 up to 2 and the servers restarted to match the default.
 
 The Raft protocol must be stepped up in this way; only adjacent version numbers are
-compatible (for example, version 1 cannot talk to version 3). Here is a table of the Raft Protocol
-versions supported by each Consul version:
+compatible (for example, version 1 cannot talk to version 3). Here is a table of the
+Raft Protocol versions supported by each Consul version:
 
 <table class="table table-bordered table-striped">
   <tr>
@@ -63,6 +63,9 @@ versions supported by each Consul version:
     <td>1, 2, 3</td>
   </tr>
 </table>
+
+In order to enable all [Autopilot](/docs/guides/autopilot.html) features, all servers
+in a Consul cluster must be running with Raft protocol version 3 or later.
 
 ## Consul 0.7.1
 
