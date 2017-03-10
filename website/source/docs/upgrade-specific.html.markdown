@@ -33,6 +33,37 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 * `monitor`
 * `reload`
 
+#### Raft Protocol version compatibility
+
+When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need to
+set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option to 1 in
+order to maintain backwards compatibility with the old servers during the upgrade.
+After the servers have been migrated to version 0.8.0, `-raft-protocol` can be moved
+up to 2 and the servers restarted to match the default.
+
+The Raft protocol must be stepped up in this way; only adjacent version numbers are
+compatible (for example, version 1 cannot talk to version 3). Here is a table of the Raft Protocol
+versions supported by each Consul version:
+
+<table class="table table-bordered table-striped">
+  <tr>
+    <th>Version</th>
+    <th>Supported Raft Protocols</th>
+  </tr>
+  <tr>
+    <td>0.6 and earlier</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>0.7</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>0.8</td>
+    <td>1, 2, 3</td>
+  </tr>
+</table>
+
 ## Consul 0.7.1
 
 #### Child Process Reaping
