@@ -15,6 +15,10 @@ BREAKING CHANGES:
 
 FEATURES:
 
+* **Autopilot:** A set of features has been added to allow for automatic operator-friendly management of Consul servers. With the exception of Dead Server Cleanup, these features require the new [`-raft-protocol`](https://www.consul.io/docs/agent/options.html#_raft_protocol) option to be set to 3 or higher in order to take effect:
+  - **Dead Server Cleanup:** Dead servers will periodically be cleaned up and removed from the Raft peer set, to prevent them from interfering with the quorum size and leader elections.
+  - **Server Health Checking:** An internal health check has been added to track the stability of servers. The thresholds of this health check are tunable as part of the [Autopilot configuration](https://www.consul.io/docs/agent/options.html#autopilot) and the status can be viewed through the [`/v1/operator/autopilot/health`](https://www.consul.io/docs/agent/http/operator.html#autopilot-health) HTTP endpoint.
+  - **New Server Stabilization:** When a new server is added to the cluster, there will be a waiting period where it must be healthy and stable for a certain amount of time before being promoted to a full, voting member. This threshold can be configured using the new [`server_stabilization_time`](https://www.consul.io/docs/agent/options.html#server_stabilization_time) setting.
 * **Validate command:** To provide consistency across our products, the `configtest` command has been deprecated and replaced with the `validate` command (to match Nomad and Terraform). The `configtest` command will be removed in Consul 0.9. [GH-2732]
 
 IMPROVEMENTS:
