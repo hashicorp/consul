@@ -558,6 +558,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="autopilot"></a><a href="#autopilot">`autopilot`</a> Added in Consul 0.8, this object
   allows a number of sub-keys to be set which can configure operator-friendly settings for Consul servers.
+  For more information about Autopilot, see the [Autopilot Guide](/docs/guides/autopilot.html).
   <br><br>
   The following sub-keys are available:
 

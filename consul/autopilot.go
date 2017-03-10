@@ -48,6 +48,7 @@ func (s *Server) autopilotLoop() {
 			_, autopilotConf, err := state.AutopilotConfig()
 			if err != nil {
 				s.logger.Printf("[ERR] consul: error retrieving autopilot config: %s", err)
+				break
 			}
 
 			if err := s.autopilotPolicy.PromoteNonVoters(autopilotConf); err != nil {
