@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/mitchellh/cli"
+	"time"
 )
 
 func TestOperator_Autopilot_Set_Implements(t *testing.T) {
@@ -25,7 +26,13 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 			Flags: base.FlagSetHTTP,
 		},
 	}
-	args := []string{"-http-addr=" + a1.httpAddr, "-cleanup-dead-servers=false"}
+	args := []string{
+		"-http-addr=" + a1.httpAddr,
+		"-cleanup-dead-servers=false",
+		"-max-trailing-logs=99",
+		"-last-contact-threshold=123ms",
+		"-server-stabilization-time=123ms",
+	}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -45,6 +52,15 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 	}
 
 	if reply.CleanupDeadServers {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.MaxTrailingLogs != 99 {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.LastContactThreshold != 123*time.Millisecond {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.ServerStabilizationTime != 123*time.Millisecond {
 		t.Fatalf("bad: %#v", reply)
 	}
 }

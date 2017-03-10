@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/consul/agent"
@@ -19,70 +20,38 @@ type AutopilotPolicy interface {
 
 func (s *Server) startAutopilot() {
 	s.autopilotShutdownCh = make(chan struct{})
+	s.autopilotWaitGroup = sync.WaitGroup{}
+	s.autopilotWaitGroup.Add(1)
 
-	go s.serverHealthLoop()
-	go s.removeDeadLoop()
+	go s.autopilotLoop()
 }
 
 func (s *Server) stopAutopilot() {
 	close(s.autopilotShutdownCh)
+	s.autopilotWaitGroup.Wait()
 }
 
-// serverHealthLoop monitors the health of the servers in the cluster
-func (s *Server) serverHealthLoop() {
+// autopilotLoop periodically looks for nonvoting servers to promote and dead servers to remove.
+func (s *Server) autopilotLoop() {
 	// Monitor server health until shutdown
-	ticker := time.NewTicker(s.config.ServerHealthInterval)
+	ticker := time.NewTicker(s.config.AutopilotInterval)
 	for {
 		select {
 		case <-s.autopilotShutdownCh:
 			ticker.Stop()
+			s.autopilotWaitGroup.Done()
 			return
 		case <-ticker.C:
-			serverHealths := make(map[string]*structs.ServerHealth)
-
 			state := s.fsm.State()
 			_, autopilotConf, err := state.AutopilotConfig()
 			if err != nil {
 				s.logger.Printf("[ERR] consul: error retrieving autopilot config: %s", err)
 			}
 
-			// Build an updated map of server healths
-			for _, member := range s.LANMembers() {
-				if member.Status == serf.StatusLeft {
-					continue
-				}
-
-				valid, parts := agent.IsConsulServer(member)
-				if valid {
-					health, err := s.queryServerHealth(member, parts, autopilotConf)
-					if err != nil {
-						s.logger.Printf("[ERR] consul: error fetching server health: %s", err)
-					} else {
-						serverHealths[parts.Addr.String()] = health
-					}
-				}
-			}
-
-			s.autopilotLock.Lock()
-			s.autopilotHealth = serverHealths
-			s.autopilotLock.Unlock()
-
 			if err := s.autopilotPolicy.PromoteNonVoters(autopilotConf); err != nil {
 				s.logger.Printf("[ERR] consul: error checking for non-voters to promote: %s", err)
 			}
-		}
-	}
-}
 
-// removeDeadLoop checks for dead servers periodically, or when receiving on autopilotRemoveDeadCh
-func (s *Server) removeDeadLoop() {
-	ticker := time.NewTicker(s.config.RemoveDeadInterval)
-	for {
-		select {
-		case <-s.autopilotShutdownCh:
-			ticker.Stop()
-			return
-		case <-ticker.C:
 			if err := s.pruneDeadServers(); err != nil {
 				s.logger.Printf("[ERR] consul: error checking for dead servers to remove: %s", err)
 			}
@@ -113,13 +82,18 @@ func (s *Server) pruneDeadServers() error {
 		}
 	}
 
+	// Nothing to remove, return early
+	if len(failed) == 0 {
+		return nil
+	}
+
 	peers, err := s.numPeers()
 	if err != nil {
 		return err
 	}
 
 	// Only do removals if a minority of servers will be affected
-	if len(failed) <= peers/2 {
+	if len(failed) < peers/2 || (len(failed) == 1 && peers >= 3) {
 		for _, server := range failed {
 			s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", server)
 			go s.serfLAN.RemoveFailedNode(server)
@@ -160,8 +134,8 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 	for _, server := range raftServers {
 		// If this server has been stable and passing for long enough, promote it to a voter
 		if server.Suffrage == raft.Nonvoter {
-			health := b.server.getServerHealth(string(server.Address))
-			if health != nil && health.Healthy && time.Now().Sub(health.StableSince) >= autopilotConf.ServerStabilizationTime {
+			health := b.server.getServerHealth(string(server.ID))
+			if health.IsStable(time.Now(), autopilotConf) {
 				promotions = append(promotions, server)
 			}
 		} else {
@@ -210,6 +184,68 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 	return nil
 }
 
+// serverHealthLoop monitors the health of the servers in the cluster
+func (s *Server) serverHealthLoop() {
+	// Monitor server health until shutdown
+	ticker := time.NewTicker(s.config.ServerHealthInterval)
+	for {
+		select {
+		case <-s.shutdownCh:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			serverHealths := make(map[string]*structs.ServerHealth)
+
+			// Don't do anything if the min Raft version is too low
+			minRaftProtocol, err := ServerMinRaftProtocol(s.LANMembers())
+			if err != nil {
+				s.logger.Printf("[ERR] consul: error getting server raft protocol versions: %s", err)
+				break
+			}
+			if minRaftProtocol < 3 {
+				break
+			}
+
+			state := s.fsm.State()
+			_, autopilotConf, err := state.AutopilotConfig()
+			if err != nil {
+				s.logger.Printf("[ERR] consul: error retrieving autopilot config: %s", err)
+				break
+			}
+			// Bail early if autopilot config hasn't been initialized yet
+			if autopilotConf == nil {
+				break
+			}
+
+			// Build an updated map of server healths
+			for _, member := range s.LANMembers() {
+				if member.Status == serf.StatusLeft {
+					continue
+				}
+
+				valid, parts := agent.IsConsulServer(member)
+				if valid {
+					health, err := s.queryServerHealth(member, parts, autopilotConf)
+					if err != nil {
+						s.logger.Printf("[ERR] consul: error fetching server health: %s", err)
+						serverHealths[parts.ID] = &structs.ServerHealth{
+							ID:      parts.ID,
+							Name:    parts.Name,
+							Healthy: false,
+						}
+					} else {
+						serverHealths[parts.ID] = health
+					}
+				}
+			}
+
+			s.serverHealthLock.Lock()
+			s.serverHealths = serverHealths
+			s.serverHealthLock.Unlock()
+		}
+	}
+}
+
 // queryServerHealth fetches the raft stats for the given server and uses them
 // to update its ServerHealth
 func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
@@ -220,18 +256,16 @@ func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
 	}
 
 	health := &structs.ServerHealth{
-		ID:             server.ID,
-		Name:           server.Name,
-		SerfStatusRaw:  member.Status,
-		SerfStatus:     member.Status.String(),
-		LastContactRaw: -1,
-		LastContact:    stats.LastContact,
-		LastTerm:       stats.LastTerm,
-		LastIndex:      stats.LastIndex,
+		ID:          server.ID,
+		Name:        server.Name,
+		SerfStatus:  member.Status,
+		LastContact: -1,
+		LastTerm:    stats.LastTerm,
+		LastIndex:   stats.LastIndex,
 	}
 
-	if health.LastContact != "never" {
-		health.LastContactRaw, err = time.ParseDuration(health.LastContact)
+	if stats.LastContact != "never" {
+		health.LastContact, err = time.ParseDuration(stats.LastContact)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing last_contact duration: %s", err)
 		}
@@ -239,14 +273,17 @@ func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
 
 	// Set LastContact to 0 for the leader
 	if s.config.NodeName == member.Name {
-		health.LastContactRaw = 0
-		health.LastContact = "leader"
+		health.LastContact = 0
 	}
 
-	health.Healthy = s.isServerHealthy(health, autopilotConf)
+	lastTerm, err := strconv.ParseUint(s.raft.Stats()["last_log_term"], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing last_log_term: %s", err)
+	}
+	health.Healthy = health.IsHealthy(lastTerm, s.raft.LastIndex(), autopilotConf)
 
 	// If this is a new server or the health changed, reset StableSince
-	lastHealth := s.getServerHealth(server.Addr.String())
+	lastHealth := s.getServerHealth(server.ID)
 	if lastHealth == nil || lastHealth.Healthy != health.Healthy {
 		health.StableSince = time.Now()
 	} else {
@@ -256,10 +293,10 @@ func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
 	return health, nil
 }
 
-func (s *Server) getServerHealth(addr string) *structs.ServerHealth {
-	s.autopilotLock.RLock()
-	defer s.autopilotLock.RUnlock()
-	h, ok := s.autopilotHealth[addr]
+func (s *Server) getServerHealth(id string) *structs.ServerHealth {
+	s.serverHealthLock.RLock()
+	defer s.serverHealthLock.RUnlock()
+	h, ok := s.serverHealths[id]
 	if !ok {
 		return nil
 	}
@@ -271,28 +308,4 @@ func (s *Server) getServerStats(server *agent.Server) (structs.ServerStats, erro
 	var reply structs.ServerStats
 	err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
 	return reply, err
-}
-
-// isServerHealthy determines whether the given ServerHealth is healthy
-// based on the current Autopilot config
-func (s *Server) isServerHealthy(health *structs.ServerHealth, autopilotConf *structs.AutopilotConfig) bool {
-	if health.SerfStatusRaw != serf.StatusAlive {
-		return false
-	}
-
-	if health.LastContactRaw > autopilotConf.LastContactThreshold || health.LastContactRaw < 0 {
-		return false
-	}
-
-	lastTerm, _ := strconv.ParseUint(s.raft.Stats()["last_log_term"], 10, 64)
-	if health.LastTerm != lastTerm {
-		return false
-	}
-
-	if s.raft.LastIndex() > autopilotConf.MaxTrailingLogs &&
-		health.LastIndex < s.raft.LastIndex()-autopilotConf.MaxTrailingLogs {
-		return false
-	}
-
-	return true
 }

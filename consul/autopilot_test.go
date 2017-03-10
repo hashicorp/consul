@@ -85,7 +85,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
-		c.RemoveDeadInterval = 100 * time.Millisecond
+		c.AutopilotInterval = 100 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -144,6 +144,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.ServerStabilizationTime = 200 * time.Millisecond
 		c.ServerHealthInterval = 100 * time.Millisecond
+		c.AutopilotInterval = 100 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -182,7 +183,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		if servers[1].Suffrage != raft.Nonvoter {
 			return false, fmt.Errorf("bad: %v", servers)
 		}
-		health := s1.getServerHealth(string(servers[1].Address))
+		health := s1.getServerHealth(string(servers[1].ID))
 		if health == nil {
 			return false, fmt.Errorf("nil health")
 		}

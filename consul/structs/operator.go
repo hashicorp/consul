@@ -112,12 +112,10 @@ type ServerHealth struct {
 	Name string
 
 	// The status of the SerfHealth check for the server.
-	SerfStatusRaw serf.MemberStatus `json:"-"`
-	SerfStatus    string
+	SerfStatus serf.MemberStatus
 
 	// LastContact is the time since this node's last contact with the leader.
-	LastContactRaw time.Duration `json:"-"`
-	LastContact    string
+	LastContact time.Duration
 
 	// LastTerm is the highest leader term this server has a record of in its Raft log.
 	LastTerm uint64
@@ -129,8 +127,48 @@ type ServerHealth struct {
 	// Autopilot config.
 	Healthy bool
 
-	// StableSince is the amount of time since this server's Healthy value last changed.
+	// StableSince is the last time this server's Healthy value changed.
 	StableSince time.Time
+}
+
+// IsHealthy determines whether this ServerHealth is considered healthy
+// based on the given Autopilot config
+func (h *ServerHealth) IsHealthy(lastTerm uint64, lastIndex uint64, autopilotConf *AutopilotConfig) bool {
+	if h.SerfStatus != serf.StatusAlive {
+		return false
+	}
+
+	if h.LastContact > autopilotConf.LastContactThreshold || h.LastContact < 0 {
+		return false
+	}
+
+	if h.LastTerm != lastTerm {
+		return false
+	}
+
+	if lastIndex > autopilotConf.MaxTrailingLogs && h.LastIndex < lastIndex-autopilotConf.MaxTrailingLogs {
+		return false
+	}
+
+	return true
+}
+
+// IsStable returns true if the ServerHealth is in a stable, passing state
+// according to the given AutopilotConfig
+func (h *ServerHealth) IsStable(now time.Time, conf *AutopilotConfig) bool {
+	if h == nil {
+		return false
+	}
+
+	if !h.Healthy {
+		return false
+	}
+
+	if now.Sub(h.StableSince) < conf.ServerStabilizationTime {
+		return false
+	}
+
+	return true
 }
 
 // ServerStats holds miscellaneous Raft metrics for a server

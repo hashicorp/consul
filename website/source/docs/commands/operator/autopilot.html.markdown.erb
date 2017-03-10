@@ -62,7 +62,7 @@ Usage: `consul operator autopilot set-config [options]`
 upon the successful joining of new servers to the cluster. Must be one of `[true|false]`.
 
 * `last-contact-threshold` - Controls the maximum amount of time a server can go without contact
-from the leader before being considered unhealthy. Must be a duration value such as `10s`.
+from the leader before being considered unhealthy. Must be a duration value such as `200ms`.
 
 * `max-trailing-logs` - Controls the maximum number of log entries that a server can trail
 the leader by before being considered unhealthy.

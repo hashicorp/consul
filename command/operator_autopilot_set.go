@@ -3,10 +3,10 @@ package command
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/consul/command/base"
 )
 
 type OperatorAutopilotSetCommand struct {
@@ -30,9 +30,9 @@ func (c *OperatorAutopilotSetCommand) Synopsis() string {
 
 func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	var cleanupDeadServers base.BoolValue
-	var lastContactThresholdRaw string
 	var maxTrailingLogs base.UintValue
-	var serverStabilizationTimeRaw string
+	var lastContactThreshold base.DurationValue
+	var serverStabilizationTime base.DurationValue
 
 	f := c.Command.NewFlagSet(c)
 
@@ -42,11 +42,11 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	f.Var(&maxTrailingLogs, "max-trailing-logs",
 		"Controls the maximum number of log entries that a server can trail the "+
 			"leader by before being considered unhealthy.")
-	f.StringVar(&lastContactThresholdRaw, "last-contact-threshold", "",
+	f.Var(&lastContactThreshold, "last-contact-threshold",
 		"Controls the maximum amount of time a server can go without contact "+
 			"from the leader before being considered unhealthy. Must be a duration value "+
-			"such as `10s`.")
-	f.StringVar(&serverStabilizationTimeRaw, "server-stabilization-time", "",
+			"such as `200ms`.")
+	f.Var(&serverStabilizationTime, "server-stabilization-time",
 		"Controls the minimum amount of time a server must be stable in the "+
 			"'healthy' state before being added to the cluster. Only takes effect if all "+
 			"servers are running Raft protocol version 3 or higher. Must be a duration "+
@@ -77,25 +77,18 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 
 	// Update the config values based on the set flags.
 	cleanupDeadServers.Merge(&conf.CleanupDeadServers)
+
 	trailing := uint(conf.MaxTrailingLogs)
 	maxTrailingLogs.Merge(&trailing)
 	conf.MaxTrailingLogs = uint64(trailing)
 
-	if lastContactThresholdRaw != "" {
-		dur, err := time.ParseDuration(lastContactThresholdRaw)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("invalid value for last-contact-threshold: %v", err))
-			return 1
-		}
-		conf.LastContactThreshold = dur
-	}
-	if serverStabilizationTimeRaw != "" {
-		dur, err := time.ParseDuration(serverStabilizationTimeRaw)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("invalid value for server-stabilization-time: %v", err))
-		}
-		conf.ServerStabilizationTime = dur
-	}
+	last := time.Duration(*conf.LastContactThreshold)
+	lastContactThreshold.Merge(&last)
+	conf.LastContactThreshold = api.NewReadableDuration(last)
+
+	stablization := time.Duration(*conf.ServerStabilizationTime)
+	serverStabilizationTime.Merge(&stablization)
+	conf.ServerStabilizationTime = api.NewReadableDuration(stablization)
 
 	// Check-and-set the new configuration.
 	result, err := operator.AutopilotCASConfiguration(conf, nil)

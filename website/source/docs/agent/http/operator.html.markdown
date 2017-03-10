@@ -289,9 +289,9 @@ A JSON body is returned that looks like this:
 ```javascript
 {
     "CleanupDeadServers": true,
-    "LastContactThreshold": 200000000,
+    "LastContactThreshold": "200ms",
     "MaxTrailingLogs": 250,
-    "ServerStabilizationTime": 10000000000,
+    "ServerStabilizationTime": "10s",
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
@@ -318,9 +318,9 @@ body must look like:
 ```javascript
 {
     "CleanupDeadServers": true,
-    "LastContactThreshold": 200000000,
+    "LastContactThreshold": "200ms",
     "MaxTrailingLogs": 250,
-    "ServerStabilizationTime": 10000000000,
+    "ServerStabilizationTime": "10s",
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
@@ -361,7 +361,7 @@ A JSON body is returned that looks like this:
             "ID": "e349749b-3303-3ddf-959c-b5885a0e1f6e",
             "Name": "node1",
             "SerfStatus": "alive",
-            "LastContact": "leader",
+            "LastContact": "0s",
             "LastTerm": 2,
             "LastIndex": 46,
             "Healthy": true,

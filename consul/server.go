@@ -76,10 +76,6 @@ type Server struct {
 	// aclCache is the non-authoritative ACL cache.
 	aclCache *aclCache
 
-	// autopilotHealth stores the current view of server healths.
-	autopilotHealth map[string]*structs.ServerHealth
-	autopilotLock   sync.RWMutex
-
 	// autopilotPolicy controls the behavior of Autopilot for certain tasks.
 	autopilotPolicy AutopilotPolicy
 
@@ -88,6 +84,9 @@ type Server struct {
 
 	// autopilotShutdownCh is used to stop the Autopilot loop.
 	autopilotShutdownCh chan struct{}
+
+	// autopilotWaitGroup is used to block until Autopilot shuts down.
+	autopilotWaitGroup sync.WaitGroup
 
 	// Consul configuration
 	config *Config
@@ -157,6 +156,10 @@ type Server struct {
 	// destroy the session via standard session destroy processing
 	sessionTimers     map[string]*time.Timer
 	sessionTimersLock sync.Mutex
+
+	// serverHealths stores the current view of server healths.
+	serverHealths    map[string]*structs.ServerHealth
+	serverHealthLock sync.RWMutex
 
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
@@ -314,6 +317,9 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Start the metrics handlers.
 	go s.sessionStats()
+
+	// Start the server health checking.
+	go s.serverHealthLoop()
 
 	return s, nil
 }

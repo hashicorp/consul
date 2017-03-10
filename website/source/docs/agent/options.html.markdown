@@ -562,7 +562,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   The following sub-keys are available:
 
   * <a name="cleanup_dead_servers"></a><a href="#cleanup_dead_servers">`cleanup_dead_servers`</a> - This controls
-  the automatic removal of dead server nodes whenever a new server is added to the cluster. Defaults to `true`.
+  the automatic removal of dead server nodes periodically and whenever a new server is added to the cluster.
+  Defaults to `true`.
 
   * <a name="last_contact_threshold"></a><a href="#last_contact_threshold">`last_contact_threshold`</a> - Controls
   the maximum amount of time a server can go without contact from the leader before being considered unhealthy.
@@ -575,7 +576,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="server_stabilization_time"></a><a href="#server_stabilization_time">`server_stabilization_time`</a> -
   Controls the minimum amount of time a server must be stable in the 'healthy' state before being added to the
   cluster. Only takes effect if all servers are running Raft protocol version 3 or higher. Must be a duration value
-  such as `10s`. Defaults to `30s`.
+  such as `30s`. Defaults to `10s`.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).

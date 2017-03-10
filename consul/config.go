@@ -280,13 +280,14 @@ type Config struct {
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
 
-	// ServerHealthInterval is the frequency with which the leader will check
-	// the health of the servers in the cluster
+	// ServerHealthInterval is the frequency with which the health of the
+	// servers in the cluster will be updated.
 	ServerHealthInterval time.Duration
 
-	// RemoveDeadInterval is the frequency with which the leader will look for
-	// dead servers to remove from the cluster
-	RemoveDeadInterval time.Duration
+	// AutopilotInterval is the frequency with which the leader will perform
+	// autopilot tasks, such as promoting eligible non-voters and removing
+	// dead servers.
+	AutopilotInterval time.Duration
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -366,8 +367,8 @@ func DefaultConfig() *Config {
 			MaxTrailingLogs:         250,
 			ServerStabilizationTime: 10 * time.Second,
 		},
-		ServerHealthInterval: 1 * time.Second,
-		RemoveDeadInterval:   30 * time.Second,
+		ServerHealthInterval: 2 * time.Second,
+		AutopilotInterval:    10 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

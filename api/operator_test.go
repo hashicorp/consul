@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -177,4 +178,29 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 			t.Fatalf("bad: %v", resp)
 		}
 	}
+}
+
+func TestOperator_ServerHealth(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.RaftProtocol = 3
+	})
+	defer s.Stop()
+
+	operator := c.Operator()
+	testutil.WaitForResult(func() (bool, error) {
+		out, err := operator.AutopilotServerHealth(nil)
+		if err != nil {
+			return false, fmt.Errorf("err: %v", err)
+		}
+		if len(out.Servers) != 1 ||
+			!out.Servers[0].Healthy ||
+			out.Servers[0].Name != s.Config.NodeName {
+			return false, fmt.Errorf("bad: %v", out)
+		}
+
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err)
+	})
 }

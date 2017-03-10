@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"time"
 )
 
 // Operator endpoint is used to perform low-level operator tasks for Consul.
@@ -204,9 +203,16 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 		return permissionDeniedErr
 	}
 
-	status := structs.OperatorHealthReply{
-		Healthy: true,
+	// Exit early if the min Raft version is too low
+	minRaftProtocol, err := ServerMinRaftProtocol(op.srv.LANMembers())
+	if err != nil {
+		return fmt.Errorf("error getting server raft protocol versions: %s", err)
 	}
+	if minRaftProtocol < 3 {
+		return fmt.Errorf("all servers must have raft_protocol set to 3 or higher to use this endpoint")
+	}
+
+	var status structs.OperatorHealthReply
 	future := op.srv.raft.GetConfiguration()
 	if err := future.Error(); err != nil {
 		return err
@@ -215,19 +221,15 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	healthyCount := 0
 	servers := future.Configuration().Servers
 	for _, s := range servers {
-		health := op.srv.getServerHealth(string(s.Address))
+		health := op.srv.getServerHealth(string(s.ID))
 		if health != nil {
-			// Fix up StableSince to be more readable
-			health.StableSince = health.StableSince.Round(time.Second).UTC()
-
-			if !health.Healthy {
-				status.Healthy = false
-			} else {
+			if health.Healthy {
 				healthyCount++
 			}
 			status.Servers = append(status.Servers, *health)
 		}
 	}
+	status.Healthy = healthyCount == len(servers)
 
 	// If we have extra healthy servers, set FailureTolerance
 	if healthyCount > len(servers)/2+1 {
