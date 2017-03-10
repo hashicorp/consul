@@ -311,6 +311,11 @@ will exit with an error at startup.
   use. This defaults to the latest version. This should be set only when [upgrading](/docs/upgrading.html).
   You can view the protocol versions supported by Consul by running `consul -v`.
 
+* <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
+  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
+  be set to 3 in order to gain access to Autopilot features, with the exception of
+  [`cleanup_dead_servers`](#cleanup_dead_servers).
+
 * <a name="_recursor"></a><a href="#_recursor">`-recursor`</a> - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally
   equivalent to the [`recursors` configuration option](#recursors).
@@ -557,7 +562,21 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   The following sub-keys are available:
 
   * <a name="cleanup_dead_servers"></a><a href="#cleanup_dead_servers">`cleanup_dead_servers`</a> - This controls
-  the automatic removal of dead server nodes whenever a new server is added to the cluster. Defaults to `true`.
+  the automatic removal of dead server nodes periodically and whenever a new server is added to the cluster.
+  Defaults to `true`.
+
+  * <a name="last_contact_threshold"></a><a href="#last_contact_threshold">`last_contact_threshold`</a> - Controls
+  the maximum amount of time a server can go without contact from the leader before being considered unhealthy.
+  Must be a duration value such as `10s`. Defaults to `200ms`.
+
+  * <a name="max_trailing_threshold"></a><a href="#max_trailing_threshold">`max_trailing_threshold`</a> - Controls
+  the maximum number of log entries that a server can trail the leader by before being considered unhealthy. Defaults
+  to 250.
+
+  * <a name="server_stabilization_time"></a><a href="#server_stabilization_time">`server_stabilization_time`</a> -
+  Controls the minimum amount of time a server must be stable in the 'healthy' state before being added to the
+  cluster. Only takes effect if all servers are running Raft protocol version 3 or higher. Must be a duration value
+  such as `30s`. Defaults to `10s`.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -764,11 +783,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
 
-* <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> - This controls the internal
-  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
-  be set to 3 in order to gain access to other [Autopilot](#autopilot) features, with the exception of
-  [`cleanup_dead_servers`](#cleanup_dead_servers).
- 
+* <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
+  [`-raft-protocol` command-line flag](#_raft_protocol).
+
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
   automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then

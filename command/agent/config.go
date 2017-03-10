@@ -265,6 +265,21 @@ type Autopilot struct {
 	// CleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
 	CleanupDeadServers *bool `mapstructure:"cleanup_dead_servers"`
+
+	// LastContactThreshold is the limit on the amount of time a server can go
+	// without leader contact before being considered unhealthy.
+	LastContactThreshold    *time.Duration `mapstructure:"-" json:"-"`
+	LastContactThresholdRaw string         `mapstructure:"last_contact_threshold"`
+
+	// MaxTrailingLogs is the amount of entries in the Raft Log that a server can
+	// be behind before being considered unhealthy.
+	MaxTrailingLogs *uint64 `mapstructure:"max_trailing_logs"`
+
+	// ServerStabilizationTime is the minimum amount of time a server must be
+	// in a stable, healthy state before it can be added to the cluster. Only
+	// applicable with Raft protocol version 3 or higher.
+	ServerStabilizationTime    *time.Duration `mapstructure:"-" json:"-"`
+	ServerStabilizationTimeRaw string         `mapstructure:"server_stabilization_time"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -692,6 +707,16 @@ func Bool(b bool) *bool {
 	return &b
 }
 
+// Uint64 is used to initialize uint64 pointers in struct literals.
+func Uint64(i uint64) *uint64 {
+	return &i
+}
+
+// Duration is used to initialize time.Duration pointers in struct literals.
+func Duration(d time.Duration) *time.Duration {
+	return &d
+}
+
 // UnixSocketPermissions contains information about a unix socket, and
 // implements the FilePermissions interface.
 type UnixSocketPermissions struct {
@@ -1041,6 +1066,21 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.ReconnectTimeoutWan = dur
 	}
 
+	if raw := result.Autopilot.LastContactThresholdRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("LastContactThreshold invalid: %v", err)
+		}
+		result.Autopilot.LastContactThreshold = &dur
+	}
+	if raw := result.Autopilot.ServerStabilizationTimeRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("ServerStabilizationTime invalid: %v", err)
+		}
+		result.Autopilot.ServerStabilizationTime = &dur
+	}
+
 	// Merge the single recursor
 	if result.DNSRecursor != "" {
 		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
@@ -1293,7 +1333,7 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Protocol > 0 {
 		result.Protocol = b.Protocol
 	}
-	if b.RaftProtocol != 0 {
+	if b.RaftProtocol > 0 {
 		result.RaftProtocol = b.RaftProtocol
 	}
 	if b.NodeID != "" {
@@ -1346,6 +1386,15 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Autopilot.CleanupDeadServers != nil {
 		result.Autopilot.CleanupDeadServers = b.Autopilot.CleanupDeadServers
+	}
+	if b.Autopilot.LastContactThreshold != nil {
+		result.Autopilot.LastContactThreshold = b.Autopilot.LastContactThreshold
+	}
+	if b.Autopilot.MaxTrailingLogs != nil {
+		result.Autopilot.MaxTrailingLogs = b.Autopilot.MaxTrailingLogs
+	}
+	if b.Autopilot.ServerStabilizationTime != nil {
+		result.Autopilot.ServerStabilizationTime = b.Autopilot.ServerStabilizationTime
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true

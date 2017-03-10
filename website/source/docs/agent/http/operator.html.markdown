@@ -29,6 +29,7 @@ The following endpoints are supported:
 * [`/v1/operator/raft/peer`](#raft-peer): Operates on Raft peers
 * [`/v1/operator/keyring`](#keyring): Operates on gossip keyring
 * [`/v1/operator/autopilot/configuration`](#autopilot-configuration): Operates on the Autopilot configuration
+* [`/v1/operator/autopilot/health`](#autopilot-health): Returns the health of the servers
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -288,13 +289,16 @@ A JSON body is returned that looks like this:
 ```javascript
 {
     "CleanupDeadServers": true,
+    "LastContactThreshold": "200ms",
+    "MaxTrailingLogs": 250,
+    "ServerStabilizationTime": "10s",
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
 ```
 
-`CleanupDeadServers` is whether dead servers should be removed automatically when
-a new server is added to the cluster.
+For more information about the Autopilot configuration options, see the agent configuration section
+[here](/docs/agent/options.html#autopilot).
 
 #### PUT Method
 
@@ -313,11 +317,89 @@ body must look like:
 
 ```javascript
 {
-    "CleanupDeadServers": true
+    "CleanupDeadServers": true,
+    "LastContactThreshold": "200ms",
+    "MaxTrailingLogs": 250,
+    "ServerStabilizationTime": "10s",
+    "CreateIndex": 4,
+    "ModifyIndex": 4
 }
 ```
 
-`CleanupDeadServers` is whether dead servers should be removed automatically when
-a new server is added to the cluster.
+For more information about the Autopilot configuration options, see the agent configuration section
+[here](/docs/agent/options.html#autopilot).
 
 The return code will indicate success or failure.
+
+### <a name="autopilot-health"></a> /v1/operator/autopilot/health
+
+Available in Consul 0.8.0 and later, the autopilot health endpoint supports the
+`GET` method.
+
+This endpoint supports the use of ACL tokens using either the `X-CONSUL-TOKEN`
+header or the `?token=` query parameter.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+#### GET Method
+
+When using the `GET` method, the request will be forwarded to the cluster
+leader to retrieve its latest Autopilot configuration.
+
+If ACLs are enabled, the client will need to supply an ACL Token with
+[`operator`](/docs/internals/acl.html#operator) read privileges.
+
+A JSON body is returned that looks like this:
+
+```javascript
+{
+    "Healthy": true,
+    "FailureTolerance": 0,
+    "Servers": [
+        {
+            "ID": "e349749b-3303-3ddf-959c-b5885a0e1f6e",
+            "Name": "node1",
+            "SerfStatus": "alive",
+            "LastContact": "0s",
+            "LastTerm": 2,
+            "LastIndex": 46,
+            "Healthy": true,
+            "StableSince": "2017-03-06T22:07:51Z"
+        },
+        {
+            "ID": "e36ee410-cc3c-0a0c-c724-63817ab30303",
+            "Name": "node2",
+            "SerfStatus": "alive",
+            "LastContact": "27.291304ms",
+            "LastTerm": 2,
+            "LastIndex": 46,
+            "Healthy": true,
+            "StableSince": "2017-03-06T22:18:26Z"
+        }
+    ]
+}
+```
+
+`Healthy` is whether all the servers are currently heathly.
+
+`FailureTolerance` is the number of redundant healthy servers that could be fail
+without causing an outage (this would be 2 in a healthy cluster of 5 servers).
+
+The `Servers` list holds detailed health information on each server:
+
+- `ID` is the Raft ID of the server.
+
+- `Name` is the node name of the server.
+
+- `SerfStatus` is the SerfHealth check status for the server.
+
+- `LastContact` is the time elapsed since this server's last contact with the leader.
+
+- `LastTerm` is the server's last known Raft leader term.
+
+- `LastIndex` is the index of the server's last committed Raft log entry.
+
+- `Healthy` is whether the server is healthy according to the current Autopilot configuration.
+
+- `StableSince` is the time this server has been in its current `Healthy` state.

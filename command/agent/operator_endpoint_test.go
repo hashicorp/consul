@@ -7,8 +7,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestOperator_OperatorRaftConfiguration(t *testing.T) {
@@ -302,7 +305,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 		if resp.Code != 200 {
 			t.Fatalf("bad code: %d", resp.Code)
 		}
-		out, ok := obj.(structs.AutopilotConfig)
+		out, ok := obj.(api.AutopilotConfiguration)
 		if !ok {
 			t.Fatalf("unexpected: %T", obj)
 		}
@@ -419,4 +422,84 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 			t.Fatalf("bad: %#v", reply)
 		}
 	})
+}
+
+func TestOperator_OperatorServerHealth(t *testing.T) {
+	cb := func(c *Config) {
+		c.RaftProtocol = 3
+	}
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		testutil.WaitForResult(func() (bool, error) {
+			resp := httptest.NewRecorder()
+			obj, err := srv.OperatorServerHealth(resp, req)
+			if err != nil {
+				return false, fmt.Errorf("err: %v", err)
+			}
+			if resp.Code != 200 {
+				return false, fmt.Errorf("bad code: %d", resp.Code)
+			}
+			out, ok := obj.(*api.OperatorHealthReply)
+			if !ok {
+				return false, fmt.Errorf("unexpected: %T", obj)
+			}
+			if len(out.Servers) != 1 ||
+				!out.Servers[0].Healthy ||
+				out.Servers[0].Name != srv.agent.config.NodeName ||
+				out.Servers[0].SerfStatus != "alive" ||
+				out.FailureTolerance != 0 {
+				return false, fmt.Errorf("bad: %v", out)
+			}
+
+			return true, nil
+		}, func(err error) {
+			t.Fatal(err)
+		})
+
+	}, cb)
+}
+
+func TestOperator_OperatorServerHealth_Unhealthy(t *testing.T) {
+	threshold := time.Duration(-1)
+	cb := func(c *Config) {
+		c.RaftProtocol = 3
+		c.Autopilot.LastContactThreshold = &threshold
+	}
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		testutil.WaitForResult(func() (bool, error) {
+			resp := httptest.NewRecorder()
+			obj, err := srv.OperatorServerHealth(resp, req)
+			if err != nil {
+				return false, fmt.Errorf("err: %v", err)
+			}
+			if resp.Code != 429 {
+				return false, fmt.Errorf("bad code: %d", resp.Code)
+			}
+			out, ok := obj.(*api.OperatorHealthReply)
+			if !ok {
+				return false, fmt.Errorf("unexpected: %T", obj)
+			}
+			if len(out.Servers) != 1 ||
+				out.Healthy ||
+				out.Servers[0].Name != srv.agent.config.NodeName {
+				return false, fmt.Errorf("bad: %v", out)
+			}
+
+			return true, nil
+		}, func(err error) {
+			t.Fatal(err)
+		})
+
+	}, cb)
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Operator can be used to perform low-level operator tasks for Consul.
@@ -79,6 +80,19 @@ type AutopilotConfiguration struct {
 	// peer list when a new server joins
 	CleanupDeadServers bool
 
+	// LastContactThreshold is the limit on the amount of time a server can go
+	// without leader contact before being considered unhealthy.
+	LastContactThreshold *ReadableDuration
+
+	// MaxTrailingLogs is the amount of entries in the Raft Log that a server can
+	// be behind before being considered unhealthy.
+	MaxTrailingLogs uint64
+
+	// ServerStabilizationTime is the minimum amount of time a server must be
+	// in a stable, healthy state before it can be added to the cluster. Only
+	// applicable with Raft protocol version 3 or higher.
+	ServerStabilizationTime *ReadableDuration
+
 	// CreateIndex holds the index corresponding the creation of this configuration.
 	// This is a read-only field.
 	CreateIndex uint64
@@ -88,6 +102,84 @@ type AutopilotConfiguration struct {
 	// AutopilotCASConfiguration will perform a check-and-set operation which ensures
 	// there hasn't been a subsequent update since the configuration was retrieved.
 	ModifyIndex uint64
+}
+
+// ServerHealth is the health (from the leader's point of view) of a server.
+type ServerHealth struct {
+	// ID is the raft ID of the server.
+	ID string
+
+	// Name is the node name of the server.
+	Name string
+
+	// The status of the SerfHealth check for the server.
+	SerfStatus string
+
+	// LastContact is the time since this node's last contact with the leader.
+	LastContact *ReadableDuration
+
+	// LastTerm is the highest leader term this server has a record of in its Raft log.
+	LastTerm uint64
+
+	// LastIndex is the last log index this server has a record of in its Raft log.
+	LastIndex uint64
+
+	// Healthy is whether or not the server is healthy according to the current
+	// Autopilot config.
+	Healthy bool
+
+	// StableSince is the last time this server's Healthy value changed.
+	StableSince time.Time
+}
+
+// OperatorHealthReply is a representation of the overall health of the cluster
+type OperatorHealthReply struct {
+	// Healthy is true if all the servers in the cluster are healthy.
+	Healthy bool
+
+	// FailureTolerance is the number of healthy servers that could be lost without
+	// an outage occurring.
+	FailureTolerance int
+
+	// Servers holds the health of each server.
+	Servers []ServerHealth
+}
+
+// ReadableDuration is a duration type that is serialized to JSON in human readable format.
+type ReadableDuration time.Duration
+
+func NewReadableDuration(dur time.Duration) *ReadableDuration {
+	d := ReadableDuration(dur)
+	return &d
+}
+
+func (d *ReadableDuration) String() string { return d.Duration().String() }
+func (d *ReadableDuration) Duration() time.Duration {
+	if d == nil {
+		return time.Duration(0)
+	}
+	return time.Duration(*d)
+}
+
+func (d *ReadableDuration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, d.Duration().String())), nil
+}
+
+func (d *ReadableDuration) UnmarshalJSON(raw []byte) error {
+	if d == nil {
+		return fmt.Errorf("cannot unmarshal to nil pointer")
+	}
+
+	str := string(raw)
+	if len(str) < 2 || str[0] != '"' || str[len(str)-1] != '"' {
+		return fmt.Errorf("must be enclosed with quotes: %s", str)
+	}
+	dur, err := time.ParseDuration(str[1 : len(str)-1])
+	if err != nil {
+		return err
+	}
+	*d = ReadableDuration(dur)
+	return nil
 }
 
 // RaftGetConfiguration is used to query the current Raft peer set.
@@ -203,6 +295,7 @@ func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfig
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
+
 	return &out, nil
 }
 
@@ -240,4 +333,21 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	res := strings.Contains(string(buf.Bytes()), "true")
 
 	return res, nil
+}
+
+// AutopilotServerHealth
+func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply, error) {
+	r := op.c.newRequest("GET", "/v1/operator/autopilot/health")
+	r.setQueryOptions(q)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out OperatorHealthReply
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

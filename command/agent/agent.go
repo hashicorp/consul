@@ -419,6 +419,15 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Autopilot.CleanupDeadServers != nil {
 		base.AutopilotConfig.CleanupDeadServers = *a.config.Autopilot.CleanupDeadServers
 	}
+	if a.config.Autopilot.LastContactThreshold != nil {
+		base.AutopilotConfig.LastContactThreshold = *a.config.Autopilot.LastContactThreshold
+	}
+	if a.config.Autopilot.MaxTrailingLogs != nil {
+		base.AutopilotConfig.MaxTrailingLogs = *a.config.Autopilot.MaxTrailingLogs
+	}
+	if a.config.Autopilot.ServerStabilizationTime != nil {
+		base.AutopilotConfig.ServerStabilizationTime = *a.config.Autopilot.ServerStabilizationTime
+	}
 
 	// Format the build string
 	revision := a.config.Revision

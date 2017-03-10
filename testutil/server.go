@@ -65,6 +65,7 @@ type TestServerConfig struct {
 	Bind              string                 `json:"bind_addr,omitempty"`
 	Addresses         *TestAddressConfig     `json:"addresses,omitempty"`
 	Ports             *TestPortConfig        `json:"ports,omitempty"`
+	RaftProtocol      int                    `json:"raft_protocol,omitempty"`
 	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
 	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`

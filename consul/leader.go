@@ -159,6 +159,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startAutopilot()
+
 	return nil
 }
 
@@ -174,6 +176,9 @@ func (s *Server) revokeLeadership() error {
 		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
+
+	s.stopAutopilot()
+
 	return nil
 }
 
@@ -598,13 +603,20 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		return err
 	}
 
-	if minRaftProtocol >= 2 && parts.RaftVersion >= 3 {
+	switch {
+	case minRaftProtocol >= 3:
+		addFuture := s.raft.AddNonvoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
+		if err := addFuture.Error(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+			return err
+		}
+	case minRaftProtocol == 2 && parts.RaftVersion >= 3:
 		addFuture := s.raft.AddVoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
 		if err := addFuture.Error(); err != nil {
 			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
 			return err
 		}
-	} else {
+	default:
 		addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
 		if err := addFuture.Error(); err != nil {
 			s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
@@ -612,21 +624,10 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
-	state := s.fsm.State()
-	_, autopilotConf, err := state.AutopilotConfig()
-	if err != nil {
-		return err
-	}
-
-	// Look for dead servers to clean up
-	if autopilotConf.CleanupDeadServers {
-		for _, member := range s.serfLAN.Members() {
-			valid, _ := agent.IsConsulServer(member)
-			if valid && member.Name != m.Name && member.Status == serf.StatusFailed {
-				s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", member.Name)
-				go s.serfLAN.RemoveFailedNode(member.Name)
-			}
-		}
+	// Trigger a check to remove dead servers
+	select {
+	case s.autopilotRemoveDeadCh <- struct{}{}:
+	default:
 	}
 
 	return nil

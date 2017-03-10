@@ -135,6 +135,8 @@ func (c *Command) readConfig() *Config {
 
 	f.IntVar(&cmdConfig.Protocol, "protocol", -1,
 		"Sets the protocol version. Defaults to latest.")
+	f.IntVar(&cmdConfig.RaftProtocol, "raft-protocol", -1,
+		"Sets the Raft protocol version. Defaults to latest.")
 
 	f.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
 		"Enables logging to syslog.")
