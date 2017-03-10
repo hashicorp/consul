@@ -102,37 +102,41 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
-	servers := []*Server{s1, s2, s3}
+	dir4, s4 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	servers := []*Server{s1, s2, s3, s4}
 
 	// Join the servers to s1
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
+
+	for _, s := range servers[1:] {
+		if _, err := s.JoinLAN([]string{addr}); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 
 	for _, s := range servers {
 		testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
-			return peers == 3, nil
+			return peers == 4, nil
 		}, func(err error) {
-			t.Fatalf("should have 3 peers")
+			t.Fatalf("should have 4 peers")
 		})
 	}
 
 	// Kill a non-leader server
-	s3.Shutdown()
+	s4.Shutdown()
 
 	// Should be removed from the peers automatically
-	for _, s := range []*Server{s1, s2} {
+	for _, s := range []*Server{s1, s2, s3} {
 		testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
-			return peers == 2, nil
+			return peers == 3, nil
 		}, func(err error) {
-			t.Fatalf("should have 2 peers")
+			t.Fatalf("should have 3 peers")
 		})
 	}
 }

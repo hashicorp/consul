@@ -3,11 +3,11 @@ package command
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/mitchellh/cli"
-	"time"
 )
 
 func TestOperator_Autopilot_Set_Implements(t *testing.T) {

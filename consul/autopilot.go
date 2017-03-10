@@ -33,13 +33,15 @@ func (s *Server) stopAutopilot() {
 
 // autopilotLoop periodically looks for nonvoting servers to promote and dead servers to remove.
 func (s *Server) autopilotLoop() {
+	defer s.autopilotWaitGroup.Done()
+
 	// Monitor server health until shutdown
 	ticker := time.NewTicker(s.config.AutopilotInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-s.autopilotShutdownCh:
-			ticker.Stop()
-			s.autopilotWaitGroup.Done()
 			return
 		case <-ticker.C:
 			state := s.fsm.State()
@@ -93,7 +95,7 @@ func (s *Server) pruneDeadServers() error {
 	}
 
 	// Only do removals if a minority of servers will be affected
-	if len(failed) < peers/2 || (len(failed) == 1 && peers >= 3) {
+	if len(failed) < peers/2 {
 		for _, server := range failed {
 			s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", server)
 			go s.serfLAN.RemoveFailedNode(server)
@@ -188,10 +190,11 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 func (s *Server) serverHealthLoop() {
 	// Monitor server health until shutdown
 	ticker := time.NewTicker(s.config.ServerHealthInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-s.shutdownCh:
-			ticker.Stop()
 			return
 		case <-ticker.C:
 			serverHealths := make(map[string]*structs.ServerHealth)

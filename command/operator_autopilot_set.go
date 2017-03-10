@@ -3,10 +3,11 @@ package command
 import (
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/base"
 )
 
 type OperatorAutopilotSetCommand struct {
