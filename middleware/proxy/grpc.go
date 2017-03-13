@@ -5,16 +5,13 @@ import (
 	"crypto/tls"
 	"log"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-
-	"github.com/coredns/coredns/middleware/proxy/pb"
 	"github.com/coredns/coredns/middleware/trace"
+	"github.com/coredns/coredns/pb"
 	"github.com/coredns/coredns/request"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/miekg/dns"
-
 	opentracing "github.com/opentracing/opentracing-go"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -8,10 +8,10 @@ func TestNormalizeZone(t *testing.T) {
 		expected  string
 		shouldErr bool
 	}{
-		{".", ".:53", false},
-		{".:54", ".:54", false},
-		{"..", ":", true},
-		{"..", ":", true},
+		{".", "dns://.:53", false},
+		{".:54", "dns://.:54", false},
+		{"..", "://:", true},
+		{"..", "://:", true},
 	} {
 		addr, err := normalizeZone(test.input)
 		actual := addr.String()

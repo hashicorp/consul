@@ -24,6 +24,7 @@ import (
 	_ "github.com/coredns/coredns/middleware/rewrite"
 	_ "github.com/coredns/coredns/middleware/root"
 	_ "github.com/coredns/coredns/middleware/secondary"
+	_ "github.com/coredns/coredns/middleware/tls"
 	_ "github.com/coredns/coredns/middleware/trace"
 	_ "github.com/coredns/coredns/middleware/whoami"
 )

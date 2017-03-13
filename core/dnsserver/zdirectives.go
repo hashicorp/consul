@@ -11,6 +11,7 @@ package dnsserver
 // care what middleware above them are doing.
 
 var directives = []string{
+	"tls",
 	"root",
 	"bind",
 	"trace",

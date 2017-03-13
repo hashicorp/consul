@@ -40,8 +40,7 @@ func reverseParse(c *caddy.Controller) (nets networks, fall bool, err error) {
 	zones := make([]string, len(c.ServerBlockKeys))
 
 	for i, str := range c.ServerBlockKeys {
-		host, _, _ := net.SplitHostPort(str)
-		zones[i] = strings.ToLower(host)
+		zones[i] = middleware.Host(str).Normalize()
 	}
 
 	for c.Next() {

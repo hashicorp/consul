@@ -19,7 +19,7 @@ func TestRoot(t *testing.T) {
 
 	// Predefined error substrings
 	parseErrContent := "Parse error:"
-	unableToAccessErrContent := "Unable to access root path"
+	unableToAccessErrContent := "unable to access root path"
 
 	existingDirPath, err := getTempDirPath()
 	if err != nil {

@@ -38,7 +38,7 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	m.Authoritative = true
 
 	// small dance to copy rrA or rrAAAA into a non-pointer var that allows us to overwrite the ownername
-	// in a non-racy manor.
+	// in a non-racy way.
 	switch state.QType() {
 	case dns.TypeA:
 		rr := *(rrA.(*dns.A))

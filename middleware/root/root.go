@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/mholt/caddy"
 )
@@ -21,7 +22,7 @@ func setup(c *caddy.Controller) error {
 
 	for c.Next() {
 		if !c.NextArg() {
-			return c.ArgErr()
+			return middleware.Error("root", c.ArgErr())
 		}
 		config.Root = c.Val()
 	}
@@ -34,7 +35,7 @@ func setup(c *caddy.Controller) error {
 			// But make sure the user knows!
 			log.Printf("[WARNING] Root path does not exist: %s", config.Root)
 		} else {
-			return c.Errf("Unable to access root path '%s': %v", config.Root, err)
+			return middleware.Error("root", c.Errf("unable to access root path '%s': %v", config.Root, err))
 		}
 	}
 

@@ -61,15 +61,16 @@ func (h *dnsContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 				return nil, err
 			}
 			s.Keys[i] = za.String()
-			if v, ok := dups[za.Zone]; ok {
+			if v, ok := dups[za.String()]; ok {
 				return nil, fmt.Errorf("cannot serve %s - zone already defined for %v", za, v)
 			}
-			dups[za.Zone] = za.String()
+			dups[za.String()] = za.String()
 
 			// Save the config to our master list, and key it for lookups
 			cfg := &Config{
-				Zone: za.Zone,
-				Port: za.Port,
+				Zone:      za.Zone,
+				Port:      za.Port,
+				Transport: za.Transport,
 			}
 			h.saveConfig(za.String(), cfg)
 		}
@@ -88,11 +89,31 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 	// then we create a server for each group
 	var servers []caddy.Server
 	for addr, group := range groups {
-		s, err := NewServer(addr, group)
-		if err != nil {
-			return nil, err
+		// switch on addr
+		switch Transport(addr) {
+		case TransportDNS:
+			s, err := NewServer(addr, group)
+			if err != nil {
+				return nil, err
+			}
+			servers = append(servers, s)
+
+		case TransportTLS:
+			s, err := NewServerTLS(addr, group)
+			if err != nil {
+				return nil, err
+			}
+			servers = append(servers, s)
+
+		case TransportGRPC:
+			s, err := NewServergRPC(addr, group)
+			if err != nil {
+				return nil, err
+			}
+			servers = append(servers, s)
+
 		}
-		servers = append(servers, s)
+
 	}
 
 	return servers, nil
@@ -112,14 +133,11 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 	groups := make(map[string][]*Config)
 
 	for _, conf := range configs {
-		if conf.Port == "" {
-			conf.Port = Port
-		}
 		addr, err := net.ResolveTCPAddr("tcp", net.JoinHostPort(conf.ListenHost, conf.Port))
 		if err != nil {
 			return nil, err
 		}
-		addrstr := addr.String()
+		addrstr := conf.Transport + "://" + addr.String()
 		groups[addrstr] = append(groups[addrstr], conf)
 	}
 
@@ -129,6 +147,10 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 const (
 	// DefaultPort is the default port.
 	DefaultPort = "53"
+	// TLSPort is the default port for DNS-over-TLS.
+	TLSPort = "853"
+	// GRPCPort is the default port for DNS-over-gRPC.
+	GRPCPort = "443"
 )
 
 // These "soft defaults" are configurable by

@@ -46,7 +46,7 @@ func TestLookupProxy(t *testing.T) {
 	}
 	// expect answer section with A record in it
 	if len(resp.Answer) == 0 {
-		t.Error("Expected to at least one RR in the answer section, got none")
+		t.Fatalf("Expected to at least one RR in the answer section, got none: %s", resp)
 	}
 	if resp.Answer[0].Header().Rrtype != dns.TypeA {
 		t.Errorf("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
