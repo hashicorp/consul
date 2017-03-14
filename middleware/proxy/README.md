@@ -43,7 +43,7 @@ proxy FROM TO... {
 * `health_check` will check path (on port) on each backend. If a backend returns a status code of
   200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for
   duration and no requests are routed to it. If this option is not provided then health checks are
-  disabled. The default duration is 10 seconds ("10s").
+  disabled. The default duration is 30 seconds ("30s").
 * **IGNORED_NAMES** in `except` is a space-separated list of domains to exclude from proxying.
   Requests that match none of these names will be passed through.
 * `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is
