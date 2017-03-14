@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -144,6 +145,15 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 	maps, err := c.srv.router.GetDatacenterMaps()
 	if err != nil {
 		return err
+	}
+
+	// Strip the datacenter suffixes from all the node names.
+	for i := range maps {
+		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
+		for j := range maps[i].Coordinates {
+			node := maps[i].Coordinates[j].Node
+			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+		}
 	}
 
 	*reply = maps

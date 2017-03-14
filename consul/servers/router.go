@@ -3,10 +3,12 @@ package servers
 import (
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -15,8 +17,9 @@ import (
 type Router struct {
 	logger *log.Logger
 
-	areas    map[types.AreaID]*areaInfo
-	managers map[string][]*Manager
+	localDatacenter string
+	areas           map[types.AreaID]*areaInfo
+	managers        map[string][]*Manager
 
 	// This top-level lock covers all the internal state.
 	sync.RWMutex
@@ -42,11 +45,12 @@ type areaInfo struct {
 	managers map[string]*managerInfo
 }
 
-func NewRouter(logger *log.Logger, shutdownCh chan struct{}) *Router {
+func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter string) *Router {
 	router := &Router{
-		logger:   logger,
-		areas:    make(map[types.AreaID]*areaInfo),
-		managers: make(map[string][]*Manager),
+		logger:          logger,
+		localDatacenter: localDatacenter,
+		areas:           make(map[types.AreaID]*areaInfo),
+		managers:        make(map[string][]*Manager),
 	}
 
 	// This will propagate a top-level shutdown to all the managers.
@@ -203,7 +207,103 @@ func (r *Router) GetDatacenters() []string {
 	for dc, _ := range r.managers {
 		dcs = append(dcs, dc)
 	}
+
+	sort.Strings(dcs)
 	return dcs
+}
+
+// datacenterSorter takes a list of DC names and a parallel vector of distances
+// and implements sort.Interface, keeping both structures coherent and sorting
+// by distance.
+type datacenterSorter struct {
+	Names []string
+	Vec   []float64
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Len() int {
+	return len(n.Names)
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Swap(i, j int) {
+	n.Names[i], n.Names[j] = n.Names[j], n.Names[i]
+	n.Vec[i], n.Vec[j] = n.Vec[j], n.Vec[i]
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Less(i, j int) bool {
+	return n.Vec[i] < n.Vec[j]
+}
+
+func (r *Router) GetDatacentersByDistance() ([]string, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	// Calculate a median RTT to the servers in each datacenter, by area.
+	dcs := make(map[string]float64)
+	for areaID, info := range r.areas {
+		index := make(map[string][]float64)
+		coord, err := info.cluster.GetCoordinate()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, m := range info.cluster.Members() {
+			ok, parts := agent.IsConsulServer(m)
+			if !ok {
+				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
+					m.Name, areaID)
+				continue
+			}
+
+			existing := index[parts.Datacenter]
+			if parts.Datacenter == r.localDatacenter {
+				// Everything in the local datacenter looks like zero RTT.
+				index[parts.Datacenter] = append(existing, 0.0)
+			} else {
+				// It's OK to get a nil coordinate back, ComputeDistance
+				// will put the RTT at positive infinity.
+				other, _ := info.cluster.GetCachedCoordinate(parts.Name)
+				rtt := lib.ComputeDistance(coord, other)
+				index[parts.Datacenter] = append(existing, rtt)
+			}
+		}
+
+		// Compute the median RTT between this server and the servers
+		// in each datacenter. We accumulate the lowest RTT to each DC
+		// in the master map, since a given DC might appear in multiple
+		// areas.
+		for dc, rtts := range index {
+			var rtt float64
+			if len(rtts) > 0 {
+				sort.Float64s(rtts)
+				rtt = rtts[len(rtts)/2]
+			} else {
+				rtt = lib.ComputeDistance(coord, nil)
+			}
+
+			current, ok := dcs[dc]
+			if !ok || (ok && rtt < current) {
+				dcs[dc] = rtt
+			}
+		}
+	}
+
+	// First sort by DC name, since we do a stable sort later.
+	names := make([]string, 0, len(dcs))
+	for dc, _ := range dcs {
+		names = append(names, dc)
+	}
+	sort.Strings(names)
+
+	// Then stable sort by median RTT.
+	vec := make([]float64, 0, len(dcs))
+	for _, dc := range names {
+		vec = append(vec, dcs[dc])
+	}
+	sort.Stable(&datacenterSorter{names, vec})
+	return names, nil
 }
 
 func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {

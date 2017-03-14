@@ -600,7 +600,9 @@ func (q *queryServerWrapper) GetLogger() *log.Logger {
 // GetOtherDatacentersByDistance calls into the server's fn and filters out the
 // server's own DC.
 func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
-	dcs, err := q.srv.getDatacentersByDistance()
+	// TODO (slackpad) - We should cache this result since it's expensive to
+	// compute.
+	dcs, err := q.srv.router.GetDatacentersByDistance()
 	if err != nil {
 		return nil, err
 	}

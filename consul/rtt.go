@@ -2,23 +2,12 @@ package consul
 
 import (
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 )
-
-// computeDistance returns the distance between the two network coordinates in
-// seconds. If either of the coordinates is nil then this will return positive
-// infinity.
-func computeDistance(a *coordinate.Coordinate, b *coordinate.Coordinate) float64 {
-	if a == nil || b == nil {
-		return math.Inf(1.0)
-	}
-
-	return a.DistanceTo(b).Seconds()
-}
 
 // nodeSorter takes a list of nodes and a parallel vector of distances and
 // implements sort.Interface, keeping both structures coherent and sorting by
@@ -38,7 +27,7 @@ func (s *Server) newNodeSorter(c *coordinate.Coordinate, nodes structs.Nodes) (s
 		if err != nil {
 			return nil, err
 		}
-		vec[i] = computeDistance(c, coord)
+		vec[i] = lib.ComputeDistance(c, coord)
 	}
 	return &nodeSorter{nodes, vec}, nil
 }
@@ -77,7 +66,7 @@ func (s *Server) newServiceNodeSorter(c *coordinate.Coordinate, nodes structs.Se
 		if err != nil {
 			return nil, err
 		}
-		vec[i] = computeDistance(c, coord)
+		vec[i] = lib.ComputeDistance(c, coord)
 	}
 	return &serviceNodeSorter{nodes, vec}, nil
 }
@@ -116,7 +105,7 @@ func (s *Server) newHealthCheckSorter(c *coordinate.Coordinate, checks structs.H
 		if err != nil {
 			return nil, err
 		}
-		vec[i] = computeDistance(c, coord)
+		vec[i] = lib.ComputeDistance(c, coord)
 	}
 	return &healthCheckSorter{checks, vec}, nil
 }
@@ -155,7 +144,7 @@ func (s *Server) newCheckServiceNodeSorter(c *coordinate.Coordinate, nodes struc
 		if err != nil {
 			return nil, err
 		}
-		vec[i] = computeDistance(c, coord)
+		vec[i] = lib.ComputeDistance(c, coord)
 	}
 	return &checkServiceNodeSorter{nodes, vec}, nil
 }
@@ -198,12 +187,6 @@ func (s *Server) newSorterByDistanceFrom(c *coordinate.Coordinate, subj interfac
 //
 // If coordinates are disabled this will be a no-op.
 func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interface{}) error {
-	// Make it safe to call this without having to check if coordinates are
-	// disabled first.
-	if s.config.DisableCoordinates {
-		return nil
-	}
-
 	// We can't sort if there's no source node.
 	if source.Node == "" {
 		return nil
@@ -232,180 +215,4 @@ func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interf
 	}
 	sort.Stable(sorter)
 	return nil
-}
-
-// serfer provides the coordinate information we need from the Server in an
-// interface that's easy to mock out for testing. Without this, we'd have to
-// do some really painful setup to get good unit test coverage of all the cases.
-type serfer interface {
-	GetDatacenter() string
-	GetCoordinate() (*coordinate.Coordinate, error)
-	GetCachedCoordinate(node string) (*coordinate.Coordinate, bool)
-	GetNodesForDatacenter(dc string) []string
-}
-
-// serverSerfer wraps a Server with the serfer interface.
-type serverSerfer struct {
-	server *Server
-}
-
-// See serfer.
-func (s *serverSerfer) GetDatacenter() string {
-	return s.server.config.Datacenter
-}
-
-// See serfer.
-func (s *serverSerfer) GetCoordinate() (*coordinate.Coordinate, error) {
-	return s.server.serfWAN.GetCoordinate()
-}
-
-// See serfer.
-func (s *serverSerfer) GetCachedCoordinate(node string) (*coordinate.Coordinate, bool) {
-	return s.server.serfWAN.GetCachedCoordinate(node)
-}
-
-// See serfer.
-func (s *serverSerfer) GetNodesForDatacenter(dc string) []string {
-	s.server.remoteLock.RLock()
-	defer s.server.remoteLock.RUnlock()
-
-	nodes := make([]string, 0)
-	for _, part := range s.server.remoteConsuls[dc] {
-		nodes = append(nodes, part.Name)
-	}
-	return nodes
-}
-
-// getDatacenterDistance will return the median round trip time estimate for
-// the given DC from the given serfer, in seconds. This will return positive
-// infinity if no coordinates are available.
-func getDatacenterDistance(s serfer, dc string) (float64, error) {
-	// If this is the serfer's DC then just bail with zero RTT.
-	if dc == s.GetDatacenter() {
-		return 0.0, nil
-	}
-
-	// Otherwise measure from the serfer to the nodes in the other DC.
-	coord, err := s.GetCoordinate()
-	if err != nil {
-		return 0.0, err
-	}
-
-	// Fetch all the nodes in the DC and record their distance, if available.
-	nodes := s.GetNodesForDatacenter(dc)
-	subvec := make([]float64, 0, len(nodes))
-	for _, node := range nodes {
-		if other, ok := s.GetCachedCoordinate(node); ok {
-			subvec = append(subvec, computeDistance(coord, other))
-		}
-	}
-
-	// Compute the median by sorting and taking the middle item.
-	if len(subvec) > 0 {
-		sort.Float64s(subvec)
-		return subvec[len(subvec)/2], nil
-	}
-
-	// Return the default infinity value.
-	return computeDistance(coord, nil), nil
-}
-
-// datacenterSorter takes a list of DC names and a parallel vector of distances
-// and implements sort.Interface, keeping both structures coherent and sorting
-// by distance.
-type datacenterSorter struct {
-	Names []string
-	Vec   []float64
-}
-
-// See sort.Interface.
-func (n *datacenterSorter) Len() int {
-	return len(n.Names)
-}
-
-// See sort.Interface.
-func (n *datacenterSorter) Swap(i, j int) {
-	n.Names[i], n.Names[j] = n.Names[j], n.Names[i]
-	n.Vec[i], n.Vec[j] = n.Vec[j], n.Vec[i]
-}
-
-// See sort.Interface.
-func (n *datacenterSorter) Less(i, j int) bool {
-	return n.Vec[i] < n.Vec[j]
-}
-
-// sortDatacentersByDistance will sort the given list of DCs based on the
-// median RTT to all nodes the given serfer knows about from the WAN gossip
-// pool). DCs with missing coordinates will be stable sorted to the end of the
-// list.
-func sortDatacentersByDistance(s serfer, dcs []string) error {
-	// Build up a list of median distances to the other DCs.
-	vec := make([]float64, len(dcs))
-	for i, dc := range dcs {
-		rtt, err := getDatacenterDistance(s, dc)
-		if err != nil {
-			return err
-		}
-
-		vec[i] = rtt
-	}
-
-	sorter := &datacenterSorter{dcs, vec}
-	sort.Stable(sorter)
-	return nil
-}
-
-// getDatacenterMaps returns the raw coordinates of all the nodes in the
-// given list of DCs (the output list will preserve the incoming order).
-func (s *Server) getDatacenterMaps(dcs []string) []structs.DatacenterMap {
-	serfer := serverSerfer{s}
-	return getDatacenterMaps(&serfer, dcs)
-}
-
-// getDatacenterMaps returns the raw coordinates of all the nodes in the
-// given list of DCs (the output list will preserve the incoming order).
-func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
-	maps := make([]structs.DatacenterMap, 0, len(dcs))
-	for _, dc := range dcs {
-		m := structs.DatacenterMap{Datacenter: dc}
-		nodes := s.GetNodesForDatacenter(dc)
-		for _, node := range nodes {
-			if coord, ok := s.GetCachedCoordinate(node); ok {
-				entry := &structs.Coordinate{Node: node, Coord: coord}
-				m.Coordinates = append(m.Coordinates, entry)
-			}
-		}
-		maps = append(maps, m)
-	}
-	return maps
-}
-
-// getDatacentersByDistance will return the list of DCs, sorted in order
-// of increasing distance based on the median distance to that DC from all
-// servers we know about in the WAN gossip pool. This will sort by name all
-// other things being equal (or if coordinates are disabled).
-func (s *Server) getDatacentersByDistance() ([]string, error) {
-	s.remoteLock.RLock()
-	dcs := make([]string, 0, len(s.remoteConsuls))
-	for dc := range s.remoteConsuls {
-		dcs = append(dcs, dc)
-	}
-	s.remoteLock.RUnlock()
-
-	// Sort by name first, since the coordinate sort is stable.
-	sort.Strings(dcs)
-
-	// Make it safe to call this without having to check if coordinates are
-	// disabled first.
-	if s.config.DisableCoordinates {
-		return dcs, nil
-	}
-
-	// Do the sort!
-	serfer := serverSerfer{s}
-	if err := sortDatacentersByDistance(&serfer, dcs); err != nil {
-		return nil, err
-	}
-
-	return dcs, nil
 }

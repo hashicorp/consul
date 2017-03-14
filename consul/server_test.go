@@ -73,7 +73,6 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 
 	config.ReconcileInterval = 100 * time.Millisecond
 
-	config.DisableCoordinates = false
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	return dir, config
 }
@@ -214,13 +213,13 @@ func TestServer_JoinWAN(t *testing.T) {
 		t.Fatalf("bad len")
 	})
 
-	// Check the remoteConsuls has both
-	if len(s1.remoteConsuls) != 2 {
+	// Check the router has both
+	if len(s1.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.remoteConsuls) == 2, nil
+		return len(s2.router.GetDatacenters()) == 2, nil
 	}, func(err error) {
 		t.Fatalf("remote consul missing")
 	})
@@ -289,12 +288,12 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		t.Fatalf("bad len")
 	})
 
-	// Check the remoteConsuls has both
-	if len(s1.remoteConsuls) != 2 {
+	// Check the router has both
+	if len(s1.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
-	if len(s2.remoteConsuls) != 2 {
+	if len(s2.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
@@ -693,9 +692,9 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	defer s1.Shutdown()
 
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.remoteConsuls) == 1, nil
+		return len(s1.router.GetDatacenters()) == 1, nil
 	}, func(err error) {
-		t.Fatalf("Server did not join LAN successfully")
+		t.Fatalf("Server did not join WAN successfully")
 	})
 
 	// Check that an error from a remote DC is returned

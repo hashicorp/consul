@@ -251,9 +251,6 @@ type Config struct {
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
 
-	// DisableCoordinates controls features related to network coordinates.
-	DisableCoordinates bool
-
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
 	// leads to fewer Raft transactions, but also the stored coordinates
@@ -344,7 +341,6 @@ func DefaultConfig() *Config {
 		TombstoneTTL:             15 * time.Minute,
 		TombstoneTTLGranularity:  30 * time.Second,
 		SessionTTLMin:            10 * time.Second,
-		DisableCoordinates:       false,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

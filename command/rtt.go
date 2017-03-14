@@ -31,7 +31,7 @@ Usage: consul rtt [options] node1 [node2]
   the datacenter (eg. "myserver.dc1").
 
   It is not possible to measure between LAN coordinates and WAN coordinates
-  because they are maintained by independent Serf gossip pools, so they are
+  because they are maintained by independent Serf gossip areas, so they are
   not compatible.
 
 ` + c.Command.Help()

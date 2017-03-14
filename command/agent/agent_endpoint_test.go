@@ -242,16 +242,6 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("meta fields are not equal: %v != %v", meta, val.Meta)
 	}
 
-	srv.agent.config.DisableCoordinates = true
-	obj, err = srv.AgentSelf(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	val = obj.(AgentSelf)
-	if val.Coord != nil {
-		t.Fatalf("should have been nil: %v", val.Coord)
-	}
-
 	// Make sure there's nothing called "token" that's leaked.
 	raw, err := srv.marshalJSON(req, obj)
 	if err != nil {

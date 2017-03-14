@@ -137,11 +137,6 @@ type Server struct {
 	// updated
 	reconcileCh chan serf.Member
 
-	// remoteConsuls is used to track the known consuls in
-	// remote datacenters. Used to do DC forwarding.
-	remoteConsuls map[string][]*agent.Server
-	remoteLock    sync.RWMutex
-
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
 	router *servers.Router
@@ -256,8 +251,7 @@ func NewServer(config *Config) (*Server, error) {
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
-		remoteConsuls:         make(map[string][]*agent.Server, 4),
-		router:                servers.NewRouter(logger, shutdownCh),
+		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		tombstoneGC:           gc,
@@ -385,9 +379,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
-
-	// Plumb down the enable coordinates flag.
-	conf.DisableCoordinates = s.config.DisableCoordinates
 
 	return serf.Create(conf)
 }

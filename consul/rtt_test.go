@@ -2,28 +2,17 @@ package consul
 
 import (
 	"fmt"
-	"math"
 	"net/rpc"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/coordinate"
 )
-
-// generateCoordinate creates a new coordinate with the given distance from the
-// origin.
-func generateCoordinate(rtt time.Duration) *coordinate.Coordinate {
-	coord := coordinate.NewCoordinate(coordinate.DefaultConfig())
-	coord.Vec[0] = rtt.Seconds()
-	coord.Height = 0
-	return coord
-}
 
 // verifyNodeSort makes sure the order of the nodes in the slice is the same as
 // the expected order, expressed as a comma-separated string.
@@ -106,27 +95,27 @@ func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
 			Node:       "node1",
-			Coord:      generateCoordinate(10 * time.Millisecond),
+			Coord:      lib.GenerateCoordinate(10 * time.Millisecond),
 		},
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
 			Node:       "node2",
-			Coord:      generateCoordinate(2 * time.Millisecond),
+			Coord:      lib.GenerateCoordinate(2 * time.Millisecond),
 		},
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
 			Node:       "node3",
-			Coord:      generateCoordinate(1 * time.Millisecond),
+			Coord:      lib.GenerateCoordinate(1 * time.Millisecond),
 		},
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
 			Node:       "node4",
-			Coord:      generateCoordinate(8 * time.Millisecond),
+			Coord:      lib.GenerateCoordinate(8 * time.Millisecond),
 		},
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
 			Node:       "node5",
-			Coord:      generateCoordinate(3 * time.Millisecond),
+			Coord:      lib.GenerateCoordinate(3 * time.Millisecond),
 		},
 	}
 
@@ -183,19 +172,10 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 	}
 	verifyNodeSort(t, nodes, "apple,node1,node2,node3,node4,node5")
 
-	// Set source to legit values relative to node1 but disable coordinates.
+	// Now sort relative to node1, note that apple doesn't have any seeded
+	// coordinate info so it should end up at the end, despite its lexical
+	// hegemony.
 	source.Node = "node1"
-	source.Datacenter = "dc1"
-	server.config.DisableCoordinates = true
-	if err := server.sortNodesByDistanceFrom(source, nodes); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verifyNodeSort(t, nodes, "apple,node1,node2,node3,node4,node5")
-
-	// Now enable coordinates and sort relative to node1, note that apple
-	// doesn't have any seeded coordinate info so it should end up at the
-	// end, despite its lexical hegemony.
-	server.config.DisableCoordinates = false
 	if err := server.sortNodesByDistanceFrom(source, nodes); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -398,6 +378,8 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 	verifyCheckServiceNodeSort(t, nodes, "node2,node3,node5,node4,node1,apple")
 }
 
+/*
+
 // mockNodeMap is keyed by node name and the values are the coordinates of the
 // node.
 type mockNodeMap map[string]*coordinate.Coordinate
@@ -422,16 +404,16 @@ type mockServer map[string]mockNodeMap
 func newMockServer() *mockServer {
 	s := make(mockServer)
 	s["dc0"] = mockNodeMap{
-		"dc0.node1": generateCoordinate(10 * time.Millisecond),
+		"dc0.node1": lib.GenerateCoordinate(10 * time.Millisecond),
 	}
 	s["dc1"] = mockNodeMap{
-		"dc1.node1": generateCoordinate(3 * time.Millisecond),
-		"dc1.node2": generateCoordinate(2 * time.Millisecond),
-		"dc1.node3": generateCoordinate(5 * time.Millisecond),
+		"dc1.node1": lib.GenerateCoordinate(3 * time.Millisecond),
+		"dc1.node2": lib.GenerateCoordinate(2 * time.Millisecond),
+		"dc1.node3": lib.GenerateCoordinate(5 * time.Millisecond),
 		"dc1.node4": nil, // no known coordinate
 	}
 	s["dc2"] = mockNodeMap{
-		"dc2.node1": generateCoordinate(8 * time.Millisecond),
+		"dc2.node1": lib.GenerateCoordinate(8 * time.Millisecond),
 	}
 	s["dcX"] = mockNodeMap{
 		"dcX.node1": nil, // no known coordinate
@@ -548,7 +530,7 @@ func TestRTT_getDatacenterMaps(t *testing.T) {
 		t.Fatalf("bad: %v", maps[0])
 	}
 	verifyCoordinatesEqual(t, maps[0].Coordinates[0].Coord,
-		generateCoordinate(10*time.Millisecond))
+		lib.GenerateCoordinate(10*time.Millisecond))
 
 	if maps[1].Datacenter != "acdc" || len(maps[1].Coordinates) != 0 {
 		t.Fatalf("bad: %v", maps[1])
@@ -561,18 +543,18 @@ func TestRTT_getDatacenterMaps(t *testing.T) {
 		t.Fatalf("bad: %v", maps[2])
 	}
 	verifyCoordinatesEqual(t, maps[2].Coordinates[0].Coord,
-		generateCoordinate(3*time.Millisecond))
+		lib.GenerateCoordinate(3*time.Millisecond))
 	verifyCoordinatesEqual(t, maps[2].Coordinates[1].Coord,
-		generateCoordinate(2*time.Millisecond))
+		lib.GenerateCoordinate(2*time.Millisecond))
 	verifyCoordinatesEqual(t, maps[2].Coordinates[2].Coord,
-		generateCoordinate(5*time.Millisecond))
+		lib.GenerateCoordinate(5*time.Millisecond))
 
 	if maps[3].Datacenter != "dc2" || len(maps[3].Coordinates) != 1 ||
 		maps[3].Coordinates[0].Node != "dc2.node1" {
 		t.Fatalf("bad: %v", maps[3])
 	}
 	verifyCoordinatesEqual(t, maps[3].Coordinates[0].Coord,
-		generateCoordinate(8*time.Millisecond))
+		lib.GenerateCoordinate(8*time.Millisecond))
 
 	if maps[4].Datacenter != "dcX" || len(maps[4].Coordinates) != 0 {
 		t.Fatalf("bad: %v", maps[4])
@@ -646,3 +628,5 @@ func TestRTT_getDatacentersByDistance(t *testing.T) {
 		t.Fatalf("bad: %v", dcs)
 	}
 }
+
+*/
