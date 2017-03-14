@@ -86,10 +86,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
-	raft_vsn_str := m.Tags["raft_vsn"]
-	raft_vsn, err := strconv.Atoi(raft_vsn_str)
-	if err != nil {
-		return false, nil
+	raft_vsn := 0
+	raft_vsn_str, ok := m.Tags["raft_vsn"]
+	if ok {
+		raft_vsn, err = strconv.Atoi(raft_vsn_str)
+		if err != nil {
+			return false, nil
+		}
 	}
 
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
