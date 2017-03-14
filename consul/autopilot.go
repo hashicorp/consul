@@ -361,6 +361,6 @@ func (s *Server) getServerHealth(id string) *structs.ServerHealth {
 func (s *Server) getServerStats(server *agent.Server) (structs.ServerStats, error) {
 	var args struct{}
 	var reply structs.ServerStats
-	err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
+	err := s.connPool.RPC(s.config.Datacenter, server.Addr.String(), server.Version, "Status.RaftStats", &args, &reply)
 	return reply, err
 }

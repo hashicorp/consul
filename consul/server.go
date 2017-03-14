@@ -257,7 +257,7 @@ func NewServer(config *Config) (*Server, error) {
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		remoteConsuls:         make(map[string][]*agent.Server, 4),
-		router:                servers.NewRouter(loogger, shutdownCh),		
+		router:                servers.NewRouter(logger, shutdownCh),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		tombstoneGC:           gc,
