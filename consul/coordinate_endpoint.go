@@ -2,8 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -143,25 +141,9 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 // and the raw coordinates of those nodes (if no coordinates are available for
 // any of the nodes, the node list may be empty).
 func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.DatacenterMap) error {
-	c.srv.remoteLock.RLock()
-	defer c.srv.remoteLock.RUnlock()
-
-	// Build up a map of all the DCs, sort it first since getDatacenterMaps
-	// will preserve the order of this list in the output.
-	dcs := make([]string, 0, len(c.srv.remoteConsuls))
-	for dc := range c.srv.remoteConsuls {
-		dcs = append(dcs, dc)
-	}
-	sort.Strings(dcs)
-	maps := c.srv.getDatacenterMaps(dcs)
-
-	// Strip the datacenter suffixes from all the node names.
-	for i := range maps {
-		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
-		for j := range maps[i].Coordinates {
-			node := maps[i].Coordinates[j].Node
-			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
-		}
+	maps, err := c.srv.router.GetDatacenterMaps()
+	if err != nil {
+		return err
 	}
 
 	*reply = maps

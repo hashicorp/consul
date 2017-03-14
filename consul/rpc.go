@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -266,31 +265,22 @@ func (s *Server) forwardLeader(server *agent.Server, method string, args interfa
 	return s.connPool.RPC(s.config.Datacenter, server.Addr.String(), server.Version, method, args, reply)
 }
 
-// getRemoteServer returns a random server from a remote datacenter. This uses
-// the bool parameter to signal that none were available.
-func (s *Server) getRemoteServer(dc string) (*agent.Server, bool) {
-	s.remoteLock.RLock()
-	defer s.remoteLock.RUnlock()
-	servers := s.remoteConsuls[dc]
-	if len(servers) == 0 {
-		return nil, false
-	}
-
-	offset := rand.Int31n(int32(len(servers)))
-	server := servers[offset]
-	return server, true
-}
-
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
-	server, ok := s.getRemoteServer(dc)
+	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
-		s.logger.Printf("[WARN] consul.rpc: RPC request for DC '%s', no path found", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found", dc)
 		return structs.ErrNoDCPath
 	}
 
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
-	return s.connPool.RPC(dc, server.Addr.String(), server.Version, method, args, reply)
+	if err := s.connPool.RPC(dc, server.Addr.String(), server.Version, method, args, reply); err != nil {
+		manager.NotifyFailedServer(server)
+		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
+		return err
+	}
+
+	return nil
 }
 
 // globalRPC is used to forward an RPC request to one server in each datacenter.
@@ -303,12 +293,7 @@ func (s *Server) globalRPC(method string, args interface{},
 	respCh := make(chan interface{})
 
 	// Make a new request into each datacenter
-	s.remoteLock.RLock()
-	dcs := make([]string, 0, len(s.remoteConsuls))
-	for dc, _ := range s.remoteConsuls {
-		dcs = append(dcs, dc)
-	}
-	s.remoteLock.RUnlock()
+	dcs := s.router.GetDatacenters()
 	for _, dc := range dcs {
 		go func(dc string) {
 			rr := reply.New()
@@ -320,7 +305,7 @@ func (s *Server) globalRPC(method string, args interface{},
 		}(dc)
 	}
 
-	replies, total := 0, len(s.remoteConsuls)
+	replies, total := 0, len(dcs)
 	for replies < total {
 		select {
 		case err := <-errorCh:

@@ -18,10 +18,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/agent"
+	"github.com/hashicorp/consul/consul/servers"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/coordinate"
@@ -140,6 +142,10 @@ type Server struct {
 	remoteConsuls map[string][]*agent.Server
 	remoteLock    sync.RWMutex
 
+	// router is used to map out Consul servers in the WAN and in Consul
+	// Enterprise user-defined areas.
+	router *servers.Router
+
 	// rpcListener is used to listen for incoming connections
 	rpcListener net.Listener
 	rpcServer   *rpc.Server
@@ -236,6 +242,9 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	// Create the shutdown channel - this is closed but never written to.
+	shutdownCh := make(chan struct{})
+
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
@@ -248,6 +257,7 @@ func NewServer(config *Config) (*Server, error) {
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		remoteConsuls:         make(map[string][]*agent.Server, 4),
+		router:                servers.NewRouter(loogger, shutdownCh),		
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		tombstoneGC:           gc,
@@ -290,7 +300,7 @@ func NewServer(config *Config) (*Server, error) {
 		s.eventChLAN, serfLANSnapshot, false)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
+		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
 	go s.lanEventHandler()
 
@@ -299,9 +309,15 @@ func NewServer(config *Config) (*Server, error) {
 		s.eventChWAN, serfWANSnapshot, true)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
+		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
 	}
-	go s.wanEventHandler()
+
+	// Add a "static route" to the WAN Serf and hook it up to Serf events.
+	if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
+	}
+	go servers.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
@@ -602,6 +618,9 @@ func (s *Server) Shutdown() error {
 
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
+		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
+			s.logger.Printf("[WARN] consul: error removing WAN area: %v", err)
+		}
 	}
 
 	if s.raft != nil {
@@ -881,9 +900,7 @@ func (s *Server) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
-	s.remoteLock.RLock()
-	numKnownDCs := len(s.remoteConsuls)
-	s.remoteLock.RUnlock()
+	numKnownDCs := len(s.router.GetDatacenters())
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":            "true",

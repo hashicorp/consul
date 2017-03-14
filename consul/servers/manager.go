@@ -50,9 +50,9 @@ const (
 	newRebalanceConnsPerSecPerServer = 64
 )
 
-// ConsulClusterInfo is an interface wrapper around serf in order to prevent
-// a cyclic import dependency.
-type ConsulClusterInfo interface {
+// ManagerSerfCluster is an interface wrapper around Serf in order to make this
+// easier to unit test.
+type ManagerSerfCluster interface {
 	NumNodes() int
 }
 
@@ -88,8 +88,8 @@ type Manager struct {
 
 	// clusterInfo is used to estimate the approximate number of nodes in
 	// a cluster and limit the rate at which it rebalances server
-	// connections.  ConsulClusterInfo is an interface that wraps serf.
-	clusterInfo ConsulClusterInfo
+	// connections.  ManagerSerfCluster is an interface that wraps serf.
+	clusterInfo ManagerSerfCluster
 
 	// connPoolPinger is used to test the health of a server in the
 	// connection pool.  Pinger is an interface that wraps
@@ -214,7 +214,7 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger Pinger) (m *Manager) {
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
 	m = new(Manager)
 	m.logger = logger
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle

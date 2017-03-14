@@ -30,11 +30,18 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 	// Perform DC forwarding.
 	if dc := args.Datacenter; dc != s.config.Datacenter {
-		server, ok := s.getRemoteServer(dc)
+		manager, server, ok := s.router.FindRoute(dc)
 		if !ok {
 			return nil, structs.ErrNoDCPath
 		}
-		return SnapshotRPC(s.connPool, dc, server.Addr.String(), args, in, reply)
+
+		snap, err := SnapshotRPC(s.connPool, dc, server.Addr.String(), args, in, reply)
+		if err != nil {
+			manager.NotifyFailedServer(server)
+			return nil, err
+		}
+
+		return snap, nil
 	}
 
 	// Perform leader forwarding if required.
