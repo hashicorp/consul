@@ -190,7 +190,16 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 		}
 		switch encArgs[0] {
 		case "dns":
-			u.ex = newDNSEx()
+			if len(encArgs) > 1 {
+				if encArgs[1] == "force_tcp" {
+					opts := Options{ForceTCP: true}
+					u.ex = newDNSExWithOption(opts)
+				} else {
+					return fmt.Errorf("only force_tcp allowed as parameter to dns")
+				}
+			} else {
+				u.ex = newDNSEx()
+			}
 		case "https_google":
 			boot := []string{"8.8.8.8:53", "8.8.4.4:53"}
 			if len(encArgs) > 2 && encArgs[1] == "bootstrap" {

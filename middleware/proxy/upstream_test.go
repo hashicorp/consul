@@ -199,6 +199,13 @@ proxy . 8.8.8.8:53 {
 		{
 			`
 proxy . 8.8.8.8:53 {
+	protocol dns force_tcp
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
 	protocol grpc a b c d
 }`,
 			true,
@@ -262,6 +269,13 @@ proxy . 8.8.8.8:53 {
 			`
 proxy . 8.8.8.8:53 {
 	health_check
+}`,
+			true,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+	protocol dns force
 }`,
 			true,
 		},

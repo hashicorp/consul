@@ -14,6 +14,11 @@ import (
 
 // NewLookup create a new proxy with the hosts in host and a Random policy.
 func NewLookup(hosts []string) Proxy {
+	return NewLookupWithOption(hosts, Options{})
+}
+
+// NewLookupWithForcedProto process creates a simple round robin forward with potentially forced proto for upstream.
+func NewLookupWithOption(hosts []string, opts Options) Proxy {
 	p := Proxy{Next: nil}
 
 	upstream := &staticUpstream{
@@ -23,7 +28,7 @@ func NewLookup(hosts []string) Proxy {
 		Spray:       nil,
 		FailTimeout: 10 * time.Second,
 		MaxFails:    3, // TODO(miek): disable error checking for simple lookups?
-		ex:          newDNSEx(),
+		ex:          newDNSExWithOption(opts),
 	}
 
 	for i, host := range hosts {

@@ -26,7 +26,7 @@ proxy FROM TO... {
     health_check PATH:PORT [DURATION]
     except IGNORED_NAMES...
     spray
-    protocol [dns|https_google [bootstrap ADDRESS...]|grpc [insecure|CA-PEM|KEY-PEM CERT-PEM|KEY-PEM CERT-PEM CA-PEM]]
+    protocol [dns [force_tcp]|https_google [bootstrap ADDRESS...]|grpc [insecure|CA-PEM|KEY-PEM CERT-PEM|KEY-PEM CERT-PEM CA-PEM]]
 }
 ~~~
 
@@ -71,7 +71,8 @@ Currently `protocol` supports `dns` (i.e., standard DNS over UDP/TCP) and `https
 payload over HTTPS). Note that with `https_google` the entire transport is encrypted. Only *you* and
 *Google* can see your DNS activity.
 
-* `dns`: no options can be given at the moment.
+* `dns`: uses the standard DNS exchange. You can pass `force_tcp` to make sure that the proxied connection is performed
+  over TCP, regardless of the inbound request's protocol.
 * `https_google`: bootstrap **ADDRESS...** is used to (re-)resolve `dns.google.com` to an address to
   connect to. This happens every 300s. If not specified the default is used: 8.8.8.8:53/8.8.4.4:53.
   Note that **TO** is *ignored* when `https_google` is used, as its upstream is defined as
