@@ -240,7 +240,8 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 	r.RLock()
 	defer r.RUnlock()
 
-	// Calculate a median RTT to the servers in each datacenter, by area.
+	// Go through each area and aggregate the median RTT from the current
+	// server to the other servers in each datacenter.
 	dcs := make(map[string]float64)
 	for areaID, info := range r.areas {
 		index := make(map[string][]float64)
@@ -275,13 +276,8 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 		// in the master map, since a given DC might appear in multiple
 		// areas.
 		for dc, rtts := range index {
-			var rtt float64
-			if len(rtts) > 0 {
-				sort.Float64s(rtts)
-				rtt = rtts[len(rtts)/2]
-			} else {
-				rtt = lib.ComputeDistance(coord, nil)
-			}
+			sort.Float64s(rtts)
+			rtt := rtts[len(rtts)/2]
 
 			current, ok := dcs[dc]
 			if !ok || (ok && rtt < current) {
@@ -298,11 +294,11 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 	sort.Strings(names)
 
 	// Then stable sort by median RTT.
-	vec := make([]float64, 0, len(dcs))
+	rtts := make([]float64, 0, len(dcs))
 	for _, dc := range names {
-		vec = append(vec, dcs[dc])
+		rtts = append(rtts, dcs[dc])
 	}
-	sort.Stable(&datacenterSorter{names, vec})
+	sort.Stable(&datacenterSorter{names, rtts})
 	return names, nil
 }
 
