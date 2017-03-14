@@ -14,12 +14,24 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// Router keeps track of a set of network areas and their associated Serf
+// membership of Consul servers. It then indexes this by datacenter to provide
+// healthy routes to servers by datacenter.
 type Router struct {
+	// logger is used for diagnostic output.
 	logger *log.Logger
 
+	// localDatacenter has the name of the router's home datacenter. This is
+	// used to short-circuit RTT calculations for local servers.
 	localDatacenter string
-	areas           map[types.AreaID]*areaInfo
-	managers        map[string][]*Manager
+
+	// areas maps area IDs to structures holding information about that
+	// area.
+	areas map[types.AreaID]*areaInfo
+
+	// managers is an index from datacenter names to a list of server
+	// managers for that datacenter. This is used to quickly lookup routes.
+	managers map[string][]*Manager
 
 	// This top-level lock covers all the internal state.
 	sync.RWMutex
@@ -31,20 +43,36 @@ type RouterSerfCluster interface {
 	NumNodes() int
 	Members() []serf.Member
 	GetCoordinate() (*coordinate.Coordinate, error)
-	GetCachedCoordinate(name string) (coord *coordinate.Coordinate, ok bool)
+	GetCachedCoordinate(name string) (*coordinate.Coordinate, bool)
 }
 
+// managerInfo holds a server manager for a datacenter along with its associated
+// shutdown channel.
 type managerInfo struct {
-	manager    *Manager
+	// manager is notified about servers for this datacenter.
+	manager *Manager
+
+	// shutdownCh is only given to this manager so we can shut it down when
+	// all servers for this datacenter are gone.
 	shutdownCh chan struct{}
 }
 
+// areaInfo holds information about a given network area.
 type areaInfo struct {
-	cluster  RouterSerfCluster
-	pinger   Pinger
+	// cluster is the Serf instance for this network area.
+	cluster RouterSerfCluster
+
+	// pinger is used to ping servers in this network area when trying to
+	// find a new, healthy server to talk to.
+	pinger Pinger
+
+	// managers maps datacenter names to managers for that datacenter in
+	// this area.
 	managers map[string]*managerInfo
 }
 
+// NewRouter returns a new router with the given configuration. This will also
+// spawn a goroutine that cleans up when the given shutdownCh is closed.
 func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter string) *Router {
 	router := &Router{
 		logger:          logger,
@@ -72,6 +100,7 @@ func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter str
 	return router
 }
 
+// AddArea registers a new network area with the router.
 func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger) error {
 	r.Lock()
 	defer r.Unlock()
@@ -80,11 +109,30 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 		return fmt.Errorf("area ID %q already exists", areaID)
 	}
 
-	r.areas[areaID] = &areaInfo{
+	area := &areaInfo{
 		cluster:  cluster,
 		pinger:   pinger,
 		managers: make(map[string]*managerInfo),
 	}
+	r.areas[areaID] = area
+
+	// Do an initial populate of the manager so that we don't have to wait
+	// for events to fire. This lets us attempt to use all the known servers
+	// initially, and then will quickly detect that they are failed if we
+	// can't reach them.
+	for _, m := range cluster.Members() {
+		ok, parts := agent.IsConsulServer(m)
+		if !ok {
+			r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
+				m.Name, areaID)
+			continue
+		}
+
+		if err := r.addServer(area, parts); err != nil {
+			return fmt.Errorf("failed to add server %q to area %q: %v", m.Name, areaID, err)
+		}
+	}
+
 	return nil
 }
 
@@ -96,12 +144,16 @@ func (r *Router) removeManagerFromIndex(datacenter string, manager *Manager) {
 	for i := 0; i < len(managers); i++ {
 		if managers[i] == manager {
 			r.managers[datacenter] = append(managers[:i], managers[i+1:]...)
+			if len(r.managers[datacenter]) == 0 {
+				delete(r.managers, datacenter)
+			}
 			return
 		}
 	}
 	panic("managers index out of sync")
 }
 
+// RemoveArea removes an existing network area from the router.
 func (r *Router) RemoveArea(areaID types.AreaID) error {
 	r.Lock()
 	defer r.Unlock()
@@ -121,15 +173,8 @@ func (r *Router) RemoveArea(areaID types.AreaID) error {
 	return nil
 }
 
-func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
-	r.Lock()
-	defer r.Unlock()
-
-	area, ok := r.areas[areaID]
-	if !ok {
-		return fmt.Errorf("area ID %q does not exist", areaID)
-	}
-
+// addServer does the work of AddServer once the write lock is held.
+func (r *Router) addServer(area *areaInfo, s *agent.Server) error {
 	// Make the manager on the fly if this is the first we've seen of it,
 	// and add it to the index.
 	info, ok := area.managers[s.Datacenter]
@@ -140,6 +185,7 @@ func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
 			manager:    manager,
 			shutdownCh: shutdownCh,
 		}
+		area.managers[s.Datacenter] = info
 
 		managers := r.managers[s.Datacenter]
 		r.managers[s.Datacenter] = append(managers, manager)
@@ -149,6 +195,21 @@ func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
 	return nil
 }
 
+// AddServer should be called whenever a new server joins an area. This is
+// typically hooked into the Serf event handler area for this area.
+func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
+	r.Lock()
+	defer r.Unlock()
+
+	area, ok := r.areas[areaID]
+	if !ok {
+		return fmt.Errorf("area ID %q does not exist", areaID)
+	}
+	return r.addServer(area, s)
+}
+
+// RemoveServer should be called whenever a server is removed from an area. This
+// is typically hooked into the Serf event handler area for this area.
 func (r *Router) RemoveServer(areaID types.AreaID, s *agent.Server) error {
 	r.Lock()
 	defer r.Unlock()
@@ -178,6 +239,10 @@ func (r *Router) RemoveServer(areaID types.AreaID, s *agent.Server) error {
 	return nil
 }
 
+// FailServer should be called whenever a server is failed in an area. This
+// is typically hooked into the Serf event handler area for this area. We will
+// immediately shift traffic away from this server, but it will remain in the
+// list of servers.
 func (r *Router) FailServer(areaID types.AreaID, s *agent.Server) error {
 	r.RLock()
 	defer r.RUnlock()
@@ -199,6 +264,36 @@ func (r *Router) FailServer(areaID types.AreaID, s *agent.Server) error {
 	return nil
 }
 
+// FindRoute returns a healthy server with a route to the given datacenter. The
+// Boolean return parameter will indicate if a server was available. In some
+// cases this may return a best-effort unhealthy server that can be used for a
+// connection attempt. If any problem occurs with the given server, the caller
+// should feed that back to the manager associated with the server, which is
+// also returned, by calling NofifyFailedServer().
+func (r *Router) FindRoute(datacenter string) (*Manager, *agent.Server, bool) {
+	r.RLock()
+	defer r.RUnlock()
+
+	// Get the list of managers for this datacenter. This will usually just
+	// have one entry, but it's possible to have a user-defined area + WAN.
+	managers, ok := r.managers[datacenter]
+	if !ok {
+		return nil, nil, false
+	}
+
+	// Try each manager until we get a server.
+	for _, manager := range managers {
+		if s := manager.FindServer(); s != nil {
+			return manager, s, true
+		}
+	}
+
+	// Didn't find a route (even via an unhealthy server).
+	return nil, nil, false
+}
+
+// GetDatacenters returns a list of datacenters known to the router, sorted by
+// name.
 func (r *Router) GetDatacenters() []string {
 	r.RLock()
 	defer r.RUnlock()
@@ -236,6 +331,10 @@ func (n *datacenterSorter) Less(i, j int) bool {
 	return n.Vec[i] < n.Vec[j]
 }
 
+// GetDatacentersByDeistance returns a list of datacenters known to the router,
+// sorted by median RTT from this server to the servers in each datacenter. If
+// there are multiple areas that reach a given datacenter, this will use the
+// lowest RTT for the sort.
 func (r *Router) GetDatacentersByDistance() ([]string, error) {
 	r.RLock()
 	defer r.RUnlock()
@@ -302,6 +401,8 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 	return names, nil
 }
 
+// GetDatacenterMaps returns a structure with the raw network coordinates of
+// each known server, organized by datacenter and network area.
 func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 	r.RLock()
 	defer r.RUnlock()
@@ -338,26 +439,4 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 		}
 	}
 	return maps, nil
-}
-
-func (r *Router) FindRoute(datacenter string) (*Manager, *agent.Server, bool) {
-	r.RLock()
-	defer r.RUnlock()
-
-	// Get the list of managers for this datacenter. This will usually just
-	// have one entry, but it's possible to have a user-defined area + WAN.
-	managers, ok := r.managers[datacenter]
-	if !ok {
-		return nil, nil, false
-	}
-
-	// Try each manager until we get a server.
-	for _, manager := range managers {
-		if s := manager.FindServer(); s != nil {
-			return manager, s, true
-		}
-	}
-
-	// Didn't find a route (even via an unhealthy server).
-	return nil, nil, false
 }
