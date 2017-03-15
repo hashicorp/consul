@@ -29,6 +29,7 @@ IMPROVEMENTS:
 * agent: Serf snapshots no longer have the executable bit set on the file. [GH-2722]
 * agent: Consul is now built with Go 1.8. [GH-2752]
 * agent: Updated aws-sdk-go version (used for EC2 auto join) for Go 1.8 compatibility. [GH-2755]
+* agent: Normalizes user-supplied node IDs to lower-case. [GH-2798]
 * cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
 * cli: Updated go-cleanhttp library for better HTTP connection handling between CLI commands and the Consul agent (tunes reuse settings). [GH-2735]
 * cli: The `operator raft` subcommand has had its two modes split into the `list-peers` and `remove-peer` subcommands. The old flags for these will continue to work for backwards compatibility, but will be removed in Consul 0.9.
