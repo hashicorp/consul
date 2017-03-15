@@ -33,6 +33,9 @@ type Router struct {
 	// managers for that datacenter. This is used to quickly lookup routes.
 	managers map[string][]*Manager
 
+	// routeFn is a hook to actually do the routing.
+	routeFn func(datacenter string) (*Manager, *agent.Server, bool)
+
 	// This top-level lock covers all the internal state.
 	sync.RWMutex
 }
@@ -80,6 +83,9 @@ func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter str
 		areas:           make(map[types.AreaID]*areaInfo),
 		managers:        make(map[string][]*Manager),
 	}
+
+	// Hook the direct route lookup by default.
+	router.routeFn = router.findDirectRoute
 
 	// This will propagate a top-level shutdown to all the managers.
 	go func() {
@@ -272,6 +278,12 @@ func (r *Router) FailServer(areaID types.AreaID, s *agent.Server) error {
 // should feed that back to the manager associated with the server, which is
 // also returned, by calling NofifyFailedServer().
 func (r *Router) FindRoute(datacenter string) (*Manager, *agent.Server, bool) {
+	return r.routeFn(datacenter)
+}
+
+// findDirectRoute looks for a route to the given datacenter if it's directly
+// adjacent to the server.
+func (r *Router) findDirectRoute(datacenter string) (*Manager, *agent.Server, bool) {
 	r.RLock()
 	defer r.RUnlock()
 
