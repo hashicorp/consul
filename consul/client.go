@@ -330,7 +330,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	}
 
 	// Forward to remote Consul
-	if err := c.connPool.RPC(c.config.Datacenter, server.Addr.String(), server.Version, method, args, reply); err != nil {
+	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		c.servers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
@@ -357,7 +357,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 	// Request the operation.
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr.String(), args, in, &reply)
+	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, args, in, &reply)
 	if err != nil {
 		return err
 	}

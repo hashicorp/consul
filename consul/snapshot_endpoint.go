@@ -35,7 +35,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoDCPath
 		}
 
-		snap, err := SnapshotRPC(s.connPool, dc, server.Addr.String(), args, in, reply)
+		snap, err := SnapshotRPC(s.connPool, dc, server.Addr, args, in, reply)
 		if err != nil {
 			manager.NotifyFailedServer(server)
 			return nil, err
@@ -50,7 +50,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			if server == nil {
 				return nil, structs.ErrNoLeader
 			}
-			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr.String(), args, in, reply)
+			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr, args, in, reply)
 		}
 	}
 
@@ -160,7 +160,7 @@ RESPOND:
 // the streaming output (for a snapshot). If the reply contains an error, this
 // will always return an error as well, so you don't need to check the error
 // inside the filled-in reply.
-func SnapshotRPC(pool *ConnPool, dc string, addr string,
+func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
 
 	conn, hc, err := pool.DialTimeout(dc, addr, 10*time.Second)
