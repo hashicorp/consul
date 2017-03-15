@@ -91,6 +91,7 @@ The options below are all specified on the command-line.
   the cluster. When provided, Consul waits until the specified number of servers are
   available and then bootstraps the cluster. This allows an initial leader to be elected
   automatically. This cannot be used in conjunction with the legacy [`-bootstrap`](#_bootstrap) flag.
+  This flag implies server mode.
 
 * <a name="_bind"></a><a href="#_bind">`-bind`</a> - The address that should be bound to
   for internal cluster communications.
