@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
@@ -102,7 +103,7 @@ func (s *Server) pruneDeadServers() error {
 			go s.serfLAN.RemoveFailedNode(server)
 		}
 	} else {
-		s.logger.Printf("[ERR] consul: Failed to remove dead servers: too many dead servers: %d/%d", len(failed), peers)
+		s.logger.Printf("[DEBUG] consul: Failed to remove dead servers: too many dead servers: %d/%d", len(failed), peers)
 	}
 
 	return nil
@@ -198,8 +199,6 @@ func (s *Server) serverHealthLoop() {
 		case <-s.shutdownCh:
 			return
 		case <-ticker.C:
-			serverHealths := make(map[string]*structs.ServerHealth)
-
 			// Don't do anything if the min Raft version is too low
 			minRaftProtocol, err := ServerMinRaftProtocol(s.LANMembers())
 			if err != nil {
@@ -221,7 +220,8 @@ func (s *Server) serverHealthLoop() {
 				break
 			}
 
-			// Build an updated map of server healths
+			// Get the the serf members which are Consul servers
+			serverMap := make(map[string]serf.Member)
 			for _, member := range s.LANMembers() {
 				if member.Status == serf.StatusLeft {
 					continue
@@ -229,31 +229,78 @@ func (s *Server) serverHealthLoop() {
 
 				valid, parts := agent.IsConsulServer(member)
 				if valid {
-					health, err := s.queryServerHealth(member, parts, autopilotConf)
-					if err != nil {
-						s.logger.Printf("[ERR] consul: error fetching server health: %s", err)
-						serverHealths[parts.ID] = &structs.ServerHealth{
-							ID:      parts.ID,
-							Name:    parts.Name,
-							Healthy: false,
-						}
-					} else {
-						serverHealths[parts.ID] = health
-					}
+					serverMap[parts.ID] = member
 				}
 			}
 
-			s.serverHealthLock.Lock()
-			s.serverHealths = serverHealths
-			s.serverHealthLock.Unlock()
+			future := s.raft.GetConfiguration()
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: error getting Raft configuration %s", err)
+				break
+			}
+
+			// Build a current list of server healths
+			var clusterHealth structs.OperatorHealthReply
+			servers := future.Configuration().Servers
+			healthyCount := 0
+			voterCount := 0
+			for _, server := range servers {
+				member, ok := serverMap[string(server.ID)]
+				if !ok {
+					s.logger.Printf("[DEBUG] consul: couldn't find serf member for server with ID %q", server.ID)
+					continue
+				}
+
+				health, err := s.queryServerHealth(member, autopilotConf)
+				if err != nil {
+					s.logger.Printf("[ERR] consul: error fetching server health: %s", err)
+					clusterHealth.Servers = append(clusterHealth.Servers, structs.ServerHealth{
+						ID:         string(server.ID),
+						Name:       member.Name,
+						SerfStatus: serf.StatusFailed,
+					})
+					continue
+				}
+
+				if health.Healthy {
+					healthyCount++
+				}
+
+				if server.Suffrage != raft.Nonvoter {
+					health.Voter = true
+					voterCount++
+				}
+				clusterHealth.Servers = append(clusterHealth.Servers, *health)
+			}
+			clusterHealth.Healthy = healthyCount == len(servers)
+
+			// If we have extra healthy voters, update FailureTolerance
+			if voterCount > len(servers)/2+1 {
+				clusterHealth.FailureTolerance = voterCount - (len(servers)/2 + 1)
+			}
+
+			// Heartbeat a metric for monitoring if we're the leader
+			if s.IsLeader() {
+				metrics.SetGauge([]string{"consul", "autopilot", "failure_tolerance"}, float32(clusterHealth.FailureTolerance))
+				if clusterHealth.Healthy {
+					metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 1)
+				} else {
+					metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 0)
+				}
+			}
+
+			s.clusterHealthLock.Lock()
+			s.clusterHealth = clusterHealth
+			s.clusterHealthLock.Unlock()
 		}
 	}
 }
 
 // queryServerHealth fetches the raft stats for the given server and uses them
 // to update its ServerHealth
-func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
-	autopilotConf *structs.AutopilotConfig) (*structs.ServerHealth, error) {
+func (s *Server) queryServerHealth(member serf.Member, autopilotConf *structs.AutopilotConfig) (*structs.ServerHealth, error) {
+	_, server := agent.IsConsulServer(member)
+
 	stats, err := s.getServerStats(server)
 	if err != nil {
 		return nil, fmt.Errorf("error getting raft stats: %s", err)
@@ -297,14 +344,21 @@ func (s *Server) queryServerHealth(member serf.Member, server *agent.Server,
 	return health, nil
 }
 
+func (s *Server) getClusterHealth() structs.OperatorHealthReply {
+	s.clusterHealthLock.RLock()
+	defer s.clusterHealthLock.RUnlock()
+	return s.clusterHealth
+}
+
 func (s *Server) getServerHealth(id string) *structs.ServerHealth {
-	s.serverHealthLock.RLock()
-	defer s.serverHealthLock.RUnlock()
-	h, ok := s.serverHealths[id]
-	if !ok {
-		return nil
+	s.clusterHealthLock.RLock()
+	defer s.clusterHealthLock.RUnlock()
+	for _, health := range s.clusterHealth.Servers {
+		if health.ID == id {
+			return &health
+		}
 	}
-	return h
+	return nil
 }
 
 func (s *Server) getServerStats(server *agent.Server) (structs.ServerStats, error) {

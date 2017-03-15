@@ -303,6 +303,7 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 			LastTerm:    server.LastTerm,
 			LastIndex:   server.LastIndex,
 			Healthy:     server.Healthy,
+			Voter:       server.Voter,
 			StableSince: server.StableSince.Round(time.Second).UTC(),
 		})
 	}

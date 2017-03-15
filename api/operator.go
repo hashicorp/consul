@@ -128,6 +128,9 @@ type ServerHealth struct {
 	// Autopilot config.
 	Healthy bool
 
+	// Voter is whether this is a voting server.
+	Voter bool
+
 	// StableSince is the last time this server's Healthy value changed.
 	StableSince time.Time
 }

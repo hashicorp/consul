@@ -212,31 +212,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 		return fmt.Errorf("all servers must have raft_protocol set to 3 or higher to use this endpoint")
 	}
 
-	var status structs.OperatorHealthReply
-	future := op.srv.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return err
-	}
-
-	healthyCount := 0
-	servers := future.Configuration().Servers
-	for _, s := range servers {
-		health := op.srv.getServerHealth(string(s.ID))
-		if health != nil {
-			if health.Healthy {
-				healthyCount++
-			}
-			status.Servers = append(status.Servers, *health)
-		}
-	}
-	status.Healthy = healthyCount == len(servers)
-
-	// If we have extra healthy servers, set FailureTolerance
-	if healthyCount > len(servers)/2+1 {
-		status.FailureTolerance = healthyCount - (len(servers)/2 + 1)
-	}
-
-	*reply = status
+	*reply = op.srv.getClusterHealth()
 
 	return nil
 }

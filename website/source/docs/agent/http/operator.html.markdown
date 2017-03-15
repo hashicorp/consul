@@ -365,6 +365,7 @@ A JSON body is returned that looks like this:
             "LastTerm": 2,
             "LastIndex": 46,
             "Healthy": true,
+            "Voter": true,
             "StableSince": "2017-03-06T22:07:51Z"
         },
         {
@@ -375,6 +376,7 @@ A JSON body is returned that looks like this:
             "LastTerm": 2,
             "LastIndex": 46,
             "Healthy": true,
+            "Voter": false,
             "StableSince": "2017-03-06T22:18:26Z"
         }
     ]

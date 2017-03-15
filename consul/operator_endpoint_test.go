@@ -429,22 +429,21 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_ServerHealth(t *testing.T) {
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	conf := func(c *Config) {
 		c.Datacenter = "dc1"
-		c.Bootstrap = true
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = 3
 		c.ServerHealthInterval = 100 * time.Millisecond
-	})
+		c.AutopilotInterval = 100 * time.Millisecond
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = false
-		c.RaftConfig.ProtocolVersion = 3
-	})
+	dir2, s2 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -453,11 +452,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = false
-		c.RaftConfig.ProtocolVersion = 3
-	})
+	dir3, s3 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
