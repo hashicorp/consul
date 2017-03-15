@@ -321,14 +321,14 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 
 	// Check the WAN members on s1
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) == 2, nil
+		return len(s1.WANMembers()) == 3, nil
 	}, func(err error) {
 		t.Fatalf("bad len")
 	})
 
 	// Check the WAN members on s2
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.WANMembers()) == 2, nil
+		return len(s2.WANMembers()) == 3, nil
 	}, func(err error) {
 		t.Fatalf("bad len")
 	})
