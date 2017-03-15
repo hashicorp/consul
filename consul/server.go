@@ -334,7 +334,10 @@ func NewServer(config *Config) (*Server, error) {
 		for {
 		WAIT:
 			select {
-			case <-s.shutdownCh:
+			case <-s.serfLAN.ShutdownCh():
+				return
+
+			case <-s.serfWAN.ShutdownCh():
 				return
 
 			case <-ticker.C:
