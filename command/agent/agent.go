@@ -646,6 +646,7 @@ func (a *Agent) setupNodeID(config *Config) error {
 	// If they've configured a node ID manually then just use that, as
 	// long as it's valid.
 	if config.NodeID != "" {
+		config.NodeID = types.NodeID(strings.ToLower(string(config.NodeID)))
 		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
 			return err
 		}
@@ -674,6 +675,7 @@ func (a *Agent) setupNodeID(config *Config) error {
 		}
 
 		nodeID := strings.TrimSpace(string(rawID))
+		nodeID = strings.ToLower(nodeID)
 		if _, err := uuid.ParseUUID(nodeID); err != nil {
 			return err
 		}

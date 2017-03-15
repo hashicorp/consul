@@ -341,7 +341,7 @@ func TestAgent_NodeID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	c.NodeID = types.NodeID(newID)
+	c.NodeID = types.NodeID(strings.ToUpper(newID))
 	if err := agent.setupNodeID(c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -361,7 +361,7 @@ func TestAgent_NodeID(t *testing.T) {
 	}
 
 	// Set a valid ID via the file.
-	if err := ioutil.WriteFile(fileID, []byte("adf4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
+	if err := ioutil.WriteFile(fileID, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	c.NodeID = ""
