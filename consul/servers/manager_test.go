@@ -77,6 +77,45 @@ func TestServers_AddServer(t *testing.T) {
 	}
 }
 
+// func (m *Manager) IsOffline() bool {
+func TestServers_IsOffline(t *testing.T) {
+	m := testManager()
+	if !m.IsOffline() {
+		t.Fatalf("bad")
+	}
+
+	s1 := &agent.Server{Name: "s1"}
+	m.AddServer(s1)
+	if m.IsOffline() {
+		t.Fatalf("bad")
+	}
+	m.RebalanceServers()
+	if m.IsOffline() {
+		t.Fatalf("bad")
+	}
+	m.RemoveServer(s1)
+	m.RebalanceServers()
+	if !m.IsOffline() {
+		t.Fatalf("bad")
+	}
+
+	const failPct = 0.5
+	m = testManagerFailProb(failPct)
+	m.AddServer(s1)
+	var on, off int
+	for i := 0; i < 100; i++ {
+		m.RebalanceServers()
+		if m.IsOffline() {
+			off++
+		} else {
+			on++
+		}
+	}
+	if on == 0 || off == 0 {
+		t.Fatalf("bad: %d %d", on, off)
+	}
+}
+
 // func (m *Manager) FindServer() (server *agent.Server) {
 func TestServers_FindServer(t *testing.T) {
 	m := testManager()

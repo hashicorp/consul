@@ -232,6 +232,86 @@ func TestRouter_Routing(t *testing.T) {
 	}
 }
 
+func TestRouter_Routing_Offline(t *testing.T) {
+	r := testRouter("dc0")
+
+	// Create a WAN-looking area.
+	self := "node0.dc0"
+	wan := testCluster(self)
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{1.0}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Adding the area should enable all the routes right away.
+	if _, _, ok := r.FindRoute("dc0"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc1"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc2"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dcX"); !ok {
+		t.Fatalf("bad")
+	}
+
+	// Do a rebalance for dc1, which should knock it offline.
+	func() {
+		r.Lock()
+		defer r.Unlock()
+
+		area, ok := r.areas[types.AreaWAN]
+		if !ok {
+			t.Fatalf("bad")
+		}
+
+		info, ok := area.managers["dc1"]
+		if !ok {
+			t.Fatalf("bad")
+		}
+		info.manager.RebalanceServers()
+	}()
+
+	// Recheck all the routes.
+	if _, _, ok := r.FindRoute("dc0"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc1"); ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc2"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dcX"); !ok {
+		t.Fatalf("bad")
+	}
+
+	// Add another area with a route to dc1.
+	otherID := types.AreaID("other")
+	other := newMockCluster(self)
+	other.AddMember("dc0", "node0", nil)
+	other.AddMember("dc1", "node1", nil)
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Recheck all the routes and make sure it finds the one that's
+	// online.
+	if _, _, ok := r.FindRoute("dc0"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc1"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dc2"); !ok {
+		t.Fatalf("bad")
+	}
+	if _, _, ok := r.FindRoute("dcX"); !ok {
+		t.Fatalf("bad")
+	}
+}
+
 func TestRouter_GetDatacenters(t *testing.T) {
 	r := testRouter("dc0")
 

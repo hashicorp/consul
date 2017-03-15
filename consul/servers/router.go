@@ -189,6 +189,7 @@ func (r *Router) addServer(area *areaInfo, s *agent.Server) error {
 
 		managers := r.managers[s.Datacenter]
 		r.managers[s.Datacenter] = append(managers, manager)
+		go manager.Start()
 	}
 
 	info.manager.AddServer(s)
@@ -283,6 +284,10 @@ func (r *Router) FindRoute(datacenter string) (*Manager, *agent.Server, bool) {
 
 	// Try each manager until we get a server.
 	for _, manager := range managers {
+		if manager.IsOffline() {
+			continue
+		}
+
 		if s := manager.FindServer(); s != nil {
 			return manager, s, true
 		}
