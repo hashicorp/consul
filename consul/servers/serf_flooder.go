@@ -72,9 +72,13 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 		}
 
 		// Do the join!
-		if _, err := globalSerf.Join([]string{addr}, true); err != nil {
+		n, err := globalSerf.Join([]string{addr}, true)
+		if err != nil {
 			logger.Printf("[DEBUG] consul: Failed to flood-join %q at %s: %v",
 				server.Name, addr, err)
+		} else if n > 0 {
+			logger.Printf("[INFO] consul: Successfully performed flood-join for %q at %s",
+				server.Name, addr)
 		}
 	}
 }

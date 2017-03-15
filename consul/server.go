@@ -156,9 +156,9 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
-	// floodCh is kicked whenever we should try to flood LAN servers into
-	// the WAN.
-	floodCh chan struct{}
+	// floodLock controls access to floodCh.
+	floodLock sync.RWMutex
+	floodCh   []chan struct{}
 
 	// sessionTimers track the expiration time of each Session that has
 	// a TTL. On expiration, a SessionDestroy event will occur, and
@@ -258,7 +258,6 @@ func NewServer(config *Config) (*Server, error) {
 		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
-		floodCh:               make(chan struct{}),
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
@@ -318,40 +317,15 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	go servers.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
-	// Fire up the LAN <-> WAN Serf join flooder.
-	go func() {
-		ticker := time.NewTicker(config.SerfFloodInterval)
-		defer ticker.Stop()
-
-		portFn := func(s *agent.Server) (int, bool) {
-			if s.WanJoinPort > 0 {
-				return s.WanJoinPort, true
-			} else {
-				return 0, false
-			}
+	// Fire up the LAN <-> WAN join flooder.
+	portFn := func(s *agent.Server) (int, bool) {
+		if s.WanJoinPort > 0 {
+			return s.WanJoinPort, true
+		} else {
+			return 0, false
 		}
-
-		for {
-		WAIT:
-			select {
-			case <-s.serfLAN.ShutdownCh():
-				return
-
-			case <-s.serfWAN.ShutdownCh():
-				return
-
-			case <-ticker.C:
-				goto FLOOD
-
-			case <-s.floodCh:
-				goto FLOOD
-			}
-			goto WAIT
-
-		FLOOD:
-			servers.FloodJoins(s.logger, portFn, config.Datacenter, s.serfLAN, s.serfWAN)
-		}
-	}()
+	}
+	go s.Flood(portFn, s.serfWAN)
 
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
