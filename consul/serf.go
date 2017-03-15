@@ -142,6 +142,12 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 		if s.config.BootstrapExpect != 0 {
 			s.maybeBootstrap()
 		}
+
+		// Kick the WAN flooder.
+		select {
+		case s.floodCh <- struct{}{}:
+		default:
+		}
 	}
 }
 

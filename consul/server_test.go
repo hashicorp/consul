@@ -225,6 +225,65 @@ func TestServer_JoinWAN(t *testing.T) {
 	})
 }
 
+func TestServer_JoinWAN_Flood(t *testing.T) {
+	// Set up two servers in a WAN.
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.WANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	dir3, s3 := testServer(t)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Do just a LAN join for the new server and make sure it
+	// shows up in the WAN.
+	addr = fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) == 3, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.WANMembers()) == 3, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s3.WANMembers()) == 3, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+}
+
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

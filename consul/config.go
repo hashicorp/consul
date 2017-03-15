@@ -96,6 +96,11 @@ type Config struct {
 	// SerfWANConfig is the configuration for the cross-dc serf
 	SerfWANConfig *serf.Config
 
+	// SerfFloodInterval controls how often we attempt to flood local Serf
+	// Consul servers into the global areas (WAN and user-defined areas in
+	// Consul Enterprise).
+	SerfFloodInterval time.Duration
+
 	// ReconcileInterval controls how often we reconcile the strongly
 	// consistent store with the Serf info. This is used to handle nodes
 	// that are force removed, as well as intermittent unavailability during
@@ -331,6 +336,7 @@ func DefaultConfig() *Config {
 		RaftConfig:               raft.DefaultConfig(),
 		SerfLANConfig:            serf.DefaultConfig(),
 		SerfWANConfig:            serf.DefaultConfig(),
+		SerfFloodInterval:        60 * time.Second,
 		ReconcileInterval:        60 * time.Second,
 		ProtocolVersion:          ProtocolVersion2Compatible,
 		ACLTTL:                   30 * time.Second,

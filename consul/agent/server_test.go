@@ -55,13 +55,14 @@ func TestIsConsulServer(t *testing.T) {
 		Name: "foo",
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
-			"role":     "consul",
-			"id":       "asdf",
-			"dc":       "east-aws",
-			"port":     "10000",
-			"vsn":      "1",
-			"expect":   "3",
-			"raft_vsn": "3",
+			"role":          "consul",
+			"id":            "asdf",
+			"dc":            "east-aws",
+			"port":          "10000",
+			"wan_join_port": "1234",
+			"vsn":           "1",
+			"expect":        "3",
+			"raft_vsn":      "3",
 		},
 	}
 	ok, parts := agent.IsConsulServer(m)
@@ -79,6 +80,12 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	if parts.Expect != 3 {
 		t.Fatalf("bad: %v", parts.Expect)
+	}
+	if parts.Port != 10000 {
+		t.Fatalf("bad: %v", parts.Port)
+	}
+	if parts.WanJoinPort != 1234 {
+		t.Fatalf("bad: %v", parts.WanJoinPort)
 	}
 	if parts.RaftVersion != 3 {
 		t.Fatalf("bad: %v", parts.RaftVersion)
@@ -126,8 +133,8 @@ func TestIsConsulServer_Optional(t *testing.T) {
 			"dc":   "east-aws",
 			"port": "10000",
 			"vsn":  "1",
-			// raft_vsn and expect are optional and should default
-			// to zero.
+			// wan_join_port, raft_vsn, and expect are optional and
+			// should default to zero.
 		},
 	}
 	ok, parts := agent.IsConsulServer(m)
@@ -145,6 +152,12 @@ func TestIsConsulServer_Optional(t *testing.T) {
 	}
 	if parts.Expect != 0 {
 		t.Fatalf("bad: %v", parts.Expect)
+	}
+	if parts.Port != 10000 {
+		t.Fatalf("bad: %v", parts.Port)
+	}
+	if parts.WanJoinPort != 0 {
+		t.Fatalf("bad: %v", parts.WanJoinPort)
 	}
 	if parts.RaftVersion != 0 {
 		t.Fatalf("bad: %v", parts.RaftVersion)

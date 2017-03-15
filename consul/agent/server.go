@@ -29,6 +29,7 @@ type Server struct {
 	ID          string
 	Datacenter  string
 	Port        int
+	WanJoinPort int
 	Bootstrap   bool
 	Expect      int
 	Version     int
@@ -80,6 +81,15 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
+	wan_join_port := 0
+	wan_join_port_str, ok := m.Tags["wan_join_port"]
+	if ok {
+		wan_join_port, err = strconv.Atoi(wan_join_port_str)
+		if err != nil {
+			return false, nil
+		}
+	}
+
 	vsn_str := m.Tags["vsn"]
 	vsn, err := strconv.Atoi(vsn_str)
 	if err != nil {
@@ -102,6 +112,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		ID:          m.Tags["id"],
 		Datacenter:  datacenter,
 		Port:        port,
+		WanJoinPort: wan_join_port,
 		Bootstrap:   bootstrap,
 		Expect:      expect,
 		Addr:        addr,
