@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
+const defaultDialTimeout = 10 * time.Second
+
 // muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
 	Open() (net.Conn, error)
@@ -261,7 +263,7 @@ type HalfCloser interface {
 // given connection timeout.
 func (p *ConnPool) DialTimeout(dc string, addr string, timeout time.Duration) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr, defaultDialTimeout)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -297,7 +299,7 @@ func (p *ConnPool) DialTimeout(dc string, addr string, timeout time.Duration) (n
 // getNewConn is used to return a new connection
 func (p *ConnPool) getNewConn(dc string, addr string, version int) (*Conn, error) {
 	// Get a new, raw connection.
-	conn, _, err := p.DialTimeout(dc, addr, 10*time.Second)
+	conn, _, err := p.DialTimeout(dc, addr, defaultDialTimeout)
 	if err != nil {
 		return nil, err
 	}

@@ -71,7 +71,7 @@ type areaInfo struct {
 	managers map[string]*managerInfo
 }
 
-// NewRouter returns a new router with the given configuration. This will also
+// NewRouter returns a new Router with the given configuration. This will also
 // spawn a goroutine that cleans up when the given shutdownCh is closed.
 func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter string) *Router {
 	router := &Router{

@@ -236,7 +236,7 @@ func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCl
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
-	m.offline = 1
+	atomic.StoreInt32(&m.offline, 1)
 
 	l := serverList{}
 	l.servers = make([]*agent.Server, 0)
