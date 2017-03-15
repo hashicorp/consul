@@ -711,3 +711,167 @@ func TestLeader_RollRaftServer(t *testing.T) {
 		})
 	}
 }
+
+func TestLeader_ChangeServerAddress(t *testing.T) {
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Shut down a server, freeing up its address/port
+	s3.Shutdown()
+
+	testutil.WaitForResult(func() (bool, error) {
+		alive := 0
+		for _, m := range s1.LANMembers() {
+			if m.Status == serf.StatusAlive {
+				alive++
+			}
+		}
+		return alive == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 alive members")
+	})
+
+	// Bring up a new server with s3's address that will get a different ID
+	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+		c.NodeID = s3.config.NodeID
+	})
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	servers[2] = s4
+
+	// Make sure the dead server is removed and we're back to 3 total peers
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+}
+
+func TestLeader_ChangeServerID(t *testing.T) {
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Shut down a server, freeing up its address/port
+	s3.Shutdown()
+
+	testutil.WaitForResult(func() (bool, error) {
+		alive := 0
+		for _, m := range s1.LANMembers() {
+			if m.Status == serf.StatusAlive {
+				alive++
+			}
+		}
+		return alive == 2, nil
+	}, func(err error) {
+		t.Fatalf("should have 2 alive members")
+	})
+
+	// Bring up a new server with s3's address that will get a different ID
+	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+		c.SerfLANConfig.MemberlistConfig = s3.config.SerfLANConfig.MemberlistConfig
+		c.RPCAddr = s3.config.RPCAddr
+		c.RPCAdvertise = s3.config.RPCAdvertise
+	})
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+	if _, err := s4.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	servers[2] = s4
+
+	// Make sure the dead server is removed and we're back to 3 total peers
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+}

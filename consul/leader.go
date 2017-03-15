@@ -610,10 +610,17 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 				return nil
 			} else {
 				future := s.raft.RemoveServer(server.ID, 0, 0)
-				if err := future.Error(); err != nil {
-					return fmt.Errorf("error removing server with duplicate ID: %s", err)
+				if server.Address == raft.ServerAddress(addr) {
+					if err := future.Error(); err != nil {
+						return fmt.Errorf("error removing server with duplicate address %q: %s", server.Address, err)
+					}
+					s.logger.Printf("[INFO] consul: removed server with duplicate address: %s", server.Address)
+				} else {
+					if err := future.Error(); err != nil {
+						return fmt.Errorf("error removing server with duplicate ID %q: %s", server.ID, err)
+					}
+					s.logger.Printf("[INFO] consul: removed server with duplicate ID: %s", server.ID)
 				}
-				s.logger.Printf("[INFO] consul: removed server with duplicate ID: %s", server.ID)
 			}
 		}
 	}
