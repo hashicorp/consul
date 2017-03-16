@@ -272,10 +272,9 @@ func (s *Server) updateClusterHealth() error {
 
 		if health.Healthy {
 			healthyCount++
-		}
-
-		if health.Voter {
-			voterCount++
+			if health.Voter {
+				voterCount++
+			}
 		}
 
 		clusterHealth.Servers = append(clusterHealth.Servers, health)
