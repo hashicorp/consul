@@ -580,7 +580,6 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
-	// TODO (slackpad) - This will need to be changed once we support node IDs.
 	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
 
 	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())

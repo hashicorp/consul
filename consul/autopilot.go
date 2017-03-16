@@ -199,7 +199,9 @@ func (s *Server) serverHealthLoop() {
 		case <-s.shutdownCh:
 			return
 		case <-ticker.C:
-			s.updateClusterHealth()
+			if err := s.updateClusterHealth(); err != nil {
+				s.logger.Printf("[ERR] consul: error updating cluster health: %s", err)
+			}
 		}
 	}
 }
@@ -254,12 +256,7 @@ func (s *Server) updateClusterHealth() error {
 			ID:          string(server.ID),
 			Address:     string(server.Address),
 			LastContact: -1,
-			Voter:       server.Suffrage != raft.Nonvoter,
-		}
-
-		// Set LastContact to 0 for the leader
-		if s.raft.Leader() == server.Address {
-			health.LastContact = 0
+			Voter:       server.Suffrage == raft.Voter,
 		}
 
 		member, ok := serverMap[string(server.ID)]
@@ -286,8 +283,9 @@ func (s *Server) updateClusterHealth() error {
 	clusterHealth.Healthy = healthyCount == len(servers)
 
 	// If we have extra healthy voters, update FailureTolerance
-	if voterCount > len(servers)/2+1 {
-		clusterHealth.FailureTolerance = voterCount - (len(servers)/2 + 1)
+	requiredQuorum := len(servers)/2 + 1
+	if voterCount > requiredQuorum {
+		clusterHealth.FailureTolerance = voterCount - requiredQuorum
 	}
 
 	// Heartbeat a metric for monitoring if we're the leader

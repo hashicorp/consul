@@ -979,10 +979,10 @@ func (r *Raft) Stats() map[string]string {
 	}
 
 	last := r.LastContact()
-	if last.IsZero() {
-		s["last_contact"] = "never"
-	} else if r.getState() == Leader {
+	if r.getState() == Leader {
 		s["last_contact"] = "0"
+	} else if last.IsZero() {
+		s["last_contact"] = "never"
 	} else {
 		s["last_contact"] = fmt.Sprintf("%v", time.Now().Sub(last))
 	}
