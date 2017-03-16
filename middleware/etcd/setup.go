@@ -49,7 +49,8 @@ func setup(c *caddy.Controller) error {
 func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 	stub := make(map[string]proxy.Proxy)
 	etc := Etcd{
-		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
+		// Don't default to a proxy for lookups.
+		//		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},
@@ -68,7 +69,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				etc.Zones = make([]string, len(c.ServerBlockKeys))
 				copy(etc.Zones, c.ServerBlockKeys)
 			}
-			middleware.Zones(etc.Zones).Normalize()
+			for i, str := range etc.Zones {
+				etc.Zones[i] = middleware.Host(str).Normalize()
+			}
+
 			if c.NextBlock() {
 				// TODO(miek): 2 switches?
 				switch c.Val() {
