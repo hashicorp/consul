@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -14,7 +16,6 @@ import (
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	"github.com/coredns/coredns/middleware/pkg/tls"
-
 	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"
 )
@@ -229,16 +230,38 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 
 func (u *staticUpstream) healthCheck() {
 	for _, host := range u.Hosts {
-		port := ""
-		if u.HealthCheck.Port != "" {
-			port = ":" + u.HealthCheck.Port
+		var hostName, checkPort string
+
+		// The DNS server might be an HTTP server.  If so, extract its name.
+		if url, err := url.Parse(host.Name); err == nil {
+			hostName = url.Host
+		} else {
+			hostName = host.Name
 		}
-		hostURL := host.Name + port + u.HealthCheck.Path
+
+		// Extract the port number from the parsed server name.
+		checkHostName, checkPort, err := net.SplitHostPort(hostName)
+		if err != nil {
+			checkHostName = hostName
+		}
+
+		if u.HealthCheck.Port != "" {
+			checkPort = u.HealthCheck.Port
+		}
+
+		hostURL := "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
+		host.Unhealthy = false
+
 		if r, err := http.Get(hostURL); err == nil {
 			io.Copy(ioutil.Discard, r.Body)
 			r.Body.Close()
-			host.Unhealthy = r.StatusCode < 200 || r.StatusCode >= 400
+			if r.StatusCode < 200 || r.StatusCode >= 400 {
+				log.Printf("[WARNING] Health check URL %s returned HTTP code %d\n",
+					hostURL, r.StatusCode)
+				host.Unhealthy = true
+			}
 		} else {
+			log.Printf("[WARNING] Health check probe failed: %v\n", err)
 			host.Unhealthy = true
 		}
 	}
