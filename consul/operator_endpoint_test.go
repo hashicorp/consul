@@ -479,14 +479,15 @@ func TestOperator_ServerHealth(t *testing.T) {
 		if len(reply.Servers) != 3 {
 			return false, fmt.Errorf("bad: %v", reply)
 		}
-		if reply.Servers[0].LastContact != 0 {
-			return false, fmt.Errorf("bad: %v", reply)
-		}
-		if reply.Servers[1].LastContact <= 0 {
-			return false, fmt.Errorf("bad: %v", reply)
-		}
-		if reply.Servers[2].LastContact <= 0 {
-			return false, fmt.Errorf("bad: %v", reply)
+		// Leader should have LastContact == 0, others should be positive
+		for _, s := range reply.Servers {
+			isLeader := s1.raft.Leader() == raft.ServerAddress(s.Address)
+			if isLeader && s.LastContact != 0 {
+				return false, fmt.Errorf("bad: %v", reply)
+			}
+			if !isLeader && s.LastContact <= 0 {
+				return false, fmt.Errorf("bad: %v", reply)
+			}
 		}
 		return true, nil
 	}, func(err error) {

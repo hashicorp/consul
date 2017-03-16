@@ -112,6 +112,9 @@ type ServerHealth struct {
 	// Name is the node name of the server.
 	Name string
 
+	// Address is the address of the server.
+	Address string
+
 	// The status of the SerfHealth check for the server.
 	SerfStatus string
 

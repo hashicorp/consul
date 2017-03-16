@@ -298,6 +298,7 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 		out.Servers = append(out.Servers, api.ServerHealth{
 			ID:          server.ID,
 			Name:        server.Name,
+			Address:     server.Address,
 			SerfStatus:  server.SerfStatus.String(),
 			LastContact: api.NewReadableDuration(server.LastContact),
 			LastTerm:    server.LastTerm,
