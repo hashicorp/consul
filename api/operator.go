@@ -112,6 +112,9 @@ type ServerHealth struct {
 	// Name is the node name of the server.
 	Name string
 
+	// Address is the address of the server.
+	Address string
+
 	// The status of the SerfHealth check for the server.
 	SerfStatus string
 
@@ -127,6 +130,9 @@ type ServerHealth struct {
 	// Healthy is whether or not the server is healthy according to the current
 	// Autopilot config.
 	Healthy bool
+
+	// Voter is whether this is a voting server.
+	Voter bool
 
 	// StableSince is the last time this server's Healthy value changed.
 	StableSince time.Time

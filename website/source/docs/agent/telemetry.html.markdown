@@ -189,4 +189,16 @@ These metrics give insight into the health of the cluster as a whole.
     <td>ms</td>
     <td>timer</td>
   </tr>
+  <tr>
+    <td>`consul.autopilot.failure_tolerance`</td>
+    <td>This tracks the number of voting servers that the cluster can lose while continuing to function.</td>
+    <td>servers</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.autopilot.healthy`</td>
+    <td>This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0.</td>
+    <td>boolean</td>
+    <td>gauge</td>
+  </tr>
 </table>

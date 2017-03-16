@@ -12,15 +12,27 @@ import (
 )
 
 func TestAutopilot_CleanupDeadServer(t *testing.T) {
-	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
+	for i := 1; i <= 3; i++ {
+		testCleanupDeadServer(t, i)
+	}
+}
+
+func testCleanupDeadServer(t *testing.T, raftVersion int) {
+	conf := func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(raftVersion)
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	dir2, s2 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	dir3, s3 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
@@ -45,8 +57,13 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 		})
 	}
 
+	// Bring up a new server
+	dir4, s4 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
 	// Kill a non-leader server
-	s2.Shutdown()
+	s3.Shutdown()
 
 	testutil.WaitForResult(func() (bool, error) {
 		alive := 0
@@ -60,15 +77,11 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 		t.Fatalf("should have 2 alive members")
 	})
 
-	// Bring up and join a new server
-	dir4, s4 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
-
+	// Join the new server
 	if _, err := s4.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	servers[1] = s4
+	servers[2] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {

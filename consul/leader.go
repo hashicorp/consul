@@ -580,29 +580,51 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
-	// TODO (slackpad) - This will need to be changed once we support node IDs.
 	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
+
+	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+	if err != nil {
+		return err
+	}
 
 	// See if it's already in the configuration. It's harmless to re-add it
 	// but we want to avoid doing that if possible to prevent useless Raft
-	// log entries.
+	// log entries. If the address is the same but the ID changed, remove the
+	// old server before adding the new one.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
 		return err
 	}
 	for _, server := range configFuture.Configuration().Servers {
-		if server.Address == raft.ServerAddress(addr) {
+		// No-op if the raft version is too low
+		if server.Address == raft.ServerAddress(addr) && (minRaftProtocol < 2 || parts.RaftVersion < 3) {
 			return nil
+		}
+
+		// If the address or ID matches an existing server, see if we need to remove the old one first
+		if server.Address == raft.ServerAddress(addr) || server.ID == raft.ServerID(parts.ID) {
+			// Exit with no-op if this is being called on an existing server
+			if server.Address == raft.ServerAddress(addr) && server.ID == raft.ServerID(parts.ID) {
+				return nil
+			} else {
+				future := s.raft.RemoveServer(server.ID, 0, 0)
+				if server.Address == raft.ServerAddress(addr) {
+					if err := future.Error(); err != nil {
+						return fmt.Errorf("error removing server with duplicate address %q: %s", server.Address, err)
+					}
+					s.logger.Printf("[INFO] consul: removed server with duplicate address: %s", server.Address)
+				} else {
+					if err := future.Error(); err != nil {
+						return fmt.Errorf("error removing server with duplicate ID %q: %s", server.ID, err)
+					}
+					s.logger.Printf("[INFO] consul: removed server with duplicate ID: %s", server.ID)
+				}
+			}
 		}
 	}
 
 	// Attempt to add as a peer
-	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
-	if err != nil {
-		return err
-	}
-
 	switch {
 	case minRaftProtocol >= 3:
 		addFuture := s.raft.AddNonvoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
@@ -635,7 +657,6 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 
 // removeConsulServer is used to try to remove a consul server that has left
 func (s *Server) removeConsulServer(m serf.Member, port int) error {
-	// TODO (slackpad) - This will need to be changed once we support node IDs.
 	addr := (&net.TCPAddr{IP: m.Addr, Port: port}).String()
 
 	// See if it's already in the configuration. It's harmless to re-remove it

@@ -88,6 +88,10 @@ type Server struct {
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
+	// clusterHealth stores the current view of the cluster's health.
+	clusterHealth     structs.OperatorHealthReply
+	clusterHealthLock sync.RWMutex
+
 	// Consul configuration
 	config *Config
 
@@ -156,10 +160,6 @@ type Server struct {
 	// destroy the session via standard session destroy processing
 	sessionTimers     map[string]*time.Timer
 	sessionTimersLock sync.Mutex
-
-	// serverHealths stores the current view of server healths.
-	serverHealths    map[string]*structs.ServerHealth
-	serverHealthLock sync.RWMutex
 
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones

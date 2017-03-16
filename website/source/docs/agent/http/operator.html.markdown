@@ -360,21 +360,25 @@ A JSON body is returned that looks like this:
         {
             "ID": "e349749b-3303-3ddf-959c-b5885a0e1f6e",
             "Name": "node1",
+            "Address": "127.0.0.1:8300",
             "SerfStatus": "alive",
             "LastContact": "0s",
             "LastTerm": 2,
             "LastIndex": 46,
             "Healthy": true,
+            "Voter": true,
             "StableSince": "2017-03-06T22:07:51Z"
         },
         {
             "ID": "e36ee410-cc3c-0a0c-c724-63817ab30303",
             "Name": "node2",
+            "Address": "127.0.0.1:8205",
             "SerfStatus": "alive",
             "LastContact": "27.291304ms",
             "LastTerm": 2,
             "LastIndex": 46,
             "Healthy": true,
+            "Voter": false,
             "StableSince": "2017-03-06T22:18:26Z"
         }
     ]
@@ -392,6 +396,8 @@ The `Servers` list holds detailed health information on each server:
 
 - `Name` is the node name of the server.
 
+- `Address` is the address of the server.
+
 - `SerfStatus` is the SerfHealth check status for the server.
 
 - `LastContact` is the time elapsed since this server's last contact with the leader.
@@ -401,5 +407,7 @@ The `Servers` list holds detailed health information on each server:
 - `LastIndex` is the index of the server's last committed Raft log entry.
 
 - `Healthy` is whether the server is healthy according to the current Autopilot configuration.
+
+- `Voter` is whether the server is a voting member of the Raft cluster.
 
 - `StableSince` is the time this server has been in its current `Healthy` state.
