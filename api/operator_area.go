@@ -27,6 +27,19 @@ type Area struct {
 	RetryJoin []string
 }
 
+// AreaJoinResponse is returned when a join occurs and gives the result for each
+// address.
+type AreaJoinResponse struct {
+	// The address that was joined.
+	Address string
+
+	// Whether or not the join was a success.
+	Joined bool
+
+	// If we couldn't join, this is the message with information.
+	What string
+}
+
 // SerfMember is a generic structure for reporting information about members in
 // a Serf cluster. This is only used by the area endpoints right now, but this
 // could be expanded to other endpoints in the future.
@@ -114,19 +127,24 @@ func (op *Operator) AreaDelete(areaID string, q *WriteOptions) (*WriteMeta, erro
 
 // AreaJoin attempts to join the given set of join addresses to the given
 // network area. See the Area structure for details about join addresses.
-func (op *Operator) AreaJoin(areaID string, join []string, q *WriteOptions) (*WriteMeta, error) {
+func (op *Operator) AreaJoin(areaID string, addresses []string, q *WriteOptions) ([]*AreaJoinResponse, *WriteMeta, error) {
 	r := op.c.newRequest("PUT", "/v1/operator/area/"+areaID+"/join")
 	r.setWriteOptions(q)
-	r.obj = join
+	r.obj = addresses
 	rtt, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
-	return wm, nil
+
+	var out []*AreaJoinResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, wm, nil
 }
 
 // AreaMembers lists the Serf information about the members in the given area.
