@@ -400,7 +400,7 @@ func (m *Memberlist) probeNode(node *nodeState) {
 	awarenessDelta = 0
 	if expectedNacks > 0 {
 		if nackCount := len(nackCh); nackCount < expectedNacks {
-			awarenessDelta += 2 * (expectedNacks - nackCount)
+			awarenessDelta += (expectedNacks - nackCount)
 		}
 	} else {
 		awarenessDelta += 1
