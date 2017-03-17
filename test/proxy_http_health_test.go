@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -29,7 +30,11 @@ func TestProxyWithHTTPCheckOK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	healthCheckPort := healthCheckURL.Port()
+	// TODO: use URL.Port() (Go 1.8+) once we've deprecated Go 1.7 support
+	var healthCheckPort string
+	if _, healthCheckPort, err = net.SplitHostPort(healthCheckURL.Host); err != nil {
+		healthCheckPort = "80"
+	}
 
 	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {

@@ -3,6 +3,7 @@ package proxy
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -59,6 +60,7 @@ type UpstreamHost struct {
 	Unhealthy         bool
 	CheckDown         UpstreamHostDownFunc
 	WithoutPathPrefix string
+	checkMu           sync.Mutex
 }
 
 // Down checks whether the upstream host is down or not.

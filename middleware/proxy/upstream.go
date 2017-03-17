@@ -250,7 +250,9 @@ func (u *staticUpstream) healthCheck() {
 		}
 
 		hostURL := "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
-		host.Unhealthy = false
+
+		host.checkMu.Lock()
+		defer host.checkMu.Unlock()
 
 		if r, err := http.Get(hostURL); err == nil {
 			io.Copy(ioutil.Discard, r.Body)
@@ -259,6 +261,8 @@ func (u *staticUpstream) healthCheck() {
 				log.Printf("[WARNING] Health check URL %s returned HTTP code %d\n",
 					hostURL, r.StatusCode)
 				host.Unhealthy = true
+			} else {
+				host.Unhealthy = false
 			}
 		} else {
 			log.Printf("[WARNING] Health check probe failed: %v\n", err)
