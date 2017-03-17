@@ -77,7 +77,7 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 			logger.Printf("[DEBUG] consul: Failed to flood-join %q at %s: %v",
 				server.Name, addr, err)
 		} else if n > 0 {
-			logger.Printf("[INFO] consul: Successfully performed flood-join for %q at %s",
+			logger.Printf("[DEBUG] consul: Successfully performed flood-join for %q at %s",
 				server.Name, addr)
 		}
 	}
