@@ -58,5 +58,4 @@ func TestGrpc(t *testing.T) {
 	if len(d.Extra) != 2 {
 		t.Errorf("Expected 2 RRs in additional section, but got %s", len(d.Extra))
 	}
-	t.Logf("Message %v\n", d)
 }

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,8 @@ import (
 )
 
 func TestHealthCheck(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+
 	upstream := &staticUpstream{
 		from:        ".",
 		Hosts:       testPool(),
