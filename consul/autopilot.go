@@ -229,7 +229,7 @@ func (s *Server) updateClusterHealth() error {
 	}
 
 	// Get the the serf members which are Consul servers
-	serverMap := make(map[string]serf.Member)
+	serverMap := make(map[string]*agent.Server)
 	for _, member := range s.LANMembers() {
 		if member.Status == serf.StatusLeft {
 			continue
@@ -237,7 +237,7 @@ func (s *Server) updateClusterHealth() error {
 
 		valid, parts := agent.IsConsulServer(member)
 		if valid {
-			serverMap[parts.ID] = member
+			serverMap[parts.ID] = parts
 		}
 	}
 
@@ -259,12 +259,12 @@ func (s *Server) updateClusterHealth() error {
 			Voter:       server.Suffrage == raft.Voter,
 		}
 
-		member, ok := serverMap[string(server.ID)]
+		parts, ok := serverMap[string(server.ID)]
 		if ok {
-			health.Name = member.Name
-			health.SerfStatus = member.Status
-			if err := s.updateServerHealth(&health, member, autopilotConf); err != nil {
-				s.logger.Printf("[ERR] consul: error getting server health: %s", err)
+			health.Name = parts.Name
+			health.SerfStatus = parts.Status
+			if err := s.updateServerHealth(&health, parts, autopilotConf); err != nil {
+				s.logger.Printf("[WARN] consul: error getting server health: %s", err)
 			}
 		} else {
 			health.SerfStatus = serf.StatusNone
@@ -306,12 +306,10 @@ func (s *Server) updateClusterHealth() error {
 
 // updateServerHealth fetches the raft stats for the given server and uses them
 // to update its ServerHealth
-func (s *Server) updateServerHealth(health *structs.ServerHealth, member serf.Member, autopilotConf *structs.AutopilotConfig) error {
-	_, server := agent.IsConsulServer(member)
-
-	stats, err := s.getServerStats(server)
+func (s *Server) updateServerHealth(health *structs.ServerHealth, server *agent.Server, autopilotConf *structs.AutopilotConfig) error {
+	stats, err := s.statsFetcher.Fetch(server, s.config.ServerHealthInterval/2)
 	if err != nil {
-		return fmt.Errorf("error getting raft stats: %s", err)
+		return fmt.Errorf("error getting raft stats for %q: %s", server.Name, err)
 	}
 
 	health.LastTerm = stats.LastTerm
@@ -356,11 +354,4 @@ func (s *Server) getServerHealth(id string) *structs.ServerHealth {
 		}
 	}
 	return nil
-}
-
-func (s *Server) getServerStats(server *agent.Server) (structs.ServerStats, error) {
-	var args struct{}
-	var reply structs.ServerStats
-	err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
-	return reply, err
 }
