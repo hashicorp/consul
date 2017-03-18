@@ -27,4 +27,5 @@ import (
 	_ "github.com/coredns/coredns/middleware/tls"
 	_ "github.com/coredns/coredns/middleware/trace"
 	_ "github.com/coredns/coredns/middleware/whoami"
+	_ "github.com/mholt/caddy/startupshutdown"
 )
