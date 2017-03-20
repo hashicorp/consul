@@ -1,19 +1,23 @@
 package consul
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-// StatsFetcher makes sure there's only one in-flight request for stats at any
-// given time, and allows us to have a timeout so the autopilot loop doesn't get
-// blocked if there's a slow server.
+// StatsFetcher has two functions for autopilot. First, lets us fetch all the
+// stats in parallel so we are taking a sample as close to the same time as
+// possible, since we are comparing time-sensitive info for the health check.
+// Second, it bounds the time so that one slow RPC can't hold up the health
+// check loop; as a side effect of how it implements this, it also limits to
+// a single in-flight RPC to any given server, so goroutines don't accumulate
+// as we run the health check fairly frequently.
 type StatsFetcher struct {
-	shutdownCh   <-chan struct{}
+	logger       *log.Logger
 	pool         *ConnPool
 	datacenter   string
 	inflight     map[string]struct{}
@@ -21,54 +25,70 @@ type StatsFetcher struct {
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(shutdownCh <-chan struct{}, pool *ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger *log.Logger, pool *ConnPool, datacenter string) *StatsFetcher {
 	return &StatsFetcher{
-		shutdownCh: shutdownCh,
+		logger:     logger,
 		pool:       pool,
 		datacenter: datacenter,
 		inflight:   make(map[string]struct{}),
 	}
 }
 
-// Fetch will attempt to get the server health for up to the timeout, and will
-// also return an error immediately if there is a request still outstanding. We
-// throw away results from any outstanding requests since we don't want to
-// ingest stale health data.
-func (f *StatsFetcher) Fetch(server *agent.Server, timeout time.Duration) (*structs.ServerStats, error) {
-	// Don't allow another request if there's another one outstanding.
-	f.inflightLock.Lock()
-	if _, ok := f.inflight[server.ID]; ok {
-		f.inflightLock.Unlock()
-		return nil, fmt.Errorf("stats request already outstanding")
+// fetch does the RPC to fetch the server stats from a single server. We don't
+// cancel this when the context is canceled because we only want one in-flight
+// RPC to each server, so we let it finish and then clean up the in-flight
+// tracking.
+func (f *StatsFetcher) fetch(server *agent.Server, replyCh chan *structs.ServerStats) {
+	var args struct{}
+	var reply structs.ServerStats
+	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
+	if err != nil {
+		f.logger.Printf("[WARN] consul: error getting server health from %q: %v", server.Name, err)
+	} else {
+		replyCh <- &reply
 	}
-	f.inflight[server.ID] = struct{}{}
+
+	f.inflightLock.Lock()
+	delete(f.inflight, server.ID)
+	f.inflightLock.Unlock()
+}
+
+// Fetch will attempt to query all the servers in parallel.
+func (f *StatsFetcher) Fetch(ctx context.Context, servers []*agent.Server) map[string]*structs.ServerStats {
+	type workItem struct {
+		server  *agent.Server
+		replyCh chan *structs.ServerStats
+	}
+	var work []*workItem
+
+	// Skip any servers that have inflight requests.
+	f.inflightLock.Lock()
+	for _, server := range servers {
+		if _, ok := f.inflight[server.ID]; ok {
+			f.logger.Printf("[WARN] consul: error getting server health from %q: last request still outstanding", server.Name)
+		} else {
+			workItem := &workItem{
+				server:  server,
+				replyCh: make(chan *structs.ServerStats, 1),
+			}
+			work = append(work, workItem)
+			f.inflight[server.ID] = struct{}{}
+			go f.fetch(workItem.server, workItem.replyCh)
+		}
+	}
 	f.inflightLock.Unlock()
 
-	// Make the request in a goroutine.
-	errCh := make(chan error, 1)
-	var reply structs.ServerStats
-	go func() {
-		var args struct{}
-		errCh <- f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
+	// Now wait for the results to come in, or for the context to be
+	// canceled.
+	replies := make(map[string]*structs.ServerStats)
+	for _, workItem := range work {
+		select {
+		case reply := <-workItem.replyCh:
+			replies[workItem.server.ID] = reply
 
-		f.inflightLock.Lock()
-		delete(f.inflight, server.ID)
-		f.inflightLock.Unlock()
-	}()
-
-	// Wait for something to happen.
-	select {
-	case <-f.shutdownCh:
-		return nil, fmt.Errorf("shutdown")
-
-	case err := <-errCh:
-		if err == nil {
-			return &reply, nil
-		} else {
-			return nil, err
+		case <-ctx.Done():
+			// Give up on this and any remaining outstanding RPCs.
 		}
-
-	case <-time.After(timeout):
-		return nil, fmt.Errorf("timeout")
 	}
+	return replies
 }

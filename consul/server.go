@@ -260,7 +260,7 @@ func NewServer(config *Config) (*Server, error) {
 	s.autopilotPolicy = &BasicAutopilot{s}
 
 	// Initialize the stats fetcher that autopilot will use.
-	s.statsFetcher = NewStatsFetcher(s.shutdownCh, s.connPool, s.config.Datacenter)
+	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	// Initialize the authoritative ACL cache.
 	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)

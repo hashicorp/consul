@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -245,10 +246,25 @@ func (s *Server) updateClusterHealth() error {
 	if err := future.Error(); err != nil {
 		return fmt.Errorf("error getting Raft configuration %s", err)
 	}
+	servers := future.Configuration().Servers
+
+	// Fetch the health for each of the servers in parallel so we get as
+	// consistent of a sample as possible. We capture the leader's index
+	// here as well so it roughly lines up with the same point in time.
+	targetLastIndex := s.raft.LastIndex()
+	var fetchList []*agent.Server
+	for _, server := range servers {
+		if parts, ok := serverMap[string(server.ID)]; ok {
+			fetchList = append(fetchList, parts)
+		}
+	}
+	d := time.Now().Add(s.config.ServerHealthInterval / 2)
+	ctx, cancel := context.WithDeadline(context.Background(), d)
+	defer cancel()
+	fetchedStats := s.statsFetcher.Fetch(ctx, fetchList)
 
 	// Build a current list of server healths
 	var clusterHealth structs.OperatorHealthReply
-	servers := future.Configuration().Servers
 	healthyCount := 0
 	voterCount := 0
 	for _, server := range servers {
@@ -263,8 +279,10 @@ func (s *Server) updateClusterHealth() error {
 		if ok {
 			health.Name = parts.Name
 			health.SerfStatus = parts.Status
-			if err := s.updateServerHealth(&health, parts, autopilotConf); err != nil {
-				s.logger.Printf("[WARN] consul: error getting server health: %s", err)
+			if stats, ok := fetchedStats[string(server.ID)]; ok {
+				if err := s.updateServerHealth(&health, parts, stats, autopilotConf, targetLastIndex); err != nil {
+					s.logger.Printf("[WARN] consul: error updating server health: %s", err)
+				}
 			}
 		} else {
 			health.SerfStatus = serf.StatusNone
@@ -304,18 +322,17 @@ func (s *Server) updateClusterHealth() error {
 	return nil
 }
 
-// updateServerHealth fetches the raft stats for the given server and uses them
-// to update its ServerHealth
-func (s *Server) updateServerHealth(health *structs.ServerHealth, server *agent.Server, autopilotConf *structs.AutopilotConfig) error {
-	stats, err := s.statsFetcher.Fetch(server, s.config.ServerHealthInterval/2)
-	if err != nil {
-		return fmt.Errorf("error getting raft stats for %q: %s", server.Name, err)
-	}
+// updateServerHealth computes the resulting health of the server based on its
+// fetched stats and the state of the leader.
+func (s *Server) updateServerHealth(health *structs.ServerHealth,
+	server *agent.Server, stats *structs.ServerStats,
+	autopilotConf *structs.AutopilotConfig, targetLastIndex uint64) error {
 
 	health.LastTerm = stats.LastTerm
 	health.LastIndex = stats.LastIndex
 
 	if stats.LastContact != "never" {
+		var err error
 		health.LastContact, err = time.ParseDuration(stats.LastContact)
 		if err != nil {
 			return fmt.Errorf("error parsing last_contact duration: %s", err)
@@ -326,7 +343,7 @@ func (s *Server) updateServerHealth(health *structs.ServerHealth, server *agent.
 	if err != nil {
 		return fmt.Errorf("error parsing last_log_term: %s", err)
 	}
-	health.Healthy = health.IsHealthy(lastTerm, s.raft.LastIndex(), autopilotConf)
+	health.Healthy = health.IsHealthy(lastTerm, targetLastIndex, autopilotConf)
 
 	// If this is a new server or the health changed, reset StableSince
 	lastHealth := s.getServerHealth(server.ID)
