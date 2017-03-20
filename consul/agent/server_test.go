@@ -62,6 +62,7 @@ func TestIsConsulServer(t *testing.T) {
 			"vsn":      "1",
 			"raft_vsn": "3",
 		},
+		Status: serf.StatusLeft,
 	}
 	ok, parts := agent.IsConsulServer(m)
 	if !ok || parts.Datacenter != "east-aws" || parts.Port != 10000 {
@@ -81,6 +82,9 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	if parts.RaftVersion != 3 {
 		t.Fatalf("bad: %v", parts.RaftVersion)
+	}
+	if parts.Status != serf.StatusLeft {
+		t.Fatalf("bad: %v", parts.Status)
 	}
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"

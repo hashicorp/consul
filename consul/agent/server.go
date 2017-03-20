@@ -34,6 +34,7 @@ type Server struct {
 	Version     int
 	RaftVersion int
 	Addr        net.Addr
+	Status      serf.MemberStatus
 }
 
 // Key returns the corresponding Key
@@ -104,6 +105,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Addr:        addr,
 		Version:     vsn,
 		RaftVersion: raft_vsn,
+		Status:      m.Status,
 	}
 	return true, parts
 }

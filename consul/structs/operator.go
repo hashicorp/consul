@@ -139,7 +139,7 @@ type ServerHealth struct {
 
 // IsHealthy determines whether this ServerHealth is considered healthy
 // based on the given Autopilot config
-func (h *ServerHealth) IsHealthy(lastTerm uint64, lastIndex uint64, autopilotConf *AutopilotConfig) bool {
+func (h *ServerHealth) IsHealthy(lastTerm uint64, leaderLastIndex uint64, autopilotConf *AutopilotConfig) bool {
 	if h.SerfStatus != serf.StatusAlive {
 		return false
 	}
@@ -152,7 +152,7 @@ func (h *ServerHealth) IsHealthy(lastTerm uint64, lastIndex uint64, autopilotCon
 		return false
 	}
 
-	if lastIndex > autopilotConf.MaxTrailingLogs && h.LastIndex < lastIndex-autopilotConf.MaxTrailingLogs {
+	if leaderLastIndex > autopilotConf.MaxTrailingLogs && h.LastIndex < leaderLastIndex-autopilotConf.MaxTrailingLogs {
 		return false
 	}
 

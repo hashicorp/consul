@@ -161,6 +161,10 @@ type Server struct {
 	sessionTimers     map[string]*time.Timer
 	sessionTimersLock sync.Mutex
 
+	// statsFetcher is used by autopilot to check the status of the other
+	// Consul servers.
+	statsFetcher *StatsFetcher
+
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
@@ -254,6 +258,9 @@ func NewServer(config *Config) (*Server, error) {
 		shutdownCh:            make(chan struct{}),
 	}
 	s.autopilotPolicy = &BasicAutopilot{s}
+
+	// Initialize the stats fetcher that autopilot will use.
+	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	// Initialize the authoritative ACL cache.
 	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)
