@@ -43,7 +43,8 @@ func (f *StatsFetcher) fetch(server *agent.Server, replyCh chan *structs.ServerS
 	var reply structs.ServerStats
 	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
 	if err != nil {
-		f.logger.Printf("[WARN] consul: error getting server health from %q: %v", server.Name, err)
+		f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
+			server.Name, err)
 	} else {
 		replyCh <- &reply
 	}
@@ -65,7 +66,8 @@ func (f *StatsFetcher) Fetch(ctx context.Context, servers []*agent.Server) map[s
 	f.inflightLock.Lock()
 	for _, server := range servers {
 		if _, ok := f.inflight[server.ID]; ok {
-			f.logger.Printf("[WARN] consul: error getting server health from %q: last request still outstanding", server.Name)
+			f.logger.Printf("[WARN] consul: error getting server health from %q: last request still outstanding",
+				server.Name)
 		} else {
 			workItem := &workItem{
 				server:  server,
@@ -87,7 +89,8 @@ func (f *StatsFetcher) Fetch(ctx context.Context, servers []*agent.Server) map[s
 			replies[workItem.server.ID] = reply
 
 		case <-ctx.Done():
-			// Give up on this and any remaining outstanding RPCs.
+			f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
+				workItem.server.Name, ctx.Err())
 		}
 	}
 	return replies
