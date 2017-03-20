@@ -34,6 +34,7 @@ It returns a JSON body like this:
 [
   {
     "Datacenter": "dc1",
+    "AreaID": "WAN",
     "Coordinates": [
       {
         "Node": "agent-one",
@@ -49,9 +50,13 @@ It returns a JSON body like this:
 ]
 ```
 
-This endpoint serves data out of the server's local Serf data about the WAN, so
-its results may vary as requests are handled by different servers in the
-cluster. Also, it does not support blocking queries or any consistency modes.
+This endpoint serves data out of the server's local Serf data, so its results may
+vary as requests are handled by different servers in the cluster. In Consul
+Enterprise, this will include coordinates for user-added network areas as well,
+as indicated by the `AreaID`. Coordinates are only compatible within the same
+area.
+
+This endpoint does not support blocking queries or any consistency modes.
 
 ### <a name=""coordinate_nodes></a> /v1/coordinate/nodes
 

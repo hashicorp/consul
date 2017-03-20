@@ -873,9 +873,9 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{"foo", generateCoordinate(2 * time.Millisecond)},
-		{"bar", generateCoordinate(5 * time.Millisecond)},
-		{"baz", generateCoordinate(1 * time.Millisecond)},
+		{"foo", lib.GenerateCoordinate(2 * time.Millisecond)},
+		{"bar", lib.GenerateCoordinate(5 * time.Millisecond)},
+		{"baz", lib.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(5, updates); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1467,9 +1467,9 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{"foo", generateCoordinate(2 * time.Millisecond)},
-		{"bar", generateCoordinate(5 * time.Millisecond)},
-		{"baz", generateCoordinate(1 * time.Millisecond)},
+		{"foo", lib.GenerateCoordinate(2 * time.Millisecond)},
+		{"bar", lib.GenerateCoordinate(5 * time.Millisecond)},
+		{"baz", lib.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(9, updates); err != nil {
 		t.Fatalf("err: %v", err)

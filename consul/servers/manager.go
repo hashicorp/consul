@@ -50,9 +50,9 @@ const (
 	newRebalanceConnsPerSecPerServer = 64
 )
 
-// ConsulClusterInfo is an interface wrapper around serf in order to prevent
-// a cyclic import dependency.
-type ConsulClusterInfo interface {
+// ManagerSerfCluster is an interface wrapper around Serf in order to make this
+// easier to unit test.
+type ManagerSerfCluster interface {
 	NumNodes() int
 }
 
@@ -88,8 +88,8 @@ type Manager struct {
 
 	// clusterInfo is used to estimate the approximate number of nodes in
 	// a cluster and limit the rate at which it rebalances server
-	// connections.  ConsulClusterInfo is an interface that wraps serf.
-	clusterInfo ConsulClusterInfo
+	// connections.  ManagerSerfCluster is an interface that wraps serf.
+	clusterInfo ManagerSerfCluster
 
 	// connPoolPinger is used to test the health of a server in the
 	// connection pool.  Pinger is an interface that wraps
@@ -99,6 +99,10 @@ type Manager struct {
 	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
 	// serverListLog and acts as a TryLock().
 	notifyFailedBarrier int32
+
+	// offline is used to indicate that there are no servers, or that all
+	// known servers have failed the ping test.
+	offline int32
 }
 
 // AddServer takes out an internal write lock and adds a new server.  If the
@@ -136,6 +140,10 @@ func (m *Manager) AddServer(s *agent.Server) {
 		l.servers = newServers
 	}
 
+	// Assume we are no longer offline since we've just seen a new server.
+	atomic.StoreInt32(&m.offline, 0)
+
+	// Start using this list of servers.
 	m.saveServerList(l)
 }
 
@@ -180,6 +188,13 @@ func (l *serverList) shuffleServers() {
 	}
 }
 
+// IsOffline checks to see if all the known servers have failed their ping
+// test during the last rebalance.
+func (m *Manager) IsOffline() bool {
+	offline := atomic.LoadInt32(&m.offline)
+	return offline == 1
+}
+
 // FindServer takes out an internal "read lock" and searches through the list
 // of servers to find a "healthy" server.  If the server is actually
 // unhealthy, we rely on Serf to detect this and remove the node from the
@@ -214,13 +229,14 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger Pinger) (m *Manager) {
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
 	m = new(Manager)
 	m.logger = logger
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
+	atomic.StoreInt32(&m.offline, 1)
 
 	l := serverList{}
 	l.servers = make([]*agent.Server, 0)
@@ -280,11 +296,7 @@ func (m *Manager) RebalanceServers() {
 	// Obtain a copy of the current serverList
 	l := m.getServerList()
 
-	// Early abort if there is nothing to shuffle
-	if len(l.servers) < 2 {
-		return
-	}
-
+	// Shuffle servers so we have a chance of picking a new one.
 	l.shuffleServers()
 
 	// Iterate through the shuffled server list to find an assumed
@@ -307,8 +319,11 @@ func (m *Manager) RebalanceServers() {
 	}
 
 	// If no healthy servers were found, sleep and wait for Serf to make
-	// the world a happy place again.
-	if !foundHealthyServer {
+	// the world a happy place again. Update the offline status.
+	if foundHealthyServer {
+		atomic.StoreInt32(&m.offline, 0)
+	} else {
+		atomic.StoreInt32(&m.offline, 1)
 		m.logger.Printf("[DEBUG] manager: No healthy servers during rebalance, aborting")
 		return
 	}

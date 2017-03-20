@@ -96,6 +96,11 @@ type Config struct {
 	// SerfWANConfig is the configuration for the cross-dc serf
 	SerfWANConfig *serf.Config
 
+	// SerfFloodInterval controls how often we attempt to flood local Serf
+	// Consul servers into the global areas (WAN and user-defined areas in
+	// Consul Enterprise).
+	SerfFloodInterval time.Duration
+
 	// ReconcileInterval controls how often we reconcile the strongly
 	// consistent store with the Serf info. This is used to handle nodes
 	// that are force removed, as well as intermittent unavailability during
@@ -251,9 +256,6 @@ type Config struct {
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
 
-	// DisableCoordinates controls features related to network coordinates.
-	DisableCoordinates bool
-
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
 	// leads to fewer Raft transactions, but also the stored coordinates
@@ -334,6 +336,7 @@ func DefaultConfig() *Config {
 		RaftConfig:               raft.DefaultConfig(),
 		SerfLANConfig:            serf.DefaultConfig(),
 		SerfWANConfig:            serf.DefaultConfig(),
+		SerfFloodInterval:        60 * time.Second,
 		ReconcileInterval:        60 * time.Second,
 		ProtocolVersion:          ProtocolVersion2Compatible,
 		ACLTTL:                   30 * time.Second,
@@ -344,7 +347,6 @@ func DefaultConfig() *Config {
 		TombstoneTTL:             15 * time.Minute,
 		TombstoneTTLGranularity:  30 * time.Second,
 		SessionTTLMin:            10 * time.Second,
-		DisableCoordinates:       false,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

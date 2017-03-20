@@ -31,7 +31,7 @@ Usage: consul rtt [options] node1 [node2]
   the datacenter (eg. "myserver.dc1").
 
   It is not possible to measure between LAN coordinates and WAN coordinates
-  because they are maintained by independent Serf gossip pools, so they are
+  because they are maintained by independent Serf gossip areas, so they are
   not compatible.
 
 ` + c.Command.Help()
@@ -102,21 +102,29 @@ func (c *RTTCommand) Run(args []string) int {
 			return 1
 		}
 
-		// See if the requested nodes are in there.
+		// See if the requested nodes are in there. We only compare
+		// coordinates in the same areas.
+		var area1, area2 string
 		for _, dc := range dcs {
 			for _, entry := range dc.Coordinates {
 				if dc.Datacenter == dc1 && entry.Node == node1 {
+					area1 = dc.AreaID
 					coord1 = entry.Coord
 				}
 				if dc.Datacenter == dc2 && entry.Node == node2 {
+					area2 = dc.AreaID
 					coord2 = entry.Coord
 				}
 
-				if coord1 != nil && coord2 != nil {
+				if area1 == area2 && coord1 != nil && coord2 != nil {
 					goto SHOW_RTT
 				}
 			}
 		}
+
+		// Nil out the coordinates so we don't display across areas if
+		// we didn't find anything.
+		coord1, coord2 = nil, nil
 	} else {
 		source = "LAN"
 

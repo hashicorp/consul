@@ -1,7 +1,6 @@
 package servers_test
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -12,20 +11,6 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/servers"
 )
-
-var (
-	localLogger    *log.Logger
-	localLogBuffer *bytes.Buffer
-)
-
-func init() {
-	localLogBuffer = new(bytes.Buffer)
-	localLogger = log.New(localLogBuffer, "", 0)
-}
-
-func GetBufferedLogger() *log.Logger {
-	return localLogger
-}
 
 type fauxConnPool struct {
 	// failPct between 0.0 and 1.0 == pct of time a Ping should fail
@@ -49,16 +34,14 @@ func (s *fauxSerf) NumNodes() int {
 }
 
 func testManager() (m *servers.Manager) {
-	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *servers.Manager) {
-	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
@@ -91,6 +74,45 @@ func TestServers_AddServer(t *testing.T) {
 	num = m.NumServers()
 	if num != 2 {
 		t.Fatalf("Expected two servers")
+	}
+}
+
+// func (m *Manager) IsOffline() bool {
+func TestServers_IsOffline(t *testing.T) {
+	m := testManager()
+	if !m.IsOffline() {
+		t.Fatalf("bad")
+	}
+
+	s1 := &agent.Server{Name: "s1"}
+	m.AddServer(s1)
+	if m.IsOffline() {
+		t.Fatalf("bad")
+	}
+	m.RebalanceServers()
+	if m.IsOffline() {
+		t.Fatalf("bad")
+	}
+	m.RemoveServer(s1)
+	m.RebalanceServers()
+	if !m.IsOffline() {
+		t.Fatalf("bad")
+	}
+
+	const failPct = 0.5
+	m = testManagerFailProb(failPct)
+	m.AddServer(s1)
+	var on, off int
+	for i := 0; i < 100; i++ {
+		m.RebalanceServers()
+		if m.IsOffline() {
+			off++
+		} else {
+			on++
+		}
+	}
+	if on == 0 || off == 0 {
+		t.Fatalf("bad: %d %d", on, off)
 	}
 }
 
@@ -144,8 +166,7 @@ func TestServers_FindServer(t *testing.T) {
 
 // func New(logger *log.Logger, shutdownCh chan struct{}) (m *Manager) {
 func TestServers_New(t *testing.T) {
-	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m := servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if m == nil {

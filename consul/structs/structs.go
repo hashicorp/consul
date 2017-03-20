@@ -41,6 +41,7 @@ const (
 	PreparedQueryRequestType
 	TxnRequestType
 	AutopilotRequestType
+	AreaRequestType
 )
 
 const (
@@ -900,9 +901,11 @@ type IndexedCoordinates struct {
 }
 
 // DatacenterMap is used to represent a list of nodes with their raw coordinates,
-// associated with a datacenter.
+// associated with a datacenter. Coordinates are only compatible between nodes in
+// the same area.
 type DatacenterMap struct {
 	Datacenter  string
+	AreaID      types.AreaID
 	Coordinates Coordinates
 }
 

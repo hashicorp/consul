@@ -8,6 +8,8 @@ import (
 	"io"
 	"math"
 	"math/rand"
+	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -285,4 +287,10 @@ func decompressBuffer(c *compress) ([]byte, error) {
 
 	// Return the uncompressed bytes
 	return b.Bytes(), nil
+}
+
+// joinHostPort returns the host:port form of an address, for use with a
+// transport.
+func joinHostPort(host string, port uint16) string {
+	return net.JoinHostPort(host, strconv.Itoa(int(port)))
 }

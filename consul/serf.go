@@ -70,30 +70,6 @@ func (s *Server) lanEventHandler() {
 	}
 }
 
-// wanEventHandler is used to handle events from the wan Serf cluster
-func (s *Server) wanEventHandler() {
-	for {
-		select {
-		case e := <-s.eventChWAN:
-			switch e.EventType() {
-			case serf.EventMemberJoin:
-				s.wanNodeJoin(e.(serf.MemberEvent))
-			case serf.EventMemberLeave, serf.EventMemberFailed:
-				s.wanNodeFailed(e.(serf.MemberEvent))
-			case serf.EventMemberUpdate: // Ignore
-			case serf.EventMemberReap: // Ignore
-			case serf.EventUser:
-			case serf.EventQuery: // Ignore
-			default:
-				s.logger.Printf("[WARN] consul: Unhandled WAN Serf Event: %#v", e)
-			}
-
-		case <-s.shutdownCh:
-			return
-		}
-	}
-}
-
 // localMemberEvent is used to reconcile Serf events with the strongly
 // consistent store if we are the current leader
 func (s *Server) localMemberEvent(me serf.MemberEvent) {
@@ -166,36 +142,9 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 		if s.config.BootstrapExpect != 0 {
 			s.maybeBootstrap()
 		}
-	}
-}
 
-// wanNodeJoin is used to handle join events on the WAN pool.
-func (s *Server) wanNodeJoin(me serf.MemberEvent) {
-	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
-		if !ok {
-			s.logger.Printf("[WARN] consul: Non-server in WAN pool: %s", m.Name)
-			continue
-		}
-		s.logger.Printf("[INFO] consul: Adding WAN server %s", parts)
-
-		// Search for this node in our existing remotes.
-		found := false
-		s.remoteLock.Lock()
-		existing := s.remoteConsuls[parts.Datacenter]
-		for idx, e := range existing {
-			if e.Name == parts.Name {
-				existing[idx] = parts
-				found = true
-				break
-			}
-		}
-
-		// Add to the list if not known.
-		if !found {
-			s.remoteConsuls[parts.Datacenter] = append(existing, parts)
-		}
-		s.remoteLock.Unlock()
+		// Kick the join flooders.
+		s.FloodNotify()
 	}
 }
 
@@ -325,37 +274,5 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 		s.localLock.Lock()
 		delete(s.localConsuls, raft.ServerAddress(parts.Addr.String()))
 		s.localLock.Unlock()
-	}
-}
-
-// wanNodeFailed is used to handle fail events on the WAN pool.
-func (s *Server) wanNodeFailed(me serf.MemberEvent) {
-	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
-		if !ok {
-			continue
-		}
-		s.logger.Printf("[INFO] consul: Removing WAN server %s", parts)
-
-		// Remove the server if known
-		s.remoteLock.Lock()
-		existing := s.remoteConsuls[parts.Datacenter]
-		n := len(existing)
-		for i := 0; i < n; i++ {
-			if existing[i].Name == parts.Name {
-				existing[i], existing[n-1] = existing[n-1], nil
-				existing = existing[:n-1]
-				n--
-				break
-			}
-		}
-
-		// Trim the list if all known consuls are dead
-		if n == 0 {
-			delete(s.remoteConsuls, parts.Datacenter)
-		} else {
-			s.remoteConsuls[parts.Datacenter] = existing
-		}
-		s.remoteLock.Unlock()
 	}
 }

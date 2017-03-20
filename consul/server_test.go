@@ -73,7 +73,6 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 
 	config.ReconcileInterval = 100 * time.Millisecond
 
-	config.DisableCoordinates = false
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	return dir, config
 }
@@ -214,16 +213,61 @@ func TestServer_JoinWAN(t *testing.T) {
 		t.Fatalf("bad len")
 	})
 
-	// Check the remoteConsuls has both
-	if len(s1.remoteConsuls) != 2 {
+	// Check the router has both
+	if len(s1.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.remoteConsuls) == 2, nil
+		return len(s2.router.GetDatacenters()) == 2, nil
 	}, func(err error) {
 		t.Fatalf("remote consul missing")
 	})
+}
+
+func TestServer_JoinWAN_Flood(t *testing.T) {
+	// Set up two servers in a WAN.
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for i, s := range []*Server{s1, s2} {
+		testutil.WaitForResult(func() (bool, error) {
+			return len(s.WANMembers()) == 2, nil
+		}, func(err error) {
+			t.Fatalf("bad len for server %d", i)
+		})
+	}
+
+	dir3, s3 := testServer(t)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Do just a LAN join for the new server and make sure it
+	// shows up in the WAN.
+	addr = fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for i, s := range []*Server{s1, s2, s3} {
+		testutil.WaitForResult(func() (bool, error) {
+			return len(s.WANMembers()) == 3, nil
+		}, func(err error) {
+			t.Fatalf("bad len for server %d", i)
+		})
+	}
 }
 
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
@@ -263,14 +307,14 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 
 	// Check the WAN members on s1
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) == 2, nil
+		return len(s1.WANMembers()) == 3, nil
 	}, func(err error) {
 		t.Fatalf("bad len")
 	})
 
 	// Check the WAN members on s2
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.WANMembers()) == 2, nil
+		return len(s2.WANMembers()) == 3, nil
 	}, func(err error) {
 		t.Fatalf("bad len")
 	})
@@ -289,12 +333,12 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		t.Fatalf("bad len")
 	})
 
-	// Check the remoteConsuls has both
-	if len(s1.remoteConsuls) != 2 {
+	// Check the router has both
+	if len(s1.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
-	if len(s2.remoteConsuls) != 2 {
+	if len(s2.router.GetDatacenters()) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
@@ -693,9 +737,9 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	defer s1.Shutdown()
 
 	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.remoteConsuls) == 1, nil
+		return len(s1.router.GetDatacenters()) == 1, nil
 	}, func(err error) {
-		t.Fatalf("Server did not join LAN successfully")
+		t.Fatalf("Server did not join WAN successfully")
 	})
 
 	// Check that an error from a remote DC is returned

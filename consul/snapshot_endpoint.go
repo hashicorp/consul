@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/snapshot"
@@ -29,11 +30,18 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 	// Perform DC forwarding.
 	if dc := args.Datacenter; dc != s.config.Datacenter {
-		server, ok := s.getRemoteServer(dc)
+		manager, server, ok := s.router.FindRoute(dc)
 		if !ok {
 			return nil, structs.ErrNoDCPath
 		}
-		return SnapshotRPC(s.connPool, dc, server.Addr, args, in, reply)
+
+		snap, err := SnapshotRPC(s.connPool, dc, server.Addr, args, in, reply)
+		if err != nil {
+			manager.NotifyFailedServer(server)
+			return nil, err
+		}
+
+		return snap, nil
 	}
 
 	// Perform leader forwarding if required.
@@ -155,7 +163,7 @@ RESPOND:
 func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr,
 	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
 
-	conn, hc, err := pool.Dial(dc, addr)
+	conn, hc, err := pool.DialTimeout(dc, addr, 10*time.Second)
 	if err != nil {
 		return nil, err
 	}

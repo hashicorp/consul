@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/yamux"
 )
 
+const defaultDialTimeout = 10 * time.Second
+
 // muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
 	Open() (net.Conn, error)
@@ -188,11 +190,13 @@ func (p *ConnPool) Shutdown() error {
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
 func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
+	addrStr := addr.String()
+
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the the vastly more common case than the rest
 	// of the code here.
 	p.Lock()
-	c := p.pool[addr.String()]
+	c := p.pool[addrStr]
 	if c != nil {
 		c.markForUse()
 		p.Unlock()
@@ -204,9 +208,9 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	// attempt is done.
 	var wait chan struct{}
 	var ok bool
-	if wait, ok = p.limiter[addr.String()]; !ok {
+	if wait, ok = p.limiter[addrStr]; !ok {
 		wait = make(chan struct{})
-		p.limiter[addr.String()] = wait
+		p.limiter[addrStr] = wait
 	}
 	isLeadThread := !ok
 	p.Unlock()
@@ -216,14 +220,14 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	if isLeadThread {
 		c, err := p.getNewConn(dc, addr, version)
 		p.Lock()
-		delete(p.limiter, addr.String())
+		delete(p.limiter, addrStr)
 		close(wait)
 		if err != nil {
 			p.Unlock()
 			return nil, err
 		}
 
-		p.pool[addr.String()] = c
+		p.pool[addrStr] = c
 		p.Unlock()
 		return c, nil
 	}
@@ -238,7 +242,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 
 	// See if the lead thread was able to get us a connection.
 	p.Lock()
-	if c := p.pool[addr.String()]; c != nil {
+	if c := p.pool[addrStr]; c != nil {
 		c.markForUse()
 		p.Unlock()
 		return c, nil
@@ -257,10 +261,11 @@ type HalfCloser interface {
 	CloseWrite() error
 }
 
-// Dial is used to establish a raw connection to the given server.
-func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, HalfCloser, error) {
+// DialTimeout is used to establish a raw connection to the given server, with a
+// given connection timeout.
+func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr.String(), defaultDialTimeout)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -296,7 +301,7 @@ func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, HalfCloser, error) 
 // getNewConn is used to return a new connection
 func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
 	// Get a new, raw connection.
-	conn, _, err := p.Dial(dc, addr)
+	conn, _, err := p.DialTimeout(dc, addr, defaultDialTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -340,9 +345,10 @@ func (p *ConnPool) clearConn(conn *Conn) {
 	atomic.StoreInt32(&conn.shouldClose, 1)
 
 	// Clear from the cache
+	addrStr := conn.addr.String()
 	p.Lock()
-	if c, ok := p.pool[conn.addr.String()]; ok && c == conn {
-		delete(p.pool, conn.addr.String())
+	if c, ok := p.pool[addrStr]; ok && c == conn {
+		delete(p.pool, addrStr)
 	}
 	p.Unlock()
 

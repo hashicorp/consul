@@ -11,10 +11,15 @@ type Config struct {
 	// The name of this node. This must be unique in the cluster.
 	Name string
 
+	// Transport is a hook for providing custom code to communicate with
+	// other nodes. If this is left nil, then memberlist will by default
+	// make a NetTransport using BindAddr and BindPort from this structure.
+	Transport Transport
+
 	// Configuration related to what address to bind to and ports to
-	// listen on. The port is used for both UDP and TCP gossip.
-	// It is assumed other nodes are running on this port, but they
-	// do not need to.
+	// listen on. The port is used for both UDP and TCP gossip. It is
+	// assumed other nodes are running on this port, but they do not need
+	// to.
 	BindAddr string
 	BindPort int
 
@@ -28,8 +33,11 @@ type Config struct {
 	// ProtocolVersionMax.
 	ProtocolVersion uint8
 
-	// TCPTimeout is the timeout for establishing a TCP connection with
-	// a remote node for a full state sync.
+	// TCPTimeout is the timeout for establishing a stream connection with
+	// a remote node for a full state sync, and for stream read and write
+	// operations. This is a legacy name for backwards compatibility, but
+	// should really be called StreamTimeout now that we have generalized
+	// the transport.
 	TCPTimeout time.Duration
 
 	// IndirectChecks is the number of nodes that will be asked to perform
@@ -189,10 +197,13 @@ type Config struct {
 	// while UDP messages are handled.
 	HandoffQueueDepth int
 
-	// Maximum number of bytes that memberlist expects UDP messages to be. A safe
-	// value for this is typically 1400 bytes (which is the default.) However,
-	// depending on your network's MTU (Maximum Transmission Unit) you may be able
-	// to increase this.
+	// Maximum number of bytes that memberlist will put in a packet (this
+	// will be for UDP packets by default with a NetTransport). A safe value
+	// for this is typically 1400 bytes (which is the default). However,
+	// depending on your network's MTU (Maximum Transmission Unit) you may
+	// be able to increase this to get more content into each gossip packet.
+	// This is a legacy name for backward compatibility but should really be
+	// called PacketBufferSize now that we have generalized the transport.
 	UDPBufferSize int
 }
 
