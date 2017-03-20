@@ -16,10 +16,10 @@ type Area struct {
 	// when creating a new area.
 	ID string
 
-	// PeeerDatacenter is the peer Consul datacenter that will make up the
+	// PeerDatacenter is the peer Consul datacenter that will make up the
 	// other side of this network area. Network areas always involve a pair
 	// of datacenters: the datacenter where the area was created, and the
-	// peer datacenter. This is required
+	// peer datacenter. This is required.
 	PeerDatacenter string
 
 	// RetryJoin specifies the address of Consul servers to join to, such as
@@ -37,7 +37,7 @@ type AreaJoinResponse struct {
 	Joined bool
 
 	// If we couldn't join, this is the message with information.
-	What string
+	Error string
 }
 
 // SerfMember is a generic structure for reporting information about members in

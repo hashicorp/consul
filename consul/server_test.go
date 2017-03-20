@@ -241,17 +241,13 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) == 2, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
-
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.WANMembers()) == 2, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
+	for i, s := range []*Server{s1, s2} {
+		testutil.WaitForResult(func() (bool, error) {
+			return len(s.WANMembers()) == 2, nil
+		}, func(err error) {
+			t.Fatalf("bad len for server %d", i)
+		})
+	}
 
 	dir3, s3 := testServer(t)
 	defer os.RemoveAll(dir3)
@@ -265,23 +261,13 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) == 3, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
-
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s2.WANMembers()) == 3, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
-
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s3.WANMembers()) == 3, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
+	for i, s := range []*Server{s1, s2, s3} {
+		testutil.WaitForResult(func() (bool, error) {
+			return len(s.WANMembers()) == 3, nil
+		}, func(err error) {
+			t.Fatalf("bad len for server %d", i)
+		})
+	}
 }
 
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
