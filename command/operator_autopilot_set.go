@@ -34,6 +34,8 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	var maxTrailingLogs base.UintValue
 	var lastContactThreshold base.DurationValue
 	var serverStabilizationTime base.DurationValue
+	var redundancyZoneTag base.StringValue
+	var disableUpgradeMigration base.BoolValue
 
 	f := c.Command.NewFlagSet(c)
 
@@ -52,6 +54,12 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 			"'healthy' state before being added to the cluster. Only takes effect if all "+
 			"servers are running Raft protocol version 3 or higher. Must be a duration "+
 			"value such as `10s`.")
+	f.Var(&redundancyZoneTag, "redundancy-zone-tag",
+		"(Enterprise-only) Controls the node_meta tag name used for separating servers into "+
+			"different redundancy zones.")
+	f.Var(&disableUpgradeMigration, "disable-upgrade-migration",
+		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
+			"it can perform a migration. Must be one of `true|false`.")
 
 	if err := c.Command.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -78,6 +86,8 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 
 	// Update the config values based on the set flags.
 	cleanupDeadServers.Merge(&conf.CleanupDeadServers)
+	redundancyZoneTag.Merge(&conf.RedundancyZoneTag)
+	disableUpgradeMigration.Merge(&conf.DisableUpgradeMigration)
 
 	trailing := uint(conf.MaxTrailingLogs)
 	maxTrailingLogs.Merge(&trailing)

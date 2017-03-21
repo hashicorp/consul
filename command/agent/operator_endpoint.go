@@ -191,6 +191,8 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			LastContactThreshold:    api.NewReadableDuration(reply.LastContactThreshold),
 			MaxTrailingLogs:         reply.MaxTrailingLogs,
 			ServerStabilizationTime: api.NewReadableDuration(reply.ServerStabilizationTime),
+			RedundancyZoneTag:       reply.RedundancyZoneTag,
+			DisableUpgradeMigration: reply.DisableUpgradeMigration,
 			CreateIndex:             reply.CreateIndex,
 			ModifyIndex:             reply.ModifyIndex,
 		}
@@ -213,6 +215,8 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			LastContactThreshold:    conf.LastContactThreshold.Duration(),
 			MaxTrailingLogs:         conf.MaxTrailingLogs,
 			ServerStabilizationTime: conf.ServerStabilizationTime.Duration(),
+			RedundancyZoneTag:       conf.RedundancyZoneTag,
+			DisableUpgradeMigration: conf.DisableUpgradeMigration,
 		}
 
 		// Check for cas value
@@ -299,6 +303,8 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 			ID:          server.ID,
 			Name:        server.Name,
 			Address:     server.Address,
+			Version:     server.Version,
+			Leader:      server.Leader,
 			SerfStatus:  server.SerfStatus.String(),
 			LastContact: api.NewReadableDuration(server.LastContact),
 			LastTerm:    server.LastTerm,

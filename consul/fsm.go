@@ -448,6 +448,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.AutopilotRequestType:
+			var req structs.AutopilotConfig
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.Autopilot(&req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -510,6 +519,11 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	if err := s.persistPreparedQueries(sink, encoder); err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	if err := s.persistAutopilot(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -674,6 +688,21 @@ func (s *consulSnapshot) persistPreparedQueries(sink raft.SnapshotSink,
 			return err
 		}
 	}
+	return nil
+}
+
+func (s *consulSnapshot) persistAutopilot(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	autopilot, err := s.state.Autopilot()
+	if err != nil {
+		return err
+	}
+
+	sink.Write([]byte{byte(structs.AutopilotRequestType)})
+	if err := encoder.Encode(autopilot); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -292,6 +292,8 @@ A JSON body is returned that looks like this:
     "LastContactThreshold": "200ms",
     "MaxTrailingLogs": 250,
     "ServerStabilizationTime": "10s",
+    "RedundancyZoneTag": "",
+    "DisableUpgradeMigration": false,
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
@@ -321,6 +323,8 @@ body must look like:
     "LastContactThreshold": "200ms",
     "MaxTrailingLogs": 250,
     "ServerStabilizationTime": "10s",
+    "RedundancyZoneTag": "",
+    "DisableUpgradeMigration": false,
     "CreateIndex": 4,
     "ModifyIndex": 4
 }
@@ -362,6 +366,8 @@ A JSON body is returned that looks like this:
             "Name": "node1",
             "Address": "127.0.0.1:8300",
             "SerfStatus": "alive",
+            "Version": "0.7.4",
+            "Leader": true,
             "LastContact": "0s",
             "LastTerm": 2,
             "LastIndex": 46,
@@ -374,6 +380,8 @@ A JSON body is returned that looks like this:
             "Name": "node2",
             "Address": "127.0.0.1:8205",
             "SerfStatus": "alive",
+            "Version": "0.7.4",
+            "Leader": false,
             "LastContact": "27.291304ms",
             "LastTerm": 2,
             "LastIndex": 46,
@@ -399,6 +407,10 @@ The `Servers` list holds detailed health information on each server:
 - `Address` is the address of the server.
 
 - `SerfStatus` is the SerfHealth check status for the server.
+
+- `Version` is the Consul version of the server.
+
+- `Leader` is whether this server is currently the leader.
 
 - `LastContact` is the time elapsed since this server's last contact with the leader.
 

@@ -73,6 +73,12 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 
 	config.ReconcileInterval = 100 * time.Millisecond
 
+	config.AutopilotConfig.ServerStabilizationTime = 100 * time.Millisecond
+	config.ServerHealthInterval = 50 * time.Millisecond
+	config.AutopilotInterval = 100 * time.Millisecond
+
+	config.Build = "0.8.0"
+
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	return dir, config
 }

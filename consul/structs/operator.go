@@ -26,6 +26,15 @@ type AutopilotConfig struct {
 	// applicable with Raft protocol version 3 or higher.
 	ServerStabilizationTime time.Duration
 
+	// (Enterprise-only) RedundancyZoneTag is the node tag to use for separating
+	// servers into zones for redundancy. If left blank, this feature will be disabled.
+	RedundancyZoneTag string
+
+	// (Enterprise-only) DisableUpgradeMigration will disable Autopilot's upgrade migration
+	// strategy of waiting until enough newer-versioned servers have been added to the
+	// cluster before promoting them to voters.
+	DisableUpgradeMigration bool
+
 	// RaftIndex stores the create/modify indexes of this configuration.
 	RaftIndex
 }
@@ -116,6 +125,12 @@ type ServerHealth struct {
 
 	// The status of the SerfHealth check for the server.
 	SerfStatus serf.MemberStatus
+
+	// Version is the Consul version of the server.
+	Version string
+
+	// Leader is whether this server is currently the leader.
+	Leader bool
 
 	// LastContact is the time since this node's last contact with the leader.
 	LastContact time.Duration

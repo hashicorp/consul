@@ -280,6 +280,15 @@ type Autopilot struct {
 	// applicable with Raft protocol version 3 or higher.
 	ServerStabilizationTime    *time.Duration `mapstructure:"-" json:"-"`
 	ServerStabilizationTimeRaw string         `mapstructure:"server_stabilization_time"`
+
+	// (Enterprise-only) RedundancyZoneTag is the Meta tag to use for separating servers
+	// into zones for redundancy. If left blank, this feature will be disabled.
+	RedundancyZoneTag string `mapstructure:"redundancy_zone_tag"`
+
+	// (Enterprise-only) DisableUpgradeMigration will disable Autopilot's upgrade migration
+	// strategy of waiting until enough newer-versioned servers have been added to the
+	// cluster before promoting them to voters.
+	DisableUpgradeMigration *bool `mapstructure:"disable_upgrade_migration"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -305,6 +314,10 @@ type Config struct {
 	// or merely as a client. Servers have more state, take part
 	// in leader election, etc.
 	Server bool `mapstructure:"server"`
+
+	// (Enterprise-only) NonVotingServer is whether this server will act as a non-voting member
+	// of the cluster to help provide read scalability.
+	NonVotingServer bool `mapstructure:"non_voting_server"`
 
 	// Datacenter is the datacenter this node is in. Defaults to dc1
 	Datacenter string `mapstructure:"datacenter"`
@@ -1378,6 +1391,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Server == true {
 		result.Server = b.Server
 	}
+	if b.NonVotingServer == true {
+		result.NonVotingServer = b.NonVotingServer
+	}
 	if b.LeaveOnTerm != nil {
 		result.LeaveOnTerm = b.LeaveOnTerm
 	}
@@ -1395,6 +1411,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Autopilot.ServerStabilizationTime != nil {
 		result.Autopilot.ServerStabilizationTime = b.Autopilot.ServerStabilizationTime
+	}
+	if b.Autopilot.RedundancyZoneTag != "" {
+		result.Autopilot.RedundancyZoneTag = b.Autopilot.RedundancyZoneTag
+	}
+	if b.Autopilot.DisableUpgradeMigration != nil {
+		result.Autopilot.DisableUpgradeMigration = b.Autopilot.DisableUpgradeMigration
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true

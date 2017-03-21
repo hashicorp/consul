@@ -98,7 +98,6 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
-		c.AutopilotInterval = 100 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

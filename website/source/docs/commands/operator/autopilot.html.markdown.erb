@@ -43,6 +43,8 @@ CleanupDeadServers = true
 LastContactThreshold = 200ms
 MaxTrailingLogs = 250
 ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
 ```
 
 ## set-config
@@ -61,15 +63,21 @@ Usage: `consul operator autopilot set-config [options]`
 * `-cleanup-dead-servers` - Specifies whether to enable automatic removal of dead servers
 upon the successful joining of new servers to the cluster. Must be one of `[true|false]`.
 
-* `last-contact-threshold` - Controls the maximum amount of time a server can go without contact
+* `-last-contact-threshold` - Controls the maximum amount of time a server can go without contact
 from the leader before being considered unhealthy. Must be a duration value such as `200ms`.
 
-* `max-trailing-logs` - Controls the maximum number of log entries that a server can trail
+* `-max-trailing-logs` - Controls the maximum number of log entries that a server can trail
 the leader by before being considered unhealthy.
 
-* `server-stabilization-time` - Controls the minimum amount of time a server must be stable in
+* `-server-stabilization-time` - Controls the minimum amount of time a server must be stable in
 the 'healthy' state before being added to the cluster. Only takes effect if all servers are
 running Raft protocol version 3 or higher. Must be a duration value such as `10s`.
+
+* `-disable-upgrade-migration` - (Enterprise-only) Controls whether Consul will avoid promoting
+new servers until it can perform a migration. Must be one of `[true|false]`.
+
+* `-redundancy-zone-tag`- (Enterprise-only) Controls the [`-node-meta`](/docs/agent/options.html#_node_meta)
+key name used for separating servers into different redundancy zones.
 
 The output looks like this:
 

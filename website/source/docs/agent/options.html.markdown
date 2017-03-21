@@ -335,6 +335,11 @@ will exit with an error at startup.
   participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
   to other datacenters and forward traffic as appropriate.
 
+* <a name="_non_voting_server"></a><a href="#_non_voting_server">`-non-voting-server`</a> - (Enterprise-only)
+  This flag is used to make the server not participate in the Raft quorum, and have it only receive the data
+  replication stream. This can be used to add read scalability to a cluster in cases where a high volume of
+  reads to servers are needed.
+
 * <a name="_syslog"></a><a href="#_syslog">`-syslog`</a> - This flag enables logging to syslog. This
   is only supported on Linux and OSX. It will result in an error if provided on Windows.
 
@@ -579,6 +584,16 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   Controls the minimum amount of time a server must be stable in the 'healthy' state before being added to the
   cluster. Only takes effect if all servers are running Raft protocol version 3 or higher. Must be a duration value
   such as `30s`. Defaults to `10s`.
+
+  * <a name="redundancy_zone_tag"></a><a href="#redundancy_zone_tag">`redundancy_zone_tag`</a> - (Enterprise-only)
+  This controls the [`-node-meta`](#_node_meta) key to use when Autopilot is separating servers into zones for
+  redundancy. Only one server in each zone can be a voting member at one time. If left blank (the default), this
+  feature will be disabled.
+
+  * <a name="disable_upgrade_migration"></a><a href="#disable_upgrade_migration">`disable_upgrade_migration`</a> - (Enterprise-only)
+  If set to `true`, this setting will disable Autopilot's upgrade migration strategy in Consul Enterprise of waiting
+  until enough newer-versioned servers have been added to the cluster before promoting any of them to voters. Defaults
+  to `false`.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).

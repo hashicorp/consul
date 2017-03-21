@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -70,6 +71,7 @@ func TestRetryJoin(t *testing.T) {
 	}()
 
 	cmd := &Command{
+		Version:    version.Version,
 		ShutdownCh: shutdownCh,
 		Command:    baseCommand(new(cli.MockUi)),
 	}

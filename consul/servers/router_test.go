@@ -55,10 +55,11 @@ func (m *mockCluster) AddMember(dc string, name string, coord *coordinate.Coordi
 		Addr: net.ParseIP(fmt.Sprintf("127.0.0.%d", m.addr)),
 		Port: 8300,
 		Tags: map[string]string{
-			"dc":   dc,
-			"role": "consul",
-			"port": "8300",
-			"vsn":  "3",
+			"dc":    dc,
+			"role":  "consul",
+			"port":  "8300",
+			"build": "0.8.0",
+			"vsn":   "3",
 		},
 	}
 	m.members = append(m.members, member)

@@ -80,6 +80,10 @@ type Config struct {
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
+	// (Enterprise-only) NonVoter is used to prevent this server from being added
+	// as a voting member of the Raft cluster.
+	NonVoter bool
+
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
@@ -330,6 +334,7 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
+		Build:                    "0.8.0",
 		Datacenter:               DefaultDC,
 		NodeName:                 hostname,
 		RPCAddr:                  DefaultRPCAddr,
