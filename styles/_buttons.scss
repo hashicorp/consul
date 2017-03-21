@@ -12,6 +12,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    -webkit-transform: translateZ(0);
 
     &:hover {
         color: darken($gray, 10%);
