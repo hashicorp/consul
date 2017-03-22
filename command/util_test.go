@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,6 +24,8 @@ var offset uint64
 func init() {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
+
+	version.Version = "0.8.0"
 }
 
 type agentWrapper struct {
@@ -114,6 +117,8 @@ func nextConfig() *agent.Config {
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
 	conf.Server = true
+
+	conf.Version = version.Version
 
 	conf.Ports.HTTP = 10000 + 10*idx
 	conf.Ports.HTTPS = 10401 + 10*idx

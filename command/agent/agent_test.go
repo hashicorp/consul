@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 )
@@ -37,13 +38,17 @@ const (
 	numPortsPerIndex
 )
 
+func init() {
+	version.Version = "0.8.0"
+}
+
 var offset uint64 = basePortNumber
 
 func nextConfig() *Config {
 	idx := int(atomic.AddUint64(&offset, numPortsPerIndex))
 	conf := DefaultConfig()
 
-	conf.Version = "a.b"
+	conf.Version = version.Version
 	conf.VersionPrerelease = "c.d"
 	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true

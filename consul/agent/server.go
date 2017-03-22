@@ -8,8 +8,10 @@ package agent
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"strconv"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -32,8 +34,10 @@ type Server struct {
 	WanJoinPort int
 	Bootstrap   bool
 	Expect      int
+	Build       version.Version
 	Version     int
 	RaftVersion int
+	NonVoter    bool
 	Addr        net.Addr
 	Status      serf.MemberStatus
 }
@@ -55,6 +59,8 @@ func (s *Server) String() string {
 
 	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, networkStr, addrStr, s.Datacenter)
 }
+
+var versionFormat = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 // IsConsulServer returns true if a serf member is a consul server
 // agent. Returns a bool and a pointer to the Server.
@@ -78,6 +84,11 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	port_str := m.Tags["port"]
 	port, err := strconv.Atoi(port_str)
+	if err != nil {
+		return false, nil
+	}
+
+	build_version, err := version.NewVersion(versionFormat.FindString(m.Tags["build"]))
 	if err != nil {
 		return false, nil
 	}
@@ -106,6 +117,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
+	_, nonVoter := m.Tags["nonvoter"]
+
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
@@ -117,9 +130,11 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Bootstrap:   bootstrap,
 		Expect:      expect,
 		Addr:        addr,
+		Build:       *build_version,
 		Version:     vsn,
 		RaftVersion: raft_vsn,
 		Status:      m.Status,
+		NonVoter:    nonVoter,
 	}
 	return true, parts
 }

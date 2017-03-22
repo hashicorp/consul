@@ -265,7 +265,9 @@ func NewServer(config *Config) (*Server, error) {
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
-	s.autopilotPolicy = &BasicAutopilot{s}
+
+	// Set up the autopilot policy
+	s.autopilotPolicy = &BasicAutopilot{server: s}
 
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
@@ -379,6 +381,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 	if s.config.BootstrapExpect != 0 {
 		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
+	}
+	if s.config.NonVoter {
+		conf.Tags["nonvoter"] = "1"
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput

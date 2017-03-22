@@ -7,6 +7,30 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// Autopilot is used to pull the autopilot config from the snapshot.
+func (s *StateSnapshot) Autopilot() (*structs.AutopilotConfig, error) {
+	c, err := s.tx.First("autopilot-config", "id")
+	if err != nil {
+		return nil, err
+	}
+
+	config, ok := c.(*structs.AutopilotConfig)
+	if !ok {
+		return nil, nil
+	}
+
+	return config, nil
+}
+
+// Autopilot is used when restoring from a snapshot.
+func (s *StateRestore) Autopilot(config *structs.AutopilotConfig) error {
+	if err := s.tx.Insert("autopilot-config", config); err != nil {
+		return fmt.Errorf("failed restoring autopilot config: %s", err)
+	}
+
+	return nil
+}
+
 // AutopilotConfig is used to get the current Autopilot configuration.
 func (s *StateStore) AutopilotConfig() (uint64, *structs.AutopilotConfig, error) {
 	tx := s.db.Txn(false)

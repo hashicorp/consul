@@ -428,6 +428,15 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Autopilot.ServerStabilizationTime != nil {
 		base.AutopilotConfig.ServerStabilizationTime = *a.config.Autopilot.ServerStabilizationTime
 	}
+	if a.config.NonVotingServer {
+		base.NonVoter = a.config.NonVotingServer
+	}
+	if a.config.Autopilot.RedundancyZoneTag != "" {
+		base.AutopilotConfig.RedundancyZoneTag = a.config.Autopilot.RedundancyZoneTag
+	}
+	if a.config.Autopilot.DisableUpgradeMigration != nil {
+		base.AutopilotConfig.DisableUpgradeMigration = *a.config.Autopilot.DisableUpgradeMigration
+	}
 
 	// Format the build string
 	revision := a.config.Revision

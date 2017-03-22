@@ -58,7 +58,7 @@ func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
 	return ret, nil
 }
 
-// PrepparedQuery is used when restoring from a snapshot. For general inserts,
+// PreparedQuery is used when restoring from a snapshot. For general inserts,
 // use PreparedQuerySet.
 func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
 	// If this is a template, compile it, otherwise leave the compiled

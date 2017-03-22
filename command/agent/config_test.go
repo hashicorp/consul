@@ -1107,7 +1107,9 @@ func TestDecodeConfig_Autopilot(t *testing.T) {
 	  "cleanup_dead_servers": true,
 	  "last_contact_threshold": "100ms",
 	  "max_trailing_logs": 10,
-	  "server_stabilization_time": "10s"
+	  "server_stabilization_time": "10s",
+	  "redundancy_zone_tag": "az",
+	  "disable_upgrade_migration": true
 	 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
@@ -1123,6 +1125,12 @@ func TestDecodeConfig_Autopilot(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Autopilot.ServerStabilizationTime == nil || *config.Autopilot.ServerStabilizationTime != 10*time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Autopilot.RedundancyZoneTag != "az" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Autopilot.DisableUpgradeMigration == nil || !*config.Autopilot.DisableUpgradeMigration {
 		t.Fatalf("bad: %#v", config)
 	}
 }

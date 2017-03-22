@@ -133,12 +133,12 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 		return fmt.Errorf("failed to get raft configuration: %v", err)
 	}
 
+	// Find any non-voters eligible for promotion
 	var promotions []raft.Server
-	raftServers := future.Configuration().Servers
 	voterCount := 0
-	for _, server := range raftServers {
+	for _, server := range future.Configuration().Servers {
 		// If this server has been stable and passing for long enough, promote it to a voter
-		if server.Suffrage == raft.Nonvoter {
+		if !isVoter(server.Suffrage) {
 			health := b.server.getServerHealth(string(server.ID))
 			if health.IsStable(time.Now(), autopilotConf) {
 				promotions = append(promotions, server)
@@ -148,18 +148,25 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 		}
 	}
 
-	// Exit early if there's nothing to promote
+	if _, err := b.server.handlePromotions(voterCount, promotions); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) handlePromotions(voterCount int, promotions []raft.Server) (bool, error) {
 	if len(promotions) == 0 {
-		return nil
+		return false, nil
 	}
 
 	// If there's currently an even number of servers, we can promote the first server in the list
 	// to get to an odd-sized quorum
 	newServers := false
 	if voterCount%2 == 0 {
-		addFuture := b.server.raft.AddVoter(promotions[0].ID, promotions[0].Address, 0, 0)
+		addFuture := s.raft.AddVoter(promotions[0].ID, promotions[0].Address, 0, 0)
 		if err := addFuture.Error(); err != nil {
-			return fmt.Errorf("failed to add raft peer: %v", err)
+			return newServers, fmt.Errorf("failed to add raft peer: %v", err)
 		}
 		promotions = promotions[1:]
 		newServers = true
@@ -167,13 +174,13 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 
 	// Promote remaining servers in twos to maintain an odd quorum size
 	for i := 0; i < len(promotions)-1; i += 2 {
-		addFirst := b.server.raft.AddVoter(promotions[i].ID, promotions[i].Address, 0, 0)
+		addFirst := s.raft.AddVoter(promotions[i].ID, promotions[i].Address, 0, 0)
 		if err := addFirst.Error(); err != nil {
-			return fmt.Errorf("failed to add raft peer: %v", err)
+			return newServers, fmt.Errorf("failed to add raft peer: %v", err)
 		}
-		addSecond := b.server.raft.AddVoter(promotions[i+1].ID, promotions[i+1].Address, 0, 0)
+		addSecond := s.raft.AddVoter(promotions[i+1].ID, promotions[i+1].Address, 0, 0)
 		if err := addSecond.Error(); err != nil {
-			return fmt.Errorf("failed to add raft peer: %v", err)
+			return newServers, fmt.Errorf("failed to add raft peer: %v", err)
 		}
 		newServers = true
 	}
@@ -181,12 +188,12 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 	// If we added a new server, trigger a check to remove dead servers
 	if newServers {
 		select {
-		case b.server.autopilotRemoveDeadCh <- struct{}{}:
+		case s.autopilotRemoveDeadCh <- struct{}{}:
 		default:
 		}
 	}
 
-	return nil
+	return newServers, nil
 }
 
 // serverHealthLoop monitors the health of the servers in the cluster
@@ -264,6 +271,7 @@ func (s *Server) updateClusterHealth() error {
 	fetchedStats := s.statsFetcher.Fetch(ctx, fetchList)
 
 	// Build a current list of server healths
+	leader := s.raft.Leader()
 	var clusterHealth structs.OperatorHealthReply
 	healthyCount := 0
 	voterCount := 0
@@ -271,6 +279,7 @@ func (s *Server) updateClusterHealth() error {
 		health := structs.ServerHealth{
 			ID:          string(server.ID),
 			Address:     string(server.Address),
+			Leader:      server.Address == leader,
 			LastContact: -1,
 			Voter:       server.Suffrage == raft.Voter,
 		}
@@ -279,6 +288,7 @@ func (s *Server) updateClusterHealth() error {
 		if ok {
 			health.Name = parts.Name
 			health.SerfStatus = parts.Status
+			health.Version = parts.Build.String()
 			if stats, ok := fetchedStats[string(server.ID)]; ok {
 				if err := s.updateServerHealth(&health, parts, stats, autopilotConf, targetLastIndex); err != nil {
 					s.logger.Printf("[WARN] consul: error updating server health: %s", err)
@@ -371,4 +381,13 @@ func (s *Server) getServerHealth(id string) *structs.ServerHealth {
 		}
 	}
 	return nil
+}
+
+func isVoter(suffrage raft.ServerSuffrage) bool {
+	switch suffrage {
+	case raft.Voter, raft.Staging:
+		return true
+	default:
+		return false
+	}
 }

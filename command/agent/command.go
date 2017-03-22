@@ -109,6 +109,10 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "Provides the gossip encryption key.")
 
 	f.BoolVar(&cmdConfig.Server, "server", false, "Switches agent to server mode.")
+	f.BoolVar(&cmdConfig.NonVotingServer, "non-voting-server", false,
+		"(Enterprise-only) This flag is used to make the server not participate in the Raft quorum, "+
+			"and have it only receive the data replication stream. This can be used to add read scalability "+
+			"to a cluster in cases where a high volume of reads to servers are needed.")
 	f.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "Sets server to bootstrap mode.")
 	f.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "Sets server to expect bootstrap mode.")
 	f.StringVar(&cmdConfig.Domain, "domain", "", "Domain to use for DNS interface.")

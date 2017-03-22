@@ -57,7 +57,7 @@ func (s *Server) lanEventHandler() {
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
-			case serf.EventMemberUpdate: // Ignore
+			case serf.EventMemberUpdate:
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:

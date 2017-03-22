@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
+	"time"
 )
 
 type MockSink struct {
@@ -423,6 +424,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	autopilotConf := &structs.AutopilotConfig{
+		CleanupDeadServers:   true,
+		LastContactThreshold: 100 * time.Millisecond,
+		MaxTrailingLogs:      222,
+	}
+	if err := fsm.state.AutopilotSetConfig(15, autopilotConf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -562,6 +572,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 	if !reflect.DeepEqual(queries[0], &query) {
 		t.Fatalf("bad: %#v", queries[0])
+	}
+
+	// Verify autopilot config is restored.
+	_, restoredConf, err := fsm2.state.AutopilotConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(restoredConf, autopilotConf) {
+		t.Fatalf("bad: %#v, %#v", restoredConf, autopilotConf)
 	}
 
 	// Snapshot
@@ -1311,6 +1330,67 @@ func TestFSM_Txn(t *testing.T) {
 	}
 	if d == nil {
 		t.Fatalf("missing")
+	}
+}
+
+func TestFSM_Autopilot(t *testing.T) {
+	fsm, err := NewFSM(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set the autopilot config using a request.
+	req := structs.AutopilotSetConfigRequest{
+		Datacenter: "dc1",
+		Config: structs.AutopilotConfig{
+			CleanupDeadServers:   true,
+			LastContactThreshold: 10 * time.Second,
+			MaxTrailingLogs:      300,
+		},
+	}
+	buf, err := structs.Encode(structs.AutopilotRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	// Verify key is set directly in the state store.
+	_, config, err := fsm.state.AutopilotConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if config.CleanupDeadServers != req.Config.CleanupDeadServers {
+		t.Fatalf("bad: %v", config.CleanupDeadServers)
+	}
+	if config.LastContactThreshold != req.Config.LastContactThreshold {
+		t.Fatalf("bad: %v", config.LastContactThreshold)
+	}
+	if config.MaxTrailingLogs != req.Config.MaxTrailingLogs {
+		t.Fatalf("bad: %v", config.MaxTrailingLogs)
+	}
+
+	// Now use CAS and provide an old index
+	req.CAS = true
+	req.Config.CleanupDeadServers = false
+	req.Config.ModifyIndex = config.ModifyIndex - 1
+	buf, err = structs.Encode(structs.AutopilotRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	_, config, err = fsm.state.AutopilotConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !config.CleanupDeadServers {
+		t.Fatalf("bad: %v", config.CleanupDeadServers)
 	}
 }
 

@@ -59,6 +59,7 @@ func TestIsConsulServer(t *testing.T) {
 			"id":            "asdf",
 			"dc":            "east-aws",
 			"port":          "10000",
+			"build":         "0.8.0",
 			"wan_join_port": "1234",
 			"vsn":           "1",
 			"expect":        "3",
@@ -132,11 +133,12 @@ func TestIsConsulServer_Optional(t *testing.T) {
 		Name: "foo",
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
-			"role": "consul",
-			"id":   "asdf",
-			"dc":   "east-aws",
-			"port": "10000",
-			"vsn":  "1",
+			"role":  "consul",
+			"id":    "asdf",
+			"dc":    "east-aws",
+			"port":  "10000",
+			"vsn":   "1",
+			"build": "0.8.0",
 			// wan_join_port, raft_vsn, and expect are optional and
 			// should default to zero.
 		},
