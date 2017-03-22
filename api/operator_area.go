@@ -100,6 +100,16 @@ func (op *Operator) AreaCreate(area *Area, q *WriteOptions) (string, *WriteMeta,
 	return out.ID, wm, nil
 }
 
+// AreaGet returns a single network area.
+func (op *Operator) AreaGet(areaID string, q *QueryOptions) ([]*Area, *QueryMeta, error) {
+	var out []*Area
+	qm, err := op.c.query("/v1/operator/area/"+areaID, &out, q)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
+
 // AreaList returns all the available network areas.
 func (op *Operator) AreaList(q *QueryOptions) ([]*Area, *QueryMeta, error) {
 	var out []*Area
