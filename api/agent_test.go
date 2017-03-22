@@ -1,11 +1,9 @@
 package api
 
 import (
-	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
-
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
@@ -613,7 +611,7 @@ func TestAgent_Leave(t *testing.T) {
 
 	// We sometimes see an EOF response to this one, depending on timing.
 	err := c2.Agent().Leave()
-	if err != nil && err != io.EOF {
+	if err != nil && !strings.Contains(err.Error(), "EOF") {
 		t.Fatalf("err: %v", err)
 	}
 
