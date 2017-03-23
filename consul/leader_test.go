@@ -14,7 +14,12 @@ import (
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -81,7 +86,12 @@ func TestLeader_RegisterMember(t *testing.T) {
 }
 
 func TestLeader_FailedMember(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -140,7 +150,12 @@ func TestLeader_FailedMember(t *testing.T) {
 }
 
 func TestLeader_LeftMember(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -185,7 +200,12 @@ func TestLeader_LeftMember(t *testing.T) {
 }
 
 func TestLeader_ReapMember(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -244,7 +264,12 @@ func TestLeader_ReapMember(t *testing.T) {
 }
 
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -260,6 +285,9 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 			CheckID: SerfCheckID,
 			Name:    SerfCheckName,
 			Status:  structs.HealthCritical,
+		},
+		WriteRequest: structs.WriteRequest{
+			Token: "root",
 		},
 	}
 	var out struct{}
@@ -284,7 +312,12 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 }
 
 func TestLeader_Reconcile(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
@@ -562,6 +595,9 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 func TestLeader_ReapTombstones(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
 	})
@@ -578,6 +614,9 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		DirEnt: structs.DirEntry{
 			Key:   "test",
 			Value: []byte("test"),
+		},
+		WriteRequest: structs.WriteRequest{
+			Token: "root",
 		},
 	}
 	var out bool

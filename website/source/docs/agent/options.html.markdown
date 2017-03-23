@@ -454,9 +454,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   and servers to perform internal operations to the service catalog. If this isn't specified, then
   the <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
   <br><br>
-  For clients, this token must at least have write access to the node name it will register as. For
-  servers, this must have write access to all nodes that are expected to join the cluster, as well
-  as write access to the "consul" service, which will be registered automatically on its behalf.
+  This token must at least have write access to the node name it will register as in order to set any
+  of the node-level information in the catalog such as metadata, or the node's tagged addresses.
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   Used for clients and servers to determine if enforcement should occur for new ACL policies being
