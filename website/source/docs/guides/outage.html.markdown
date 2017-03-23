@@ -55,7 +55,7 @@ server if it's still a member of the cluster.
 If [`consul force-leave`](/docs/commands/force-leave.html) isn't able to remove the
 server, you have two methods available to remove it, depending on your version of Consul:
 
-* In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer) command to remove the stale peer server on the fly with no downtime.
+* In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer) command to remove the stale peer server on the fly with no downtime if the cluster has a leader.
 
 * In versions of Consul prior to 0.7, you can manually remove the stale peer
 server using the `raft/peers.json` recovery file on all remaining servers. See
