@@ -24,10 +24,16 @@ func (t *Txn) preCheck(acl acl.ACL, ops structs.TxnOps) structs.TxnErrors {
 		if op.KV != nil {
 			ok, err := kvsPreApply(t.srv, acl, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
-				errors = append(errors, &structs.TxnError{i, err.Error()})
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
 			} else if !ok {
 				err = fmt.Errorf("failed to lock key %q due to lock delay", op.KV.DirEnt.Key)
-				errors = append(errors, &structs.TxnError{i, err.Error()})
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
 			}
 		}
 	}

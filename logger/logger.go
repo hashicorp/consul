@@ -39,7 +39,7 @@ type Config struct {
 func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *LogWriter, io.Writer, bool) {
 	// The gated writer buffers logs at startup and holds until it's flushed.
 	logGate := &GatedWriter{
-		Writer: &cli.UiWriter{ui},
+		Writer: &cli.UiWriter{Ui: ui},
 	}
 
 	// Set up the level filter.

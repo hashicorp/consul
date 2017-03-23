@@ -405,7 +405,10 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Datacenter: "dc0",
 				AreaID:     types.AreaWAN,
 				Coordinates: structs.Coordinates{
-					&structs.Coordinate{"node0.dc0", lib.GenerateCoordinate(10 * time.Millisecond)},
+					&structs.Coordinate{
+						Node:  "node0.dc0",
+						Coord: lib.GenerateCoordinate(10 * time.Millisecond),
+					},
 				},
 			}) {
 				t.Fatalf("bad: %#v", entry)
@@ -415,9 +418,18 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Datacenter: "dc1",
 				AreaID:     types.AreaWAN,
 				Coordinates: structs.Coordinates{
-					&structs.Coordinate{"node1.dc1", lib.GenerateCoordinate(3 * time.Millisecond)},
-					&structs.Coordinate{"node2.dc1", lib.GenerateCoordinate(2 * time.Millisecond)},
-					&structs.Coordinate{"node3.dc1", lib.GenerateCoordinate(5 * time.Millisecond)},
+					&structs.Coordinate{
+						Node:  "node1.dc1",
+						Coord: lib.GenerateCoordinate(3 * time.Millisecond),
+					},
+					&structs.Coordinate{
+						Node:  "node2.dc1",
+						Coord: lib.GenerateCoordinate(2 * time.Millisecond),
+					},
+					&structs.Coordinate{
+						Node:  "node3.dc1",
+						Coord: lib.GenerateCoordinate(5 * time.Millisecond),
+					},
 				},
 			}) {
 				t.Fatalf("bad: %#v", entry)
@@ -427,7 +439,10 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Datacenter: "dc2",
 				AreaID:     types.AreaWAN,
 				Coordinates: structs.Coordinates{
-					&structs.Coordinate{"node1.dc2", lib.GenerateCoordinate(8 * time.Millisecond)},
+					&structs.Coordinate{
+						Node:  "node1.dc2",
+						Coord: lib.GenerateCoordinate(8 * time.Millisecond),
+					},
 				},
 			}) {
 				t.Fatalf("bad: %#v", entry)

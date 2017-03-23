@@ -309,7 +309,10 @@ func (c *consulFSM) applyTxn(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSince([]string{"consul", "fsm", "txn"}, time.Now())
 	results, errors := c.state.TxnRW(index, req.Ops)
-	return structs.TxnResponse{results, errors}
+	return structs.TxnResponse{
+		Results: results,
+		Errors:  errors,
+	}
 }
 
 func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
