@@ -163,6 +163,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Deprecated RPC configs - TODO: remove this in a future release
+	input = `{"ports": {"rpc": 1234}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Ports.RPC != 1234 {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Serf configs
 	input = `{"ports": {"serf_lan": 1000, "serf_wan": 2000}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -920,6 +931,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Addresses.HTTPS != "127.0.0.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// RPC Addresses - TODO: remove in a future release
+	input = `{"addresses": {"rpc": "1.2.3.4"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Addresses.RPC != "1.2.3.4" {
 		t.Fatalf("bad: %#v", config)
 	}
 
