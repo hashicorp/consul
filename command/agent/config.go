@@ -29,6 +29,10 @@ type PortConfig struct {
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
 	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server only)
 	Server  int // Server internal RPC
+
+	// RPC is deprecated and is no longer used. It will be removed in a future
+	// version.
+	RPC int // CLI RPC
 }
 
 // AddressConfig is used to provide address overrides
@@ -38,6 +42,10 @@ type AddressConfig struct {
 	DNS   string // DNS Query interface
 	HTTP  string // HTTP API
 	HTTPS string // HTTPS API
+
+	// RPC is deprecated and is no longer used. It will be removed in a future
+	// version.
+	RPC string // CLI RPC
 }
 
 type AdvertiseAddrsConfig struct {
@@ -967,6 +975,16 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, err
 	}
 
+	// Check for deprecations
+	if result.Ports.RPC != 0 {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: ports.rpc is deprecated and is "+
+			"no longer used. Please remove it from your configuration.")
+	}
+	if result.Addresses.RPC != "" {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: addresses.rpc is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+
 	// Check unused fields and verify that no bad configuration options were
 	// passed to Consul. There are a few additional fields which don't directly
 	// use mapstructure decoding, so we need to account for those as well. These
@@ -1517,6 +1535,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Ports.HTTPS != 0 {
 		result.Ports.HTTPS = b.Ports.HTTPS
 	}
+	if b.Ports.RPC != 0 {
+		result.Ports.RPC = b.Ports.RPC
+	}
 	if b.Ports.SerfLan != 0 {
 		result.Ports.SerfLan = b.Ports.SerfLan
 	}
@@ -1534,6 +1555,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.HTTPS != "" {
 		result.Addresses.HTTPS = b.Addresses.HTTPS
+	}
+	if b.Addresses.RPC != "" {
+		result.Addresses.RPC = b.Addresses.RPC
 	}
 	if b.EnableUi {
 		result.EnableUi = true
