@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-func TestOperator_OperatorRaftConfiguration(t *testing.T) {
+func TestOperator_RaftConfiguration(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/operator/raft/configuration", body)
@@ -42,7 +42,7 @@ func TestOperator_OperatorRaftConfiguration(t *testing.T) {
 	})
 }
 
-func TestOperator_OperatorRaftPeer(t *testing.T) {
+func TestOperator_RaftPeer(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("DELETE", "/v1/operator/raft/peer?address=nope", body)
@@ -424,7 +424,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	})
 }
 
-func TestOperator_OperatorServerHealth(t *testing.T) {
+func TestOperator_ServerHealth(t *testing.T) {
 	cb := func(c *Config) {
 		c.RaftProtocol = 3
 	}
@@ -464,7 +464,7 @@ func TestOperator_OperatorServerHealth(t *testing.T) {
 	}, cb)
 }
 
-func TestOperator_OperatorServerHealth_Unhealthy(t *testing.T) {
+func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	threshold := time.Duration(-1)
 	cb := func(c *Config) {
 		c.RaftProtocol = 3
