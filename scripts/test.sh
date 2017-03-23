@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-# Install all packages - this will make running the suite faster
-echo "--> Installing packages for faster tests"
-go install -tags="${GOTAGS}" -a ./...
+if [ -n "$TRAVIS" ]; then
+  # Install all packages - this will make running the suite faster
+  echo "--> Installing packages for faster tests"
+  go install -tags="${GOTAGS}" -a ./...
+fi
 
 # If we are testing the API, build and install consul
 if grep -q "/consul/api" <<< "${GOFILES}"; then
