@@ -97,6 +97,21 @@ func TestIsPrivateIP(t *testing.T) {
 	if !isPrivateIP("127.0.0.1") {
 		t.Fatalf("bad")
 	}
+	if isPrivateIP("6666:6666::1") {
+		t.Fatalf("bad")
+	}
+	if !isPrivateIP("fec0:0f::1") {
+		t.Fatalf("bad")
+	}
+	if !isPrivateIP("fd12:34::1") {
+		t.Fatalf("bad")
+	}
+	if !isPrivateIP("fe80::12") {
+		t.Fatalf("bad")
+	}
+	if !isPrivateIP("::1") {
+		t.Fatalf("bad")
+	}
 }
 
 func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
