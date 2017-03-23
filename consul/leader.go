@@ -450,11 +450,11 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 AFTER_CHECK:
 	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
 
-	// Register with the catalog
+	// Register with the catalog.
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
-		ID:         types.NodeID(member.Tags["id"]),
 		Node:       member.Name,
+		ID:         types.NodeID(member.Tags["id"]),
 		Address:    member.Addr.String(),
 		Service:    service,
 		Check: &structs.HealthCheck{
@@ -464,10 +464,13 @@ AFTER_CHECK:
 			Status:  structs.HealthPassing,
 			Output:  SerfCheckAliveOutput,
 		},
-		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
+
+		// If there's existing information about the node, do not
+		// clobber it.
+		SkipNodeUpdate: true,
 	}
-	var out struct{}
-	return s.endpoints.Catalog.Register(&req, &out)
+	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	return err
 }
 
 // handleFailedMember is used to mark the node's status
@@ -497,6 +500,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
+		ID:         types.NodeID(member.Tags["id"]),
 		Address:    member.Addr.String(),
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
@@ -505,10 +509,13 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			Status:  structs.HealthCritical,
 			Output:  SerfCheckFailedOutput,
 		},
-		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
+
+		// If there's existing information about the node, do not
+		// clobber it.
+		SkipNodeUpdate: true,
 	}
-	var out struct{}
-	return s.endpoints.Catalog.Register(&req, &out)
+	_, err = s.raftApply(structs.RegisterRequestType, &req)
+	return err
 }
 
 // handleLeftMember is used to handle members that gracefully
@@ -553,12 +560,11 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	// Deregister the node
 	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
 	req := structs.DeregisterRequest{
-		Datacenter:   s.config.Datacenter,
-		Node:         member.Name,
-		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
+		Datacenter: s.config.Datacenter,
+		Node:       member.Name,
 	}
-	var out struct{}
-	return s.endpoints.Catalog.Deregister(&req, &out)
+	_, err = s.raftApply(structs.DeregisterRequestType, &req)
+	return err
 }
 
 // joinConsulServer is used to try to join another consul server
@@ -712,10 +718,9 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 func (s *Server) reapTombstones(index uint64) {
 	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
-		Datacenter:   s.config.Datacenter,
-		Op:           structs.TombstoneReap,
-		ReapIndex:    index,
-		WriteRequest: structs.WriteRequest{Token: s.config.GetTokenForAgent()},
+		Datacenter: s.config.Datacenter,
+		Op:         structs.TombstoneReap,
+		ReapIndex:  index,
 	}
 	_, err := s.raftApply(structs.TombstoneRequestType, &req)
 	if err != nil {

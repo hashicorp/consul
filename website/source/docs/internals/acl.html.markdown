@@ -571,13 +571,9 @@ Two new configuration options are used once complete ACLs are enabled:
   tokens during normal operation.
 * [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) is used internally by
   Consul agents to perform operations to the service catalog when registering themselves
-  or sending network coordinates to the servers.
-  <br>
-  <br>
-  For clients, this token must at least have `node` ACL policy `write` access to the node
-  name it will register as. For servers, this must have `node` ACL policy `write` access to
-  all nodes that are expected to join the cluster, as well as `service` ACL policy `write`
-  access to the `consul` service, which will be registered automatically on its behalf.
+  or sending network coordinates to the servers. This token must at least have `node` ACL
+  policy `write` access to the node name it will register as in order to register any
+  node-level information like metadata or tagged addresses.
 
 Since clients now resolve ACLs locally, the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
 now applies to Consul clients as well as Consul servers. This will determine what the
