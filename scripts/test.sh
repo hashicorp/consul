@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+# Install all packages - this will make running the suite faster
+echo "--> Installing packages for faster tests"
+go install -tags="${GOTAGS}" -a ./...
+
 # If we are testing the API, build and install consul
 if grep -q "/consul/api" <<< "${GOFILES}"; then
   # Create a temp dir and clean it up on exit
@@ -12,10 +16,6 @@ if grep -q "/consul/api" <<< "${GOFILES}"; then
   go build -tags="${GOTAGS}" -o $TEMPDIR/consul
   PATH="${TEMPDIR}:${PATH}"
 fi
-
-# Install all packages - this will make running the suite faster
-echo "--> Installing packages for faster tests"
-go install -tags="${GOTAGS}" -a ./...
 
 # Run the tests
 echo "--> Running tests"
