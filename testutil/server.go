@@ -41,6 +41,9 @@ type TestPortConfig struct {
 	SerfLan int `json:"serf_lan,omitempty"`
 	SerfWan int `json:"serf_wan,omitempty"`
 	Server  int `json:"server,omitempty"`
+
+	// Deprecated
+	RPC int `json:"rpc,omitempty"`
 }
 
 // TestAddressConfig contains the bind addresses for various
@@ -96,6 +99,7 @@ func defaultServerConfig() *TestServerConfig {
 			SerfLan: randomPort(),
 			SerfWan: randomPort(),
 			Server:  randomPort(),
+			RPC:     randomPort(),
 		},
 	}
 }
