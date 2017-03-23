@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-# Create a temp dir and clean it up on exit
-TEMPDIR=`mktemp -d -t consul-test.XXX`
-trap "rm -rf $TEMPDIR" EXIT HUP INT QUIT TERM
+# If we are testing the API, build and install consul
+if grep -q "/consul/api" <<< "${GOFILES}"; then
+  # Create a temp dir and clean it up on exit
+  TEMPDIR=`mktemp -d -t consul-test.XXX`
+  trap "rm -rf ${TEMPDIR}" EXIT HUP INT QUIT TERM
 
-# Build the Consul binary for the API tests
-echo "--> Building consul"
-go build -tags="${BUILD_TAGS}" -o $TEMPDIR/consul || exit 1
+  # Build the Consul binary for the API tests
+  echo "--> Building consul"
+  go build -tags="${GOTAGS}" -o $TEMPDIR/consul
+  PATH="${TEMPDIR}:${PATH}"
+fi
+
+# Install all packages - this will make running the suite faster
+echo "--> Installing packages for faster tests"
+go install -tags="${GOTAGS}" -a ./...
 
 # Run the tests
 echo "--> Running tests"
-go list ./... | grep -v '/vendor/' | PATH=$TEMPDIR:$PATH xargs -n1 go test -tags="${BUILD_TAGS}" ${GOTEST_FLAGS:--cover -timeout=360s}
+go test -timeout=360s -parallel=20 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
