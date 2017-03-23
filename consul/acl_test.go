@@ -903,17 +903,28 @@ func TestACL_filterServices(t *testing.T) {
 	services := structs.Services{
 		"service1": []string{},
 		"service2": []string{},
+		"consul":   []string{},
 	}
 
-	// Try permissive filtering
+	// Try permissive filtering.
 	filt := newAclFilter(acl.AllowAll(), nil, false)
 	filt.filterServices(services)
-	if len(services) != 2 {
+	if len(services) != 3 {
 		t.Fatalf("bad: %#v", services)
 	}
 
-	// Try restrictive filtering
+	// Try restrictive filtering.
 	filt = newAclFilter(acl.DenyAll(), nil, false)
+	filt.filterServices(services)
+	if len(services) != 1 {
+		t.Fatalf("bad: %#v", services)
+	}
+	if _, ok := services["consul"]; !ok {
+		t.Fatalf("bad: %#v", services)
+	}
+
+	// Try restrictive filtering with version 8 enforcement.
+	filt = newAclFilter(acl.DenyAll(), nil, true)
 	filt.filterServices(services)
 	if len(services) != 0 {
 		t.Fatalf("bad: %#v", services)
