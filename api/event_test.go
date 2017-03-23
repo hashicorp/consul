@@ -29,15 +29,15 @@ func TestEvent_FireList(t *testing.T) {
 
 	var events []*UserEvent
 	var qm *QueryMeta
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		events, qm, err = event.List("", nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return len(events) > 0, err
-	}, func(err error) {
-		t.Fatalf("err: %#v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	if events[len(events)-1].ID != id {
 		t.Fatalf("bad: %#v", events)

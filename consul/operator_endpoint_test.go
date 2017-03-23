@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
-	"time"
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
@@ -461,7 +462,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -490,9 +491,9 @@ func TestOperator_ServerHealth(t *testing.T) {
 			}
 		}
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatal(err)
-	})
+	}
 }
 
 func TestOperator_ServerHealth_UnsupportedRaftVersion(t *testing.T) {

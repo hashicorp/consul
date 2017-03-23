@@ -79,7 +79,7 @@ func expectStatus(t *testing.T, script, status string) {
 	check.Start()
 	defer check.Stop()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
@@ -90,9 +90,9 @@ func expectStatus(t *testing.T, script, status string) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
@@ -282,7 +282,7 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
@@ -297,9 +297,9 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckHTTPCritical(t *testing.T) {
@@ -388,7 +388,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
 		if mock.updates["bar"] < 2 {
 			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
@@ -398,9 +398,9 @@ func TestCheckHTTPTimeout(t *testing.T) {
 			return false, fmt.Errorf("should be critical %v", mock.state)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
@@ -461,14 +461,14 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if mock.state["skipverify_true"] != structs.HealthPassing {
 			return false, fmt.Errorf("should be passing %v", mock.state)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
@@ -496,14 +496,14 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if mock.state["skipverify_true"] != structs.HealthCritical {
 			return false, fmt.Errorf("should be critical %v", mock.state)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
@@ -532,7 +532,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 		t.Fatalf("should be false")
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// This should fail due to an invalid SSL cert
 		if mock.state["skipverify_false"] != structs.HealthCritical {
 			return false, fmt.Errorf("should be critical %v", mock.state)
@@ -542,9 +542,9 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 			return false, fmt.Errorf("should fail with certificate error %v", mock.output)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func mockTCPServer(network string) net.Listener {
@@ -582,7 +582,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	check.Start()
 	defer check.Stop()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
 			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
@@ -592,9 +592,9 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 			return false, fmt.Errorf("should be %v %v", status, mock.state)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCheckTCPCritical(t *testing.T) {

@@ -21,7 +21,7 @@ func TestHealth_Node(t *testing.T) {
 	}
 	name := info["Config"]["NodeName"].(string)
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		checks, meta, err := health.Node(name, nil)
 		if err != nil {
 			return false, err
@@ -33,9 +33,9 @@ func TestHealth_Node(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", checks)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealthChecks_AggregatedStatus(t *testing.T) {
@@ -191,7 +191,7 @@ func TestHealth_Checks(t *testing.T) {
 	}
 	defer agent.ServiceDeregister("foo")
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		checks, meta, err := health.Checks("foo", nil)
 		if err != nil {
 			return false, err
@@ -203,9 +203,9 @@ func TestHealth_Checks(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealth_Checks_NodeMetaFilter(t *testing.T) {
@@ -231,7 +231,7 @@ func TestHealth_Checks_NodeMetaFilter(t *testing.T) {
 	}
 	defer agent.ServiceDeregister("foo")
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		checks, meta, err := health.Checks("foo", &QueryOptions{NodeMeta: meta})
 		if err != nil {
 			return false, err
@@ -243,9 +243,9 @@ func TestHealth_Checks_NodeMetaFilter(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealth_Service(t *testing.T) {
@@ -254,7 +254,7 @@ func TestHealth_Service(t *testing.T) {
 
 	health := c.Health()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, nil)
 		if err != nil {
@@ -270,9 +270,9 @@ func TestHealth_Service(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks[0].Node)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealth_Service_NodeMetaFilter(t *testing.T) {
@@ -284,7 +284,7 @@ func TestHealth_Service_NodeMetaFilter(t *testing.T) {
 
 	health := c.Health()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
 		if err != nil {
@@ -300,9 +300,9 @@ func TestHealth_Service_NodeMetaFilter(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks[0].Node)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealth_State(t *testing.T) {
@@ -312,7 +312,7 @@ func TestHealth_State(t *testing.T) {
 
 	health := c.Health()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		checks, meta, err := health.State("any", nil)
 		if err != nil {
 			return false, err
@@ -324,9 +324,9 @@ func TestHealth_State(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealth_State_NodeMetaFilter(t *testing.T) {
@@ -339,7 +339,7 @@ func TestHealth_State_NodeMetaFilter(t *testing.T) {
 
 	health := c.Health()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		checks, meta, err := health.State("any", &QueryOptions{NodeMeta: meta})
 		if err != nil {
 			return false, err
@@ -351,7 +351,7 @@ func TestHealth_State_NodeMetaFilter(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }

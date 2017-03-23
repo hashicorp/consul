@@ -3,12 +3,13 @@ package command
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
-	"strings"
-	"testing"
 )
 
 func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
@@ -56,13 +57,13 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		m = a1.agent.LANMembers()
 		success := m[1].Status == serf.StatusLeft
 		return success, errors.New(m[1].Status.String())
-	}, func(err error) {
+	}); err != nil {
 		t.Fatalf("member status is %v, should be left", err)
-	})
+	}
 }
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {

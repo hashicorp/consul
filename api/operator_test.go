@@ -188,7 +188,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 	defer s.Stop()
 
 	operator := c.Operator()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		out, err := operator.AutopilotServerHealth(nil)
 		if err != nil {
 			return false, fmt.Errorf("err: %v", err)
@@ -200,7 +200,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatal(err)
-	})
+	}
 }

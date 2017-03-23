@@ -33,15 +33,15 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Client should be registered
 	state := s1.fsm.State()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node != nil, nil
-	}, func(err error) {
-		t.Fatalf("client not registered")
-	})
+	}); err != nil {
+		t.Fatal("client not registered")
+	}
 
 	// Should have a check
 	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
@@ -103,15 +103,15 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	// Should be registered
 	state := s1.fsm.State()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node != nil, nil
-	}, func(err error) {
-		t.Fatalf("client not registered")
-	})
+	}); err != nil {
+		t.Fatal("client not registered")
+	}
 
 	// Should have a check
 	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
@@ -128,15 +128,15 @@ func TestLeader_FailedMember(t *testing.T) {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
-	}, func(err error) {
+	}); err != nil {
 		t.Fatalf("check status is %v, should be critical", err)
-	})
+	}
 }
 
 func TestLeader_LeftMember(t *testing.T) {
@@ -158,30 +158,30 @@ func TestLeader_LeftMember(t *testing.T) {
 	state := s1.fsm.State()
 
 	// Should be registered
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node != nil, nil
-	}, func(err error) {
-		t.Fatalf("client should be registered")
-	})
+	}); err != nil {
+		t.Fatal("client should be registered")
+	}
 
 	// Node should leave
 	c1.Leave()
 	c1.Shutdown()
 
 	// Should be deregistered
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node == nil, nil
-	}, func(err error) {
-		t.Fatalf("client should not be registered")
-	})
+	}); err != nil {
+		t.Fatal("client should not be registered")
+	}
 }
 
 func TestLeader_ReapMember(t *testing.T) {
@@ -203,15 +203,15 @@ func TestLeader_ReapMember(t *testing.T) {
 	state := s1.fsm.State()
 
 	// Should be registered
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node != nil, nil
-	}, func(err error) {
-		t.Fatalf("client should be registered")
-	})
+	}); err != nil {
+		t.Fatal("client should be registered")
+	}
 
 	// Simulate a node reaping
 	mems := s1.LANMembers()
@@ -310,15 +310,15 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	// Should be registered
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err = state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node != nil, nil
-	}, func(err error) {
-		t.Fatalf("client should be registered")
-	})
+	}); err != nil {
+		t.Fatal("client should be registered")
+	}
 }
 
 func TestLeader_LeftServer(t *testing.T) {
@@ -346,15 +346,15 @@ func TestLeader_LeftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		// Kill any server
 		servers[0].Shutdown()
 
@@ -369,9 +369,9 @@ func TestLeader_LeftServer(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
@@ -399,12 +399,12 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
 	// Kill the leader!
@@ -428,25 +428,25 @@ func TestLeader_LeftLeader(t *testing.T) {
 			continue
 		}
 		remain = s
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
-		}, func(err error) {
-			t.Fatalf("should have 2 peers: %v", err)
-		})
+		}); err != nil {
+			t.Fatal("should have 2 peers")
+		}
 	}
 
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return node == nil, nil
-	}, func(err error) {
-		t.Fatalf("leader should be deregistered")
-	})
+	}); err != nil {
+		t.Fatal("should be deregistered")
+	}
 }
 
 func TestLeader_MultiBootstrap(t *testing.T) {
@@ -468,12 +468,12 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers := s.serfLAN.Members()
 			return len(peers) == 2, nil
-		}, func(err error) {
-			t.Fatalf("should have 2 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 2 peerss")
+		}
 	}
 
 	// Ensure we don't have multiple raft peers
@@ -510,12 +510,12 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
 	var leader *Server
@@ -540,7 +540,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	// Wait for a new leader
 	leader = nil
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		for _, s := range servers {
 			if s.IsLeader() {
 				leader = s
@@ -548,16 +548,16 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 			}
 		}
 		return false, nil
-	}, func(err error) {
-		t.Fatalf("should have leader")
-	})
+	}); err != nil {
+		t.Fatal("should have leader")
+	}
 
 	// Check that the new leader has a pending GC expiration
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		return leader.tombstoneGC.PendingExpiration(), nil
-	}, func(err error) {
-		t.Fatalf("should have pending expiration")
-	})
+	}); err != nil {
+		t.Fatal("should have pending expiration")
+	}
 }
 
 func TestLeader_ReapTombstones(t *testing.T) {
@@ -610,7 +610,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Check that the new leader has a pending GC expiration by
 	// watching for the tombstone to get removed.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
@@ -618,9 +618,9 @@ func TestLeader_ReapTombstones(t *testing.T) {
 			return false, err
 		}
 		return stones.Next() == nil, nil
-	}, func(err error) {
-		t.Fatalf("err: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestLeader_RollRaftServer(t *testing.T) {
@@ -656,24 +656,24 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
 	// Kill the v1 server
 	s2.Shutdown()
 
 	for _, s := range []*Server{s1, s3} {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			minVer, err := ServerMinRaftProtocol(s.LANMembers())
 			return minVer == 2, err
-		}, func(err error) {
+		}); err != nil {
 			t.Fatalf("minimum protocol version among servers should be 2")
-		})
+		}
 	}
 
 	// Replace the dead server with one running raft protocol v3
@@ -691,7 +691,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			addrs := 0
 			ids := 0
 			future := s.raft.GetConfiguration()
@@ -706,9 +706,9 @@ func TestLeader_RollRaftServer(t *testing.T) {
 				}
 			}
 			return addrs == 2 && ids == 1, nil
-		}, func(err error) {
+		}); err != nil {
 			t.Fatalf("should see 2 legacy IDs and 1 GUID")
-		})
+		}
 	}
 }
 
@@ -744,18 +744,18 @@ func TestLeader_ChangeServerAddress(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -763,9 +763,9 @@ func TestLeader_ChangeServerAddress(t *testing.T) {
 			}
 		}
 		return alive == 2, nil
-	}, func(err error) {
-		t.Fatalf("should have 2 alive members")
-	})
+	}); err != nil {
+		t.Fatal("should have 2 alive members")
+	}
 
 	// Bring up a new server with s3's address that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
@@ -784,12 +784,12 @@ func TestLeader_ChangeServerAddress(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 members")
+		}
 	}
 }
 
@@ -825,18 +825,18 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -844,9 +844,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 			}
 		}
 		return alive == 2, nil
-	}, func(err error) {
-		t.Fatalf("should have 2 alive members")
-	})
+	}); err != nil {
+		t.Fatal("should have 2 alive members")
+	}
 
 	// Bring up a new server with s3's address that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
@@ -867,11 +867,11 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal("should have 3 peers")
+		}
 	}
 }

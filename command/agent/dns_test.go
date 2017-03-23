@@ -1299,13 +1299,11 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Register a remote node with a service.
 	{
@@ -3376,13 +3374,11 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Register a remote node with a service.
 	{

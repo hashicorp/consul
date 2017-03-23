@@ -395,9 +395,9 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	testutil.WaitForResult(checkSame, func(err error) {
+	if err := testutil.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
-	})
+	}
 
 	// Create more new tokens.
 	for i := 0; i < 1000; i++ {
@@ -418,9 +418,9 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	testutil.WaitForResult(checkSame, func(err error) {
+	if err := testutil.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
-	})
+	}
 
 	// Delete a token.
 	arg := structs.ACLRequest{
@@ -437,7 +437,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	testutil.WaitForResult(checkSame, func(err error) {
+	if err := testutil.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
-	})
+	}
 }

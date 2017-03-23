@@ -435,7 +435,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
@@ -457,9 +457,9 @@ func TestOperator_ServerHealth(t *testing.T) {
 			}
 
 			return true, nil
-		}, func(err error) {
+		}); err != nil {
 			t.Fatal(err)
-		})
+		}
 
 	}, cb)
 }
@@ -477,7 +477,7 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
@@ -497,9 +497,9 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 			}
 
 			return true, nil
-		}, func(err error) {
+		}); err != nil {
 			t.Fatal(err)
-		})
+		}
 
 	}, cb)
 }

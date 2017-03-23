@@ -49,12 +49,12 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Bring up a new server
@@ -65,7 +65,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	// Kill a non-leader server
 	s3.Shutdown()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -73,9 +73,9 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 			}
 		}
 		return alive == 2, nil
-	}, func(err error) {
-		t.Fatalf("should have 2 alive members")
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Join the new server
 	if _, err := s4.JoinLAN([]string{addr}); err != nil {
@@ -85,12 +85,12 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -131,12 +131,12 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 4, nil
-		}, func(err error) {
-			t.Fatalf("should have 4 peers")
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Kill a non-leader server
@@ -144,12 +144,12 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 
 	// Should be removed from the peers automatically
 	for _, s := range []*Server{s1, s2, s3} {
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
-		}, func(err error) {
-			t.Fatalf("should have 3 peers")
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -185,7 +185,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	// Wait for the new server to be added as a non-voter, but make sure
 	// it doesn't get promoted to a voter even after ServerStabilizationTime,
 	// because that would result in an even-numbered quorum count.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			return false, err
@@ -211,9 +211,9 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatal(err)
-	})
+	}
 
 	// Now add another server and make sure they both get promoted to voters after stabilization
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
@@ -227,7 +227,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			return false, err
@@ -246,7 +246,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatal(err)
-	})
+	}
 }

@@ -1453,13 +1453,11 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(s1.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Create an ACL with read permission to the service.
 	var execToken string
@@ -2704,13 +2702,11 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(s1.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}

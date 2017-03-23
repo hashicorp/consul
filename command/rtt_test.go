@@ -108,7 +108,7 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 	}
 
 	// Wait for the updates to get flushed to the data store.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		code := c.Run(args)
 		if code != 0 {
 			return false, fmt.Errorf("bad: %d: %#v", code, ui.ErrorWriter.String())
@@ -121,9 +121,9 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("failed to get proper RTT output: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Default to the agent's node.
 	{

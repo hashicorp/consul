@@ -123,7 +123,7 @@ func TestEventList(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				return false, err
@@ -146,9 +146,9 @@ func TestEventList(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", header)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -164,7 +164,7 @@ func TestEventList_Filter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			if err != nil {
 				return false, err
@@ -187,9 +187,9 @@ func TestEventList_Filter(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", header)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -207,7 +207,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	// Try no token.
 	{
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				return false, err
@@ -226,14 +226,14 @@ func TestEventList_ACLFilter(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", list)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Try the root token.
 	{
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			if err != nil {
 				return false, err
@@ -252,9 +252,9 @@ func TestEventList_ACLFilter(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", list)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -266,7 +266,7 @@ func TestEventList_Blocking(t *testing.T) {
 		}
 
 		var index string
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				return false, err
@@ -282,9 +282,9 @@ func TestEventList_Blocking(t *testing.T) {
 			}
 			index = header
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 
 		go func() {
 			time.Sleep(50 * time.Millisecond)
@@ -294,7 +294,7 @@ func TestEventList_Blocking(t *testing.T) {
 			}
 		}()
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			url := "/v1/event/list?index=" + index
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -314,9 +314,9 @@ func TestEventList_Blocking(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", list)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -339,7 +339,7 @@ func TestEventList_EventBufOrder(t *testing.T) {
 
 		// Test that the event order is preserved when name
 		// filtering on a list of > 1 matching event.
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			url := "/v1/event/list?name=foo"
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -358,9 +358,9 @@ func TestEventList_EventBufOrder(t *testing.T) {
 				return false, fmt.Errorf("bad: %#v", list)
 			}
 			return true, nil
-		}, func(err error) {
-			t.Fatalf("err: %v", err)
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
