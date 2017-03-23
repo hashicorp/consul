@@ -450,11 +450,11 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 AFTER_CHECK:
 	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
 
-	// Register with the catalog
+	// Register with the catalog.
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
-		ID:         types.NodeID(member.Tags["id"]),
 		Node:       member.Name,
+		ID:         types.NodeID(member.Tags["id"]),
 		Address:    member.Addr.String(),
 		Service:    service,
 		Check: &structs.HealthCheck{
@@ -464,6 +464,10 @@ AFTER_CHECK:
 			Status:  structs.HealthPassing,
 			Output:  SerfCheckAliveOutput,
 		},
+
+		// If there's existing information about the node, do not
+		// clobber it.
+		SkipNodeUpdate: true,
 	}
 	_, err = s.raftApply(structs.RegisterRequestType, &req)
 	return err
@@ -496,6 +500,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
+		ID:         types.NodeID(member.Tags["id"]),
 		Address:    member.Addr.String(),
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
@@ -504,6 +509,10 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			Status:  structs.HealthCritical,
 			Output:  SerfCheckFailedOutput,
 		},
+
+		// If there's existing information about the node, do not
+		// clobber it.
+		SkipNodeUpdate: true,
 	}
 	_, err = s.raftApply(structs.RegisterRequestType, &req)
 	return err

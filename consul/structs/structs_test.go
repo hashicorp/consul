@@ -136,6 +136,16 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 			t.Fatalf("should change")
 		}
 
+		req.SkipNodeUpdate = true
+		if req.ChangesNode(node) {
+			t.Fatalf("should skip")
+		}
+
+		req.SkipNodeUpdate = false
+		if !req.ChangesNode(node) {
+			t.Fatalf("should change")
+		}
+
 		restore()
 		if req.ChangesNode(node) {
 			t.Fatalf("should not change")

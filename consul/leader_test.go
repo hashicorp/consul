@@ -354,6 +354,103 @@ func TestLeader_Reconcile(t *testing.T) {
 	})
 }
 
+func TestLeader_Reconcile_Races(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the server to reconcile the client and register it.
+	state := s1.fsm.State()
+	var nodeAddr string
+	testutil.WaitForResult(func() (bool, error) {
+		_, node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if node != nil {
+			nodeAddr = node.Address
+			return true, nil
+		} else {
+			return false, nil
+		}
+	}, func(err error) {
+		t.Fatalf("client should be registered")
+	})
+
+	// Add in some metadata via the catalog (as if the agent synced it
+	// there). We also set the serfHealth check to failing so the reconile
+	// will attempt to flip it back
+	req := structs.RegisterRequest{
+		Datacenter: s1.config.Datacenter,
+		Node:       c1.config.NodeName,
+		ID:         c1.config.NodeID,
+		Address:    nodeAddr,
+		NodeMeta:   map[string]string{"hello": "world"},
+		Check: &structs.HealthCheck{
+			Node:    c1.config.NodeName,
+			CheckID: SerfCheckID,
+			Name:    SerfCheckName,
+			Status:  structs.HealthCritical,
+			Output:  "",
+		},
+	}
+	var out struct{}
+	if err := s1.RPC("Catalog.Register", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Force a reconcile and make sure the metadata stuck around.
+	if err := s1.reconcile(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, node, err := state.GetNode(c1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if node == nil {
+		t.Fatalf("bad")
+	}
+	if hello, ok := node.Meta["hello"]; !ok || hello != "world" {
+		t.Fatalf("bad")
+	}
+
+	// Fail the member and wait for the health to go critical.
+	c1.Shutdown()
+	testutil.WaitForResult(func() (bool, error) {
+		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
+	}, func(err error) {
+		t.Fatalf("check status is %v, should be critical", err)
+	})
+
+	// Make sure the metadata didn't get clobbered.
+	_, node, err = state.GetNode(c1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if node == nil {
+		t.Fatalf("bad")
+	}
+	if hello, ok := node.Meta["hello"]; !ok || hello != "world" {
+		t.Fatalf("bad")
+	}
+}
+
 func TestLeader_LeftServer(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
