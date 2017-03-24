@@ -5,7 +5,7 @@ set -e
 # We process the files in the same order Go does to find the last matching tag.
 if [ -z $VERSION ]; then
     for file in $(ls version/version_*.go | sort); do
-        for tag in "$BUILD_TAGS"; do
+        for tag in "$GOTAGS"; do
             if grep -q "// +build $tag" $file; then
                 VERSION=$(awk -F\" '/Version =/ { print $2; exit }' <$file)
             fi
@@ -36,7 +36,7 @@ fi
 # Do a hermetic build inside a Docker container.
 if [ -z $NOBUILD ]; then
     docker build -t hashicorp/consul-builder scripts/consul-builder/
-    docker run --rm -e "BUILD_TAGS=$BUILD_TAGS" -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder ./scripts/dist_build.sh
+    docker run --rm -e "GOTAGS=$GOTAGS" -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder ./scripts/dist_build.sh
 fi
 
 # Zip all the files.

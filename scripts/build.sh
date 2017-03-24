@@ -43,7 +43,7 @@ echo "==> Building..."
     -osarch="!darwin/arm" \
     -ldflags "-X ${GIT_IMPORT}.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X ${GIT_IMPORT}.GitDescribe='${GIT_DESCRIBE}'" \
     -output "pkg/{{.OS}}_{{.Arch}}/consul" \
-    -tags="${BUILD_TAGS}" \
+    -tags="${GOTAGS}" \
     .
 
 # Move all the compiled things to the $GOPATH/bin
