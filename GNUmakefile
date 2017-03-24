@@ -4,59 +4,51 @@ GOTOOLS = \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer
-PACKAGES=$(shell go list ./... | grep -v '/vendor/')
-VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
-         -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
-BUILD_TAGS?=consul
+TEST ?= ./...
+GOTAGS ?= consul
+GOFILES ?= $(shell go list $(TEST) | grep -v /vendor/)
 
 # all builds binaries for all targets
 all: bin
 
-ci:
-	if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then \
-		$(MAKE) bin ;\
-	fi
-	@$(MAKE) test
-
 bin: tools
 	@mkdir -p bin/
-	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: format
-	@CONSUL_DEV=1 BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+	@CONSUL_DEV=1 GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
+	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
 
 cov:
-	gocov test ./... | gocov-html > /tmp/coverage.html
+	gocov test ${GOFILES} | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: format
-	@$(MAKE) vet
+test:
 	@./scripts/verify_no_uuid.sh
-	@BUILD_TAGS='$(BUILD_TAGS)' sh -c "'$(CURDIR)/scripts/test.sh'"
+	@env \
+		GOTAGS="${GOTAGS}" \
+		GOFILES="${GOFILES}" \
+		TESTARGS="${TESTARGS}" \
+		sh -c "'$(CURDIR)/scripts/test.sh'"
 
 cover:
-	go list ./... | xargs -n1 go test --cover
+	go test ${GOFILES} --cover
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt $(PACKAGES)
+	@go fmt ${GOFILES}
 
 vet:
-	@echo "--> Running go tool vet $(VETARGS) ."
-	@go list ./... \
-		| grep -v /vendor/ \
-		| cut -d '/' -f 4- \
-		| xargs -n1 \
-			go tool vet $(VETARGS) ;\
-	if [ $$? -ne 0 ]; then \
+	@echo "--> Running go vet"
+	@go vet ${GOFILES}; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for reviewal."; \
+		echo "and fix them if necessary before submitting the code for review."; \
+		exit 1; \
 	fi
 
 # build the static web ui and build static assets inside a Docker container, the

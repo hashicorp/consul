@@ -124,7 +124,10 @@ func (s *StateStore) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) 
 		// Capture any error along with the index of the operation that
 		// failed.
 		if err != nil {
-			errors = append(errors, &structs.TxnError{i, err.Error()})
+			errors = append(errors, &structs.TxnError{
+				OpIndex: i,
+				What:    err.Error(),
+			})
 		}
 	}
 

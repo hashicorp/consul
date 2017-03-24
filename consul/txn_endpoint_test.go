@@ -251,7 +251,10 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			// These get filtered but won't result in an error.
 
 		default:
-			expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+			expected.Errors = append(expected.Errors, &structs.TxnError{
+				OpIndex: i,
+				What:    permissionDeniedErr.Error(),
+			})
 		}
 	}
 	if !reflect.DeepEqual(out, expected) {
@@ -509,7 +512,10 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			// These get filtered but won't result in an error.
 
 		default:
-			expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+			expected.Errors = append(expected.Errors, &structs.TxnError{
+				OpIndex: i,
+				What:    permissionDeniedErr.Error(),
+			})
 		}
 	}
 	if !reflect.DeepEqual(out, expected) {
