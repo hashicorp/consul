@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/pkg/errors"
 )
 
 type testFn func() (bool, error)
-type errorFn func(error)
 
 const (
 	baseWait = 1 * time.Millisecond
@@ -33,8 +33,11 @@ func WaitForResult(try testFn) error {
 			wait = maxWait
 		}
 	}
-
-	return err
+	if err != nil {
+		return errors.Wrap(err, "timed out with error")
+	} else {
+		return fmt.Errorf("timed out")
+	}
 }
 
 type rpcFn func(string, interface{}, interface{}) error
