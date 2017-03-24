@@ -747,9 +747,9 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// ACL flag for Consul version 0.8 features (broken out since we will
-	// eventually remove this). We first verify this is opt-out.
+	// eventually remove this).
 	config = DefaultConfig()
-	if *config.ACLEnforceVersion8 != false {
+	if *config.ACLEnforceVersion8 != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
