@@ -21,4 +21,4 @@ fi
 
 # Run the tests
 echo "--> Running tests"
-go test -timeout=360s -parallel=20 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+go test -timeout=360s -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
