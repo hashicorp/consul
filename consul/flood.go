@@ -46,7 +46,6 @@ func (s *Server) Flood(portFn servers.FloodPortFn, global *serf.Serf) {
 	}()
 
 	for {
-	WAIT:
 		select {
 		case <-s.serfLAN.ShutdownCh():
 			return
@@ -60,7 +59,6 @@ func (s *Server) Flood(portFn servers.FloodPortFn, global *serf.Serf) {
 		case <-floodCh:
 			goto FLOOD
 		}
-		goto WAIT
 
 	FLOOD:
 		servers.FloodJoins(s.logger, portFn, s.config.Datacenter, s.serfLAN, global)

@@ -8,6 +8,6 @@ branches:
     - master
 
 script:
-  - make ci
+  - make test vet
 
 sudo: false
