@@ -1128,6 +1128,7 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* <a href="#node_meta">Node Metadata</a>
 * Atlas Token
 * Atlas Infrastructure
 * Atlas Endpoint
