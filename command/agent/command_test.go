@@ -104,7 +104,7 @@ func TestRetryJoin(t *testing.T) {
 		close(doneCh)
 	}()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		mem := agent.LANMembers()
 		if len(mem) != 2 {
 			return false, fmt.Errorf("bad: %#v", mem)
@@ -114,9 +114,9 @@ func TestRetryJoin(t *testing.T) {
 			return false, fmt.Errorf("bad (wan): %#v", mem)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf(err.Error())
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestReadCliConfig(t *testing.T) {

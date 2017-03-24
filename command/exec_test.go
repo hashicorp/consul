@@ -86,12 +86,12 @@ func waitForLeader(t *testing.T, httpAddr string) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, qm, err := client.Catalog().Nodes(nil)
 		return err == nil && qm.KnownLeader && qm.LastIndex > 0, err
-	}, func(err error) {
-		t.Fatalf("failed to find leader: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func httpClient(addr string) (*consulapi.Client, error) {
@@ -194,15 +194,15 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	c.conf.localNode = "foo"
 
 	var id string
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		id, err = c.createSession()
 		if err != nil && strings.Contains(err.Error(), "Failed to find Consul server") {
 			err = nil
 		}
 		return id != "", err
-	}, func(err error) {
-		t.Fatalf("err: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	se, _, err := client.Session().Info(id, nil)
 	if err != nil {

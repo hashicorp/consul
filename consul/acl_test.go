@@ -232,12 +232,12 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	client := rpcClient(t, s1)
 	defer client.Close()
@@ -284,12 +284,12 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -360,12 +360,12 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
@@ -417,12 +417,12 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -491,12 +491,12 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -567,12 +567,12 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
 		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
-	}, func(err error) {
-		t.Fatalf("should have 2 peers: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -687,7 +687,7 @@ func TestACL_Replication(t *testing.T) {
 	}
 
 	// Wait for replication to occur.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
 			return false, err
@@ -703,9 +703,9 @@ func TestACL_Replication(t *testing.T) {
 			return false, nil
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("ACLs didn't converge")
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Kill the ACL datacenter.
 	s1.Shutdown()

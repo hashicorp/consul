@@ -16,7 +16,7 @@ const (
 	maxWait  = 100 * time.Millisecond
 )
 
-func WaitForResult(try testFn, fail errorFn) {
+func WaitForResult(try testFn) error {
 	var err error
 	wait := baseWait
 	for retries := 100; retries > 0; retries-- {
@@ -24,7 +24,7 @@ func WaitForResult(try testFn, fail errorFn) {
 		success, err = try()
 		if success {
 			time.Sleep(25 * time.Millisecond)
-			return
+			return nil
 		}
 
 		time.Sleep(wait)
@@ -33,14 +33,15 @@ func WaitForResult(try testFn, fail errorFn) {
 			wait = maxWait
 		}
 	}
-	fail(err)
+
+	return err
 }
 
 type rpcFn func(string, interface{}, interface{}) error
 
 func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 	var out structs.IndexedNodes
-	WaitForResult(func() (bool, error) {
+	if err := WaitForResult(func() (bool, error) {
 		// Ensure we have a leader and a node registration.
 		args := &structs.DCSpecificRequest{
 			Datacenter: dc,
@@ -55,8 +56,8 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 			return false, fmt.Errorf("Consul index is 0")
 		}
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatalf("failed to find leader: %v", err)
-	})
+	}
 	return out
 }

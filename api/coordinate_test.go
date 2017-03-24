@@ -14,7 +14,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 
 	coordinate := c.Coordinate()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		datacenters, err := coordinate.Datacenters()
 		if err != nil {
 			return false, err
@@ -25,9 +25,9 @@ func TestCoordinate_Datacenters(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCoordinate_Nodes(t *testing.T) {
@@ -37,7 +37,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 	coordinate := c.Coordinate()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, _, err := coordinate.Nodes(nil)
 		if err != nil {
 			return false, err
@@ -48,7 +48,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		// we can do is call the endpoint and make sure we don't
 		// get an error.
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }

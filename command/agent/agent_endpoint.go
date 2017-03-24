@@ -649,8 +649,6 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 			flusher.Flush()
 		}
 	}
-
-	return nil, nil
 }
 
 type httpLogHandler struct {

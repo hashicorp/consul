@@ -43,7 +43,10 @@ func makeClientWithConfig(
 		cb1(conf)
 	}
 	// Create server
-	server := testutil.NewTestServerConfig(t, cb2)
+	server, err := testutil.NewTestServerConfig(cb2)
+	if err != nil {
+		t.Fatal(err)
+	}
 	conf.Address = server.HTTPAddr
 
 	// Create client

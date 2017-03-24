@@ -700,6 +700,13 @@
 			"revisionTime": "2016-08-09T12:22:04Z"
 		},
 		{
+			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
+			"path": "github.com/pkg/errors",
+			"revision": "ff09b135c25aae272398c51a07235b90a75aa4f0",
+			"revisionTime": "2017-03-16T20:15:38Z",
+			"tree": true
+		},
+		{
 			"checksumSHA1": "ExnVEVNT8APpFTm26cUb5T09yR4=",
 			"comment": "v2.0.1-8-g983d3a5",
 			"path": "github.com/ryanuber/columnize",

@@ -175,13 +175,11 @@ func TestFireReceiveEvent(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(agent.UserEvents()) == 1, nil
-		},
-		func(err error) {
-			t.Fatalf("bad len")
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(agent.UserEvents()) == 1, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	last := agent.LastUserEvent()
 	if last.ID != p2.ID {

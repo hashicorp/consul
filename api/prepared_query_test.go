@@ -30,7 +30,7 @@ func TestPreparedQuery(t *testing.T) {
 	}
 
 	catalog := c.Catalog()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			return false, err
 		}
@@ -40,9 +40,9 @@ func TestPreparedQuery(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a simple prepared query.
 	def := &PreparedQueryDefinition{

@@ -183,9 +183,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		return true, nil
 	}
 
-	testutil.WaitForResult(verifyServices, func(err error) {
+	if err := testutil.WaitForResult(verifyServices); err != nil {
 		t.Fatal(err)
-	})
+	}
 
 	// Remove one of the services
 	agent.state.RemoveService("api")
@@ -246,9 +246,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		return true, nil
 	}
 
-	testutil.WaitForResult(verifyServicesAfterRemove, func(err error) {
+	if err := testutil.WaitForResult(verifyServicesAfterRemove); err != nil {
 		t.Fatal(err)
-	})
+	}
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
@@ -350,9 +350,9 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		return true, nil
 	}
 
-	testutil.WaitForResult(verifyServices, func(err error) {
+	if err := testutil.WaitForResult(verifyServices); err != nil {
 		t.Fatal(err)
-	})
+	}
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
@@ -667,7 +667,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	var checks structs.IndexedHealthChecks
 
 	// Verify that we are in sync
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -704,9 +704,9 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			}
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Check the local state
 	if len(agent.state.checks) != 4 {
@@ -749,7 +749,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	agent.StartSync()
 
 	// Verify that we are in sync
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -782,9 +782,9 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			}
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Check the local state
 	if len(agent.state.checks) != 3 {
@@ -829,7 +829,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 	var checks structs.IndexedHealthChecks
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -840,9 +840,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
+	}); err != nil {
 		t.Fatal(err)
-	})
+	}
 
 	// Update the check output! Should be deferred
 	agent.state.UpdateCheck("web", structs.HealthPassing, "output")
@@ -864,7 +864,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Wait for a deferred update
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, err
 		}
@@ -880,9 +880,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Change the output in the catalog to force it out of sync.
 	eCopy := check.Clone()
@@ -970,7 +970,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Wait for the deferred update.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, err
 		}
@@ -986,9 +986,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
@@ -1022,7 +1022,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	var services structs.IndexedNodeServices
 
 	// Wait for the sync
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -1038,9 +1038,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", services.NodeServices.Node)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Blow away the catalog version of the node info
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -1052,7 +1052,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 	// Wait for the sync - this should have been a sync of just the
 	// node info
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -1066,9 +1066,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", services.NodeServices.Node)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
@@ -1247,7 +1247,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		Datacenter: agent.config.Datacenter,
 	}
 	var reply structs.IndexedCoordinates
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
 			return false, fmt.Errorf("err: %s", err)
 		}
@@ -1259,7 +1259,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", coord)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }

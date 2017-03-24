@@ -89,7 +89,7 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		obj, err := srv.CatalogDatacenters(nil, nil)
 		if err != nil {
 			return false, err
@@ -100,9 +100,9 @@ func TestCatalogDatacenters(t *testing.T) {
 			return false, fmt.Errorf("missing dc: %v", dcs)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("bad: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCatalogNodes(t *testing.T) {
@@ -219,13 +219,11 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Register a node with DC2.
 	{
@@ -701,13 +699,11 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Register a node with DC2.
 	{
@@ -942,13 +938,11 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatalf("Failed waiting for WAN join: %v", err)
+	}
 
 	// Register a node with DC2.
 	{

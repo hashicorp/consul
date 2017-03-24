@@ -298,12 +298,12 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		peers, _ := s1.numPeers()
 		return peers == 3, nil
-	}, func(err error) {
-		t.Fatalf("should have 3 peers")
-	})
+	}); err != nil {
+		t.Fatalf("should have 3 peers %s", err)
+	}
 
 	// Find the leader
 	var leader *Server
@@ -363,7 +363,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	// Find the new leader
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {
@@ -380,7 +380,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		}
 
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }

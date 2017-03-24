@@ -20,7 +20,7 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -36,7 +36,9 @@ func TestHealthChecksInState(t *testing.T) {
 				return false, fmt.Errorf("bad: %v", obj)
 			}
 			return true, nil
-		}, func(err error) { t.Fatalf("err: %v", err) })
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	httpTest(t, func(srv *HTTPServer) {
@@ -45,7 +47,7 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -61,7 +63,9 @@ func TestHealthChecksInState(t *testing.T) {
 				return false, fmt.Errorf("bad: %v", obj)
 			}
 			return true, nil
-		}, func(err error) { t.Fatalf("err: %v", err) })
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -88,7 +92,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		testutil.WaitForResult(func() (bool, error) {
+		if err := testutil.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -104,7 +108,9 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 				return false, fmt.Errorf("bad: %v", obj)
 			}
 			return true, nil
-		}, func(err error) { t.Fatalf("err: %v", err) })
+		}); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -170,7 +176,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	}
 
 	// Retry until foo moves to the front of the line.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthChecksInState(resp, req)
 		if err != nil {
@@ -188,9 +194,9 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", nodes)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("failed to get sorted service nodes: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealthNodeChecks(t *testing.T) {
@@ -431,7 +437,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	}
 
 	// Retry until foo has moved to the front of the line.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceChecks(resp, req)
 		if err != nil {
@@ -449,9 +455,9 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", nodes)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("failed to get sorted service checks: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealthServiceNodes(t *testing.T) {
@@ -665,7 +671,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	}
 
 	// Retry until foo has moved to the front of the line.
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceNodes(resp, req)
 		if err != nil {
@@ -683,9 +689,9 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 			return false, fmt.Errorf("bad: %v", nodes)
 		}
 		return true, nil
-	}, func(err error) {
-		t.Fatalf("failed to get sorted service nodes: %v", err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
@@ -761,13 +767,11 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForResult(
-		func() (bool, error) {
-			return len(srv1.agent.WANMembers()) > 1, nil
-		},
-		func(err error) {
-			t.Fatalf("Failed waiting for WAN join: %v", err)
-		})
+	if err := testutil.WaitForResult(func() (bool, error) {
+		return len(srv1.agent.WANMembers()) > 1, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Register a node with DC2.
 	{
