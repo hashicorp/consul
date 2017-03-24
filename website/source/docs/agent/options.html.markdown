@@ -792,6 +792,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS API, -1 to disable. Default -1 (disabled).
+    * <a name="rpc_port"></a><a href="#rpc_port">`rpc`</a> - The CLI RPC endpoint. Default 8400. This is deprecated
+      in Consul 0.8 and later.
     * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
@@ -1101,6 +1103,11 @@ port.
 
 * Serf WAN (Default 8302). This is used by servers to gossip over the
   WAN to other servers. TCP and UDP.
+
+* CLI RPC (Default 8400). This is used by all agents to handle RPC
+  from the CLI, but is deprecated in Consul 0.8 and later. TCP only.
+  In Consul 0.8 all CLI commands were changed to use the HTTP API and
+  the RPC interface was completely removed.
 
 * HTTP API (Default 8500). This is used by clients to talk to the HTTP
   API. TCP only.
