@@ -128,34 +128,15 @@ func testServerWithConfig(t *testing.T, cb func(c *Config)) (string, *Server) {
 }
 
 func TestServer_StartStop(t *testing.T) {
-	dir := tmpDir(t)
-	defer os.RemoveAll(dir)
-
-	config := DefaultConfig()
-	config.DataDir = dir
-
-	// Advertise on localhost.
-	private, _, err := net.ParseCIDR("127.0.0.1/32")
-	if err != nil {
-		t.Fatalf("failed to parse 127.0.0.1 cidr: %v", err)
-	}
-
-	config.RPCAdvertise = &net.TCPAddr{
-		IP:   private,
-		Port: 8300,
-	}
-
-	server, err := NewServer(config)
-	if err != nil {
+	// Start up a server and then stop it.
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := server.Shutdown(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Idempotent
-	if err := server.Shutdown(); err != nil {
+	// Shut down again, which should be idempotent.
+	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
