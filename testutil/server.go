@@ -250,7 +250,7 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 	}
 	if startErr != nil {
 		defer server.Stop()
-		return nil, errors.Wrap(err, "failed waiting for server to start")
+		return nil, errors.Wrap(startErr, "failed waiting for server to start")
 	}
 
 	return server, nil
