@@ -374,7 +374,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Wait for the server to reconcile the client and register it.
 	state := s1.fsm.State()
 	var nodeAddr string
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -385,9 +385,9 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		} else {
 			return false, nil
 		}
-	}, func(err error) {
-		t.Fatalf("client should be registered")
-	})
+	}); err != nil {
+		t.Fatalf("client should be registered: %v", err)
+	}
 
 	// Add in some metadata via the catalog (as if the agent synced it
 	// there). We also set the serfHealth check to failing so the reconile
@@ -428,15 +428,15 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
-	testutil.WaitForResult(func() (bool, error) {
+	if err := testutil.WaitForResult(func() (bool, error) {
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
-	}, func(err error) {
-		t.Fatalf("check status is %v, should be critical", err)
-	})
+	}); err != nil {
+		t.Fatalf("check status should be critical: %v", err)
+	}
 
 	// Make sure the metadata didn't get clobbered.
 	_, node, err = state.GetNode(c1.config.NodeName)
