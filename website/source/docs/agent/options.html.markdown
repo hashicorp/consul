@@ -558,9 +558,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
   [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
-* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
-  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
-
 * <a name="autopilot"></a><a href="#autopilot">`autopilot`</a> Added in Consul 0.8, this object
   allows a number of sub-keys to be set which can configure operator-friendly settings for Consul servers.
   For more information about Autopilot, see the [Autopilot Guide](/docs/guides/autopilot.html).
