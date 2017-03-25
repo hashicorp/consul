@@ -33,6 +33,10 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 * `monitor`
 * `reload`
 
+#### Version 8 ACLs Are Now Opt-Out
+
+The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/internals/acl.html#version_8_acls) by default. If you are upgrading an existing cluster, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**.
+
 #### <a name="raft_protocol"></a><a href="#raft_protocol">Raft Protocol Version Compatibility</a>
 
 When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need to
