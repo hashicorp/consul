@@ -177,7 +177,8 @@ func (l *localState) RemoveService(serviceID string) error {
 
 	if _, ok := l.services[serviceID]; ok {
 		delete(l.services, serviceID)
-		delete(l.serviceTokens, serviceID)
+		// Leave the service token around, if any, until we successfully
+		// delete the service.
 		l.serviceStatus[serviceID] = syncStatus{inSync: false}
 		l.changeMade()
 	} else {
@@ -241,7 +242,8 @@ func (l *localState) RemoveCheck(checkID types.CheckID) {
 	defer l.Unlock()
 
 	delete(l.checks, checkID)
-	delete(l.checkTokens, checkID)
+	// Leave the check token around, if any, until we successfully delete
+	// the check.
 	delete(l.checkCriticalTime, checkID)
 	l.checkStatus[checkID] = syncStatus{inSync: false}
 	l.changeMade()
@@ -602,9 +604,15 @@ func (l *localState) deleteService(id string) error {
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
-	if err == nil {
+	if err == nil || strings.Contains(err.Error(), "Unknown service") {
 		delete(l.serviceStatus, id)
+		delete(l.serviceTokens, id)
 		l.logger.Printf("[INFO] agent: Deregistered service '%s'", id)
+		return nil
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.serviceStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[WARN] agent: Service '%s' deregistration blocked by ACLs", id)
+		return nil
 	}
 	return err
 }
@@ -623,9 +631,15 @@ func (l *localState) deleteCheck(id types.CheckID) error {
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
-	if err == nil {
+	if err == nil || strings.Contains(err.Error(), "Unknown check") {
 		delete(l.checkStatus, id)
+		delete(l.checkTokens, id)
 		l.logger.Printf("[INFO] agent: Deregistered check '%s'", id)
+		return nil
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.checkStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[WARN] agent: Check '%s' deregistration blocked by ACLs", id)
+		return nil
 	}
 	return err
 }
@@ -645,10 +659,13 @@ func (l *localState) syncService(id string) error {
 
 	// If the service has associated checks that are out of sync,
 	// piggyback them on the service sync so they are part of the
-	// same transaction and are registered atomically.
+	// same transaction and are registered atomically. We only let
+	// checks ride on service registrations with the same token,
+	// otherwise we need to register them separately so they don't
+	// pick up privileges from the service token.
 	var checks structs.HealthChecks
 	for _, check := range l.checks {
-		if check.ServiceID == id {
+		if check.ServiceID == id && (l.serviceToken(id) == l.checkToken(check.CheckID)) {
 			if stat, ok := l.checkStatus[check.CheckID]; !ok || !stat.inSync {
 				checks = append(checks, check)
 			}
@@ -711,7 +728,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 	if err == nil {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		// Given how the register API works, this info is also updated
-		// every time we sync a service.
+		// every time we sync a check.
 		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
 	} else if strings.Contains(err.Error(), permissionDenied) {
