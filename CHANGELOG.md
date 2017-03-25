@@ -4,6 +4,8 @@ BREAKING CHANGES:
 
 * **Command-Line Interface RPC Deprecation**: The RPC client interface has been removed. All CLI commands that used RPC and the `-rpc-addr` flag to communicate with Consul have been converted to use the HTTP API and the appropriate flags for it, and the `rpc` field has been removed from the port and address binding configs. You will need to remove these fields from your config files and update any scripts that passed a custom `-rpc-addr` to the following commands: `force-leave`, `info`,  `join`, `keyring`, `leave`, `members`, `monitor`, `reload`
 
+* **Version 8 ACLs Are Now Opt-Out**: The [`acl_enforce_version_8`](https://www.consul.io/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](https://www.consul.io/docs/internals/acl.html#version_8_acls) by default. If you are upgrading an existing cluster, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**.
+
 FEATURES:
 
 * **Autopilot:** A set of features has been added to allow for automatic operator-friendly management of Consul servers. For more information about Autopilot, see the [Autopilot Guide](docs/guides/autopilot.html).
@@ -31,10 +33,13 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * agent: Fixed an issue with `consul watch` not working when http was listening on a unix socket. [GH-2385]
+* agent: Fixed an issue where checks and services could not sync deregister operations back to the catalog when version 8 ACL support is enabled. [GH-2818]
+* agent: Fixed an issue where agents could use the ACL token registered with a service when registering checks for the same service that were registered with a different ACL token. [GH-2829]
 * cli: Fixed `consul kv` commands not reading the `CONSUL_HTTP_TOKEN` environment variable. [GH-2566]
 * cli: Fixed an issue where prefixing an address with a protocol (such as 'http://' or 'https://') in `-http-addr` or `CONSUL_HTTP_ADDR` would give an error.
 * server: Fixed an issue with version 8 ACLs where servers couldn't deregister nodes from the catalog during reconciliation. [GH-2792] This fix was generalized and applied to registering nodes as well. [GH-2826]
 * server: Fixed an issue where servers could temporarily roll back changes to a node's metadata or tagged addresses when making updates to the node's health checks. [GH-2826]
+* server: Fixed an issue where the service name `consul` was not subject to service ACL policies with version 8 ACLs enabled. [GH-2816]
 
 ## 0.7.5 (February 15, 2017)
 
