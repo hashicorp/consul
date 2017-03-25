@@ -312,7 +312,7 @@ func TestAgent_Reload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	_, err = tmpFile.WriteString(`{"service":{"name":"redis"}}`)
+	_, err = tmpFile.WriteString(`{"acl_enforce_version_8": false, "service":{"name":"redis"}}`)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -356,7 +356,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatalf("missing redis service")
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), []byte(`{"service":{"name":"redis-reloaded"}}`), 0644)
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(`{"acl_enforce_version_8": false, "service":{"name":"redis-reloaded"}}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

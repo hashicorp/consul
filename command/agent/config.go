@@ -827,7 +827,7 @@ func DefaultConfig() *Config {
 		ACLDownPolicy:      "extend-cache",
 		ACLDefaultPolicy:   "allow",
 		ACLDisabledTTL:     120 * time.Second,
-		ACLEnforceVersion8: Bool(false),
+		ACLEnforceVersion8: Bool(true),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
 

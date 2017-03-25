@@ -54,25 +54,26 @@ type TestAddressConfig struct {
 
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
-	NodeName          string                 `json:"node_name"`
-	NodeMeta          map[string]string      `json:"node_meta,omitempty"`
-	Performance       *TestPerformanceConfig `json:"performance,omitempty"`
-	Bootstrap         bool                   `json:"bootstrap,omitempty"`
-	Server            bool                   `json:"server,omitempty"`
-	DataDir           string                 `json:"data_dir,omitempty"`
-	Datacenter        string                 `json:"datacenter,omitempty"`
-	DisableCheckpoint bool                   `json:"disable_update_check"`
-	LogLevel          string                 `json:"log_level,omitempty"`
-	Bind              string                 `json:"bind_addr,omitempty"`
-	Addresses         *TestAddressConfig     `json:"addresses,omitempty"`
-	Ports             *TestPortConfig        `json:"ports,omitempty"`
-	RaftProtocol      int                    `json:"raft_protocol,omitempty"`
-	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
-	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
-	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
-	Encrypt           string                 `json:"encrypt,omitempty"`
-	Stdout, Stderr    io.Writer              `json:"-"`
-	Args              []string               `json:"-"`
+	NodeName           string                 `json:"node_name"`
+	NodeMeta           map[string]string      `json:"node_meta,omitempty"`
+	Performance        *TestPerformanceConfig `json:"performance,omitempty"`
+	Bootstrap          bool                   `json:"bootstrap,omitempty"`
+	Server             bool                   `json:"server,omitempty"`
+	DataDir            string                 `json:"data_dir,omitempty"`
+	Datacenter         string                 `json:"datacenter,omitempty"`
+	DisableCheckpoint  bool                   `json:"disable_update_check"`
+	LogLevel           string                 `json:"log_level,omitempty"`
+	Bind               string                 `json:"bind_addr,omitempty"`
+	Addresses          *TestAddressConfig     `json:"addresses,omitempty"`
+	Ports              *TestPortConfig        `json:"ports,omitempty"`
+	RaftProtocol       int                    `json:"raft_protocol,omitempty"`
+	ACLMasterToken     string                 `json:"acl_master_token,omitempty"`
+	ACLDatacenter      string                 `json:"acl_datacenter,omitempty"`
+	ACLDefaultPolicy   string                 `json:"acl_default_policy,omitempty"`
+	ACLEnforceVersion8 bool                   `json:"acl_enforce_version_8"`
+	Encrypt            string                 `json:"encrypt,omitempty"`
+	Stdout, Stderr     io.Writer              `json:"-"`
+	Args               []string               `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
