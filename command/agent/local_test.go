@@ -519,11 +519,6 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Update the agent ACL token, resume sync
-	conf.ACLAgentToken = token
-	agent.StartSync()
-	time.Sleep(200 * time.Millisecond)
-
 	// Create service (disallowed)
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -647,6 +642,11 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 				t.Fatalf("should be in sync: %v %v", name, status)
 			}
 		}
+	}
+
+	// Make sure the token got cleaned up.
+	if token := agent.state.ServiceToken("api"); token != "" {
+		t.Fatalf("bad: %s", token)
 	}
 }
 
@@ -900,11 +900,6 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Update the agent ACL token, resume sync
-	conf.ACLAgentToken = token
-	agent.StartSync()
-	time.Sleep(200 * time.Millisecond)
-
 	// Create services using the root token
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -1110,6 +1105,11 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		if !status.inSync {
 			t.Fatalf("should be in sync: %v %v", name, status)
 		}
+	}
+
+	// Make sure the token got cleaned up.
+	if token := agent.state.CheckToken("api-check"); token != "" {
+		t.Fatalf("bad: %s", token)
 	}
 }
 
@@ -1419,9 +1419,9 @@ func TestAgent_serviceTokens(t *testing.T) {
 		t.Fatalf("bad: %s", token)
 	}
 
-	// Removes token
+	// Keeps token around for the delete
 	l.RemoveService("redis")
-	if token := l.ServiceToken("redis"); token != "default" {
+	if token := l.ServiceToken("redis"); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -1443,9 +1443,9 @@ func TestAgent_checkTokens(t *testing.T) {
 		t.Fatalf("bad: %s", token)
 	}
 
-	// Removes token
+	// Keeps token around for the delete
 	l.RemoveCheck("mem")
-	if token := l.CheckToken("mem"); token != "default" {
+	if token := l.CheckToken("mem"); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
