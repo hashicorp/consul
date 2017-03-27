@@ -15,7 +15,9 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 )
 
@@ -112,9 +114,15 @@ func nextConfig() *agent.Config {
 	idx := int(atomic.AddUint64(&offset, 1))
 	conf := agent.DefaultConfig()
 
+	nodeID, err := uuid.GenerateUUID()
+	if err != nil {
+		panic(err)
+	}
+
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
+	conf.NodeID = types.NodeID(nodeID)
 	conf.BindAddr = "127.0.0.1"
 	conf.Server = true
 

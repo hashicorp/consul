@@ -175,7 +175,6 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node
 		}
 		if existing != nil {
 			n = existing.(*structs.Node)
-			fmt.Printf("XXX %#v\n", *n)
 			if n.Node != node.Node {
 				return fmt.Errorf("node ID %q for node %q aliases existing node %q",
 					node.ID, node.Node, n.Node)

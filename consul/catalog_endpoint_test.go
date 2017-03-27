@@ -32,6 +32,7 @@ func TestCatalog_Register(t *testing.T) {
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
+			CheckID:   types.CheckID("db-check"),
 			ServiceID: "db",
 		},
 	}
@@ -61,6 +62,7 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
+			CheckID:   types.CheckID("db-check"),
 			ServiceID: "db",
 		},
 	}
