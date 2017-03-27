@@ -156,7 +156,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
-	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
+	conf.Merge = &lanMergeDelegate{
+		dc:       c.config.Datacenter,
+		nodeID:   c.config.NodeID,
+		nodeName: c.config.NodeName,
+	}
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
