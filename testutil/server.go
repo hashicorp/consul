@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
 )
 
@@ -55,6 +56,7 @@ type TestAddressConfig struct {
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName           string                 `json:"node_name"`
+	NodeID             string                 `json:"node_id"`
 	NodeMeta           map[string]string      `json:"node_meta,omitempty"`
 	Performance        *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap          bool                   `json:"bootstrap,omitempty"`
@@ -83,8 +85,14 @@ type ServerConfigCallback func(c *TestServerConfig)
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
 func defaultServerConfig() *TestServerConfig {
+	nodeID, err := uuid.GenerateUUID()
+	if err != nil {
+		panic(err)
+	}
+
 	return &TestServerConfig{
 		NodeName:          fmt.Sprintf("node%d", randomPort()),
+		NodeID:            nodeID,
 		DisableCheckpoint: true,
 		Performance: &TestPerformanceConfig{
 			RaftMultiplier: 1,

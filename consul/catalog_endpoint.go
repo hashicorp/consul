@@ -90,11 +90,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
+	resp, err := c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
 		return err
 	}
-
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
 	return nil
 }
 

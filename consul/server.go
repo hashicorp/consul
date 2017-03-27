@@ -396,7 +396,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if wan {
 		conf.Merge = &wanMergeDelegate{}
 	} else {
-		conf.Merge = &lanMergeDelegate{dc: s.config.Datacenter}
+		conf.Merge = &lanMergeDelegate{
+			dc:       s.config.Datacenter,
+			nodeID:   s.config.NodeID,
+			nodeName: s.config.NodeName,
+		}
 	}
 
 	// Until Consul supports this fully, we disable automatic resolution.

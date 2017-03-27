@@ -48,12 +48,18 @@ func nextConfig() *Config {
 	idx := int(atomic.AddUint64(&offset, numPortsPerIndex))
 	conf := DefaultConfig()
 
+	nodeID, err := uuid.GenerateUUID()
+	if err != nil {
+		panic(err)
+	}
+
 	conf.Version = version.Version
 	conf.VersionPrerelease = "c.d"
 	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
+	conf.NodeID = types.NodeID(nodeID)
 	conf.BindAddr = "127.0.0.1"
 	conf.Ports.DNS = basePortNumber + idx + portOffsetDNS
 	conf.Ports.HTTP = basePortNumber + idx + portOffsetHTTP
@@ -314,6 +320,7 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 
 func TestAgent_NodeID(t *testing.T) {
 	c := nextConfig()
+	c.NodeID = ""
 	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()

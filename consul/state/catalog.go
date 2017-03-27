@@ -165,22 +165,44 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
 func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
-	// Check for an existing node
-	existing, err := tx.First("nodes", "id", node.Node)
-	if err != nil {
-		return fmt.Errorf("node name lookup failed: %s", err)
+	// See if there's an existing node with this UUID, and make sure the
+	// name is the same.
+	var n *structs.Node
+	if node.ID != "" {
+		existing, err := tx.First("nodes", "uuid", string(node.ID))
+		if err != nil {
+			return fmt.Errorf("node lookup failed: %s", err)
+		}
+		if existing != nil {
+			n = existing.(*structs.Node)
+			if n.Node != node.Node {
+				return fmt.Errorf("node ID %q for node %q aliases existing node %q",
+					node.ID, node.Node, n.Node)
+			}
+		}
 	}
 
-	// Get the indexes
-	if existing != nil {
-		node.CreateIndex = existing.(*structs.Node).CreateIndex
+	// Check for an existing node by name to support nodes with no IDs.
+	if n == nil {
+		existing, err := tx.First("nodes", "id", node.Node)
+		if err != nil {
+			return fmt.Errorf("node name lookup failed: %s", err)
+		}
+		if existing != nil {
+			n = existing.(*structs.Node)
+		}
+	}
+
+	// Get the indexes.
+	if n != nil {
+		node.CreateIndex = n.CreateIndex
 		node.ModifyIndex = idx
 	} else {
 		node.CreateIndex = idx
 		node.ModifyIndex = idx
 	}
 
-	// Insert the node and update the index
+	// Insert the node and update the index.
 	if err := tx.Insert("nodes", node); err != nil {
 		return fmt.Errorf("failed inserting node: %s", err)
 	}
