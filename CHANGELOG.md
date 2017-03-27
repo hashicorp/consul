@@ -22,13 +22,12 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Fixed a missing case where gossip would stop flowing to dead nodes for a short while. [GH-2722]
-* agent: Uses the go-sockaddr library to look for private IP addresses, which prefers non-loopback private addresses over loopback ones when trying to automatically determine the advertise address. [GH-2722]
-* agent: Properly seeds Go's random number generator using the seed library. [GH-2722]
+* agent: Changed agent to seed Go's random number generator. [GH-2722]
 * agent: Serf snapshots no longer have the executable bit set on the file. [GH-2722]
 * agent: Consul is now built with Go 1.8. [GH-2752]
 * agent: Updated aws-sdk-go version (used for EC2 auto join) for Go 1.8 compatibility. [GH-2755]
-* agent: Normalizes user-supplied node IDs to lower-case. [GH-2798]
-* agent: Adds checks to enforce uniqueness of agent node IDs at cluster join time and when registering with the catalog. [GH-2832]
+* agent: User-supplied node IDs are now normalized to lower-case. [GH-2798]
+* agent: Added checks to enforce uniqueness of agent node IDs at cluster join time and when registering with the catalog. [GH-2832]
 * cli: Standardized handling of CLI options for connecting to the Consul agent. This makes sure that the same set of flags and environment variables works in all CLI commands (see https://www.consul.io/docs/commands/index.html#environment-variables). [GH-2717]
 * cli: Updated go-cleanhttp library for better HTTP connection handling between CLI commands and the Consul agent (tunes reuse settings). [GH-2735]
 * cli: The `operator raft` subcommand has had its two modes split into the `list-peers` and `remove-peer` subcommands. The old flags for these will continue to work for backwards compatibility, but will be removed in Consul 0.9.
