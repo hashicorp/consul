@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -418,6 +419,23 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 	if idx != 3 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Add an ID to the node
+	in.ID = types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c")
+	if err := s.EnsureNode(4, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try to add another node with the same ID
+	in = &structs.Node{
+		Node:    "nope",
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
+		Address: "1.2.3.4",
+	}
+	err = s.EnsureNode(5, in)
+	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
+		t.Fatalf("err: %v", err)
 	}
 }
 
