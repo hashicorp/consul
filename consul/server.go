@@ -678,19 +678,29 @@ func (s *Server) Leave() error {
 		return err
 	}
 
-	// TODO (slackpad) - This will need to be updated once we support node
-	// IDs.
 	addr := s.raftTransport.LocalAddr()
 
 	// If we are the current leader, and we have any other peers (cluster has multiple
-	// servers), we should do a RemovePeer to safely reduce the quorum size. If we are
-	// not the leader, then we should issue our leave intention and wait to be removed
-	// for some sane period of time.
+	// servers), we should do a RemoveServer/RemovePeer to safely reduce the quorum size.
+	// If we are not the leader, then we should issue our leave intention and wait to be
+	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		future := s.raft.RemovePeer(addr)
-		if err := future.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+		minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+		if err != nil {
+			return err
+		}
+
+		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
+			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+			}
+		} else {
+			future := s.raft.RemovePeer(addr)
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+			}
 		}
 	}
 
