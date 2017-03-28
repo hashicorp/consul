@@ -360,8 +360,9 @@ between servers in two different Consul datacenters.
 Unlike Consul's WAN feature, network areas use just the server RPC port for communication,
 and relationships can be made between independent pairs of datacenters, so not all servers
 need to be fully connected. This allows for complex topologies among Consul datacenters like
-hub/spoke and more general trees. See the [Network Areas Guide](/docs/guides/areas.html) for
-more details.
+hub/spoke and more general trees.
+
+See the [Network Areas Guide](/docs/guides/areas.html) for more details.
 
 The following endpoints are supported:
 
