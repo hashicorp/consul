@@ -1,12 +1,13 @@
 ---
 layout: "docs"
-page_title: "Multiple Datacenters"
+page_title: "Multiple Datacenters - Basic Federation with the WAN Gossip Pool"
 sidebar_current: "docs-guides-datacenters"
 description: |-
   One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 ---
 
 # Multiple Datacenters
+## Basic Federation with the WAN Gossip Pool
 
 One of the key features of Consul is its support for multiple datacenters.
 The [architecture](/docs/internals/architecture.html) of Consul is designed to
@@ -14,6 +15,14 @@ promote a low coupling of datacenters so that connectivity issues or
 failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
+
+This guide covers the basic form of federating Consul clusters using a single
+WAN gossip pool, interconnecting all Consul servers.
+[Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 added support
+for an advanced multiple datacenter capability. Please see the
+[Advanced Federation Guide](/docs/guides/areas.html) for more details.
+
+## Getting Started
 
 To get started, follow the [bootstrapping guide](/docs/guides/bootstrapping.html) to
 start each datacenter. After bootstrapping, we should have two datacenters now which
@@ -44,7 +53,9 @@ The [`join`](/docs/commands/join.html) command is used with the `-wan` flag to i
 we are attempting to join a server in the WAN gossip pool. As with LAN gossip, you only
 need to join a single existing member, and the gossip protocol will be used to exchange
 information about all known members. For the initial setup, however, each server
-will only know about itself and must be added to the cluster.
+will only know about itself and must be added to the cluster. Consul 0.8.0 added WAN join
+flooding, so if one Consul server in a datacenter joins the WAN, it will automatically
+join the other servers in its local datacenter that it knows about via the LAN.
 
 Once the join is complete, the [`members`](/docs/commands/members.html) command can be
 used to verify that all server nodes gossiping over WAN.
@@ -82,4 +93,7 @@ the gossip protocol as well as RPC forwarding will not work. If service discover
 is to be used across datacenters, the network must be able to route traffic
 between IP addresses across regions as well. Usually, this means that all datacenters
 must be connected using a VPN or other tunneling mechanism. Consul does not handle
-VPN, address rewriting, or NAT traversal for you.
+VPN or NAT traversal for you.
+
+The [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
+provides a basic address rewriting capability.
