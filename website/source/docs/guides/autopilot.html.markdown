@@ -10,7 +10,7 @@ description: |-
 
 Autopilot is a set of new features added in Consul 0.8 to allow for automatic
 operator-friendly management of Consul servers. It includes cleanup of dead
-servers, monitoring the of the Raft cluster, and stable server introduction.
+servers, monitoring the state of the Raft cluster, and stable server introduction.
 
 To enable Autopilot features (with the exception of dead server cleanup),
 the [`raft_protocol`](/docs/agent/options.html#_raft_protocol) setting in
