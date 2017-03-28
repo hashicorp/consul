@@ -885,6 +885,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="server"></a><a href="#server">`server`</a> Equivalent to the
   [`-server` command-line flag](#_server).
 
+* <a name="non_voting_server"></a><a href="#non_voting_server">`non_voting_server`</a> - Equivalent to the
+  [`-non-voting-server` command-line flag](#_non_voting_server).
+
 * <a name="server_name"></a><a href="#server_name">`server_name`</a> When provided, this overrides
   the [`node_name`](#_node) for the TLS certificate. It can be used to ensure that the certificate
   name matches the hostname we declare.

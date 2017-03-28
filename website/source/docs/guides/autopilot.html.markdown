@@ -35,6 +35,8 @@ CleanupDeadServers = true
 LastContactThreshold = 200ms
 MaxTrailingLogs = 250
 ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
 
 $ consul operator autopilot set-config -cleanup-dead-servers=false
 Configuration updated!
@@ -44,6 +46,8 @@ CleanupDeadServers = false
 LastContactThreshold = 200ms
 MaxTrailingLogs = 250
 ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
 ```
 
 ## Dead Server Cleanup
@@ -87,22 +91,30 @@ $ curl localhost:8500/v1/operator/autopilot/health
         {
             "ID": "e349749b-3303-3ddf-959c-b5885a0e1f6e",
             "Name": "node1",
+            "Address": "127.0.0.1:8300",
             "SerfStatus": "alive",
+            "Version": "0.8.0",
+            "Leader": true,
             "LastContact": "0s",
-            "LastTerm": 3,
-            "LastIndex": 23,
+            "LastTerm": 2,
+            "LastIndex": 10,
             "Healthy": true,
-            "StableSince": "2017-03-10T22:01:14Z"
+            "Voter": true,
+            "StableSince": "2017-03-28T18:28:52Z"
         },
         {
-            "ID": "099061c7-ea74-42d5-be04-a0ad74caaaf5",
+            "ID": "e35bde83-4e9c-434f-a6ef-453f44ee21ea",
             "Name": "node2",
+            "Address": "127.0.0.1:8705",
             "SerfStatus": "alive",
-            "LastContact": "53.279635ms",
-            "LastTerm": 3,
-            "LastIndex": 23,
+            "Version": "0.8.0",
+            "Leader": false,
+            "LastContact": "35.371007ms",
+            "LastTerm": 2,
+            "LastIndex": 10,
             "Healthy": true,
-            "StableSince": "2017-03-10T22:03:26Z"
+            "Voter": false,
+            "StableSince": "2017-03-28T18:29:10Z"
         }
     ]
 }
@@ -114,3 +126,57 @@ When a new server is added to the cluster, there is a waiting period where it
 must be healthy and stable for a certain amount of time before being promoted
 to a full, voting member. This can be configured via the `ServerStabilizationTime`
 setting.
+
+---
+
+~> The following Autopilot features are available only in
+   [Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 and later.
+
+## Designated Non-voting Servers
+
+With the [`-non-voting-server`](/docs/agent/options.html#_non_voting_server) option, a
+server can be explicitly marked as a non-voter and will never be promoted to a voting
+member. This can be useful when more read scaling is needed; being a non-voter means
+that the server will still have data replicated to it, but it will not be part of the
+quorum that the leader must wait for before committing log entries.
+
+## Redundancy Zones
+
+Prior to Autopilot, it was difficult to deploy servers in a way that took advantage of
+isolated failure domains such as AWS Availability Zones; users would be forced to either
+have an overly-large quorum (2-3 nodes per AZ) or give up redundancy within an AZ by
+deploying just one server in each.
+
+If the `RedundancyZoneTag` setting is set, Consul will use its value to look for a
+zone in each server's specified [`-node-meta`](/docs/agent/options.html#_node_meta)
+tag. For example, if `RedundancyZoneTag` is set to `zone`, and `-node-meta zone:east1a`
+is used when starting a server, that server's redundancy zone will be `east1a`.
+
+Consul will then use these values to partition the servers by redundancy zone, and will
+aim to keep one voting server per zone. Extra servers in each zone will stay as non-voters
+on standby to be promoted if the active voter leaves or dies.
+
+## Upgrade Migrations
+
+Autopilot in Consul Enterprise supports upgrade migrations by default. To disable this
+functionality, set `DisableUpgradeMigration` to true.
+
+When a new server is added and Autopilot detects that its Consul version is newer than
+that of the existing servers, Autopilot will avoid promoting the new server until enough
+newer-versioned servers have been added to the cluster. When the count of new servers
+equals or exceeds that of the old servers, Autopilot will begin promoting the new servers
+to voters and demoting the old servers. After this is finished, the old servers can be
+safely removed from the cluster.
+
+To check the consul version of the servers, either the [autopilot health]
+(/docs/agent/http/operator.html#autopilot-health) endpoint or the `consul members`
+command can be used:
+
+```
+$ consul members
+Node   Address         Status  Type    Build  Protocol  DC
+node1  127.0.0.1:8301  alive   server  0.7.5  2         dc1
+node2  127.0.0.1:8703  alive   server  0.7.5  2         dc1
+node3  127.0.0.1:8803  alive   server  0.7.5  2         dc1
+node4  127.0.0.1:8203  alive   server  0.8.0  2         dc1
+```
