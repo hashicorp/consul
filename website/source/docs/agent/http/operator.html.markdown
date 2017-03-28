@@ -27,6 +27,7 @@ The following types of endpoints are supported:
 
 * [Autopilot](#autopilot): Automatically manage Consul servers
 * [Keyring](#keyring): Manage gossip encryption keyring
+* [Network Areas](#network-areas): Manage network areas (Enterprise-only)
 * [Raft](#raft): Manage Raft consensus subsystem
 
 Not all endpoints support blocking queries and all consistency modes,
@@ -348,6 +349,250 @@ If ACLs are enabled, the client will need to supply an ACL Token with
 
 The return code will indicate success or failure.
 
+## Network Areas
+
+~> The network area functionality described here is available only in
+   [Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 and later.
+
+Consul Enterprise version supports network areas, which are operator-defined relationships
+between servers in two different Consul datacenters.
+
+Unlike Consul's WAN feature, network areas use just the server RPC port for communication,
+and relationships can be made between independent pairs of datacenters, so not all servers
+need to be fully connected. This allows for complex topologies among Consul datacenters like
+hub/spoke and more general trees. See the [Network Areas Guide](/docs/guides/areas.html) for
+more details.
+
+The following endpoints are supported:
+
+* [`/v1/operator/area`](#area-general): Create a new area or list areas
+* [`/v1/operator/area/<id>`](#area-specific): Delete an area
+* [`/v1/operator/area/<id>/join`](#area-join): Join Consul servers into an area
+* [`/v1/operator/area/<id>/members`](#area-members): List Consul servers in an area
+
+### <a name="area-general"></a> /v1/operator/area
+
+The general network area endpoint supports the `POST` and `GET` methods.
+
+#### POST Method
+
+When using the `POST` method, Consul will create a new network area and return
+its ID if it is created successfully.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+write privileges.
+
+The create operation expects a JSON request body that defines the network area,
+like this example:
+
+```javascript
+{
+  "PeerDatacenter": "dc2",
+  "RetryJoin": [ "10.1.2.3", "10.1.2.4", "10.1.2.5" ]
+}
+```
+
+`PeerDatacenter` is required and is the name of the Consul datacenter that will
+be joined the Consul servers in the current datacenter to form the area. Only
+one area is allowed for each possible `PeerDatacenter`, and a datacenter cannot
+form an area with itself.
+
+`RetryJoin` is a list of Consul servers to attempt to join. Servers can be given
+as `IP`, `IP:port`, `hostname`, or `hostname:port`. Consul will spawn a background
+task that tries to periodically join the servers in this list and will run until a
+join succeeds. If this list isn't supplied, joining can be done with a call to the
+[join endpoint](#area-join) once the network area is created.
+
+The return code is 200 on success and the ID of the created network area is returned
+in a JSON body:
+
+```javascript
+{
+  "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05"
+}
+```
+
+#### GET Method
+
+When using the `GET` method, Consul will provide a listing of all network areas.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter. This endpoint supports blocking
+queries and all consistency modes.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+read privileges.
+
+This returns a JSON list of network areas, which looks like:
+
+```javascript
+[
+  {
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "PeerDatacenter": "dc2",
+    "RetryJoin": [ "10.1.2.3", "10.1.2.4", "10.1.2.5" ]
+  },
+  ...
+]
+```
+
+### <a name="area-specific"></a> /v1/operator/area/\<id\>
+
+The specific network area endpoint supports the `GET` and `DELETE` methods.
+
+#### GET Method
+
+When using the `GET` method, Consul will provide a listing of a specific
+network area.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter. This endpoint supports blocking
+queries and all consistency modes.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+read privileges.
+
+This returns a JSON list with a single network area, which looks like:
+
+```javascript
+[
+  {
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "PeerDatacenter": "dc2",
+    "RetryJoin": [ "10.1.2.3", "10.1.2.4", "10.1.2.5" ]
+  }
+]
+```
+
+#### Delete Method
+
+When using the `DELETE` method, Consul will delete a specific network area.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+write privileges.
+
+### <a name="area-join"></a> /v1/operator/area/\<id\>/join
+
+The network area join endpoint supports the `PUT` method.
+
+#### PUT Method
+
+When using the `PUT` method, Consul will attempt to join the given Consul servers
+into a specific network area.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+write privileges.
+
+The create operation expects a JSON request body with a list of Consul servers to
+join, like this example:
+
+```javascript
+[ "10.1.2.3", "10.1.2.4", "10.1.2.5" ]
+```
+
+Servers can be given as `IP`, `IP:port`, `hostname`, or `hostname:port`.
+
+The return code is 200 on success a JSON response will be returned with a summary
+of the join results:
+
+```javascript
+[
+  {
+    "Address": "10.1.2.3",
+    "Joined": true,
+    "Error", ""
+  },
+  {
+    "Address": "10.1.2.4",
+    "Joined": true,
+    "Error", ""
+  },
+  {
+    "Address": "10.1.2.5",
+    "Joined": true,
+    "Error", ""
+  }
+]
+```
+
+`Address` has the address requested to join.
+
+`Joined` will be `true` if the Consul server at the given address was successfully
+joined into the network area. Otherwise, this will be `false` and `Error` will have
+a human-readable message about why the join didn't succeed.
+
+### <a name="area-members"></a> /v1/operator/area/\<id\>/members
+
+The network area members endpoint supports the `GET` method.
+
+#### GET Method
+
+When using the `GET` method, Consul will provide a listing of the Consul servers
+present in a specific network area.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the `?dc=` query parameter.
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+read privileges.
+
+This returns a JSON list with details about the Consul servers present in the network
+area, like this:
+
+```javascript
+[
+  {
+    "ID": "afc5d95c-1eee-4b46-b85b-0efe4c76dd48",
+    "Name": "node-2.dc1",
+    "Addr": "127.0.0.2",
+    "Port": 8300,
+    "Datacenter": "dc1",
+    "Role": "server",
+    "Build": "0.8.0",
+    "Protocol": 2,
+    "Status": "alive",
+    "RTT": 256478
+  },
+  ...
+]
+```
+
+`ID` is the node ID of the server.
+
+`Name` is the node name of the server, with its datacenter appended.
+
+`Addr` is the IP address of the node.
+
+`Port` is the server RPC port of the node.
+
+`Datacenter` is the node's Consul datacenter.
+
+`Role` is always "server" since only Consul servers can participate in network
+areas.
+
+`Build` has the Consul version running on the node.
+
+`Protocol` is the [protocol version](/docs/upgrading.html#protocol-versions) being
+spoken by the node.
+
+`Status` is the current health status of the node, as determined by the network
+area distributed failure detector. This will be "alive", "leaving", "left", or
+"failed". A "failed" status means that other servers are not able to probe this
+server over its server RPC interface.
+
+`RTT` is an estimated network round trip time from the server answering the query
+to the given server, in nanoseconds. This is computed using
+[network coordinates](/docs/internals/coordinates.html).
+
 ## Raft
 
 The Raft endpoint provides tools for Management of Raft the consensus subsystem
@@ -413,7 +658,7 @@ The `Servers` array has information about the servers in the Raft peer
 configuration:
 
 `ID` is the ID of the server. This is the same as the `Address` in Consul 0.7
-but may  be upgraded to a GUID in a future version of Consul.
+but may be upgraded to a GUID in a future version of Consul.
 
 `Node` is the node name of the server, as known to Consul, or "(unknown)" if
 the node is stale and not known.
