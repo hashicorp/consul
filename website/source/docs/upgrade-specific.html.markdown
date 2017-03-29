@@ -35,7 +35,7 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/internals/acl.html#version_8_acls) by default. If you are upgrading an existing cluster, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**.
+The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/internals/acl.html#version_8_acls) by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
 
 #### <a name="raft_protocol"></a><a href="#raft_protocol">Raft Protocol Version Compatibility</a>
 
