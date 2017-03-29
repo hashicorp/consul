@@ -19,7 +19,7 @@ CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible
 are able to do what you want with your DNS data. And if not: write some middleware!
 
 CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RFC
-7858](https://tools.ietf.org/html/rfc7858)) and gRPC (not a standard.
+7858](https://tools.ietf.org/html/rfc7858)) and gRPC (not a standard).
 
 Currently CoreDNS is able to:
 
@@ -28,7 +28,7 @@ Currently CoreDNS is able to:
 * Sign zone data on-the-fly (*dnssec*).
 * Load balancing of responses (*loadbalance*).
 * Allow for zone transfers, i.e., act as a primary server (*file*).
-* Automatically load zone files from disk (*auto*)
+* Automatically load zone files from disk (*auto*).
 * Caching (*cache*).
 * Health checking endpoint (*health*).
 * Use etcd as a backend, i.e., a 101.5% replacement for
@@ -166,7 +166,7 @@ The next one only defines a port:
 ~~~
 This defaults to the root zone `.`, but can't be overruled with the `-dns.port` flag.
 
-Just specifying a zone, default to listening on port 53 (can still be overridden with `-dns.port`:
+Just specifying a zone, default to listening on port 53 (can still be overridden with `-dns.port`):
 
 ~~~ txt
 example.org {
@@ -194,10 +194,10 @@ When no transport protocol is specified the default `dns://` is assumed.
 
 ## Blog and Contact
 
-Website: <https://coredns.io>
-Twitter: [@corednsio](https://twitter.com/corednsio)
-Docs: <https://miek.nl/tags/coredns/>
-Github: <https://github.com/coredns/coredns>
+- Website: <https://coredns.io>
+- Twitter: [@corednsio](https://twitter.com/corednsio)
+- Docs: <https://miek.nl/tags/coredns/>
+- Github: <https://github.com/coredns/coredns>
 
 
 ## Systemd Service File
