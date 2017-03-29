@@ -126,19 +126,21 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *struc
 		}
 	}
 
-	// TODO (slackpad) In Consul 0.8 ban checks that don't have the same
-	// node as the top-level registration. This is just weird to be able to
-	// update unrelated nodes' checks from in here. In 0.7.2 we banned this
-	// up in the ACL check since that's guarded behind an opt-in flag until
-	// Consul 0.8.
-
 	// Add the checks, if any.
 	if req.Check != nil {
+		if req.Check.Node != req.Node {
+			return fmt.Errorf("check node %q does not match node %q",
+				req.Check.Node, req.Node)
+		}
 		if err := s.ensureCheckTxn(tx, idx, req.Check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
 	for _, check := range req.Checks {
+		if check.Node != req.Node {
+			return fmt.Errorf("check node %q does not match node %q",
+				check.Node, req.Node)
+		}
 		if err := s.ensureCheckTxn(tx, idx, check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}

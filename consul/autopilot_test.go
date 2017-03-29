@@ -194,7 +194,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	// Add s4 to peers directly
 	s4addr := fmt.Sprintf("127.0.0.1:%d",
 		s4.config.SerfLANConfig.MemberlistConfig.BindPort)
-	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(s4addr),0, 0)
+	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(s4addr), 0, 0)
 
 	// Verify we have 4 peers
 	peers, err := s1.numPeers()
