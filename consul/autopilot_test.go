@@ -153,6 +153,69 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	}
 }
 
+func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
+	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	dir4, s4 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Join the servers to s1
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+
+	for _, s := range servers[1:] {
+		if _, err := s.JoinLAN([]string{addr}); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	for _, s := range servers {
+		if err := testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Add s4 to peers directly
+	s4addr := fmt.Sprintf("127.0.0.1:%d",
+		s4.config.SerfLANConfig.MemberlistConfig.BindPort)
+	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(s4addr),0, 0)
+
+	// Verify we have 4 peers
+	peers, err := s1.numPeers()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peers != 4 {
+		t.Fatalf("bad: %v", peers)
+	}
+
+	// Wait for s4 to be removed
+	for _, s := range []*Server{s1, s2, s3} {
+		if err := testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.numPeers()
+			return peers == 3, nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"

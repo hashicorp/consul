@@ -78,17 +78,37 @@ func (s *Server) pruneDeadServers() error {
 
 	// Find any failed servers
 	var failed []string
+	staleRaftServers := make(map[string]raft.Server)
 	if autopilotConf.CleanupDeadServers {
+		future := s.raft.GetConfiguration()
+		if future.Error() != nil {
+			return err
+		}
+
+		for _, server := range future.Configuration().Servers {
+			staleRaftServers[string(server.Address)] = server
+		}
+
 		for _, member := range s.serfLAN.Members() {
-			valid, _ := agent.IsConsulServer(member)
-			if valid && member.Status == serf.StatusFailed {
-				failed = append(failed, member.Name)
+			valid, parts := agent.IsConsulServer(member)
+
+			if valid {
+				// Remove this server from the stale list; it has a serf entry
+				if _, ok := staleRaftServers[parts.Addr.String()]; ok {
+					delete(staleRaftServers, parts.Addr.String())
+				}
+
+				if member.Status == serf.StatusFailed {
+					failed = append(failed, member.Name)
+				}
 			}
 		}
 	}
 
+	removalCount := len(failed) + len(staleRaftServers)
+
 	// Nothing to remove, return early
-	if len(failed) == 0 {
+	if removalCount == 0 {
 		return nil
 	}
 
@@ -98,13 +118,31 @@ func (s *Server) pruneDeadServers() error {
 	}
 
 	// Only do removals if a minority of servers will be affected
-	if len(failed) < peers/2 {
+	if removalCount < peers/2 {
 		for _, server := range failed {
 			s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", server)
 			go s.serfLAN.RemoveFailedNode(server)
 		}
+
+		minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+		if err != nil {
+			return err
+		}
+		for _, raftServer := range staleRaftServers {
+			var future raft.Future
+			if minRaftProtocol >= 2 {
+				s.logger.Printf("[INFO] consul: Attempting removal of stale raft server : %v", raftServer.ID)
+				future = s.raft.RemoveServer(raftServer.ID, 0, 0)
+			} else {
+				s.logger.Printf("[INFO] consul: Attempting removal of stale raft server : %v", raftServer.ID)
+				future = s.raft.RemovePeer(raftServer.Address)
+			}
+			if err := future.Error(); err != nil {
+				return err
+			}
+		}
 	} else {
-		s.logger.Printf("[DEBUG] consul: Failed to remove dead servers: too many dead servers: %d/%d", len(failed), peers)
+		s.logger.Printf("[DEBUG] consul: Failed to remove dead servers: too many dead servers: %d/%d", removalCount, peers)
 	}
 
 	return nil
