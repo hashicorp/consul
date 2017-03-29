@@ -422,13 +422,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 #### Configuration Key Reference
 
-* <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - Only
-  used by servers. This designates the datacenter which
-  is authoritative for ACL information. It must be provided to enable ACLs.
-  All servers and datacenters must agree on the ACL datacenter. Setting it on
-  the servers is all you need for enforcement, but for the APIs to forward properly
-  from the clients, it must be set on them too. Future changes may move
-  enforcement to the edges, so it's best to just set `acl_datacenter` on all nodes.
+* <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - This designates
+  the datacenter which is authoritative for ACL information. It must be provided to enable ACLs.
+  All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all
+  you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
+  it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
+  of ACLs. Please see the [ACL internals guide](/docs/internals/acl.html) for more details.
 
 * <a name="acl_default_policy"></a><a href="#acl_default_policy">`acl_default_policy`</a> - Either
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
