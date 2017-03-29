@@ -83,7 +83,7 @@ Created area "2aea3145-f1e3-cb1d-a775-67d15ddd89bf" with peer datacenter "dc1"!
 Now you can query for the members of the area:
 
 ```text
-$ consul operator area members
+(dc1) $ consul operator area members
 Area                                  Node        Address         Status  Build         Protocol  DC   RTT
 cbd364ae-3710-1770-911b-7214e98016c0  node-1.dc1  127.0.0.1:8300  alive   0.8.0_entrc1  2         dc1  0s
 ```
@@ -93,7 +93,7 @@ the area was created are joined to the area using the LAN information. We need t
 join with at least one Consul server in the other datacenter to complete the area:
 
 ```text
-$ consul operator area join -peer-datacenter=dc2 127.0.0.2
+(dc1) $ consul operator area join -peer-datacenter=dc2 127.0.0.2
 Address    Joined  Error
 127.0.0.2  true    (none)
 ```
@@ -102,7 +102,7 @@ With a successful join, we should now see the remote Consul servers as part of t
 area's members:
 
 ```text
-$ consul operator area members
+(dc1) $ consul operator area members
 Area                                  Node        Address         Status  Build         Protocol  DC   RTT
 cbd364ae-3710-1770-911b-7214e98016c0  node-1.dc1  127.0.0.1:8300  alive   0.8.0_entrc1  2         dc1  0s
 cbd364ae-3710-1770-911b-7214e98016c0  node-2.dc2  127.0.0.2:8300  alive   0.8.0_entrc1  2         dc2  581.649µs
@@ -112,8 +112,33 @@ Now we can route RPC commands in both directions. Here's a sample command to set
 entry in dc2 from dc1:
 
 ```text
-$ consul kv put -datacenter=dc2 hello world
+(dc1) $ consul kv put -datacenter=dc2 hello world
 Success! Data written to: hello
+```
+
+The DNS interface supports federation as well:
+
+```text
+(dc1) $ dig @127.0.0.1 -p 8600 consul.service.dc2.consul
+
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.dc2.consul
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49069
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;consul.service.dc2.consul.     IN      A
+
+;; ANSWER SECTION:
+consul.service.dc2.consul. 0    IN      A       127.0.0.2
+
+;; Query time: 3 msec
+;; SERVER: 127.0.0.1#8600(127.0.0.1)
+;; WHEN: Wed Mar 29 11:27:35 2017
+;; MSG SIZE  rcvd: 59
 ```
 
 There are a few networking requirements that must be satisfied for this to
