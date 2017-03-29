@@ -170,7 +170,7 @@ func (m *aclManager) lookupACL(agent *Agent, id string) (acl.ACL, error) {
 	// At this point we might have a stale cached ACL, or none at all, so
 	// try to contact the servers.
 	args := structs.ACLPolicyRequest{
-		Datacenter: agent.config.Datacenter,
+		Datacenter: agent.config.ACLDatacenter,
 		ACL:        id,
 	}
 	if cached != nil {
@@ -239,6 +239,12 @@ func (m *aclManager) lookupACL(agent *Agent, id string) (acl.ACL, error) {
 func (a *Agent) resolveToken(id string) (acl.ACL, error) {
 	// Disable ACLs if version 8 enforcement isn't enabled.
 	if !(*a.config.ACLEnforceVersion8) {
+		return nil, nil
+	}
+
+	// Bail if there's no ACL datacenter configured. This means that agent
+	// enforcement isn't on.
+	if a.config.ACLDatacenter == "" {
 		return nil, nil
 	}
 
