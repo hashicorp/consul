@@ -123,9 +123,23 @@ func (s *Server) pruneDeadServers() error {
 			s.logger.Printf("[INFO] consul: Attempting removal of failed server: %v", server)
 			go s.serfLAN.RemoveFailedNode(server)
 		}
+
+		minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+		if err != nil {
+			return err
+		}
 		for _, raftServer := range staleRaftServers {
-			s.logger.Printf("[INFO] consul: Attempting removal of stale raft server : %v", raftServer.ID)
-			s.raft.RemoveServer(raftServer.ID, 0, 0)
+			var future raft.Future
+			if minRaftProtocol >= 2 {
+				s.logger.Printf("[INFO] consul: Attempting removal of stale raft server : %v", raftServer.ID)
+				future = s.raft.RemoveServer(raftServer.ID, 0, 0)
+			} else {
+				s.logger.Printf("[INFO] consul: Attempting removal of stale raft server : %v", raftServer.ID)
+				future = s.raft.RemovePeer(raftServer.Address)
+			}
+			if err := future.Error(); err != nil {
+				return err
+			}
 		}
 	} else {
 		s.logger.Printf("[DEBUG] consul: Failed to remove dead servers: too many dead servers: %d/%d", removalCount, peers)
