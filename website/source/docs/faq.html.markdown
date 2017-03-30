@@ -82,3 +82,22 @@ as well as race conditions between data updates and watch registrations.
 ## Q: What network ports does Consul use?
 
 The [Ports Used](https://www.consul.io/docs/agent/options.html#ports) section of the Configuration documentation lists all ports that Consul uses.
+
+## Q: Does Consul require certain user process resource limits?
+
+There should be only a small number of open file descriptors required for a
+Consul client agent. The gossip layers perform transient connections with
+other nodes, each connection to the client agent (such as for a blocking
+query) will open a connection, and there will typically be connections to one
+of the Consul servers. A small number of file descriptors are also required
+for watch handlers, health checks, log files, and so on.
+
+For a Consul server agent, you should plan on the above requirements and
+an additional incoming connection from each of the nodes in the cluster. This
+should not be the common case, but in the worst case if there is a problem
+with the other servers you would expect the other client agents to all
+connect to a single server and so preparation for this possibility is helpful.
+
+The default ulimits are usually sufficient for Consul, but you should closely
+scrutinize your own environment's specific needs and identify the root cause
+of any excessive resource utilization before arbitrarily increasing the limits.
