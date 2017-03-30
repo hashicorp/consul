@@ -73,21 +73,24 @@ type RaftConfigurationResponse struct {
 	Index uint64
 }
 
-// RaftPeerByAddressRequest is used by the Operator endpoint to apply a Raft
+// RaftRemovePeerRequest is used by the Operator endpoint to apply a Raft
 // operation on a specific Raft peer by address in the form of "IP:port".
-type RaftPeerByAddressRequest struct {
+type RaftRemovePeerRequest struct {
 	// Datacenter is the target this request is intended for.
 	Datacenter string
 
 	// Address is the peer to remove, in the form "IP:port".
 	Address raft.ServerAddress
 
+	// ID is the peer ID to remove.
+	ID raft.ServerID
+
 	// WriteRequest holds the ACL token to go along with this request.
 	WriteRequest
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (op *RaftPeerByAddressRequest) RequestDatacenter() string {
+func (op *RaftRemovePeerRequest) RequestDatacenter() string {
 	return op.Datacenter
 }
 

@@ -688,9 +688,9 @@ even though the server is no longer present and known to the cluster. This
 endpoint can be used to remove the failed server so that it is no longer
 affects the Raft quorum.
 
-An `?address=` query parameter is required and should be set to the
-`IP:port` for the server to remove. The port number is usually 8300, unless
-configured otherwise. Nothing is required in the body of the request.
+Either an `?id=` or `?address=` query parameter is required and should be set to the
+peer ID or `IP:port` respectively for the server to remove. The port number is usually
+8300, unless configured otherwise. Nothing is required in the body of the request.
 
 By default, the datacenter of the agent is targeted; however, the `dc` can be
 provided using the `?dc=` query parameter.

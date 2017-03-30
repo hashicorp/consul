@@ -38,9 +38,11 @@ func (c *OperatorRaftRemoveCommand) Synopsis() string {
 func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	f := c.Command.NewFlagSet(c)
 
-	var address string
+	var address, id string
 	f.StringVar(&address, "address", "",
 		"The address to remove from the Raft configuration.")
+	f.StringVar(&id, "id", "",
+		"The ID to remove from the Raft configuration.")
 
 	if err := c.Command.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -58,25 +60,36 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	}
 
 	// Fetch the current configuration.
-	if err := raftRemovePeers(address, client.Operator()); err != nil {
+	if err := raftRemovePeers(address, id, client.Operator()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error removing peer: %v", err))
 		return 1
 	}
-	c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
+	if address != "" {
+		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
+	} else {
+		c.Ui.Output(fmt.Sprintf("Removed peer with id %q", id))
+	}
 
 	return 0
 }
 
-func raftRemovePeers(address string, operator *api.Operator) error {
-	// TODO (slackpad) Once we expose IDs, add support for removing
-	// by ID, add support for that.
-	if len(address) == 0 {
-		return fmt.Errorf("an address is required for the peer to remove")
+func raftRemovePeers(address, id string, operator *api.Operator) error {
+	if len(address) == 0 && len(id) == 0 {
+		return fmt.Errorf("an address or id is required for the peer to remove")
+	}
+	if len(address) > 0 && len(id) > 0 {
+		return fmt.Errorf("cannot give both an address and id")
 	}
 
 	// Try to kick the peer.
-	if err := operator.RaftRemovePeerByAddress(address, nil); err != nil {
-		return err
+	if len(address) > 0 {
+		if err := operator.RaftRemovePeerByAddress(address, nil); err != nil {
+			return err
+		}
+	} else {
+		if err := operator.RaftRemovePeerByID(id, nil); err != nil {
+			return err
+		}
 	}
 
 	return nil
