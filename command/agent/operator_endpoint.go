@@ -42,23 +42,40 @@ func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	var args structs.RaftPeerByAddressRequest
+	var args structs.RaftRemovePeerRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 
 	params := req.URL.Query()
-	if _, ok := params["address"]; ok {
+	_, hasID := params["id"]
+	if hasID {
+		args.ID = raft.ServerID(params.Get("id"))
+	}
+	_, hasAddress := params["address"]
+	if hasAddress {
 		args.Address = raft.ServerAddress(params.Get("address"))
-	} else {
+	}
+
+	if !hasID && !hasAddress {
 		resp.WriteHeader(http.StatusBadRequest)
-		resp.Write([]byte("Must specify ?address with IP:port of peer to remove"))
+		resp.Write([]byte("Must specify either ?id with the server's ID or ?address with IP:port of peer to remove"))
+		return nil, nil
+	}
+	if hasID && hasAddress {
+		resp.WriteHeader(http.StatusBadRequest)
+		resp.Write([]byte("Must specify only one of ?id or ?address"))
 		return nil, nil
 	}
 
 	var reply struct{}
-	if err := s.agent.RPC("Operator.RaftRemovePeerByAddress", &args, &reply); err != nil {
+	method := "Operator.RaftRemovePeerByID"
+	if hasAddress {
+		method = "Operator.RaftRemovePeerByAddress"
+	}
+	if err := s.agent.RPC(method, &args, &reply); err != nil {
 		return nil, err
 	}
+
 	return nil, nil
 }
 

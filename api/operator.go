@@ -227,9 +227,24 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 	r := op.c.newRequest("DELETE", "/v1/operator/raft/peer")
 	r.setWriteOptions(q)
 
-	// TODO (slackpad) Currently we made address a query parameter. Once
-	// IDs are in place this will be DELETE /v1/operator/raft/peer/<id>.
 	r.params.Set("address", string(address))
+
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+
+	resp.Body.Close()
+	return nil
+}
+
+// RaftRemovePeerByID is used to kick a stale peer (one that it in the Raft
+// quorum but no longer known to Serf or the catalog) by ID.
+func (op *Operator) RaftRemovePeerByID(id string, q *WriteOptions) error {
+	r := op.c.newRequest("DELETE", "/v1/operator/raft/peer")
+	r.setWriteOptions(q)
+
+	r.params.Set("id", string(id))
 
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {

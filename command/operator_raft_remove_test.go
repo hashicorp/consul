@@ -56,4 +56,27 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 			t.Fatalf("bad: %s", output)
 		}
 	}
+
+	// Test the remove-peer subcommand with -id
+	{
+		ui := new(cli.MockUi)
+		c := OperatorRaftRemoveCommand{
+			Command: base.Command{
+				Ui:    ui,
+				Flags: base.FlagSetHTTP,
+			},
+		}
+		args := []string{"-http-addr=" + a1.httpAddr, "-id=nope"}
+
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+
+		// If we get this error, it proves we sent the address all they through.
+		output := strings.TrimSpace(ui.ErrorWriter.String())
+		if !strings.Contains(output, "id \"nope\" was not found in the Raft configuration") {
+			t.Fatalf("bad: %s", output)
+		}
+	}
 }

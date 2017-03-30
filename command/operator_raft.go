@@ -87,7 +87,7 @@ func (c *OperatorRaftCommand) raft(args []string) error {
 		}
 		c.Ui.Output(result)
 	} else if removePeer {
-		if err := raftRemovePeers(address, operator); err != nil {
+		if err := raftRemovePeers(address, "", operator); err != nil {
 			return fmt.Errorf("Error removing peer: %v", err)
 		}
 		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))

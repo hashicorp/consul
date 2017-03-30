@@ -59,6 +59,23 @@ func TestOperator_RaftPeer(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("DELETE", "/v1/operator/raft/peer?id=nope", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// If we get this error, it proves we sent the ID all the
+		// way through.
+		resp := httptest.NewRecorder()
+		_, err = srv.OperatorRaftPeer(resp, req)
+		if err == nil || !strings.Contains(err.Error(),
+			"id \"nope\" was not found in the Raft configuration") {
+			t.Fatalf("err: %v", err)
+		}
+	})
 }
 
 func TestOperator_KeyringInstall(t *testing.T) {
