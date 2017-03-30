@@ -35,6 +35,7 @@ IMPROVEMENTS:
 * cli: Updated go-cleanhttp library for better HTTP connection handling between CLI commands and the Consul agent (tunes reuse settings). [GH-2735]
 * cli: The `operator raft` subcommand has had its two modes split into the `list-peers` and `remove-peer` subcommands. The old flags for these will continue to work for backwards compatibility, but will be removed in Consul 0.9.
 * dns: Allows the `.service` tag to be optional in RFC 2782 lookups. [GH-2690]
+* server: Changed the internal `EnsureRegistration` RPC endpoint to prevent registering checks that aren't associated with the top-level node being registered. [GH-2846]
 
 BUG FIXES:
 
