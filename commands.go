@@ -16,7 +16,7 @@ import (
 var Commands map[string]cli.CommandFactory
 
 func init() {
-	ui := &cli.BasicUi{Writer: os.Stdout}
+	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
 
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
