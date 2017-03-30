@@ -1,277 +1,75 @@
-//
-// Docs
-// --------------------------------------------------
-
-body.layout-docs,
-body.layout-intro{
-  background: $light-purple image-url('sidebar-dots.jpg') left 62px no-repeat;
-
-  #main-content{
-    min-height: 600px;
-
-    h1, h2, h3, h4, h5 {
-      font-family: $font-family-open-sans;
-      text-transform: none;
-    }
-  }
-
-  >.container{
-    .col-md-8[role=main]{
-      min-height: 800px;
-      background-color: white;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: -9999px;
-        right: 0;
-        border-left: none;
-        box-shadow: 9999px 0 0 white;
-      }
-
-      >div{
-        position: relative;
-        z-index: 10;
-      }
-    }
-  }
-}
-
-.docs-sidebar{
-  position: relative;
-  z-index: 20;
+#docs-sidebar {
   margin-bottom: 30px;
   margin-top: 50px;
-  margin-right: 4%;
-  background-color: $light-purple;
-  border-radius: $el-border-radius;
 
-  a{
-    color: $purple;
-  }
-
-  .docs-sidenav{
-    padding-top: 15px;
+  ul.nav.docs-sidenav {
+    display: block;
     padding-bottom: 15px;
 
-    :last-child{
-      border-bottom: none;
-    }
+    li {
+      a {
+        color: $sidebar-link-color;
+        font-size: $sidebar-font-size;
+        padding: 10px 0 10px 15px;
 
-    //all li > a
-    li{
-      position: relative;
-
-      > a{
-        color: $purple;
-        @include transition( color 0.5s ease );
-      }
-
-      > a:hover,
-      > a:focus {
-        background-color: transparent !important;
-        color: $black;
-        @include transition( color 0.5s ease );
-      }
-    }
-
-
-    > li {
-      padding: 10px 0;
-      margin: 0 30px;
-      border-bottom: 2px solid #fff;
-
-      >.nav{
-        li{
-          a{
-            color: $black;
-          }
-        }
-      }
-
-      &.active {
-        &:before{
-          content: '';
+        &:before {
+          color: $sidebar-link-color-active;
+          content: '\203A';
+          font-size: $font-size;
+          left: 0;
+          line-height: 100%;
+          opacity: 0.4;
           position: absolute;
-          width: 8px;
-          height: 8px;
-          background-color: $purple;
-          border-radius: 4px;
-          top: 26px;
-          left: -10px;
-        }
-        > a{
-          -webkit-font-smoothing: antialiased;
+
+          height: 100%;
+          width: 8px
         }
 
-        /*> a:hover,
-        > a:focus {
-        font-weight: font-weight-xb;
-      }*/
+        &:focus,
+        &:hover {
+          background-color: transparent;
+          color: $sidebar-link-color-hover;
 
-      .nav {
+          &:before {
+            opacity: 1;
+          }
+        }
+      }
+
+      // For forcing sub-navs to appear - in the long term, this should not
+      // be a thing anymore...
+      > ul.nav-visible {
         display: block;
-
-        li.active a {
-          font-weight: font-weight-xb;
-        }
-
-        li.active .subnav {
-          display: block;
-
-          li a {
-            font-weight: $font-weight-sb;
-          }
-
-          li.active a {
-            font-weight: font-weight-xb;
-          }
-        }
       }
     }
 
-    > a {
-      font-family: $font-family-open-sans;
-      font-weight: 600;
-      -webkit-font-smoothing: antialiased;
-    }
-  }
+    li.active {
+      > a {
+        color: $sidebar-link-color-active;
 
-  .nav {
-    display: none;
-    margin-bottom: 15px;
-
-    > li{
-      margin-left: 20px;
-
-      > a{
-        padding: 6px 15px;
-        font-weight: 500;
-        -webkit-font-smoothing: antialiased;
-      }
-
-      .subnav {
-        display: none;
-        margin-bottom: 15px;
-        list-style: none;
-        > li{
-          padding: 6px 0;
-          > a{
-            -webkit-font-smoothing: antialiased;
-          }
+        &:before {
+          opacity: 1;
         }
       }
-    }
-  }
-}
-}
 
-
-.bs-docs-section{
-  padding-top: 10px;
-  padding-left: 3%;
-  padding-bottom: 80px;
-
-  .alert {
-    a {
-      color: inherit;
-      font-size: inherit;
-      font-weight: inherit;
-    }
-  }
-
-  .lead{
-    margin-bottom: 48px
-  }
-
-  .doc-sectional{
-    margin-bottom: 48px;
-  }
-
-  p, li, .alert {
-    font-size: 18px;
-    font-weight: 400;
-    line-height: 1.5em;
-    margin: 0 0 18px;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  li p a, li a {
-    text-decoration: none;
-  }
-
-  pre {
-    margin: 0 0 18px;
-
-    // This will force the code to scroll horizontally on small screens
-    // instead of wrapping.
-    code {
-      overflow-wrap: normal;
-      white-space: pre;
-    }
-  }
-
-  a{
-    color: $purple;
-    &:hover{
-      text-decoration: underline;
-    }
-  }
-
-  img{
-    max-width: 650px;
-    margin-top: 25px;
-    margin-bottom: 25px;
-  }
-
-  h1{
-    color: $purple;
-    text-transform: uppercase;
-    padding-bottom: 24px;
-    margin-top: 40px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid #eeeeee;
-  }
-
-  h2, h3, h4{
-    margin-top: 42px;
-    margin-bottom: 16px;
-  }
-
-  #graph {
-    margin-top: 30px;
-  }
-
-  .alert p {
-    margin-bottom: 0;
-  }
-}
-
-
-@media (max-width: 992px) {
-  body.layout-docs,
-  body.layout-intro{
-    >.container{
-      .col-md-8[role=main]{
-        min-height: 0;
-        &::before {
-          border-left: 9999px solid white;
-        }
+      // Open nested navigations
+      > ul.nav {
+        display: block;
       }
     }
-  }
-}
 
-@media (max-width: 480px) {
-  .bs-docs-section{
-    img{
-      max-width: 450px;
-    }
+    // subnav
+    ul.nav {
+      display: none;
+      margin: 10px;
 
-    h1{
-      font-size: 32px;
+      li {
+        margin-left: 10px;
+
+        a {
+          padding: 6px 15px;
+        }
+      }
     }
   }
 }
