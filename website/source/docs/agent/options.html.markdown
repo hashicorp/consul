@@ -632,7 +632,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="disable_remote_exec"></a><a href="#disable_remote_exec">`disable_remote_exec`</a>
   Disables support for remote execution. When set to true, the agent will ignore any incoming
-  remote exec requests.
+  remote exec requests. In versions of Consul prior to 0.8, this defaulted to false. In Consul
+  0.8 the default was changed to true, to make remote exec opt-in instead of opt-out.
 
 * <a name="disable_update_check"></a><a href="#disable_update_check">`disable_update_check`</a>
   Disables automatic checking for security bulletins and new version releases.

@@ -209,7 +209,7 @@ func (a *Agent) ingestUserEvent(msg *UserEvent) {
 	// Special handling for internal events
 	switch msg.Name {
 	case remoteExecName:
-		if a.config.DisableRemoteExec {
+		if *a.config.DisableRemoteExec {
 			a.logger.Printf("[INFO] agent: ignoring remote exec event (%s), disabled.", msg.ID)
 		} else {
 			go a.handleRemoteExec(msg)
