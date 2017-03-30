@@ -640,7 +640,7 @@ type Config struct {
 
 	// DisableRemoteExec is used to turn off the remote execution
 	// feature. This is for security to prevent unknown scripts from running.
-	DisableRemoteExec bool `mapstructure:"disable_remote_exec"`
+	DisableRemoteExec *bool `mapstructure:"disable_remote_exec"`
 
 	// DisableUpdateCheck is used to turn off the automatic update and
 	// security bulletin checking.
@@ -828,6 +828,7 @@ func DefaultConfig() *Config {
 		ACLDefaultPolicy:   "allow",
 		ACLDisabledTTL:     120 * time.Second,
 		ACLEnforceVersion8: Bool(true),
+		DisableRemoteExec:  Bool(true),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
 
@@ -1696,8 +1697,8 @@ func MergeConfig(a, b *Config) *Config {
 	if len(b.WatchPlans) != 0 {
 		result.WatchPlans = append(result.WatchPlans, b.WatchPlans...)
 	}
-	if b.DisableRemoteExec {
-		result.DisableRemoteExec = true
+	if b.DisableRemoteExec != nil {
+		result.DisableRemoteExec = b.DisableRemoteExec
 	}
 	if b.DisableUpdateCheck {
 		result.DisableUpdateCheck = true

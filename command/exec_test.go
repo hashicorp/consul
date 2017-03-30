@@ -28,7 +28,9 @@ func TestExecCommand_implements(t *testing.T) {
 }
 
 func TestExecCommandRun(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
@@ -46,11 +48,14 @@ func TestExecCommandRun(t *testing.T) {
 }
 
 func TestExecCommandRun_CrossDC(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 
 	a2 := testAgentWithConfig(t, func(c *agent.Config) {
 		c.Datacenter = "dc2"
+		c.DisableRemoteExec = agent.Bool(false)
 	})
 	defer a2.Shutdown()
 
@@ -136,7 +141,9 @@ func TestExecCommand_Validate(t *testing.T) {
 }
 
 func TestExecCommand_Sessions(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
@@ -177,7 +184,9 @@ func TestExecCommand_Sessions(t *testing.T) {
 }
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
@@ -228,7 +237,9 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 }
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
@@ -285,7 +296,9 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 }
 
 func TestExecCommand_StreamResults(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := testAgentWithConfig(t, func(c *agent.Config) {
+		c.DisableRemoteExec = agent.Bool(false)
+	})
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 

@@ -783,14 +783,19 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	// remote exec
-	input = `{"disable_remote_exec": true}`
+	// Remote exec is disabled by default.
+	config = DefaultConfig()
+	if *config.DisableRemoteExec != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Test re-enabling remote exec.
+	input = `{"disable_remote_exec": false}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	if !config.DisableRemoteExec {
+	if *config.DisableRemoteExec != false {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1723,7 +1728,7 @@ func TestMergeConfig(t *testing.T) {
 				"handler": "foobar",
 			},
 		},
-		DisableRemoteExec: true,
+		DisableRemoteExec: Bool(true),
 		Telemetry: Telemetry{
 			StatsiteAddr:    "127.0.0.1:7250",
 			StatsitePrefix:  "stats_prefix",
