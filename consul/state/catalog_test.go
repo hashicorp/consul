@@ -171,7 +171,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	// Verify that the additional check got registered.
 	verifyNode()
 	verifyService()
-	{
+	verifyChecks := func() {
 		idx, out, err := s.NodeChecks(nil, "node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -194,6 +194,38 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			t.Fatalf("bad check returned: %#v", c2)
 		}
 	}
+	verifyChecks()
+
+	// Try to register a check for some other node (top-level check).
+	req.Check = &structs.HealthCheck{
+		Node:    "nope",
+		CheckID: "check1",
+		Name:    "check",
+	}
+	err := s.EnsureRegistration(5, req)
+	if err == nil || !strings.Contains(err.Error(), "does not match node") {
+		t.Fatalf("err: %s", err)
+	}
+	verifyNode()
+	verifyService()
+	verifyChecks()
+
+	// Try to register a check for some other node (checks array).
+	req.Check = nil
+	req.Checks = structs.HealthChecks{
+		&structs.HealthCheck{
+			Node:    "nope",
+			CheckID: "check2",
+			Name:    "check",
+		},
+	}
+	err = s.EnsureRegistration(6, req)
+	if err == nil || !strings.Contains(err.Error(), "does not match node") {
+		t.Fatalf("err: %s", err)
+	}
+	verifyNode()
+	verifyService()
+	verifyChecks()
 }
 
 func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
