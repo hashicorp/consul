@@ -22,7 +22,8 @@ command can be used to transition the "failed" nodes to "left" nodes more
 quickly.
 
 This can be particularly useful for a node that was running as a server,
-as it will be removed from the Raft quorum.
+as it will be removed from the Raft quorum. Note that `force-leave` cannot be
+used to force removal of nodes that are outside of the datacenter.
 
 ## Usage
 
