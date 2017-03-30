@@ -13,6 +13,12 @@ the command-line or via configuration files. All of the configuration
 options are completely optional. Defaults are specified with their
 descriptions.
 
+Configuration precedence is evaluated in the following order:
+
+1. Command line arguments
+2. Environment Variables
+3. Configuration files
+
 When loading configuration, Consul loads the configuration from files
 and directories in lexical order. For example, configuration file `basic_config.json`
 will be processed before `extra_config.json`. Configuration specified later
