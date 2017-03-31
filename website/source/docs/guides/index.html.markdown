@@ -16,6 +16,8 @@ The following guides are available:
 
 * [Atlas Integration](/docs/guides/atlas.html) - This guide covers how to integrate [Atlas](https://atlas.hashicorp.com) with Consul.
 
+* [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
+
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
@@ -26,9 +28,9 @@ The following guides are available:
 
 * [External Services](/docs/guides/external.html) - This guide covers registering an external service. This allows using 3rd party services within the Consul framework.
 
-* [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
+* Federation ([Basic](/docs/guides/datacenters.html) and [Advanced](/docs/guides/areas.html)) - Configuring Consul to support multiple datacenters.
 
-* [Multiple Datacenters](/docs/guides/datacenters.html) - Configuring Consul to support multiple datacenters.
+* [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
 * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
