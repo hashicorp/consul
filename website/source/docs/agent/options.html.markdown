@@ -439,7 +439,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
   there is no matching rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
   prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
-  specifically allowed is blocked.
+  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter` 
+  to enable ACL support.
 
 * <a name="acl_down_policy"></a><a href="#acl_down_policy">`acl_down_policy`</a> - Either
   "allow", "deny" or "extend-cache"; "extend-cache" is the default. In the case that the
