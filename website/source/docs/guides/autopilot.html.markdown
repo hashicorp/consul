@@ -132,7 +132,7 @@ setting.
 ~> The following Autopilot features are available only in
    [Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 and later.
 
-## Designated Non-voting Servers
+## Server Read Scaling
 
 With the [`-non-voting-server`](/docs/agent/options.html#_non_voting_server) option, a
 server can be explicitly marked as a non-voter and will never be promoted to a voting
