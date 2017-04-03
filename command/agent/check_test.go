@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -243,10 +244,12 @@ func TestCheckTTL(t *testing.T) {
 func mockHTTPServer(responseCode int) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 		w.WriteHeader(responseCode)
-		w.Write(body)
+		if r.Method != http.MethodHead {
+			// Body larger than 4k limit
+			body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+			w.Write(body)
+		}
 		return
 	})
 
@@ -564,6 +567,41 @@ func mockTCPServer(network string) net.Listener {
 	}
 
 	return listener
+}
+func TestCheckHTTP_Head_true_empty_output(t *testing.T) {
+	server := mockHTTPServer(200)
+	defer server.Close()
+
+	mock := &MockNotify{
+		state:   make(map[types.CheckID]string),
+		updates: make(map[types.CheckID]int),
+		output:  make(map[types.CheckID]string),
+	}
+
+	check := &CheckHTTP{
+		Notify:   mock,
+		CheckID:  types.CheckID("head_true"),
+		HTTP:     server.URL,
+		Interval: 5 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+		Head:     true,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	testutil.WaitForResult(func() (bool, error) {
+		if mock.state["head_true"] != structs.HealthPassing {
+			return false, fmt.Errorf("should be passing '%v'", mock.state)
+		}
+		match, _ := regexp.MatchString("^.* Output: $", mock.output["head_true"])
+		if !match {
+			return false, fmt.Errorf("check output should be empty '%v'", mock.output["head_true"])
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func expectTCPStatus(t *testing.T, tcp string, status string) {

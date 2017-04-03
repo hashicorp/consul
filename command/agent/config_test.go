@@ -1354,6 +1354,15 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"timeout": "100ms",
 				"service_id": "insecure-sslservice",
 				"tls_skip_verify": true
+			},
+			{
+				"id": "chk7",
+				"name": "service:elasticsearch:health",
+				"HTTP": "http://localhost:9200/_cluster_health",
+				"interval": "10s",
+				"timeout": "100ms",
+				"service_id": "elasticsearch",
+                "head": true
 			}
 		]
 	}`
@@ -1420,6 +1429,17 @@ func TestDecodeConfig_Checks(t *testing.T) {
 					Interval:      10 * time.Second,
 					Timeout:       100 * time.Millisecond,
 					TLSSkipVerify: true,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk7",
+				Name:      "service:elasticsearch:health",
+				ServiceID: "elasticsearch",
+				CheckType: CheckType{
+					HTTP:     "http://localhost:9200/_cluster_health",
+					Interval: 10 * time.Second,
+					Timeout:  100 * time.Millisecond,
+					Head:     true,
 				},
 			},
 		},

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1225,7 +1226,7 @@ AFTER_FIX:
 }
 
 func FixupCheckType(raw interface{}) error {
-	var ttlKey, intervalKey, timeoutKey string
+	var ttlKey, intervalKey, timeoutKey, headKey string
 	const deregisterKey = "DeregisterCriticalServiceAfter"
 
 	// Handle decoding of time durations
@@ -1242,6 +1243,8 @@ func FixupCheckType(raw interface{}) error {
 			intervalKey = k
 		case "timeout":
 			timeoutKey = k
+		case "head":
+			headKey = k
 		case "deregister_critical_service_after":
 			rawMap[deregisterKey] = v
 			delete(rawMap, k)
@@ -1254,6 +1257,17 @@ func FixupCheckType(raw interface{}) error {
 		case "tls_skip_verify":
 			rawMap["TLSSkipVerify"] = v
 			delete(rawMap, k)
+		}
+	}
+
+	if head, ok := rawMap[headKey]; ok {
+		headS, ok := head.(string)
+		if ok {
+			if bol, err := strconv.ParseBool(headS); err != nil {
+				return err
+			} else {
+				rawMap[headKey] = bol
+			}
 		}
 	}
 

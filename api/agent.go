@@ -76,6 +76,7 @@ type AgentServiceCheck struct {
 	Status            string `json:",omitempty"`
 	Notes             string `json:",omitempty"`
 	TLSSkipVerify     bool   `json:",omitempty"`
+	Head              bool   `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
