@@ -49,7 +49,7 @@ When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need 
 set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option to 1 in
 order to maintain backwards compatibility with the old servers during the upgrade.
 After the servers have been migrated to version 0.8.0, `-raft-protocol` can be moved
-up to 3 and the servers restarted to match the default.
+up to 2 and the servers restarted to match the default.
 
 The Raft protocol must be stepped up in this way; only adjacent version numbers are
 compatible (for example, version 1 cannot talk to version 3). Here is a table of the
