@@ -85,7 +85,7 @@ reasonable, non-zero [DNS TTL values](/docs/guides/dns-cache.html#ttl) if your c
 respect them.
 
 * In other applications that perform high volumes of reads against Consul, consider using the
-[stale consistency mode](/docs/agent/http.html#consistency) available to allow reads to scale
+[stale consistency mode](/api/index.html#consistency) available to allow reads to scale
 across all the servers and not just be forwarded to the leader.
 
 ## Memory Requirements

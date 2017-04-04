@@ -97,7 +97,7 @@ The output of the [`members`](/docs/commands/members.html) command is based on
 the [gossip protocol](/docs/internals/gossip.html) and is eventually consistent.
 That is, at any point in time, the view of the world as seen by your local
 agent may not exactly match the state on the servers. For a strongly consistent
-view of the world, use the [HTTP API](/docs/agent/http.html) as it forwards the
+view of the world, use the [HTTP API](/api/index.html) as it forwards the
 request to the Consul servers:
 
 ```text

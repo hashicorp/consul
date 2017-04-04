@@ -103,7 +103,7 @@ the agent or place it inside the `-config-dir` of the agent. The file
 must end in the `.json` extension to be loaded by Consul. Check
 definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
-API](/docs/agent/http.html).
+API](/api/index.html).
 
 ## Multiple Service Definitions
 

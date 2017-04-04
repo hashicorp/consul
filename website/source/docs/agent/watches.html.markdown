@@ -13,7 +13,7 @@ checks) which is monitored for updates. When an update is detected, an external 
 is invoked. A handler can be any executable. As an example, you could watch the status
 of health checks and notify an external system when a check is critical.
 
-Watches are implemented using blocking queries in the [HTTP API](/docs/agent/http.html).
+Watches are implemented using blocking queries in the [HTTP API](/api/index.html).
 Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
@@ -43,7 +43,7 @@ match the format of the API.
 
 Additionally, the `CONSUL_INDEX` environment variable will be set.
 This maps to the `X-Consul-Index` value in responses from the
-[HTTP API](/docs/agent/http.html).
+[HTTP API](/api/index.html).
 
 ## Global Parameters
 

@@ -34,7 +34,7 @@ The type is either "client" (meaning the token cannot modify ACL rules) or "mana
 The token ID is passed along with each RPC request to the servers. Agents
 can be configured with an [`acl_token`](/docs/agent/options.html#acl_token) property
 to provide a default token, but the token can also be specified by a client on a
-[per-request basis](/docs/agent/http.html). ACLs were added in Consul 0.4, meaning
+[per-request basis](/api/index.html). ACLs were added in Consul 0.4, meaning
 prior versions do not provide a token. This is handled by the special "anonymous"
 token. If no token is provided, the rules associated with the anonymous token are
 automatically applied: this allows policy to be enforced on legacy clients.
@@ -400,7 +400,7 @@ methods of configuring ACL tokens to use for registration events:
    of multiple tokens on the same agent. Examples of what this looks like are
    available for both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
-   [HTTP API](/docs/agent/http.html) for operations that require them.
+   [HTTP API](/api/index.html) for operations that require them.
 
 <a name="discovery_acls"></a>
 #### Restricting service discovery with ACLs

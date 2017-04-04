@@ -1026,7 +1026,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <br>
   Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
   node's configured <a href="#_advertise-wan">WAN address</a> when querying for a node in a remote
-  datacenter. An [`X-Consul-Translate-Addresses`](/docs/agent/http.html#translate_header) header
+  datacenter. An [`X-Consul-Translate-Addresses`](/api/index.html#translate_header) header
   will be present on all responses when translation is enabled to help clients know that the addresses
   may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that
   need knowledge of that address, regardless of translation.

@@ -170,7 +170,7 @@ The three read modes are:
   a cluster that is unavailable will still be able to respond.
 
 For more documentation about using these various modes, see the
-[HTTP API](/docs/agent/http.html).
+[HTTP API](/api/index.html).
 
 ## <a name="deployment_table"></a>Deployment Table
 

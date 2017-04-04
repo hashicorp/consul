@@ -187,7 +187,7 @@ To configure a check, either provide it as a `-config-file` option to the
 agent or place it inside the `-config-dir` of the agent. The file must
 end in the ".json" extension to be loaded by Consul. Check definitions can
 also be updated by sending a `SIGHUP` to the agent. Alternatively, the
-check can be registered dynamically using the [HTTP API](/docs/agent/http.html).
+check can be registered dynamically using the [HTTP API](/api/index.html).
 
 ## Check Scripts
 
