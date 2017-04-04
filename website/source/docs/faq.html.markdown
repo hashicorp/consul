@@ -44,7 +44,7 @@ designed to avoid any dependence on those capabilities.
 
 Consul has two important subsystems, the service catalog and the gossip protocol.
 The service catalog stores all the nodes, service instances, health check data,
-ACLs, and Key/Value information. It is strongly consistent, and replicated
+ACLs, and KV information. It is strongly consistent, and replicated
 using the [consensus protocol](/docs/internals/consensus.html).
 
 The [gossip protocol](/docs/internals/gossip.html) is used to track which

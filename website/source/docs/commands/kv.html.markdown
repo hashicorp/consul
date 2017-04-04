@@ -8,13 +8,13 @@ sidebar_current: "docs-commands-kv"
 
 Command: `consul kv`
 
-The `kv` command is used to interact with Consul's key-value store via the
+The `kv` command is used to interact with Consul's KV store via the
 command line. It exposes top-level commands for inserting, updating, reading,
 and deleting from the store. This command is available in Consul 0.7.1 and
 later.
 
-The key-value store is also accessible via the
-[HTTP API](/docs/agent/http/kv.html).
+The KV store is also accessible via the
+[HTTP API](/api/kv.html).
 
 ## Usage
 
@@ -49,7 +49,7 @@ of the subcommand in the sidebar or one of the links below:
 ## Basic Examples
 
 To create or update the key named "redis/config/connections" to the value "5" in
-Consul's key-value store:
+Consul's KV store:
 
 ```text
 $ consul kv put redis/config/connections 5

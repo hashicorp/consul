@@ -296,9 +296,9 @@ will exit with an error at startup.
   `adf4238a-882b-9ddc-4a9d-5b6758e4159e`. If this isn't supplied, which is the most common case, then
   the agent will generate an identifier at startup and persist it in the <a href="#_data_dir">data directory</a>
   so that it will remain the same across agent restarts. This is currently only exposed via
-  <a href="/docs/agent/http/agent.html#agent_self">/v1/agent/self</a>,
-  <a href="/docs/agent/http/catalog.html">/v1/catalog</a>, and
-  <a href="/docs/agent/http/health.html">/v1/health</a> endpoints, but future versions of
+  <a href="/api/agent.html#agent_self">/v1/agent/self</a>,
+  <a href="/api/catalog.html">/v1/catalog</a>, and
+  <a href="/api/health.html">/v1/health</a> endpoints, but future versions of
   Consul will use this to better manage cluster changes, especially for Consul servers.
 
 * <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,
@@ -450,7 +450,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   values. If a non-cached ACL is used, "extend-cache" acts like "deny".
 
 * <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
-  Used to access <a href="/docs/agent/http/agent.html">agent endpoints</a> that require agent read
+  Used to access <a href="/api/agent.html">agent endpoints</a> that require agent read
   or write privileges even if Consul servers aren't present to validate any tokens. This should only
   be used by operators during outages, regular ACL tokens should normally be used by applications.
   This was added in Consul 0.7.2 and is only used when <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a>
@@ -1033,11 +1033,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <br>
   <br>The following endpoints translate addresses:
   <br>
-  * [`/v1/catalog/nodes`](/docs/agent/http/catalog.html#catalog_nodes)
-  * [`/v1/catalog/node/<node>`](/docs/agent/http/catalog.html#catalog_node)
-  * [`/v1/catalog/service/<service>`](/docs/agent/http/catalog.html#catalog_service)
-  * [`/v1/health/service/<service>`](/docs/agent/http/health.html#health_service)
-  * [`/v1/query/<query or name>/execute`](/docs/agent/http/query.html#execute)
+  * [`/v1/catalog/nodes`](/api/catalog.html#catalog_nodes)
+  * [`/v1/catalog/node/<node>`](/api/catalog.html#catalog_node)
+  * [`/v1/catalog/service/<service>`](/api/catalog.html#catalog_service)
+  * [`/v1/health/service/<service>`](/api/health.html#health_service)
+  * [`/v1/query/<query or name>/execute`](/api/query.html#execute)
 
 * <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
   command-line flag.

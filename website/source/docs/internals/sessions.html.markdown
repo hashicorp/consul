@@ -103,11 +103,11 @@ mechanism by providing a zero delay value.
 
 ## K/V Integration
 
-Integration between the Key/Value store and sessions is the primary
+Integration between the KV store and sessions is the primary
 place where sessions are used. A session must be created prior to use
 and is then referred to by its ID.
 
-The Key/Value API is extended to support an `acquire` and `release` operation.
+The KV API is extended to support an `acquire` and `release` operation.
 The `acquire` operation acts like a Check-And-Set operation except it
 can only succeed if there is no existing lock holder (the current lock holder
 can re-`acquire`, see below). On success, there is a normal key update, but

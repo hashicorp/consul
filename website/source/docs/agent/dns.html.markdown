@@ -185,11 +185,11 @@ The `datacenter` is optional, and if not provided, the datacenter of this Consul
 agent is assumed.
 
 The `query or name` is the ID or given name of an existing
-[Prepared Query](/docs/agent/http/query.html). These behave like standard service
+[Prepared Query](/api/query.html). These behave like standard service
 queries but provide a much richer set of features, such as filtering by multiple
 tags and automatically failing over to look for services in remote datacenters if
 no healthy nodes are available in the local datacenter. Consul 0.6.4 and later also
-added support for [prepared query templates](/docs/agent/http/query.html#templates)
+added support for [prepared query templates](/api/query.html#templates)
 which can match names using a prefix match, allowing one template to apply to
 potentially many services.
 

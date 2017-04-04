@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-kv-delete"
 
 Command: `consul kv delete`
 
-The `kv delete` command removes the value from Consul's key-value store at the
+The `kv delete` command removes the value from Consul's KV store at the
 given path. If no key exists at the path, no action is taken.
 
 ## Usage
@@ -34,7 +34,7 @@ Usage: `consul kv delete [options] KEY_OR_PREFIX`
 ## Examples
 
 To remove the value for the key named "redis/config/connections" in the
-key-value store:
+KV store:
 
 ```
 $ consul kv delete redis/config/connections

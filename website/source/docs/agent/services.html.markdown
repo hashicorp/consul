@@ -78,7 +78,7 @@ from `1`.
 The `enableTagOverride` can optionally be specified to disable the
 anti-entropy feature for this service. If `enableTagOverride` is set to
 `TRUE` then external agents can update this service in the
-[catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+[catalog](/api/catalog.html) and modify the tags. Subsequent
 local sync operations by this agent will ignore the updated tags. For
 example, if an external agent modified both the tags and the port for
 this service and `enableTagOverride` was set to `TRUE` then after the next

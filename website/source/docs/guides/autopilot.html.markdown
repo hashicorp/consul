@@ -26,7 +26,7 @@ The configuration of Autopilot is loaded by the leader from the agent's
 bootstrapping the cluster. After bootstrapping, the configuration can
 be viewed or modified either via the [`operator autopilot`]
 (/docs/commands/operator/autopilot.html) subcommand or the
-[`/v1/operator/autopilot/configuration`](/docs/agent/http/operator.html#autopilot-configuration)
+[`/v1/operator/autopilot/configuration`](/api/operator.html#autopilot-configuration)
 HTTP endpoint:
 
 ```
@@ -79,7 +79,7 @@ An internal health check runs on the leader to track the stability of servers.
 `MaxTrailingLogs`
 
 The status of these health checks can be viewed through the [`/v1/operator/autopilot/health`]
-(/docs/agent/http/operator.html#autopilot-health) HTTP endpoint, with a top level
+(/api/operator.html#autopilot-health) HTTP endpoint, with a top level
 `Healthy` field indicating the overall status of the cluster:
 
 ```
@@ -169,7 +169,7 @@ to voters and demoting the old servers. After this is finished, the old servers 
 safely removed from the cluster.
 
 To check the consul version of the servers, either the [autopilot health]
-(/docs/agent/http/operator.html#autopilot-health) endpoint or the `consul members`
+(/api/operator.html#autopilot-health) endpoint or the `consul members`
 command can be used:
 
 ```

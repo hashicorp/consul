@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-kv-put"
 
 Command: `consul kv put`
 
-The `kv put` command writes the data to the given path in the key-value store.
+The `kv put` command writes the data to the given path in the KV store.
 
 ## Usage
 
@@ -30,7 +30,7 @@ Usage: `consul kv put [options] KEY [DATA]`
 * `-cas` - Perform a Check-And-Set operation. Specifying this value also
   requires the -modify-index flag to be set. The default value is false.
 
-* `-flags=<int>` - Unsigned integer value to assign to this key-value pair. This
+* `-flags=<int>` - Unsigned integer value to assign to this KV pair. This
   value is not read by Consul, so clients can use this value however makes sense
   for their use case. The default value is 0 (no flags).
 
@@ -49,7 +49,7 @@ Usage: `consul kv put [options] KEY [DATA]`
 ## Examples
 
 To insert a value of "5" for the key named "redis/config/connections" in the
-key-value store:
+KV store:
 
 ```
 $ consul kv put redis/config/connections 5

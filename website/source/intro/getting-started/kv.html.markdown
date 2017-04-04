@@ -1,15 +1,15 @@
 ---
 layout: "intro"
-page_title: "Key/Value Data"
+page_title: "KV Data"
 sidebar_current: "gettingstarted-kv"
 description: |-
-  In addition to providing service discovery and integrated health checking, Consul provides an easy to use Key/Value store. This can be used to hold dynamic configuration, assist in service coordination, build leader election, and enable anything else a developer can think to build.
+  In addition to providing service discovery and integrated health checking, Consul provides an easy to use KV store. This can be used to hold dynamic configuration, assist in service coordination, build leader election, and enable anything else a developer can think to build.
 ---
 
-# Key/Value Data
+# KV Data
 
 In addition to providing service discovery and integrated health checking,
-Consul provides an easy to use Key/Value store. This can be used to hold
+Consul provides an easy to use KV store. This can be used to hold
 dynamic configuration, assist in service coordination, build leader election,
 and enable anything else a developer can think to build.
 
@@ -130,5 +130,5 @@ documentation, please see [Consul KV HTTP API][kv-api] or
 
 Next, we will look at the [web UI](ui.html) options supported by Consul.
 
-[kv-api]: /docs/agent/http/kv.html
+[kv-api]: /api/kv.html
 [kv-cli]: /docs/commands/kv.html
