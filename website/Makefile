@@ -3,8 +3,8 @@ VERSION?="0.3.22"
 build:
 	@echo "==> Starting build in Docker..."
 	@docker run \
-	  --interactive \
-	  --rm \
+		--interactive \
+		--rm \
 		--tty \
 		--volume "$(shell pwd):/website" \
 		hashicorp/middleman-hashicorp:${VERSION} \
@@ -13,8 +13,8 @@ build:
 website:
 	@echo "==> Starting website in Docker..."
 	@docker run \
-	  --interactive \
-	  --rm \
+		--interactive \
+		--rm \
 		--tty \
 		--publish "4567:4567" \
 		--publish "35729:35729" \
