@@ -1,5 +1,15 @@
 VERSION?="0.3.22"
 
+build:
+	@echo "==> Starting build in Docker..."
+	@docker run \
+	  --interactive \
+	  --rm \
+		--tty \
+		--volume "$(shell pwd):/website" \
+		hashicorp/middleman-hashicorp:${VERSION} \
+		bundle exec middleman build --verbose --clean
+
 website:
 	@echo "==> Starting website in Docker..."
 	@docker run \
@@ -11,4 +21,4 @@ website:
 		--volume "$(shell pwd):/website" \
 		hashicorp/middleman-hashicorp:${VERSION}
 
-.PHONY: website
+.PHONY: build website
