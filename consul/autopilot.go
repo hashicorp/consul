@@ -311,8 +311,9 @@ func (s *Server) updateClusterHealth() error {
 	// Build a current list of server healths
 	leader := s.raft.Leader()
 	var clusterHealth structs.OperatorHealthReply
-	healthyCount := 0
 	voterCount := 0
+	healthyCount := 0
+	healthyVoterCount := 0
 	for _, server := range servers {
 		health := structs.ServerHealth{
 			ID:          string(server.ID),
@@ -336,10 +337,13 @@ func (s *Server) updateClusterHealth() error {
 			health.SerfStatus = serf.StatusNone
 		}
 
+		if health.Voter {
+			voterCount++
+		}
 		if health.Healthy {
 			healthyCount++
 			if health.Voter {
-				voterCount++
+				healthyVoterCount++
 			}
 		}
 
@@ -348,9 +352,9 @@ func (s *Server) updateClusterHealth() error {
 	clusterHealth.Healthy = healthyCount == len(servers)
 
 	// If we have extra healthy voters, update FailureTolerance
-	requiredQuorum := len(servers)/2 + 1
-	if voterCount > requiredQuorum {
-		clusterHealth.FailureTolerance = voterCount - requiredQuorum
+	requiredQuorum := voterCount/2 + 1
+	if healthyVoterCount > requiredQuorum {
+		clusterHealth.FailureTolerance = healthyVoterCount - requiredQuorum
 	}
 
 	// Heartbeat a metric for monitoring if we're the leader
