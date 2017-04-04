@@ -96,7 +96,7 @@ a large set of ACLs.
 If there's a partition or other outage affecting the authoritative datacenter,
 and the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
 is set to "extend-cache", tokens will be resolved during the outage using the
-replicated set of ACLs. An [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
+replicated set of ACLs. An [ACL replication status](/api/acl.html#acl_replication_status)
 endpoint is available to monitor the health of the replication process.
 
 Locally-resolved ACLs will be cached using the [`acl_ttl`](/docs/agent/options.html#acl_ttl)
@@ -109,7 +109,7 @@ using a process like this:
 1. Enable ACL replication in all datacenters to allow continuation of service
 during the migration, and to populate the target datacenter. Verify replication
 is healthy and caught up to the current ACL index in the target datacenter
-using the [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
+using the [ACL replication status](/api/acl.html#acl_replication_status)
 endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the servers in the target datacenter and change the
@@ -366,7 +366,7 @@ per-token policy is applied to maximize security.
 Consul 0.7 added special Consul operator actions which are protected by a new
 `operator` ACL policy. The operator actions cover:
 
-* [Operator HTTP endpoint](/docs/agent/http/operator.html)
+* [Operator HTTP endpoint](/api/operator.html)
 * [Operator CLI command](/docs/commands/operator.html)
 
 If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
@@ -453,7 +453,7 @@ These variations are covered here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
-* [Template queries](https://www.consul.io/docs/agent/http/query.html#templates)
+* [Template queries](https://www.consul.io/api/query.html#templates)
   queries work like static queries with a `Name` defined, except that a catch-all
   template with an empty `Name` requires an ACL token that can write to any query
   prefix.

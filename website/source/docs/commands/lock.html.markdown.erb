@@ -11,7 +11,7 @@ description: |-
 Command: `consul lock`
 
 The `lock` command provides a mechanism for simple distributed locking.
-A lock (or semaphore) is created at a given prefix in the Key/Value store,
+A lock (or semaphore) is created at a given prefix in the KV store,
 and only when held, is a child process invoked. If the lock is lost or
 communication is disrupted, the child process is terminated.
 

@@ -49,7 +49,7 @@ remote storage.
 
 Snapshots can be restored using the
 [`consul snapshot restore`](/docs/commands/snapshot/restore.html) command, or
-the [HTTP API](/docs/agent/http/snapshot.html).
+the [HTTP API](/api/snapshot.html).
 
 If ACLs are enabled, a management token must be supplied in order to perform
 snapshot operations.
@@ -122,7 +122,7 @@ if desired.
   or hours. If 0 is provided, the agent will take a single snapshot and then exit,
   which is useful for running snapshots via batch jobs. Defaults to "1h"
 
-* `-lock-key` - A prefix in Consul's key-value store used to coordinate between
+* `-lock-key` - A prefix in Consul's KV store used to coordinate between
   different instances of the snapshot agent order to only have one active instance
   at a time. For highly available operation of the snapshot agent, simply run
   multiple instances. All instances must be configured with the same lock key in
@@ -205,5 +205,5 @@ leader election or service registration:
 $ consul snapshot agent -interval=0
 ```
 
-Please see the [HTTP API](/docs/agent/http/snapshot.html) documentation for
+Please see the [HTTP API](/api/snapshot.html) documentation for
 more details about snapshot internals.

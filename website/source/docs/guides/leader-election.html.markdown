@@ -32,7 +32,7 @@ service/<service name>/leader
 We'll abbreviate this pattern as simply `<key>` for the rest of this guide.
 
 The first step is to create a session using the
-[Session HTTP API](/docs/agent/http/session.html#session_create):
+[Session HTTP API](/api/session.html#session_create):
 
 ```text
 curl  -X PUT -d '{"Name": "dbservice"}' \
@@ -48,7 +48,7 @@ This will return a JSON object containing the session ID:
 ```
 
 The next step is to acquire a session for a given key from this node
-using the PUT method on a [KV entry](/docs/agent/http/kv.html) with the
+using the PUT method on a [KV entry](/api/kv.html) with the
 `?acquire=<session>` query parameter. The `<body>` of the PUT should be a
 JSON object representing the local node. This value is opaque to
 Consul, but it should contain whatever information clients require to
@@ -57,7 +57,7 @@ that contains the node's name and the application's port).
 
 Attempt to `acquire` the `<key>`. This will look something like (note that
 `<session>` is the ID returned by the call to
-[`/v1/session/create`](/docs/agent/http/session.html#session_create)):
+[`/v1/session/create`](/api/session.html#session_create)):
 
 ```text
 curl -X PUT -d <body> http://localhost:8500/v1/kv/<key>?acquire=<session>
@@ -120,7 +120,7 @@ application-dependent information required as a Base64 encoded blob in
 the `Value` field.
 
 You can query the
-[`/v1/session/info`](/docs/agent/http/session.html#session_info)
+[`/v1/session/info`](/api/session.html#session_info)
 endpoint to get details about the session:
 
 ```text

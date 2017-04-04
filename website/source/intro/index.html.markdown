@@ -31,7 +31,7 @@ key features:
   used by an operator to monitor cluster health, and it is used by the service
   discovery components to route traffic away from unhealthy hosts.
 
-* **Key/Value Store**: Applications can make use of Consul's hierarchical key/value
+* **KV Store**: Applications can make use of Consul's hierarchical key/value
   store for any number of purposes, including dynamic configuration, feature flagging,
   coordination, leader election, and more. The simple HTTP API makes it easy to use.
 

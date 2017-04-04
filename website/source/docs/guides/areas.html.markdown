@@ -48,7 +48,7 @@ to via an area (or via the WAN), but future versions of Consul may add routing s
 
 The following can be used to manage network areas:
 
-* [Network Areas HTTP Endpoint](/docs/agent/http/operator.html#network-areas)
+* [Network Areas HTTP Endpoint](/api/operator.html#network-areas)
 * [Network Areas Operator CLI](/docs/commands/operator/area.html)
 
 ## Network Areas and the WAN Gossip Pool

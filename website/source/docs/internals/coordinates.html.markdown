@@ -32,14 +32,14 @@ Network coordinates manifest in several ways inside Consul:
 * The [`consul rtt`](/docs/commands/rtt.html) command can be used to query for the
   network round trip time between any two nodes.
 
-* The [Catalog endpoints](/docs/agent/http/catalog.html) and
-  [Health endpoints](/docs/agent/http/health.html) can sort the results of queries based
+* The [Catalog endpoints](/api/catalog.html) and
+  [Health endpoints](/api/health.html) can sort the results of queries based
   on the network round trip time from a given node using a "?near=" parameter.
 
-* [Prepared queries](/docs/agent/http/query.html) can automatically fail over services 
+* [Prepared queries](/api/query.html) can automatically fail over services 
   to other Consul datacenters based on network round trip times.
 
-* The [Coordinate endpoint](/docs/agent/http/coordinate.html) exposes raw network
+* The [Coordinate endpoint](/api/coordinate.html) exposes raw network
   coordinates for use in other applications.
 
 Consul uses Serf to manage two different gossip pools, one for the LAN with members
@@ -52,7 +52,7 @@ LAN coordinates, and WAN coordinates only make sense with other WAN coordinates.
 
 Computing the estimated network round trip time between any two nodes is simple
 once you have their coordinates. Here's a sample coordinate, as returned from the
-[Coordinate endpoint](/docs/agent/http/coordinate.html).
+[Coordinate endpoint](/api/coordinate.html).
 
 ```
     "Coord": {

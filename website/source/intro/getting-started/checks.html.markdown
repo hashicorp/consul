@@ -21,7 +21,7 @@ At this point, you should have a two-node cluster running.
 
 Similar to a service, a check can be registered either by providing a
 [check definition](/docs/agent/checks.html) or by making the
-appropriate calls to the [HTTP API](/docs/agent/http/health.html).
+appropriate calls to the [HTTP API](/api/health.html).
 
 We will use the check definition approach because, just like with
 services, definitions are the most common way to set up checks.

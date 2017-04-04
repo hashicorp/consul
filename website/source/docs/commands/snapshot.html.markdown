@@ -13,7 +13,7 @@ state of the Consul servers for disaster recovery. These are atomic, point-in-ti
 snapshots which include key/value entries, service catalog, prepared queries,
 sessions, and ACLs. This command is available in Consul 0.7.1 and later.
 
-Snapshots are also accessible via the [HTTP API](/docs/agent/http/snapshot.html).
+Snapshots are also accessible via the [HTTP API](/api/snapshot.html).
 
 ## Usage
 

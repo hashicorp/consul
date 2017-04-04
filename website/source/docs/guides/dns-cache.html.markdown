@@ -100,7 +100,7 @@ This sets all lookups to "web.service.consul" to use a 30 second TTL
 while lookups to "db.service.consul" or "api.service.consul" will use the
 5 second TTL from the wildcard.
 
-[Prepared Queries](/docs/agent/http/query.html) provide an additional
+[Prepared Queries](/api/query.html) provide an additional
 level of control over TTL. They allow for the TTL to be defined along with
 the query, and they can be changed on the fly by updating the query definition.
 If a TTL is not configured for a prepared query, then it will fall back to the

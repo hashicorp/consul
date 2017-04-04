@@ -35,7 +35,7 @@ Available commands are:
     join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
     keyring        Manages gossip layer encryption keys
-    kv             Interact with the key-value store
+    kv             Interact with the KV store
     leave          Gracefully leaves the Consul cluster and shuts down
     lock           Execute a command holding a lock
     maint          Controls node or service maintenance mode

@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Semaphore"
 sidebar_current: "docs-guides-semaphore"
 description: |-
-  This guide demonstrates how to implement a distributed semaphore using the Consul Key/Value store.
+  This guide demonstrates how to implement a distributed semaphore using the Consul KV store.
 ---
 
 # Semaphore
 
 This guide demonstrates how to implement a distributed semaphore using the Consul
-Key/Value store. This is useful when you want to coordinate many services while
+KV store. This is useful when you want to coordinate many services while
 restricting access to certain resources.
 
 ~>  If you only need mutual exclusion or leader election,
@@ -27,7 +27,7 @@ can gracefully handle failures.
 
 Let's imagine we have a set of nodes who are attempting to acquire a slot in the
 semaphore. All nodes that are participating should agree on three decisions: the
-prefix in the Key/Value store used to coordinate, a single key to use as a lock,
+prefix in the KV store used to coordinate, a single key to use as a lock,
 and a limit on the number of slot holders.
 
 For the prefix we will be using for coordination, a good pattern is simply:
@@ -39,7 +39,7 @@ service/<service name>/lock/
 We'll abbreviate this pattern as simply `<prefix>` for the rest of this guide.
 
 The first step is to create a session. This is done using the
-[Session HTTP API](/docs/agent/http/session.html#session_create):
+[Session HTTP API](/api/session.html#session_create):
 
 ```text
 curl  -X PUT -d '{"Name": "dbservice"}' \
@@ -66,7 +66,7 @@ curl -X PUT -d <body> http://localhost:8500/v1/kv/<prefix>/<session>?acquire=<se
  ```
 
 The `<session>` value is the ID returned by the call to
-[`/v1/session/create`](/docs/agent/http/session.html#session_create).
+[`/v1/session/create`](/api/session.html#session_create).
 
 `body` can be used to associate a meaningful value with the contender. This is opaque
 to Consul but can be useful for human operators.
