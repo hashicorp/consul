@@ -1,12 +1,12 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
-      <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/index.html">Documentation Home</a>
+      <li<%= sidebar_current('docs-install-install') %>>
+        <a href="/docs/install/index.html">Installing Consul</a>
       </li>
 
       <li<%= sidebar_current("docs-upgrading") %>>
-        <a href="/docs/upgrading.html">Upgrading and Compatibility</a>
+        <a href="/docs/upgrading.html">Upgrading</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-upgrading-upgrading") %>>
             <a href="/docs/upgrading.html">Upgrading Consul</a>
@@ -21,7 +21,7 @@
       </li>
 
       <li<%= sidebar_current("docs-internals") %>>
-        <a href="/docs/internals/index.html">Consul Internals</a>
+        <a href="/docs/internals/index.html">Internals</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-internals-architecture") %>>
             <a href="/docs/internals/architecture.html">Architecture</a>
@@ -54,7 +54,7 @@
       </li>
 
       <li<%= sidebar_current("docs-commands") %>>
-        <a href="/docs/commands/index.html">Consul Commands (CLI)</a>
+        <a href="/docs/commands/index.html">Commands (CLI)</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-commands-agent") %>>
             <a href="/docs/commands/agent.html">agent</a>
@@ -170,7 +170,7 @@
       </li>
 
       <li<%= sidebar_current("docs-agent") %>>
-        <a href="/docs/agent/basics.html">Consul Agent</a>
+        <a href="/docs/agent/basics.html">Agent</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-agent-running") %>>
             <a href="/docs/agent/basics.html">Running and Stopping</a>
@@ -201,6 +201,8 @@
           </li>
         </ul>
       </li>
+
+      <hr>
 
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
@@ -248,7 +250,7 @@
       </li>
 
       <li<%= sidebar_current("docs-faq") %>>
-        <a href="/docs/faq.html">Frequently Asked Questions</a>
+        <a href="/docs/faq.html">FAQ</a>
       </li>
     </ul>
   <% end %>

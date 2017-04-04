@@ -8,32 +8,26 @@ description: |-
 
 # Install Consul
 
-Consul must first be installed on every node that will be a member of the
-Consul cluster. To make installation easy, Consul is distributed as a
-[binary package](/downloads.html) for all supported platforms and
-architectures. This page will not cover how to compile Consul from
-source.
+Consul must first be installed on your machine. Consul is distributed as a
+[binary package](/downloads.html) for all supported platforms and architectures.
+This page will not cover how to compile Consul from source, but compiling from
+source is covered in the [documentation](/docs/index.html) for those who want to
+be sure they're compiling source they trust into the final binary.
 
 ## Installing Consul
 
 To install Consul, find the [appropriate package](/downloads.html) for
-your system and download it. Consul is packaged as a "zip" archive.
+your system and download it. Consul is packaged as a zip archive.
 
-After downloading Consul, unzip the package. Copy the `consul` binary to
-somewhere on the `PATH` so that it can be executed. On Unix systems,
-`~/bin` and `/usr/local/bin` are common installation directories,
-depending on if you want to restrict the install to a single user or
-expose it to the entire system. On Windows systems, you can put it
-wherever you would like, as long as that location is on the `%PATH%`.
+After downloading Consul, unzip the package. Consul runs as a single binary
+named `consul`. Any other files in the package can be safely removed and
+Consul will still function.
 
-### OS X
-
-If you are using [homebrew](http://brew.sh/#install) as a package manager,
-you can install consul with:
-
-```text
-$ brew install consul
-```
+The final step is to make sure that the `consul` binary is available on the `PATH`.
+See [this page](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)
+for instructions on setting the PATH on Linux and Mac.
+[This page](https://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
+contains instructions for setting the PATH on Windows.
 
 ## Verifying the Installation
 
@@ -48,17 +42,8 @@ usage: consul [--version] [--help] <command> [<args>]
 Available commands are:
     agent          Runs a Consul agent
     event          Fire a new event
-    exec           Executes a command on Consul nodes
-    force-leave    Forces a member of the cluster to enter the "left" state
-    info           Provides debugging information for operators
-    join           Tell Consul agent to join cluster
-    keygen         Generates a new encryption key
-    leave          Gracefully leaves the Consul cluster and shuts down
-    members        Lists the members of a Consul cluster
-    monitor        Stream logs from a Consul agent
-    reload         Triggers the agent to reload configuration files
-    version        Prints the Consul version
-    watch          Watch for changes in Consul
+
+# ...
 ```
 
 If you get an error that `consul` could not be found, your `PATH`
