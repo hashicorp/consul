@@ -18,7 +18,7 @@ group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
 This guide covers the basic form of federating Consul clusters using a single
 WAN gossip pool, interconnecting all Consul servers.
-[Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 added support
+[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 added support
 for an advanced multiple datacenter capability. Please see the
 [Advanced Federation Guide](/docs/guides/areas.html) for more details.
 
