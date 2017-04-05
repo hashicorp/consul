@@ -130,7 +130,7 @@ setting.
 ---
 
 ~> The following Autopilot features are available only in
-   [Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 and later.
+   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later.
 
 ## Server Read Scaling
 

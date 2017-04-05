@@ -16,7 +16,7 @@ Consul's HTTP API.
 Consul Enterprise. This is not present in the open source version of Consul.
 
 The network area functionality described here is available only in
-[Consul Enterprise](https://www.hashicorp.com/consul.html) version 0.8.0 and
+[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and
 later. Network areas are operator-defined relationships between servers in two
 different Consul datacenters.
 
