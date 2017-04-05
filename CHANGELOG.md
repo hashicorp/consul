@@ -1,4 +1,4 @@
-## 0.8.0 (UNRELEASED)
+## 0.8.0 (April 5, 2017)
 
 BREAKING CHANGES:
 
