@@ -1,7 +1,3 @@
-#-------------------------------------------------------------------------
-# Configure Middleman
-#-------------------------------------------------------------------------
-
 set :base_url, "https://www.consul.io/"
 
 activate :hashicorp do |h|
@@ -11,6 +7,15 @@ activate :hashicorp do |h|
 end
 
 helpers do
+  # Returns the FQDN of the image URL.
+  #
+  # @param [String] path
+  #
+  # @return [String]
+  def image_url(path)
+    File.join(base_url, image_path(path))
+  end
+
   # Get the title for the page.
   #
   # @param [Middleman::Page] page
