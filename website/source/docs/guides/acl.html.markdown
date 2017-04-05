@@ -71,7 +71,7 @@ and does not use a special policy.
 
 The following resources are not covered by ACL policies:
 
-1. The [Status API](api/status.html) is used by servers when bootstrapping and exposes
+1. The [Status API](/api/status.html) is used by servers when bootstrapping and exposes
 basic IP and port information about the servers, and does not allow modification
 of any state.
 
