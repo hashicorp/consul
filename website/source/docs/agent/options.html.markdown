@@ -433,7 +433,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all
   you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
-  of ACLs. Please see the [ACL internals guide](/docs/internals/acl.html) for more details.
+  of ACLs. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
 
 * <a name="acl_default_policy"></a><a href="#acl_default_policy">`acl_default_policy`</a> - Either
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
@@ -465,10 +465,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   Used for clients and servers to determine if enforcement should occur for new ACL policies being
-  previewed before Consul 0.8. Added in Consul 0.7.2, this will default to false in versions of
-  Consul prior to 0.8, and will default to true in Consul 0.8 and later. This helps ease the
+  previewed before Consul 0.8. Added in Consul 0.7.2, this defaults to false in versions of
+  Consul prior to 0.8, and defaults to true in Consul 0.8 and later. This helps ease the
   transition to the new ACL features by allowing policies to be in place before enforcement begins.
-  Please see the [ACL internals guide](/docs/internals/acl.html) for more details.
+  Please see the [ACL Guide](/docs/guides/acl.html#version_8_acls) for more details.
 
 * <a name="acl_master_token"></a><a href="#acl_master_token">`acl_master_token`</a> - Only used
   for servers in the [`acl_datacenter`](#acl_datacenter). This token will be created with management-level
@@ -484,14 +484,13 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="acl_replication_token"></a><a href="#acl_replication_token">`acl_replication_token`</a> -
   Only used for servers outside the [`acl_datacenter`](#acl_datacenter) running Consul 0.7 or later.
-  When provided, this will enable [ACL replication](/docs/internals/acl.html#replication) using this
+  When provided, this will enable [ACL replication](/docs/guides/acl.html#replication) using this
   token to retrieve and replicate the ACLs to the non-authoritative local datacenter.
   <br><br>
   If there's a partition or other outage affecting the authoritative datacenter, and the
   [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
   in the cache can be resolved during the outage using the replicated set of ACLs. Please see the
-  [ACL replication](/docs/internals/acl.html#replication) section of the internals guide for more
-  details.
+  [ACL Guide](/docs/guides/acl.html#replication) replication section for more details.
 
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request

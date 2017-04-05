@@ -28,9 +28,9 @@ warning when this policy changes. We expect to reach API stability by Consul
 Several endpoints in Consul use or require ACL tokens to operate. An agent
 can be configured to use a default token in requests using the `acl_token`
 configuration option. However, the token can also be specified per-request
-by using the `X-Consul-Token` request header or the `token` querystring
+by using the `X-Consul-Token` request header or the `token` query string
 parameter. The request header takes precedence over the default token, and
-the querystring parameter takes precedence over everything.
+the query string parameter takes precedence over everything.
 
 ## Authentication
 

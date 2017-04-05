@@ -35,7 +35,7 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/internals/acl.html#version_8_acls) by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
+The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/guides/acl.html#version_8_acls) by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
 
 #### Remote Exec Is Now Opt-In
 
@@ -199,9 +199,8 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [Prepared Query ACLs](/docs/internals/acl.html#prepared_query_acls)
-internals guide for more details about the new behavior and how it compares to
-previous versions of Consul.
+See the [ACL Guide](/docs/guides/acl.html#prepared_query_acls) for more details
+about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6
 
