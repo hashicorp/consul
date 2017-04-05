@@ -26,7 +26,7 @@ The ACL system is based on tokens, which are managed by Consul operators via Con
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 Every token has an ID, name, type, and rule set. The ID is a randomly generated
-UUID, making it unfeasible to guess. The name is opaque to Consul and human readable.
+UUID, making it infeasible to guess. The name is opaque to Consul and human readable.
 The type is either "client" (meaning the token cannot modify ACL rules) or "management"
 (meaning the token is allowed to perform all actions).
 
@@ -50,7 +50,7 @@ policy is to "deny all" actions, then token rules can be set to whitelist specif
 actions. In the inverse, the "allow all" default behavior is a blacklist where rules
 are used to prohibit actions. By default, Consul will allow all actions.
 
-The following table summarizes the ACL policies that are availabile for constructing
+The following table summarizes the ACL policies that are available for constructing
 rules:
 
 | Policy                   | Scope |
