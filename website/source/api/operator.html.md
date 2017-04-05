@@ -15,8 +15,8 @@ operations manually, please see the documentation for the
 [`consul operator`](/docs/commands/operator.html) command.
 
 If ACLs are enabled then a token with operator privileges may be required in
-order to use this interface. See the [ACL](/docs/internals/acl.html#operator)
-internals guide for more information.
+order to use this interface. See the [ACL Guide](/docs/guides/acl.html#operator)
+for more information.
 
 See the [Outage Recovery](/docs/guides/outage.html) guide for some examples of
 how these capabilities are used.

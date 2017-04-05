@@ -14,6 +14,8 @@ guidance to do them safely.
 
 The following guides are available:
 
+* [ACLs](/docs/guides/acl.html) - This guide covers Consul's Access Control List (ACL) capability, which can be used to control access to Consul resources.
+
 * [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.

@@ -16,8 +16,8 @@ service. This is particularly useful in combination with Consul's
 [DNS Interface](/docs/agent/dns.html) as it allows for much richer queries than
 would be possible given the limited entry points exposed by DNS.
 
-See the [Prepared Query ACLs](/docs/internals/acl.html#prepared_query_acls)
-internals guide for more details about how prepared query policies work.
+See the [ACL Guide](/docs/guides/acl.html#prepared_query_acls)
+prepared query section for more details about how prepared query policies work.
 
 ### Prepared Query Templates
 
