@@ -8,5 +8,8 @@ description: |-
 
 # ACL System
 
+This content has been moved into the [ACL Guide](/docs/guides/acl.html).
+
 <a name="version_8_acls"></a>
-This has been moved into the [ACL Guide](/docs/guides/acl.html#complete-acl-coverage-in-consul-0-8), please update your link.
+See [Complete ACL Coverage in Consul 0.8](/docs/guides/acl.html#complete-acl-coverage-in-consul-0-8)
+for details about ACL changes in Consul 0.8 and later.
