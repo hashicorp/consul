@@ -103,7 +103,7 @@ request requires refreshing the policy via an RPC call.
 #### Enabling ACLs
 
 Enabling ACLs is done by setting up the following configuration options. These are
-marked as to whether they are set on servers, clients, both.
+marked as to whether they are set on servers, clients, or both.
 
 | Configuration Option | Servers | Clients | Purpose |
 | -------------------- | ------- | ------- | ------- |
@@ -123,14 +123,14 @@ system, or accessing Consul in special situations:
 | ------------- | ------- | ------- | ------- |
 | [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent.html) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations |
 | [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations with the [Catalog API](/api/catalog.html); this needs to have at least `node` policy access so the agent can self update its registration information |
-| [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap th ACL system, see details below. |
+| [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see details below. |
 | [`acl_token`](/docs/agent/options.html#acl_token) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
-Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
-configuration](/docs/agent/options.html#acl_master_token) which will be created
-as a "management" type token if it does not exist. The [`acl_master_token`
-](/docs/agent/options.html#acl_master_token) is only installed when a server acquires
-cluster leadership. If you would like to install or change the
+Bootstrapping the ACL system is done by providing an initial
+[`acl_master_token`](/docs/agent/options.html#acl_master_token) which will be created
+as a "management" type token if it does not exist. The
+[`acl_master_token`](/docs/agent/options.html#acl_master_token) is only installed when
+a server acquires cluster leadership. If you would like to install or change the
 [`acl_master_token`](/docs/agent/options.html#acl_master_token), set the new value for
 [`acl_master_token`](/docs/agent/options.html#acl_master_token) in the configuration
 for all servers. Once this is done, restart the current leader to force a leader election.
@@ -210,7 +210,7 @@ $ curl \
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
-}' https://consul.rocks/v1/acl/create?token=<acl master token>
+}' https://consul.rocks/v1/acl/create?token=<management token>
 ```
 
 Here's an equivalent request using the JSON form:
@@ -223,7 +223,7 @@ $ curl \
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
-}' https://consul.rocks/v1/acl/create?token=<acl master token>
+}' https://consul.rocks/v1/acl/create?token=<management token>
 ```
 
 On success, the token ID is returned:
