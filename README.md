@@ -90,13 +90,6 @@ used.
 If you have a Corefile without a port number specified it will, by default, use port 53, but you
 can override the port with the `-dns.port` flag:
 
-~~~ txt
-.: {
-    proxy . 8.8.8.8:53
-    log stdout
-}
-~~~
-
 `./coredns -dns.port 1053`, runs the server on port 1053.
 
 Start a simple proxy, you'll need to be root to start listening on port 53.
