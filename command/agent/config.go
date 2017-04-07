@@ -164,6 +164,19 @@ type RetryJoinGCE struct {
 	CredentialsFile string `mapstructure:"credentials_file"`
 }
 
+// RetryJoinSL is used to configure discovery of instances via SoftLayer's API
+type RetryJoinSL struct {
+	// The SoftLayer datacenter to look for instances in
+	Datacenter string `mapstructure:"datacenter"`
+
+	// The tag value to use when filtering instances
+	TagValue string `mapstructure:"tag_value"`
+
+	// The SoftLayer credentials
+	Username string `mapstructure:"username"`
+	APIKey   string `mapstructure:"apikey"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -508,6 +521,9 @@ type Config struct {
 
 	// The config struct for the GCE tag server discovery feature.
 	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
+
+	// The config struct for the SoftLayer tag server discovery feature.
+	RetryJoinSL RetryJoinSL `mapstructure:"retry_join_sl"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -1607,6 +1623,18 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryJoinGCE.CredentialsFile != "" {
 		result.RetryJoinGCE.CredentialsFile = b.RetryJoinGCE.CredentialsFile
+	}
+	if b.RetryJoinSL.Username != "" {
+		result.RetryJoinSL.Username = b.RetryJoinSL.Username
+	}
+	if b.RetryJoinSL.APIKey != "" {
+		result.RetryJoinSL.APIKey = b.RetryJoinSL.APIKey
+	}
+	if b.RetryJoinSL.Datacenter != "" {
+		result.RetryJoinSL.Datacenter = b.RetryJoinSL.Datacenter
+	}
+	if b.RetryJoinSL.TagValue != "" {
+		result.RetryJoinSL.TagValue = b.RetryJoinSL.TagValue
 	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan

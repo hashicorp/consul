@@ -36,6 +36,9 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
+	"github.com/softlayer/softlayer-go/filter"
+	"github.com/softlayer/softlayer-go/services"
+	slSession "github.com/softlayer/softlayer-go/session"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
@@ -170,6 +173,14 @@ func (c *Command) readConfig() *Config {
 		"Google Compute Engine tag value to filter on for server discovery.")
 	f.StringVar(&cmdConfig.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
 		"Path to credentials JSON file to use with Google Compute Engine.")
+	f.StringVar(&cmdConfig.RetryJoinSL.Username, "retry-join-sl-username", "",
+		"SoftLayer username")
+	f.StringVar(&cmdConfig.RetryJoinSL.APIKey, "retry-join-sl-apikey", "",
+		"SoftLayer Api Key")
+	f.StringVar(&cmdConfig.RetryJoinSL.Datacenter, "retry-join-sl-datacenter", "",
+		"SoftLayer Datacenter to discover servers in.")
+	f.StringVar(&cmdConfig.RetryJoinSL.TagValue, "retry-join-sl-tag-value", "",
+		"SoftLayer tag value to filter on for server discovery.")
 	f.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
 		"Address of an agent to join -wan at start time with retries enabled. "+
 			"Can be specified multiple times.")
@@ -411,9 +422,10 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
-	// EC2 and GCE discovery are mutually exclusive
-	if config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != "" && config.RetryJoinGCE.TagValue != "" {
-		c.Ui.Error("EC2 and GCE discovery are mutually exclusive. Please provide one or the other.")
+	// EC2, GCE and SL discovery are mutually exclusive
+	if config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != "" &&
+		config.RetryJoinGCE.TagValue != "" && config.RetryJoinSL.TagValue != "" {
+		c.Ui.Error("EC2, GCE and SL discovery are mutually exclusive. Please provide one or the other.")
 		return nil
 	}
 
@@ -678,6 +690,58 @@ func gceInstancesAddressesForZone(logger *log.Logger, ctx context.Context, compu
 	}
 
 	return addresses, nil
+}
+
+// discoverSLHosts searches an AWS region, returning a list of instance ips
+// where EC2TagKey = EC2TagValue
+func (c *Config) discoverSLHosts(logger *log.Logger) ([]string, error) {
+	config := c.RetryJoinSL
+	var servers []string
+
+	logger.Printf("[INFO] agent: Initializing SoftLayer client")
+
+	// Create a session and get a service
+	sess := slSession.New(config.Username, config.APIKey)
+	service := services.GetAccountService(sess)
+
+	// Mask specifies which fields will get populated in the response
+	mask := "id,hostname,domain,tagReferences[tag[name]],primaryBackendIpAddress,datacenter"
+
+	// We require different filters for VMs and baremetals.
+	// Filter by datacenter and tag
+	filterVMs := filter.Build(
+		filter.Path("virtualGuests.datacenter.name").Eq(config.Datacenter),
+		filter.Path("virtualGuests.tagReferences.tag.name").Eq(config.TagValue),
+	)
+	filterBMs := filter.Build(
+		filter.Path("hardware.datacenter.name").Eq(config.Datacenter),
+		filter.Path("hardware.tagReferences.tag.name").Eq(config.TagValue),
+	)
+
+	// Get all the VMs which match the filter
+	vms, err := service.Mask(mask).Filter(filterVMs).GetVirtualGuests()
+	if err != nil {
+		fmt.Printf("Error retrieving Virtual Guests from Account: %s\n", err)
+		return nil, err
+	}
+
+	logger.Printf("[INFO] agent: Virtual Machines...")
+	for _, vm := range vms {
+		servers = append(servers, *vm.PrimaryBackendIpAddress)
+	}
+
+	bms, err := service.Mask(mask).Filter(filterBMs).GetHardware()
+	if err != nil {
+		fmt.Printf("Error retrieving Baremetals from Account: %s\n", err)
+		return nil, err
+	}
+
+	logger.Printf("[INFO] agent: Baremetals...")
+	for _, bm := range bms {
+		servers = append(servers, *bm.PrimaryBackendIpAddress)
+	}
+
+	return servers, nil
 }
 
 // setupAgent is used to start the agent and various interfaces

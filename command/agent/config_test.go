@@ -1112,6 +1112,32 @@ func TestRetryJoinGCE(t *testing.T) {
 	}
 }
 
+func TestRetryJoinSL(t *testing.T) {
+	input := `{"retry_join_sl": {
+	  "datacenter": "dal06",
+	  "tag_value": "consul-server",
+	  "username": "softlayer_username",
+	  "api_key": "softlayer_api_key"
+	}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err :%s", err)
+	}
+
+	if config.RetryJoinSL.Datacenter != "datacenter" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinSL.TagValue != "tag_value" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinSL.Username != "username" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinSL.APIKey != "api_key" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Performance(t *testing.T) {
 	input := `{"performance": { "raft_multiplier": 3 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
