@@ -18,6 +18,21 @@ and can be disabled.
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
 and [`disable_update_check`](/docs/agent/options.html#disable_update_check).
 
+## Q: How does Atlas integration work?
+
+Hosted Consul Enterprise in Atlas was officially deprecated on March 7th,
+2017.
+
+There are strong alternatives available and they are listed below.
+
+For users on AWS the [-retry-join-ec2 configuration options](https://www.consul.io/docs/agent/options.html#_retry_join_ec2_tag_key) allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup. For users not on AWS the native [-join and retry-join functionality](https://www.consul.io/docs/agent/options.html#_join) can be used.
+
+Other features of Consul Enterprise, such as the UI and Alerts also have suitable open source alternatives.
+
+For replacing the UI, we recommend the [free UI packaged as part of Consul open source](https://www.consul.io/docs/agent/options.html#_ui). A live demo can be access at [https://demo.consul.io/ui/](https://demo.consul.io/ui/).
+
+For replacing alerts, we recommend the [open source Consul alerts daemon](https://github.com/acalephstorage/consul-alerts). This is not maintained or supported by HashiCorp, however there is active development from the community.
+
 ## Q: Does Consul rely on UDP Broadcast or Multicast?
 
 Consul uses the [Serf](https://www.serf.io) gossip protocol which relies on
@@ -89,10 +104,9 @@ of any excessive resource utilization before arbitrarily increasing the limits.
 
 ## Q: What is the per-key value size limitation for Consul's key/value store?
 
-The limit on a key's value size is 512KB. This is is strictly enforced and a
+The limit on a key's value size is 512KB. This is is strictly enforced and an
 HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
 [Server Performance](https://www.consul.io/docs/guides/performance.html) for
 more details.
-
