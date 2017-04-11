@@ -577,7 +577,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the maximum amount of time a server can go without contact from the leader before being considered unhealthy.
   Must be a duration value such as `10s`. Defaults to `200ms`.
 
-  * <a name="max_trailing_threshold"></a><a href="#max_trailing_threshold">`max_trailing_threshold`</a> - Controls
+  * <a name="max_trailing_logs"></a><a href="#max_trailing_logs">`max_trailing_logs`</a> - Controls
   the maximum number of log entries that a server can trail the leader by before being considered unhealthy. Defaults
   to 250.
 
