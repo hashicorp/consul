@@ -24,3 +24,7 @@
 textarea.form-control {
     height: 130px;
 }
+.form-control:focus{  
+    -webkit-box-shadow: none;
+    box-shadow: none;
+  }

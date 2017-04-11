@@ -20,12 +20,20 @@
         margin-top: 20px;
         min-width: 100px;
     }
-
+    .btn-success{
+        z-index: 1001;
+    }
     .btn-dropdown {
         width: auto;
     }
 
     ul.dropdown-menu {
+          min-width: 155px;
+          top: 47px;
+          z-index: 0;
+          border: 1px solid #86b457;
+          margin-top: 0;
+          border-top: 0;
         li {
 
             a {
@@ -37,7 +45,7 @@
 
                 &:hover {
                     color: darken($gray, 10%);
-                    background-color: lighten($gray-background, 5%);
+                    background-color: lighten($green-faded, 24%);
                 }
 
             }

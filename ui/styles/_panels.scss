@@ -1,5 +1,5 @@
 .panel {
-    border-width: 2px;
+    /*border-width: 2px;*/
     border-color: $gray-background;
     @include transition(background-color .3s ease-in-out);
 
@@ -54,11 +54,16 @@
         }
 
         .panel-note {
-            margin-top: 5px;
             float: right;
-            font-weight: 600;
-            color: $gray-light;
+            margin-top: 5px;
+            padding: 2px 3px;
+            border-radius: 3px;
             font-size: 14px;
+            /*font-weight: 600;*/
+            color: #fff;
+            background: $gray-light;
+
+
         }
     }
 
@@ -81,7 +86,7 @@
 
     .panel-bar {
         width: 100%;
-        height: 20px;
+        height: 2px;
         @include transition(background-color .1s linear);
     }
 
