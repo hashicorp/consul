@@ -18,21 +18,6 @@ and can be disabled.
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
 and [`disable_update_check`](/docs/agent/options.html#disable_update_check).
 
-## Q: How does Atlas integration work?
-
-Consul makes use of a HashiCorp service called [SCADA](http://scada.hashicorp.com)
-(Supervisory Control And Data Acquisition). The SCADA system allows clients to maintain
-long-running connections to Atlas. Atlas can in turn provide auto-join facilities for
-Consul agents (supervisory control) and an integrated dashboard showing the health of
-all connected agents (data acquisition).
-
-Standard ACLs can be applied to the SCADA connection, ensuring that Atlas is given only
-those privileges that make sense for your deployment.
-
-Using the SCADA service is optional. SCADA is only enabled by opt-in.
-
-See the [Atlas integration guide](/docs/guides/atlas.html) for more details.
-
 ## Q: Does Consul rely on UDP Broadcast or Multicast?
 
 Consul uses the [Serf](https://www.serf.io) gossip protocol which relies on
@@ -101,3 +86,13 @@ connect to a single server and so preparation for this possibility is helpful.
 The default ulimits are usually sufficient for Consul, but you should closely
 scrutinize your own environment's specific needs and identify the root cause
 of any excessive resource utilization before arbitrarily increasing the limits.
+
+## Q: What is the per-key value size limitation for Consul's key/value store?
+
+The limit on a key's value size is 512KB. This is is strictly enforced and a
+HTTP 413 status will be returned to any client that attempts to store more
+than that limit in a value. It should be noted that the Consul key/value store
+is not designed to be used as a general purpose database. See
+[Server Performance](https://www.consul.io/docs/guides/performance.html) for
+more details.
+
