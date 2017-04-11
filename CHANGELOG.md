@@ -4,6 +4,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* build: Consul is now built with Go 1.8.1. [GH-2888]
+
 BUG FIXES:
 
 ## 0.8.0 (April 5, 2017)
