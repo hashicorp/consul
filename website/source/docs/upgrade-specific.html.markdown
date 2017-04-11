@@ -16,6 +16,12 @@ standard upgrade flow.
 
 ## Consul 0.8.0
 
+#### Upgrade Current Cluster Leader Last
+
+We identified a potential issue with Consul 0.8 that requires the current cluster
+leader to be upgraded last when updating multiple servers. Please see
+[this issue](https://github.com/hashicorp/consul/issues/2889) for more details.
+
 #### Command-Line Interface RPC Deprecation
 
 The RPC client interface has been removed. All CLI commands that used RPC and the
