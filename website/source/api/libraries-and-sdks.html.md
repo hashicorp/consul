@@ -40,7 +40,7 @@ the community.
     <a href="https://github.com/hadielmougy/clj-consul-catalog">clj-consul-catalog</a> - Clojure discovery client for the Consul HTTP API
   </li>
   <li>
-    <a href="https://github.com/codacy/scala-consul">scala-consul</a> - Scala client for the Consul HTTP API
+    <a href="https://github.com/Verizon/helm">helm</a> - A native Scala client for interacting with Consul
   </li>
   <li>
     <a href="https://github.com/OrbitzWorldwide/consul-client">consul-client</a> - Java client for the Consul HTTP API
