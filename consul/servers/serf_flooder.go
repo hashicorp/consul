@@ -70,15 +70,14 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 		if port, ok := portFn(server); ok {
 			addr = net.JoinHostPort(addr, fmt.Sprintf("%d", port))
 		} else {
-			// globalSerf.Join expects bracketed ipv6 addresses
-			ip := net.ParseIP(addr)
-			if ip == nil {
-				// should never happen
+			// If we have an IPv6 address, we should add brackets,
+			// single globalSerf.Join expects that.
+			if ip := net.ParseIP(addr); ip != nil {
+				if ip.To4() == nil {
+					addr = fmt.Sprintf("[%s]", addr)
+				}
+			} else {
 				logger.Printf("[DEBUG] consul: Failed to parse IP %s", addr)
-			}
-			// If we have an IPv6 address, we should add brackets
-			if ip.To4() == nil {
-				addr = fmt.Sprintf("[%s]", addr)
 			}
 		}
 
