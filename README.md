@@ -58,8 +58,9 @@ development configuration.
 
 The `../pkg/web_ui` folder will contain the files you should use for deployment.
 
-###Acknowledgements
-cog icon by useiconic.com from the [Noun Project](https://thenounproject.com/term/setting/45865/)
+### Acknowledgments
+
+Cog icon by useiconic.com from the [Noun Project](https://thenounproject.com/term/setting/45865/)
 
 ### Compiling the UI into the Go binary
 
