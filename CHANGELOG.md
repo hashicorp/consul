@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* server: Fixed an issue where flood joins would not work with ipv6 addresses. [GH-2878]
+
 ## 0.8.0 (April 5, 2017)
 
 BREAKING CHANGES:
