@@ -72,7 +72,7 @@
       font-weight: $font-weight-bold;
       line-height: 1.25;
       letter-spacing: -0.02em;
-      margin: 0;
+      margin-top: 80px;
       padding: 0;
     }
 
@@ -167,7 +167,6 @@
     }
 
     &#cta {
-      margin-top: -150px;
       padding: 0 0 50px 0;
       text-align: center;
     }
@@ -181,7 +180,7 @@
     font-family: $font-family-monospace;
     font-size: 14px;
     line-height: 1.8;
-    margin: 20px auto 120px auto;
+    margin: 20px auto auto auto;
     padding: 10px 20px 20px 20px;
 
     .terminal-content {
