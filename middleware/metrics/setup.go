@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"net"
-	"sync"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
@@ -15,6 +14,8 @@ func init() {
 		ServerType: "dns",
 		Action:     setup,
 	})
+
+	uniqAddr = addrs{a: make(map[string]int)}
 }
 
 func setup(c *caddy.Controller) error {
@@ -28,11 +29,14 @@ func setup(c *caddy.Controller) error {
 		return m
 	})
 
-	// During restarts we will keep this handler running.
-	metricsOnce.Do(func() {
-		c.OncePerServerBlock(m.OnStartup)
-		c.OnFinalShutdown(m.OnShutdown)
-	})
+	for a, v := range uniqAddr.a {
+		if v == todo {
+			// During restarts we will keep this handler running, BUG.
+			c.OncePerServerBlock(m.OnStartup)
+		}
+		uniqAddr.a[a] = done
+	}
+	c.OnFinalShutdown(m.OnShutdown)
 
 	return nil
 }
@@ -42,6 +46,10 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 		met = &Metrics{Addr: addr, zoneMap: make(map[string]bool)}
 		err error
 	)
+
+	defer func() {
+		uniqAddr.SetAddress(met.Addr)
+	}()
 
 	for c.Next() {
 		if len(met.ZoneNames()) > 0 {
@@ -86,7 +94,25 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	return met, err
 }
 
-var metricsOnce sync.Once
+var uniqAddr addrs
+
+// Keep track on which addrs we listen, so we only start one listener.
+type addrs struct {
+	a map[string]int
+}
+
+func (a *addrs) SetAddress(addr string) {
+	// If already there and set to done, we've already started this listener.
+	if a.a[addr] == done {
+		return
+	}
+	a.a[addr] = todo
+}
 
 // Addr is the address the where the metrics are exported by default.
 const addr = "localhost:9153"
+
+const (
+	todo = 1
+	done = 2
+)
