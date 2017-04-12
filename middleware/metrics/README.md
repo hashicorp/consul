@@ -49,5 +49,5 @@ prometheus localhost:9253
 
 # Bugs
 
-When reloading, we keep the handler running, meaning that any changes to the handler aren't picked
-up. You'll need to restart CoreDNS for that to happen.
+When reloading, we keep the handler running, meaning that any changes to the handler's address
+aren't picked up. You'll need to restart CoreDNS for that to happen.
