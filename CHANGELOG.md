@@ -6,6 +6,7 @@ IMPROVEMENTS:
 
 * agent: Node IDs derived from host information are now hashed to prevent things like common server hardware from generating IDs with a common prefix across nodes. [GH-2884]
 * build: Consul is now built with Go 1.8.1. [GH-2888]
+* ui: Updates Consul assets to new branding. [GH-2898]
 
 BUG FIXES:
 
