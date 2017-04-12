@@ -32,13 +32,13 @@
     }
 
     &.btn-primary {
-        color: $purple-dark;
+        color: $pink-dark;
         background-color: transparent;
-        border: 2px solid $purple;
+        border: 2px solid $pink;
 
         &:hover {
-            background-color: $light-purple;
-            color: darken($purple, 10%);
+            background-color: $light-pink;
+            color: darken($pink, 10%);
         }
     }
 
@@ -78,13 +78,13 @@
 
 
     &.active {
-        color: $purple-dark;
+        color: $pink-dark;
         background-color: transparent;
-        border: 2px solid $purple;
+        border: 2px solid $pink;
 
         &:hover {
-            background-color: $light-purple;
-            color: darken($purple, 10%);
+            background-color: $light-pink;
+            color: darken($pink, 10%);
         }
 
         &.btn-noactive {
