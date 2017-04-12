@@ -10,6 +10,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -33,6 +34,8 @@ func (s *Server) stopAutopilot() {
 	s.autopilotWaitGroup.Wait()
 }
 
+var minAutopilotVersion, _ = version.NewVersion("0.8.0")
+
 // autopilotLoop periodically looks for nonvoting servers to promote and dead servers to remove.
 func (s *Server) autopilotLoop() {
 	defer s.autopilotWaitGroup.Done()
@@ -53,6 +56,15 @@ func (s *Server) autopilotLoop() {
 				break
 			}
 
+			// Setup autopilot config if we need to
+			if autopilotConf == nil {
+				if err := s.initializeAutopilot(); err != nil {
+					s.logger.Printf("[ERR] autopilot: %v", err)
+				}
+
+				continue
+			}
+
 			if err := s.autopilotPolicy.PromoteNonVoters(autopilotConf); err != nil {
 				s.logger.Printf("[ERR] autopilot: error checking for non-voters to promote: %s", err)
 			}
@@ -68,11 +80,26 @@ func (s *Server) autopilotLoop() {
 	}
 }
 
+// lowestServerVersion returns the lowest version among the alive servers
+func (s *Server) lowestServerVersion() *version.Version {
+	lowest := minAutopilotVersion
+
+	for _, member := range s.LANMembers() {
+		if valid, parts := agent.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+			if parts.Build.LessThan(lowest) {
+				lowest = &parts.Build
+			}
+		}
+	}
+
+	return lowest
+}
+
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (s *Server) pruneDeadServers() error {
 	state := s.fsm.State()
 	_, autopilotConf, err := state.AutopilotConfig()
-	if err != nil {
+	if err != nil || autopilotConf == nil {
 		return err
 	}
 

@@ -153,10 +153,9 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	// Setup autopilot config if we are the leader and need to
+	// Setup autopilot config if we need to
 	if err := s.initializeAutopilot(); err != nil {
-		s.logger.Printf("[ERR] consul: Autopilot initialization failed: %v", err)
-		return err
+		s.logger.Printf("[ERR] autopilot: %v", err)
 	}
 
 	s.startAutopilot()
@@ -252,6 +251,12 @@ func (s *Server) initializeACL() error {
 // initializeAutopilot is used to setup the autopilot config if we are
 // the leader and need to do this
 func (s *Server) initializeAutopilot() error {
+	lowestVersion := s.lowestServerVersion()
+
+	if !lowestVersion.Equal(minAutopilotVersion) && !lowestVersion.GreaterThan(minAutopilotVersion) {
+		return fmt.Errorf("can't initialize autopilot until all servers are >= %s", minAutopilotVersion.String())
+	}
+
 	// Bail if the config has already been initialized
 	state := s.fsm.State()
 	_, config, err := state.AutopilotConfig()
