@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/sha512"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -644,6 +645,17 @@ func (a *Agent) makeNodeID() (string, error) {
 			id, err)
 		return a.makeRandomID()
 	}
+
+	// Hash the input to make it well distributed. The reported Host UUID may be
+	// similar across nodes if they are on a cloud provider or on motherboards
+	// created from the same batch.
+	buf := sha512.Sum512([]byte(id))
+	id = fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
 
 	a.logger.Printf("[DEBUG] Using unique ID %q from host as node ID", id)
 	return id, nil
