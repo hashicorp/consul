@@ -163,6 +163,10 @@ type Config struct {
 	// Token is used to provide a per-request ACL token
 	// which overrides the agent's default token.
 	Token string
+
+	// CloseConnections instructs the client to ensure connections to the API
+	// are closed by setting the Connection HTTP header.
+	CloseConnections bool
 }
 
 // TLSConfig is used to generate a TLSClientConfig that's useful for talking to
@@ -511,6 +515,7 @@ func (c *Client) newRequest(method, path string) *request {
 		params: make(map[string][]string),
 		header: make(http.Header),
 	}
+
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
 	}
@@ -519,6 +524,9 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.Token != "" {
 		r.header.Set("X-Consul-Token", r.config.Token)
+	}
+	if c.config.CloseConnections {
+		r.header.Set("Connection", "close")
 	}
 	return r
 }
