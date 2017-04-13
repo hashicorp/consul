@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* api: Added missing Raft index fields to AgentService and Node structures. [GH-2882]
 * server: Fixed an issue where flood joins would not work with IPv6 addresses. [GH-2878]
 * server: Fixed an issue where electing a 0.8.x leader during an upgrade would cause a panic in older servers. [GH-2889]
 
