@@ -99,7 +99,7 @@
     }
 
     &.pink {
-      background: $consul-pink;
+      background: $consul-red;
 
       h2 {
         color: $white;
@@ -117,7 +117,7 @@
     }
 
     &.pink-dark {
-      background: $consul-pink-dark;
+      background: $consul-red-dark;
 
       h2 {
         color: $white;
@@ -198,7 +198,7 @@
         }
 
         &.text-pink {
-          color: lighten($consul-pink, 20%);
+          color: lighten($consul-red, 20%);
         }
       }
     }
