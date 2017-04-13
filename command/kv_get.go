@@ -43,7 +43,7 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
       $ consul kv get -recurse foo
 
-  This will return all key-vlaue pairs. To just list the keys which start with
+  This will return all key-value pairs. To just list the keys which start with
   the specified prefix, use the "-keys" option instead:
 
       $ consul kv get -keys foo
