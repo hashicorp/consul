@@ -117,15 +117,15 @@
 
     &.active {
         >.panel-heading {
-            border-color: $purple;
+            border-color: $pink;
         }
 
         @include transition(border-color .1s linear);
-        border-color: $purple;
+        border-color: $pink;
 
         .panel-bar {
         @include transition(background-color .1s linear);
-            background-color: $purple;
+            background-color: $pink;
         }
     }
 }
