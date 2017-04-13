@@ -28,13 +28,16 @@ func (r *customPolicy) Select(pool HostPool) *UpstreamHost {
 func testPool() HostPool {
 	pool := []*UpstreamHost{
 		{
-			Name: workableServer.URL, // this should resolve (healthcheck test)
+			Name:      workableServer.URL, // this should resolve (healthcheck test)
+			Unhealthy: newBool(),
 		},
 		{
-			Name: "http://shouldnot.resolve", // this shouldn't
+			Name:      "http://shouldnot.resolve", // this shouldn't
+			Unhealthy: newBool(),
 		},
 		{
-			Name: "http://C",
+			Name:      "http://C",
+			Unhealthy: newBool(),
 		},
 	}
 	return HostPool(pool)
@@ -54,7 +57,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		t.Error("Expected second round robin host to be third host in the pool.")
 	}
 	// mark host as down
-	pool[0].Unhealthy = true
+	*pool[0].Unhealthy = true
 	h = rrPolicy.Select(pool)
 	if h != pool[1] {
 		t.Error("Expected third round robin host to be first host in the pool.")

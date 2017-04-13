@@ -3,7 +3,6 @@ package proxy
 
 import (
 	"errors"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -57,10 +56,9 @@ type UpstreamHost struct {
 	Name              string // IP address (and port) of this upstream host
 	Fails             int32
 	FailTimeout       time.Duration
-	Unhealthy         bool
+	Unhealthy         *bool
 	CheckDown         UpstreamHostDownFunc
 	WithoutPathPrefix string
-	checkMu           sync.Mutex
 }
 
 // Down checks whether the upstream host is down or not.
@@ -70,7 +68,7 @@ func (uh *UpstreamHost) Down() bool {
 	if uh.CheckDown == nil {
 		// Default settings
 		fails := atomic.LoadInt32(&uh.Fails)
-		return uh.Unhealthy || fails > 0
+		return *uh.Unhealthy || fails > 0
 	}
 	return uh.CheckDown(uh)
 }

@@ -84,11 +84,11 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 				Conns:       0,
 				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
-				Unhealthy:   false,
+				Unhealthy:   newBool(),
 
 				CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 					return func(uh *UpstreamHost) bool {
-						if uh.Unhealthy {
+						if *uh.Unhealthy {
 							return true
 						}
 
@@ -251,22 +251,19 @@ func (u *staticUpstream) healthCheck() {
 
 		hostURL := "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
 
-		host.checkMu.Lock()
-		defer host.checkMu.Unlock()
-
 		if r, err := http.Get(hostURL); err == nil {
 			io.Copy(ioutil.Discard, r.Body)
 			r.Body.Close()
 			if r.StatusCode < 200 || r.StatusCode >= 400 {
 				log.Printf("[WARNING] Health check URL %s returned HTTP code %d\n",
 					hostURL, r.StatusCode)
-				host.Unhealthy = true
+				*host.Unhealthy = true
 			} else {
-				host.Unhealthy = false
+				*host.Unhealthy = false
 			}
 		} else {
 			log.Printf("[WARNING] Health check probe failed: %v\n", err)
-			host.Unhealthy = true
+			*host.Unhealthy = true
 		}
 	}
 }
@@ -341,3 +338,9 @@ func (u *staticUpstream) IsAllowedDomain(name string) bool {
 }
 
 func (u *staticUpstream) Exchanger() Exchanger { return u.ex }
+
+func newBool() *bool {
+	b := new(bool)
+	*b = false
+	return b
+}
