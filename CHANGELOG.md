@@ -12,6 +12,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * server: Fixed an issue where flood joins would not work with IPv6 addresses. [GH-2878]
+* server: Fixed an issue where electing a 0.8.x leader during an upgrade would cause a panic in older servers. [GH-2889]
 
 ## 0.8.0 (April 5, 2017)
 
