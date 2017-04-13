@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -322,6 +323,75 @@ func TestGetPublicIPv6(t *testing.T) {
 			if !test.expected.Equal(ip) {
 				t.Fatalf("unexpected ip: %v != %v", ip, test.expected)
 			}
+		}
+	}
+}
+
+func TestServersMeetMinimumVersion(t *testing.T) {
+	makeMember := func(version string) serf.Member {
+		return serf.Member{
+			Name: "foo",
+			Addr: net.IP([]byte{127, 0, 0, 1}),
+			Tags: map[string]string{
+				"role":          "consul",
+				"id":            "asdf",
+				"dc":            "east-aws",
+				"port":          "10000",
+				"build":         version,
+				"wan_join_port": "1234",
+				"vsn":           "1",
+				"expect":        "3",
+				"raft_vsn":      "3",
+			},
+			Status: serf.StatusAlive,
+		}
+	}
+
+	cases := []struct {
+		members  []serf.Member
+		ver      *version.Version
+		expected bool
+	}{
+		// One server, meets reqs
+		{
+			members: []serf.Member{
+				makeMember("0.7.5"),
+			},
+			ver:      version.Must(version.NewVersion("0.7.5")),
+			expected: true,
+		},
+		// One server, doesn't meet reqs
+		{
+			members: []serf.Member{
+				makeMember("0.7.5"),
+			},
+			ver:      version.Must(version.NewVersion("0.8.0")),
+			expected: false,
+		},
+		// Multiple servers, meets req version
+		{
+			members: []serf.Member{
+				makeMember("0.7.5"),
+				makeMember("0.8.0"),
+			},
+			ver:      version.Must(version.NewVersion("0.7.5")),
+			expected: true,
+		},
+		// Multiple servers, doesn't meet req version
+		{
+			members: []serf.Member{
+				makeMember("0.7.5"),
+				makeMember("0.8.0"),
+			},
+			ver:      version.Must(version.NewVersion("0.8.0")),
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		result := ServersMeetMinimumVersion(tc.members, tc.ver)
+		if result != tc.expected {
+			t.Fatalf("bad: %v, %v, %v", result, tc.ver.String(), tc)
 		}
 	}
 }

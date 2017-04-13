@@ -10,6 +10,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -33,6 +34,8 @@ func (s *Server) stopAutopilot() {
 	s.autopilotWaitGroup.Wait()
 }
 
+var minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+
 // autopilotLoop periodically looks for nonvoting servers to promote and dead servers to remove.
 func (s *Server) autopilotLoop() {
 	defer s.autopilotWaitGroup.Done()
@@ -46,22 +49,25 @@ func (s *Server) autopilotLoop() {
 		case <-s.autopilotShutdownCh:
 			return
 		case <-ticker.C:
-			state := s.fsm.State()
-			_, autopilotConf, err := state.AutopilotConfig()
-			if err != nil {
-				s.logger.Printf("[ERR] autopilot: error retrieving config from state store: %s", err)
-				break
+			autopilotConfig, ok := s.getOrCreateAutopilotConfig()
+			if !ok {
+				continue
 			}
 
-			if err := s.autopilotPolicy.PromoteNonVoters(autopilotConf); err != nil {
+			if err := s.autopilotPolicy.PromoteNonVoters(autopilotConfig); err != nil {
 				s.logger.Printf("[ERR] autopilot: error checking for non-voters to promote: %s", err)
 			}
 
-			if err := s.pruneDeadServers(); err != nil {
+			if err := s.pruneDeadServers(autopilotConfig); err != nil {
 				s.logger.Printf("[ERR] autopilot: error checking for dead servers to remove: %s", err)
 			}
 		case <-s.autopilotRemoveDeadCh:
-			if err := s.pruneDeadServers(); err != nil {
+			autopilotConfig, ok := s.getOrCreateAutopilotConfig()
+			if !ok {
+				continue
+			}
+
+			if err := s.pruneDeadServers(autopilotConfig); err != nil {
 				s.logger.Printf("[ERR] autopilot: error checking for dead servers to remove: %s", err)
 			}
 		}
@@ -69,19 +75,13 @@ func (s *Server) autopilotLoop() {
 }
 
 // pruneDeadServers removes up to numPeers/2 failed servers
-func (s *Server) pruneDeadServers() error {
-	state := s.fsm.State()
-	_, autopilotConf, err := state.AutopilotConfig()
-	if err != nil {
-		return err
-	}
-
+func (s *Server) pruneDeadServers(autopilotConfig *structs.AutopilotConfig) error {
 	// Find any failed servers
 	var failed []string
 	staleRaftServers := make(map[string]raft.Server)
-	if autopilotConf.CleanupDeadServers {
+	if autopilotConfig.CleanupDeadServers {
 		future := s.raft.GetConfiguration()
-		if future.Error() != nil {
+		if err := future.Error(); err != nil {
 			return err
 		}
 
@@ -155,7 +155,7 @@ type BasicAutopilot struct {
 }
 
 // PromoteNonVoters promotes eligible non-voting servers to voters.
-func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig) error {
+func (b *BasicAutopilot) PromoteNonVoters(autopilotConfig *structs.AutopilotConfig) error {
 	minRaftProtocol, err := ServerMinRaftProtocol(b.server.LANMembers())
 	if err != nil {
 		return fmt.Errorf("error getting server raft protocol versions: %s", err)
@@ -178,7 +178,7 @@ func (b *BasicAutopilot) PromoteNonVoters(autopilotConf *structs.AutopilotConfig
 		// If this server has been stable and passing for long enough, promote it to a voter
 		if !isVoter(server.Suffrage) {
 			health := b.server.getServerHealth(string(server.ID))
-			if health.IsStable(time.Now(), autopilotConf) {
+			if health.IsStable(time.Now(), autopilotConfig) {
 				promotions = append(promotions, server)
 			}
 		} else {

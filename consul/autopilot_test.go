@@ -191,6 +191,8 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 		}
 	}
 
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
 	// Add s4 to peers directly
 	s4addr := fmt.Sprintf("127.0.0.1:%d",
 		s4.config.SerfLANConfig.MemberlistConfig.BindPort)
