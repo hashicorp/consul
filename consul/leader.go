@@ -154,7 +154,7 @@ func (s *Server) establishLeadership() error {
 	}
 
 	// Setup autopilot config if we need to
-	s.getAutopilotConfig()
+	s.getOrCreateAutopilotConfig()
 
 	s.startAutopilot()
 
@@ -246,12 +246,12 @@ func (s *Server) initializeACL() error {
 	return nil
 }
 
-// getAutopilotConfig is used to get the autopilot config, initializing it if necessary
-func (s *Server) getAutopilotConfig() (*structs.AutopilotConfig, bool) {
+// getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
+func (s *Server) getOrCreateAutopilotConfig() (*structs.AutopilotConfig, bool) {
 	state := s.fsm.State()
 	_, config, err := state.AutopilotConfig()
 	if err != nil {
-		s.logger.Printf("failed to get autopilot config: %v", err)
+		s.logger.Printf("[ERR] autopilot: failed to get config: %v", err)
 		return nil, false
 	}
 	if config != nil {
@@ -259,14 +259,14 @@ func (s *Server) getAutopilotConfig() (*structs.AutopilotConfig, bool) {
 	}
 
 	if !ServersMeetMinimumVersion(s.LANMembers(), minAutopilotVersion) {
-		s.logger.Printf("can't initialize autopilot until all servers are >= %s", minAutopilotVersion.String())
+		s.logger.Printf("[ERR] autopilot: can't initialize until all servers are >= %s", minAutopilotVersion.String())
 		return nil, false
 	}
 
 	config = s.config.AutopilotConfig
 	req := structs.AutopilotSetConfigRequest{Config: *config}
 	if _, err = s.raftApply(structs.AutopilotRequestType, req); err != nil {
-		s.logger.Printf("failed to initialize autopilot config")
+		s.logger.Printf("[ERR] autopilot: failed to initialize config: %v", err)
 		return nil, false
 	}
 

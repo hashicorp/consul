@@ -49,7 +49,7 @@ func (s *Server) autopilotLoop() {
 		case <-s.autopilotShutdownCh:
 			return
 		case <-ticker.C:
-			autopilotConfig, ok := s.getAutopilotConfig()
+			autopilotConfig, ok := s.getOrCreateAutopilotConfig()
 			if !ok {
 				continue
 			}
@@ -62,7 +62,7 @@ func (s *Server) autopilotLoop() {
 				s.logger.Printf("[ERR] autopilot: error checking for dead servers to remove: %s", err)
 			}
 		case <-s.autopilotRemoveDeadCh:
-			autopilotConfig, ok := s.getAutopilotConfig()
+			autopilotConfig, ok := s.getOrCreateAutopilotConfig()
 			if !ok {
 				continue
 			}
