@@ -59,8 +59,8 @@ The options below are all specified on the command-line.
   address when being accessed from a remote datacenter if the remote datacenter is configured
   with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
 
-~> **Notice:** The hosted version of Consul Enterprise will be deprecated on
-  March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives
+~> **Notice:** The hosted version of Consul Enterprise was deprecated on
+  March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives.
 
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
@@ -193,6 +193,10 @@ will exit with an error at startup.
   specified multiple times to specify multiple agents to join. If Consul is
   unable to join with any of the specified addresses, agent startup will
   fail. By default, the agent won't join any nodes when it starts up.
+  Note that using
+  <a href="#retry_join">`retry_join`</a> could be more appropriate to help
+  mitigate node startup race conditions when automating a Consul cluster
+  deployment.\
 
 * <a name="_retry_join"></a><a href="#_retry_join">`-retry-join`</a> - Similar
   to [`-join`](#_join) but allows retrying a join if the first
@@ -918,7 +922,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   quorum, and Ctrl-C on a client will gracefully leave).
 
 * <a name="start_join"></a><a href="#start_join">`start_join`</a> An array of strings specifying addresses
-  of nodes to [`-join`](#_join) upon startup.
+  of nodes to [`-join`](#_join) upon startup. Note that using
+  <a href="#retry_join">`retry_join`</a> could be more appropriate to help
+  mitigate node startup race conditions when automating a Consul cluster
+  deployment.
 
 * <a name="start_join_wan"></a><a href="#start_join_wan">`start_join_wan`</a> An array of strings specifying
   addresses of WAN nodes to [`-join-wan`](#_join_wan) upon startup.

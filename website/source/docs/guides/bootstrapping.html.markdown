@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Bootstrapping"
 sidebar_current: "docs-guides-bootstrapping"
 description: |-
-  An agent can run in both client and server mode. Server nodes are responsible for running the consensus protocol and storing the cluster state. Before a Consul cluster can begin to service requests, a server node must be elected leader. Thus, the first nodes that are started are generally the server nodes. Bootstrapping is the process of joining these server nodes into a cluster. 
+  An agent can run in both client and server mode. Server nodes are responsible for running the consensus protocol and storing the cluster state. Before a Consul cluster can begin to service requests, a server node must be elected leader. Thus, the first nodes that are started are generally the server nodes. Bootstrapping is the process of joining these server nodes into a cluster.
 ---
 
 # Bootstrapping a Datacenter
@@ -38,37 +38,24 @@ providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should
 This indicates that the nodes are expecting 2 peers but none are known yet. To prevent a split-brain
 scenario, the servers will not elect themselves leader.
 
-## Creating a cluster
+## Creating the cluster
 
-To trigger leader election, we must join these machines together and create a cluster. There are two options for joining; you can use [Atlas by HashiCorp](https://atlas.hashicorp.com?utm_source=oss&utm_medium=guide-bootstrapping&utm_campaign=consul) to auto-join or you can access the machine and manually run the join.
+To trigger leader election, we must join these machines together and create a cluster. There are multiple options for joining the machines:
 
-For auto-join using Atlas, you must set three configurations — the name of your Atlas infrastructure with the [`-atlas` flag](/docs/agent/options.html#_atlas), your Atlas token with the [`-atlas-token` CLI flag](/docs/agent/options.html#_atlas_token), and the [`-atlas-join` flag](/docs/agent/options.html#_atlas_join). Below is an example configuration:
+- Manually specified list of machines with
+  [-join](/docs/agent/options.html#_join) and
+  [start_join](https://www.consul.io/docs/agent/options.html#start_join)
+  options
+- Manually specified list of machines with [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
+- Automatic AWS EC2 instance joining with the [-retry-join-ec2-*](https://www.consul.io/docs/agent/options.html#_retry_join_ec2_tag_key) options
+- Automatic GCE instance joining with the [-retry-join-gce-*](https://www.consul.io/docs/agent/options.html#_retry_join_gce_tag_value) options
 
-```text
-$ consul agent -server -data-dir="/tmp/consul" -bootstrap-expect 3 \
-   -atlas=ATLAS_USERNAME/infrastructure \
-   -atlas-join \
-   -atlas-token="YOUR_ATLAS_TOKEN"
-```
+Choose the method which best suits your environment and specific use case.
 
-To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-bootstrapping&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
+~> **Notice:** The hosted version of Consul Enterprise was deprecated on
+  March 7th, 2017 and the Atlas `auto-join` feature is no longer available. For details, see https://atlas.hashicorp.com/help/consul/alternatives.
 
-To manually create a cluster, access one of the machines and run the following:
-
-```text
-$ consul join <Node A Address> <Node B Address> <Node C Address>
-Successfully joined cluster by contacting 3 nodes.
-```
-
-Since a join operation is symmetric, it does not matter which node initiates it. Once the join is successful, one of the nodes will output something like:
-
-```text
-[INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
-[INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
-[INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]
-    ...
-[INFO] consul: cluster leadership acquired
-```
+## Verifying the Cluster
 
 As a sanity check, the [`consul info`](/docs/commands/info.html) command
 is a useful tool. It can be used to verify `raft.num_peers` is now 2,
