@@ -1171,12 +1171,13 @@ WAIT:
 		// Agent is already shutdown!
 		return 0
 	}
-	c.Ui.Output(fmt.Sprintf("Caught signal: %v", sig))
 
-	// Skip SIGPIPE signals
+	// Skip SIGPIPE signals and skip logging whenever such signal is received as well
 	if sig == syscall.SIGPIPE {
 		goto WAIT
 	}
+
+	c.Ui.Output(fmt.Sprintf("Caught signal: %v", sig))
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
