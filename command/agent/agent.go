@@ -630,6 +630,11 @@ func (a *Agent) makeRandomID() (string, error) {
 // high for us if this changes, so we will persist it either way. This will let
 // gopsutil change implementations without affecting in-place upgrades of nodes.
 func (a *Agent) makeNodeID() (string, error) {
+	// If they've disabled host-based IDs then just make a random one.
+	if a.config.DisableHostNodeID {
+		return a.makeRandomID()
+	}
+
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {

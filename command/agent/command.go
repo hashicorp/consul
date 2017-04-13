@@ -100,6 +100,10 @@ func (c *Command) readConfig() *Config {
 	f.StringVar((*string)(&cmdConfig.NodeID), "node-id", "",
 		"A unique ID for this node across space and time. Defaults to a randomly-generated ID"+
 			" that persists in the data-dir.")
+	f.BoolVar(&cmdConfig.DisableHostNodeID, "disable-host-node-id", false,
+		"Setting this to true will prevent Consul from using information from the"+
+			" host to generate a node ID, and will cause Consul to generate a"+
+			" random node ID instead.")
 	f.StringVar(&dcDeprecated, "dc", "", "Datacenter of the agent (deprecated: use 'datacenter' instead).")
 	f.StringVar(&cmdConfig.Datacenter, "datacenter", "", "Datacenter of the agent.")
 	f.StringVar(&cmdConfig.DataDir, "data-dir", "", "Path to a data directory to store agent state.")
