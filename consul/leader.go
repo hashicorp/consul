@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -29,18 +30,29 @@ const (
 // as the leader in the Raft cluster. There is some work the leader is
 // expected to do, so we must react to changes
 func (s *Server) monitorLeadership() {
-	leaderCh := s.raft.LeaderCh()
+	// We use the notify channel we configured Raft with, NOT Raft's
+	// leaderCh, which is only notified best-effort. Doing this ensures
+	// that we get all notifications in order, which is required for
+	// cleanup and to ensure we never run multiple leader loops.
+	leaderCh := s.leaderCh
+
+	var wg sync.WaitGroup
 	var stopCh chan struct{}
 	for {
 		select {
 		case isLeader := <-leaderCh:
 			if isLeader {
 				stopCh = make(chan struct{})
-				go s.leaderLoop(stopCh)
+				wg.Add(1)
+				go func() {
+					s.leaderLoop(stopCh)
+					wg.Done()
+				}()
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
 			} else if stopCh != nil {
 				close(stopCh)
 				stopCh = nil
+				wg.Wait()
 				s.logger.Printf("[INFO] consul: cluster leadership lost")
 			}
 		case <-s.shutdownCh:
