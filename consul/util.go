@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/hashicorp/consul/consul/agent"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -294,4 +296,18 @@ func runtimeStats() map[string]string {
 		"goroutines": strconv.FormatInt(int64(runtime.NumGoroutine()), 10),
 		"cpu_count":  strconv.FormatInt(int64(runtime.NumCPU()), 10),
 	}
+}
+
+// ServersMeetMinimumVersion returns whether the given alive servers are at least on the
+// given Consul version
+func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Version) bool {
+	for _, member := range members {
+		if valid, parts := agent.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+			if parts.Build.LessThan(minVersion) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
