@@ -26,6 +26,9 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	if err != nil {
 		return err
 	}
+	if config == nil {
+		return fmt.Errorf("autopilot config not initialized yet")
+	}
 
 	*reply = *config
 

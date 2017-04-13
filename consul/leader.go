@@ -259,7 +259,7 @@ func (s *Server) getOrCreateAutopilotConfig() (*structs.AutopilotConfig, bool) {
 	}
 
 	if !ServersMeetMinimumVersion(s.LANMembers(), minAutopilotVersion) {
-		s.logger.Printf("[ERR] autopilot: can't initialize until all servers are >= %s", minAutopilotVersion.String())
+		s.logger.Printf("[WARN] autopilot: can't initialize until all servers are >= %s", minAutopilotVersion.String())
 		return nil, false
 	}
 
