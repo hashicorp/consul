@@ -55,6 +55,25 @@ Choose the method which best suits your environment and specific use case.
 ~> **Notice:** The hosted version of Consul Enterprise was deprecated on
   March 7th, 2017 and the Atlas `auto-join` feature is no longer available. For details, see https://atlas.hashicorp.com/help/consul/alternatives.
 
+### Manually Creating a Cluster
+
+To manually create a cluster, access one of the machines and run the following:
+
+```
+$ consul join <Node A Address> <Node B Address> <Node C Address>
+Successfully joined cluster by contacting 3 nodes.
+```
+
+Since a join operation is symmetric, it does not matter which node initiates it. Once the join is successful, one of the nodes will output something like:
+
+```
+[INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
+[INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
+[INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]
+    ...
+[INFO] consul: cluster leadership acquired
+```
+
 ## Verifying the Cluster
 
 As a sanity check, the [`consul info`](/docs/commands/info.html) command
