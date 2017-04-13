@@ -5,26 +5,26 @@ body {
 }
 
 a {
-    color: $purple;
+    color: $pink;
     font-weight: 600;
     @include transition(color .2s ease-in-out);
 
     &:hover {
         text-decoration: none;
-        color: darken($purple, 10%);
+        color: darken($pink, 10%);
     }
 
     &.subtle {
         color: inherit;
 
         &:hover {
-            color: $purple;
+            color: $pink;
         }
     }
 }
 
 code {
-    color: $purple-dark;
+    color: $pink-dark;
     background-color: $gray-background;
 }
 

@@ -115,11 +115,11 @@
 
     &.active {
         @include transition(border-color .1s linear);
-        border-color: $purple;
+        border-color: $pink;
 
         .list-bar, .list-bar-horizontal {
             @include transition(background-color .1s linear);
-            background-color: $purple;
+            background-color: $pink;
         }
     }
 
