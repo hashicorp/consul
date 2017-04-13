@@ -3,8 +3,8 @@ $white: #FFFFFF;
 $black: #000000;
 $gray-darker: #555555;
 
-$consul-pink: #D62783;
-$consul-pink-dark: #961D59;
+$consul-red: #C62A71;
+$consul-red-dark: #8C1C59;
 $packer-blue: #1DAEFF;
 $packer-blue-dark: #1D94DD;
 $terraform-purple: #5C4EE5;
@@ -25,7 +25,7 @@ $font-weight-bold:      600;
 
 // Body
 $body-font-color: $gray-darker;
-$body-link-color: $consul-pink;
+$body-link-color: $consul-red;
 
 // Home
 $home-header-background-color: transparent;
@@ -42,7 +42,7 @@ $sidebar-font-family: $font-family-open-sans;
 $sidebar-font-weight: $font-weight-reg;
 
 // Header
-$header-background-color: $consul-pink;
+$header-background-color: $consul-red;
 $header-font-size: $font-size - 2;
 $header-height: 92px;
 $header-link-color: rgba($white, 0.85);
@@ -59,5 +59,5 @@ $button-font-color: #7b8A8E;
 $button-font-family: $font-family-klavika;
 $button-font-size: $font-size;
 $button-font-weight: $font-weight-bold;
-$button-primary-background: $consul-pink;
+$button-primary-background: $consul-red;
 $button-primary-font-color: $white;
