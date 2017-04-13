@@ -5,12 +5,13 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Node IDs derived from host information are now hashed to prevent things like common server hardware from generating IDs with a common prefix across nodes. [GH-2884]
+* agent: Added new `-disable-host-node-id` CLI flag and `disable_host_node_id` config option to the Consul agent to prevent it from using information from the host when generating a node ID. This will result in a random node ID, which is useful when running multiple Consul agents on the same host for testing purposes. Having this built-in eases configuring a random node ID when running in containers. [GH-2877]
 * build: Consul is now built with Go 1.8.1. [GH-2888]
 * ui: Updates Consul assets to new branding. [GH-2898]
 
 BUG FIXES:
 
-* server: Fixed an issue where flood joins would not work with ipv6 addresses. [GH-2878]
+* server: Fixed an issue where flood joins would not work with IPv6 addresses. [GH-2878]
 
 ## 0.8.0 (April 5, 2017)
 
