@@ -12,10 +12,12 @@ $red-darker:                #b03c44;
 $tan:                       #f0f0e5;
 $consul-gray:               #909090;
 $consul-footer-gray:        #d7d4d7;
+$pink-dark:                 #d62783;
+$pink:                      lighten($pink-dark, 20%);
+$light-pink:                #f9f3f7;
 $purple-dark:               #69499a;
 $purple:                    lighten($purple-dark, 20%);
 $light-purple:              #f7f3f9;
-
 $green-faded:               #BBF085;
 $green-dark:                #86B457;
 $red-faded:                 $red;
