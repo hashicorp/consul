@@ -11,7 +11,7 @@ import (
 )
 
 func TestErraticDrop(t *testing.T) {
-	e := &Erratic{amount: 2} // 50% drops
+	e := &Erratic{drop: 2} // 50% drops
 
 	tests := []struct {
 		expectedCode int

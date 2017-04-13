@@ -3,6 +3,7 @@ package erratic
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
@@ -31,7 +32,7 @@ func setupErratic(c *caddy.Controller) error {
 }
 
 func parseErratic(c *caddy.Controller) (*Erratic, error) {
-	e := &Erratic{amount: 2}
+	e := &Erratic{drop: 2}
 	for c.Next() { // 'erratic'
 		for c.NextBlock() {
 			switch c.Val() {
@@ -42,8 +43,9 @@ func parseErratic(c *caddy.Controller) (*Erratic, error) {
 				}
 
 				if len(args) == 0 {
-					return nil, nil
+					continue
 				}
+
 				amount, err := strconv.ParseInt(args[0], 10, 32)
 				if err != nil {
 					return nil, err
@@ -51,7 +53,36 @@ func parseErratic(c *caddy.Controller) (*Erratic, error) {
 				if amount < 0 {
 					return nil, fmt.Errorf("illegal amount value given %q", args[0])
 				}
-				e.amount = uint64(amount)
+				e.drop = uint64(amount)
+			case "delay":
+				args := c.RemainingArgs()
+				if len(args) > 2 {
+					return nil, c.ArgErr()
+				}
+
+				// Defaults.
+				e.delay = 2
+				e.duration = time.Duration(100 * time.Millisecond)
+				if len(args) == 0 {
+					continue
+				}
+
+				amount, err := strconv.ParseInt(args[0], 10, 32)
+				if err != nil {
+					return nil, err
+				}
+				if amount < 0 {
+					return nil, fmt.Errorf("illegal amount value given %q", args[0])
+				}
+				e.delay = uint64(amount)
+
+				if len(args) > 1 {
+					duration, err := time.ParseDuration(args[1])
+					if err != nil {
+						return nil, err
+					}
+					e.duration = duration
+				}
 			}
 		}
 	}

@@ -4,10 +4,6 @@
 queries, but the responses can be delayed by a random amount of time or dropped all together, i.e.
 no answer at all.
 
-~~~ txt
-._<transport>.qname. 0 IN SRV 0 0 <port> .
-~~~
-
 The *erratic* middleware will respond to every A or AAAA query. For any other type it will return
 a SERVFAIL response. The reply for A will return 192.0.2.53 (see RFC 5737), for AAAA it returns
 2001:DB8::53 (see RFC 3849).
@@ -16,11 +12,14 @@ a SERVFAIL response. The reply for A will return 192.0.2.53 (see RFC 5737), for 
 
 ~~~ txt
 erratic {
-    drop AMOUNT
+    drop [AMOUNT]
+    delay [AMOUNT [DURATION]]
 }
 ~~~
 
-* **AMOUNT** drop 1 per **AMOUNT** of the queries, the default is 2.
+* `drop`: drop 1 per **AMOUNT** of the queries, the default is 2.
+* `delay`: delay 1 per **AMOUNT** of queries for **DURATION**, the default for **AMOUNT** is 2 and
+  the default for **DURATION** is 100ms.
 
 ## Examples
 
@@ -32,7 +31,7 @@ erratic {
 }
 ~~~
 
-Or even shorter if the defaults suits you:
+Or even shorter if the defaults suits you. Note this only drops queries, it does not delay them.
 
 ~~~ txt
 . {
@@ -40,6 +39,22 @@ Or even shorter if the defaults suits you:
 }
 ~~~
 
-## Bugs
+Delay 1 in 3 queries for 50ms, but also drop 1 in 2.
 
-Delaying answers is not implemented.
+~~~ txt
+. {
+    erratic {
+        delay 3 50ms
+    }
+}
+~~~
+
+To stop dropping you'll need to explicitally set that to 0:
+~~~ txt
+. {
+    erratic {
+        delay 3 50ms
+        drop 0
+    }
+}
+~~~

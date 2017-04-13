@@ -3,6 +3,7 @@ package erratic
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/coredns/coredns/request"
 
@@ -12,7 +13,10 @@ import (
 
 // Erratic is a middleware that returns erratic repsonses to each client.
 type Erratic struct {
-	amount uint64
+	drop uint64
+
+	delay    uint64
+	duration time.Duration
 
 	q uint64 // counter of queries
 }
@@ -20,16 +24,21 @@ type Erratic struct {
 // ServeDNS implements the middleware.Handler interface.
 func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-
 	drop := false
-	if e.amount > 0 {
-		queryNr := atomic.LoadUint64(&e.q)
+	delay := false
 
-		if queryNr%e.amount == 0 {
+	queryNr := atomic.LoadUint64(&e.q)
+	atomic.AddUint64(&e.q, 1)
+
+	if e.drop > 0 {
+		if queryNr%e.drop == 0 {
 			drop = true
 		}
-
-		atomic.AddUint64(&e.q, 1)
+	}
+	if e.delay > 0 {
+		if queryNr%e.delay == 0 {
+			delay = true
+		}
 	}
 
 	m := new(dns.Msg)
@@ -50,6 +59,9 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		m.Answer = append(m.Answer, &rr)
 	default:
 		if !drop {
+			if delay {
+				time.Sleep(e.duration)
+			}
 			// coredns will return error.
 			return dns.RcodeServerFailure, nil
 		}
@@ -57,6 +69,10 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 	if drop {
 		return 0, nil
+	}
+
+	if delay {
+		time.Sleep(e.duration)
 	}
 
 	state.SizeAndDo(m)
