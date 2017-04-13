@@ -43,6 +43,9 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 			state := s.srv.fsm.State()
 			_, existing, err := state.SessionGet(nil, args.Session.ID)
 			if err != nil {
+				return fmt.Errorf("Session lookup failed: %v", err)
+			}
+			if existing == nil {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
 			if !acl.SessionWrite(existing.Node) {
