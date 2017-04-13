@@ -59,8 +59,8 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	// Without a protocol
-	input = `{"node_id": "bar", "node_name": "foo", "datacenter": "dc2"}`
+	// Node info
+	input = `{"node_id": "bar", "disable_host_node_id": true, "node_name": "foo", "datacenter": "dc2"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -71,6 +71,10 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.NodeID != "bar" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.DisableHostNodeID != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1652,14 +1656,15 @@ func TestMergeConfig(t *testing.T) {
 			UDPAnswerLimit:  4,
 			RecursorTimeout: 30 * time.Second,
 		},
-		Domain:           "other",
-		LogLevel:         "info",
-		NodeID:           "bar",
-		NodeName:         "baz",
-		ClientAddr:       "127.0.0.2",
-		BindAddr:         "127.0.0.2",
-		AdvertiseAddr:    "127.0.0.2",
-		AdvertiseAddrWan: "127.0.0.2",
+		Domain:            "other",
+		LogLevel:          "info",
+		NodeID:            "bar",
+		DisableHostNodeID: true,
+		NodeName:          "baz",
+		ClientAddr:        "127.0.0.2",
+		BindAddr:          "127.0.0.2",
+		AdvertiseAddr:     "127.0.0.2",
+		AdvertiseAddrWan:  "127.0.0.2",
 		Ports: PortConfig{
 			DNS:     1,
 			HTTP:    2,

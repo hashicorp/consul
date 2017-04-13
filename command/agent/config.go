@@ -358,6 +358,11 @@ type Config struct {
 	// to a randomly-generated ID that persists in the data-dir.
 	NodeID types.NodeID `mapstructure:"node_id"`
 
+	// DisableHostNodeID will prevent Consul from using information from the
+	// host to generate a node ID, and will cause Consul to generate a
+	// random ID instead.
+	DisableHostNodeID bool `mapstructure:"disable_host_node_id"`
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string `mapstructure:"node_name"`
 
@@ -1370,6 +1375,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.NodeID != "" {
 		result.NodeID = b.NodeID
+	}
+	if b.DisableHostNodeID == true {
+		result.DisableHostNodeID = b.DisableHostNodeID
 	}
 	if b.NodeName != "" {
 		result.NodeName = b.NodeName

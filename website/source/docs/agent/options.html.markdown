@@ -151,17 +151,22 @@ will exit with an error at startup.
   the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
   shared folders) may not be suitable.
 
+* <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
+  which the agent is running. If not provided,
+  it defaults to "dc1". Consul has first-class support for multiple datacenters, but
+  it relies on proper configuration. Nodes in the same datacenter should be on a single
+  LAN.
+
 * <a name="_dev"></a><a href="#_dev">`-dev`</a> - Enable development server
   mode. This is useful for quickly starting a Consul agent with all persistence
   options turned off, enabling an in-memory server which can be used for rapid
   prototyping or developing against the API. This mode is **not** intended for
   production use as it does not write any data to disk.
 
-* <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
-  which the agent is running. If not provided,
-  it defaults to "dc1". Consul has first-class support for multiple datacenters, but
-  it relies on proper configuration. Nodes in the same datacenter should be on a single
-  LAN.
+* <a name="_disable_host_node_id"></a><a href="#_disable_host_node_id">`-disable-host-node-id`</a> - Setting
+  this to true will prevent Consul from using information from the host to generate a deterministic node ID,
+  and will instead generate a random node ID which will be persisted in the data directory. This is useful
+  when running multiple Consul agents on the same host for testing. This defaults to false.
 
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
   This overrides the default port 8600. This is available in Consul 0.7 and later.
@@ -295,11 +300,9 @@ will exit with an error at startup.
   changes. This must be in the form of a hex string, 36 characters long, such as
   `adf4238a-882b-9ddc-4a9d-5b6758e4159e`. If this isn't supplied, which is the most common case, then
   the agent will generate an identifier at startup and persist it in the <a href="#_data_dir">data directory</a>
-  so that it will remain the same across agent restarts. This is currently only exposed via
-  <a href="/api/agent.html#agent_self">/v1/agent/self</a>,
-  <a href="/api/catalog.html">/v1/catalog</a>, and
-  <a href="/api/health.html">/v1/health</a> endpoints, but future versions of
-  Consul will use this to better manage cluster changes, especially for Consul servers.
+  so that it will remain the same across agent restarts. Information from the host will be used to
+  generate a deterministic node ID if possible, unless [`-disable-host-node-id`](#_disable_host_node_id) is
+  set to true.
 
 * <a name="_node_meta"></a><a href="#_node_meta">`-node-meta`</a> - Available in Consul 0.7.3 and later,
   this specifies an arbitrary metadata key/value pair to associate with the node, of the form `key:value`.
@@ -635,6 +638,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="disable_anonymous_signature"></a><a href="#disable_anonymous_signature">
   `disable_anonymous_signature`</a> Disables providing an anonymous signature for de-duplication
   with the update check. See [`disable_update_check`](#disable_update_check).
+
+* <a name="disable_host_node_id"></a><a href="#disable_host_node_id">`disable_host_node_id`</a>
+  Equivalent to the [`-disable-host-node-id` command-line flag](#_disable_host_node_id).
 
 * <a name="disable_remote_exec"></a><a href="#disable_remote_exec">`disable_remote_exec`</a>
   Disables support for remote execution. When set to true, the agent will ignore any incoming

@@ -318,7 +318,7 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 }
 
-func TestAgent_NodeID(t *testing.T) {
+func TestAgent_setupNodeID(t *testing.T) {
 	c := nextConfig()
 	c.NodeID = ""
 	dir, agent := makeAgent(t, c)
@@ -381,6 +381,42 @@ func TestAgent_NodeID(t *testing.T) {
 	}
 	if id := agent.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
 		t.Fatalf("bad: %q vs. %q", id, newID)
+	}
+}
+
+func TestAgent_makeNodeID(t *testing.T) {
+	c := nextConfig()
+	c.NodeID = ""
+	dir, agent := makeAgent(t, c)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// We should get a valid host-based ID initially.
+	id, err := agent.makeNodeID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := uuid.ParseUUID(string(id)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Calling again should yield the same ID since it's host-based.
+	another, err := agent.makeNodeID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if id != another {
+		t.Fatalf("bad: %s vs %s", id, another)
+	}
+
+	// Turn off host-based IDs and try again. We should get a random ID.
+	agent.config.DisableHostNodeID = true
+	another, err = agent.makeNodeID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if id == another {
+		t.Fatalf("bad: %s vs %s", id, another)
 	}
 }
 
