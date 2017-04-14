@@ -99,8 +99,7 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 			"can also be specified via the CONSUL_CACERT environment variable.")
 	f.Var(&c.caPath, "ca-path",
 		"Path to a directory of CA certificates to use for TLS when communicating "+
-			"with Consul. is enabled. This can also be specified via the CONSUL_CAPATH "+
-			"environment variable.")
+			"with Consul. This can also be specified via the CONSUL_CAPATH environment variable.")
 	f.Var(&c.certFile, "client-cert",
 		"Path to a client cert file to use for TLS when `verify_incoming` is enabled. This "+
 			"can also be specified via the CONSUL_CLIENT_CERT environment variable.")
