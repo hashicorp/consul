@@ -16,6 +16,7 @@ BUG FIXES:
 * server: Fixed an issue where flood joins would not work with IPv6 addresses. [GH-2878]
 * server: Fixed an issue where electing a 0.8.x leader during an upgrade would cause a panic in older servers. [GH-2889]
 * server: Fixed an issue where tracking of leadership changes could become incorrect when changes occurred very rapidly. This could manifest as a panic in Autopilot, but could have caused other issues with multiple leader management routines running simultaneously. [GH-2896]
+* server: Fixed a panic when checking ACLs on a session that doesn't exist. [GH-2624]
 
 ## 0.8.0 (April 5, 2017)
 
