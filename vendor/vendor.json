@@ -480,6 +480,12 @@
 			"revisionTime": "2016-09-30T03:51:02Z"
 		},
 		{
+			"checksumSHA1": "A1PcINvF3UiwHRKn8UcgARgvGRs=",
+			"path": "github.com/hashicorp/go-rootcerts",
+			"revision": "6bb64b370b90e7ef1fa532be9e591a81c3493e00",
+			"revisionTime": "2016-05-03T14:34:40Z"
+		},
+		{
 			"checksumSHA1": "BGODc7juQbdG3vNXHZG07kt+lKI=",
 			"path": "github.com/hashicorp/go-sockaddr",
 			"revision": "f910dd83c2052566cad78352c33af714358d1372",
@@ -680,6 +686,12 @@
 			"path": "github.com/mitchellh/copystructure",
 			"revision": "cdac8253d00f2ecf0a0b19fbff173a9a72de4f82",
 			"revisionTime": "2016-08-04T03:23:30Z"
+		},
+		{
+			"checksumSHA1": "V/quM7+em2ByJbWBLOsEwnY3j/Q=",
+			"path": "github.com/mitchellh/go-homedir",
+			"revision": "b8bc1bf767474819792c23f32d8286a45736f1c6",
+			"revisionTime": "2016-12-03T19:45:07Z"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
