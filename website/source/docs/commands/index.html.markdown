@@ -137,3 +137,43 @@ for development purposes:
 ```
 CONSUL_HTTP_SSL_VERIFY=false
 ```
+
+### `CONSUL_CACERT`
+
+Path to a CA file to use for TLS when communicating with Consul.
+
+```
+CONSUL_CACERT=ca.crt
+```
+
+### `CONSUL_CAPATH`
+
+Path to a directory of CA certificates to use for TLS when communicating with Consul.
+
+```
+CONSUL_CAPATH=ca_certs/
+```
+
+### `CONSUL_CLIENT_CERT`
+
+Path to a client cert file to use for TLS when `verify_incoming` is enabled.
+
+```
+CONSUL_CLIENT_CERT=client.crt
+```
+
+### `CONSUL_CLIENT_KEY`
+
+Path to a client key file to use for TLS when `verify_incoming` is enabled.
+
+```
+CONSUL_CLIENT_KEY=client.key
+```
+
+### `CONSUL_TLS_SERVER_NAME`
+
+The server name to use as the SNI host when connecting via TLS.
+
+```
+CONSUL_TLS_SERVER_NAME=consulserver.domain
+```

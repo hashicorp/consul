@@ -39,6 +39,7 @@ type TestPerformanceConfig struct {
 type TestPortConfig struct {
 	DNS     int `json:"dns,omitempty"`
 	HTTP    int `json:"http,omitempty"`
+	HTTPS   int `json:"https,omitempty"`
 	SerfLan int `json:"serf_lan,omitempty"`
 	SerfWan int `json:"serf_wan,omitempty"`
 	Server  int `json:"server,omitempty"`
@@ -74,6 +75,11 @@ type TestServerConfig struct {
 	ACLDefaultPolicy   string                 `json:"acl_default_policy,omitempty"`
 	ACLEnforceVersion8 bool                   `json:"acl_enforce_version_8"`
 	Encrypt            string                 `json:"encrypt,omitempty"`
+	CAFile             string                 `json:"ca_file,omitempty"`
+	CertFile           string                 `json:"cert_file,omitempty"`
+	KeyFile            string                 `json:"key_file,omitempty"`
+	VerifyIncoming     bool                   `json:"verify_incoming,omitempty"`
+	VerifyOutgoing     bool                   `json:"verify_outgoing,omitempty"`
 	Stdout, Stderr     io.Writer              `json:"-"`
 	Args               []string               `json:"-"`
 }
@@ -105,6 +111,7 @@ func defaultServerConfig() *TestServerConfig {
 		Ports: &TestPortConfig{
 			DNS:     randomPort(),
 			HTTP:    randomPort(),
+			HTTPS:   randomPort(),
 			SerfLan: randomPort(),
 			SerfWan: randomPort(),
 			Server:  randomPort(),
@@ -150,9 +157,10 @@ type TestServer struct {
 	cmd    *exec.Cmd
 	Config *TestServerConfig
 
-	HTTPAddr string
-	LANAddr  string
-	WANAddr  string
+	HTTPAddr  string
+	HTTPSAddr string
+	LANAddr   string
+	WANAddr   string
 
 	HttpClient *http.Client
 }
@@ -243,9 +251,10 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 		Config: consulConfig,
 		cmd:    cmd,
 
-		HTTPAddr: httpAddr,
-		LANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
-		WANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
+		HTTPAddr:  httpAddr,
+		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTPS),
+		LANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
+		WANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
 
 		HttpClient: client,
 	}
