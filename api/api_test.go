@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"strings"
 )
 
 type configCallback func(c *Config)
@@ -86,6 +87,16 @@ func TestDefaultConfig_env(t *testing.T) {
 	defer os.Setenv(HTTPAuthEnvName, "")
 	os.Setenv(HTTPSSLEnvName, "1")
 	defer os.Setenv(HTTPSSLEnvName, "")
+	os.Setenv(HTTPCAFile, "ca.pem")
+	defer os.Setenv(HTTPCAFile, "")
+	os.Setenv(HTTPCAPath, "certs/")
+	defer os.Setenv(HTTPCAPath, "")
+	os.Setenv(HTTPClientCert, "client.crt")
+	defer os.Setenv(HTTPClientCert, "")
+	os.Setenv(HTTPClientKey, "client.key")
+	defer os.Setenv(HTTPClientKey, "")
+	os.Setenv(HTTPTLSServerName, "consul.test")
+	defer os.Setenv(HTTPTLSServerName, "")
 	os.Setenv(HTTPSSLVerifyEnvName, "0")
 	defer os.Setenv(HTTPSSLVerifyEnvName, "")
 
@@ -108,7 +119,22 @@ func TestDefaultConfig_env(t *testing.T) {
 		if config.Scheme != "https" {
 			t.Errorf("expected %q to be %q", config.Scheme, "https")
 		}
-		if !config.HttpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		if config.TLSConfig.CAFile != "ca.pem" {
+			t.Errorf("expected %q to be %q", config.TLSConfig.CAFile, "ca.pem")
+		}
+		if config.TLSConfig.CAPath != "certs/" {
+			t.Errorf("expected %q to be %q", config.TLSConfig.CAPath, "certs/")
+		}
+		if config.TLSConfig.CertFile != "client.crt" {
+			t.Errorf("expected %q to be %q", config.TLSConfig.CertFile, "client.crt")
+		}
+		if config.TLSConfig.KeyFile != "client.key" {
+			t.Errorf("expected %q to be %q", config.TLSConfig.KeyFile, "client.key")
+		}
+		if config.TLSConfig.Address != "consul.test" {
+			t.Errorf("expected %q to be %q", config.TLSConfig.Address, "consul.test")
+		}
+		if !config.TLSConfig.InsecureSkipVerify {
 			t.Errorf("expected SSL verification to be off")
 		}
 
@@ -132,9 +158,9 @@ func TestSetupTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	expected := &tls.Config{}
+	expected := &tls.Config{RootCAs: cc.RootCAs}
 	if !reflect.DeepEqual(cc, expected) {
-		t.Fatalf("bad: %v", cc)
+		t.Fatalf("bad: \n%v, \n%v", cc, expected)
 	}
 
 	// Try some address variations with and without ports.
@@ -214,6 +240,68 @@ func TestSetupTLSConfig(t *testing.T) {
 	}
 	if cc.RootCAs == nil {
 		t.Fatalf("didn't load root CAs")
+	}
+
+	// Use a directory to load the certs instead
+	cc, err = SetupTLSConfig(&TLSConfig{
+		CAPath: "../test/ca_path",
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(cc.RootCAs.Subjects()) != 2 {
+		t.Fatalf("didn't load root CAs")
+	}
+}
+
+func TestClientTLSOptions(t *testing.T) {
+	t.Parallel()
+	_, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.CAFile = "../test/client_certs/rootca.crt"
+		conf.CertFile = "../test/client_certs/server.crt"
+		conf.KeyFile = "../test/client_certs/server.key"
+		conf.VerifyIncoming = true
+	})
+	defer s.Stop()
+
+	// Set up a client without certs
+	clientWithoutCerts, err := NewClient(&Config{
+		Address: s.HTTPSAddr,
+		Scheme:  "https",
+		TLSConfig: TLSConfig{
+			Address: "consul.test",
+			CAFile:  "../test/client_certs/rootca.crt",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should fail
+	_, err = clientWithoutCerts.Agent().Self()
+	if err == nil || !strings.Contains(err.Error(), "bad certificate") {
+		t.Fatal(err)
+	}
+
+	// Set up a client with valid certs
+	clientWithCerts, err := NewClient(&Config{
+		Address: s.HTTPSAddr,
+		Scheme:  "https",
+		TLSConfig: TLSConfig{
+			Address:  "consul.test",
+			CAFile:   "../test/client_certs/rootca.crt",
+			CertFile: "../test/client_certs/client.crt",
+			KeyFile:  "../test/client_certs/client.key",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should succeed
+	_, err = clientWithCerts.Agent().Self()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -36,8 +36,14 @@ type Command struct {
 	hidden  *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
-	httpAddr   StringValue
-	token      StringValue
+	httpAddr      StringValue
+	token         StringValue
+	caFile        StringValue
+	caPath        StringValue
+	certFile      StringValue
+	keyFile       StringValue
+	tlsServerName StringValue
+
 	datacenter StringValue
 	stale      BoolValue
 }
@@ -55,6 +61,11 @@ func (c *Command) HTTPClient() (*api.Client, error) {
 	config := api.DefaultConfig()
 	c.httpAddr.Merge(&config.Address)
 	c.token.Merge(&config.Token)
+	c.caFile.Merge(&config.TLSConfig.CAFile)
+	c.caPath.Merge(&config.TLSConfig.CAPath)
+	c.certFile.Merge(&config.TLSConfig.CertFile)
+	c.keyFile.Merge(&config.TLSConfig.KeyFile)
+	c.tlsServerName.Merge(&config.TLSConfig.Address)
 	c.datacenter.Merge(&config.Datacenter)
 	return api.NewClient(config)
 }
@@ -83,6 +94,19 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 		f = flag.NewFlagSet("", flag.ContinueOnError)
 	}
 
+	f.Var(&c.caFile, "ca-file",
+		"Path to a CA file to use for TLS when communicating with Consul. This "+
+			"can also be specified via the CONSUL_CACERT environment variable.")
+	f.Var(&c.caPath, "ca-path",
+		"Path to a directory of CA certificates to use for TLS when communicating "+
+			"with Consul. is enabled. This can also be specified via the CONSUL_CAPATH "+
+			"environment variable.")
+	f.Var(&c.certFile, "client-cert",
+		"Path to a client cert file to use for TLS when `verify_incoming` is enabled. This "+
+			"can also be specified via the CONSUL_CLIENT_CERT environment variable.")
+	f.Var(&c.keyFile, "client-key",
+		"Path to a client key file to use for TLS when `verify_incoming` is enabled. This "+
+			"can also be specified via the CONSUL_CLIENT_KEY environment variable.")
 	f.Var(&c.httpAddr, "http-addr",
 		"The `address` and port of the Consul HTTP agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can "+
@@ -93,6 +117,9 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_HTTP_TOKEN environment variable. If unspecified, the query will "+
 			"default to the token of the Consul agent at the HTTP address.")
+	f.Var(&c.tlsServerName, "tls-server-name",
+		"The server name to use as the SNI host when connecting via TLS. This "+
+			"can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
 
 	return f
 }
