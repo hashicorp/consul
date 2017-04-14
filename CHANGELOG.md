@@ -7,6 +7,7 @@ IMPROVEMENTS:
 * agent: Node IDs derived from host information are now hashed to prevent things like common server hardware from generating IDs with a common prefix across nodes. [GH-2884]
 * agent: Added new `-disable-host-node-id` CLI flag and `disable_host_node_id` config option to the Consul agent to prevent it from using information from the host when generating a node ID. This will result in a random node ID, which is useful when running multiple Consul agents on the same host for testing purposes. Having this built-in eases configuring a random node ID when running in containers. [GH-2877]
 * agent: Removed useless "==> Caught signal: broken pipe" logging since that often results from problems sending telemetry or broken incoming client connections; operators don't need to be alerted to these. [GH-2768]
+* cli: Added TLS options for setting the client/CA certificates to use when communicating with Consul. These can be provided through environment variables or command line flags. [GH-2914]
 * build: Consul is now built with Go 1.8.1. [GH-2888]
 * ui: Updates Consul assets to new branding. [GH-2898]
 
