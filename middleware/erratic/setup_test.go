@@ -33,22 +33,28 @@ func TestParseErratic(t *testing.T) {
 		shouldErr bool
 		drop      uint64
 		delay     uint64
+		truncate  uint64
 	}{
 		// oks
-		{`erratic`, false, 2, 0},
+		{`erratic`, false, 2, 0, 0},
 		{`erratic {
 			drop 2
 			delay 3 1ms
 
-		}`, false, 2, 3},
+		}`, false, 2, 3, 0},
+		{`erratic {
+			truncate 2
+			delay 3 1ms
+
+		}`, false, 0, 3, 2},
 		// fails
 		{`erratic {
 			drop -1
-		}`, true, 0, 0},
+		}`, true, 0, 0, 0},
 		{`erraric {
 			drop 3
 			delay 3 bla
-		}`, true, 0, 0},
+		}`, true, 0, 0, 0},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
@@ -68,9 +74,11 @@ func TestParseErratic(t *testing.T) {
 		if test.delay != e.delay {
 			t.Errorf("Test %v: Expected delay %d but found: %d", i, test.delay, e.delay)
 		}
-
 		if test.drop != e.drop {
 			t.Errorf("Test %v: Expected drop %d but found: %d", i, test.drop, e.drop)
+		}
+		if test.truncate != e.truncate {
+			t.Errorf("Test %v: Expected truncate %d but found: %d", i, test.truncate, e.truncate)
 		}
 	}
 }

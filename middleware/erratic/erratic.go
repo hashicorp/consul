@@ -18,6 +18,8 @@ type Erratic struct {
 	delay    uint64
 	duration time.Duration
 
+	truncate uint64
+
 	q uint64 // counter of queries
 }
 
@@ -26,25 +28,28 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	state := request.Request{W: w, Req: r}
 	drop := false
 	delay := false
+	trunc := false
 
 	queryNr := atomic.LoadUint64(&e.q)
 	atomic.AddUint64(&e.q, 1)
 
-	if e.drop > 0 {
-		if queryNr%e.drop == 0 {
-			drop = true
-		}
+	if e.drop > 0 && queryNr%e.drop == 0 {
+		drop = true
 	}
-	if e.delay > 0 {
-		if queryNr%e.delay == 0 {
-			delay = true
-		}
+	if e.delay > 0 && queryNr%e.delay == 0 {
+		delay = true
+	}
+	if e.truncate > 0 && queryNr&e.truncate == 0 {
+		trunc = true
 	}
 
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Compress = true
 	m.Authoritative = true
+	if trunc {
+		m.Truncated = true
+	}
 
 	// small dance to copy rrA or rrAAAA into a non-pointer var that allows us to overwrite the ownername
 	// in a non-racy way.
