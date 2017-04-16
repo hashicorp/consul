@@ -258,9 +258,6 @@ func (l *Lock) Unlock() error {
 		return ErrLockNotHeld
 	}
 
-	// Set that we no longer own the lock
-	l.isHeld = false
-
 	// Stop the session renew
 	if l.sessionRenew != nil {
 		defer func() {
@@ -279,6 +276,10 @@ func (l *Lock) Unlock() error {
 	if err != nil {
 		return fmt.Errorf("failed to release lock: %v", err)
 	}
+
+	// Set that we no longer own the lock
+	l.isHeld = false
+
 	return nil
 }
 
