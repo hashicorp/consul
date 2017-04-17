@@ -427,6 +427,11 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	if config.EnableUi && config.UiDir != "" {
+		c.Ui.Error("you must specify either EnableUi or UiDir but not both options.")
+		return nil
+	}
+
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
