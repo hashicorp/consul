@@ -54,6 +54,10 @@ func TestCatalog_Nodes(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", nodes[0])
 		}
 
+		if nodes[0].Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", nodes[0])
+		}
+
 		return true, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -90,6 +94,10 @@ func TestCatalog_Nodes_MetaFilter(t *testing.T) {
 
 		if v, ok := nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
 			return false, fmt.Errorf("Bad: %v", nodes[0].Meta)
+		}
+
+		if nodes[0].Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", nodes[0])
 		}
 
 		return true, nil
@@ -216,6 +224,10 @@ func TestCatalog_Service(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", services)
 		}
 
+		if services[0].Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", services[0])
+		}
+
 		return true, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -244,6 +256,10 @@ func TestCatalog_Service_NodeMetaFilter(t *testing.T) {
 
 		if len(services) == 0 {
 			return false, fmt.Errorf("Bad: %v", services)
+		}
+
+		if services[0].Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", services[0])
 		}
 
 		return true, nil
@@ -276,6 +292,10 @@ func TestCatalog_Node(t *testing.T) {
 
 		if _, ok := info.Node.TaggedAddresses["wan"]; !ok {
 			return false, fmt.Errorf("Bad: %v", info)
+		}
+
+		if info.Node.Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", info)
 		}
 
 		return true, nil
