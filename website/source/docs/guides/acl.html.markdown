@@ -109,7 +109,7 @@ marked as to whether they are set on servers, clients, or both.
 | -------------------- | ------- | ------- | ------- |
 | [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) | `REQUIRED` | `REQUIRED` | Master control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
 | [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) | `OPTIONAL` | `N/A` | Determines whitelist or blacklist mode |
-| [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) | `OPTIONAL` | `OPTIONAL` | Determines what to when the ACL datacenter is offline |
+| [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) | `OPTIONAL` | `OPTIONAL` | Determines what to do when the ACL datacenter is offline |
 | [`acl_ttl`](/docs/agent/options.html#acl_ttl) | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACLs |
 
 There are some additional configuration items related to [ACL replication](#replication) and
@@ -189,7 +189,7 @@ This is equivalent to the following JSON input:
     "foo/": {
       "policy": "write"
     },
-    "foo/private": {
+    "foo/private/": {
       "policy": "deny"
     }
   },
@@ -699,5 +699,5 @@ to the cluster), unless the [`acl_down_policy`](/docs/agent/options.html#acl_dow
 agent is set to "allow".
 
 Non-server agents do not need to have the
-[`acl_master_token`](/docs/agent/options.html#acl_agent_master_token) configured; it is not
+[`acl_master_token`](/docs/agent/options.html#acl_master_token) configured; it is not
 used by agents in any way.
