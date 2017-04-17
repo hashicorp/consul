@@ -28,7 +28,9 @@ func mustParse(t *testing.T, q string) *WatchPlan {
 
 func TestRun_Stop(t *testing.T) {
 	plan := mustParse(t, `{"type":"noop"}`)
+
 	var expect uint64 = 1
+	doneCh := make(chan struct{})
 	plan.Handler = func(idx uint64, val interface{}) {
 		if idx != expect {
 			t.Fatalf("Bad: %d %d", expect, idx)
@@ -36,16 +38,33 @@ func TestRun_Stop(t *testing.T) {
 		if val != expect {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
+		if expect == 1 {
+			close(doneCh)
+		}
 		expect++
 	}
 
-	time.AfterFunc(10*time.Millisecond, func() {
-		plan.Stop()
-	})
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- plan.Run("127.0.0.1:8500")
+	}()
 
-	err := plan.Run("127.0.0.1:8500")
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	select {
+	case <-doneCh:
+		plan.Stop()
+
+	case <-time.After(1 * time.Second):
+		t.Fatalf("handler never ran")
+	}
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watcher didn't exit")
 	}
 
 	if expect == 1 {
