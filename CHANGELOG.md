@@ -1,4 +1,4 @@
-## 0.8.1 (UNRELEASED)
+## 0.8.1 (April 17, 2017)
 
 FEATURES:
 
