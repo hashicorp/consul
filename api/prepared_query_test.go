@@ -117,6 +117,9 @@ func TestPreparedQuery(t *testing.T) {
 	if wan, ok := results.Nodes[0].Node.TaggedAddresses["wan"]; !ok || wan != "127.0.0.1" {
 		t.Fatalf("bad: %v", results)
 	}
+	if results.Nodes[0].Node.Datacenter != "dc1" {
+		t.Fatalf("bad datacenter: %v", results)
+	}
 
 	// Delete it.
 	_, err = query.Delete(def.ID, nil)
