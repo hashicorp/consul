@@ -7,6 +7,17 @@ GOTOOLS = \
 TEST ?= ./...
 GOTAGS ?= consul
 GOFILES ?= $(shell go list $(TEST) | grep -v /vendor/)
+GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
+
+# Get the git commit
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
+GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_DESCRIBE=$(shell git describe --tags --always)
+GIT_IMPORT=github.com/hashicorp/consul/version
+GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
+
+export GOLDFLAGS
 
 # all builds binaries for all targets
 all: bin
@@ -16,8 +27,11 @@ bin: tools
 	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: format
-	@CONSUL_DEV=1 GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+dev:
+	mkdir -p pkg/$(GOOS)_$(GOARCH)
+	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
+	cp $(GOPATH)/bin/consul bin
+	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:

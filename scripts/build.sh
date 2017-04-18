@@ -13,12 +13,6 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 # Change into that directory
 cd "$DIR"
 
-# Get the git commit
-GIT_COMMIT="$(git rev-parse --short HEAD)"
-GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
-GIT_DESCRIBE="$(git describe --tags --always)"
-GIT_IMPORT="github.com/hashicorp/consul/version"
-
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
@@ -41,7 +35,7 @@ echo "==> Building..."
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -osarch="!darwin/arm" \
-    -ldflags "-X ${GIT_IMPORT}.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X ${GIT_IMPORT}.GitDescribe='${GIT_DESCRIBE}'" \
+    -ldflags "${GOLDFLAGS}" \
     -output "pkg/{{.OS}}_{{.Arch}}/consul" \
     -tags="${GOTAGS}" \
     .
