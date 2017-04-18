@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
-	"strings"
 )
 
 type configCallback func(c *Config)
@@ -140,11 +140,11 @@ func TestDefaultConfig_env(t *testing.T) {
 
 		// Use keep alives as a check for whether pooling is on or off.
 		if pooled := i == 0; pooled {
-			if config.HttpClient.Transport.(*http.Transport).DisableKeepAlives != false {
+			if config.Transport.DisableKeepAlives != false {
 				t.Errorf("expected keep alives to be enabled")
 			}
 		} else {
-			if config.HttpClient.Transport.(*http.Transport).DisableKeepAlives != true {
+			if config.Transport.DisableKeepAlives != true {
 				t.Errorf("expected keep alives to be disabled")
 			}
 		}
