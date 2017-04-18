@@ -155,14 +155,18 @@
     &#features {
       .feature-icon {
         text-align: center;
+        clear: both;
       }
 
       h2, svg {
-        padding-top: 50px;
+        margin: 0;
+        padding: 0;
+        padding-top: 40px;
       }
 
       svg {
-        margin-top: 20px;
+        display: block;
+        margin: 0 auto;
       }
     }
 
