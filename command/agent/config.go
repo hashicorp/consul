@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flynn/json5"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -896,7 +896,7 @@ func (c *Config) GetTokenForAgent() string {
 func DecodeConfig(r io.Reader) (*Config, error) {
 	var raw interface{}
 	var result Config
-	dec := json.NewDecoder(r)
+	dec := json5.NewDecoder(r)
 	if err := dec.Decode(&raw); err != nil {
 		return nil, err
 	}
