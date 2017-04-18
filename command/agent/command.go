@@ -424,6 +424,13 @@ func (c *Command) readConfig() *Config {
 	// Verify the node metadata entries are valid
 	if err := structs.ValidateMetadata(config.Meta); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
+	}
+
+	// It doesn't make sense to include both UI options.
+	if config.EnableUi == true && config.UiDir != "" {
+		c.Ui.Error("Both the ui and ui-dir flags were specified, please provide only one")
+		c.Ui.Error("If trying to use your own web UI resources, use the ui-dir flag")
+		c.Ui.Error("If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
 		return nil
 	}
 
