@@ -7,18 +7,13 @@ import (
 	"sync/atomic"
 
 	"github.com/coredns/coredns/middleware"
+	_ "github.com/coredns/coredns/middleware/pkg/trace"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 
 	"golang.org/x/net/context"
 )
-
-// Trace holds the tracer and endpoint info
-type Trace interface {
-	middleware.Handler
-	Tracer() ot.Tracer
-}
 
 type trace struct {
 	Next            middleware.Handler

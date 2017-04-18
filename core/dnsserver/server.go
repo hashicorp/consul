@@ -13,9 +13,11 @@ import (
 	"github.com/coredns/coredns/middleware/metrics/vars"
 	"github.com/coredns/coredns/middleware/pkg/edns"
 	"github.com/coredns/coredns/middleware/pkg/rcode"
+	"github.com/coredns/coredns/middleware/pkg/trace"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
+	ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 )
 
@@ -33,6 +35,7 @@ type Server struct {
 	zones       map[string]*Config // zones keyed by their address
 	dnsWg       sync.WaitGroup     // used to wait on outstanding connections
 	connTimeout time.Duration      // the maximum duration of a graceful shutdown
+	trace       trace.Trace        // the trace middleware for the server
 }
 
 // NewServer returns a new CoreDNS server and compiles all middleware in to it.
@@ -59,6 +62,13 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		var stack middleware.Handler
 		for i := len(site.Middleware) - 1; i >= 0; i-- {
 			stack = site.Middleware[i](stack)
+			if s.trace == nil && stack.Name() == "trace" {
+				// we have to stash away the middleware, not the
+				// Tracer object, because the Tracer won't be initialized yet
+				if t, ok := stack.(trace.Trace); ok {
+					s.trace = t
+				}
+			}
 		}
 		site.middlewareChain = stack
 	}
@@ -240,6 +250,14 @@ func (s *Server) OnStartupComplete() {
 	for zone, config := range s.zones {
 		fmt.Println(zone + ":" + config.Port)
 	}
+}
+
+func (s *Server) Tracer() ot.Tracer {
+	if s.trace == nil {
+		return nil
+	}
+
+	return s.trace.Tracer()
 }
 
 // DefaultErrorFunc responds to an DNS request with an error.

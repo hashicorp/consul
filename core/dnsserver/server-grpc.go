@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/miekg/dns"
+	opentracing "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
@@ -30,10 +32,6 @@ func NewServergRPC(addr string, group []*Config) (*servergRPC, error) {
 		return nil, err
 	}
 	gs := &servergRPC{Server: s}
-	gs.grpcServer = grpc.NewServer()
-	// trace foo... TODO(miek)
-	pb.RegisterDnsServiceServer(gs.grpcServer, gs)
-
 	return gs, nil
 }
 
@@ -42,6 +40,18 @@ func (s *servergRPC) Serve(l net.Listener) error {
 	s.m.Lock()
 	s.listenAddr = l.Addr()
 	s.m.Unlock()
+
+	if s.Tracer() != nil {
+		onlyIfParent := func(parentSpanCtx opentracing.SpanContext, method string, req, resp interface{}) bool {
+			return parentSpanCtx != nil
+		}
+		intercept := otgrpc.OpenTracingServerInterceptor(s.Tracer(), otgrpc.IncludingSpans(onlyIfParent))
+		s.grpcServer = grpc.NewServer(grpc.UnaryInterceptor(intercept))
+	} else {
+		s.grpcServer = grpc.NewServer()
+	}
+
+	pb.RegisterDnsServiceServer(s.grpcServer, s)
 
 	return s.grpcServer.Serve(l)
 }
