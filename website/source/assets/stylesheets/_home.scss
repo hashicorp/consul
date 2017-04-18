@@ -188,7 +188,7 @@
     padding: 10px 20px 20px 20px;
 
     .terminal-content {
-      margin-top: 15px;
+      margin-top: 5px;
       overflow-x: scroll;
       width: 100%;
       white-space: nowrap;
@@ -210,8 +210,11 @@
       &:before {
         content: '\25CF';
         color: $white;
-        font-size: 20px;
+        font-family: $font-family-monospace;
+        font-size: 30px;
         line-height: 1;
+        margin: 0 0 0 -4px;
+        padding: 0;
         height: 100%;
       }
     }
