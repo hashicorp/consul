@@ -22,10 +22,22 @@ on Raft Protocol versions.
 ## Configuration
 
 The configuration of Autopilot is loaded by the leader from the agent's
-[`autopilot`](/docs/agent/options.html#autopilot) settings when initially
-bootstrapping the cluster. After bootstrapping, the configuration can
-be viewed or modified either via the [`operator autopilot`]
-(/docs/commands/operator/autopilot.html) subcommand or the
+[Autopilot settings](/docs/agent/options.html#autopilot) when initially
+bootstrapping the cluster:
+
+```
+{
+    "cleanup_dead_servers": true,
+    "last_contact_threshold": "200ms",
+    "max_trailing_logs": 250,
+    "server_stabilization_time": 10s,
+    "redundancy_zone_tag": "az",
+    "disable_upgrade_migration": false
+}
+```
+
+After bootstrapping, the configuration can be viewed or modified either via the
+[`operator autopilot`](/docs/commands/operator/autopilot.html) subcommand or the
 [`/v1/operator/autopilot/configuration`](/api/operator.html#autopilot-configuration)
 HTTP endpoint:
 
