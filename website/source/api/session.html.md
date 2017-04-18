@@ -8,7 +8,7 @@ description: |-
 
 # Session HTTP Endpoint
 
-The `/session` endpoints create, destroy, and query sessions in Cosul.
+The `/session` endpoints create, destroy, and query sessions in Consul.
 
 ## Create Session
 
