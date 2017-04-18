@@ -26,7 +26,8 @@ will be merged into configuration specified earlier. In most cases,
 "merge" means that the later version will override the earlier. In
 some cases, such as event handlers, merging appends the handlers to the
 existing configuration. The exact merging behavior is specified for each
-option below.
+option below.  Configuration files loaded from disk (not from API calls) are
+parsed as [JSON5](http://json5.org), a human-friendly extension to JSON.
 
 Consul also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
