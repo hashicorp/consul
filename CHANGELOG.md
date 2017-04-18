@@ -4,6 +4,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: Added an error at agent startup time if both `-ui` and `-ui-dir` are configured together. [GH-2576]
+
 BUG FIXES:
 
 ## 0.8.1 (April 17, 2017)
