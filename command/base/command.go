@@ -101,10 +101,10 @@ func (c *Command) httpFlagsClient(f *flag.FlagSet) *flag.FlagSet {
 		"Path to a directory of CA certificates to use for TLS when communicating "+
 			"with Consul. This can also be specified via the CONSUL_CAPATH environment variable.")
 	f.Var(&c.certFile, "client-cert",
-		"Path to a client cert file to use for TLS when `verify_incoming` is enabled. This "+
+		"Path to a client cert file to use for TLS when 'verify_incoming' is enabled. This "+
 			"can also be specified via the CONSUL_CLIENT_CERT environment variable.")
 	f.Var(&c.keyFile, "client-key",
-		"Path to a client key file to use for TLS when `verify_incoming` is enabled. This "+
+		"Path to a client key file to use for TLS when 'verify_incoming' is enabled. This "+
 			"can also be specified via the CONSUL_CLIENT_KEY environment variable.")
 	f.Var(&c.httpAddr, "http-addr",
 		"The `address` and port of the Consul HTTP agent. The value can be an IP "+
