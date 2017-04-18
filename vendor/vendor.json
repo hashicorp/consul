@@ -396,6 +396,12 @@
 			"revisionTime": "2016-08-03T19:23:04Z"
 		},
 		{
+			"checksumSHA1": "sSN95w+Dr+M4UtX0eXBveyc79Qs=",
+			"path": "github.com/flynn/json5",
+			"revision": "7620272ed63390e979cf5882d2fa0506fe2a8db5",
+			"revisionTime": "2016-07-17T19:56:20Z"
+		},
+		{
 			"checksumSHA1": "U+z+QQ323fAeBtBS17ztWmyVI3Q=",
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "a53ba79627e888ef775bdcf15813f07d7a232867",
