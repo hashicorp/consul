@@ -269,6 +269,9 @@ func TestHealth_Service(t *testing.T) {
 		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
 			return false, fmt.Errorf("Bad: %v", checks[0].Node)
 		}
+		if checks[0].Node.Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", checks[0].Node)
+		}
 		return true, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -298,6 +301,9 @@ func TestHealth_Service_NodeMetaFilter(t *testing.T) {
 		}
 		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
 			return false, fmt.Errorf("Bad: %v", checks[0].Node)
+		}
+		if checks[0].Node.Datacenter != "dc1" {
+			return false, fmt.Errorf("Bad datacenter: %v", checks[0].Node)
 		}
 		return true, nil
 	}); err != nil {
