@@ -110,6 +110,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:            "test",
 		Address:         "127.0.0.1",
+		Datacenter:      "dc1",
 		TaggedAddresses: make(map[string]string),
 		NodeMeta: map[string]string{
 			"role": "server",
@@ -120,6 +121,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 		ID:              types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:            "test",
 		Address:         "127.0.0.1",
+		Datacenter:      "dc1",
 		TaggedAddresses: make(map[string]string),
 		Meta: map[string]string{
 			"role": "server",
@@ -155,6 +157,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 	check(func() { req.ID = "nope" }, func() { req.ID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5") })
 	check(func() { req.Node = "nope" }, func() { req.Node = "test" })
 	check(func() { req.Address = "127.0.0.2" }, func() { req.Address = "127.0.0.1" })
+	check(func() { req.Datacenter = "dc2" }, func() { req.Datacenter = "dc1" })
 	check(func() { req.TaggedAddresses["wan"] = "nope" }, func() { delete(req.TaggedAddresses, "wan") })
 	check(func() { req.NodeMeta["invalid"] = "nope" }, func() { delete(req.NodeMeta, "invalid") })
 
@@ -166,9 +169,10 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{
-		ID:      types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
-		Node:    "node1",
-		Address: "127.0.0.1",
+		ID:         types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
+		Node:       "node1",
+		Address:    "127.0.0.1",
+		Datacenter: "dc1",
 		TaggedAddresses: map[string]string{
 			"hello": "world",
 		},
@@ -198,6 +202,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	// the rest of the contents.
 	if clone.ID != "" ||
 		clone.Address != "" ||
+		clone.Datacenter != "" ||
 		len(clone.TaggedAddresses) != 0 ||
 		len(clone.NodeMeta) != 0 {
 		t.Fatalf("bad: %v", clone)
@@ -205,6 +210,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 
 	sn.ID = ""
 	sn.Address = ""
+	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, clone) {
@@ -226,6 +232,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	// them out before we do the compare.
 	sn.ID = ""
 	sn.Address = ""
+	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, sn2) {

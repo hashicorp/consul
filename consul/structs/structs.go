@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/serf/coordinate"
-	"regexp"
-	"strings"
 )
 
 var (
@@ -235,6 +235,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	if r.ID != node.ID ||
 		r.Node != node.Node ||
 		r.Address != node.Address ||
+		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
 		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
 		return true
@@ -322,6 +323,7 @@ type Node struct {
 	ID              types.NodeID
 	Node            string
 	Address         string
+	Datacenter      string
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
@@ -387,6 +389,7 @@ type ServiceNode struct {
 	ID                       types.NodeID
 	Node                     string
 	Address                  string
+	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
 	ServiceID                string

@@ -89,6 +89,7 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *struc
 		ID:              req.ID,
 		Node:            req.Node,
 		Address:         req.Address,
+		Datacenter:      req.Datacenter,
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
 	}
@@ -684,6 +685,7 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, service
 		node := n.(*structs.Node)
 		s.ID = node.ID
 		s.Address = node.Address
+		s.Datacenter = node.Datacenter
 		s.TaggedAddresses = node.TaggedAddresses
 		s.NodeMeta = node.Meta
 
