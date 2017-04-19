@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
+	"fmt"
 )
 
 func TestOperator_Raft_ListPeers_Implements(t *testing.T) {
@@ -17,6 +18,10 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
+	expected := fmt.Sprintf(`Node    ID               Address          State   Voter  RaftProtocol
+%s  127.0.0.1:%d  127.0.0.1:%d  leader  true   2`,
+		a1.config.NodeName, a1.config.Ports.Server, a1.config.Ports.Server)
+
 	// Test the legacy mode with 'consul operator raft -list-peers'
 	{
 		ui, c := testOperatorRaftCommand(t)
@@ -27,8 +32,8 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
 		output := strings.TrimSpace(ui.OutputWriter.String())
-		if !strings.Contains(output, "leader") {
-			t.Fatalf("bad: %s", output)
+		if !strings.Contains(output, expected) {
+			t.Fatalf("bad: %q, %q", output, expected)
 		}
 	}
 
@@ -48,8 +53,8 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 			t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 		}
 		output := strings.TrimSpace(ui.OutputWriter.String())
-		if !strings.Contains(output, "leader") {
-			t.Fatalf("bad: %s", output)
+		if !strings.Contains(output, expected) {
+			t.Fatalf("bad: %q, %q", output, expected)
 		}
 	}
 }
