@@ -14,6 +14,57 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
+func TestTxn_CheckNotExists(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	apply := func(arg *structs.TxnRequest) (*structs.TxnResponse, error) {
+		out := new(structs.TxnResponse)
+		err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", arg, out)
+		return out, err
+	}
+
+	checkKeyNotExists := &structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				KV: &structs.TxnKVOp{
+					Verb:   api.KVCheckNotExists,
+					DirEnt: structs.DirEntry{Key: "test"},
+				},
+			},
+		},
+	}
+
+	createKey := &structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				KV: &structs.TxnKVOp{
+					Verb:   api.KVSet,
+					DirEnt: structs.DirEntry{Key: "test"},
+				},
+			},
+		},
+	}
+
+	if _, err := apply(checkKeyNotExists); err != nil {
+		t.Fatalf("testing for non-existent key failed: %s", err)
+	}
+	if _, err := apply(createKey); err != nil {
+		t.Fatalf("creating new key failed: %s", err)
+	}
+	out, err := apply(checkKeyNotExists)
+	if err != nil || out == nil || len(out.Errors) != 1 || out.Errors[0].Error() != `op 0: key "test" exists` {
+		t.Fatalf("testing for existent key failed: %#v", out)
+	}
+}
+
 func TestTxn_Apply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
