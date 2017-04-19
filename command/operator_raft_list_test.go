@@ -1,12 +1,12 @@
 package command
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
-	"fmt"
 )
 
 func TestOperator_Raft_ListPeers_Implements(t *testing.T) {
@@ -18,8 +18,7 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	expected := fmt.Sprintf(`Node    ID               Address          State   Voter  RaftProtocol
-%s  127.0.0.1:%d  127.0.0.1:%d  leader  true   2`,
+	expected := fmt.Sprintf("%s  127.0.0.1:%d  127.0.0.1:%d  leader  true   2",
 		a1.config.NodeName, a1.config.Ports.Server, a1.config.Ports.Server)
 
 	// Test the legacy mode with 'consul operator raft -list-peers'

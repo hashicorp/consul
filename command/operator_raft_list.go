@@ -89,6 +89,9 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 	result := []string{"Node|ID|Address|State|Voter|RaftProtocol"}
 	for _, s := range reply.Servers {
 		raftProtocol := raftProtocols[s.Node]
+		if raftProtocol == "" {
+			raftProtocol = "<=1"
+		}
 		state := "follower"
 		if s.Leader {
 			state = "leader"
