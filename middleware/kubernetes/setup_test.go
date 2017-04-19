@@ -27,6 +27,7 @@ func TestKubernetesParse(t *testing.T) {
 		expectedLabelSelector string        // expected label selector value
 		expectedPodMode       string
 		expectedCidrs         []net.IPNet
+		expectedFallthrough   bool
 	}{
 		// positive
 		{
@@ -40,6 +41,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -52,6 +54,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -65,6 +68,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"endpoint keyword with url",
@@ -79,6 +83,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -93,6 +98,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"namespaces keyword with multiple namespaces",
@@ -107,6 +113,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"resync period in seconds",
@@ -121,6 +128,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"resync period in minutes",
@@ -135,6 +143,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"basic label selector",
@@ -149,6 +158,7 @@ func TestKubernetesParse(t *testing.T) {
 			"environment=prod",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"multi-label selector",
@@ -163,6 +173,7 @@ func TestKubernetesParse(t *testing.T) {
 			"application=nginx,environment in (production,qa,staging)",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"fully specified valid config",
@@ -171,6 +182,7 @@ func TestKubernetesParse(t *testing.T) {
 	endpoint http://localhost:8080
 	namespaces demo test
     labels environment in (production, staging, qa),application=nginx
+    fallthrough
 }`,
 			false,
 			"",
@@ -180,6 +192,7 @@ func TestKubernetesParse(t *testing.T) {
 			"application=nginx,environment in (production,qa,staging)",
 			defaultPodMode,
 			nil,
+			true,
 		},
 		// negative
 		{
@@ -193,6 +206,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -205,6 +219,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -219,6 +234,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -233,6 +249,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"resyncperiod keyword without a duration value",
@@ -247,6 +264,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"resync period no units",
@@ -261,6 +279,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"resync period invalid",
@@ -275,6 +294,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"labels with no selector value",
@@ -289,6 +309,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		{
 			"labels with invalid selector value",
@@ -303,6 +324,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
 		},
 		// pods disabled
 		{
@@ -318,6 +340,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			PodModeDisabled,
 			nil,
+			false,
 		},
 		// pods insecure
 		{
@@ -333,6 +356,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			PodModeInsecure,
 			nil,
+			false,
 		},
 		// pods verified
 		{
@@ -348,6 +372,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			PodModeVerified,
 			nil,
+			false,
 		},
 		// pods invalid
 		{
@@ -363,6 +388,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			PodModeVerified,
 			nil,
+			false,
 		},
 		// cidrs ok
 		{
@@ -378,6 +404,7 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			[]net.IPNet{parseCidr("10.0.0.0/24"), parseCidr("10.0.1.0/24")},
+			false,
 		},
 		// cidrs ok
 		{
@@ -393,6 +420,23 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			defaultPodMode,
 			nil,
+			false,
+		},
+		// fallthrough invalid
+		{
+			"Extra params for fallthrough",
+			`kubernetes coredns.local {
+	fallthrough junk
+}`,
+			true,
+			"Wrong argument count",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			defaultPodMode,
+			nil,
+			false,
 		},
 	}
 
@@ -465,6 +509,11 @@ func TestKubernetesParse(t *testing.T) {
 			if cidr.String() != foundCidrs[j].String() {
 				t.Errorf("Test %d: Expected kubernetes controller to be initialized with cidr '%s'. Instead found cidr '%s' for input '%s'", i, test.expectedCidrs[j].String(), foundCidrs[j].String(), test.input)
 			}
+		}
+		// fallthrough
+		foundFallthrough := k8sController.Fallthrough
+		if foundFallthrough != test.expectedFallthrough {
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, foundFallthrough, test.input)
 		}
 
 	}

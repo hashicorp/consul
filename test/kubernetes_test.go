@@ -3,6 +3,7 @@
 package test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -372,6 +373,23 @@ var dnsTestCasesAllNSExposed = []test.Case{
 	},
 }
 
+var dnsTestCasesFallthrough = []test.Case{
+	{
+		Qname: "f.b.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("f.b.svc.cluster.local.      303    IN      A       10.10.10.11"),
+		},
+	},
+	{
+		Qname: "foo.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("foo.cluster.local.      303    IN      A       10.10.10.10"),
+		},
+	},
+}
+
 func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
@@ -424,9 +442,6 @@ func TestKubernetesIntegration(t *testing.T) {
 		`.:0 {
     kubernetes cluster.local 0.0.10.in-addr.arpa {
                 endpoint http://localhost:8080
-		#endpoint https://kubernetes/ 
-		#tls admin.pem admin-key.pem ca.pem
-		#tls k8s_auth/client2.crt k8s_auth/client2.key k8s_auth/ca2.crt
 		namespaces test-1
 		pods disabled
     }
@@ -501,3 +516,41 @@ func TestKubernetesIntegrationAllNSExposed(t *testing.T) {
 `
 	doIntegrationTests(t, corefile, dnsTestCasesAllNSExposed)
 }
+
+func TestKubernetesIntegrationFallthrough(t *testing.T) {
+	dbfile, rmFunc, err := TempFile(os.TempDir(), clusterLocal)
+	if err != nil {
+		t.Fatalf("Could not create TempFile for fallthrough: %s", err)
+	}
+	defer rmFunc()
+	corefile :=
+		`.:0 {
+    file ` + dbfile + ` cluster.local
+    kubernetes cluster.local {
+                endpoint http://localhost:8080
+		cidrs 10.0.0.0/24
+		namespaces test-1
+		fallthrough
+    }
+    erratic {
+	drop 0
+    }
+`
+	cases := append(dnsTestCases, dnsTestCasesFallthrough...)
+	doIntegrationTests(t, corefile, cases)
+}
+
+const clusterLocal = `; cluster.local test file for fallthrough
+cluster.local.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
+cluster.local.		IN	NS	b.iana-servers.net.
+cluster.local.		IN	NS	a.iana-servers.net.
+cluster.local.		IN	A	127.0.0.1
+cluster.local.		IN	A	127.0.0.2
+foo.cluster.local.      IN      A	10.10.10.10
+f.b.svc.cluster.local.  IN      A	10.10.10.11
+*.w.cluster.local.      IN      TXT     "Wildcard"
+a.b.svc.cluster.local.  IN      TXT     "Not a wildcard"
+cname.cluster.local.    IN      CNAME   www.example.net.
+
+service.namespace.svc.cluster.local.    IN      SRV     8080 10 10 cluster.local.
+`

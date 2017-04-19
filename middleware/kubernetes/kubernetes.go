@@ -43,6 +43,7 @@ type Kubernetes struct {
 	Selector      *labels.Selector
 	PodMode       string
 	ReverseCidrs  []net.IPNet
+	Fallthrough   bool
 }
 
 const (

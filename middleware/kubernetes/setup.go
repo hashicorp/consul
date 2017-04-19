@@ -155,6 +155,13 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						continue
 					}
 					return nil, c.ArgErr()
+				case "fallthrough":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						k8s.Fallthrough = true
+						continue
+					}
+					return nil, c.ArgErr()
 				}
 			}
 			return k8s, nil
