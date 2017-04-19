@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -17,7 +17,7 @@ func TestInitializeSessionTimers(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	state := s1.fsm.State()
 	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
@@ -50,7 +50,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Should not exist
 	err := s1.resetSessionTimer(generateUUID(), nil)
@@ -90,7 +90,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a session
 	state := s1.fsm.State()
@@ -143,7 +143,7 @@ func TestResetSessionTimerLocked(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
@@ -165,7 +165,7 @@ func TestResetSessionTimerLocked_Renew(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
@@ -205,7 +205,7 @@ func TestInvalidateSession(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a session
 	state := s1.fsm.State()
@@ -298,7 +298,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		peers, _ := s1.numPeers()
 		return peers == 3, nil
 	}); err != nil {
@@ -363,7 +363,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	// Find the new leader
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {

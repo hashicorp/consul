@@ -6,7 +6,6 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/consul/structs"
 )
 
 var consulAddr string
@@ -300,7 +299,7 @@ func TestChecksWatch_State(t *testing.T) {
 				Node:    "foobar",
 				CheckID: "foobar",
 				Name:    "foobar",
-				Status:  structs.HealthWarning,
+				Status:  consulapi.HealthWarning,
 			},
 		}
 		catalog.Register(reg, nil)
@@ -364,7 +363,7 @@ func TestChecksWatch_Service(t *testing.T) {
 				Node:      "foobar",
 				CheckID:   "foobar",
 				Name:      "foobar",
-				Status:    structs.HealthPassing,
+				Status:    consulapi.HealthPassing,
 				ServiceID: "foobar",
 			},
 		}

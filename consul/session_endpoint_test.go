@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -19,7 +19,7 @@ func TestSession_Apply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -78,7 +78,7 @@ func TestSession_DeleteApply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -146,7 +146,7 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -235,7 +235,7 @@ func TestSession_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	arg := structs.SessionRequest{
@@ -278,7 +278,7 @@ func TestSession_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	ids := []string{}
@@ -334,7 +334,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -497,7 +497,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	arg := structs.SessionRequest{
@@ -538,7 +538,7 @@ func TestSession_Renew(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	TTL := "10s" // the minimum allowed ttl
 	ttl := 10 * time.Second
 
@@ -703,7 +703,7 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -776,7 +776,7 @@ func TestSession_NodeSessions(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "bar", Address: "127.0.0.1"})
@@ -834,7 +834,7 @@ func TestSession_Apply_BadTTL(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",

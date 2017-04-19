@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/agent"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -33,7 +33,7 @@ func TestStatsFetcher(t *testing.T) {
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	members := s1.serfLAN.Members()
 	if len(members) != 3 {

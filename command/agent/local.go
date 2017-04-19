@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
@@ -261,7 +262,7 @@ func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
 
 	// Update the critical time tracking (this doesn't cause a server updates
 	// so we can always keep this up to date).
-	if status == structs.HealthCritical {
+	if status == api.HealthCritical {
 		_, wasCritical := l.checkCriticalTime[checkID]
 		if !wasCritical {
 			l.checkCriticalTime[checkID] = time.Now()

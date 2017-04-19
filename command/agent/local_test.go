@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -18,7 +19,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -183,7 +184,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		return true, nil
 	}
 
-	if err := testutil.WaitForResult(verifyServices); err != nil {
+	if err := testrpc.WaitForResult(verifyServices); err != nil {
 		t.Fatal(err)
 	}
 
@@ -246,7 +247,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		return true, nil
 	}
 
-	if err := testutil.WaitForResult(verifyServicesAfterRemove); err != nil {
+	if err := testrpc.WaitForResult(verifyServicesAfterRemove); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -257,7 +258,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -350,7 +351,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		return true, nil
 	}
 
-	if err := testutil.WaitForResult(verifyServices); err != nil {
+	if err := testrpc.WaitForResult(verifyServices); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -361,7 +362,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	{
 		// Single check
@@ -378,7 +379,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			CheckID:   "mysql",
 			Name:      "mysql",
 			ServiceID: "mysql",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 		}
 		agent.state.AddCheck(chk, "")
 
@@ -429,7 +430,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			CheckID:   "redis:1",
 			Name:      "redis:1",
 			ServiceID: "redis",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 		}
 		agent.state.AddCheck(chk1, "")
 
@@ -438,7 +439,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			CheckID:   "redis:2",
 			Name:      "redis:2",
 			ServiceID: "redis",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 		}
 		agent.state.AddCheck(chk2, "")
 
@@ -499,7 +500,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -656,7 +657,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -671,7 +672,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Node:    agent.config.NodeName,
 		CheckID: "mysql",
 		Name:    "mysql",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	agent.state.AddCheck(chk1, "")
 	args.Check = chk1
@@ -684,13 +685,13 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Node:    agent.config.NodeName,
 		CheckID: "redis",
 		Name:    "redis",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	agent.state.AddCheck(chk2, "")
 
 	chk2_mod := new(structs.HealthCheck)
 	*chk2_mod = *chk2
-	chk2_mod.Status = structs.HealthCritical
+	chk2_mod.Status = api.HealthCritical
 	args.Check = chk2_mod
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -701,7 +702,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Node:    agent.config.NodeName,
 		CheckID: "web",
 		Name:    "web",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	agent.state.AddCheck(chk3, "")
 
@@ -710,7 +711,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Node:    agent.config.NodeName,
 		CheckID: "lb",
 		Name:    "lb",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	args.Check = chk4
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -722,7 +723,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Node:    agent.config.NodeName,
 		CheckID: "cache",
 		Name:    "cache",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	agent.state.AddCheck(chk5, "")
 	agent.state.checkStatus["cache"] = syncStatus{inSync: true}
@@ -737,7 +738,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	var checks structs.IndexedHealthChecks
 
 	// Verify that we are in sync
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -819,7 +820,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	agent.StartSync()
 
 	// Verify that we are in sync
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -880,7 +881,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -979,7 +980,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		ServiceName: "mysql",
 		CheckID:     "mysql-check",
 		Name:        "mysql",
-		Status:      structs.HealthPassing,
+		Status:      api.HealthPassing,
 	}
 	agent.state.AddCheck(chk1, token)
 
@@ -990,7 +991,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		ServiceName: "api",
 		CheckID:     "api-check",
 		Name:        "api",
-		Status:      structs.HealthPassing,
+		Status:      api.HealthPassing,
 	}
 	agent.state.AddCheck(chk2, token)
 
@@ -999,7 +1000,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       agent.config.NodeName,
@@ -1057,7 +1058,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       agent.config.NodeName,
@@ -1120,14 +1121,14 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Create a check
 	check := &structs.HealthCheck{
 		Node:    agent.config.NodeName,
 		CheckID: "web",
 		Name:    "web",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 		Output:  "",
 	}
 	agent.state.AddCheck(check, "")
@@ -1142,7 +1143,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 	var checks structs.IndexedHealthChecks
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -1158,7 +1159,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Update the check output! Should be deferred
-	agent.state.UpdateCheck("web", structs.HealthPassing, "output")
+	agent.state.UpdateCheck("web", api.HealthPassing, "output")
 
 	// Should not update for 500 milliseconds
 	time.Sleep(250 * time.Millisecond)
@@ -1177,7 +1178,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Wait for a deferred update
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, err
 		}
@@ -1262,7 +1263,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Now make an update that should be deferred.
-	agent.state.UpdateCheck("web", structs.HealthPassing, "deferred")
+	agent.state.UpdateCheck("web", api.HealthPassing, "deferred")
 
 	// Trigger anti-entropy run and wait.
 	agent.StartSync()
@@ -1283,7 +1284,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Wait for the deferred update.
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			return false, err
 		}
@@ -1312,7 +1313,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -1335,7 +1336,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	var services structs.IndexedNodeServices
 
 	// Wait for the sync
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -1365,7 +1366,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 	// Wait for the sync - this should have been a sync of just the
 	// node info
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -1462,7 +1463,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 		CheckID:   checkID,
 		Name:      "redis:1",
 		ServiceID: "redis",
-		Status:    structs.HealthPassing,
+		Status:    api.HealthPassing,
 	}
 	l.AddCheck(chk, "")
 	if checks := l.CriticalChecks(); len(checks) > 0 {
@@ -1470,13 +1471,13 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	}
 
 	// Set it to warning and make sure that doesn't show up as critical.
-	l.UpdateCheck(checkID, structs.HealthWarning, "")
+	l.UpdateCheck(checkID, api.HealthWarning, "")
 	if checks := l.CriticalChecks(); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks reasonable.
-	l.UpdateCheck(checkID, structs.HealthCritical, "")
+	l.UpdateCheck(checkID, api.HealthCritical, "")
 	if crit, ok := l.CriticalChecks()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if crit.CriticalFor > time.Millisecond {
@@ -1486,7 +1487,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	// Wait a while, then fail it again and make sure the time keeps track
 	// of the initial failure, and doesn't reset here.
 	time.Sleep(10 * time.Millisecond)
-	l.UpdateCheck(chk.CheckID, structs.HealthCritical, "")
+	l.UpdateCheck(chk.CheckID, api.HealthCritical, "")
 	if crit, ok := l.CriticalChecks()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if crit.CriticalFor < 5*time.Millisecond ||
@@ -1495,14 +1496,14 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	}
 
 	// Set it passing again.
-	l.UpdateCheck(checkID, structs.HealthPassing, "")
+	l.UpdateCheck(checkID, api.HealthPassing, "")
 	if checks := l.CriticalChecks(); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks like it started again
 	// from the latest failure, not the original one.
-	l.UpdateCheck(checkID, structs.HealthCritical, "")
+	l.UpdateCheck(checkID, api.HealthCritical, "")
 	if crit, ok := l.CriticalChecks()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if crit.CriticalFor > time.Millisecond {
@@ -1553,14 +1554,14 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Make sure the coordinate is present.
 	req := structs.DCSpecificRequest{
 		Datacenter: agent.config.Datacenter,
 	}
 	var reply structs.IndexedCoordinates
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
 			return false, fmt.Errorf("err: %s", err)
 		}

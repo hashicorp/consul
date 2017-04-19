@@ -11,7 +11,7 @@ import (
 
 	rawacl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 )
@@ -53,7 +53,7 @@ func TestACL_Version8(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -79,7 +79,7 @@ func TestACL_Disabled(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -135,7 +135,7 @@ func TestACL_Special_IDs(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -190,7 +190,7 @@ func TestACL_Down_Deny(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -222,7 +222,7 @@ func TestACL_Down_Allow(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -254,7 +254,7 @@ func TestACL_Down_Extend(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -333,7 +333,7 @@ func TestACL_Cache(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -517,7 +517,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -565,7 +565,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -603,7 +603,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -688,7 +688,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -746,7 +746,7 @@ func TestACL_filterMembers(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -784,7 +784,7 @@ func TestACL_filterServices(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {
@@ -817,7 +817,7 @@ func TestACL_filterChecks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	m := MockServer{catalogPolicy}
 	if err := agent.InjectEndpoint("ACL", &m); err != nil {

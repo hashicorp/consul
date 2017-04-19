@@ -12,8 +12,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -73,7 +74,7 @@ func TestUiNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -117,7 +118,7 @@ func TestUiNodeInfo(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("/v1/internal/ui/node/%s", srv.agent.config.NodeName), nil)
@@ -187,15 +188,15 @@ func TestSummarizeServices(t *testing.T) {
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
-					Status:      structs.HealthPassing,
+					Status:      api.HealthPassing,
 					ServiceName: "",
 				},
 				&structs.HealthCheck{
-					Status:      structs.HealthPassing,
+					Status:      api.HealthPassing,
 					ServiceName: "web",
 				},
 				&structs.HealthCheck{
-					Status:      structs.HealthWarning,
+					Status:      api.HealthWarning,
 					ServiceName: "api",
 				},
 			},
@@ -210,7 +211,7 @@ func TestSummarizeServices(t *testing.T) {
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
-					Status:      structs.HealthCritical,
+					Status:      api.HealthCritical,
 					ServiceName: "web",
 				},
 			},

@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -13,24 +14,24 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 	var err error
 
 	switch op.Verb {
-	case structs.KVSSet:
+	case api.KVSet:
 		entry = &op.DirEnt
 		err = s.kvsSetTxn(tx, idx, entry, false)
 
-	case structs.KVSDelete:
+	case api.KVDelete:
 		err = s.kvsDeleteTxn(tx, idx, op.DirEnt.Key)
 
-	case structs.KVSDeleteCAS:
+	case api.KVDeleteCAS:
 		var ok bool
 		ok, err = s.kvsDeleteCASTxn(tx, idx, op.DirEnt.ModifyIndex, op.DirEnt.Key)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete key %q, index is stale", op.DirEnt.Key)
 		}
 
-	case structs.KVSDeleteTree:
+	case api.KVDeleteTree:
 		err = s.kvsDeleteTreeTxn(tx, idx, op.DirEnt.Key)
 
-	case structs.KVSCAS:
+	case api.KVCAS:
 		var ok bool
 		entry = &op.DirEnt
 		ok, err = s.kvsSetCASTxn(tx, idx, entry)
@@ -38,7 +39,7 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 			err = fmt.Errorf("failed to set key %q, index is stale", op.DirEnt.Key)
 		}
 
-	case structs.KVSLock:
+	case api.KVLock:
 		var ok bool
 		entry = &op.DirEnt
 		ok, err = s.kvsLockTxn(tx, idx, entry)
@@ -46,7 +47,7 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 			err = fmt.Errorf("failed to lock key %q, lock is already held", op.DirEnt.Key)
 		}
 
-	case structs.KVSUnlock:
+	case api.KVUnlock:
 		var ok bool
 		entry = &op.DirEnt
 		ok, err = s.kvsUnlockTxn(tx, idx, entry)
@@ -54,13 +55,13 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 			err = fmt.Errorf("failed to unlock key %q, lock isn't held, or is held by another session", op.DirEnt.Key)
 		}
 
-	case structs.KVSGet:
+	case api.KVGet:
 		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
-	case structs.KVSGetTree:
+	case api.KVGetTree:
 		var entries structs.DirEntries
 		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key)
 		if err == nil {
@@ -72,10 +73,10 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 			return results, nil
 		}
 
-	case structs.KVSCheckSession:
+	case api.KVCheckSession:
 		entry, err = s.kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session)
 
-	case structs.KVSCheckIndex:
+	case api.KVCheckIndex:
 		entry, err = s.kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex)
 
 	default:
@@ -89,7 +90,7 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 	// value (we have to clone so we don't modify the entry being used by
 	// the state store).
 	if entry != nil {
-		if op.Verb == structs.KVSGet {
+		if op.Verb == api.KVGet {
 			result := structs.TxnResult{KV: entry}
 			return structs.TxnResults{&result}, nil
 		}

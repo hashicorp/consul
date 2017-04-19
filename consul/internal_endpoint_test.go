@@ -6,9 +6,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -19,7 +20,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -32,7 +33,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -60,7 +61,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if !lib.StrContains(nodes[0].Services[0].Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[0].Status != structs.HealthPassing {
+	if nodes[0].Checks[0].Status != api.HealthPassing {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 }
@@ -72,7 +73,7 @@ func TestInternal_NodeDump(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -85,7 +86,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -105,7 +106,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthWarning,
+			Status:    api.HealthWarning,
 			ServiceID: "db",
 		},
 	}
@@ -134,7 +135,7 @@ func TestInternal_NodeDump(t *testing.T) {
 			if !lib.StrContains(node.Services[0].Tags, "master") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
-			if node.Checks[0].Status != structs.HealthPassing {
+			if node.Checks[0].Status != api.HealthPassing {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 
@@ -143,7 +144,7 @@ func TestInternal_NodeDump(t *testing.T) {
 			if !lib.StrContains(node.Services[0].Tags, "slave") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
-			if node.Checks[0].Status != structs.HealthWarning {
+			if node.Checks[0].Status != api.HealthWarning {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 
@@ -171,7 +172,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	var out structs.KeyringResponses
 	req := structs.KeyringRequest{
@@ -354,7 +355,7 @@ func TestInternal_EventFire_Token(t *testing.T) {
 	codec := rpcClient(t, srv)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, srv.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.RPC, "dc1")
 
 	// No token is rejected
 	event := structs.EventFireRequest{

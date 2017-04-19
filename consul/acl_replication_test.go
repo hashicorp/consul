@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -228,7 +228,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testutil.WaitForLeader(t, s1.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
 	changes := structs.ACLRequests{
 		&structs.ACLRequest{
@@ -342,8 +342,8 @@ func TestACLReplication(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	testutil.WaitForLeader(t, s1.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
 	// Create a bunch of new tokens.
 	var id string
@@ -395,7 +395,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	if err := testutil.WaitForResult(checkSame); err != nil {
+	if err := testrpc.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
 	}
 
@@ -418,7 +418,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	if err := testutil.WaitForResult(checkSame); err != nil {
+	if err := testrpc.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
 	}
 
@@ -437,7 +437,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	if err := testutil.WaitForResult(checkSame); err != nil {
+	if err := testrpc.WaitForResult(checkSame); err != nil {
 		t.Fatalf("ACLs didn't converge")
 	}
 }

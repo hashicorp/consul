@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
@@ -34,11 +35,11 @@ func TestLeader_RegisterMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Client should be registered
 	state := s1.fsm.State()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -62,7 +63,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	if checks[0].Name != SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Status != structs.HealthPassing {
+	if checks[0].Status != api.HealthPassing {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 
@@ -99,7 +100,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -113,7 +114,7 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	// Should be registered
 	state := s1.fsm.State()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -138,12 +139,12 @@ func TestLeader_FailedMember(t *testing.T) {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
+		return checks[0].Status == api.HealthCritical, errors.New(checks[0].Status)
 	}); err != nil {
 		t.Fatalf("check status is %v, should be critical", err)
 	}
@@ -173,7 +174,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	state := s1.fsm.State()
 
 	// Should be registered
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -188,7 +189,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	c1.Shutdown()
 
 	// Should be deregistered
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -223,7 +224,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	state := s1.fsm.State()
 
 	// Should be registered
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -273,7 +274,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Register a non-existing member
 	dead := structs.RegisterRequest{
@@ -284,7 +285,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 			Node:    "no-longer-around",
 			CheckID: SerfCheckID,
 			Name:    SerfCheckName,
-			Status:  structs.HealthCritical,
+			Status:  api.HealthCritical,
 		},
 		WriteRequest: structs.WriteRequest{
 			Token: "root",
@@ -343,7 +344,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	// Should be registered
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err = state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -359,7 +360,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, c1 := testClient(t)
 	defer os.RemoveAll(dir2)
@@ -374,7 +375,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Wait for the server to reconcile the client and register it.
 	state := s1.fsm.State()
 	var nodeAddr string
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -402,7 +403,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 			Node:    c1.config.NodeName,
 			CheckID: SerfCheckID,
 			Name:    SerfCheckName,
-			Status:  structs.HealthCritical,
+			Status:  api.HealthCritical,
 			Output:  "",
 		},
 	}
@@ -428,12 +429,12 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
+		return checks[0].Status == api.HealthCritical, errors.New(checks[0].Status)
 	}); err != nil {
 		t.Fatalf("check status should be critical: %v", err)
 	}
@@ -476,7 +477,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -484,7 +485,7 @@ func TestLeader_LeftServer(t *testing.T) {
 		}
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		// Kill any server
 		servers[0].Shutdown()
 
@@ -529,7 +530,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -558,7 +559,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 			continue
 		}
 		remain = s
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
 		}); err != nil {
@@ -568,7 +569,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		_, node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -598,7 +599,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers := s.serfLAN.Members()
 			return len(peers) == 2, nil
 		}); err != nil {
@@ -640,7 +641,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -670,7 +671,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	// Wait for a new leader
 	leader = nil
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		for _, s := range servers {
 			if s.IsLeader() {
 				leader = s
@@ -683,7 +684,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	}
 
 	// Check that the new leader has a pending GC expiration
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return leader.tombstoneGC.PendingExpiration(), nil
 	}); err != nil {
 		t.Fatal("should have pending expiration")
@@ -702,12 +703,12 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a KV entry
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   "test",
 			Value: []byte("test"),
@@ -722,7 +723,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	}
 
 	// Delete the KV entry (tombstoned).
-	arg.Op = structs.KVSDelete
+	arg.Op = api.KVDelete
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -746,7 +747,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Check that the new leader has a pending GC expiration by
 	// watching for the tombstone to get removed.
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
@@ -792,7 +793,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -804,7 +805,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	s2.Shutdown()
 
 	for _, s := range []*Server{s1, s3} {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			minVer, err := ServerMinRaftProtocol(s.LANMembers())
 			return minVer == 2, err
 		}); err != nil {
@@ -827,7 +828,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			addrs := 0
 			ids := 0
 			future := s.raft.GetConfiguration()
@@ -880,7 +881,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -891,7 +892,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -922,7 +923,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {

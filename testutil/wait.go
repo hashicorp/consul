@@ -2,10 +2,8 @@ package testutil
 
 import (
 	"fmt"
-	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/consul/structs"
 	"github.com/pkg/errors"
 )
 
@@ -38,29 +36,4 @@ func WaitForResult(try testFn) error {
 	} else {
 		return fmt.Errorf("timed out")
 	}
-}
-
-type rpcFn func(string, interface{}, interface{}) error
-
-func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
-	var out structs.IndexedNodes
-	if err := WaitForResult(func() (bool, error) {
-		// Ensure we have a leader and a node registration.
-		args := &structs.DCSpecificRequest{
-			Datacenter: dc,
-		}
-		if err := rpc("Catalog.ListNodes", args, &out); err != nil {
-			return false, fmt.Errorf("Catalog.ListNodes failed: %v", err)
-		}
-		if !out.QueryMeta.KnownLeader {
-			return false, fmt.Errorf("No leader")
-		}
-		if out.Index == 0 {
-			return false, fmt.Errorf("Consul index is 0")
-		}
-		return true, nil
-	}); err != nil {
-		t.Fatalf("failed to find leader: %v", err)
-	}
-	return out
 }

@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -18,11 +19,11 @@ func TestKVS_Apply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   "test",
 			Flags: 42,
@@ -45,7 +46,7 @@ func TestKVS_Apply(t *testing.T) {
 	}
 
 	// Do a check and set
-	arg.Op = structs.KVSCAS
+	arg.Op = api.KVCAS
 	arg.DirEnt.ModifyIndex = d.ModifyIndex
 	arg.DirEnt.Flags = 43
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
@@ -78,7 +79,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -100,7 +101,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	// Try a write
 	argR := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   "foo/bar",
 			Flags: 42,
@@ -117,7 +118,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	// Try a recursive delete
 	argR = structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSDeleteTree,
+		Op:         api.KVDeleteTree,
 		DirEnt: structs.DirEntry{
 			Key: "test",
 		},
@@ -136,11 +137,11 @@ func TestKVS_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   "test",
 			Flags: 42,
@@ -187,11 +188,11 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   "zip",
 			Flags: 42,
@@ -228,7 +229,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -239,7 +240,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 	for _, key := range keys {
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   key,
 				Flags: 1,
@@ -299,7 +300,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -310,7 +311,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	for _, key := range keys {
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   key,
 				Flags: 1,
@@ -343,7 +344,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 		defer codec.Close()
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSDelete,
+			Op:         api.KVDelete,
 			DirEnt: structs.DirEntry{
 				Key: "/test/sub/key3",
 			},
@@ -398,7 +399,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -411,7 +412,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	for _, key := range keys {
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   key,
 				Flags: 1,
@@ -478,7 +479,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -489,7 +490,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	for _, key := range keys {
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   key,
 				Flags: 1,
@@ -551,7 +552,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -564,7 +565,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	for _, key := range keys {
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   key,
 				Flags: 1,
@@ -625,7 +626,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
@@ -661,7 +662,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	// Make a lock request.
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
-		Op:         structs.KVSLock,
+		Op:         api.KVLock,
 		DirEnt: structs.DirEntry{
 			Key:     "test",
 			Session: validId,
@@ -694,13 +695,13 @@ func TestKVS_Issue_1626(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Set up the first key.
 	{
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   "foo/test",
 				Value: []byte("test"),
@@ -763,7 +764,7 @@ func TestKVS_Issue_1626(t *testing.T) {
 	{
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   "foo/test2",
 				Value: []byte("test"),
@@ -786,7 +787,7 @@ func TestKVS_Issue_1626(t *testing.T) {
 	{
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   "foo/test",
 				Value: []byte("updated"),

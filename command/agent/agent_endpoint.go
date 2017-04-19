@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
@@ -291,7 +292,7 @@ func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	if err := s.agent.updateTTLCheck(checkID, structs.HealthPassing, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, api.HealthPassing, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -309,7 +310,7 @@ func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	if err := s.agent.updateTTLCheck(checkID, structs.HealthWarning, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, api.HealthWarning, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -327,7 +328,7 @@ func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	if err := s.agent.updateTTLCheck(checkID, structs.HealthCritical, note); err != nil {
+	if err := s.agent.updateTTLCheck(checkID, api.HealthCritical, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -336,7 +337,7 @@ func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request)
 
 // checkUpdate is the payload for a PUT to AgentCheckUpdate.
 type checkUpdate struct {
-	// Status us one of the structs.Health* states, "passing", "warning", or
+	// Status us one of the api.Health* states, "passing", "warning", or
 	// "critical".
 	Status string
 
@@ -363,9 +364,9 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	}
 
 	switch update.Status {
-	case structs.HealthPassing:
-	case structs.HealthWarning:
-	case structs.HealthCritical:
+	case api.HealthPassing:
+	case api.HealthWarning:
+	case api.HealthCritical:
 	default:
 		resp.WriteHeader(400)
 		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)

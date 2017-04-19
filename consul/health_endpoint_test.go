@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -18,7 +19,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -26,7 +27,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			Name:   "memory utilization",
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		},
 	}
 	var out struct{}
@@ -37,7 +38,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 	var out2 structs.IndexedHealthChecks
 	inState := structs.ChecksInStateRequest{
 		Datacenter: "dc1",
-		State:      structs.HealthPassing,
+		State:      api.HealthPassing,
 	}
 	if err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &inState, &out2); err != nil {
 		t.Fatalf("err: %v", err)
@@ -64,7 +65,7 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -76,7 +77,7 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:   "memory utilization",
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		},
 	}
 	var out struct{}
@@ -92,7 +93,7 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:   "disk space",
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		},
 	}
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
@@ -133,7 +134,7 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 		inState := structs.ChecksInStateRequest{
 			Datacenter:      "dc1",
 			NodeMetaFilters: tc.filters,
-			State:           structs.HealthPassing,
+			State:           api.HealthPassing,
 		}
 		if err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &inState, &out); err != nil {
 			t.Fatalf("err: %v", err)
@@ -159,7 +160,7 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -180,7 +181,7 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			Name:   "memory utilization",
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		},
 	}
 
@@ -198,7 +199,7 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 	var out2 structs.IndexedHealthChecks
 	inState := structs.ChecksInStateRequest{
 		Datacenter: "dc1",
-		State:      structs.HealthPassing,
+		State:      api.HealthPassing,
 		Source: structs.QuerySource{
 			Datacenter: "dc1",
 			Node:       "foo",
@@ -236,7 +237,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -244,7 +245,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			Name:   "memory utilization",
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		},
 	}
 	var out struct{}
@@ -277,7 +278,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -289,7 +290,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -323,7 +324,7 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -339,7 +340,7 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "memory utilization",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -360,7 +361,7 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "disk space",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -428,7 +429,7 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -453,7 +454,7 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -516,7 +517,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -529,7 +530,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -549,7 +550,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthWarning,
+			Status:    api.HealthWarning,
 			ServiceID: "db",
 		},
 	}
@@ -584,10 +585,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if !lib.StrContains(nodes[1].Service.Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if nodes[0].Checks[0].Status != structs.HealthWarning {
+	if nodes[0].Checks[0].Status != api.HealthWarning {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[1].Checks[0].Status != structs.HealthPassing {
+	if nodes[1].Checks[0].Status != api.HealthPassing {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 }
@@ -599,7 +600,7 @@ func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -615,7 +616,7 @@ func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "memory utilization",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -637,7 +638,7 @@ func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "disk space",
-			Status:    structs.HealthWarning,
+			Status:    api.HealthWarning,
 			ServiceID: "db",
 		},
 	}
@@ -729,7 +730,7 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -754,7 +755,7 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -930,7 +931,7 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 
 	opt := structs.ChecksInStateRequest{
 		Datacenter:   "dc1",
-		State:        structs.HealthPassing,
+		State:        api.HealthPassing,
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}

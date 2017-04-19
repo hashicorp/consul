@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestAgent_LoadKeyrings(t *testing.T) {
@@ -129,7 +129,7 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// List keys without access fails
 	_, err := agent.ListKeys("", 0)

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
@@ -130,7 +131,7 @@ func TestAgent_Checks(t *testing.T) {
 		Node:    srv.agent.config.NodeName,
 		CheckID: "mysql",
 		Name:    "mysql",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	srv.agent.state.AddCheck(chk1, "")
 
@@ -147,7 +148,7 @@ func TestAgent_Checks(t *testing.T) {
 	if len(val) != 1 {
 		t.Fatalf("bad checks: %v", obj)
 	}
-	if val["mysql"].Status != structs.HealthPassing {
+	if val["mysql"].Status != api.HealthPassing {
 		t.Fatalf("bad check: %v", obj)
 	}
 }
@@ -162,7 +163,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		Node:    srv.agent.config.NodeName,
 		CheckID: "mysql",
 		Name:    "mysql",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	srv.agent.state.AddCheck(chk1, "")
 
@@ -862,7 +863,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 
 	// By default, checks start in critical state.
 	state := srv.agent.state.Checks()[checkID]
-	if state.Status != structs.HealthCritical {
+	if state.Status != api.HealthCritical {
 		t.Fatalf("bad: %v", state)
 	}
 }
@@ -883,7 +884,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 		CheckType: CheckType{
 			TTL: 15 * time.Second,
 		},
-		Status: structs.HealthPassing,
+		Status: api.HealthPassing,
 	}
 	req.Body = encodeReq(args)
 
@@ -906,7 +907,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	}
 
 	state := srv.agent.state.Checks()[checkID]
-	if state.Status != structs.HealthPassing {
+	if state.Status != api.HealthPassing {
 		t.Fatalf("bad: %v", state)
 	}
 }
@@ -1065,7 +1066,7 @@ func TestAgent_PassCheck(t *testing.T) {
 
 	// Ensure we have a check mapping
 	state := srv.agent.state.Checks()["test"]
-	if state.Status != structs.HealthPassing {
+	if state.Status != api.HealthPassing {
 		t.Fatalf("bad: %v", state)
 	}
 }
@@ -1130,7 +1131,7 @@ func TestAgent_WarnCheck(t *testing.T) {
 
 	// Ensure we have a check mapping
 	state := srv.agent.state.Checks()["test"]
-	if state.Status != structs.HealthWarning {
+	if state.Status != api.HealthWarning {
 		t.Fatalf("bad: %v", state)
 	}
 }
@@ -1195,7 +1196,7 @@ func TestAgent_FailCheck(t *testing.T) {
 
 	// Ensure we have a check mapping
 	state := srv.agent.state.Checks()["test"]
-	if state.Status != structs.HealthCritical {
+	if state.Status != api.HealthCritical {
 		t.Fatalf("bad: %v", state)
 	}
 }
@@ -1246,9 +1247,9 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 
 	cases := []checkUpdate{
-		checkUpdate{structs.HealthPassing, "hello-passing"},
-		checkUpdate{structs.HealthCritical, "hello-critical"},
-		checkUpdate{structs.HealthWarning, "hello-warning"},
+		checkUpdate{api.HealthPassing, "hello-passing"},
+		checkUpdate{api.HealthCritical, "hello-critical"},
+		checkUpdate{api.HealthWarning, "hello-warning"},
 	}
 
 	for _, c := range cases {
@@ -1284,7 +1285,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		}
 
 		update := checkUpdate{
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 			Output: strings.Repeat("-= bad -=", 5*CheckBufSize),
 		}
 		req.Body = encodeReq(update)
@@ -1305,7 +1306,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		// rough check that the output buffer was cut down so this test
 		// isn't super brittle.
 		state := srv.agent.state.Checks()["test"]
-		if state.Status != structs.HealthPassing || len(state.Output) > 2*CheckBufSize {
+		if state.Status != api.HealthPassing || len(state.Output) > 2*CheckBufSize {
 			t.Fatalf("bad: %v", state)
 		}
 	}
@@ -1343,7 +1344,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		}
 
 		update := checkUpdate{
-			Status: structs.HealthPassing,
+			Status: api.HealthPassing,
 		}
 		req.Body = encodeReq(update)
 
@@ -1378,7 +1379,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	req.Body = encodeReq(checkUpdate{structs.HealthPassing, "hello-passing"})
+	req.Body = encodeReq(checkUpdate{api.HealthPassing, "hello-passing"})
 	_, err = srv.AgentCheckUpdate(nil, req)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
@@ -1389,7 +1390,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	req.Body = encodeReq(checkUpdate{structs.HealthPassing, "hello-passing"})
+	req.Body = encodeReq(checkUpdate{api.HealthPassing, "hello-passing"})
 	_, err = srv.AgentCheckUpdate(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
