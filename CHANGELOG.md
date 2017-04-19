@@ -5,8 +5,8 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Added an error at agent startup time if both `-ui` and `-ui-dir` are configured together. [GH-2576]
-* agent: Added the datacenter of a node to the catalog, health and query API endpoints which contain a Node structure. [GH-2713] 
-* cli: Show raft protocol version in list-peers command [GH-2929]
+* agent: Added the datacenter of a node to the catalog, health, and query API endpoints which contain a Node structure. [GH-2713] 
+* cli: Show Raft protocol version in `operator raft list-peers` command [GH-2929]
 
 BUG FIXES:
 
