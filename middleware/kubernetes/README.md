@@ -108,6 +108,13 @@ kubernetes coredns.local {
 	#
 	cidrs 10.0.0.0/24 10.0.10.0/25
 
+	# fallthrough
+	#
+	# If a query for a record in the cluster zone results in NXDOMAIN,
+	# normally that is what the response will be. However, if you specify
+	# this option, the query will instead be passed on down the middleware
+	# chain, which can include another middleware to handle the query.
+	fallthrough
 }
 
 ```
