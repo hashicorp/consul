@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -299,7 +300,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		Node:        "node1",
 		CheckID:     "check1",
 		Name:        "thecheck",
-		Status:      HealthPassing,
+		Status:      api.HealthPassing,
 		Notes:       "it's all good",
 		Output:      "lgtm",
 		ServiceID:   "service1",
@@ -313,7 +314,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		Node:        "node1",
 		CheckID:     "check1",
 		Name:        "thecheck",
-		Status:      HealthPassing,
+		Status:      api.HealthPassing,
 		Notes:       "it's all good",
 		Output:      "lgtm",
 		ServiceID:   "service1",
@@ -376,7 +377,7 @@ func TestStructs_HealthCheck_Clone(t *testing.T) {
 		Node:        "node1",
 		CheckID:     "check1",
 		Name:        "thecheck",
-		Status:      HealthPassing,
+		Status:      api.HealthPassing,
 		Notes:       "it's all good",
 		Output:      "lgtm",
 		ServiceID:   "service1",
@@ -435,7 +436,7 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 			},
 			Checks: HealthChecks{
 				&HealthCheck{
-					Status: HealthWarning,
+					Status: api.HealthWarning,
 				},
 			},
 		},
@@ -446,7 +447,7 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 			},
 			Checks: HealthChecks{
 				&HealthCheck{
-					Status: HealthPassing,
+					Status: api.HealthPassing,
 				},
 			},
 		},
@@ -457,7 +458,7 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 			},
 			Checks: HealthChecks{
 				&HealthCheck{
-					Status: HealthCritical,
+					Status: api.HealthCritical,
 				},
 			},
 		},

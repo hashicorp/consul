@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -49,7 +49,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -65,7 +65,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	// Kill a non-leader server
 	s3.Shutdown()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -85,7 +85,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -131,7 +131,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 4, nil
 		}); err != nil {
@@ -144,7 +144,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 
 	// Should be removed from the peers automatically
 	for _, s := range []*Server{s1, s2, s3} {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -183,7 +183,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -191,7 +191,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 		}
 	}
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add s4 to peers directly
 	s4addr := fmt.Sprintf("127.0.0.1:%d",
@@ -209,7 +209,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 
 	// Wait for s4 to be removed
 	for _, s := range []*Server{s1, s2, s3} {
-		if err := testutil.WaitForResult(func() (bool, error) {
+		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
 			return peers == 3, nil
 		}); err != nil {
@@ -245,12 +245,12 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Wait for the new server to be added as a non-voter, but make sure
 	// it doesn't get promoted to a voter even after ServerStabilizationTime,
 	// because that would result in an even-numbered quorum count.
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			return false, err
@@ -292,7 +292,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			return false, err

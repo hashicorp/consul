@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
@@ -108,9 +109,9 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Registering with a critical check is disallowed
-	testRegisterCheck(t, s, 3, "node1", "", "check1", structs.HealthCritical)
+	testRegisterCheck(t, s, 3, "node1", "", "check1", api.HealthCritical)
 	err = s.SessionCreate(4, sess)
-	if err == nil || !strings.Contains(err.Error(), structs.HealthCritical) {
+	if err == nil || !strings.Contains(err.Error(), api.HealthCritical) {
 		t.Fatalf("expected critical state error, got: %#v", err)
 	}
 	if watchFired(ws) {
@@ -119,7 +120,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 
 	// Registering with a healthy check succeeds (doesn't hit the watch since
 	// we are looking at the old session).
-	testRegisterCheck(t, s, 4, "node1", "", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 4, "node1", "", "check1", api.HealthPassing)
 	if err := s.SessionCreate(5, sess); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -128,7 +129,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Register a session against two checks.
-	testRegisterCheck(t, s, 5, "node1", "", "check2", structs.HealthPassing)
+	testRegisterCheck(t, s, 5, "node1", "", "check2", api.HealthPassing)
 	sess2 := &structs.Session{
 		ID:     testUUID(),
 		Node:   "node1",
@@ -376,7 +377,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterNode(t, s, 2, "node2")
 	testRegisterNode(t, s, 3, "node3")
-	testRegisterCheck(t, s, 4, "node1", "", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 4, "node1", "", "check1", api.HealthPassing)
 
 	// Create some sessions in the state store.
 	session1 := testUUID()
@@ -559,7 +560,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 		Node:      "foo",
 		CheckID:   "api",
 		Name:      "Can connect",
-		Status:    structs.HealthPassing,
+		Status:    api.HealthPassing,
 		ServiceID: "api",
 	}
 	if err := s.EnsureCheck(13, check); err != nil {
@@ -610,7 +611,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	check := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "bar",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	if err := s.EnsureCheck(13, check); err != nil {
 		t.Fatalf("err: %v", err)
@@ -630,7 +631,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	check.Status = structs.HealthCritical
+	check.Status = api.HealthCritical
 	if err := s.EnsureCheck(15, check); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -661,7 +662,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	check := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "bar",
-		Status:  structs.HealthPassing,
+		Status:  api.HealthPassing,
 	}
 	if err := s.EnsureCheck(13, check); err != nil {
 		t.Fatalf("err: %v", err)

@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -302,7 +303,7 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 	key := path.Join(event.Prefix, event.Session, a.config.NodeName, suffix)
 	write := structs.KVSRequest{
 		Datacenter: a.config.Datacenter,
-		Op:         structs.KVSLock,
+		Op:         api.KVLock,
 		DirEnt: structs.DirEntry{
 			Key:     key,
 			Value:   val,

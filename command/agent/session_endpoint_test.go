@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
@@ -25,7 +26,7 @@ func TestSessionCreate(t *testing.T) {
 				Node:      srv.agent.config.NodeName,
 				Name:      "consul",
 				ServiceID: "consul",
-				Status:    structs.HealthPassing,
+				Status:    api.HealthPassing,
 			},
 		}
 		var out struct{}
@@ -73,7 +74,7 @@ func TestSessionCreateDelete(t *testing.T) {
 				Node:      srv.agent.config.NodeName,
 				Name:      "consul",
 				ServiceID: "consul",
-				Status:    structs.HealthPassing,
+				Status:    api.HealthPassing,
 			},
 		}
 		var out struct{}

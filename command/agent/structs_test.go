@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestAgentStructs_HealthCheck(t *testing.T) {
@@ -12,7 +12,7 @@ func TestAgentStructs_HealthCheck(t *testing.T) {
 	check := def.HealthCheck("node1")
 
 	// Health checks default to critical state
-	if check.Status != structs.HealthCritical {
+	if check.Status != api.HealthCritical {
 		t.Fatalf("bad: %v", check.Status)
 	}
 }

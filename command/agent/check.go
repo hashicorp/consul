@@ -15,6 +15,7 @@ import (
 
 	"github.com/armon/circbuf"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -159,7 +160,7 @@ func (c *CheckMonitor) check() {
 	cmd, err := ExecScript(c.Script)
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
@@ -171,7 +172,7 @@ func (c *CheckMonitor) check() {
 	// Start the check
 	if err := cmd.Start(); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
@@ -203,7 +204,7 @@ func (c *CheckMonitor) check() {
 	// Check if the check passed
 	if err == nil {
 		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, outputStr)
 		return
 	}
 
@@ -214,7 +215,7 @@ func (c *CheckMonitor) check() {
 			code := status.ExitStatus()
 			if code == 1 {
 				c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
-				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, outputStr)
+				c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, outputStr)
 				return
 			}
 		}
@@ -222,7 +223,7 @@ func (c *CheckMonitor) check() {
 
 	// Set the health as critical
 	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, outputStr)
+	c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, outputStr)
 }
 
 // CheckTTL is used to apply a TTL to check status,
@@ -273,7 +274,7 @@ func (c *CheckTTL) run() {
 		case <-c.timer.C:
 			c.Logger.Printf("[WARN] agent: Check '%v' missed TTL, is now critical",
 				c.CheckID)
-			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, c.getExpiredOutput())
+			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput())
 
 		case <-c.stopCh:
 			return
@@ -423,7 +424,7 @@ func (c *CheckHTTP) check() {
 	req, err := http.NewRequest("GET", c.HTTP, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
@@ -433,7 +434,7 @@ func (c *CheckHTTP) check() {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 	defer resp.Body.Close()
@@ -450,19 +451,19 @@ func (c *CheckHTTP) check() {
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
 		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, result)
 
 	} else if resp.StatusCode == 429 {
 		// WARNING
 		// 429 Too Many Requests (RFC 6585)
 		// The user has sent too many requests in a given amount of time.
 		c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, result)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, result)
 
 	} else {
 		// CRITICAL
 		c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, result)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, result)
 	}
 }
 
@@ -541,12 +542,12 @@ func (c *CheckTCP) check() {
 	conn, err := c.dialer.Dial(`tcp`, c.TCP)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: socket connection failed '%s': %s", c.TCP, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 	conn.Close()
 	c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+	c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
 // A custom interface since go-dockerclient doesn't have one
@@ -650,7 +651,7 @@ func (c *CheckDocker) check() {
 	)
 	if exec, err = c.dockerClient.CreateExec(execOpts); err != nil {
 		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to create Exec, error: %s", err.Error()))
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to create Exec, error: %s", err.Error()))
 		return
 	}
 
@@ -660,7 +661,7 @@ func (c *CheckDocker) check() {
 	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false, OutputStream: output, ErrorStream: output})
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to start Exec: %s", err.Error()))
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to start Exec: %s", err.Error()))
 		return
 	}
 
@@ -677,26 +678,26 @@ func (c *CheckDocker) check() {
 	execInfo, err := c.dockerClient.InspectExec(exec.ID)
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in inspecting check result : %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to inspect Exec: %s", err.Error()))
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to inspect Exec: %s", err.Error()))
 		return
 	}
 
 	// Sets the status of the check to healthy if exit code is 0
 	if execInfo.ExitCode == 0 {
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, outputStr)
 		return
 	}
 
 	// Set the status of the check to Warning if exit code is 1
 	if execInfo.ExitCode == 1 {
 		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", execInfo.ExitCode)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, outputStr)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, outputStr)
 		return
 	}
 
 	// Set the health as critical
 	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, outputStr)
+	c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, outputStr)
 }
 
 func shell() string {

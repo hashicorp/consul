@@ -2,12 +2,14 @@ package structs
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/consul/api"
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a
 // transaction
 type TxnKVOp struct {
-	Verb   KVSOp
+	Verb   api.KVOp
 	DirEnt DirEntry
 }
 

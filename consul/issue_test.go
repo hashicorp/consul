@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -28,7 +29,7 @@ func TestHealthCheckRace(t *testing.T) {
 			Node:      "foo",
 			CheckID:   "db",
 			Name:      "db connectivity",
-			Status:    structs.HealthPassing,
+			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
 	}
@@ -54,7 +55,7 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Update the check state
-	req.Check.Status = structs.HealthCritical
+	req.Check.Status = api.HealthCritical
 	buf, err = structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
@@ -84,14 +84,14 @@ func TestClient_JoinLAN(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return c1.servers.NumServers() == 1, nil
 	}); err != nil {
 		t.Fatal("expected consul server")
 	}
 
 	// Check the members
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		server_check := len(s1.LANMembers()) == 2
 		client_check := len(c1.LANMembers()) == 2
 		return server_check && client_check, nil
@@ -100,7 +100,7 @@ func TestClient_JoinLAN(t *testing.T) {
 	}
 
 	// Check we have a new consul
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return c1.servers.NumServers() == 1, nil
 	}); err != nil {
 		t.Fatal("expected consul server")
@@ -189,7 +189,7 @@ func TestClient_RPC(t *testing.T) {
 	}
 
 	// RPC should succeed
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		err := c1.RPC("Status.Ping", struct{}{}, &out)
 		return err == nil, err
 	}); err != nil {
@@ -214,7 +214,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 	}
 
 	// Wait for both agents to finish joining
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return len(s1.LANMembers()) == 2 && len(c1.LANMembers()) == 2, nil
 	}); err != nil {
 		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.",
@@ -230,7 +230,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			var out struct{}
-			if err := testutil.WaitForResult(func() (bool, error) {
+			if err := testrpc.WaitForResult(func() (bool, error) {
 				err := c1.RPC("Status.Ping", struct{}{}, &out)
 				return err == nil, err
 			}); err != nil {
@@ -345,7 +345,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	}
 
 	// Wait for joins to finish/RPC to succeed
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if len(s1.LANMembers()) != 2 {
 			return false, fmt.Errorf("bad len: %v", len(s1.LANMembers()))
 		}
@@ -371,7 +371,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Wait for the leader
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -384,7 +384,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	}
 
 	// Wait until we've got a healthy server.
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return c1.servers.NumServers() == 1, nil
 	}); err != nil {
 		t.Fatal("expected consul server")
@@ -430,7 +430,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Wait for the leader
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -443,7 +443,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	}
 
 	// Wait until we've got a healthy server.
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return c1.servers.NumServers() == 1, nil
 	}); err != nil {
 		t.Fatal("expected consul server")
@@ -493,10 +493,10 @@ func TestClientServer_UserEvent(t *testing.T) {
 	}
 
 	// Wait for the leader
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Check the members
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return len(c1.LANMembers()) == 2 && len(s1.LANMembers()) == 2, nil
 	}); err != nil {
 		t.Fatal("bad len")

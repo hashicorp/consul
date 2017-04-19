@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -137,7 +137,7 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testutil.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
@@ -189,7 +189,7 @@ func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testutil.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
@@ -238,7 +238,7 @@ func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testutil.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.ServiceNodes{
@@ -287,7 +287,7 @@ func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testutil.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	checks := structs.HealthChecks{
@@ -336,7 +336,7 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testutil.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.CheckServiceNodes{

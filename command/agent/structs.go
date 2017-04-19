@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -59,7 +60,7 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		Node:      node,
 		CheckID:   c.ID,
 		Name:      c.Name,
-		Status:    structs.HealthCritical,
+		Status:    api.HealthCritical,
 		Notes:     c.Notes,
 		ServiceID: c.ServiceID,
 	}

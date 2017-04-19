@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -110,7 +111,7 @@ func testRemoteExecGetSpec(t *testing.T, c *Config) {
 	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
@@ -156,7 +157,7 @@ func testRemoteExecWrites(t *testing.T, c *Config) {
 	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
@@ -210,7 +211,7 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
@@ -305,7 +306,7 @@ func destroySession(t *testing.T, agent *Agent, session string) {
 func setKV(t *testing.T, agent *Agent, key string, val []byte) {
 	write := structs.KVSRequest{
 		Datacenter: agent.config.Datacenter,
-		Op:         structs.KVSSet,
+		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
 			Key:   key,
 			Value: val,

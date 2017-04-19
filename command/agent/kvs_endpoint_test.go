@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
@@ -19,7 +19,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"baz",
@@ -94,7 +94,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"bar",
@@ -190,7 +190,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
@@ -277,7 +277,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
@@ -374,7 +374,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"bar",

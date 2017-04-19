@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestValidateUserEventParams(t *testing.T) {
@@ -153,7 +153,7 @@ func TestFireReceiveEvent(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -175,7 +175,7 @@ func TestFireReceiveEvent(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return len(agent.UserEvents()) == 1, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -197,7 +197,7 @@ func TestUserEventToken(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	testrpc.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Create an ACL token
 	args := structs.ACLRequest{

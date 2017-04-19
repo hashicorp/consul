@@ -11,8 +11,16 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hashicorp/consul/consul/structs"
 	"github.com/pkg/errors"
+)
+
+// copied from testutil to break circular dependency
+const (
+	HealthAny      = "any"
+	HealthPassing  = "passing"
+	HealthWarning  = "warning"
+	HealthCritical = "critical"
+	HealthMaint    = "maintenance"
 )
 
 // JoinLAN is used to join local datacenters together.
@@ -124,11 +132,11 @@ func (s *TestServer) AddService(t *testing.T, name, status string, tags []string
 	s.put(t, "/v1/agent/check/register", payload)
 
 	switch status {
-	case structs.HealthPassing:
+	case HealthPassing:
 		s.put(t, "/v1/agent/check/pass/"+chkName, nil)
-	case structs.HealthWarning:
+	case HealthWarning:
 		s.put(t, "/v1/agent/check/warn/"+chkName, nil)
-	case structs.HealthCritical:
+	case HealthCritical:
 		s.put(t, "/v1/agent/check/fail/"+chkName, nil)
 	default:
 		t.Fatalf("Unrecognized status: %s", status)
@@ -155,11 +163,11 @@ func (s *TestServer) AddCheck(t *testing.T, name, serviceID, status string) {
 	s.put(t, "/v1/agent/check/register", payload)
 
 	switch status {
-	case structs.HealthPassing:
+	case HealthPassing:
 		s.put(t, "/v1/agent/check/pass/"+name, nil)
-	case structs.HealthWarning:
+	case HealthWarning:
 		s.put(t, "/v1/agent/check/warn/"+name, nil)
-	case structs.HealthCritical:
+	case HealthCritical:
 		s.put(t, "/v1/agent/check/fail/"+name, nil)
 	default:
 		t.Fatalf("Unrecognized status: %s", status)

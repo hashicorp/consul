@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/mitchellh/cli"
 	"io/ioutil"
 	"log"
 	"os"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/mitchellh/cli"
 )
 
 func init() {

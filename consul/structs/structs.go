@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/serf/coordinate"
@@ -54,16 +55,6 @@ const (
 )
 
 const (
-	// HealthAny is special, and is used as a wild card,
-	// not as a specific state.
-	HealthAny      = "any"
-	HealthPassing  = "passing"
-	HealthWarning  = "warning"
-	HealthCritical = "critical"
-	HealthMaint    = "maintenance"
-)
-
-const (
 	// NodeMaint is the special key set by a node in maintenance mode.
 	NodeMaint = "_node_maintenance"
 
@@ -91,9 +82,7 @@ var (
 )
 
 func ValidStatus(s string) bool {
-	return s == HealthPassing ||
-		s == HealthWarning ||
-		s == HealthCritical
+	return s == api.HealthPassing || s == api.HealthWarning || s == api.HealthCritical
 }
 
 const (
@@ -567,8 +556,8 @@ OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
 		for _, check := range node.Checks {
-			if check.Status == HealthCritical ||
-				(onlyPassing && check.Status != HealthPassing) {
+			if check.Status == api.HealthCritical ||
+				(onlyPassing && check.Status != api.HealthPassing) {
 				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
 				n--
 				i--
@@ -661,40 +650,10 @@ func (d *DirEntry) Clone() *DirEntry {
 
 type DirEntries []*DirEntry
 
-type KVSOp string
-
-const (
-	KVSSet        KVSOp = "set"
-	KVSDelete           = "delete"
-	KVSDeleteCAS        = "delete-cas" // Delete with check-and-set
-	KVSDeleteTree       = "delete-tree"
-	KVSCAS              = "cas"    // Check-and-set
-	KVSLock             = "lock"   // Lock a key
-	KVSUnlock           = "unlock" // Unlock a key
-
-	// The following operations are only available inside of atomic
-	// transactions via the Txn request.
-	KVSGet          = "get"           // Read the key during the transaction.
-	KVSGetTree      = "get-tree"      // Read all keys with the given prefix during the transaction.
-	KVSCheckSession = "check-session" // Check the session holds the key.
-	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
-)
-
-// IsWrite returns true if the given operation alters the state store.
-func (op KVSOp) IsWrite() bool {
-	switch op {
-	case KVSGet, KVSGetTree, KVSCheckSession, KVSCheckIndex:
-		return false
-
-	default:
-		return true
-	}
-}
-
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {
 	Datacenter string
-	Op         KVSOp    // Which operation are we performing
+	Op         api.KVOp // Which operation are we performing
 	DirEnt     DirEntry // Which directory entry
 	WriteRequest
 }

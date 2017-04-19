@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -21,7 +22,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	{
 		args := structs.KVSRequest{
 			Datacenter: dc,
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   "test",
 				Value: []byte("hello"),
@@ -76,7 +77,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	{
 		args := structs.KVSRequest{
 			Datacenter: dc,
-			Op:         structs.KVSSet,
+			Op:         api.KVSet,
 			DirEnt: structs.DirEntry{
 				Key:   "test",
 				Value: []byte("goodbye"),
@@ -150,7 +151,7 @@ func TestSnapshot(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	verifySnapshot(t, s1, "dc1", "")
 }
 
@@ -159,7 +160,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
@@ -247,7 +248,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Take a snapshot.
 	func() {
@@ -301,8 +302,8 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	testutil.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Run against the leader and the follower to ensure we forward.
 	for _, s := range []*Server{s1, s2} {
@@ -320,8 +321,8 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	testutil.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -329,7 +330,7 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testutil.WaitForResult(func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		return len(s1.WANMembers()) > 1, nil
 	}); err != nil {
 		t.Fatalf("failed to join WAN: %s", err)

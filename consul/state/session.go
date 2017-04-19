@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -112,7 +113,7 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 
 		// Check that the check is not in critical state
 		status := check.(*structs.HealthCheck).Status
-		if status == structs.HealthCritical {
+		if status == api.HealthCritical {
 			return fmt.Errorf("Check '%s' is in %s state", checkID, status)
 		}
 	}

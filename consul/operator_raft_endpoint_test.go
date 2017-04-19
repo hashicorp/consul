@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 )
@@ -20,7 +20,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -66,7 +66,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.DCSpecificRequest{
@@ -138,7 +138,7 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to remove a peer that's not there.
 	arg := structs.RaftRemovePeerRequest{
@@ -200,7 +200,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.RaftRemovePeerRequest{
@@ -253,7 +253,7 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to remove a peer that's not there.
 	arg := structs.RaftRemovePeerRequest{
@@ -316,7 +316,7 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.RaftRemovePeerRequest{

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -96,19 +96,19 @@ func expectStatus(t *testing.T, script, status string) {
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
-	expectStatus(t, "exit 0", structs.HealthPassing)
+	expectStatus(t, "exit 0", api.HealthPassing)
 }
 
 func TestCheckMonitor_Warning(t *testing.T) {
-	expectStatus(t, "exit 1", structs.HealthWarning)
+	expectStatus(t, "exit 1", api.HealthWarning)
 }
 
 func TestCheckMonitor_Critical(t *testing.T) {
-	expectStatus(t, "exit 2", structs.HealthCritical)
+	expectStatus(t, "exit 2", api.HealthCritical)
 }
 
 func TestCheckMonitor_BadCmd(t *testing.T) {
-	expectStatus(t, "foobarbaz", structs.HealthCritical)
+	expectStatus(t, "foobarbaz", api.HealthCritical)
 }
 
 func TestCheckMonitor_Timeout(t *testing.T) {
@@ -163,8 +163,8 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		t.Fatalf("should have 1 or more updates %v", mock.updates)
 	}
 
-	if mock.State("foo") != structs.HealthPassing {
-		t.Fatalf("should be %v %v", structs.HealthPassing, mock.state)
+	if mock.State("foo") != api.HealthPassing {
+		t.Fatalf("should be %v %v", api.HealthPassing, mock.state)
 	}
 }
 
@@ -208,13 +208,13 @@ func TestCheckTTL(t *testing.T) {
 	defer check.Stop()
 
 	time.Sleep(50 * time.Millisecond)
-	check.SetStatus(structs.HealthPassing, "test-output")
+	check.SetStatus(api.HealthPassing, "test-output")
 
 	if mock.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
-	if mock.State("foo") != structs.HealthPassing {
+	if mock.State("foo") != api.HealthPassing {
 		t.Fatalf("should be passing %v", mock.state)
 	}
 
@@ -231,7 +231,7 @@ func TestCheckTTL(t *testing.T) {
 		t.Fatalf("should have 2 updates %v", mock.updates)
 	}
 
-	if mock.State("foo") != structs.HealthCritical {
+	if mock.State("foo") != api.HealthCritical {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 
@@ -307,25 +307,25 @@ func TestCheckHTTPCritical(t *testing.T) {
 
 	server := mockHTTPServer(150)
 	fmt.Println(server.URL)
-	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 
 	// 2xx - 1
 	server = mockHTTPServer(199)
-	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 
 	// 2xx + 1
 	server = mockHTTPServer(300)
-	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 
 	server = mockHTTPServer(400)
-	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 
 	server = mockHTTPServer(500)
-	expectHTTPStatus(t, server.URL, structs.HealthCritical)
+	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 }
 
@@ -333,25 +333,25 @@ func TestCheckHTTPPassing(t *testing.T) {
 	var server *httptest.Server
 
 	server = mockHTTPServer(200)
-	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	expectHTTPStatus(t, server.URL, api.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(201)
-	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	expectHTTPStatus(t, server.URL, api.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(250)
-	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	expectHTTPStatus(t, server.URL, api.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(299)
-	expectHTTPStatus(t, server.URL, structs.HealthPassing)
+	expectHTTPStatus(t, server.URL, api.HealthPassing)
 	server.Close()
 }
 
 func TestCheckHTTPWarning(t *testing.T) {
 	server := mockHTTPServer(429)
-	expectHTTPStatus(t, server.URL, structs.HealthWarning)
+	expectHTTPStatus(t, server.URL, api.HealthWarning)
 	server.Close()
 }
 
@@ -394,7 +394,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
 		}
 
-		if mock.state["bar"] != structs.HealthCritical {
+		if mock.state["bar"] != api.HealthCritical {
 			return false, fmt.Errorf("should be critical %v", mock.state)
 		}
 		return true, nil
@@ -462,7 +462,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	}
 
 	if err := testutil.WaitForResult(func() (bool, error) {
-		if mock.state["skipverify_true"] != structs.HealthPassing {
+		if mock.state["skipverify_true"] != api.HealthPassing {
 			return false, fmt.Errorf("should be passing %v", mock.state)
 		}
 		return true, nil
@@ -497,7 +497,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	}
 
 	if err := testutil.WaitForResult(func() (bool, error) {
-		if mock.state["skipverify_true"] != structs.HealthCritical {
+		if mock.state["skipverify_true"] != api.HealthCritical {
 			return false, fmt.Errorf("should be critical %v", mock.state)
 		}
 		return true, nil
@@ -534,7 +534,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 
 	if err := testutil.WaitForResult(func() (bool, error) {
 		// This should fail due to an invalid SSL cert
-		if mock.state["skipverify_false"] != structs.HealthCritical {
+		if mock.state["skipverify_false"] != api.HealthCritical {
 			return false, fmt.Errorf("should be critical %v", mock.state)
 		}
 
@@ -603,7 +603,7 @@ func TestCheckTCPCritical(t *testing.T) {
 	)
 
 	tcpServer = mockTCPServer(`tcp`)
-	expectTCPStatus(t, `127.0.0.1:0`, structs.HealthCritical)
+	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }
 
@@ -613,11 +613,11 @@ func TestCheckTCPPassing(t *testing.T) {
 	)
 
 	tcpServer = mockTCPServer(`tcp`)
-	expectTCPStatus(t, tcpServer.Addr().String(), structs.HealthPassing)
+	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
 
 	tcpServer = mockTCPServer(`tcp6`)
-	expectTCPStatus(t, tcpServer.Addr().String(), structs.HealthPassing)
+	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
 }
 
@@ -785,27 +785,27 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 }
 
 func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, structs.HealthPassing, "output")
+	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, api.HealthPassing, "output")
 }
 
 func TestDockerCheckWhenExecCreationFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, structs.HealthCritical, "Unable to create Exec, error: Exec Creation Failed")
+	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, api.HealthCritical, "Unable to create Exec, error: Exec Creation Failed")
 }
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, structs.HealthCritical, "")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, api.HealthCritical, "")
 }
 
 func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, structs.HealthWarning, "output")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, api.HealthWarning, "output")
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, structs.HealthCritical, "Unable to start Exec: Couldn't Start Exec")
+	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, api.HealthCritical, "Unable to start Exec: Couldn't Start Exec")
 }
 
 func TestDockerCheckWhenExecInfoFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, structs.HealthCritical, "Unable to inspect Exec: Unable to query exec info")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, api.HealthCritical, "Unable to inspect Exec: Unable to query exec info")
 }
 
 func TestDockerCheckDefaultToSh(t *testing.T) {
