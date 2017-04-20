@@ -49,6 +49,9 @@ the community.
     <a href="https://github.com/Ecwid/consul-api">consul-api</a> - Java client for the Consul HTTP API
   </li>
   <li>
+    <a href="https://github.com/vert-x3/vertx-consul-client">vertx-consul-client</a> - Vert.x client for the Consul HTTP API
+  </li>
+  <li>
     <a href="https://github.com/undeadlabs/discovery">discovery</a> - Erlang/OTP client for the Consul HTTP API
   </li>
   <li>
