@@ -578,6 +578,14 @@ func (a *Agent) resolveTmplAddrs() error {
 		a.config.TaggedAddresses[k] = ipStr
 	}
 
+	for i, v := range a.config.DNSRecursors {
+		ipStr, err := parseSingleIPTemplate(v)
+		if err != nil {
+			return fmt.Errorf("DNS recursor address resolution failed: %v", err)
+		}
+		a.config.DNSRecursors[i] = ipStr
+	}
+
 	return nil
 }
 
