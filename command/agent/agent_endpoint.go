@@ -671,6 +671,6 @@ func (h *httpLogHandler) HandleLog(log string) {
 	default:
 		// Just increment a counter for dropped logs to this handler; we can't log now
 		// because the lock is already held by the LogWriter invoking this
-		h.droppedCount += 1
+		h.droppedCount++
 	}
 }

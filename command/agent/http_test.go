@@ -52,7 +52,7 @@ func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
 func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
 	configTry := 0
 RECONF:
-	configTry += 1
+	configTry++
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
