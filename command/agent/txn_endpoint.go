@@ -136,7 +136,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 
 			verb := api.KVOp(in.KV.Verb)
 			if isWrite(verb) {
-				writes += 1
+				writes++
 			}
 
 			out := &structs.TxnOp{

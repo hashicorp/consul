@@ -297,7 +297,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 		if !ok {
 			t.Errorf("Unable to ping server %v: %s", s.String(), err)
 		}
-		pingCount += 1
+		pingCount++
 
 		// Artificially fail the server in order to rotate the server
 		// list
