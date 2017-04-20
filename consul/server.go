@@ -803,8 +803,8 @@ func (s *Server) JoinWAN(addrs []string) (int, error) {
 }
 
 // LocalMember is used to return the local node
-func (c *Server) LocalMember() serf.Member {
-	return c.serfLAN.LocalMember()
+func (s *Server) LocalMember() serf.Member {
+	return s.serfLAN.LocalMember()
 }
 
 // LANMembers is used to return the members of the LAN cluster
