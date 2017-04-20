@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -67,7 +68,7 @@ func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (in
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
 	if args.Node == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing node name"))
+		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}
 

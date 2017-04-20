@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -32,7 +33,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing name"))
+		fmt.Fprint(resp, "Missing name")
 		return nil, nil
 	}
 
@@ -64,7 +65,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if strings.Contains(err.Error(), permissionDenied) {
 			resp.WriteHeader(403)
-			resp.Write([]byte(permissionDenied))
+			fmt.Fprint(resp, permissionDenied)
 			return nil, nil
 		}
 		resp.WriteHeader(500)

@@ -185,7 +185,7 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	// Check the content-length
 	if req.ContentLength > maxKVSize {
 		resp.WriteHeader(413)
-		resp.Write([]byte(fmt.Sprintf("Value exceeds %d byte limit", maxKVSize)))
+		fmt.Fprintf(resp, "Value exceeds %d byte limit", maxKVSize)
 		return nil, nil
 	}
 
@@ -260,7 +260,7 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 func missingKey(resp http.ResponseWriter, args *structs.KeyRequest) bool {
 	if args.Key == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing key name"))
+		fmt.Fprint(resp, "Missing key name")
 		return true
 	}
 	return false
@@ -275,7 +275,7 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 		if _, ok := params[conflict]; ok {
 			if found {
 				resp.WriteHeader(400)
-				resp.Write([]byte("Conflicting flags: " + params.Encode()))
+				fmt.Fprint(resp, "Conflicting flags: "+params.Encode())
 				return true
 			}
 			found = true

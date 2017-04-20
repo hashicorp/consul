@@ -1,16 +1,18 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
+	"fmt"
 	"net/http"
 	"sort"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // coordinateDisabled handles all the endpoints when coordinates are not enabled,
 // returning an error message.
 func coordinateDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	resp.WriteHeader(401)
-	resp.Write([]byte("Coordinate support disabled"))
+	fmt.Fprint(resp, "Coordinate support disabled")
 	return nil, nil
 }
 

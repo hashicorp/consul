@@ -380,7 +380,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 
 			resp.WriteHeader(code)
-			resp.Write([]byte(err.Error()))
+			fmt.Fprint(resp, err.Error())
 			return
 		}
 
@@ -433,7 +433,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	// Give them something helpful if there's no UI so they at least know
 	// what this server is.
 	if !s.IsUIEnabled() {
-		resp.Write([]byte("Consul Agent"))
+		fmt.Fprint(resp, "Consul Agent")
 		return
 	}
 
@@ -508,7 +508,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 		dur, err := time.ParseDuration(wait)
 		if err != nil {
 			resp.WriteHeader(http.StatusBadRequest) // 400
-			resp.Write([]byte("Invalid wait time"))
+			fmt.Fprint(resp, "Invalid wait time")
 			return true
 		}
 		b.MaxQueryTime = dur
@@ -517,7 +517,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 		index, err := strconv.ParseUint(idx, 10, 64)
 		if err != nil {
 			resp.WriteHeader(http.StatusBadRequest) // 400
-			resp.Write([]byte("Invalid index"))
+			fmt.Fprint(resp, "Invalid index")
 			return true
 		}
 		b.MinQueryIndex = index
@@ -537,7 +537,7 @@ func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.Qu
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest) // 400
-		resp.Write([]byte("Cannot specify ?stale with ?consistent, conflicting semantics."))
+		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
 		return true
 	}
 	return false
