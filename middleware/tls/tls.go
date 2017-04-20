@@ -29,7 +29,7 @@ func setup(c *caddy.Controller) error {
 		}
 		tls, err := tls.NewTLSConfig(args[0], args[1], args[2])
 		if err != nil {
-			return middleware.Error("tls", c.ArgErr())
+			return middleware.Error("tls", err)
 		}
 		config.TLSConfig = tls
 	}
