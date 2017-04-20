@@ -16,6 +16,9 @@
 # git log --pretty=format:'%an' v001..master | sort -u
 # (where v001 is the previous release, obviously you'll need to adjust this)
 #
+# Side note: check if MAINTAINERS need an update with `git shortlog -s -n` and see if
+# someone has more than 5 (arbitrary number).
+#
 # Steps:
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
