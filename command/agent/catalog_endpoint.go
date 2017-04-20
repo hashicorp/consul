@@ -12,7 +12,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
@@ -34,7 +34,7 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	var args structs.DeregisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
@@ -119,7 +119,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/service/")
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing service name"))
+		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
 
@@ -149,7 +149,7 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
 	if args.Node == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing node name"))
+		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}
 

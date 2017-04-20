@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
-	"strings"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -58,12 +58,12 @@ func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Reques
 
 	if !hasID && !hasAddress {
 		resp.WriteHeader(http.StatusBadRequest)
-		resp.Write([]byte("Must specify either ?id with the server's ID or ?address with IP:port of peer to remove"))
+		fmt.Fprint(resp, "Must specify either ?id with the server's ID or ?address with IP:port of peer to remove")
 		return nil, nil
 	}
 	if hasID && hasAddress {
 		resp.WriteHeader(http.StatusBadRequest)
-		resp.Write([]byte("Must specify only one of ?id or ?address"))
+		fmt.Fprint(resp, "Must specify only one of ?id or ?address")
 		return nil, nil
 	}
 
@@ -91,7 +91,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
 		if err := decodeBody(req, &args, nil); err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
 	}
@@ -102,14 +102,14 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 		n, err := strconv.Atoi(relayFactor)
 		if err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Error parsing relay factor: %v", err)))
+			fmt.Fprintf(resp, "Error parsing relay factor: %v", err)
 			return nil, nil
 		}
 
 		args.RelayFactor, err = ParseRelayFactor(n)
 		if err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Invalid relay factor: %v", err)))
+			fmt.Fprintf(resp, "Invalid relay factor: %v", err)
 			return nil, nil
 		}
 	}
@@ -223,7 +223,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		var conf api.AutopilotConfiguration
 		if err := decodeBody(req, &conf, FixupConfigDurations); err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Error parsing autopilot config: %v", err)))
+			fmt.Fprintf(resp, "Error parsing autopilot config: %v", err)
 			return nil, nil
 		}
 
@@ -242,7 +242,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
 			if err != nil {
 				resp.WriteHeader(400)
-				resp.Write([]byte(fmt.Sprintf("Error parsing cas value: %v", err)))
+				fmt.Fprintf(resp, "Error parsing cas value: %v", err)
 				return nil, nil
 			}
 			args.Config.ModifyIndex = casVal

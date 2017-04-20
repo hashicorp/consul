@@ -16,7 +16,7 @@ type aclCreateResponse struct {
 // ACLDisabled handles if ACL datacenter is not configured
 func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	resp.WriteHeader(401)
-	resp.Write([]byte("ACL support disabled"))
+	fmt.Fprint(resp, "ACL support disabled")
 	return nil, nil
 }
 
@@ -37,7 +37,7 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/destroy/")
 	if args.ACL.ID == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing ACL"))
+		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
 
@@ -76,7 +76,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.ACL, nil); err != nil {
 			resp.WriteHeader(400)
-			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
 	}
@@ -85,7 +85,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// create, as one will be generated if not provided.
 	if update && args.ACL.ID == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("ACL ID must be set")))
+		fmt.Fprint(resp, "ACL ID must be set")
 		return nil, nil
 	}
 
@@ -118,7 +118,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/clone/")
 	if args.ACL == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing ACL"))
+		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
 
@@ -131,7 +131,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	// Bail if the ACL is not found
 	if len(out.ACLs) == 0 {
 		resp.WriteHeader(404)
-		resp.Write([]byte(fmt.Sprintf("Target ACL not found")))
+		fmt.Fprint(resp, "Target ACL not found")
 		return nil, nil
 	}
 
@@ -167,7 +167,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/info/")
 	if args.ACL == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing ACL"))
+		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
 

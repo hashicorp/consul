@@ -220,20 +220,20 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing check name"))
+		fmt.Fprint(resp, "Missing check name")
 		return nil, nil
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Bad check status"))
+		fmt.Fprint(resp, "Bad check status")
 		return nil, nil
 	}
 
@@ -244,7 +244,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	chkType := &args.CheckType
 	if !chkType.Valid() {
 		resp.WriteHeader(400)
-		resp.Write([]byte(invalidCheckMessage))
+		fmt.Fprint(resp, invalidCheckMessage)
 		return nil, nil
 	}
 
@@ -358,7 +358,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	var update checkUpdate
 	if err := decodeBody(req, &update, nil); err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
@@ -368,7 +368,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	case structs.HealthCritical:
 	default:
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Invalid check status: '%s'", update.Status)))
+		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)
 		return nil, nil
 	}
 
@@ -425,14 +425,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
 	// Verify the service has a name.
 	if args.Name == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing service name"))
+		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
 
@@ -444,12 +444,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
 			resp.WriteHeader(400)
-			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical'"))
+			fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
 			return nil, nil
 		}
 		if !check.Valid() {
 			resp.WriteHeader(400)
-			resp.Write([]byte(invalidCheckMessage))
+			fmt.Fprint(resp, invalidCheckMessage)
 			return nil, nil
 		}
 	}
@@ -497,7 +497,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
 	if serviceID == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing service ID"))
+		fmt.Fprint(resp, "Missing service ID")
 		return nil, nil
 	}
 
@@ -505,7 +505,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing value for enable"))
+		fmt.Fprint(resp, "Missing value for enable")
 		return nil, nil
 	}
 
@@ -513,7 +513,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
 		return nil, nil
 	}
 
@@ -528,13 +528,13 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		reason := params.Get("reason")
 		if err = s.agent.EnableServiceMaintenance(serviceID, reason, token); err != nil {
 			resp.WriteHeader(404)
-			resp.Write([]byte(err.Error()))
+			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
 			resp.WriteHeader(404)
-			resp.Write([]byte(err.Error()))
+			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
 	}
@@ -553,7 +553,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing value for enable"))
+		fmt.Fprint(resp, "Missing value for enable")
 		return nil, nil
 	}
 
@@ -561,7 +561,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
 		return nil, nil
 	}
 
@@ -617,7 +617,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	filter.MinLevel = logutils.LogLevel(logLevel)
 	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
 		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("Unknown log level: %s", filter.MinLevel)))
+		fmt.Fprintf(resp, "Unknown log level: %s", filter.MinLevel)
 		return nil, nil
 	}
 	flusher, ok := resp.(http.Flusher)
@@ -645,7 +645,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 			}
 			return nil, nil
 		case log := <-handler.logCh:
-			resp.Write([]byte(log + "\n"))
+			fmt.Fprintln(resp, log)
 			flusher.Flush()
 		}
 	}

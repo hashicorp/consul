@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -20,7 +21,7 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
 	if args.State == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing check state"))
+		fmt.Fprint(resp, "Missing check state")
 		return nil, nil
 	}
 
@@ -49,7 +50,7 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
 	if args.Node == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing node name"))
+		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}
 
@@ -80,7 +81,7 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing service name"))
+		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
 
@@ -118,7 +119,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/service/")
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Missing service name"))
+		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
 
