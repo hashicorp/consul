@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -204,7 +203,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 	default:
-		err := errors.New(fmt.Sprintf("Invalid KVS operation '%s'", req.Op))
+		err := fmt.Errorf("Invalid KVS operation '%s'", req.Op)
 		c.logger.Printf("[WARN] consul.fsm: %v", err)
 		return err
 	}
