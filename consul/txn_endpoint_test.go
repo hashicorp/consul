@@ -285,6 +285,14 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 					},
 				},
 			},
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: api.KVCheckNotExists,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
 		},
 		WriteRequest: structs.WriteRequest{
 			Token: id,
