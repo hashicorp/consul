@@ -421,7 +421,7 @@ func (m *Manager) RemoveServer(s *agent.Server) {
 	l := m.getServerList()
 
 	// Remove the server if known
-	for i, _ := range l.servers {
+	for i := range l.servers {
 		if l.servers[i].Name == s.Name {
 			newServers := make([]*agent.Server, 0, len(l.servers)-1)
 			newServers = append(newServers, l.servers[:i]...)

@@ -84,7 +84,7 @@ func (hl *hashList) DecodeAndVerify(r io.Reader) error {
 	}
 
 	// Make sure everything we had a hash for was seen.
-	for file, _ := range hl.hashes {
+	for file := range hl.hashes {
 		if _, ok := seen[file]; !ok {
 			return fmt.Errorf("file missing for %q", file)
 		}

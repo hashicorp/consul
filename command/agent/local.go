@@ -446,7 +446,7 @@ func (l *localState) setSyncState() error {
 		services = out1.NodeServices.Services
 	}
 
-	for id, _ := range l.services {
+	for id := range l.services {
 		// If the local service doesn't exist remotely, then sync it
 		if _, ok := services[id]; !ok {
 			l.serviceStatus[id] = syncStatus{inSync: false}
@@ -479,7 +479,7 @@ func (l *localState) setSyncState() error {
 	}
 
 	// Sync any check which doesn't exist on the remote side
-	for id, _ := range l.checks {
+	for id := range l.checks {
 		if _, ok := checkIndex[id]; !ok {
 			l.checkStatus[id] = syncStatus{inSync: false}
 		}

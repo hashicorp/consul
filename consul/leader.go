@@ -439,7 +439,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				return err
 			}
 			if services != nil {
-				for id, _ := range services.Services {
+				for id := range services.Services {
 					if id == service.ID {
 						match = true
 					}

@@ -205,7 +205,7 @@ func TestSnapshot(t *testing.T) {
 	if len(fsm.logs) != len(expected) {
 		t.Fatalf("bad: %d vs. %d", len(fsm.logs), len(expected))
 	}
-	for i, _ := range fsm.logs {
+	for i := range fsm.logs {
 		if !bytes.Equal(fsm.logs[i], expected[i].Bytes()) {
 			t.Fatalf("bad: log %d doesn't match", i)
 		}
@@ -300,7 +300,7 @@ func TestSnapshot_BadRestore(t *testing.T) {
 	if len(fsm.logs) != len(expected) {
 		t.Fatalf("bad: %d vs. %d", len(fsm.logs), len(expected))
 	}
-	for i, _ := range fsm.logs {
+	for i := range fsm.logs {
 		if !bytes.Equal(fsm.logs[i], expected[i].Bytes()) {
 			t.Fatalf("bad: log %d doesn't match", i)
 		}

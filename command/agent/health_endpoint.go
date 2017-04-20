@@ -140,7 +140,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	translateAddresses(s.agent.config, args.Datacenter, out.Nodes)
 
 	// Use empty list instead of nil
-	for i, _ := range out.Nodes {
+	for i := range out.Nodes {
 		// TODO (slackpad) It's lame that this isn't a slice of pointers
 		// but it's not a well-scoped change to fix this. We should
 		// change this at the next opportunity.

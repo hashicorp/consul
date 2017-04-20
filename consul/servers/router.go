@@ -316,7 +316,7 @@ func (r *Router) GetDatacenters() []string {
 	defer r.RUnlock()
 
 	dcs := make([]string, 0, len(r.managers))
-	for dc, _ := range r.managers {
+	for dc := range r.managers {
 		dcs = append(dcs, dc)
 	}
 
@@ -404,7 +404,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 
 	// First sort by DC name, since we do a stable sort later.
 	names := make([]string, 0, len(dcs))
-	for dc, _ := range dcs {
+	for dc := range dcs {
 		names = append(names, dc)
 	}
 	sort.Strings(names)

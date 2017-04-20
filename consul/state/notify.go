@@ -18,7 +18,7 @@ type NotifyGroup struct {
 func (n *NotifyGroup) Notify() {
 	n.l.Lock()
 	defer n.l.Unlock()
-	for ch, _ := range n.notify {
+	for ch := range n.notify {
 		select {
 		case ch <- struct{}{}:
 		default:

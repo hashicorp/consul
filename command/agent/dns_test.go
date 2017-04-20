@@ -4175,7 +4175,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
 		t.Fatalf("Bad %#v", *resp)
 	}
-	for i, _ := range resp.Answer {
+	for i := range resp.Answer {
 		srv, ok := resp.Answer[i].(*dns.SRV)
 		if !ok {
 			t.Fatalf("should be SRV")

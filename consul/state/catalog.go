@@ -501,7 +501,7 @@ func (s *StateStore) Services(ws memdb.WatchSet) (uint64, structs.Services, erro
 	var results = make(structs.Services)
 	for service, tags := range unique {
 		results[service] = make([]string, 0)
-		for tag, _ := range tags {
+		for tag := range tags {
 			results[service] = append(results[service], tag)
 		}
 	}
@@ -570,7 +570,7 @@ func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]st
 	var results = make(structs.Services)
 	for service, tags := range unique {
 		results[service] = make([]string, 0)
-		for tag, _ := range tags {
+		for tag := range tags {
 			results[service] = append(results[service], tag)
 		}
 	}
