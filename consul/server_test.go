@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -378,14 +377,14 @@ func TestServer_LeaveLeader(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 2 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p2 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 2 peers %s", err)
 	}
@@ -433,14 +432,14 @@ func TestServer_Leave(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 2 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p2 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 2 peers %s", err)
 	}
@@ -570,14 +569,14 @@ func TestServer_Expect(t *testing.T) {
 	// Should have no peers yet since the bootstrap didn't occur.
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 0, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
+		return p2 == 0, fmt.Errorf("%d", p2)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
@@ -592,21 +591,21 @@ func TestServer_Expect(t *testing.T) {
 	// Now we have three servers so we should bootstrap.
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 3, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 3, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 3 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 3, errors.New(fmt.Sprintf("%d", p2))
+		return p2 == 3, fmt.Errorf("%d", p2)
 	}); err != nil {
 		t.Fatalf("should have 3 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p3, _ = s3.numPeers()
-		return p3 == 3, errors.New(fmt.Sprintf("%d", p3))
+		return p3 == 3, fmt.Errorf("%d", p3)
 	}); err != nil {
 		t.Fatalf("should have 3 peers %s", err)
 	}
@@ -623,7 +622,7 @@ func TestServer_Expect(t *testing.T) {
 	var p4 int
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p4, _ = s4.numPeers()
-		return p4 == 4, errors.New(fmt.Sprintf("%d", p4))
+		return p4 == 4, fmt.Errorf("%d", p4)
 	}); err != nil {
 		t.Fatalf("should have 4 peers %s", err)
 	}
@@ -666,14 +665,14 @@ func TestServer_BadExpect(t *testing.T) {
 	// should have no peers yet
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 0, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
+		return p2 == 0, fmt.Errorf("%d", p2)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
@@ -688,21 +687,21 @@ func TestServer_BadExpect(t *testing.T) {
 	// should still have no peers (because s2 is in expect=2 mode)
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ = s1.numPeers()
-		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 0, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p2, _ = s2.numPeers()
-		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
+		return p2 == 0, fmt.Errorf("%d", p2)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p3, _ = s3.numPeers()
-		return p3 == 0, errors.New(fmt.Sprintf("%d", p3))
+		return p3 == 0, fmt.Errorf("%d", p3)
 	}); err != nil {
 		t.Fatalf("should have 0 peers %s", err)
 	}

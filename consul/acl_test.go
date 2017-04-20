@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -234,7 +233,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +285,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +361,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -419,7 +418,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -493,7 +492,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +568,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 
 	if err := testrpc.WaitForResult(func() (bool, error) {
 		p1, _ := s1.numPeers()
-		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
+		return p1 == 2, fmt.Errorf("%d", p1)
 	}); err != nil {
 		t.Fatal(err)
 	}

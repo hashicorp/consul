@@ -496,7 +496,7 @@ func TestLeader_LeftServer(t *testing.T) {
 
 		for _, s := range servers[1:] {
 			peers, _ := s.numPeers()
-			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
+			return peers == 2, fmt.Errorf("%d", peers)
 		}
 
 		return true, nil
@@ -561,7 +561,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 		remain = s
 		if err := testrpc.WaitForResult(func() (bool, error) {
 			peers, _ := s.numPeers()
-			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
+			return peers == 2, fmt.Errorf("%d", peers)
 		}); err != nil {
 			t.Fatal("should have 2 peers")
 		}
