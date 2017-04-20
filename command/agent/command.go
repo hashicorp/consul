@@ -444,18 +444,18 @@ func (c *Command) readConfig() *Config {
 
 // verifyUniqueListeners checks to see if an address was used more than once in
 // the config
-func (config *Config) verifyUniqueListeners() error {
+func (c *Config) verifyUniqueListeners() error {
 	listeners := []struct {
 		host  string
 		port  int
 		descr string
 	}{
-		{config.Addresses.DNS, config.Ports.DNS, "DNS"},
-		{config.Addresses.HTTP, config.Ports.HTTP, "HTTP"},
-		{config.Addresses.HTTPS, config.Ports.HTTPS, "HTTPS"},
-		{config.AdvertiseAddr, config.Ports.Server, "Server RPC"},
-		{config.AdvertiseAddr, config.Ports.SerfLan, "Serf LAN"},
-		{config.AdvertiseAddr, config.Ports.SerfWan, "Serf WAN"},
+		{c.Addresses.DNS, c.Ports.DNS, "DNS"},
+		{c.Addresses.HTTP, c.Ports.HTTP, "HTTP"},
+		{c.Addresses.HTTPS, c.Ports.HTTPS, "HTTPS"},
+		{c.AdvertiseAddr, c.Ports.Server, "Server RPC"},
+		{c.AdvertiseAddr, c.Ports.SerfLan, "Serf LAN"},
+		{c.AdvertiseAddr, c.Ports.SerfWan, "Serf WAN"},
 	}
 
 	type key struct {
