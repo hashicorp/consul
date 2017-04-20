@@ -76,7 +76,7 @@ func (l *LogWriter) Write(p []byte) (n int, err error) {
 	l.logs[l.index] = string(p)
 	l.index = (l.index + 1) % len(l.logs)
 
-	for lh, _ := range l.handlers {
+	for lh := range l.handlers {
 		lh.HandleLog(string(p))
 	}
 	return

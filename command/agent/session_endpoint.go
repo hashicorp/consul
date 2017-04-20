@@ -75,7 +75,7 @@ func FixupLockDelay(raw interface{}) error {
 		return nil
 	}
 	var key string
-	for k, _ := range rawMap {
+	for k := range rawMap {
 		if strings.ToLower(k) == "lockdelay" {
 			key = k
 			break

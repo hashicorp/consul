@@ -1354,7 +1354,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
-	for check, _ := range agent.state.Checks() {
+	for check := range agent.state.Checks() {
 		if check == check1.CheckID {
 			found = true
 			break
@@ -1370,7 +1370,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 	}
 
 	// Make sure it was unloaded
-	for check, _ := range agent.state.Checks() {
+	for check := range agent.state.Checks() {
 		if check == check1.CheckID {
 			t.Fatalf("should have unloaded checks")
 		}
@@ -1416,7 +1416,7 @@ func TestAgent_unloadServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	found := false
-	for id, _ := range agent.state.Services() {
+	for id := range agent.state.Services() {
 		if id == svc.ID {
 			found = true
 			break
@@ -1433,7 +1433,7 @@ func TestAgent_unloadServices(t *testing.T) {
 
 	// Make sure it was unloaded and the consul service remains
 	found = false
-	for id, _ := range agent.state.Services() {
+	for id := range agent.state.Services() {
 		if id == svc.ID {
 			t.Fatalf("should have unloaded services")
 		}

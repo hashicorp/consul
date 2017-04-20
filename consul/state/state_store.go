@@ -117,7 +117,7 @@ func (s *StateStore) Snapshot() *StateSnapshot {
 	tx := s.db.Txn(false)
 
 	var tables []string
-	for table, _ := range s.schema.Tables {
+	for table := range s.schema.Tables {
 		tables = append(tables, table)
 	}
 	idx := maxIndexTxn(tx, tables...)

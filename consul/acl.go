@@ -379,7 +379,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 
 // filterServices is used to filter a set of services based on ACLs.
 func (f *aclFilter) filterServices(services structs.Services) {
-	for svc, _ := range services {
+	for svc := range services {
 		if f.allowService(svc) {
 			continue
 		}
@@ -415,7 +415,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 		return
 	}
 
-	for svc, _ := range (*services).Services {
+	for svc := range (*services).Services {
 		if f.allowService(svc) {
 			continue
 		}
