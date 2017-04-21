@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 )
 
 func TestStatusLeader(t *testing.T) {
@@ -13,7 +13,7 @@ func TestStatusLeader(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	obj, err := srv.StatusLeader(nil, nil)
 	if err != nil {

@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -17,7 +18,7 @@ func TestInitializeSessionTimers(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	state := s1.fsm.State()
 	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
@@ -50,7 +51,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Should not exist
 	err := s1.resetSessionTimer(generateUUID(), nil)
@@ -90,7 +91,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a session
 	state := s1.fsm.State()
@@ -143,7 +144,7 @@ func TestResetSessionTimerLocked(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
@@ -165,7 +166,7 @@ func TestResetSessionTimerLocked_Renew(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	s1.sessionTimersLock.Lock()
 	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
@@ -205,7 +206,7 @@ func TestInvalidateSession(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a session
 	state := s1.fsm.State()
@@ -298,12 +299,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		peers, _ := s1.numPeers()
-		return peers == 3, nil
-	}); err != nil {
-		t.Fatalf("should have 3 peers %s", err)
-	}
+	retry.Fatal(t, checkNumPeers(s1, 3))
 
 	// Find the leader
 	var leader *Server
@@ -363,7 +359,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	// Find the new leader
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {
@@ -371,16 +367,14 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 			}
 		}
 		if leader == nil {
-			return false, fmt.Errorf("Should have a new leader")
+			return fmt.Errorf("Should have a new leader")
 		}
 
 		// Ensure session timer is restored
 		if _, ok := leader.sessionTimers[id1]; !ok {
-			return false, fmt.Errorf("missing session timer")
+			return fmt.Errorf("missing session timer")
 		}
 
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 }

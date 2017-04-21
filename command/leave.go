@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/base"
 	"strings"
+
+	"github.com/hashicorp/consul/command/base"
 )
 
 // LeaveCommand is a Command implementation that instructs

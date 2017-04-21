@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -74,7 +74,7 @@ func TestUiNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -118,7 +118,7 @@ func TestUiNodeInfo(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("/v1/internal/ui/node/%s", srv.agent.config.NodeName), nil)

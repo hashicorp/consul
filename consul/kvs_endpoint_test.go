@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -19,7 +19,7 @@ func TestKVS_Apply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -79,7 +79,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -137,7 +137,7 @@ func TestKVS_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -188,7 +188,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -229,7 +229,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -300,7 +300,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -399,7 +399,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -479,7 +479,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -552,7 +552,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -626,7 +626,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
@@ -695,7 +695,7 @@ func TestKVS_Issue_1626(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Set up the first key.
 	{

@@ -1,12 +1,14 @@
 package agent
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 )
 
 func TestValidateUserEventParams(t *testing.T) {
@@ -153,7 +155,7 @@ func TestFireReceiveEvent(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	wait.ForLeader(t, agent.RPC, "dc1")
 
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -175,11 +177,12 @@ func TestFireReceiveEvent(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(agent.UserEvents()) == 1, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(agent.UserEvents()), 1; got != want {
+			return fmt.Errorf("got %d user events want %d", got, want)
+		}
+		return nil
+	})
 
 	last := agent.LastUserEvent()
 	if last.ID != p2.ID {
@@ -197,7 +200,7 @@ func TestUserEventToken(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	wait.ForLeader(t, agent.RPC, "dc1")
 
 	// Create an ACL token
 	args := structs.ACLRequest{

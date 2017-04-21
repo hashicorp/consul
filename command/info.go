@@ -2,9 +2,10 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/base"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/consul/command/base"
 )
 
 // InfoCommand is a Command implementation that queries a running

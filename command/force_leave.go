@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/base"
 	"strings"
+
+	"github.com/hashicorp/consul/command/base"
 )
 
 // ForceLeaveCommand is a Command implementation that tells a running Consul

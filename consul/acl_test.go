@@ -9,7 +9,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 )
 
 var testACLPolicy = `
@@ -28,7 +29,7 @@ func TestACL_Disabled(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err != nil {
@@ -72,7 +73,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err == nil || err.Error() != aclNotFound {
@@ -93,7 +94,7 @@ func TestACL_Authority_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -138,7 +139,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("")
@@ -165,7 +166,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -193,7 +194,7 @@ func TestACL_Authority_Management(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -231,16 +232,11 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	client := rpcClient(t, s1)
 	defer client.Close()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -283,13 +279,8 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -359,13 +350,8 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -416,13 +402,8 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -490,13 +471,8 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -566,13 +542,8 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Fatal(t, checkNumPeers(s1, 2))
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -665,9 +636,9 @@ func TestACL_Replication(t *testing.T) {
 	if _, err := s3.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-	testrpc.WaitForLeader(t, s1.RPC, "dc3")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc3")
 
 	// Create a new token.
 	arg := structs.ACLRequest{
@@ -686,25 +657,23 @@ func TestACL_Replication(t *testing.T) {
 	}
 
 	// Wait for replication to occur.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			return err
 		}
 		if acl == nil {
-			return false, nil
+			return fmt.Errorf("no acls")
 		}
 		_, acl, err = s3.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			return err
 		}
 		if acl == nil {
-			return false, nil
+			return fmt.Errorf("no acls")
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 
 	// Kill the ACL datacenter.
 	s1.Shutdown()
@@ -769,8 +738,8 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc2")
 
 	// Create a new token
 	arg := structs.ACLRequest{

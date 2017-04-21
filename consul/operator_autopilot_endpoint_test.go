@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 )
@@ -22,7 +23,7 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -49,7 +50,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Try to get config without permissions
 	arg := structs.DCSpecificRequest{
@@ -103,7 +104,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Change the autopilot config from the default
 	arg := structs.AutopilotSetConfigRequest{
@@ -141,7 +142,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Try to set config without permissions
 	arg := structs.AutopilotSetConfigRequest{
@@ -227,40 +228,36 @@ func TestOperator_ServerHealth(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		arg := structs.DCSpecificRequest{
-			Datacenter: "dc1",
-		}
+	retry.Fatal(t, func() error {
+		arg := structs.DCSpecificRequest{Datacenter: "dc1"}
 		var reply structs.OperatorHealthReply
 		err := msgpackrpc.CallWithCodec(codec, "Operator.ServerHealth", &arg, &reply)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			return fmt.Errorf("Operator.ServerHealth failed: %s", err)
 		}
 		if !reply.Healthy {
-			return false, fmt.Errorf("bad: %v", reply)
+			return fmt.Errorf("server not healthy: %#v", reply)
 		}
-		if reply.FailureTolerance != 1 {
-			return false, fmt.Errorf("bad: %v", reply)
+		if got, want := reply.FailureTolerance, 1; got != want {
+			return fmt.Errorf("got failure tolerance %d want %d", got, want)
 		}
-		if len(reply.Servers) != 3 {
-			return false, fmt.Errorf("bad: %v", reply)
+		if got, want := len(reply.Servers), 3; got != want {
+			return fmt.Errorf("got %d servers want %d", got, want)
 		}
 		// Leader should have LastContact == 0, others should be positive
 		for _, s := range reply.Servers {
 			isLeader := s1.raft.Leader() == raft.ServerAddress(s.Address)
 			if isLeader && s.LastContact != 0 {
-				return false, fmt.Errorf("bad: %v", reply)
+				return fmt.Errorf("got %d for LastContact of leader want 0", s.LastContact)
 			}
 			if !isLeader && s.LastContact <= 0 {
-				return false, fmt.Errorf("bad: %v", reply)
+				return fmt.Errorf("got %d for LastContact of non-leader want <= 0", s.LastContact)
 			}
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 }
 
 func TestOperator_ServerHealth_UnsupportedRaftVersion(t *testing.T) {

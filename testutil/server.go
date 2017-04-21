@@ -23,7 +23,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
@@ -299,16 +301,16 @@ func (s *TestServer) Stop() error {
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
 func (s *TestServer) waitForAPI() error {
-	if err := WaitForResult(func() (bool, error) {
+	if err := retry.Func(func() error {
 		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
-			return false, errors.Wrap(err, "failed http get")
+			return errors.Wrap(err, "failed http get")
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			return false, errors.Wrap(err, "failed OK response")
+			return errors.Wrap(err, "failed OK response")
 		}
-		return true, nil
+		return nil
 	}); err != nil {
 		return errors.Wrap(err, "failed waiting for API")
 	}
@@ -321,47 +323,48 @@ func (s *TestServer) waitForAPI() error {
 // It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader() error {
 	var index int64
-	if err := WaitForResult(func() (bool, error) {
+	r := retry.Retryer{Timeout: 5 * time.Second, Wait: 500 * time.Millisecond}
+	if err := r.Retry(func() error {
 		// Query the API and check the status code.
 		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
-			return false, errors.Wrap(err, "failed http get")
+			return errors.Wrap(err, "failed http get")
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			return false, errors.Wrap(err, "failed OK response")
+			return errors.Wrap(err, "failed OK response")
 		}
 
 		// Ensure we have a leader and a node registration.
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			return false, fmt.Errorf("Consul leader status: %#v", leader)
+			return fmt.Errorf("Consul leader status: %#v", leader)
 		}
 		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
-			return false, errors.Wrap(err, "bad consul index")
+			return errors.Wrap(err, "bad consul index")
 		}
 		if index == 0 {
-			return false, fmt.Errorf("consul index is 0")
+			return fmt.Errorf("consul index is 0")
 		}
 
 		// Watch for the anti-entropy sync to finish.
 		var parsed []map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
 		if err := dec.Decode(&parsed); err != nil {
-			return false, err
+			return err
 		}
 		if len(parsed) < 1 {
-			return false, fmt.Errorf("No nodes")
+			return fmt.Errorf("No nodes")
 		}
 		taggedAddresses, ok := parsed[0]["TaggedAddresses"].(map[string]interface{})
 		if !ok {
-			return false, fmt.Errorf("Missing tagged addresses")
+			return fmt.Errorf("Missing tagged addresses")
 		}
 		if _, ok := taggedAddresses["lan"]; !ok {
-			return false, fmt.Errorf("No lan tagged addresses")
+			return fmt.Errorf("No lan tagged addresses")
 		}
-		return true, nil
+		return nil
 	}); err != nil {
 		return errors.Wrap(err, "failed waiting for leader")
 	}
