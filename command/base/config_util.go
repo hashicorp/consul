@@ -18,7 +18,7 @@ import (
 // config structure and merge it in a clean-ish way. If this ends up being a
 // good pattern we should pull this out into a reusable library.
 
-// configDecodeHook should be passed to mapstructure in order to decode into
+// ConfigDecodeHook should be passed to mapstructure in order to decode into
 // the *Value objects here.
 var ConfigDecodeHook = mapstructure.ComposeDecodeHookFunc(
 	BoolToBoolValueFunc(),
@@ -32,7 +32,9 @@ type BoolValue struct {
 	v *bool
 }
 
-// See flag.Value.
+// IsBoolFlag is an optional method of the flag.Value
+// interface which marks this value as boolean when
+// the return value is true. See flag.Value for details.
 func (b *BoolValue) IsBoolFlag() bool {
 	return true
 }
@@ -44,7 +46,7 @@ func (b *BoolValue) Merge(onto *bool) {
 	}
 }
 
-// See flag.Value.
+// Set implements the flag.Value interface.
 func (b *BoolValue) Set(v string) error {
 	if b.v == nil {
 		b.v = new(bool)
@@ -54,7 +56,7 @@ func (b *BoolValue) Set(v string) error {
 	return err
 }
 
-// See flag.Value.
+// String implements the flag.Value interface.
 func (b *BoolValue) String() string {
 	var current bool
 	if b.v != nil {
@@ -97,7 +99,7 @@ func (d *DurationValue) Merge(onto *time.Duration) {
 	}
 }
 
-// See flag.Value.
+// Set implements the flag.Value interface.
 func (d *DurationValue) Set(v string) error {
 	if d.v == nil {
 		d.v = new(time.Duration)
@@ -107,7 +109,7 @@ func (d *DurationValue) Set(v string) error {
 	return err
 }
 
-// See flag.Value.
+// String implements the flag.Value interface.
 func (d *DurationValue) String() string {
 	var current time.Duration
 	if d.v != nil {
@@ -150,7 +152,7 @@ func (s *StringValue) Merge(onto *string) {
 	}
 }
 
-// See flag.Value.
+// Set implements the flag.Value interface.
 func (s *StringValue) Set(v string) error {
 	if s.v == nil {
 		s.v = new(string)
@@ -159,7 +161,7 @@ func (s *StringValue) Set(v string) error {
 	return nil
 }
 
-// See flag.Value.
+// String implements the flag.Value interface.
 func (s *StringValue) String() string {
 	var current string
 	if s.v != nil {
@@ -201,7 +203,7 @@ func (u *UintValue) Merge(onto *uint) {
 	}
 }
 
-// See flag.Value.
+// Set implements the flag.Value interface.
 func (u *UintValue) Set(v string) error {
 	if u.v == nil {
 		u.v = new(uint)
@@ -211,7 +213,7 @@ func (u *UintValue) Set(v string) error {
 	return err
 }
 
-// See flag.Value.
+// String implements the flag.Value interface.
 func (u *UintValue) String() string {
 	var current uint
 	if u.v != nil {
@@ -258,7 +260,7 @@ func Float64ToUintValueFunc() mapstructure.DecodeHookFunc {
 // traversal with visit().
 type VisitFn func(path string) error
 
-// visit will call the visitor function on the path if it's a file, or for each
+// Visit will call the visitor function on the path if it's a file, or for each
 // file in the path if it's a directory. Directories will not be recursed into,
 // and files in the directory will be visited in alphabetical order.
 func Visit(path string, visitor VisitFn) error {
@@ -303,17 +305,6 @@ func Visit(path string, visitor VisitFn) error {
 // dirEnts applies sort.Interface to directory entries for sorting by name.
 type dirEnts []os.FileInfo
 
-// See sort.Interface.
-func (d dirEnts) Len() int {
-	return len(d)
-}
-
-// See sort.Interface.
-func (d dirEnts) Less(i, j int) bool {
-	return d[i].Name() < d[j].Name()
-}
-
-// See sort.Interface.
-func (d dirEnts) Swap(i, j int) {
-	d[i], d[j] = d[j], d[i]
-}
+func (d dirEnts) Len() int           { return len(d) }
+func (d dirEnts) Less(i, j int) bool { return d[i].Name() < d[j].Name() }
+func (d dirEnts) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }

@@ -52,53 +52,43 @@ const (
 	// that new commands can be added in a way that won't cause
 	// old servers to crash when the FSM attempts to process them.
 	IgnoreUnknownTypeFlag MessageType = 128
-)
 
-const (
 	// NodeMaint is the special key set by a node in maintenance mode.
 	NodeMaint = "_node_maintenance"
 
 	// ServiceMaintPrefix is the prefix for a service in maintenance mode.
 	ServiceMaintPrefix = "_service_maintenance:"
-)
 
-const (
 	// The meta key prefix reserved for Consul's internal use
 	metaKeyReservedPrefix = "consul-"
 
-	// The maximum number of metadata key pairs allowed to be registered
+	// metaMaxKeyPairs is maximum number of metadata key pairs allowed to be registered
 	metaMaxKeyPairs = 64
 
-	// The maximum allowed length of a metadata key
+	// metaKeyMaxLength is the maximum allowed length of a metadata key
 	metaKeyMaxLength = 128
 
-	// The maximum allowed length of a metadata value
+	// metaValueMaxLength is the maximum allowed length of a metadata value
 	metaValueMaxLength = 512
-)
 
-var (
-	// metaKeyFormat checks if a metadata key string is valid
-	metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
-)
-
-func ValidStatus(s string) bool {
-	return s == api.HealthPassing || s == api.HealthWarning || s == api.HealthCritical
-}
-
-const (
 	// Client tokens have rules applied
 	ACLTypeClient = "client"
 
 	// Management tokens have an always allow policy.
 	// They are used for token management.
 	ACLTypeManagement = "management"
-)
 
-const (
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
 )
+
+// metaKeyFormat checks if a metadata key string is valid
+var metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
+
+func ValidStatus(s string) bool {
+	return s == api.HealthPassing || s == api.HealthWarning || s == api.HealthCritical
+}
 
 // RPCInfo is used to describe common information about query
 type RPCInfo interface {
@@ -130,7 +120,7 @@ type QueryOptions struct {
 	RequireConsistent bool
 }
 
-// QueryOption only applies to reads, so always true
+// IsRead is always true for QueryOption.
 func (q QueryOptions) IsRead() bool {
 	return true
 }
