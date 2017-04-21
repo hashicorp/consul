@@ -23,17 +23,18 @@ import (
 )
 
 const (
-	// Do not allow for a interval below this value.
+	// MinInterval is the minimal interval between
+	// two checks. Do not allow for a interval below this value.
 	// Otherwise we risk fork bombing a system.
 	MinInterval = time.Second
 
-	// Limit the size of a check's output to the
-	// last CheckBufSize. Prevents an enormous buffer
+	// CheckBufSize is the maximum size of the captured
+	// check output. Prevents an enormous buffer
 	// from being captured
 	CheckBufSize = 4 * 1024 // 4KB
 
-	// Use this user agent when doing requests for
-	// HTTP health checks.
+	// UserAgent is the value of the User-Agent header
+	// for HTTP health checks.
 	UserAgent = "Consul Health Check"
 )
 
@@ -90,6 +91,7 @@ func (c *CheckType) IsTCP() bool {
 	return c.TCP != "" && c.Interval != 0
 }
 
+// IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
 	return c.DockerContainerID != "" && c.Script != "" && c.Interval != 0
 }
@@ -550,8 +552,8 @@ func (c *CheckTCP) check() {
 	c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
-// A custom interface since go-dockerclient doesn't have one
-// We will use this interface in our test to inject a fake client
+// DockerClient defines an interface for a docker client
+// which is used for injecting a fake client during tests.
 type DockerClient interface {
 	CreateExec(docker.CreateExecOptions) (*docker.Exec, error)
 	StartExec(string, docker.StartExecOptions) error
@@ -578,9 +580,8 @@ type CheckDocker struct {
 	stopLock     sync.Mutex
 }
 
-//Initializes the Docker Client
+// Init initializes the Docker Client
 func (c *CheckDocker) Init() error {
-	//create the docker client
 	var err error
 	c.dockerClient, err = docker.NewClientFromEnv()
 	if err != nil {
