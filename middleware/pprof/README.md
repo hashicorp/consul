@@ -8,7 +8,7 @@ on your site for an index of the available endpoints. By default it will listen 
 > you use pprof on a live site, consider restricting access or enabling it only temporarily.
 
 For more information, please see [Go's pprof
-documentation](https://golang.org/pkg/net/http/pprof/s://golang.org/pkg/net/http/pprof/) and read
+documentation](https://golang.org/pkg/net/http/pprof/) and read
 [Profiling Go Programs](https://blog.golang.org/profiling-go-programs).
 
 There is not configuration.
