@@ -712,6 +712,12 @@
 			"revisionTime": "2016-08-09T12:22:04Z"
 		},
 		{
+			"checksumSHA1": "5h+ERzHw3Rl2G0kFPxoJzxiA9s0=",
+			"path": "github.com/pascaldekloe/goe/verify",
+			"revision": "07ebd1e2481f616a278ab431cf04cc5cf5ab3ebe",
+			"revisionTime": "2017-03-28T18:37:59Z"
+		},
+		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
 			"path": "github.com/pkg/errors",
 			"revision": "ff09b135c25aae272398c51a07235b90a75aa4f0",
