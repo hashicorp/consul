@@ -1048,14 +1048,11 @@ func (s *Store) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.
 	var err error
 	if state == api.HealthAny {
 		iter, err = tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
 	} else {
 		iter, err = tx.Get("checks", "status", state)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
+	}
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 
