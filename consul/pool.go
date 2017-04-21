@@ -311,20 +311,20 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 	if version < 2 {
 		conn.Close()
 		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
-	} else {
-		// Write the Consul multiplex byte to set the mode
-		if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {
-			conn.Close()
-			return nil, err
-		}
-
-		// Setup the logger
-		conf := yamux.DefaultConfig()
-		conf.LogOutput = p.logOutput
-
-		// Create a multiplexed session
-		session, _ = yamux.Client(conn, conf)
 	}
+
+	// Write the Consul multiplex byte to set the mode
+	if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	// Setup the logger
+	conf := yamux.DefaultConfig()
+	conf.LogOutput = p.logOutput
+
+	// Create a multiplexed session
+	session, _ = yamux.Client(conn, conf)
 
 	// Wrap the connection
 	c := &Conn{

@@ -136,13 +136,12 @@ func (c *KVImportCommand) dataFromArgs(args []string) (string, error) {
 	case '-':
 		if len(data) > 1 {
 			return data, nil
-		} else {
-			var b bytes.Buffer
-			if _, err := io.Copy(&b, stdin); err != nil {
-				return "", fmt.Errorf("Failed to read stdin: %s", err)
-			}
-			return b.String(), nil
 		}
+		var b bytes.Buffer
+		if _, err := io.Copy(&b, stdin); err != nil {
+			return "", fmt.Errorf("Failed to read stdin: %s", err)
+		}
+		return b.String(), nil
 	default:
 		return data, nil
 	}

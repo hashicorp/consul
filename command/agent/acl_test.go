@@ -40,9 +40,8 @@ type MockServer struct {
 func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
 	if m.getPolicyFn != nil {
 		return m.getPolicyFn(args, reply)
-	} else {
-		return fmt.Errorf("should not have called GetPolicy")
 	}
+	return fmt.Errorf("should not have called GetPolicy")
 }
 
 func TestACL_Version8(t *testing.T) {

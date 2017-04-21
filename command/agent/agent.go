@@ -795,9 +795,8 @@ func (a *Agent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.
 func (a *Agent) Leave() error {
 	if a.server != nil {
 		return a.server.Leave()
-	} else {
-		return a.client.Leave()
 	}
+	return a.client.Leave()
 }
 
 // Shutdown is used to hard stop the agent. Should be
@@ -895,27 +894,24 @@ func (a *Agent) ForceLeave(node string) (err error) {
 func (a *Agent) LocalMember() serf.Member {
 	if a.server != nil {
 		return a.server.LocalMember()
-	} else {
-		return a.client.LocalMember()
 	}
+	return a.client.LocalMember()
 }
 
 // LANMembers is used to retrieve the LAN members
 func (a *Agent) LANMembers() []serf.Member {
 	if a.server != nil {
 		return a.server.LANMembers()
-	} else {
-		return a.client.LANMembers()
 	}
+	return a.client.LANMembers()
 }
 
 // WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
 	if a.server != nil {
 		return a.server.WANMembers()
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // StartSync is called once Services and Checks are registered.
@@ -940,9 +936,8 @@ func (a *Agent) ResumeSync() {
 func (a *Agent) GetCoordinate() (*coordinate.Coordinate, error) {
 	if a.config.Server {
 		return a.server.GetLANCoordinate()
-	} else {
-		return a.client.GetCoordinate()
 	}
+	return a.client.GetCoordinate()
 }
 
 // sendCoordinate is a long-running loop that periodically sends our coordinate
@@ -1839,9 +1834,8 @@ func parseMetaPair(raw string) (string, string) {
 	pair := strings.SplitN(raw, ":", 2)
 	if len(pair) == 2 {
 		return pair[0], pair[1]
-	} else {
-		return pair[0], ""
 	}
+	return pair[0], ""
 }
 
 // unloadMetadata resets the local metadata state

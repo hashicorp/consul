@@ -1265,44 +1265,44 @@ func FixupCheckType(raw interface{}) error {
 	if ttl, ok := rawMap[ttlKey]; ok {
 		ttlS, ok := ttl.(string)
 		if ok {
-			if dur, err := time.ParseDuration(ttlS); err != nil {
+			dur, err := time.ParseDuration(ttlS)
+			if err != nil {
 				return err
-			} else {
-				rawMap[ttlKey] = dur
 			}
+			rawMap[ttlKey] = dur
 		}
 	}
 
 	if interval, ok := rawMap[intervalKey]; ok {
 		intervalS, ok := interval.(string)
 		if ok {
-			if dur, err := time.ParseDuration(intervalS); err != nil {
+			dur, err := time.ParseDuration(intervalS)
+			if err != nil {
 				return err
-			} else {
-				rawMap[intervalKey] = dur
 			}
+			rawMap[intervalKey] = dur
 		}
 	}
 
 	if timeout, ok := rawMap[timeoutKey]; ok {
 		timeoutS, ok := timeout.(string)
 		if ok {
-			if dur, err := time.ParseDuration(timeoutS); err != nil {
+			dur, err := time.ParseDuration(timeoutS)
+			if err != nil {
 				return err
-			} else {
-				rawMap[timeoutKey] = dur
 			}
+			rawMap[timeoutKey] = dur
 		}
 	}
 
 	if deregister, ok := rawMap[deregisterKey]; ok {
 		timeoutS, ok := deregister.(string)
 		if ok {
-			if dur, err := time.ParseDuration(timeoutS); err != nil {
+			dur, err := time.ParseDuration(timeoutS)
+			if err != nil {
 				return err
-			} else {
-				rawMap[deregisterKey] = dur
 			}
+			rawMap[deregisterKey] = dur
 		}
 	}
 

@@ -334,9 +334,8 @@ func NewServer(config *Config) (*Server, error) {
 	portFn := func(s *agent.Server) (int, bool) {
 		if s.WanJoinPort > 0 {
 			return s.WanJoinPort, true
-		} else {
-			return 0, false
 		}
+		return 0, false
 	}
 	go s.Flood(portFn, s.serfWAN)
 

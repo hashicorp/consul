@@ -41,9 +41,8 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	case "GET":
 		if keyList {
 			return s.KVSGetKeys(resp, req, &args)
-		} else {
-			return s.KVSGet(resp, req, &args)
 		}
+		return s.KVSGet(resp, req, &args)
 	case "PUT":
 		return s.KVSPut(resp, req, &args)
 	case "DELETE":
@@ -206,9 +205,8 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	// Only use the out value if this was a CAS
 	if applyReq.Op == api.KVSet {
 		return true, nil
-	} else {
-		return out, nil
 	}
+	return out, nil
 }
 
 // KVSPut handles a DELETE request
@@ -252,9 +250,8 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 	// Only use the out value if this was a CAS
 	if applyReq.Op == api.KVDeleteCAS {
 		return out, nil
-	} else {
-		return true, nil
 	}
+	return true, nil
 }
 
 // missingKey checks if the key is missing

@@ -60,20 +60,20 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 		delay := 5 * time.Second
 		for i := 0; i <= retries; i++ {
 			l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
-			if err != nil {
-				ui.Error(fmt.Sprintf("Syslog setup error: %v", err))
-				if i == retries {
-					timeout := time.Duration(retries) * delay
-					ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
-					return nil, nil, nil, nil, false
-				} else {
-					ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
-					time.Sleep(delay)
-				}
-			} else {
+			if err == nil {
 				syslog = &SyslogWrapper{l, logFilter}
 				break
 			}
+
+			ui.Error(fmt.Sprintf("Syslog setup error: %v", err))
+			if i == retries {
+				timeout := time.Duration(retries) * delay
+				ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
+				return nil, nil, nil, nil, false
+			}
+
+			ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
+			time.Sleep(delay)
 		}
 	}
 

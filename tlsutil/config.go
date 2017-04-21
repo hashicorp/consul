@@ -213,20 +213,20 @@ func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
 	// Strip the trailing '.' from the domain if any
 	domain := strings.TrimSuffix(c.Domain, ".")
 
+	wrapper := func(dc string, c net.Conn) (net.Conn, error) {
+		return WrapTLSClient(c, tlsConfig)
+	}
+
 	// Generate the wrapper based on hostname verification
 	if c.VerifyServerHostname {
-		wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+		wrapper = func(dc string, conn net.Conn) (net.Conn, error) {
 			conf := clone(tlsConfig)
 			conf.ServerName = "server." + dc + "." + domain
 			return WrapTLSClient(conn, conf)
 		}
-		return wrapper, nil
-	} else {
-		wrapper := func(dc string, c net.Conn) (net.Conn, error) {
-			return WrapTLSClient(c, tlsConfig)
-		}
-		return wrapper, nil
 	}
+
+	return wrapper, nil
 }
 
 // SpecificDC is used to invoke a static datacenter

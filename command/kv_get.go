@@ -184,10 +184,10 @@ func (c *KVGetCommand) Run(args []string) int {
 
 			c.UI.Info(b.String())
 			return 0
-		} else {
-			c.UI.Info(string(pair.Value))
-			return 0
 		}
+
+		c.UI.Info(string(pair.Value))
+		return 0
 	}
 }
 

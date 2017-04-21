@@ -46,9 +46,8 @@ func (a *aclIterator) Less(i, j int) bool {
 func (a *aclIterator) Front() *structs.ACL {
 	if a.index < len(a.acls) {
 		return a.acls[a.index]
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // Next advances the iterator to the next index.

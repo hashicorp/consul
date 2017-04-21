@@ -298,9 +298,8 @@ func (s *Store) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.Pre
 				return idx, nil, err
 			}
 			return idx, render, nil
-		} else {
-			return idx, wrapper.PreparedQuery, nil
 		}
+		return idx, wrapper.PreparedQuery, nil
 	}
 
 	// Next, look for an exact name match. This is the common case for static

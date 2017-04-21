@@ -701,9 +701,8 @@ func (c *CheckDocker) check() {
 }
 
 func shell() string {
-	if otherShell := os.Getenv("SHELL"); otherShell != "" {
-		return otherShell
-	} else {
-		return "/bin/sh"
+	if sh := os.Getenv("SHELL"); sh != "" {
+		return sh
 	}
+	return "/bin/sh"
 }

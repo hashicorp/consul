@@ -207,13 +207,13 @@ func (m *Manager) FindServer() *agent.Server {
 	if numServers == 0 {
 		m.logger.Printf("[WARN] manager: No servers available")
 		return nil
-	} else {
-		// Return whatever is at the front of the list because it is
-		// assumed to be the oldest in the server list (unless -
-		// hypothetically - the server list was rotated right after a
-		// server was added).
-		return l.servers[0]
 	}
+
+	// Return whatever is at the front of the list because it is
+	// assumed to be the oldest in the server list (unless -
+	// hypothetically - the server list was rotated right after a
+	// server was added).
+	return l.servers[0]
 }
 
 // getServerList is a convenience method which hides the locking semantics

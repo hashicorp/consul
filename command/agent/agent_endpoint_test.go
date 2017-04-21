@@ -1948,9 +1948,8 @@ func TestAgent_Monitor(t *testing.T) {
 
 		if bytes.Contains(resp.Body.Bytes(), expected) {
 			return true, nil
-		} else {
-			return false, fmt.Errorf("didn't see expected")
 		}
+		return false, fmt.Errorf("didn't see expected")
 	}); err != nil {
 		t.Fatalf("err: %v", err)
 	}

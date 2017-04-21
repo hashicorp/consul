@@ -83,11 +83,11 @@ func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Re
 func parseLimit(req *http.Request, limit *int) error {
 	*limit = 0
 	if arg := req.URL.Query().Get("limit"); arg != "" {
-		if i, err := strconv.Atoi(arg); err != nil {
+		i, err := strconv.Atoi(arg)
+		if err != nil {
 			return err
-		} else {
-			*limit = i
 		}
+		*limit = i
 	}
 	return nil
 }

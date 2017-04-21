@@ -111,9 +111,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
 			return nil
-		} else {
-			panic(fmt.Errorf("failed to apply request: %#v", buf))
 		}
+		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
 }
 
@@ -176,32 +175,28 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key)
 		if err != nil {
 			return err
-		} else {
-			return act
 		}
+		return act
 	case api.KVDeleteTree:
 		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
 	case api.KVCAS:
 		act, err := c.state.KVSSetCAS(index, &req.DirEnt)
 		if err != nil {
 			return err
-		} else {
-			return act
 		}
+		return act
 	case api.KVLock:
 		act, err := c.state.KVSLock(index, &req.DirEnt)
 		if err != nil {
 			return err
-		} else {
-			return act
 		}
+		return act
 	case api.KVUnlock:
 		act, err := c.state.KVSUnlock(index, &req.DirEnt)
 		if err != nil {
 			return err
-		} else {
-			return act
 		}
+		return act
 	default:
 		err := fmt.Errorf("Invalid KVS operation '%s'", req.Op)
 		c.logger.Printf("[WARN] consul.fsm: %v", err)
@@ -219,9 +214,8 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	case structs.SessionCreate:
 		if err := c.state.SessionCreate(index, &req.Session); err != nil {
 			return err
-		} else {
-			return req.Session.ID
 		}
+		return req.Session.ID
 	case structs.SessionDestroy:
 		return c.state.SessionDestroy(index, req.Session.ID)
 	default:
@@ -240,9 +234,8 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	case structs.ACLForceSet, structs.ACLSet:
 		if err := c.state.ACLSet(index, &req.ACL); err != nil {
 			return err
-		} else {
-			return req.ACL.ID
 		}
+		return req.ACL.ID
 	case structs.ACLDelete:
 		return c.state.ACLDelete(index, req.ACL.ID)
 	default:
@@ -326,12 +319,10 @@ func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 		act, err := c.state.AutopilotCASConfig(index, req.Config.ModifyIndex, &req.Config)
 		if err != nil {
 			return err
-		} else {
-			return act
 		}
-	} else {
-		return c.state.AutopilotSetConfig(index, &req.Config)
+		return act
 	}
+	return c.state.AutopilotSetConfig(index, &req.Config)
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {

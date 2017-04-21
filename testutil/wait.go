@@ -33,7 +33,6 @@ func WaitForResult(try testFn) error {
 	}
 	if err != nil {
 		return errors.Wrap(err, "timed out with error")
-	} else {
-		return fmt.Errorf("timed out")
 	}
+	return fmt.Errorf("timed out")
 }

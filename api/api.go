@@ -240,8 +240,8 @@ func DefaultNonPooledConfig() *Config {
 // given function to make the transport.
 func defaultConfig(transportFn func() *http.Transport) *Config {
 	config := &Config{
-		Address: "127.0.0.1:8500",
-		Scheme:  "http",
+		Address:   "127.0.0.1:8500",
+		Scheme:    "http",
 		Transport: transportFn(),
 	}
 
@@ -547,11 +547,11 @@ func (r *request) toHTTP() (*http.Request, error) {
 
 	// Check if we should encode the body
 	if r.body == nil && r.obj != nil {
-		if b, err := encodeBody(r.obj); err != nil {
+		b, err := encodeBody(r.obj)
+		if err != nil {
 			return nil, err
-		} else {
-			r.body = b
 		}
+		r.body = b
 	}
 
 	// Create the HTTP request
