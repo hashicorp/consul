@@ -169,7 +169,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			var index uint64
 			var nodes structs.Nodes
 			var err error
@@ -199,7 +199,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			var index uint64
 			var services structs.Services
 			var err error
@@ -231,7 +231,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	err := c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			var index uint64
 			var services structs.ServiceNodes
 			var err error
@@ -286,7 +286,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, services, err := state.NodeServices(ws, args.Node)
 			if err != nil {
 				return err

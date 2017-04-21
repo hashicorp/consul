@@ -31,7 +31,7 @@ type consulFSM struct {
 	// new state store). Everything internal here is synchronized by the
 	// Raft side, so doesn't need to lock this.
 	stateLock sync.RWMutex
-	state     *state.StateStore
+	state     *state.Store
 
 	gc *state.TombstoneGC
 }
@@ -40,7 +40,7 @@ type consulFSM struct {
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state *state.StateSnapshot
+	state *state.Snapshot
 }
 
 // snapshotHeader is the first entry in our snapshot
@@ -67,7 +67,7 @@ func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 }
 
 // State is used to return a handle to the current state
-func (c *consulFSM) State() *state.StateStore {
+func (c *consulFSM) State() *state.Store {
 	c.stateLock.RLock()
 	defer c.stateLock.RUnlock()
 	return c.state

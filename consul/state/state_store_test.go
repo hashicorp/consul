@@ -25,7 +25,7 @@ func testUUID() string {
 		buf[10:16])
 }
 
-func testStateStore(t *testing.T) *StateStore {
+func testStateStore(t *testing.T) *Store {
 	s, err := NewStateStore(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -36,11 +36,11 @@ func testStateStore(t *testing.T) *StateStore {
 	return s
 }
 
-func testRegisterNode(t *testing.T, s *StateStore, idx uint64, nodeID string) {
+func testRegisterNode(t *testing.T, s *Store, idx uint64, nodeID string) {
 	testRegisterNodeWithMeta(t, s, idx, nodeID, nil)
 }
 
-func testRegisterNodeWithMeta(t *testing.T, s *StateStore, idx uint64, nodeID string, meta map[string]string) {
+func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string, meta map[string]string) {
 	node := &structs.Node{Node: nodeID, Meta: meta}
 	if err := s.EnsureNode(idx, node); err != nil {
 		t.Fatalf("err: %s", err)
@@ -57,7 +57,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *StateStore, idx uint64, nodeID st
 	}
 }
 
-func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, serviceID string) {
+func testRegisterService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
 	svc := &structs.NodeService{
 		ID:      serviceID,
 		Service: serviceID,
@@ -81,7 +81,7 @@ func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, servic
 	}
 }
 
-func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
+func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
 	chk := &structs.HealthCheck{
 		Node:      nodeID,
@@ -107,7 +107,7 @@ func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
 	}
 }
 
-func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {
 	entry := &structs.DirEntry{Key: key, Value: []byte(value)}
 	if err := s.KVSSet(idx, entry); err != nil {
 		t.Fatalf("err: %s", err)

@@ -84,7 +84,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		var opts structs.QueryOptions
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.StateStore) error {
+		fn := func(ws memdb.WatchSet, state *state.Store) error {
 			calls++
 			return nil
 		}
@@ -103,7 +103,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.StateStore) error {
+		fn := func(ws memdb.WatchSet, state *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 
@@ -132,7 +132,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.StateStore) error {
+		fn := func(ws memdb.WatchSet, state *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 

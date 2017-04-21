@@ -10,7 +10,7 @@ import (
 )
 
 // KVs is used to pull the full list of KVS entries for use during snapshots.
-func (s *StateSnapshot) KVs() (memdb.ResultIterator, error) {
+func (s *Snapshot) KVs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("kvs", "id_prefix")
 	if err != nil {
 		return nil, err
@@ -19,12 +19,12 @@ func (s *StateSnapshot) KVs() (memdb.ResultIterator, error) {
 }
 
 // Tombstones is used to pull all the tombstones from the graveyard.
-func (s *StateSnapshot) Tombstones() (memdb.ResultIterator, error) {
+func (s *Snapshot) Tombstones() (memdb.ResultIterator, error) {
 	return s.store.kvsGraveyard.DumpTxn(s.tx)
 }
 
 // KVS is used when restoring from a snapshot. Use KVSSet for general inserts.
-func (s *StateRestore) KVS(entry *structs.DirEntry) error {
+func (s *Restore) KVS(entry *structs.DirEntry) error {
 	if err := s.tx.Insert("kvs", entry); err != nil {
 		return fmt.Errorf("failed inserting kvs entry: %s", err)
 	}
@@ -37,7 +37,7 @@ func (s *StateRestore) KVS(entry *structs.DirEntry) error {
 
 // Tombstone is used when restoring from a snapshot. For general inserts, use
 // Graveyard.InsertTxn.
-func (s *StateRestore) Tombstone(stone *Tombstone) error {
+func (s *Restore) Tombstone(stone *Tombstone) error {
 	if err := s.store.kvsGraveyard.RestoreTxn(s.tx, stone); err != nil {
 		return fmt.Errorf("failed restoring tombstone: %s", err)
 	}
@@ -47,7 +47,7 @@ func (s *StateRestore) Tombstone(stone *Tombstone) error {
 // ReapTombstones is used to delete all the tombstones with an index
 // less than or equal to the given index. This is used to prevent
 // unbounded storage growth of the tombstones.
-func (s *StateStore) ReapTombstones(index uint64) error {
+func (s *Store) ReapTombstones(index uint64) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -60,7 +60,7 @@ func (s *StateStore) ReapTombstones(index uint64) error {
 }
 
 // KVSSet is used to store a key/value pair.
-func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
+func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -78,7 +78,7 @@ func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
 // If updateSession is true, then the incoming entry will set the new
 // session (should be validated before calling this). Otherwise, we will keep
 // whatever the existing session is.
-func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
+func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
 	// Retrieve an existing KV pair
 	existing, err := tx.First("kvs", "id", entry.Key)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntr
 }
 
 // KVSGet is used to retrieve a key/value pair from the state store.
-func (s *StateStore) KVSGet(ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
+func (s *Store) KVSGet(ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -124,7 +124,7 @@ func (s *StateStore) KVSGet(ws memdb.WatchSet, key string) (uint64, *structs.Dir
 
 // kvsGetTxn is the inner method that gets a KVS entry inside an existing
 // transaction.
-func (s *StateStore) kvsGetTxn(tx *memdb.Txn, ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
+func (s *Store) kvsGetTxn(tx *memdb.Txn, ws memdb.WatchSet, key string) (uint64, *structs.DirEntry, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
@@ -144,7 +144,7 @@ func (s *StateStore) kvsGetTxn(tx *memdb.Txn, ws memdb.WatchSet, key string) (ui
 // prefix is left empty, all keys in the KVS will be returned. The returned
 // is the max index of the returned kvs entries or applicable tombstones, or
 // else it's the full table indexes for kvs and tombstones.
-func (s *StateStore) KVSList(ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
+func (s *Store) KVSList(ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -153,7 +153,7 @@ func (s *StateStore) KVSList(ws memdb.WatchSet, prefix string) (uint64, structs.
 
 // kvsListTxn is the inner method that gets a list of KVS entries matching a
 // prefix.
-func (s *StateStore) kvsListTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
+func (s *Store) kvsListTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix string) (uint64, structs.DirEntries, error) {
 	// Get the table indexes.
 	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
@@ -201,7 +201,7 @@ func (s *StateStore) kvsListTxn(tx *memdb.Txn, ws memdb.WatchSet, prefix string)
 // An optional separator may be specified, which can be used to slice off a part
 // of the response so that only a subset of the prefix is returned. In this
 // mode, the keys which are omitted are still counted in the returned index.
-func (s *StateStore) KVSListKeys(ws memdb.WatchSet, prefix, sep string) (uint64, []string, error) {
+func (s *Store) KVSListKeys(ws memdb.WatchSet, prefix, sep string) (uint64, []string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -274,7 +274,7 @@ func (s *StateStore) KVSListKeys(ws memdb.WatchSet, prefix, sep string) (uint64,
 
 // KVSDelete is used to perform a shallow delete on a single key in the
 // the state store.
-func (s *StateStore) KVSDelete(idx uint64, key string) error {
+func (s *Store) KVSDelete(idx uint64, key string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -289,7 +289,7 @@ func (s *StateStore) KVSDelete(idx uint64, key string) error {
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *StateStore) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
+func (s *Store) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
 	// Look up the entry in the state store.
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
@@ -319,7 +319,7 @@ func (s *StateStore) kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
 // raft index. If the CAS index specified is not equal to the last
 // observed index for the given key, then the call is a noop, otherwise
 // a normal KV delete is invoked.
-func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
+func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -334,7 +334,7 @@ func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
 
 // kvsDeleteCASTxn is the inner method that does a CAS delete within an existing
 // transaction.
-func (s *StateStore) kvsDeleteCASTxn(tx *memdb.Txn, idx, cidx uint64, key string) (bool, error) {
+func (s *Store) kvsDeleteCASTxn(tx *memdb.Txn, idx, cidx uint64, key string) (bool, error) {
 	// Retrieve the existing kvs entry, if any exists.
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
@@ -360,7 +360,7 @@ func (s *StateStore) kvsDeleteCASTxn(tx *memdb.Txn, idx, cidx uint64, key string
 // ModifyIndex in the provided entry is used to determine if we should
 // write the entry to the state store or bail. Returns a bool indicating
 // if a write happened and any error.
-func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -375,7 +375,7 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 
 // kvsSetCASTxn is the inner method used to do a CAS inside an existing
 // transaction.
-func (s *StateStore) kvsSetCASTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsSetCASTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Retrieve the existing entry.
 	existing, err := tx.First("kvs", "id", entry.Key)
 	if err != nil {
@@ -405,7 +405,7 @@ func (s *StateStore) kvsSetCASTxn(tx *memdb.Txn, idx uint64, entry *structs.DirE
 // KVSDeleteTree is used to do a recursive delete on a key prefix
 // in the state store. If any keys are modified, the last index is
 // set, otherwise this is a no-op.
-func (s *StateStore) KVSDeleteTree(idx uint64, prefix string) error {
+func (s *Store) KVSDeleteTree(idx uint64, prefix string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -419,7 +419,7 @@ func (s *StateStore) KVSDeleteTree(idx uint64, prefix string) error {
 
 // kvsDeleteTreeTxn is the inner method that does a recursive delete inside an
 // existing transaction.
-func (s *StateStore) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) error {
+func (s *Store) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) error {
 	// Get an iterator over all of the keys with the given prefix.
 	entries, err := tx.Get("kvs", "id_prefix", prefix)
 	if err != nil {
@@ -459,13 +459,13 @@ func (s *StateStore) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) 
 
 // KVSLockDelay returns the expiration time for any lock delay associated with
 // the given key.
-func (s *StateStore) KVSLockDelay(key string) time.Time {
+func (s *Store) KVSLockDelay(key string) time.Time {
 	return s.lockDelay.GetExpiration(key)
 }
 
 // KVSLock is similar to KVSSet but only performs the set if the lock can be
 // acquired.
-func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -480,7 +480,7 @@ func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) 
 
 // kvsLockTxn is the inner method that does a lock inside an existing
 // transaction.
-func (s *StateStore) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -531,7 +531,7 @@ func (s *StateStore) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEnt
 
 // KVSUnlock is similar to KVSSet but only performs the set if the lock can be
 // unlocked (the key must already exist and be locked).
-func (s *StateStore) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -546,7 +546,7 @@ func (s *StateStore) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error
 
 // kvsUnlockTxn is the inner method that does an unlock inside an existing
 // transaction.
-func (s *StateStore) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -584,7 +584,7 @@ func (s *StateStore) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirE
 
 // kvsCheckSessionTxn checks to see if the given session matches the current
 // entry for a key.
-func (s *StateStore) kvsCheckSessionTxn(tx *memdb.Txn, key string, session string) (*structs.DirEntry, error) {
+func (s *Store) kvsCheckSessionTxn(tx *memdb.Txn, key string, session string) (*structs.DirEntry, error) {
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
 		return nil, fmt.Errorf("failed kvs lookup: %s", err)
@@ -603,7 +603,7 @@ func (s *StateStore) kvsCheckSessionTxn(tx *memdb.Txn, key string, session strin
 
 // kvsCheckIndexTxn checks to see if the given modify index matches the current
 // entry for a key.
-func (s *StateStore) kvsCheckIndexTxn(tx *memdb.Txn, key string, cidx uint64) (*structs.DirEntry, error) {
+func (s *Store) kvsCheckIndexTxn(tx *memdb.Txn, key string, cidx uint64) (*structs.DirEntry, error) {
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
 		return nil, fmt.Errorf("failed kvs lookup: %s", err)

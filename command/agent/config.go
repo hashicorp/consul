@@ -718,7 +718,7 @@ type Config struct {
 	VersionPrerelease string `mapstructure:"-"`
 
 	// WatchPlans contains the compiled watches
-	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
+	WatchPlans []*watch.Plan `mapstructure:"-" json:"-"`
 
 	// UnixSockets is a map of socket configuration data
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`

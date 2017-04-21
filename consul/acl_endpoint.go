@@ -148,7 +148,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, acl, err := state.ACLGet(ws, args.ACL)
 			if err != nil {
 				return err
@@ -225,7 +225,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, acls, err := state.ACLList(ws)
 			if err != nil {
 				return err

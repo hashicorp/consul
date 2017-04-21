@@ -9,15 +9,15 @@ func init() {
 	watchFuncFactory["noop"] = noopWatch
 }
 
-func noopWatch(params map[string]interface{}) (WatchFunc, error) {
-	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+func noopWatch(params map[string]interface{}) (WatcherFunc, error) {
+	fn := func(p *Plan) (uint64, interface{}, error) {
 		idx := p.lastIndex + 1
 		return idx, idx, nil
 	}
 	return fn, nil
 }
 
-func mustParse(t *testing.T, q string) *WatchPlan {
+func mustParse(t *testing.T, q string) *Plan {
 	params := makeParams(t, q)
 	plan, err := Parse(params)
 	if err != nil {
