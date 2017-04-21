@@ -66,9 +66,9 @@ func (c *WatchCommand) Run(args []string) int {
 
 	// Check for a type
 	if watchType == "" {
-		c.Ui.Error("Watch type must be specified")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
+		c.UI.Error("Watch type must be specified")
+		c.UI.Error("")
+		c.UI.Error(c.Help())
 		return 1
 	}
 
@@ -110,7 +110,7 @@ func (c *WatchCommand) Run(args []string) int {
 	if passingOnly != "" {
 		b, err := strconv.ParseBool(passingOnly)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to parse passingonly flag: %s", err))
+			c.UI.Error(fmt.Sprintf("Failed to parse passingonly flag: %s", err))
 			return 1
 		}
 		params["passingonly"] = b
@@ -119,19 +119,19 @@ func (c *WatchCommand) Run(args []string) int {
 	// Create the watch
 	wp, err := watch.Parse(params)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("%s", err))
+		c.UI.Error(fmt.Sprintf("%s", err))
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 	_, err = client.Agent().NodeName()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
 
@@ -146,10 +146,10 @@ func (c *WatchCommand) Run(args []string) int {
 			defer wp.Stop()
 			buf, err := json.MarshalIndent(data, "", "    ")
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error encoding output: %s", err))
+				c.UI.Error(fmt.Sprintf("Error encoding output: %s", err))
 				errExit = 1
 			}
-			c.Ui.Output(string(buf))
+			c.UI.Output(string(buf))
 		}
 	} else {
 		wp.Handler = func(idx uint64, data interface{}) {
@@ -158,7 +158,7 @@ func (c *WatchCommand) Run(args []string) int {
 			var err error
 			cmd, err := agent.ExecScript(script)
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
+				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
 			}
 			cmd.Env = append(os.Environ(),
@@ -167,7 +167,7 @@ func (c *WatchCommand) Run(args []string) int {
 
 			// Encode the input
 			if err = json.NewEncoder(&buf).Encode(data); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error encoding output: %s", err))
+				c.UI.Error(fmt.Sprintf("Error encoding output: %s", err))
 				goto ERR
 			}
 			cmd.Stdin = &buf
@@ -176,7 +176,7 @@ func (c *WatchCommand) Run(args []string) int {
 
 			// Run the handler
 			if err := cmd.Run(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
+				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
 			}
 			return
@@ -195,7 +195,7 @@ func (c *WatchCommand) Run(args []string) int {
 
 	// Run the watch
 	if err := wp.Run(c.Command.HTTPAddr()); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
 

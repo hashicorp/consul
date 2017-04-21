@@ -14,7 +14,7 @@ func testConfigTestCommand(t *testing.T) (*cli.MockUi, *ConfigTestCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ConfigTestCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetNone,
 		},
 	}

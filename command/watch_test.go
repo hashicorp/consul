@@ -19,7 +19,7 @@ func TestWatchCommandRun(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &WatchCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

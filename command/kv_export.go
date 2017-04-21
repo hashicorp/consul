@@ -52,7 +52,7 @@ func (c *KVExportCommand) Run(args []string) int {
 	case 1:
 		key = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
@@ -66,7 +66,7 @@ func (c *KVExportCommand) Run(args []string) int {
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
@@ -74,7 +74,7 @@ func (c *KVExportCommand) Run(args []string) int {
 		AllowStale: c.Command.HTTPStale(),
 	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
 
@@ -85,11 +85,11 @@ func (c *KVExportCommand) Run(args []string) int {
 
 	marshaled, err := json.MarshalIndent(exported, "", "\t")
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error exporting KV data: %s", err))
+		c.UI.Error(fmt.Sprintf("Error exporting KV data: %s", err))
 		return 1
 	}
 
-	c.Ui.Info(string(marshaled))
+	c.UI.Info(string(marshaled))
 
 	return 0
 }

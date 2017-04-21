@@ -14,7 +14,7 @@ func testValidateCommand(t *testing.T) (*cli.MockUi, *ValidateCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ValidateCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetNone,
 		},
 	}

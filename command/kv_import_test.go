@@ -29,7 +29,7 @@ func TestKVImportCommand_Run(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &KVImportCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 		testStdin: strings.NewReader(json),

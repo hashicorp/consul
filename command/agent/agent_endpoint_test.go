@@ -331,7 +331,7 @@ func TestAgent_Reload(t *testing.T) {
 		ShutdownCh: shutdownCh,
 		Command: base.Command{
 			Flags: base.FlagSetNone,
-			Ui:    new(cli.MockUi),
+			UI:    new(cli.MockUi),
 		},
 	}
 

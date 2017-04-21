@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/cli"
@@ -10,7 +11,7 @@ import (
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
 	HumanVersion string
-	Ui           cli.Ui
+	UI           cli.Ui
 }
 
 func (c *VersionCommand) Help() string {
@@ -18,7 +19,7 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	c.Ui.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
+	c.UI.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
 
 	config := agent.DefaultConfig()
 	var supplement string
@@ -26,7 +27,7 @@ func (c *VersionCommand) Run(_ []string) int {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
 			config.Protocol)
 	}
-	c.Ui.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
+	c.UI.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
 		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
 
 	return 0

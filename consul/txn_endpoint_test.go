@@ -313,7 +313,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    permissionDeniedErr.Error(),
+				What:    errPermissionDenied.Error(),
 			})
 		}
 	}
@@ -360,7 +360,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	if err := state.SessionCreate(5, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	validId := session.ID
+	validID := session.ID
 
 	// Make a lock request via an atomic transaction.
 	arg := structs.TxnRequest{
@@ -371,7 +371,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 					Verb: api.KVLock,
 					DirEnt: structs.DirEntry{
 						Key:     "test",
-						Session: validId,
+						Session: validID,
 					},
 				},
 			},
@@ -574,7 +574,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    permissionDeniedErr.Error(),
+				What:    errPermissionDenied.Error(),
 			})
 		}
 	}

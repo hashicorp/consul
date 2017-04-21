@@ -65,14 +65,14 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		c.Ui.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 		return 1
 	}
 
 	// Set up a client.
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
+		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
@@ -80,7 +80,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	operator := client.Operator()
 	conf, err := operator.AutopilotGetConfiguration(nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Autopilot configuration: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Autopilot configuration: %s", err))
 		return 1
 	}
 
@@ -104,14 +104,14 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	// Check-and-set the new configuration.
 	result, err := operator.AutopilotCASConfiguration(conf, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error setting Autopilot configuration: %s", err))
+		c.UI.Error(fmt.Sprintf("Error setting Autopilot configuration: %s", err))
 		return 1
 	}
 	if result {
-		c.Ui.Output("Configuration updated!")
+		c.UI.Output("Configuration updated!")
 		return 0
 	} else {
-		c.Ui.Output("Configuration could not be atomically updated, please try again")
+		c.UI.Output("Configuration could not be atomically updated, please try again")
 		return 1
 	}
 }

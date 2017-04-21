@@ -20,7 +20,7 @@ func TestOperator_Autopilot_Get(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := OperatorAutopilotGetCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

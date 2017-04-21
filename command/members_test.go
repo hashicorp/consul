@@ -12,7 +12,7 @@ func testMembersCommand(t *testing.T) (*cli.MockUi, *MembersCommand) {
 	ui := new(cli.MockUi)
 	return ui, &MembersCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

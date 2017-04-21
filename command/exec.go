@@ -156,9 +156,9 @@ func (c *ExecCommand) Run(args []string) int {
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, os.Stdin)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to read stdin: %v", err))
-			c.Ui.Error("")
-			c.Ui.Error(c.Help())
+			c.UI.Error(fmt.Sprintf("Failed to read stdin: %v", err))
+			c.UI.Error("")
+			c.UI.Error(c.Help())
 			return 1
 		}
 		c.conf.script = buf.Bytes()
@@ -166,27 +166,27 @@ func (c *ExecCommand) Run(args []string) int {
 
 	// Ensure we have a command or script
 	if c.conf.cmd == "" && len(c.conf.script) == 0 {
-		c.Ui.Error("Must specify a command to execute")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
+		c.UI.Error("Must specify a command to execute")
+		c.UI.Error("")
+		c.UI.Error(c.Help())
 		return 1
 	}
 
 	// Validate the configuration
 	if err := c.conf.validate(); err != nil {
-		c.Ui.Error(err.Error())
+		c.UI.Error(err.Error())
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 	info, err := client.Agent().Self()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
 	c.client = client
@@ -194,7 +194,7 @@ func (c *ExecCommand) Run(args []string) int {
 	// Check if this is a foreign datacenter
 	if c.Command.HTTPDatacenter() != "" && c.Command.HTTPDatacenter() != info["Config"]["Datacenter"] {
 		if c.conf.verbose {
-			c.Ui.Info("Remote exec in foreign datacenter, using Session TTL")
+			c.UI.Info("Remote exec in foreign datacenter, using Session TTL")
 		}
 		c.conf.foreignDC = true
 		c.conf.localDC = info["Config"]["Datacenter"].(string)
@@ -204,29 +204,29 @@ func (c *ExecCommand) Run(args []string) int {
 	// Create the job spec
 	spec, err := c.makeRExecSpec()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to create job spec: %s", err))
+		c.UI.Error(fmt.Sprintf("Failed to create job spec: %s", err))
 		return 1
 	}
 
 	// Create a session for this
 	c.sessionID, err = c.createSession()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to create session: %s", err))
+		c.UI.Error(fmt.Sprintf("Failed to create session: %s", err))
 		return 1
 	}
 	defer c.destroySession()
 	if c.conf.verbose {
-		c.Ui.Info(fmt.Sprintf("Created remote execution session: %s", c.sessionID))
+		c.UI.Info(fmt.Sprintf("Created remote execution session: %s", c.sessionID))
 	}
 
 	// Upload the payload
 	if err := c.uploadPayload(spec); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to create job file: %s", err))
+		c.UI.Error(fmt.Sprintf("Failed to create job file: %s", err))
 		return 1
 	}
 	defer c.destroyData()
 	if c.conf.verbose {
-		c.Ui.Info(fmt.Sprintf("Uploaded remote execution spec"))
+		c.UI.Info(fmt.Sprintf("Uploaded remote execution spec"))
 	}
 
 	// Wait for replication. This is done so that when the event is
@@ -242,11 +242,11 @@ func (c *ExecCommand) Run(args []string) int {
 	// Fire the event
 	id, err := c.fireEvent()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to fire event: %s", err))
+		c.UI.Error(fmt.Sprintf("Failed to fire event: %s", err))
 		return 1
 	}
 	if c.conf.verbose {
-		c.Ui.Info(fmt.Sprintf("Fired remote execution event: %s", id))
+		c.UI.Info(fmt.Sprintf("Fired remote execution event: %s", id))
 	}
 
 	// Wait for the job to finish now
@@ -268,7 +268,7 @@ func (c *ExecCommand) waitForJob() int {
 	errCh := make(chan struct{}, 1)
 	defer close(doneCh)
 	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
-	target := &TargetedUi{Ui: c.Ui}
+	target := &TargetedUI{UI: c.UI}
 
 	var ackCount, exitCount, badExit int
 OUTER:
@@ -307,9 +307,9 @@ OUTER:
 			}
 
 		case <-time.After(waitIntv):
-			c.Ui.Info(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
+			c.UI.Info(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
 			if c.conf.verbose {
-				c.Ui.Info(fmt.Sprintf("Completed in %0.2f seconds",
+				c.UI.Info(fmt.Sprintf("Completed in %0.2f seconds",
 					float64(time.Now().Sub(start))/float64(time.Second)))
 			}
 			break OUTER
@@ -348,7 +348,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 		// Block on waiting for new keys
 		keys, qm, err := kv.Keys(dir, "", &opts)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to read results: %s", err))
+			c.UI.Error(fmt.Sprintf("Failed to read results: %s", err))
 			goto ERR_EXIT
 		}
 
@@ -380,12 +380,12 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 			case strings.HasSuffix(key, rExecExitSuffix):
 				pair, _, err := kv.Get(full, nil)
 				if err != nil || pair == nil {
-					c.Ui.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
+					c.UI.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
 					continue
 				}
 				code, err := strconv.ParseInt(string(pair.Value), 10, 32)
 				if err != nil {
-					c.Ui.Error(fmt.Sprintf("Failed to parse exit code '%s': %v", pair.Value, err))
+					c.UI.Error(fmt.Sprintf("Failed to parse exit code '%s': %v", pair.Value, err))
 					continue
 				}
 				exitCh <- rExecExit{
@@ -396,7 +396,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 			case strings.LastIndex(key, rExecOutputDivider) != -1:
 				pair, _, err := kv.Get(full, nil)
 				if err != nil || pair == nil {
-					c.Ui.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
+					c.UI.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
 					continue
 				}
 				idx := strings.LastIndex(key, rExecOutputDivider)
@@ -408,7 +408,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 				}
 
 			default:
-				c.Ui.Error(fmt.Sprintf("Unknown key '%s', ignoring.", key))
+				c.UI.Error(fmt.Sprintf("Unknown key '%s', ignoring.", key))
 			}
 		}
 	}
@@ -488,7 +488,7 @@ func (c *ExecCommand) createSessionForeign() (string, error) {
 	}
 	node := services[0].Node.Node
 	if c.conf.verbose {
-		c.Ui.Info(fmt.Sprintf("Binding session to remote node %s@%s",
+		c.UI.Info(fmt.Sprintf("Binding session to remote node %s@%s",
 			node, c.Command.HTTPDatacenter()))
 	}
 
@@ -514,7 +514,7 @@ func (c *ExecCommand) renewSession(id string, stopCh chan struct{}) {
 		case <-time.After(rExecRenewInterval):
 			_, _, err := session.Renew(id, nil)
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Session renew failed: %v", err))
+				c.UI.Error(fmt.Sprintf("Session renew failed: %v", err))
 				return
 			}
 		case <-stopCh:
@@ -623,33 +623,33 @@ Usage: consul exec [options] [-|command...]
 	return strings.TrimSpace(helpText)
 }
 
-// TargetedUi is a UI that wraps another UI implementation and modifies
+// TargetedUI is a UI that wraps another UI implementation and modifies
 // the output to indicate a specific target. Specifically, all Say output
 // is prefixed with the target name. Message output is not prefixed but
 // is offset by the length of the target so that output is lined up properly
 // with Say output. Machine-readable output has the proper target set.
-type TargetedUi struct {
+type TargetedUI struct {
 	Target string
-	Ui     cli.Ui
+	UI     cli.Ui
 }
 
-func (u *TargetedUi) Ask(query string) (string, error) {
-	return u.Ui.Ask(u.prefixLines(true, query))
+func (u *TargetedUI) Ask(query string) (string, error) {
+	return u.UI.Ask(u.prefixLines(true, query))
 }
 
-func (u *TargetedUi) Info(message string) {
-	u.Ui.Info(u.prefixLines(true, message))
+func (u *TargetedUI) Info(message string) {
+	u.UI.Info(u.prefixLines(true, message))
 }
 
-func (u *TargetedUi) Output(message string) {
-	u.Ui.Output(u.prefixLines(false, message))
+func (u *TargetedUI) Output(message string) {
+	u.UI.Output(u.prefixLines(false, message))
 }
 
-func (u *TargetedUi) Error(message string) {
-	u.Ui.Error(u.prefixLines(true, message))
+func (u *TargetedUI) Error(message string) {
+	u.UI.Error(u.prefixLines(true, message))
 }
 
-func (u *TargetedUi) prefixLines(arrow bool, message string) string {
+func (u *TargetedUI) prefixLines(arrow bool, message string) string {
 	arrowText := "==>"
 	if !arrow {
 		arrowText = strings.Repeat(" ", len(arrowText))

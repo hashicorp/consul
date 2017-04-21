@@ -56,19 +56,19 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
@@ -77,7 +77,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 		AllowStale: c.Command.HTTPStale(),
 	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error saving snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error saving snapshot: %s", err))
 		return 1
 	}
 	defer snap.Close()
@@ -85,36 +85,36 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	// Save the file.
 	f, err := os.Create(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error creating snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error creating snapshot file: %s", err))
 		return 1
 	}
 	if _, err := io.Copy(f, snap); err != nil {
 		f.Close()
-		c.Ui.Error(fmt.Sprintf("Error writing snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error writing snapshot file: %s", err))
 		return 1
 	}
 	if err := f.Close(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error closing snapshot file after writing: %s", err))
+		c.UI.Error(fmt.Sprintf("Error closing snapshot file after writing: %s", err))
 		return 1
 	}
 
 	// Read it back to verify.
 	f, err = os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
 		return 1
 	}
 	if _, err := snapshot.Verify(f); err != nil {
 		f.Close()
-		c.Ui.Error(fmt.Sprintf("Error verifying snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error verifying snapshot file: %s", err))
 		return 1
 	}
 	if err := f.Close(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error closing snapshot file after verify: %s", err))
+		c.UI.Error(fmt.Sprintf("Error closing snapshot file after verify: %s", err))
 		return 1
 	}
 
-	c.Ui.Info(fmt.Sprintf("Saved and verified snapshot to index %d", qm.LastIndex))
+	c.UI.Info(fmt.Sprintf("Saved and verified snapshot to index %d", qm.LastIndex))
 	return 0
 }
 

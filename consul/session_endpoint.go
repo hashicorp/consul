@@ -49,12 +49,12 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
 			if !acl.SessionWrite(existing.Node) {
-				return permissionDeniedErr
+				return errPermissionDenied
 			}
 
 		case structs.SessionCreate:
 			if !acl.SessionWrite(args.Session.Node) {
-				return permissionDeniedErr
+				return errPermissionDenied
 			}
 
 		default:
@@ -241,7 +241,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	}
 	if acl != nil && s.srv.config.ACLEnforceVersion8 {
 		if !acl.SessionWrite(session.Node) {
-			return permissionDeniedErr
+			return errPermissionDenied
 		}
 	}
 

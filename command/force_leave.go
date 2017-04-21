@@ -20,21 +20,21 @@ func (c *ForceLeaveCommand) Run(args []string) int {
 
 	nodes := f.Args()
 	if len(nodes) != 1 {
-		c.Ui.Error("A single node name must be specified to force leave.")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
+		c.UI.Error("A single node name must be specified to force leave.")
+		c.UI.Error("")
+		c.UI.Error(c.Help())
 		return 1
 	}
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	err = client.Agent().ForceLeave(nodes[0])
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error force leaving: %s", err))
+		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
 		return 1
 	}
 

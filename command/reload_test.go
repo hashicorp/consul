@@ -26,7 +26,7 @@ func TestReloadCommandRun(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ReloadCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

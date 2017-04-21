@@ -16,7 +16,7 @@ func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ForceLeaveCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

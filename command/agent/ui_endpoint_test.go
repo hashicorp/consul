@@ -28,7 +28,7 @@ func TestUiIndex(t *testing.T) {
 
 	// Make the server
 	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
-		c.UiDir = uiDir
+		c.UIDir = uiDir
 	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

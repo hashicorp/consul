@@ -13,7 +13,7 @@ func testKeyringCommand(t *testing.T) (*cli.MockUi, *KeyringCommand) {
 	ui := new(cli.MockUi)
 	return ui, &KeyringCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

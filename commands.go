@@ -23,7 +23,7 @@ func init() {
 			return &agent.Command{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 				Revision:          version.GitCommit,
 				Version:           version.Version,
@@ -37,7 +37,7 @@ func init() {
 			return &command.ConfigTestCommand{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -46,7 +46,7 @@ func init() {
 			return &command.EventCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -56,7 +56,7 @@ func init() {
 				ShutdownCh: makeShutdownCh(),
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -65,7 +65,7 @@ func init() {
 			return &command.ForceLeaveCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -73,7 +73,7 @@ func init() {
 		"info": func() (cli.Command, error) {
 			return &command.InfoCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetClientHTTP,
 				},
 			}, nil
@@ -82,7 +82,7 @@ func init() {
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetClientHTTP,
 				},
 			}, nil
@@ -91,7 +91,7 @@ func init() {
 		"keygen": func() (cli.Command, error) {
 			return &command.KeygenCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetNone,
 				},
 			}, nil
@@ -100,7 +100,7 @@ func init() {
 		"keyring": func() (cli.Command, error) {
 			return &command.KeyringCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetClientHTTP,
 				},
 			}, nil
@@ -109,7 +109,7 @@ func init() {
 		"kv": func() (cli.Command, error) {
 			return &command.KVCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetNone,
 				},
 			}, nil
@@ -118,7 +118,7 @@ func init() {
 		"kv delete": func() (cli.Command, error) {
 			return &command.KVDeleteCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetHTTP,
 				},
 			}, nil
@@ -127,7 +127,7 @@ func init() {
 		"kv get": func() (cli.Command, error) {
 			return &command.KVGetCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetHTTP,
 				},
 			}, nil
@@ -136,7 +136,7 @@ func init() {
 		"kv put": func() (cli.Command, error) {
 			return &command.KVPutCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetHTTP,
 				},
 			}, nil
@@ -145,7 +145,7 @@ func init() {
 		"kv export": func() (cli.Command, error) {
 			return &command.KVExportCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetHTTP,
 				},
 			}, nil
@@ -154,7 +154,7 @@ func init() {
 		"kv import": func() (cli.Command, error) {
 			return &command.KVImportCommand{
 				Command: base.Command{
-					Ui:    ui,
+					UI:    ui,
 					Flags: base.FlagSetHTTP,
 				},
 			}, nil
@@ -164,7 +164,7 @@ func init() {
 			return &command.LeaveCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -174,7 +174,7 @@ func init() {
 				ShutdownCh: makeShutdownCh(),
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -183,7 +183,7 @@ func init() {
 			return &command.MaintCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -192,7 +192,7 @@ func init() {
 			return &command.MembersCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -202,7 +202,7 @@ func init() {
 				ShutdownCh: makeShutdownCh(),
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -211,7 +211,7 @@ func init() {
 			return &command.OperatorCommand{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -220,7 +220,7 @@ func init() {
 			return &command.OperatorAutopilotCommand{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -229,7 +229,7 @@ func init() {
 			return &command.OperatorAutopilotGetCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -238,7 +238,7 @@ func init() {
 			return &command.OperatorAutopilotSetCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -247,7 +247,7 @@ func init() {
 			return &command.OperatorRaftCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -256,7 +256,7 @@ func init() {
 			return &command.OperatorRaftListCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -265,7 +265,7 @@ func init() {
 			return &command.OperatorRaftRemoveCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -274,7 +274,7 @@ func init() {
 			return &command.ReloadCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -283,14 +283,14 @@ func init() {
 			return &command.RTTCommand{
 				Command: base.Command{
 					Flags: base.FlagSetClientHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
 
 		"snapshot": func() (cli.Command, error) {
 			return &command.SnapshotCommand{
-				Ui: ui,
+				UI: ui,
 			}, nil
 		},
 
@@ -298,7 +298,7 @@ func init() {
 			return &command.SnapshotRestoreCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -307,7 +307,7 @@ func init() {
 			return &command.SnapshotSaveCommand{
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -316,7 +316,7 @@ func init() {
 			return &command.SnapshotInspectCommand{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -325,7 +325,7 @@ func init() {
 			return &command.ValidateCommand{
 				Command: base.Command{
 					Flags: base.FlagSetNone,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -333,7 +333,7 @@ func init() {
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				HumanVersion: version.GetHumanVersion(),
-				Ui:           ui,
+				UI:           ui,
 			}, nil
 		},
 
@@ -342,7 +342,7 @@ func init() {
 				ShutdownCh: makeShutdownCh(),
 				Command: base.Command{
 					Flags: base.FlagSetHTTP,
-					Ui:    ui,
+					UI:    ui,
 				},
 			}, nil
 		},

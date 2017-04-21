@@ -18,7 +18,7 @@ func TestInfoCommandRun(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InfoCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

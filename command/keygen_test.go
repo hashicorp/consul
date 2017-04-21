@@ -15,7 +15,7 @@ func TestKeygenCommand(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &KeygenCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetNone,
 		},
 	}

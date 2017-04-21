@@ -93,7 +93,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	if acl, err := a.srv.resolveToken(args.Token); err != nil {
 		return err
 	} else if acl == nil || !acl.ACLModify() {
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	// If no ID is provided, generate a new ID. This must be done prior to
@@ -220,7 +220,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	if acl, err := a.srv.resolveToken(args.Token); err != nil {
 		return err
 	} else if acl == nil || !acl.ACLList() {
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions,

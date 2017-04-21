@@ -536,13 +536,13 @@ type Config struct {
 	ReconnectTimeoutWan    time.Duration `mapstructure:"-"`
 	ReconnectTimeoutWanRaw string        `mapstructure:"reconnect_timeout_wan"`
 
-	// EnableUi enables the statically-compiled assets for the Consul web UI and
+	// EnableUI enables the statically-compiled assets for the Consul web UI and
 	// serves them at the default /ui/ endpoint automatically.
-	EnableUi bool `mapstructure:"ui"`
+	EnableUI bool `mapstructure:"ui"`
 
-	// UiDir is the directory containing the Web UI resources.
+	// UIDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
-	UiDir string `mapstructure:"ui_dir"`
+	UIDir string `mapstructure:"ui_dir"`
 
 	// PidFile is the file to store our PID in
 	PidFile string `mapstructure:"pid_file"`
@@ -849,7 +849,7 @@ func DevConfig() *Config {
 	conf.Server = true
 	conf.EnableDebug = true
 	conf.DisableAnonymousSignature = true
-	conf.EnableUi = true
+	conf.EnableUI = true
 	conf.BindAddr = "127.0.0.1"
 	return conf
 }
@@ -1568,11 +1568,11 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
 	}
-	if b.EnableUi {
-		result.EnableUi = true
+	if b.EnableUI {
+		result.EnableUI = true
 	}
-	if b.UiDir != "" {
-		result.UiDir = b.UiDir
+	if b.UIDir != "" {
+		result.UIDir = b.UIDir
 	}
 	if b.PidFile != "" {
 		result.PidFile = b.PidFile

@@ -289,7 +289,7 @@ func NewServer(config *Config) (*Server, error) {
 	if s.IsACLReplicationEnabled() {
 		local = s.aclLocalFault
 	}
-	if s.aclCache, err = newAclCache(config, logger, s.RPC, local); err != nil {
+	if s.aclCache, err = newACLCache(config, logger, s.RPC, local); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
 	}

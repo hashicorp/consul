@@ -75,7 +75,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if acl != nil && !acl.EventWrite(args.Name) {
 		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	// Set the query meta data

@@ -37,23 +37,23 @@ func (c *OperatorRaftListCommand) Run(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		c.Ui.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 		return 1
 	}
 
 	// Set up a client.
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
+		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
 	// Fetch the current configuration.
 	result, err := raftListPeers(client, c.Command.HTTPStale())
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting peers: %v", err))
+		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 	}
-	c.Ui.Output(result)
+	c.UI.Output(result)
 
 	return 0
 }

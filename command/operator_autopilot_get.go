@@ -35,14 +35,14 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		c.Ui.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 		return 1
 	}
 
 	// Set up a client.
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
+		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
@@ -52,15 +52,15 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 	}
 	config, err := client.Operator().AutopilotGetConfiguration(opts)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Autopilot configuration: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Autopilot configuration: %s", err))
 		return 1
 	}
-	c.Ui.Output(fmt.Sprintf("CleanupDeadServers = %v", config.CleanupDeadServers))
-	c.Ui.Output(fmt.Sprintf("LastContactThreshold = %v", config.LastContactThreshold.String()))
-	c.Ui.Output(fmt.Sprintf("MaxTrailingLogs = %v", config.MaxTrailingLogs))
-	c.Ui.Output(fmt.Sprintf("ServerStabilizationTime = %v", config.ServerStabilizationTime.String()))
-	c.Ui.Output(fmt.Sprintf("RedundancyZoneTag = %q", config.RedundancyZoneTag))
-	c.Ui.Output(fmt.Sprintf("DisableUpgradeMigration = %v", config.DisableUpgradeMigration))
+	c.UI.Output(fmt.Sprintf("CleanupDeadServers = %v", config.CleanupDeadServers))
+	c.UI.Output(fmt.Sprintf("LastContactThreshold = %v", config.LastContactThreshold.String()))
+	c.UI.Output(fmt.Sprintf("MaxTrailingLogs = %v", config.MaxTrailingLogs))
+	c.UI.Output(fmt.Sprintf("ServerStabilizationTime = %v", config.ServerStabilizationTime.String()))
+	c.UI.Output(fmt.Sprintf("RedundancyZoneTag = %q", config.RedundancyZoneTag))
+	c.UI.Output(fmt.Sprintf("DisableUpgradeMigration = %v", config.DisableUpgradeMigration))
 
 	return 0
 }

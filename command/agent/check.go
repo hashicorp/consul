@@ -34,7 +34,7 @@ const (
 
 	// Use this user agent when doing requests for
 	// HTTP health checks.
-	HttpUserAgent = "Consul Health Check"
+	UserAgent = "Consul Health Check"
 )
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
@@ -428,7 +428,7 @@ func (c *CheckHTTP) check() {
 		return
 	}
 
-	req.Header.Set("User-Agent", HttpUserAgent)
+	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Accept", "text/plain, text/*, */*")
 
 	resp, err := c.httpClient.Do(req)

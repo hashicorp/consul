@@ -62,7 +62,7 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	case 1:
 		key = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
@@ -76,42 +76,42 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	// If the key is empty and we are not doing a recursive delete, this is an
 	// error.
 	if key == "" && !*recurse {
-		c.Ui.Error("Error! Missing KEY argument")
+		c.UI.Error("Error! Missing KEY argument")
 		return 1
 	}
 
 	// ModifyIndex is required for CAS
 	if *cas && *modifyIndex == 0 {
-		c.Ui.Error("Must specify -modify-index with -cas!")
+		c.UI.Error("Must specify -modify-index with -cas!")
 		return 1
 	}
 
 	// Specifying a ModifyIndex for a non-CAS operation is not possible.
 	if *modifyIndex != 0 && !*cas {
-		c.Ui.Error("Cannot specify -modify-index without -cas!")
+		c.UI.Error("Cannot specify -modify-index without -cas!")
 	}
 
 	// It is not valid to use a CAS and recurse in the same call
 	if *recurse && *cas {
-		c.Ui.Error("Cannot specify both -cas and -recurse!")
+		c.UI.Error("Cannot specify both -cas and -recurse!")
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	switch {
 	case *recurse:
 		if _, err := client.KV().DeleteTree(key, nil); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error! Did not delete prefix %s: %s", key, err))
+			c.UI.Error(fmt.Sprintf("Error! Did not delete prefix %s: %s", key, err))
 			return 1
 		}
 
-		c.Ui.Info(fmt.Sprintf("Success! Deleted keys with prefix: %s", key))
+		c.UI.Info(fmt.Sprintf("Success! Deleted keys with prefix: %s", key))
 		return 0
 	case *cas:
 		pair := &api.KVPair{
@@ -121,23 +121,23 @@ func (c *KVDeleteCommand) Run(args []string) int {
 
 		success, _, err := client.KV().DeleteCAS(pair, nil)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error! Did not delete key %s: %s", key, err))
+			c.UI.Error(fmt.Sprintf("Error! Did not delete key %s: %s", key, err))
 			return 1
 		}
 		if !success {
-			c.Ui.Error(fmt.Sprintf("Error! Did not delete key %s: CAS failed", key))
+			c.UI.Error(fmt.Sprintf("Error! Did not delete key %s: CAS failed", key))
 			return 1
 		}
 
-		c.Ui.Info(fmt.Sprintf("Success! Deleted key: %s", key))
+		c.UI.Info(fmt.Sprintf("Success! Deleted key: %s", key))
 		return 0
 	default:
 		if _, err := client.KV().Delete(key, nil); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error deleting key %s: %s", key, err))
+			c.UI.Error(fmt.Sprintf("Error deleting key %s: %s", key, err))
 			return 1
 		}
 
-		c.Ui.Info(fmt.Sprintf("Success! Deleted key: %s", key))
+		c.UI.Info(fmt.Sprintf("Success! Deleted key: %s", key))
 		return 0
 	}
 }

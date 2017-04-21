@@ -22,7 +22,7 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := OperatorAutopilotSetCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

@@ -18,7 +18,7 @@ func TestEventCommandRun(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &EventCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

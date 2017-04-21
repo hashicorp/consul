@@ -13,7 +13,7 @@ func testMaintCommand(t *testing.T) (*cli.MockUi, *MaintCommand) {
 	ui := new(cli.MockUi)
 	return ui, &MaintCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

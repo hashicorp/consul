@@ -54,18 +54,18 @@ func (c *ValidateCommand) Run(args []string) int {
 	}
 
 	if len(configFiles) < 1 {
-		c.Ui.Error("Must specify at least one config file or directory")
+		c.UI.Error("Must specify at least one config file or directory")
 		return 1
 	}
 
 	_, err := agent.ReadConfigPaths(configFiles)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
+		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
 	}
 
 	if !quiet {
-		c.Ui.Output("Configuration is valid!")
+		c.UI.Output("Configuration is valid!")
 	}
 	return 0
 }

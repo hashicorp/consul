@@ -29,7 +29,7 @@ const (
 )
 
 type Command struct {
-	Ui    cli.Ui
+	UI    cli.Ui
 	Flags FlagSetFlags
 
 	flagSet *flag.FlagSet
@@ -145,7 +145,7 @@ func (c *Command) httpFlagsServer(f *flag.FlagSet) *flag.FlagSet {
 // generates help output and adds the appropriate API flags.
 func (c *Command) NewFlagSet(command cli.Command) *flag.FlagSet {
 	f := flag.NewFlagSet("", flag.ContinueOnError)
-	f.Usage = func() { c.Ui.Error(command.Help()) }
+	f.Usage = func() { c.UI.Error(command.Help()) }
 
 	if c.hasClientHTTP() {
 		c.httpFlagsClient(f)
@@ -159,7 +159,7 @@ func (c *Command) NewFlagSet(command cli.Command) *flag.FlagSet {
 	errScanner := bufio.NewScanner(errR)
 	go func() {
 		for errScanner.Scan() {
-			c.Ui.Error(errScanner.Text())
+			c.UI.Error(errScanner.Text())
 		}
 	}()
 	f.SetOutput(errW)
