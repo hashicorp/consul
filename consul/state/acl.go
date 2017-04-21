@@ -8,7 +8,7 @@ import (
 )
 
 // ACLs is used to pull all the ACLs from the snapshot.
-func (s *StateSnapshot) ACLs() (memdb.ResultIterator, error) {
+func (s *Snapshot) ACLs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("acls", "id")
 	if err != nil {
 		return nil, err
@@ -17,7 +17,7 @@ func (s *StateSnapshot) ACLs() (memdb.ResultIterator, error) {
 }
 
 // ACL is used when restoring from a snapshot. For general inserts, use ACLSet.
-func (s *StateRestore) ACL(acl *structs.ACL) error {
+func (s *Restore) ACL(acl *structs.ACL) error {
 	if err := s.tx.Insert("acls", acl); err != nil {
 		return fmt.Errorf("failed restoring acl: %s", err)
 	}
@@ -30,7 +30,7 @@ func (s *StateRestore) ACL(acl *structs.ACL) error {
 }
 
 // ACLSet is used to insert an ACL rule into the state store.
-func (s *StateStore) ACLSet(idx uint64, acl *structs.ACL) error {
+func (s *Store) ACLSet(idx uint64, acl *structs.ACL) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -45,7 +45,7 @@ func (s *StateStore) ACLSet(idx uint64, acl *structs.ACL) error {
 
 // aclSetTxn is the inner method used to insert an ACL rule with the
 // proper indexes into the state store.
-func (s *StateStore) aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) error {
+func (s *Store) aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) error {
 	// Check that the ID is set
 	if acl.ID == "" {
 		return ErrMissingACLID
@@ -78,7 +78,7 @@ func (s *StateStore) aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) erro
 }
 
 // ACLGet is used to look up an existing ACL by ID.
-func (s *StateStore) ACLGet(ws memdb.WatchSet, aclID string) (uint64, *structs.ACL, error) {
+func (s *Store) ACLGet(ws memdb.WatchSet, aclID string) (uint64, *structs.ACL, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -99,7 +99,7 @@ func (s *StateStore) ACLGet(ws memdb.WatchSet, aclID string) (uint64, *structs.A
 }
 
 // ACLList is used to list out all of the ACLs in the state store.
-func (s *StateStore) ACLList(ws memdb.WatchSet) (uint64, structs.ACLs, error) {
+func (s *Store) ACLList(ws memdb.WatchSet) (uint64, structs.ACLs, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -116,7 +116,7 @@ func (s *StateStore) ACLList(ws memdb.WatchSet) (uint64, structs.ACLs, error) {
 
 // aclListTxn is used to list out all of the ACLs in the state store. This is a
 // function vs. a method so it can be called from the snapshotter.
-func (s *StateStore) aclListTxn(tx *memdb.Txn, ws memdb.WatchSet) (structs.ACLs, error) {
+func (s *Store) aclListTxn(tx *memdb.Txn, ws memdb.WatchSet) (structs.ACLs, error) {
 	// Query all of the ACLs in the state store
 	iter, err := tx.Get("acls", "id")
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *StateStore) aclListTxn(tx *memdb.Txn, ws memdb.WatchSet) (structs.ACLs,
 
 // ACLDelete is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
-func (s *StateStore) ACLDelete(idx uint64, aclID string) error {
+func (s *Store) ACLDelete(idx uint64, aclID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -150,7 +150,7 @@ func (s *StateStore) ACLDelete(idx uint64, aclID string) error {
 
 // aclDeleteTxn is used to delete an ACL from the state store within
 // an existing transaction.
-func (s *StateStore) aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error {
+func (s *Store) aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error {
 	// Look up the existing ACL
 	acl, err := tx.First("acls", "id", aclID)
 	if err != nil {

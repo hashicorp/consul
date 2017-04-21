@@ -9,7 +9,7 @@ import (
 )
 
 // Coordinates is used to pull all the coordinates from the snapshot.
-func (s *StateSnapshot) Coordinates() (memdb.ResultIterator, error) {
+func (s *Snapshot) Coordinates() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("coordinates", "id")
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (s *StateSnapshot) Coordinates() (memdb.ResultIterator, error) {
 // Coordinates is used when restoring from a snapshot. For general inserts, use
 // CoordinateBatchUpdate. We do less vetting of the updates here because they
 // already got checked on the way in during a batch update.
-func (s *StateRestore) Coordinates(idx uint64, updates structs.Coordinates) error {
+func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 	for _, update := range updates {
 		if err := s.tx.Insert("coordinates", update); err != nil {
 			return fmt.Errorf("failed restoring coordinate: %s", err)
@@ -39,7 +39,7 @@ func (s *StateRestore) Coordinates(idx uint64, updates structs.Coordinates) erro
 // nil, none of the Raft or node information is returned. This hits the 90%
 // internal-to-Consul use case for this data, and this isn't exposed via an
 // endpoint, so it doesn't matter that the Raft info isn't available.
-func (s *StateStore) CoordinateGetRaw(node string) (*coordinate.Coordinate, error) {
+func (s *Store) CoordinateGetRaw(node string) (*coordinate.Coordinate, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -57,7 +57,7 @@ func (s *StateStore) CoordinateGetRaw(node string) (*coordinate.Coordinate, erro
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *StateStore) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, error) {
+func (s *Store) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -80,7 +80,7 @@ func (s *StateStore) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates
 
 // CoordinateBatchUpdate processes a batch of coordinate updates and applies
 // them in a single transaction.
-func (s *StateStore) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) error {
+func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 

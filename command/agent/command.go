@@ -1090,7 +1090,7 @@ func (c *Command) Run(args []string) int {
 
 	// Register the watches
 	for _, wp := range config.WatchPlans {
-		go func(wp *watch.WatchPlan) {
+		go func(wp *watch.Plan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			addr := httpAddr.String()
@@ -1307,7 +1307,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 
 	// Register the new watches
 	for _, wp := range newConf.WatchPlans {
-		go func(wp *watch.WatchPlan) {
+		go func(wp *watch.Plan) {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {

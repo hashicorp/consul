@@ -26,7 +26,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, dump, err := state.NodeInfo(ws, args.Node)
 			if err != nil {
 				return err
@@ -47,7 +47,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, dump, err := state.NodeDump(ws)
 			if err != nil {
 				return err

@@ -45,7 +45,7 @@ func toPreparedQuery(wrapped interface{}) *structs.PreparedQuery {
 }
 
 // PreparedQueries is used to pull all the prepared queries from the snapshot.
-func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
+func (s *Snapshot) PreparedQueries() (structs.PreparedQueries, error) {
 	queries, err := s.tx.Get("prepared-queries", "id")
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
 
 // PreparedQuery is used when restoring from a snapshot. For general inserts,
 // use PreparedQuerySet.
-func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
+func (s *Restore) PreparedQuery(query *structs.PreparedQuery) error {
 	// If this is a template, compile it, otherwise leave the compiled
 	// template field nil.
 	var ct *prepared_query.CompiledTemplate
@@ -84,7 +84,7 @@ func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
 }
 
 // PreparedQuerySet is used to create or update a prepared query.
-func (s *StateStore) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error {
+func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -98,7 +98,7 @@ func (s *StateStore) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) 
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
 // the proper indexes into the state store.
-func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *structs.PreparedQuery) error {
+func (s *Store) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *structs.PreparedQuery) error {
 	// Check that the ID is set.
 	if query.ID == "" {
 		return ErrMissingQueryID
@@ -201,7 +201,7 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 }
 
 // PreparedQueryDelete deletes the given query by ID.
-func (s *StateStore) PreparedQueryDelete(idx uint64, queryID string) error {
+func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -215,7 +215,7 @@ func (s *StateStore) PreparedQueryDelete(idx uint64, queryID string) error {
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
+func (s *Store) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {
@@ -237,7 +237,7 @@ func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID s
 }
 
 // PreparedQueryGet returns the given prepared query by ID.
-func (s *StateStore) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *structs.PreparedQuery, error) {
+func (s *Store) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -256,7 +256,7 @@ func (s *StateStore) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64
 // PreparedQueryResolve returns the given prepared query by looking up an ID or
 // Name. If the query was looked up by name and it's a template, then the
 // template will be rendered before it is returned.
-func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.PreparedQuery, error) {
+func (s *Store) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -331,7 +331,7 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 }
 
 // PreparedQueryList returns all the prepared queries.
-func (s *StateStore) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.PreparedQueries, error) {
+func (s *Store) PreparedQueryList(ws memdb.WatchSet) (uint64, structs.PreparedQueries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

@@ -9,7 +9,7 @@ import (
 )
 
 // txnKVS handles all KV-related operations.
-func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
+func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
 	var entry *structs.DirEntry
 	var err error
 
@@ -111,7 +111,7 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 }
 
 // txnDispatch runs the given operations inside the state store transaction.
-func (s *StateStore) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	results := make(structs.TxnResults, 0, len(ops))
 	errors := make(structs.TxnErrors, 0, len(ops))
 	for i, op := range ops {
@@ -149,7 +149,7 @@ func (s *StateStore) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) 
 // any of the operations fail, the entire transaction will be rolled back. This
 // is done in a full write transaction on the state store, so reads and writes
 // are possible
-func (s *StateStore) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+func (s *Store) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -165,7 +165,7 @@ func (s *StateStore) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, 
 // TxnRO runs the given operations inside a single read transaction in the state
 // store. You must verify outside this function that no write operations are
 // present, otherwise you'll get an error from the state store.
-func (s *StateStore) TxnRO(ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+func (s *Store) TxnRO(ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

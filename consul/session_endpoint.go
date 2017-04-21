@@ -147,7 +147,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, session, err := state.SessionGet(ws, args.Session)
 			if err != nil {
 				return err
@@ -176,7 +176,7 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, sessions, err := state.SessionList(ws)
 			if err != nil {
 				return err
@@ -200,7 +200,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, sessions, err := state.NodeSessions(ws, args.Node)
 			if err != nil {
 				return err

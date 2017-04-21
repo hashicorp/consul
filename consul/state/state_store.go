@@ -42,11 +42,11 @@ const (
 	watchLimit = 2048
 )
 
-// StateStore is where we store all of Consul's state, including
+// Store is where we store all of Consul's state, including
 // records of node registrations, services, checks, key/value
 // pairs and more. The DB is entirely in-memory and is constructed
 // from the Raft log through the FSM.
-type StateStore struct {
+type Store struct {
 	schema *memdb.DBSchema
 	db     *memdb.MemDB
 
@@ -61,18 +61,18 @@ type StateStore struct {
 	lockDelay *Delay
 }
 
-// StateSnapshot is used to provide a point-in-time snapshot. It
+// Snapshot is used to provide a point-in-time snapshot. It
 // works by starting a read transaction against the whole state store.
-type StateSnapshot struct {
-	store     *StateStore
+type Snapshot struct {
+	store     *Store
 	tx        *memdb.Txn
 	lastIndex uint64
 }
 
-// StateRestore is used to efficiently manage restoring a large amount of
+// Restore is used to efficiently manage restoring a large amount of
 // data to a state store.
-type StateRestore struct {
-	store *StateStore
+type Restore struct {
+	store *Store
 	tx    *memdb.Txn
 }
 
@@ -93,7 +93,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
+func NewStateStore(gc *TombstoneGC) (*Store, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -102,7 +102,7 @@ func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 	}
 
 	// Create and return the state store.
-	s := &StateStore{
+	s := &Store{
 		schema:       schema,
 		db:           db,
 		abandonCh:    make(chan struct{}),
@@ -113,7 +113,7 @@ func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
-func (s *StateStore) Snapshot() *StateSnapshot {
+func (s *Store) Snapshot() *Snapshot {
 	tx := s.db.Txn(false)
 
 	var tables []string
@@ -122,54 +122,54 @@ func (s *StateStore) Snapshot() *StateSnapshot {
 	}
 	idx := maxIndexTxn(tx, tables...)
 
-	return &StateSnapshot{s, tx, idx}
+	return &Snapshot{s, tx, idx}
 }
 
 // LastIndex returns that last index that affects the snapshotted data.
-func (s *StateSnapshot) LastIndex() uint64 {
+func (s *Snapshot) LastIndex() uint64 {
 	return s.lastIndex
 }
 
 // Close performs cleanup of a state snapshot.
-func (s *StateSnapshot) Close() {
+func (s *Snapshot) Close() {
 	s.tx.Abort()
 }
 
 // Restore is used to efficiently manage restoring a large amount of data into
 // the state store. It works by doing all the restores inside of a single
 // transaction.
-func (s *StateStore) Restore() *StateRestore {
+func (s *Store) Restore() *Restore {
 	tx := s.db.Txn(true)
-	return &StateRestore{s, tx}
+	return &Restore{s, tx}
 }
 
 // Abort abandons the changes made by a restore. This or Commit should always be
 // called.
-func (s *StateRestore) Abort() {
+func (s *Restore) Abort() {
 	s.tx.Abort()
 }
 
 // Commit commits the changes made by a restore. This or Abort should always be
 // called.
-func (s *StateRestore) Commit() {
+func (s *Restore) Commit() {
 	s.tx.Commit()
 }
 
 // AbandonCh returns a channel you can wait on to know if the state store was
 // abandoned.
-func (s *StateStore) AbandonCh() <-chan struct{} {
+func (s *Store) AbandonCh() <-chan struct{} {
 	return s.abandonCh
 }
 
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
-func (s *StateStore) Abandon() {
+func (s *Store) Abandon() {
 	close(s.abandonCh)
 }
 
 // maxIndex is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func (s *StateStore) maxIndex(tables ...string) uint64 {
+func (s *Store) maxIndex(tables ...string) uint64 {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return maxIndexTxn(tx, tables...)

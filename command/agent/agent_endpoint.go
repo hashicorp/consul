@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-type AgentSelf struct {
+type Self struct {
 	Config *Config
 	Coord  *coordinate.Coordinate
 	Member serf.Member
@@ -44,7 +44,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, errPermissionDenied
 	}
 
-	return AgentSelf{
+	return Self{
 		Config: s.agent.config,
 		Coord:  c,
 		Member: s.agent.LocalMember(),

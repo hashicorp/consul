@@ -223,7 +223,7 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	val := obj.(AgentSelf)
+	val := obj.(Self)
 	if int(val.Member.Port) != srv.agent.config.Ports.SerfLan {
 		t.Fatalf("incorrect port: %v", obj)
 	}

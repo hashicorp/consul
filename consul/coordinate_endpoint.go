@@ -169,7 +169,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, coords, err := state.Coordinates(ws)
 			if err != nil {
 				return err

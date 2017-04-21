@@ -221,7 +221,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, query, err := state.PreparedQueryGet(ws, args.QueryID)
 			if err != nil {
 				return err
@@ -265,7 +265,7 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 	return p.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.StateStore) error {
+		func(ws memdb.WatchSet, state *state.Store) error {
 			index, queries, err := state.PreparedQueryList(ws)
 			if err != nil {
 				return err

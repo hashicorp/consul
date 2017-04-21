@@ -10,7 +10,7 @@ import (
 )
 
 // Sessions is used to pull the full list of sessions for use during snapshots.
-func (s *StateSnapshot) Sessions() (memdb.ResultIterator, error) {
+func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("sessions", "id")
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (s *StateSnapshot) Sessions() (memdb.ResultIterator, error) {
 
 // Session is used when restoring from a snapshot. For general inserts, use
 // SessionCreate.
-func (s *StateRestore) Session(sess *structs.Session) error {
+func (s *Restore) Session(sess *structs.Session) error {
 	// Insert the session.
 	if err := s.tx.Insert("sessions", sess); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
@@ -47,7 +47,7 @@ func (s *StateRestore) Session(sess *structs.Session) error {
 }
 
 // SessionCreate is used to register a new session in the state store.
-func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
+func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -70,7 +70,7 @@ func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Session) error {
+func (s *Store) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -144,7 +144,7 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 }
 
 // SessionGet is used to retrieve an active session from the state store.
-func (s *StateStore) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *structs.Session, error) {
+func (s *Store) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *structs.Session, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -164,7 +164,7 @@ func (s *StateStore) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *s
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *StateStore) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
+func (s *Store) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -189,7 +189,7 @@ func (s *StateStore) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, e
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
-func (s *StateStore) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.Sessions, error) {
+func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -214,7 +214,7 @@ func (s *StateStore) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, str
 // SessionDestroy is used to remove an active session. This will
 // implicitly invalidate the session and invoke the specified
 // session destroy behavior.
-func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
+func (s *Store) SessionDestroy(idx uint64, sessionID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -229,7 +229,7 @@ func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
+func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
 	// Look up the session.
 	sess, err := tx.First("sessions", "id", sessionID)
 	if err != nil {

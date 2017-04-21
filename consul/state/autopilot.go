@@ -8,7 +8,7 @@ import (
 )
 
 // Autopilot is used to pull the autopilot config from the snapshot.
-func (s *StateSnapshot) Autopilot() (*structs.AutopilotConfig, error) {
+func (s *Snapshot) Autopilot() (*structs.AutopilotConfig, error) {
 	c, err := s.tx.First("autopilot-config", "id")
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (s *StateSnapshot) Autopilot() (*structs.AutopilotConfig, error) {
 }
 
 // Autopilot is used when restoring from a snapshot.
-func (s *StateRestore) Autopilot(config *structs.AutopilotConfig) error {
+func (s *Restore) Autopilot(config *structs.AutopilotConfig) error {
 	if err := s.tx.Insert("autopilot-config", config); err != nil {
 		return fmt.Errorf("failed restoring autopilot config: %s", err)
 	}
@@ -32,7 +32,7 @@ func (s *StateRestore) Autopilot(config *structs.AutopilotConfig) error {
 }
 
 // AutopilotConfig is used to get the current Autopilot configuration.
-func (s *StateStore) AutopilotConfig() (uint64, *structs.AutopilotConfig, error) {
+func (s *Store) AutopilotConfig() (uint64, *structs.AutopilotConfig, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -51,7 +51,7 @@ func (s *StateStore) AutopilotConfig() (uint64, *structs.AutopilotConfig, error)
 }
 
 // AutopilotSetConfig is used to set the current Autopilot configuration.
-func (s *StateStore) AutopilotSetConfig(idx uint64, config *structs.AutopilotConfig) error {
+func (s *Store) AutopilotSetConfig(idx uint64, config *structs.AutopilotConfig) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -64,7 +64,7 @@ func (s *StateStore) AutopilotSetConfig(idx uint64, config *structs.AutopilotCon
 // AutopilotCASConfig is used to try updating the Autopilot configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
 // for the config, then the call is a noop,
-func (s *StateStore) AutopilotCASConfig(idx, cidx uint64, config *structs.AutopilotConfig) (bool, error) {
+func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *structs.AutopilotConfig) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -88,7 +88,7 @@ func (s *StateStore) AutopilotCASConfig(idx, cidx uint64, config *structs.Autopi
 	return true, nil
 }
 
-func (s *StateStore) autopilotSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.AutopilotConfig) error {
+func (s *Store) autopilotSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.AutopilotConfig) error {
 	// Check for an existing config
 	existing, err := tx.First("autopilot-config", "id")
 	if err != nil {

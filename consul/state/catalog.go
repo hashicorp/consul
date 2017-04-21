@@ -28,7 +28,7 @@ func resizeNodeLookupKey(s string) string {
 }
 
 // Nodes is used to pull the full list of nodes for use during snapshots.
-func (s *StateSnapshot) Nodes() (memdb.ResultIterator, error) {
+func (s *Snapshot) Nodes() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("nodes", "id")
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (s *StateSnapshot) Nodes() (memdb.ResultIterator, error) {
 
 // Services is used to pull the full list of services for a given node for use
 // during snapshots.
-func (s *StateSnapshot) Services(node string) (memdb.ResultIterator, error) {
+func (s *Snapshot) Services(node string) (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("services", "node", node)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (s *StateSnapshot) Services(node string) (memdb.ResultIterator, error) {
 
 // Checks is used to pull the full list of checks for a given node for use
 // during snapshots.
-func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
+func (s *Snapshot) Checks(node string) (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("checks", "node", node)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
 // Registration is used to make sure a node, service, and check registration is
 // performed within a single transaction to avoid race conditions on state
 // updates.
-func (s *StateRestore) Registration(idx uint64, req *structs.RegisterRequest) error {
+func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
 	if err := s.store.ensureRegistrationTxn(s.tx, idx, req); err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *StateRestore) Registration(idx uint64, req *structs.RegisterRequest) er
 // EnsureRegistration is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest) error {
+func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -84,7 +84,7 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
+func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
 	// Create a node structure.
 	node := &structs.Node{
 		ID:              req.ID,
@@ -152,7 +152,7 @@ func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *struc
 }
 
 // EnsureNode is used to upsert node registration or modification.
-func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
+func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -168,7 +168,7 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
 	// See if there's an existing node with this UUID, and make sure the
 	// name is the same.
 	var n *structs.Node
@@ -218,7 +218,7 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node
 }
 
 // GetNode is used to retrieve a node registration by node name ID.
-func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
+func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -237,7 +237,7 @@ func (s *StateStore) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 // GetNodeID is used to retrieve a node registration by node ID.
-func (s *StateStore) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
+func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -256,7 +256,7 @@ func (s *StateStore) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *StateStore) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
+func (s *Store) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -279,7 +279,7 @@ func (s *StateStore) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 }
 
 // NodesByMeta is used to return all nodes with the given metadata key/value pairs.
-func (s *StateStore) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Nodes, error) {
+func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -310,7 +310,7 @@ func (s *StateStore) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (
 }
 
 // DeleteNode is used to delete a given node by its ID.
-func (s *StateStore) DeleteNode(idx uint64, nodeName string) error {
+func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -325,7 +325,7 @@ func (s *StateStore) DeleteNode(idx uint64, nodeName string) error {
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
-func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
+func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
 	// Look up the node.
 	node, err := tx.First("nodes", "id", nodeName)
 	if err != nil {
@@ -413,7 +413,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) e
 }
 
 // EnsureService is called to upsert creation of a given NodeService.
-func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
+func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -428,7 +428,7 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
+func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
 	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
@@ -468,7 +468,7 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, sv
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *StateStore) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
+func (s *Store) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -509,7 +509,7 @@ func (s *StateStore) Services(ws memdb.WatchSet) (uint64, structs.Services, erro
 }
 
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
-func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Services, error) {
+func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -578,7 +578,7 @@ func (s *StateStore) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]st
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
-func (s *StateStore) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
+func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -607,7 +607,7 @@ func (s *StateStore) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64
 
 // ServiceTagNodes returns the nodes associated with a given service, filtering
 // out services that don't contain the given tag.
-func (s *StateStore) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
+func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -656,7 +656,7 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
-func (s *StateStore) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+func (s *Store) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
 	allNodes, err := tx.Get("nodes", "id")
@@ -697,7 +697,7 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, service
 
 // NodeService is used to retrieve a specific service associated with the given
 // node.
-func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *structs.NodeService, error) {
+func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs.NodeService, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -718,7 +718,7 @@ func (s *StateStore) NodeService(nodeName string, serviceID string) (uint64, *st
 }
 
 // NodeServices is used to query service registrations by node name or UUID.
-func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *structs.NodeServices, error) {
+func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -792,7 +792,7 @@ func (s *StateStore) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint6
 }
 
 // DeleteService is used to delete a given service associated with a node.
-func (s *StateStore) DeleteService(idx uint64, nodeName, serviceID string) error {
+func (s *Store) DeleteService(idx uint64, nodeName, serviceID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -807,7 +807,7 @@ func (s *StateStore) DeleteService(idx uint64, nodeName, serviceID string) error
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string) error {
+func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string) error {
 	// Look up the service.
 	service, err := tx.First("services", "id", nodeName, serviceID)
 	if err != nil {
@@ -852,7 +852,7 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, servi
 }
 
 // EnsureCheck is used to store a check registration in the db.
-func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
+func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -868,7 +868,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
+func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
 	if err != nil {
@@ -947,7 +947,7 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.Healt
 
 // NodeCheck is used to retrieve a specific check associated with the given
 // node.
-func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
+func (s *Store) NodeCheck(nodeName string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -969,7 +969,7 @@ func (s *StateStore) NodeCheck(nodeName string, checkID types.CheckID) (uint64, 
 
 // NodeChecks is used to retrieve checks associated with the
 // given node from the state store.
-func (s *StateStore) NodeChecks(ws memdb.WatchSet, nodeName string) (uint64, structs.HealthChecks, error) {
+func (s *Store) NodeChecks(ws memdb.WatchSet, nodeName string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -993,7 +993,7 @@ func (s *StateStore) NodeChecks(ws memdb.WatchSet, nodeName string) (uint64, str
 // ServiceChecks is used to get all checks associated with a
 // given service ID. The query is performed against a service
 // _name_ instead of a service ID.
-func (s *StateStore) ServiceChecks(ws memdb.WatchSet, serviceName string) (uint64, structs.HealthChecks, error) {
+func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1017,7 +1017,7 @@ func (s *StateStore) ServiceChecks(ws memdb.WatchSet, serviceName string) (uint6
 // ServiceChecksByNodeMeta is used to get all checks associated with a
 // given service ID, filtered by the given node metadata values. The query
 // is performed against a service _name_ instead of a service ID.
-func (s *StateStore) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
+func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 	filters map[string]string) (uint64, structs.HealthChecks, error) {
 
 	tx := s.db.Txn(false)
@@ -1038,7 +1038,7 @@ func (s *StateStore) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName stri
 
 // ChecksInState is used to query the state store for all checks
 // which are in the provided state.
-func (s *StateStore) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.HealthChecks, error) {
+func (s *Store) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1070,7 +1070,7 @@ func (s *StateStore) ChecksInState(ws memdb.WatchSet, state string) (uint64, str
 
 // ChecksInStateByNodeMeta is used to query the state store for all checks
 // which are in the provided state, filtered by the given node metadata values.
-func (s *StateStore) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
+func (s *Store) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters map[string]string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1098,7 +1098,7 @@ func (s *StateStore) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, fi
 
 // parseChecksByNodeMeta is a helper function used to deduplicate some
 // repetitive code for returning health checks filtered by node metadata fields.
-func (s *StateStore) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
+func (s *Store) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
 	idx uint64, iter memdb.ResultIterator, filters map[string]string) (uint64, structs.HealthChecks, error) {
 
 	// We don't want to track an unlimited number of nodes, so we pull a
@@ -1132,7 +1132,7 @@ func (s *StateStore) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
 }
 
 // DeleteCheck is used to delete a health check registration.
-func (s *StateStore) DeleteCheck(idx uint64, node string, checkID types.CheckID) error {
+func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -1147,7 +1147,7 @@ func (s *StateStore) DeleteCheck(idx uint64, node string, checkID types.CheckID)
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID) error {
+func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID) error {
 	// Try to retrieve the existing health check.
 	hc, err := tx.First("checks", "id", node, string(checkID))
 	if err != nil {
@@ -1186,7 +1186,7 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, chec
 }
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
-func (s *StateStore) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1210,7 +1210,7 @@ func (s *StateStore) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (u
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *StateStore) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1238,7 +1238,7 @@ func (s *StateStore) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag st
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
-func (s *StateStore) parseCheckServiceNodes(
+func (s *Store) parseCheckServiceNodes(
 	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 	serviceName string, services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
@@ -1318,7 +1318,7 @@ func (s *StateStore) parseCheckServiceNodes(
 
 // NodeInfo is used to generate a dump of a single node. The dump includes
 // all services and checks which are registered against the node.
-func (s *StateStore) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.NodeDump, error) {
+func (s *Store) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1337,7 +1337,7 @@ func (s *StateStore) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.N
 // NodeDump is used to generate a dump of all nodes. This call is expensive
 // as it has to query every node, service, and check. The response can also
 // be quite large since there is currently no filtering applied.
-func (s *StateStore) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
+func (s *Store) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1356,7 +1356,7 @@ func (s *StateStore) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, erro
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
 // and/or health checks.
-func (s *StateStore) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator) (uint64, structs.NodeDump, error) {
 
 	// We don't want to track an unlimited number of services, so we pull a
