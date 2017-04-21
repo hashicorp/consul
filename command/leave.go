@@ -30,23 +30,23 @@ func (c *LeaveCommand) Run(args []string) int {
 	}
 	nonFlagArgs := f.Args()
 	if len(nonFlagArgs) > 0 {
-		c.Ui.Error(fmt.Sprintf("Error found unexpected args: %v", nonFlagArgs))
-		c.Ui.Output(c.Help())
+		c.UI.Error(fmt.Sprintf("Error found unexpected args: %v", nonFlagArgs))
+		c.UI.Output(c.Help())
 		return 1
 	}
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	if err := client.Agent().Leave(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error leaving: %s", err))
+		c.UI.Error(fmt.Sprintf("Error leaving: %s", err))
 		return 1
 	}
 
-	c.Ui.Output("Graceful leave complete")
+	c.UI.Output("Graceful leave complete")
 	return 0
 }
 

@@ -53,26 +53,26 @@ func (c *SnapshotRestoreCommand) Run(args []string) int {
 	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
 	defer f.Close()
@@ -80,11 +80,11 @@ func (c *SnapshotRestoreCommand) Run(args []string) int {
 	// Restore the snapshot.
 	err = client.Snapshot().Restore(nil, f)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error restoring snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error restoring snapshot: %s", err))
 		return 1
 	}
 
-	c.Ui.Info("Restored snapshot")
+	c.UI.Info("Restored snapshot")
 	return 0
 }
 

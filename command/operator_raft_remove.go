@@ -48,26 +48,26 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
-		c.Ui.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 		return 1
 	}
 
 	// Set up a client.
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
+		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
 	// Fetch the current configuration.
 	if err := raftRemovePeers(address, id, client.Operator()); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error removing peer: %v", err))
+		c.UI.Error(fmt.Sprintf("Error removing peer: %v", err))
 		return 1
 	}
 	if address != "" {
-		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
+		c.UI.Output(fmt.Sprintf("Removed peer with address %q", address))
 	} else {
-		c.Ui.Output(fmt.Sprintf("Removed peer with id %q", id))
+		c.UI.Output(fmt.Sprintf("Removed peer with id %q", id))
 	}
 
 	return 0

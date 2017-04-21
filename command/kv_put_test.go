@@ -19,7 +19,7 @@ func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
 	ui := new(cli.MockUi)
 	return ui, &KVPutCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

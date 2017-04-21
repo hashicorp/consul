@@ -15,7 +15,7 @@ func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
 	ui := new(cli.MockUi)
 	return ui, &SnapshotSaveCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

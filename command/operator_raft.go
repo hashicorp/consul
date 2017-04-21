@@ -36,7 +36,7 @@ func (c *OperatorRaftCommand) Synopsis() string {
 
 func (c *OperatorRaftCommand) Run(args []string) int {
 	if result := c.raft(args); result != nil {
-		c.Ui.Error(result.Error())
+		c.UI.Error(result.Error())
 		return 1
 	}
 	return 0
@@ -82,16 +82,16 @@ func (c *OperatorRaftCommand) raft(args []string) error {
 	if listPeers {
 		result, err := raftListPeers(client, c.Command.HTTPStale())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting peers: %v", err))
+			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 		}
-		c.Ui.Output(result)
+		c.UI.Output(result)
 	} else if removePeer {
 		if err := raftRemovePeers(address, "", client.Operator()); err != nil {
 			return fmt.Errorf("Error removing peer: %v", err)
 		}
-		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
+		c.UI.Output(fmt.Sprintf("Removed peer with address %q", address))
 	} else {
-		c.Ui.Output(c.Help())
+		c.UI.Output(c.Help())
 		return nil
 	}
 

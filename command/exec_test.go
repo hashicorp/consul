@@ -17,7 +17,7 @@ func testExecCommand(t *testing.T) (*cli.MockUi, *ExecCommand) {
 	ui := new(cli.MockUi)
 	return ui, &ExecCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

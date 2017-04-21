@@ -13,7 +13,7 @@ func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
 	ui := new(cli.MockUi)
 	return ui, &JoinCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

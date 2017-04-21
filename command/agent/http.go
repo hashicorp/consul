@@ -87,7 +87,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			mux:      mux,
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
+			uiDir:    config.UIDir,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -139,7 +139,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			mux:      mux,
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
+			uiDir:    config.UIDir,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -152,9 +152,9 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	return servers, nil
 }
 
-// newScadaHttp creates a new HTTP server wrapping the SCADA
+// newScadaHTTP creates a new HTTP server wrapping the SCADA
 // listener such that HTTP calls can be sent from the brokers.
-func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+func newScadaHTTP(agent *Agent, list net.Listener) *HTTPServer {
 	// Create the mux
 	mux := http.NewServeMux()
 
@@ -323,7 +323,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
-	} else if s.agent.config.EnableUi {
+	} else if s.agent.config.EnableUI {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
@@ -419,7 +419,7 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 
 // Returns true if the UI is enabled.
 func (s *HTTPServer) IsUIEnabled() bool {
-	return s.uiDir != "" || s.agent.config.EnableUi
+	return s.uiDir != "" || s.agent.config.EnableUI
 }
 
 // Renders a simple index page

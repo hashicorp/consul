@@ -18,7 +18,7 @@ func testRTTCommand(t *testing.T) (*cli.MockUi, *RTTCommand) {
 	ui := new(cli.MockUi)
 	return ui, &RTTCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetClientHTTP,
 		},
 	}

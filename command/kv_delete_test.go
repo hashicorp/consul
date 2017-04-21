@@ -14,7 +14,7 @@ func testKVDeleteCommand(t *testing.T) (*cli.MockUi, *KVDeleteCommand) {
 	ui := new(cli.MockUi)
 	return ui, &KVDeleteCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

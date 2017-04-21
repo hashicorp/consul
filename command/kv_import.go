@@ -65,27 +65,27 @@ func (c *KVImportCommand) Run(args []string) int {
 	args = f.Args()
 	data, err := c.dataFromArgs(args)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error! %s", err))
+		c.UI.Error(fmt.Sprintf("Error! %s", err))
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	var entries []*kvExportEntry
 	if err := json.Unmarshal([]byte(data), &entries); err != nil {
-		c.Ui.Error(fmt.Sprintf("Cannot unmarshal data: %s", err))
+		c.UI.Error(fmt.Sprintf("Cannot unmarshal data: %s", err))
 		return 1
 	}
 
 	for _, entry := range entries {
 		value, err := base64.StdEncoding.DecodeString(entry.Value)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error base 64 decoding value for key %s: %s", entry.Key, err))
+			c.UI.Error(fmt.Sprintf("Error base 64 decoding value for key %s: %s", entry.Key, err))
 			return 1
 		}
 
@@ -96,11 +96,11 @@ func (c *KVImportCommand) Run(args []string) int {
 		}
 
 		if _, err := client.KV().Put(pair, nil); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
+			c.UI.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
 			return 1
 		}
 
-		c.Ui.Info(fmt.Sprintf("Imported: %s", pair.Key))
+		c.UI.Info(fmt.Sprintf("Imported: %s", pair.Key))
 	}
 
 	return 0

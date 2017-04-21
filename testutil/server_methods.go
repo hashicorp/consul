@@ -180,7 +180,7 @@ func (s *TestServer) put(t *testing.T, path string, body io.Reader) *http.Respon
 	if err != nil {
 		t.Fatalf("failed to create PUT request: %s", err)
 	}
-	resp, err := s.HttpClient.Do(req)
+	resp, err := s.HTTPClient.Do(req)
 	if err != nil {
 		t.Fatalf("failed to make PUT request: %s", err)
 	}
@@ -193,7 +193,7 @@ func (s *TestServer) put(t *testing.T, path string, body io.Reader) *http.Respon
 
 // get performs a new HTTP GET request.
 func (s *TestServer) get(t *testing.T, path string) *http.Response {
-	resp, err := s.HttpClient.Get(s.url(path))
+	resp, err := s.HTTPClient.Get(s.url(path))
 	if err != nil {
 		t.Fatalf("failed to create GET request: %s", err)
 	}

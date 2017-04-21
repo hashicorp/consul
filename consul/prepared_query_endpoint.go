@@ -70,7 +70,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
 		if acl != nil && !acl.PreparedQueryWrite(prefix) {
 			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
-			return permissionDeniedErr
+			return errPermissionDenied
 		}
 	}
 
@@ -90,7 +90,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		if prefix, ok := query.GetACLPrefix(); ok {
 			if acl != nil && !acl.PreparedQueryWrite(prefix) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
-				return permissionDeniedErr
+				return errPermissionDenied
 			}
 		}
 	}
@@ -249,7 +249,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			// then alert the user with a permission denied error.
 			if len(reply.Queries) == 0 {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied due to ACLs", args.QueryID)
-				return permissionDeniedErr
+				return errPermissionDenied
 			}
 
 			return nil
@@ -317,7 +317,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	// If the query was filtered out, return an error.
 	if len(queries.Queries) == 0 {
 		p.srv.logger.Printf("[WARN] consul.prepared_query: Explain on prepared query '%s' denied due to ACLs", query.ID)
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	reply.Query = *(queries.Queries[0])

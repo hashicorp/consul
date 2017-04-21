@@ -162,7 +162,7 @@ type TestServer struct {
 	LANAddr   string
 	WANAddr   string
 
-	HttpClient *http.Client
+	HTTPClient *http.Client
 }
 
 // NewTestServer is an easy helper method to create a new Consul
@@ -256,7 +256,7 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 		LANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
 		WANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
 
-		HttpClient: client,
+		HTTPClient: client,
 	}
 
 	// Wait for the server to be ready
@@ -300,7 +300,7 @@ func (s *TestServer) Stop() error {
 // but will likely return before a leader is elected.
 func (s *TestServer) waitForAPI() error {
 	if err := WaitForResult(func() (bool, error) {
-		resp, err := s.HttpClient.Get(s.url("/v1/agent/self"))
+		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
 			return false, errors.Wrap(err, "failed http get")
 		}
@@ -324,7 +324,7 @@ func (s *TestServer) waitForLeader() error {
 	if err := WaitForResult(func() (bool, error) {
 		// Query the API and check the status code.
 		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
-		resp, err := s.HttpClient.Get(url)
+		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
 			return false, errors.Wrap(err, "failed http get")
 		}

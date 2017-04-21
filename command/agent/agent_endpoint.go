@@ -41,7 +41,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	return AgentSelf{
@@ -67,7 +67,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	// Trigger the reload
@@ -143,7 +143,7 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	// Check if the WAN is being queried
@@ -177,7 +177,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 		return nil, err
 	}
 	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	if err := s.agent.Leave(); err != nil {
@@ -195,7 +195,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
@@ -574,7 +574,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 	if acl != nil && !acl.NodeWrite(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	if enable {
@@ -601,7 +601,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	// Get the provided loglevel.

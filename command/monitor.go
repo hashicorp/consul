@@ -46,14 +46,14 @@ func (c *MonitorCommand) Run(args []string) int {
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	eventDoneCh := make(chan struct{})
 	logCh, err := client.Agent().Monitor(logLevel, eventDoneCh, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting monitor: %s", err))
+		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1
 	}
 
@@ -66,15 +66,15 @@ func (c *MonitorCommand) Run(args []string) int {
 				if log == "" {
 					break OUTER
 				}
-				c.Ui.Info(log)
+				c.UI.Info(log)
 			}
 		}
 
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if !c.quitting {
-			c.Ui.Info("")
-			c.Ui.Output("Remote side ended the monitor! This usually means that the\n" +
+			c.UI.Info("")
+			c.UI.Output("Remote side ended the monitor! This usually means that the\n" +
 				"remote side has exited or crashed.")
 		}
 	}()

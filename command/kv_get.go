@@ -89,7 +89,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	case 1:
 		key = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
@@ -103,14 +103,14 @@ func (c *KVGetCommand) Run(args []string) int {
 	// If the key is empty and we are not doing a recursive or key-based lookup,
 	// this is an error.
 	if key == "" && !(*recurse || *keys) {
-		c.Ui.Error("Error! Missing KEY argument")
+		c.UI.Error("Error! Missing KEY argument")
 		return 1
 	}
 
 	// Create and test the HTTP client
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
@@ -120,12 +120,12 @@ func (c *KVGetCommand) Run(args []string) int {
 			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 			return 1
 		}
 
 		for _, k := range keys {
-			c.Ui.Info(string(k))
+			c.UI.Info(string(k))
 		}
 
 		return 0
@@ -134,7 +134,7 @@ func (c *KVGetCommand) Run(args []string) int {
 			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 			return 1
 		}
 
@@ -142,20 +142,20 @@ func (c *KVGetCommand) Run(args []string) int {
 			if *detailed {
 				var b bytes.Buffer
 				if err := prettyKVPair(&b, pair, *base64encode); err != nil {
-					c.Ui.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
+					c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 					return 1
 				}
 
-				c.Ui.Info(b.String())
+				c.UI.Info(b.String())
 
 				if i < len(pairs)-1 {
-					c.Ui.Info("")
+					c.UI.Info("")
 				}
 			} else {
 				if *base64encode {
-					c.Ui.Info(fmt.Sprintf("%s:%s", pair.Key, base64.StdEncoding.EncodeToString(pair.Value)))
+					c.UI.Info(fmt.Sprintf("%s:%s", pair.Key, base64.StdEncoding.EncodeToString(pair.Value)))
 				} else {
-					c.Ui.Info(fmt.Sprintf("%s:%s", pair.Key, pair.Value))
+					c.UI.Info(fmt.Sprintf("%s:%s", pair.Key, pair.Value))
 				}
 			}
 		}
@@ -166,26 +166,26 @@ func (c *KVGetCommand) Run(args []string) int {
 			AllowStale: c.Command.HTTPStale(),
 		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 			return 1
 		}
 
 		if pair == nil {
-			c.Ui.Error(fmt.Sprintf("Error! No key exists at: %s", key))
+			c.UI.Error(fmt.Sprintf("Error! No key exists at: %s", key))
 			return 1
 		}
 
 		if *detailed {
 			var b bytes.Buffer
 			if err := prettyKVPair(&b, pair, *base64encode); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
+				c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 				return 1
 			}
 
-			c.Ui.Info(b.String())
+			c.UI.Info(b.String())
 			return 0
 		} else {
-			c.Ui.Info(string(pair.Value))
+			c.UI.Info(string(pair.Value))
 			return 0
 		}
 	}

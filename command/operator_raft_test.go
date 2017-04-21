@@ -11,7 +11,7 @@ func testOperatorRaftCommand(t *testing.T) (*cli.MockUi, *OperatorRaftCommand) {
 	ui := new(cli.MockUi)
 	return ui, &OperatorRaftCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

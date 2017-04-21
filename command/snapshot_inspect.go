@@ -45,26 +45,26 @@ func (c *SnapshotInspectCommand) Run(args []string) int {
 	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
 	defer f.Close()
 
 	meta, err := snapshot.Verify(f)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 	}
 
 	var b bytes.Buffer
@@ -75,10 +75,10 @@ func (c *SnapshotInspectCommand) Run(args []string) int {
 	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
 	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
 	if err = tw.Flush(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
+		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 	}
 
-	c.Ui.Info(b.String())
+	c.UI.Info(b.String())
 
 	return 0
 }

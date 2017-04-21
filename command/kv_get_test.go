@@ -14,7 +14,7 @@ func testKVGetCommand(t *testing.T) (*cli.MockUi, *KVGetCommand) {
 	ui := new(cli.MockUi)
 	return ui, &KVGetCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

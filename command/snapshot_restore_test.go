@@ -16,7 +16,7 @@ func testSnapshotRestoreCommand(t *testing.T) (*cli.MockUi, *SnapshotRestoreComm
 	ui := new(cli.MockUi)
 	return ui, &SnapshotRestoreCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

@@ -685,23 +685,23 @@ func TestScadaHTTP(t *testing.T) {
 	defer list.Close()
 
 	// Create the SCADA HTTP server
-	scadaHttp := newScadaHttp(agent, list)
+	scadaHTTP := newScadaHTTP(agent, list)
 
 	// Returned server uses the listener and scada addr
-	if scadaHttp.listener != list {
-		t.Fatalf("bad listener: %#v", scadaHttp)
+	if scadaHTTP.listener != list {
+		t.Fatalf("bad listener: %#v", scadaHTTP)
 	}
-	if scadaHttp.addr != scadaHTTPAddr {
-		t.Fatalf("expected %v, got: %v", scadaHttp.addr, scadaHTTPAddr)
+	if scadaHTTP.addr != scadaHTTPAddr {
+		t.Fatalf("expected %v, got: %v", scadaHTTP.addr, scadaHTTPAddr)
 	}
 
 	// Check that debug endpoints were not enabled. This will cause
 	// the serve mux to panic if the routes are already handled.
 	mockFn := func(w http.ResponseWriter, r *http.Request) {}
-	scadaHttp.mux.HandleFunc("/debug/pprof/", mockFn)
-	scadaHttp.mux.HandleFunc("/debug/pprof/cmdline", mockFn)
-	scadaHttp.mux.HandleFunc("/debug/pprof/profile", mockFn)
-	scadaHttp.mux.HandleFunc("/debug/pprof/symbol", mockFn)
+	scadaHTTP.mux.HandleFunc("/debug/pprof/", mockFn)
+	scadaHTTP.mux.HandleFunc("/debug/pprof/cmdline", mockFn)
+	scadaHTTP.mux.HandleFunc("/debug/pprof/profile", mockFn)
+	scadaHTTP.mux.HandleFunc("/debug/pprof/symbol", mockFn)
 }
 
 func TestEnableWebUI(t *testing.T) {
@@ -720,7 +720,7 @@ func TestEnableWebUI(t *testing.T) {
 			t.Fatalf("should handle ui")
 		}
 	}, func(c *Config) {
-		c.EnableUi = true
+		c.EnableUI = true
 	})
 }
 

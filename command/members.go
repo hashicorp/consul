@@ -52,19 +52,19 @@ func (c *MembersCommand) Run(args []string) int {
 	// Compile the regexp
 	statusRe, err := regexp.Compile(statusFilter)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to compile status regexp: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to compile status regexp: %v", err))
 		return 1
 	}
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	members, err := client.Agent().Members(wan)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error retrieving members: %s", err))
+		c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
 		return 1
 	}
 
@@ -99,7 +99,7 @@ func (c *MembersCommand) Run(args []string) int {
 
 	// Generate the columnized version
 	output := columnize.SimpleFormat(result)
-	c.Ui.Output(output)
+	c.UI.Output(output)
 
 	return 0
 }

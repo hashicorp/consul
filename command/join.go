@@ -35,15 +35,15 @@ func (c *JoinCommand) Run(args []string) int {
 
 	addrs := f.Args()
 	if len(addrs) == 0 {
-		c.Ui.Error("At least one address to join must be specified.")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
+		c.UI.Error("At least one address to join must be specified.")
+		c.UI.Error("")
+		c.UI.Error(c.Help())
 		return 1
 	}
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
@@ -51,18 +51,18 @@ func (c *JoinCommand) Run(args []string) int {
 	for _, addr := range addrs {
 		err := client.Agent().Join(addr, wan)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error joining address '%s': %s", addr, err))
+			c.UI.Error(fmt.Sprintf("Error joining address '%s': %s", addr, err))
 		} else {
 			joins++
 		}
 	}
 
 	if joins == 0 {
-		c.Ui.Error("Failed to join any nodes.")
+		c.UI.Error("Failed to join any nodes.")
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf(
+	c.UI.Output(fmt.Sprintf(
 		"Successfully joined cluster by contacting %d nodes.", joins))
 	return 0
 }

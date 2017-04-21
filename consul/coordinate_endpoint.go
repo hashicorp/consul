@@ -127,7 +127,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 	if acl != nil && c.srv.config.ACLEnforceVersion8 {
 		if !acl.NodeWrite(args.Node) {
-			return permissionDeniedErr
+			return errPermissionDenied
 		}
 	}
 

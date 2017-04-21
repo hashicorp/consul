@@ -22,7 +22,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 		return err
 	}
 	if acl != nil && !acl.OperatorRead() {
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	// We can't fetch the leader and the configuration atomically with
@@ -81,7 +81,7 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 		return err
 	}
 	if acl != nil && !acl.OperatorWrite() {
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return
@@ -148,7 +148,7 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 		return err
 	}
 	if acl != nil && !acl.OperatorWrite() {
-		return permissionDeniedErr
+		return errPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return

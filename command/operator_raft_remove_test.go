@@ -39,7 +39,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := OperatorRaftRemoveCommand{
 			Command: base.Command{
-				Ui:    ui,
+				UI:    ui,
 				Flags: base.FlagSetHTTP,
 			},
 		}
@@ -62,7 +62,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := OperatorRaftRemoveCommand{
 			Command: base.Command{
-				Ui:    ui,
+				UI:    ui,
 				Flags: base.FlagSetHTTP,
 			},
 		}

@@ -48,13 +48,13 @@ func (c *ConfigTestCommand) Run(args []string) int {
 	}
 
 	if len(configFiles) <= 0 {
-		c.Ui.Error("Must specify config using -config-file or -config-dir")
+		c.UI.Error("Must specify config using -config-file or -config-dir")
 		return 1
 	}
 
 	_, err := agent.ReadConfigPaths(configFiles)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
+		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
 	}
 	return 0

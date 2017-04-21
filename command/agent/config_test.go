@@ -544,7 +544,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !config.EnableUi {
+	if !config.EnableUI {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -555,7 +555,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.UiDir != "/opt/consul-ui" {
+	if config.UIDir != "/opt/consul-ui" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1699,8 +1699,8 @@ func TestMergeConfig(t *testing.T) {
 		Services:               []*ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
 		StartJoinWan:           []string{"1.1.1.1"},
-		EnableUi:               true,
-		UiDir:                  "/opt/consul-ui",
+		EnableUI:               true,
+		UIDir:                  "/opt/consul-ui",
 		EnableSyslog:           true,
 		RejoinAfterLeave:       true,
 		RetryJoin:              []string{"1.1.1.1"},

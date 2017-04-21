@@ -60,7 +60,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	if acl, err := s.resolveToken(args.Token); err != nil {
 		return nil, err
 	} else if acl != nil && !acl.Snapshot() {
-		return nil, permissionDeniedErr
+		return nil, errPermissionDenied
 	}
 
 	// Dispatch the operation.

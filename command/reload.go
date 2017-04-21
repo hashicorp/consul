@@ -33,16 +33,16 @@ func (c *ReloadCommand) Run(args []string) int {
 
 	client, err := c.Command.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	if err := client.Agent().Reload(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reloading: %s", err))
+		c.UI.Error(fmt.Sprintf("Error reloading: %s", err))
 		return 1
 	}
 
-	c.Ui.Output("Configuration reload triggered")
+	c.UI.Output("Configuration reload triggered")
 	return 0
 }
 

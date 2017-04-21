@@ -657,7 +657,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	if err := state.SessionCreate(5, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	validId := session.ID
+	validID := session.ID
 
 	// Make a lock request.
 	arg := structs.KVSRequest{
@@ -665,7 +665,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		Op:         api.KVLock,
 		DirEnt: structs.DirEntry{
 			Key:     "test",
-			Session: validId,
+			Session: validID,
 		},
 	}
 	var out bool

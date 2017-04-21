@@ -17,7 +17,7 @@ func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
 	ui := new(cli.MockUi)
 	return ui, &LockCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetHTTP,
 		},
 	}

@@ -31,7 +31,7 @@ func kvsPreApply(srv *Server, acl acl.ACL, op api.KVOp, dirEnt *structs.DirEntry
 		switch op {
 		case api.KVDeleteTree:
 			if !acl.KeyWritePrefix(dirEnt.Key) {
-				return false, permissionDeniedErr
+				return false, errPermissionDenied
 			}
 
 		case api.KVGet, api.KVGetTree:
@@ -42,12 +42,12 @@ func kvsPreApply(srv *Server, acl acl.ACL, op api.KVOp, dirEnt *structs.DirEntry
 			// of the transaction, and they operate on individual
 			// keys so we check them here.
 			if !acl.KeyRead(dirEnt.Key) {
-				return false, permissionDeniedErr
+				return false, errPermissionDenied
 			}
 
 		default:
 			if !acl.KeyWrite(dirEnt.Key) {
-				return false, permissionDeniedErr
+				return false, errPermissionDenied
 			}
 		}
 	}

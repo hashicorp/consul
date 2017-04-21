@@ -59,7 +59,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// delete this and do all the ACL checks down there.
 		if args.Service.Service != ConsulServiceName {
 			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
-				return permissionDeniedErr
+				return errPermissionDenied
 			}
 		}
 	}

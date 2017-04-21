@@ -41,7 +41,7 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := OperatorRaftListCommand{
 			Command: base.Command{
-				Ui:    ui,
+				UI:    ui,
 				Flags: base.FlagSetHTTP,
 			},
 		}

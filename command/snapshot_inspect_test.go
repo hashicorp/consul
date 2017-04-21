@@ -16,7 +16,7 @@ func testSnapshotInspectCommand(t *testing.T) (*cli.MockUi, *SnapshotInspectComm
 	ui := new(cli.MockUi)
 	return ui, &SnapshotInspectCommand{
 		Command: base.Command{
-			Ui:    ui,
+			UI:    ui,
 			Flags: base.FlagSetNone,
 		},
 	}
