@@ -79,6 +79,12 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 	case api.KVCheckIndex:
 		entry, err = s.kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex)
 
+	case api.KVCheckNotExists:
+		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key)
+		if entry != nil && err == nil {
+			err = fmt.Errorf("key %q exists", op.DirEnt.Key)
+		}
+
 	default:
 		err = fmt.Errorf("unknown KV verb %q", op.Verb)
 	}
