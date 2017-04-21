@@ -215,6 +215,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		}
 
 		return out, nil
+
 	case "PUT":
 		var args structs.AutopilotSetConfigRequest
 		s.parseDC(req, &args.Datacenter)
@@ -257,9 +258,9 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		// Only use the out value if this was a CAS
 		if !args.CAS {
 			return true, nil
-		} else {
-			return reply, nil
 		}
+		return reply, nil
+
 	default:
 		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil

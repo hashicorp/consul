@@ -63,9 +63,8 @@ func (t *txnResultsFilter) Filter(i int) bool {
 	result := t.results[i]
 	if result.KV != nil {
 		return !t.acl.KeyRead(result.KV.Key)
-	} else {
-		return false
 	}
+	return false
 }
 
 func (t *txnResultsFilter) Move(dst, src, span int) {

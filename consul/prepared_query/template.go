@@ -130,9 +130,8 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 			i, ok := inputs[0].(int)
 			if ok && i >= 0 && i < len(matches) {
 				return matches[i], nil
-			} else {
-				return "", nil
 			}
+			return "", nil
 		},
 	}
 

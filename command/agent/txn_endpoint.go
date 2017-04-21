@@ -124,15 +124,13 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	var netKVSize int
 	for _, in := range ops {
 		if in.KV != nil {
-			if size := len(in.KV.Value); size > maxKVSize {
+			size := len(in.KV.Value)
+			if size > maxKVSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)",
-					in.KV.Key, size, maxKVSize)
-
+				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, maxKVSize)
 				return nil, 0, false
-			} else {
-				netKVSize += size
 			}
+			netKVSize += size
 
 			verb := api.KVOp(in.KV.Verb)
 			if isWrite(verb) {

@@ -712,9 +712,8 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 
 	if service != nil {
 		return idx, service.(*structs.ServiceNode).ToNodeService(), nil
-	} else {
-		return idx, nil, nil
 	}
+	return idx, nil, nil
 }
 
 // NodeServices is used to query service registrations by node name or UUID.
@@ -962,9 +961,8 @@ func (s *Store) NodeCheck(nodeName string, checkID types.CheckID) (uint64, *stru
 
 	if check != nil {
 		return idx, check.(*structs.HealthCheck), nil
-	} else {
-		return idx, nil, nil
 	}
+	return idx, nil, nil
 }
 
 // NodeChecks is used to retrieve checks associated with the

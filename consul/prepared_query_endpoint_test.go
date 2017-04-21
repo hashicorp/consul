@@ -2758,9 +2758,8 @@ func (m *mockQueryServer) ForwardDC(method, dc string, args interface{}, reply i
 	}
 	if m.QueryFn != nil {
 		return m.QueryFn(dc, args, reply)
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func TestPreparedQuery_queryFailover(t *testing.T) {

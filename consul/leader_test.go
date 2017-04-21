@@ -383,9 +383,8 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		if node != nil {
 			nodeAddr = node.Address
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}); err != nil {
 		t.Fatalf("client should be registered: %v", err)
 	}

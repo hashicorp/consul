@@ -170,9 +170,8 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	if cached != nil && time.Now().Before(cached.Expires) {
 		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		return cached.ACL, nil
-	} else {
-		metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	}
+	metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 
 	// Attempt to refresh the policy from the ACL datacenter via an RPC.
 	args := structs.ACLPolicyRequest{
@@ -192,9 +191,8 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	// other error we report it in the logs but can continue.
 	if strings.Contains(err.Error(), aclNotFound) {
 		return nil, errors.New(aclNotFound)
-	} else {
-		c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 	}
+	c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 
 	// TODO (slackpad) - We could do a similar thing *within* the ACL
 	// datacenter if the leader isn't available. We have a local state
@@ -729,17 +727,16 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
 		// Service-level check for some other service. Make sure they've
 		// got write permissions for that service.
 		if ns == nil {
-			return fmt.Errorf("Unknown service '%s' for check '%s'",
-				check.ServiceID, check.CheckID)
-		} else {
-			other, ok := ns.Services[check.ServiceID]
-			if !ok {
-				return fmt.Errorf("Unknown service '%s' for check '%s'",
-					check.ServiceID, check.CheckID)
-			}
-			if !acl.ServiceWrite(other.Service) {
-				return errPermissionDenied
-			}
+			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+		}
+
+		other, ok := ns.Services[check.ServiceID]
+		if !ok {
+			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+		}
+
+		if !acl.ServiceWrite(other.Service) {
+			return errPermissionDenied
 		}
 	}
 

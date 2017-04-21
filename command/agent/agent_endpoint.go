@@ -155,12 +155,11 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	// Get the address
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/join/")
 	if wan {
-		_, err := s.agent.JoinWAN([]string{addr})
-		return nil, err
+		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
-		_, err := s.agent.JoinLAN([]string{addr})
-		return nil, err
+		_, err = s.agent.JoinLAN([]string{addr})
 	}
+	return nil, err
 }
 
 func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
