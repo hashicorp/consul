@@ -126,3 +126,32 @@ func TestACL_List(t *testing.T) {
 		t.Fatalf("bad: %v", qm)
 	}
 }
+
+func TestACL_Replication(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+
+	repl, qm, err := acl.Replication(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if repl == nil {
+		t.Fatalf("bad: %v", repl)
+	}
+
+	if repl.Running {
+		t.Fatal("bad: repl should not be running")
+	}
+
+	if repl.Enabled {
+		t.Fatal("bad: repl should not be enabled")
+	}
+
+	if qm.RequestTime == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
+}
