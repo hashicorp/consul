@@ -193,27 +193,7 @@ When no transport protocol is specified the default `dns://` is assumed.
 - Github: <https://github.com/coredns/coredns>
 
 
-## Systemd Service File
+## Deployment
 
-Use this as a systemd service file. It defaults to a coredns with a homedir of /home/coredns
-and the binary lives in /opt/bin and the config in `/etc/coredns/Corefile`:
-
-~~~ txt
-[Unit]
-Description=CoreDNS DNS server
-Documentation=https://coredns.io
-After=network.target
-
-[Service]
-PermissionsStartOnly=true
-LimitNOFILE=8192
-User=coredns
-WorkingDirectory=/home/coredns
-ExecStartPre=/sbin/setcap cap_net_bind_service=+ep /opt/bin/coredns
-ExecStart=/opt/bin/coredns -conf=/etc/coredns/Corefile
-ExecReload=/bin/kill -SIGUSR1 $MAINPID
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-~~~
+Examples for deployment via systemd and other use cases can be found in the
+[deployment repository](https://github.com/coredns/deployment).
