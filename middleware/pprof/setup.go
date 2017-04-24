@@ -1,12 +1,15 @@
 package pprof
 
 import (
+	"net"
 	"sync"
 
 	"github.com/coredns/coredns/middleware"
 
 	"github.com/mholt/caddy"
 )
+
+const defaultAddr = "localhost:6053"
 
 func init() {
 	caddy.RegisterPlugin("pprof", caddy.Plugin{
@@ -17,11 +20,20 @@ func init() {
 
 func setup(c *caddy.Controller) error {
 	found := false
+	h := &handler{addr: defaultAddr}
 	for c.Next() {
 		if found {
 			return middleware.Error("pprof", c.Err("pprof can only be specified once"))
 		}
-		if len(c.RemainingArgs()) != 0 {
+		args := c.RemainingArgs()
+		if len(args) == 1 {
+			h.addr = args[0]
+			_, _, e := net.SplitHostPort(h.addr)
+			if e != nil {
+				return e
+			}
+		}
+		if len(args) > 1 {
 			return middleware.Error("pprof", c.ArgErr())
 		}
 		if c.NextBlock() {
@@ -30,7 +42,6 @@ func setup(c *caddy.Controller) error {
 		found = true
 	}
 
-	h := &handler{}
 	pprofOnce.Do(func() {
 		c.OnStartup(h.Startup)
 		c.OnShutdown(h.Shutdown)

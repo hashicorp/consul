@@ -11,13 +11,13 @@ For more information, please see [Go's pprof
 documentation](https://golang.org/pkg/net/http/pprof/) and read
 [Profiling Go Programs](https://blog.golang.org/profiling-go-programs).
 
-There is not configuration.
-
 ## Syntax
 
 ~~~
-pprof
+pprof [ADDRESS]
 ~~~
+
+If not specified, ADDRESS defaults to localhost:6053.
 
 ## Examples
 
@@ -25,4 +25,16 @@ Enable pprof endpoints:
 
 ~~~
 pprof
+~~~
+
+Listen on an alternate address:
+
+~~~
+pprof 10.9.8.7:6060
+~~~
+
+Listen on an all addresses on port 6060:
+
+~~~
+pprof :6060
 ~~~

@@ -10,12 +10,13 @@ import (
 )
 
 type handler struct {
-	ln  net.Listener
-	mux *http.ServeMux
+	addr string
+	ln   net.Listener
+	mux  *http.ServeMux
 }
 
 func (h *handler) Startup() error {
-	ln, err := net.Listen("tcp", addr)
+	ln, err := net.Listen("tcp", h.addr)
 	if err != nil {
 		log.Printf("[ERROR] Failed to start pprof handler: %s", err)
 		return err
@@ -44,6 +45,5 @@ func (h *handler) Shutdown() error {
 }
 
 const (
-	addr = "localhost:6053"
 	path = "/debug/pprof"
 )
