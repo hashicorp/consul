@@ -23,7 +23,7 @@ type ACLEntry struct {
 }
 
 // ACLReplicationStatus is used to represent the status of ACL replication.
-type ACLReplicationEntry struct {
+type ACLReplicationStatus struct {
 	Enabled          bool
 	Running          bool
 	SourceDatacenter string
