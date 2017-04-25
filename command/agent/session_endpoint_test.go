@@ -3,8 +3,11 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -35,29 +38,16 @@ func TestSessionCreate(t *testing.T) {
 		}
 
 		// Associate session with node and 2 health checks
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
+		body := toJSON(map[string]interface{}{
 			"Name":      "my-cool-session",
 			"Node":      srv.agent.config.NodeName,
 			"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
 			"LockDelay": "20s",
-		}
-		enc.Encode(raw)
+		})
 
-		req, err := http.NewRequest("PUT", "/v1/session/create", body)
+		_, err := sessionCreate(srv, body)
 		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if _, ok := obj.(sessionCreateResponse); !ok {
-			t.Fatalf("should work")
+			t.Fatal(err)
 		}
 	})
 }
@@ -83,30 +73,17 @@ func TestSessionCreateDelete(t *testing.T) {
 		}
 
 		// Associate session with node and 2 health checks, and make it delete on session destroy
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
+		body := toJSON(map[string]interface{}{
 			"Name":      "my-cool-session",
 			"Node":      srv.agent.config.NodeName,
 			"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
 			"LockDelay": "20s",
 			"Behavior":  structs.SessionKeysDelete,
-		}
-		enc.Encode(raw)
+		})
 
-		req, err := http.NewRequest("PUT", "/v1/session/create", body)
+		_, err := sessionCreate(srv, body)
 		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if _, ok := obj.(sessionCreateResponse); !ok {
-			t.Fatalf("should work")
+			t.Fatal(err)
 		}
 	})
 }
@@ -143,326 +120,192 @@ func TestFixupLockDelay(t *testing.T) {
 	}
 }
 
-func makeTestSession(t *testing.T, srv *HTTPServer) string {
-	req, err := http.NewRequest("PUT", "/v1/session/create", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp := httptest.NewRecorder()
-	obj, err := srv.SessionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	sessResp := obj.(sessionCreateResponse)
-	return sessResp.ID
-}
-
-func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
-	// Create Session with delete behavior
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
-	raw := map[string]interface{}{
-		"Behavior": "delete",
-	}
-	enc.Encode(raw)
-
-	req, err := http.NewRequest("PUT", "/v1/session/create", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp := httptest.NewRecorder()
-	obj, err := srv.SessionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	sessResp := obj.(sessionCreateResponse)
-	return sessResp.ID
-}
-
-func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
-	// Create Session with TTL
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
-	raw := map[string]interface{}{
-		"TTL": ttl,
-	}
-	enc.Encode(raw)
-
-	req, err := http.NewRequest("PUT", "/v1/session/create", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp := httptest.NewRecorder()
-	obj, err := srv.SessionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	sessResp := obj.(sessionCreateResponse)
-	return sessResp.ID
-}
-
 func TestSessionDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
-
-		req, err := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionDestroy(resp, req)
+		v, err := sessionDestroy(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		if resp := obj.(bool); !resp {
-			t.Fatalf("should work")
+		if got, want := v, true; got != want {
+			t.Fatalf("got %q want %q", got, want)
 		}
 	})
 }
 
-func TestSessionTTL(t *testing.T) {
-	// use the minimum legal ttl
+func TestSessionDefaultTTL(t *testing.T) {
 	testSessionTTL(t, 10*time.Second, nil)
 }
 
-func TestSessionTTLConfig(t *testing.T) {
-	testSessionTTL(t, 1*time.Second, func(c *Config) {
-		c.SessionTTLMinRaw = "1s"
-		c.SessionTTLMin = 1 * time.Second
-	})
+func TestSessionCustomTTL(t *testing.T) {
+	ttl := 250 * time.Millisecond
+	testSessionTTL(t, ttl, customTTL(ttl))
+}
+
+var customTTL = func(ttl time.Duration) func(c *Config) {
+	return func(c *Config) {
+		c.SessionTTLMinRaw = ttl.String()
+		c.SessionTTLMin = ttl
+	}
 }
 
 func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		TTL := ttl.String()
+		id := makeTestSessionTTL(t, srv, ttl.String())
 
-		id := makeTestSessionTTL(t, srv, TTL)
-
-		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		v, err := sessionInfo(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
+		if got, want := len(v), 1; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-		if respObj[0].TTL != TTL {
-			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		if got, want := v[0].TTL, ttl.String(); got != want {
+			t.Fatalf("got %d session TTL want %d", got, want)
 		}
 
+		// wait for session to time out
 		time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
+		v, err = sessionInfo(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok = obj.(structs.Sessions)
-		if len(respObj) != 0 {
-			t.Fatalf("session '%s' should have been destroyed", id)
+		if got, want := len(v), 0; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
 	}, cb)
 }
 
 func TestSessionTTLRenew(t *testing.T) {
-	httpTest(t, func(srv *HTTPServer) {
-		TTL := "10s" // use the minimum legal ttl
-		ttl := 10 * time.Second
+	ttl := 250 * time.Millisecond
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		id := makeTestSessionTTL(t, srv, ttl.String())
 
-		id := makeTestSessionTTL(t, srv, TTL)
-
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		v, err := sessionInfo(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
+		if got, want := len(v), 1; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-		if respObj[0].TTL != TTL {
-			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		if got, want := v[0].TTL, ttl.String(); got != want {
+			t.Fatalf("got %q session ttl want %q", got, want)
 		}
 
 		// Sleep to consume some time before renew
 		time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
 
-		req, err = http.NewRequest("PUT",
-			"/v1/session/renew/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionRenew(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+		if v, err = sessionRenew(srv, id); err != nil {
+			t.Fatal(err)
 		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
+		if got, want := len(v), 1; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
 
 		// Sleep for ttl * TTL Multiplier
 		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+		if v, err = sessionInfo(srv, id); err != nil {
+			t.Fatal(err)
 		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("session '%s' should have renewed", id)
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("session '%s' should have renewed", id)
+		if got, want := len(v), 1; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
 
 		// now wait for timeout and expect session to get destroyed
 		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
+		if v, err = sessionInfo(srv, id); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := len(v), 0; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
+		}
+	}, customTTL(ttl))
+}
+
+func TestSessionGetIsEmpty(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		// fetch non-existent session id
+		v, err := sessionInfo(srv, "adf4238a-882b-9ddc-4a9d-5b6758e4159e")
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("session '%s' should have destroyed", id)
-		}
-		if len(respObj) != 0 {
-			t.Fatalf("session '%s' should have destroyed", id)
+		if v == nil || len(v) > 0 {
+			t.Fatalf("got nil or non-empty list want empty list")
 		}
 	})
 }
 
 func TestSessionGet(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		id := makeTestSession(t, srv)
+		v, err := sessionInfo(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if respObj == nil || len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
+		if got, want := len(v), 1; got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
 	})
+}
 
+func TestSessionListIsEmpty(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestSession(t, srv)
-
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		v, err := sessionList(srv)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
+		if v == nil || len(v) > 0 {
+			t.Fatalf("got nil or non-empty list want empty list")
 		}
 	})
 }
 
 func TestSessionList(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/session/list", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionList(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if respObj == nil || len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
-
-	httpTest(t, func(srv *HTTPServer) {
 		var ids []string
 		for i := 0; i < 10; i++ {
 			ids = append(ids, makeTestSession(t, srv))
 		}
-
-		req, err := http.NewRequest("GET", "/v1/session/list", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionList(resp, req)
+		sessions, err := sessionList(srv)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
+		if got, want := len(sessions), len(ids); got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
+		// todo(fs): compare ids
+	})
+}
+
+func TestSessionsForNodeIsEmpty(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		v, err := sessionsForNode(srv, srv.agent.config.NodeName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v == nil || len(v) > 0 {
+			t.Fatalf("got nil or non-empty list want empty list")
 		}
 	})
 }
 
 func TestSessionsForNode(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET",
-			"/v1/session/node/"+srv.agent.config.NodeName, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionsForNode(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if respObj == nil || len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
-
-	httpTest(t, func(srv *HTTPServer) {
 		var ids []string
 		for i := 0; i < 10; i++ {
 			ids = append(ids, makeTestSession(t, srv))
 		}
-
-		req, err := http.NewRequest("GET",
-			"/v1/session/node/"+srv.agent.config.NodeName, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionsForNode(resp, req)
+		v, err := sessionsForNode(srv, srv.agent.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
+		if got, want := len(v), len(ids); got != want {
+			t.Fatalf("got %d sessions want %d", got, want)
 		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
-		}
+		// todo(fs): compare ids
 	})
 }
 
@@ -471,39 +314,141 @@ func TestSessionDeleteDestroy(t *testing.T) {
 		id := makeTestSessionDelete(t, srv)
 
 		// now create a new key for the session and acquire it
-		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
+		ok, err := kvPutEphemeral(srv, id, bytes.NewBuffer([]byte("test")))
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if res := obj.(bool); !res {
-			t.Fatalf("should work")
+		if got, want := ok, true; got != want {
+			t.Fatalf("got %q want %q", got, want)
 		}
 
 		// now destroy the session, this should delete the key created above
-		req, err = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionDestroy(resp, req)
+		b, err := sessionDestroy(srv, id)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			t.Fatal(err)
 		}
-		if resp := obj.(bool); !resp {
-			t.Fatalf("should work")
+		if got, want := b, true; got != want {
+			t.Fatalf("got %q want %q", got, want)
 		}
 
 		// Verify that the key is gone
-		req, _ = http.NewRequest("GET", "/v1/kv/ephemeral", nil)
-		resp = httptest.NewRecorder()
-		obj, _ = srv.KVSEndpoint(resp, req)
-		res, found := obj.(structs.DirEntries)
-		if found || len(res) != 0 {
-			t.Fatalf("bad: %v found, should be nothing", res)
+		keys, err := kvGetEphemeral(srv, 404)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := len(keys), 0; got != want {
+			t.Fatalf("got %d keys want %d", got, want)
 		}
 	})
+}
+
+func toJSON(v interface{}) io.Reader {
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(v); err != nil {
+		panic(err)
+	}
+	return buf
+}
+
+func makeTestSession(t *testing.T, srv *HTTPServer) string {
+	v, err := sessionCreate(srv, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v.ID
+}
+
+func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
+	body := toJSON(map[string]interface{}{"Behavior": "delete"})
+	v, err := sessionCreate(srv, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v.ID
+}
+
+func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
+	body := toJSON(map[string]interface{}{"TTL": ttl})
+	v, err := sessionCreate(srv, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v.ID
+}
+
+func kvGetEphemeral(srv *HTTPServer, code int) (v structs.DirEntries, err error) {
+	req, _ := http.NewRequest("GET", "/v1/kv/ephemeral", nil)
+	err = call(req, srv.KVSEndpoint, code, &v)
+	return
+}
+
+func kvPutEphemeral(srv *HTTPServer, id string, body io.Reader) (v bool, err error) {
+	req, _ := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, body)
+	err = call(req, srv.KVSEndpoint, 200, &v)
+	return
+}
+
+func sessionCreate(srv *HTTPServer, body io.Reader) (v sessionCreateResponse, err error) {
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	err = call(req, srv.SessionCreate, 200, &v)
+	return
+}
+
+func sessionDestroy(srv *HTTPServer, id string) (v bool, err error) {
+	req, _ := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+	err = call(req, srv.SessionDestroy, 200, &v)
+	return
+}
+
+func sessionList(srv *HTTPServer) (v structs.Sessions, err error) {
+	req, _ := http.NewRequest("GET", "/v1/session/list", nil)
+	err = call(req, srv.SessionList, 200, &v)
+	return
+}
+
+func sessionInfo(srv *HTTPServer, id string) (v structs.Sessions, err error) {
+	req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	err = call(req, srv.SessionGet, 200, &v)
+	return
+}
+
+func sessionsForNode(srv *HTTPServer, node string) (v structs.Sessions, err error) {
+	req, _ := http.NewRequest("GET", "/v1/session/node/"+node, nil)
+	err = call(req, srv.SessionsForNode, 200, &v)
+	return
+}
+
+func sessionRenew(srv *HTTPServer, id string) (v structs.Sessions, err error) {
+	req, _ := http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
+	err = call(req, srv.SessionRenew, 200, &v)
+	return
+}
+
+type handler func(http.ResponseWriter, *http.Request) (interface{}, error)
+
+func call(req *http.Request, h handler, code int, v interface{}) error {
+	if reflect.TypeOf(v).Kind() != reflect.Ptr {
+		panic("v must be pointer")
+	}
+
+	prefix := fmt.Sprintf("[%s %s]", req.Method, req.URL)
+	resp := httptest.NewRecorder()
+	obj, err := h(resp, req)
+	if err != nil {
+		return fmt.Errorf("%s: failed: %s", prefix, err)
+	}
+	if got, want := resp.Code, code; got != want {
+		return fmt.Errorf("%s: got status code %d want %d", prefix, got, want)
+	}
+	if obj == nil {
+		return nil
+	}
+
+	// type(obj) == type(*v)
+	if got, want := reflect.TypeOf(obj), reflect.TypeOf(v).Elem(); got != want {
+		return fmt.Errorf("%s: got type %s want %s", prefix, got, want)
+	}
+	// *v = obj
+	reflect.ValueOf(v).Elem().Set(reflect.ValueOf(obj))
+	return nil
 }
