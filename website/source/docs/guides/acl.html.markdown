@@ -296,7 +296,7 @@ give agents a token with access to this event prefix, in addition to configuring
 
 #### Key/Value Rules
 
-The `key` policy controls access to key/value store operations in the [KV API](/api/kv.html]. Key
+The `key` policy controls access to key/value store operations in the [KV API](/api/kv.html). Key
 rules look like this:
 
 ```text
