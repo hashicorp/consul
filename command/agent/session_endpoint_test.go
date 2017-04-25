@@ -235,8 +235,7 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 
 		id := makeTestSessionTTL(t, srv, TTL)
 
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionGet(resp, req)
 		if err != nil {

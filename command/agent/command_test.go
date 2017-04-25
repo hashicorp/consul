@@ -269,6 +269,7 @@ func TestRetryJoinFail(t *testing.T) {
 		"-data-dir", tmpDir,
 		"-retry-join", serfAddr,
 		"-retry-max", "1",
+		"-retry-interval", "10ms",
 	}
 
 	if code := cmd.Run(args); code == 0 {
@@ -299,6 +300,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 		"-data-dir", tmpDir,
 		"-retry-join-wan", serfAddr,
 		"-retry-max-wan", "1",
+		"-retry-interval-wan", "10ms",
 	}
 
 	if code := cmd.Run(args); code == 0 {
