@@ -6,20 +6,42 @@ import (
 	"strings"
 )
 
+type Fataler interface {
+	Fatal(args ...interface{})
+}
+
 // Errorer defines error reporting conform testing.T.
 type Errorer interface {
 	Error(args ...interface{})
 }
 
+type Logger interface {
+	Log(args ...interface{})
+}
+
 // Values verifies that got has all the content, and only the content, defined by want.
 // Note that NaN always results in a mismatch.
-func Values(r Errorer, name string, got, want interface{}) (ok bool) {
+var Values = Error
+
+func Log(r Logger, name string, got, want interface{}) (ok bool) {
+	return Func(r.Log, name, got, want)
+}
+
+func Error(r Errorer, name string, got, want interface{}) (ok bool) {
+	return Func(r.Error, name, got, want)
+}
+
+func Fatal(r Fataler, name string, got, want interface{}) (ok bool) {
+	return Func(r.Fatal, name, got, want)
+}
+
+func Func(fn func(args ...interface{}), name string, got, want interface{}) (ok bool) {
 	t := travel{}
 	t.values(reflect.ValueOf(got), reflect.ValueOf(want), nil)
 
 	fail := t.report(name)
 	if fail != "" {
-		r.Error(fail)
+		fn(fail)
 		return false
 	}
 
