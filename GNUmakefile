@@ -42,10 +42,8 @@ cov:
 	open /tmp/coverage.html
 
 test: dev
-	go test -i -run ^$ ./...
-	for d in $$(go list ./... | grep -v vendor); do \
-		echo $$d ; go test -tags "${GOTAGS}" -v $$d || break ; \
-	done
+	go test -i -run '^$$' ./...
+	go test -v -tags "$(GOTAGS)" $$(go list ./... | grep -v vendor)
 
 cover:
 	go test ${GOFILES} --cover
