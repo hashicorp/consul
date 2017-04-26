@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"io/ioutil"
 	"net"
@@ -12,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"crypto/tls"
 	"github.com/hashicorp/consul/lib"
 )
 
