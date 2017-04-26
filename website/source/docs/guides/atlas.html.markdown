@@ -8,6 +8,6 @@ description: |-
 
 # Atlas Integration
 
-~> **Notice:** The hosted version of Consul Enterprise was deprecated on
+~> **Notice:** The hosted version of [Consul Enterprise](https://www.hashicorp.com/products/consul) was deprecated on
 March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives
 
