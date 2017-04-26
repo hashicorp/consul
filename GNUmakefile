@@ -4,9 +4,8 @@ GOTOOLS = \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer
-TEST ?= ./...
 GOTAGS ?= consul
-GOFILES ?= $(shell go list $(TEST) | grep -v /vendor/)
+GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
@@ -38,27 +37,23 @@ dist:
 	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
 
 cov:
-	gocov test ${GOFILES} | gocov-html > /tmp/coverage.html
+	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test:
-	@./scripts/verify_no_uuid.sh
-	@env \
-		GOTAGS="${GOTAGS}" \
-		GOFILES="${GOFILES}" \
-		TESTARGS="${TESTARGS}" \
-		sh -c "'$(CURDIR)/scripts/test.sh'"
+test: dev
+	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
+	go test -tags "$(GOTAGS)" -v $(GOFILES) | tee test.log 2>&1
 
 cover:
-	go test ${GOFILES} --cover
+	go test $(GOFILES) --cover
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt ${GOFILES}
+	@go fmt $(GOFILES)
 
 vet:
 	@echo "--> Running go vet"
-	@go vet ${GOFILES}; if [ $$? -eq 1 ]; then \
+	@go vet $(GOFILES); if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
