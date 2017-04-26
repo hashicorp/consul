@@ -142,6 +142,10 @@ type Config struct {
 	// or VerifyOutgoing to verify the TLS connection.
 	CAFile string
 
+	// CAPath is a path to a directory of certificate authority files. This is used with
+	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	CAPath string
+
 	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
 	// Must be provided to serve TLS connections.
 	CertFile string
@@ -156,6 +160,13 @@ type Config struct {
 
 	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
 	TLSMinVersion string
+
+	// TLSCipherSuites is used to specify the list of supported ciphersuites.
+	TLSCipherSuites []uint16
+
+	// TLSPreferServerCipherSuites specifies whether to prefer the server's ciphersuite
+	// over the client ciphersuites.
+	TLSPreferServerCipherSuites bool
 
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
@@ -421,16 +432,18 @@ func (c *Config) ScaleRaft(raftMultRaw uint) {
 // tlsConfig maps this config into a tlsutil config.
 func (c *Config) tlsConfig() *tlsutil.Config {
 	tlsConf := &tlsutil.Config{
-		VerifyIncoming:       c.VerifyIncoming,
-		VerifyOutgoing:       c.VerifyOutgoing,
-		VerifyServerHostname: c.VerifyServerHostname,
-		CAFile:               c.CAFile,
-		CertFile:             c.CertFile,
-		KeyFile:              c.KeyFile,
-		NodeName:             c.NodeName,
-		ServerName:           c.ServerName,
-		Domain:               c.Domain,
-		TLSMinVersion:        c.TLSMinVersion,
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		Domain:                   c.Domain,
+		TLSMinVersion:            c.TLSMinVersion,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 	}
 	return tlsConf
 }

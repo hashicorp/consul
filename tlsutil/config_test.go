@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/yamux"
+	"reflect"
 )
 
 func TestConfig_AppendCA_None(t *testing.T) {
@@ -34,6 +35,20 @@ func TestConfig_CACertificate_Valid(t *testing.T) {
 	}
 	if len(pool.Subjects()) == 0 {
 		t.Fatalf("expected cert")
+	}
+}
+
+func TestConfig_CAPath_Valid(t *testing.T) {
+	conf := &Config{
+		CAPath: "../test/ca_path",
+	}
+
+	tlsConf, err := conf.IncomingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(tlsConf.ClientCAs.Subjects()) != 2 {
+		t.Fatalf("expected certs")
 	}
 }
 
@@ -492,5 +507,28 @@ func TestConfig_IncomingTLS_TLSMinVersion(t *testing.T) {
 		if tls.MinVersion != TLSLookup[version] {
 			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
 		}
+	}
+}
+
+func TestConfig_ParseCiphers(t *testing.T) {
+	testOk := "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_GCM_SHA384"
+	v, err := ParseCiphers(testOk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v) != 12 {
+		t.Fatal("missed ciphers after parse")
+	}
+
+	testBad := "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX"
+	if _, err := ParseCiphers(testBad); err == nil {
+		t.Fatal("should fail on unsupported cipherX")
+	}
+
+	testOrder := "TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256"
+	v, _ = ParseCiphers(testOrder)
+	expected := []uint16{tls.TLS_RSA_WITH_AES_256_GCM_SHA384, tls.TLS_RSA_WITH_AES_128_GCM_SHA256}
+	if !reflect.DeepEqual(expected, v) {
+		t.Fatal("cipher order is not preserved")
 	}
 }

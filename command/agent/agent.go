@@ -453,11 +453,14 @@ func (a *Agent) consulConfig() *consul.Config {
 	base.VerifyOutgoing = a.config.VerifyOutgoing
 	base.VerifyServerHostname = a.config.VerifyServerHostname
 	base.CAFile = a.config.CAFile
+	base.CAPath = a.config.CAPath
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
 	base.ServerName = a.config.ServerName
 	base.Domain = a.config.Domain
 	base.TLSMinVersion = a.config.TLSMinVersion
+	base.TLSCipherSuites = a.config.TLSCipherSuites
+	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp

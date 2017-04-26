@@ -617,6 +617,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   server connections with the appropriate [`verify_incoming`](#verify_incoming) or
   [`verify_outgoing`](#verify_outgoing) flags.
 
+* <a name="ca_path"></a><a href="#ca_path">`ca_path`</a> This provides a path to a directory of PEM-encoded
+  certificate authority files. These certificate authorities are used to check the authenticity of client and
+  server connections with the appropriate [`verify_incoming`](#verify_incoming) or
+  [`verify_outgoing`](#verify_outgoing) flags.
+
 * <a name="cert_file"></a><a href="#cert_file">`cert_file`</a> This provides a file path to a
   PEM-encoded certificate. The certificate is provided to clients or servers to verify the agent's
   authenticity. It must be provided along with [`key_file`](#key_file).
@@ -1027,6 +1032,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
   or "tls12". This defaults to "tls10". WARNING: TLS 1.1 and lower are generally considered less
   secure; avoid using these if possible. This will be changed to default to "tls12" in Consul 0.8.0.
+
+* <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul
+  0.8.2, this specifies the list of supported ciphersuites as a comma-separated-list. The list of all
+  available ciphersuites is available in the [Golang TLS documentation](https://golang.org/src/crypto/tls/cipher_suites.go).
+
+* <a name="tls_prefer_server_cipher_suites"></a><a href="#tls_prefer_server_cipher_suites">
+  `tls_prefer_server_cipher_suites`</a> Added in Consul 0.8.2, this will cause Consul to prefer the
+  server's ciphersuite over the client ciphersuites.
 
 * <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
   set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>

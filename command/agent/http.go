@@ -56,14 +56,17 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 		}
 
 		tlsConf := &tlsutil.Config{
-			VerifyIncoming: config.VerifyIncoming,
-			VerifyOutgoing: config.VerifyOutgoing,
-			CAFile:         config.CAFile,
-			CertFile:       config.CertFile,
-			KeyFile:        config.KeyFile,
-			NodeName:       config.NodeName,
-			ServerName:     config.ServerName,
-			TLSMinVersion:  config.TLSMinVersion,
+			VerifyIncoming:           config.VerifyIncoming,
+			VerifyOutgoing:           config.VerifyOutgoing,
+			CAFile:                   config.CAFile,
+			CAPath:                   config.CAPath,
+			CertFile:                 config.CertFile,
+			KeyFile:                  config.KeyFile,
+			NodeName:                 config.NodeName,
+			ServerName:               config.ServerName,
+			TLSMinVersion:            config.TLSMinVersion,
+			CipherSuites:             config.TLSCipherSuites,
+			PreferServerCipherSuites: config.TLSPreferServerCipherSuites,
 		}
 
 		tlsConfig, err := tlsConf.IncomingTLSConfig()
