@@ -38,7 +38,6 @@ $ consul agent -data-dir=/tmp/consul
           Server: false (bootstrap: false)
      Client Addr: 127.0.0.1 (HTTP: 8500, DNS: 8600)
     Cluster Addr: 192.168.1.43 (LAN: 8301, WAN: 8302)
-           Atlas: (Infrastructure: 'hashicorp/test' Join: true)
 
 ==> Log data will now stream in as it occurs:
 
@@ -74,11 +73,6 @@ There are several important messages that [`consul agent`](/docs/commands/agent.
 * **Cluster Addr**: This is the address and set of ports used for communication between
   Consul agents in a cluster. Not all Consul agents in a cluster have to
   use the same port, but this address **MUST** be reachable by all other nodes.
-
-* **Atlas**: This shows the [Atlas infrastructure](https://atlas.hashicorp.com)
-  with which the node is registered. It also indicates if auto-join is enabled.
-  The Atlas infrastructure is set using [`-atlas`](/docs/agent/options.html#_atlas)
-  and auto-join is enabled by setting [`-atlas-join`](/docs/agent/options.html#_atlas_join).
 
 ## Stopping an Agent
 

@@ -59,31 +59,6 @@ The options below are all specified on the command-line.
   address when being accessed from a remote datacenter if the remote datacenter is configured
   with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
 
-~> **Notice:** The hosted version of Consul Enterprise was deprecated on
-  March 7th, 2017. For details, see https://atlas.hashicorp.com/help/consul/alternatives.
-
-* <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
-  enables [Atlas](https://atlas.hashicorp.com) integration.
-  It is used to provide the Atlas infrastructure name and the SCADA connection. The format of
-  this is `username/environment`. This enables Atlas features such as the Monitoring UI
-  and node auto joining.
-
-* <a name="_atlas_join"></a><a href="#_atlas_join">`-atlas-join`</a> - When set, enables auto-join
-  via Atlas. Atlas will track the most
-  recent members to join the infrastructure named by [`-atlas`](#_atlas) and automatically
-  join them on start. For servers, the LAN and WAN pool are both joined.
-
-* <a name="_atlas_token"></a><a href="#_atlas_token">`-atlas-token`</a> - Provides the Atlas
-  API authentication token. This can also be provided
-  using the `ATLAS_TOKEN` environment variable. Required for use with Atlas.
-
-* <a name="_atlas_endpoint"></a><a href="#_atlas_endpoint">`-atlas-endpoint`</a> - The endpoint
-  address used for Atlas integration. Used only if the `-atlas` and
-  `-atlas-token` options are specified. This is optional, and defaults to the
-  public Atlas endpoints. This can also be specified using the `SCADA_ENDPOINT`
-  environment variable. The CLI option takes precedence, followed by the
-  configuration file directive, and lastly, the environment variable.
-
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
   no more than one server *per* datacenter be running in this mode. Technically, a server in bootstrap mode
@@ -552,23 +527,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
-
-* <a name="atlas_acl_token"></a><a href="#atlas_acl_token">`atlas_acl_token`</a> When provided,
-  any requests made by Atlas will use this ACL token unless explicitly overridden. When not provided
-  the [`acl_token`](#acl_token) is used. This can be set to 'anonymous' to reduce permission below
-  that of [`acl_token`](#acl_token).
-
-* <a name="atlas_infrastructure"></a><a href="#atlas_infrastructure">`atlas_infrastructure`</a>
-  Equivalent to the [`-atlas` command-line flag](#_atlas).
-
-* <a name="atlas_join"></a><a href="#atlas_join">`atlas_join`</a> Equivalent to the
-  [`-atlas-join` command-line flag](#_atlas_join).
-
-* <a name="atlas_token"></a><a href="#atlas_token">`atlas_token`</a> Equivalent to the
-  [`-atlas-token` command-line flag](#_atlas_token).
-
-* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
-  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
 * <a name="autopilot"></a><a href="#autopilot">`autopilot`</a> Added in Consul 0.8, this object
   allows a number of sub-keys to be set which can configure operator-friendly settings for Consul servers.
@@ -1133,10 +1091,6 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
-Consul will also make an outgoing connection to HashiCorp's servers for
-Atlas-related features and to check for the availability of newer versions
-of Consul. This will be a TLS-secured TCP connection to `scada.hashicorp.com:7223`.
-
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 
 Reloading configuration does not reload all configuration items. The
@@ -1148,6 +1102,3 @@ items which are reloaded include:
 * Watches
 * HTTP Client Address
 * <a href="#node_meta">Node Metadata</a>
-* Atlas Token
-* Atlas Infrastructure
-* Atlas Endpoint
