@@ -128,7 +128,7 @@ func TestSessionDestroy(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got, want := v, true; got != want {
-			t.Fatalf("got %q want %q", got, want)
+			t.Fatalf("got %v want %v", got, want)
 		}
 	})
 }
@@ -161,7 +161,7 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 			t.Fatalf("got %d sessions want %d", got, want)
 		}
 		if got, want := v[0].TTL, ttl.String(); got != want {
-			t.Fatalf("got %d session TTL want %d", got, want)
+			t.Fatalf("got %v session TTL want %v", got, want)
 		}
 
 		// wait for session to time out
@@ -319,7 +319,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got, want := ok, true; got != want {
-			t.Fatalf("got %q want %q", got, want)
+			t.Fatalf("got %v want %v", got, want)
 		}
 
 		// now destroy the session, this should delete the key created above
@@ -328,7 +328,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got, want := b, true; got != want {
-			t.Fatalf("got %q want %q", got, want)
+			t.Fatalf("got %v want %v", got, want)
 		}
 
 		// Verify that the key is gone
