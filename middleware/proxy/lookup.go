@@ -21,6 +21,8 @@ func NewLookup(hosts []string) Proxy {
 func NewLookupWithOption(hosts []string, opts Options) Proxy {
 	p := Proxy{Next: nil}
 
+	// TODO(miek): this needs to be unified with upstream.go's NewStaticUpstreams, caddy uses NewHost
+	// we should copy/make something similar.
 	upstream := &staticUpstream{
 		from:        ".",
 		Hosts:       make([]*UpstreamHost, len(hosts)),

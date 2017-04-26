@@ -46,6 +46,8 @@ type Upstream interface {
 	IsAllowedDomain(string) bool
 	// Exchanger returns the exchanger to be used for this upstream.
 	Exchanger() Exchanger
+	// Stops the upstream from proxying requests to shutdown goroutines cleanly.
+	Stop() error
 }
 
 // UpstreamHostDownFunc can be used to customize how Down behaves.

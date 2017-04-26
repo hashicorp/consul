@@ -37,6 +37,8 @@ func setup(c *caddy.Controller) error {
 		c.OnShutdown(func() error {
 			return u.Exchanger().OnShutdown(P)
 		})
+		// Register shutdown handlers.
+		c.OnShutdown(u.Stop)
 	}
 
 	return nil
