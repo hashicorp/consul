@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"crypto/tls"
+	"github.com/hashicorp/consul/lib"
 )
 
 func TestConfigEncryptBytes(t *testing.T) {

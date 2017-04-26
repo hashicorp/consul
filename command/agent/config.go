@@ -14,10 +14,10 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
 // Ports is used to simplify the configuration by
@@ -490,8 +490,8 @@ type Config struct {
 	TLSMinVersion string `mapstructure:"tls_min_version"`
 
 	// TLSCipherSuites is used to specify the list of supported ciphersuites.
-	TLSCipherSuites []uint16 `mapstructure:"-" json:"-"`
-	TLSCipherSuitesRaw string `mapstructure:"tls_cipher_suites"`
+	TLSCipherSuites    []uint16 `mapstructure:"-" json:"-"`
+	TLSCipherSuitesRaw string   `mapstructure:"tls_cipher_suites"`
 
 	// TLSPreferServerCipherSuites specifies whether to prefer the server's ciphersuite
 	// over the client ciphersuites.
