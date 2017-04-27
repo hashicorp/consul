@@ -53,7 +53,7 @@ func TestValidDatacenter(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	t.Parallel()
+	// do not t.Parallel()
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -123,7 +123,7 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
-	t.Parallel()
+	// do not t.Parallel()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -255,7 +255,7 @@ func TestReadCliConfig(t *testing.T) {
 }
 
 func TestRetryJoinFail(t *testing.T) {
-	t.Parallel()
+	// do not t.Parallel()
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -286,7 +286,7 @@ func TestRetryJoinFail(t *testing.T) {
 }
 
 func TestRetryJoinWanFail(t *testing.T) {
-	t.Parallel()
+	// do not t.Parallel()
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
