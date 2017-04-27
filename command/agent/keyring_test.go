@@ -12,6 +12,7 @@ import (
 )
 
 func TestAgent_LoadKeyrings(t *testing.T) {
+	t.Parallel()
 	key := "tbLJg26ZJyJ9pK3qhc9jig=="
 
 	// Should be no configured keyring file by default
@@ -77,6 +78,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 }
 
 func TestAgent_InitKeyring(t *testing.T) {
+	t.Parallel()
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 	expected := fmt.Sprintf(`["%s"]`, key1)
@@ -118,6 +120,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 }
 
 func TestAgentKeyring_ACL(t *testing.T) {
+	t.Parallel()
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 

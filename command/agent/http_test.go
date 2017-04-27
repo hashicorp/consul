@@ -80,6 +80,7 @@ func encodeReq(obj interface{}) io.ReadCloser {
 }
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
@@ -142,6 +143,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 }
 
 func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
@@ -187,6 +189,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 }
 
 func TestSetIndex(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	setIndex(resp, 1000)
 	header := resp.Header().Get("X-Consul-Index")
@@ -200,6 +203,7 @@ func TestSetIndex(t *testing.T) {
 }
 
 func TestSetKnownLeader(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	setKnownLeader(resp, true)
 	header := resp.Header().Get("X-Consul-KnownLeader")
@@ -215,6 +219,7 @@ func TestSetKnownLeader(t *testing.T) {
 }
 
 func TestSetLastContact(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	setLastContact(resp, 123456*time.Microsecond)
 	header := resp.Header().Get("X-Consul-LastContact")
@@ -224,6 +229,7 @@ func TestSetLastContact(t *testing.T) {
 }
 
 func TestSetMeta(t *testing.T) {
+	t.Parallel()
 	meta := structs.QueryMeta{
 		Index:       1000,
 		KnownLeader: true,
@@ -246,6 +252,7 @@ func TestSetMeta(t *testing.T) {
 }
 
 func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
+	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
 		dir, srv := makeHTTPServer(t)
@@ -291,6 +298,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 }
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	srv.agent.config.HTTPAPIResponseHeaders = map[string]string{
 		"Access-Control-Allow-Origin": "*",
@@ -322,6 +330,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 }
 
 func TestContentTypeIsJSON(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 
 	defer os.RemoveAll(dir)
@@ -346,6 +355,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 }
 
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -370,10 +380,12 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 }
 
 func TestPrettyPrint(t *testing.T) {
+	t.Parallel()
 	testPrettyPrint("pretty=1", t)
 }
 
 func TestPrettyPrintBare(t *testing.T) {
+	t.Parallel()
 	testPrettyPrint("pretty", t)
 }
 
@@ -407,6 +419,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 }
 
 func TestParseSource(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -464,6 +477,7 @@ func TestParseSource(t *testing.T) {
 }
 
 func TestParseWait(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -486,6 +500,7 @@ func TestParseWait(t *testing.T) {
 }
 
 func TestParseWait_InvalidTime(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -505,6 +520,7 @@ func TestParseWait_InvalidTime(t *testing.T) {
 }
 
 func TestParseWait_InvalidIndex(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -524,6 +540,7 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 }
 
 func TestParseConsistency(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -564,6 +581,7 @@ func TestParseConsistency(t *testing.T) {
 }
 
 func TestParseConsistency_Invalid(t *testing.T) {
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -584,6 +602,7 @@ func TestParseConsistency_Invalid(t *testing.T) {
 
 // Test ACL token is resolved in correct order
 func TestACLResolution(t *testing.T) {
+	t.Parallel()
 	var token string
 	// Request without token
 	req, err := http.NewRequest("GET",
@@ -672,6 +691,7 @@ func TestACLResolution(t *testing.T) {
 }
 
 func TestScadaHTTP(t *testing.T) {
+	t.Parallel()
 	// Create the agent
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
@@ -705,6 +725,7 @@ func TestScadaHTTP(t *testing.T) {
 }
 
 func TestEnableWebUI(t *testing.T) {
+	t.Parallel()
 	httpTestWithConfig(t, func(s *HTTPServer) {
 		req, err := http.NewRequest("GET", "/ui/", nil)
 		if err != nil {

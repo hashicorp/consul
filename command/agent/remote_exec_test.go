@@ -24,6 +24,7 @@ func generateUUID() (ret string) {
 }
 
 func TestRexecWriter(t *testing.T) {
+	t.Parallel()
 	writer := &rexecWriter{
 		BufCh:    make(chan []byte, 16),
 		BufSize:  16,
@@ -95,11 +96,13 @@ func TestRexecWriter(t *testing.T) {
 }
 
 func TestRemoteExecGetSpec(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	testRemoteExecGetSpec(t, config)
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDatacenter = "dc1"
 	config.ACLToken = "root"
@@ -141,11 +144,13 @@ func testRemoteExecGetSpec(t *testing.T, c *Config) {
 }
 
 func TestRemoteExecWrites(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	testRemoteExecWrites(t, config)
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDatacenter = "dc1"
 	config.ACLToken = "root"
@@ -266,10 +271,12 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 }
 
 func TestHandleRemoteExec(t *testing.T) {
+	t.Parallel()
 	testHandleRemoteExec(t, "uptime", "load", "0")
 }
 
 func TestHandleRemoteExecFailed(t *testing.T) {
+	t.Parallel()
 	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 

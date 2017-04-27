@@ -14,6 +14,7 @@ import (
 )
 
 func TestCatalogRegister(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -55,6 +56,7 @@ func TestCatalogRegister(t *testing.T) {
 }
 
 func TestCatalogDeregister(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -84,6 +86,7 @@ func TestCatalogDeregister(t *testing.T) {
 }
 
 func TestCatalogDatacenters(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -106,6 +109,7 @@ func TestCatalogDatacenters(t *testing.T) {
 }
 
 func TestCatalogNodes(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -146,6 +150,7 @@ func TestCatalogNodes(t *testing.T) {
 }
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -193,6 +198,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
+	t.Parallel()
 	dir1, srv1 := makeHTTPServerWithConfig(t,
 		func(c *Config) {
 			c.Datacenter = "dc1"
@@ -297,6 +303,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogNodes_Blocking(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -358,6 +365,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 }
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -453,6 +461,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalogServices(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -495,6 +504,7 @@ func TestCatalogServices(t *testing.T) {
 }
 
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -543,6 +553,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -607,6 +618,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -673,6 +685,7 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
+	t.Parallel()
 	dir1, srv1 := makeHTTPServerWithConfig(t,
 		func(c *Config) {
 			c.Datacenter = "dc1"
@@ -768,6 +781,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -870,6 +884,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalogNodeServices(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -912,6 +927,7 @@ func TestCatalogNodeServices(t *testing.T) {
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
+	t.Parallel()
 	dir1, srv1 := makeHTTPServerWithConfig(t,
 		func(c *Config) {
 			c.Datacenter = "dc1"

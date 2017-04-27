@@ -14,6 +14,7 @@ import (
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -89,6 +90,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 }
 
 func TestKVSEndpoint_Recurse(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -185,6 +187,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 }
 
 func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -272,6 +275,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 }
 
 func TestKVSEndpoint_CAS(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -369,6 +373,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -429,6 +434,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 }
 
 func TestKVSEndpoint_AcquireRelease(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Acquire the lock
 		id := makeTestSession(t, srv)
@@ -499,6 +505,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 }
 
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, err := http.NewRequest("PUT", "/v1/kv/test", buf)
@@ -533,6 +540,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 }
 
 func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, err := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
 		if err != nil {
@@ -554,6 +562,7 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 }
 
 func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, err := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
 		if err != nil {

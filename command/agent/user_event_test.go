@@ -10,6 +10,7 @@ import (
 )
 
 func TestValidateUserEventParams(t *testing.T) {
+	t.Parallel()
 	p := &UserEvent{}
 	err := validateUserEventParams(p)
 	if err == nil || err.Error() != "User event missing name" {
@@ -46,6 +47,7 @@ func TestValidateUserEventParams(t *testing.T) {
 }
 
 func TestShouldProcessUserEvent(t *testing.T) {
+	t.Parallel()
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
@@ -116,6 +118,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 }
 
 func TestIngestUserEvent(t *testing.T) {
+	t.Parallel()
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
@@ -148,6 +151,7 @@ func TestIngestUserEvent(t *testing.T) {
 }
 
 func TestFireReceiveEvent(t *testing.T) {
+	t.Parallel()
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
@@ -188,6 +192,7 @@ func TestFireReceiveEvent(t *testing.T) {
 }
 
 func TestUserEventToken(t *testing.T) {
+	t.Parallel()
 	conf := nextConfig()
 
 	// Set the default policies to deny

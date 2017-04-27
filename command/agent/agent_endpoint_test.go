@@ -49,6 +49,7 @@ func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
 }
 
 func TestAgent_Services(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -81,6 +82,7 @@ func TestAgent_Services(t *testing.T) {
 }
 
 func TestAgent_Services_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -122,6 +124,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 }
 
 func TestAgent_Checks(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -154,6 +157,7 @@ func TestAgent_Checks(t *testing.T) {
 }
 
 func TestAgent_Checks_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -203,6 +207,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 }
 
 func TestAgent_Self(t *testing.T) {
+	t.Parallel()
 	meta := map[string]string{
 		"somekey": "somevalue",
 	}
@@ -254,6 +259,7 @@ func TestAgent_Self(t *testing.T) {
 }
 
 func TestAgent_Self_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -301,6 +307,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_Reload(t *testing.T) {
+	t.Parallel()
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -379,6 +386,7 @@ func TestAgent_Reload(t *testing.T) {
 }
 
 func TestAgent_Reload_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -418,6 +426,7 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_Members(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -443,6 +452,7 @@ func TestAgent_Members(t *testing.T) {
 }
 
 func TestAgent_Members_WAN(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -468,6 +478,7 @@ func TestAgent_Members_WAN(t *testing.T) {
 }
 
 func TestAgent_Members_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -509,6 +520,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 }
 
 func TestAgent_Join(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -544,6 +556,7 @@ func TestAgent_Join(t *testing.T) {
 }
 
 func TestAgent_Join_WAN(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -579,6 +592,7 @@ func TestAgent_Join_WAN(t *testing.T) {
 }
 
 func TestAgent_Join_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -631,6 +645,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_Leave(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -674,6 +689,7 @@ func TestAgent_Leave(t *testing.T) {
 }
 
 func TestAgent_Leave_ACLDeny(t *testing.T) {
+	t.Parallel()
 	// Try without a token.
 	func() {
 		dir, srv := makeHTTPServerWithACLs(t)
@@ -731,6 +747,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_ForceLeave(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -773,6 +790,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 }
 
 func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -820,6 +838,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_RegisterCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -869,6 +888,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 }
 
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -913,6 +933,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 }
 
 func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -942,6 +963,7 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 }
 
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -977,6 +999,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_DeregisterCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1008,6 +1031,7 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 }
 
 func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1040,6 +1064,7 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 }
 
 func TestAgent_PassCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1072,6 +1097,7 @@ func TestAgent_PassCheck(t *testing.T) {
 }
 
 func TestAgent_PassCheck_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1105,6 +1131,7 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_WarnCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1137,6 +1164,7 @@ func TestAgent_WarnCheck(t *testing.T) {
 }
 
 func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1170,6 +1198,7 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_FailCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1202,6 +1231,7 @@ func TestAgent_FailCheck(t *testing.T) {
 }
 
 func TestAgent_FailCheck_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1235,6 +1265,7 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_UpdateCheck(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1363,6 +1394,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 }
 
 func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1398,6 +1430,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_RegisterService(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1455,6 +1488,7 @@ func TestAgent_RegisterService(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1501,6 +1535,7 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_DeregisterService(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1538,6 +1573,7 @@ func TestAgent_DeregisterService(t *testing.T) {
 }
 
 func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1573,6 +1609,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1620,6 +1657,7 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 }
 
 func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1663,6 +1701,7 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 }
 
 func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1700,6 +1739,7 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 }
 
 func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1736,6 +1776,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1763,6 +1804,7 @@ func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 }
 
 func TestAgent_NodeMaintenance_Enable(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1797,6 +1839,7 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 }
 
 func TestAgent_NodeMaintenance_Disable(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1822,6 +1865,7 @@ func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 }
 
 func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1851,6 +1895,7 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_RegisterCheck_Service(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1908,6 +1953,7 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 }
 
 func TestAgent_Monitor(t *testing.T) {
+	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
 	logger := io.MultiWriter(os.Stdout, logWriter)
 
@@ -1975,6 +2021,7 @@ func (r *closableRecorder) CloseNotify() <-chan bool {
 }
 
 func TestAgent_Monitor_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
