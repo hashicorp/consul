@@ -305,6 +305,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		Output:      "lgtm",
 		ServiceID:   "service1",
 		ServiceName: "theservice",
+		ServiceTags: []string{"foo"},
 	}
 	if !hc.IsSame(hc) {
 		t.Fatalf("should be equal to itself")
@@ -319,6 +320,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		Output:      "lgtm",
 		ServiceID:   "service1",
 		ServiceName: "theservice",
+		ServiceTags: []string{"foo"},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
