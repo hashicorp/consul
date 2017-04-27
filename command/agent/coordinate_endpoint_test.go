@@ -13,7 +13,6 @@ import (
 )
 
 func TestCoordinate_Datacenters(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -42,7 +41,6 @@ func TestCoordinate_Datacenters(t *testing.T) {
 }
 
 func TestCoordinate_Nodes(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

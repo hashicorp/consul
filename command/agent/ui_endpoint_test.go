@@ -19,7 +19,6 @@ import (
 )
 
 func TestUiIndex(t *testing.T) {
-	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -70,7 +69,6 @@ func TestUiIndex(t *testing.T) {
 }
 
 func TestUiNodes(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -115,7 +113,6 @@ func TestUiNodes(t *testing.T) {
 }
 
 func TestUiNodeInfo(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -177,7 +174,6 @@ func TestUiNodeInfo(t *testing.T) {
 }
 
 func TestSummarizeServices(t *testing.T) {
-	t.Parallel()
 	dump := structs.NodeDump{
 		&structs.NodeInfo{
 			Node:    "foo",

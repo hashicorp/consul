@@ -15,7 +15,6 @@ import (
 )
 
 func TestEventFire(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte("test"))
 		url := "/v1/event/fire/test?node=Node&service=foo&tag=bar"
@@ -56,7 +55,6 @@ func TestEventFire(t *testing.T) {
 }
 
 func TestEventFire_token(t *testing.T) {
-	t.Parallel()
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		// Create an ACL token
 		args := structs.ACLRequest{
@@ -119,7 +117,6 @@ func TestEventFire_token(t *testing.T) {
 }
 
 func TestEventList(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
@@ -156,7 +153,6 @@ func TestEventList(t *testing.T) {
 }
 
 func TestEventList_Filter(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
@@ -198,7 +194,6 @@ func TestEventList_Filter(t *testing.T) {
 }
 
 func TestEventList_ACLFilter(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -264,7 +259,6 @@ func TestEventList_ACLFilter(t *testing.T) {
 }
 
 func TestEventList_Blocking(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
@@ -327,7 +321,6 @@ func TestEventList_Blocking(t *testing.T) {
 }
 
 func TestEventList_EventBufOrder(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Fire some events in a non-sequential order
 		expected := &UserEvent{Name: "foo"}
@@ -372,7 +365,6 @@ func TestEventList_EventBufOrder(t *testing.T) {
 }
 
 func TestUUIDToUint64(t *testing.T) {
-	t.Parallel()
 	inp := "cb9a81ad-fff6-52ac-92a7-5f70687805ec"
 
 	// Output value was computed using python

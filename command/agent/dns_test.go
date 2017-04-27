@@ -131,7 +131,6 @@ func dnsA(src, dest string) *dns.A {
 }
 
 func TestRecursorAddr(t *testing.T) {
-	t.Parallel()
 	addr, err := recursorAddr("8.8.8.8")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -142,7 +141,6 @@ func TestRecursorAddr(t *testing.T) {
 }
 
 func TestDNS_NodeLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -238,7 +236,6 @@ func TestDNS_NodeLookup(t *testing.T) {
 }
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -273,7 +270,6 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -316,7 +312,6 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_AAAA(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -362,7 +357,6 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
-	t.Parallel()
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
 		dnsA("google.com", "1.2.3.4"),
@@ -417,7 +411,6 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -460,7 +453,6 @@ func TestDNS_ReverseLookup(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -504,7 +496,6 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup_IPV6(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -547,7 +538,6 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -671,7 +661,6 @@ func TestDNS_ServiceLookup(t *testing.T) {
 }
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -746,7 +735,6 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 }
 
 func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServerConfig(t, func(c *Config) {
 		c.Domain = "CONSUL."
 	}, nil)
@@ -860,7 +848,6 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 }
 
 func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1003,7 +990,6 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1099,7 +1085,6 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1195,7 +1180,6 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1291,7 +1275,6 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
-	t.Parallel()
 	dir1, srv1 := makeDNSServerConfig(t,
 		func(c *Config) {
 			c.Datacenter = "dc1"
@@ -1479,7 +1462,6 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 }
 
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1553,7 +1535,6 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1615,7 +1596,6 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1697,7 +1677,6 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Dedup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1803,7 +1782,6 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -1937,7 +1915,6 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 }
 
 func TestDNS_Recurse(t *testing.T) {
-	t.Parallel()
 	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
 	defer recursor.Shutdown()
 
@@ -1966,7 +1943,6 @@ func TestDNS_Recurse(t *testing.T) {
 }
 
 func TestDNS_Recurse_Truncation(t *testing.T) {
-	t.Parallel()
 	answerMessage := dns.Msg{
 		MsgHdr: dns.MsgHdr{Truncated: true},
 		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
@@ -2002,7 +1978,6 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 }
 
 func TestDNS_RecursorTimeout(t *testing.T) {
-	t.Parallel()
 	serverClientTimeout := 3 * time.Second
 	testClientTimeout := serverClientTimeout + 5*time.Second
 
@@ -2055,7 +2030,6 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -2214,7 +2188,6 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -2330,7 +2303,6 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
 		c.OnlyPassing = true
 	})
@@ -2456,7 +2428,6 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -2550,7 +2521,6 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
 		c.EnableTruncate = true
 	})
@@ -2620,7 +2590,6 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
 		c.EnableTruncate = true
 	})
@@ -2812,7 +2781,6 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 }
 
 func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
-	t.Parallel()
 	// Build a matrix of config parameters (udpAnswerLimit), and the
 	// length of the response per query type and question.  Negative
 	// values imply the test must return at least the abs(value) number
@@ -2868,7 +2836,6 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
-	t.Parallel()
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
 		dnsA("google.com", "1.2.3.4"),
@@ -2966,7 +2933,6 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_TTL(t *testing.T) {
-	t.Parallel()
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
 		dnsA("google.com", "1.2.3.4"),
@@ -3092,7 +3058,6 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_TTL(t *testing.T) {
-	t.Parallel()
 	confFn := func(c *DNSConfig) {
 		c.ServiceTTL = map[string]time.Duration{
 			"db": 10 * time.Second,
@@ -3196,7 +3161,6 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 }
 
 func TestDNS_PreparedQuery_TTL(t *testing.T) {
-	t.Parallel()
 	confFn := func(c *DNSConfig) {
 		c.ServiceTTL = map[string]time.Duration{
 			"db": 10 * time.Second,
@@ -3388,7 +3352,6 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 }
 
 func TestDNS_PreparedQuery_Failover(t *testing.T) {
-	t.Parallel()
 	dir1, srv1 := makeDNSServerConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.TranslateWanAddrs = true
@@ -3499,7 +3462,6 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3577,7 +3539,6 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3655,7 +3616,6 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
-	t.Parallel()
 	confFn := func(c *Config) {
 		c.ACLMasterToken = "root"
 		c.ACLDatacenter = "dc1"
@@ -3712,7 +3672,6 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 }
 
 func TestDNS_AddressLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3752,7 +3711,6 @@ func TestDNS_AddressLookup(t *testing.T) {
 }
 
 func TestDNS_AddressLookupIPV6(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3793,7 +3751,6 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 }
 
 func TestDNS_NonExistingLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3824,7 +3781,6 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 }
 
 func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -3967,7 +3923,6 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 }
 
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
-	t.Parallel()
 	confFn := func(c *DNSConfig) {
 		*c.AllowStale = true
 		c.MaxStale = time.Second
@@ -4017,7 +3972,6 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 }
 
 func TestDNS_InvalidQueries(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -4058,7 +4012,6 @@ func TestDNS_InvalidQueries(t *testing.T) {
 }
 
 func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -4093,7 +4046,6 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
-	t.Parallel()
 	resp := &dns.Msg{
 		Answer: []dns.RR{
 			&dns.SRV{
@@ -4150,7 +4102,6 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
-	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
 	resp, expected := &dns.Msg{}, &dns.Msg{}
@@ -4190,7 +4141,6 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
-	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
 	resp := &dns.Msg{}
@@ -4243,7 +4193,6 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 }
 
 func TestDNS_syncExtra(t *testing.T) {
-	t.Parallel()
 	resp := &dns.Msg{
 		Answer: []dns.RR{
 			// These two are on the same host so the redundant extra
@@ -4467,7 +4416,6 @@ func TestDNS_syncExtra(t *testing.T) {
 }
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
-	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
 	m := dns.Msg{}
@@ -4486,7 +4434,6 @@ func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 }
 
 func TestDNS_Compression_Query(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -4576,7 +4523,6 @@ func TestDNS_Compression_Query(t *testing.T) {
 }
 
 func TestDNS_Compression_ReverseLookup(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -4631,7 +4577,6 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 }
 
 func TestDNS_Compression_Recurse(t *testing.T) {
-	t.Parallel()
 	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
 	defer recursor.Shutdown()
 

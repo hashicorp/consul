@@ -8,7 +8,6 @@ import (
 )
 
 func TestStatusLeader(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -27,7 +26,6 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
