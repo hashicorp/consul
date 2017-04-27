@@ -145,12 +145,17 @@ func (t *TombstoneGC) nextExpires() time.Time {
 
 // expireTime is used to expire the entries at the given time.
 func (t *TombstoneGC) expireTime(expires time.Time) {
-	// Get the maximum index and clear the entry
 	t.lock.Lock()
-	exp := t.expires[expires]
-	delete(t.expires, expires)
-	t.lock.Unlock()
+	defer t.lock.Unlock()
 
-	// Notify the expires channel
+	// Get the maximum index and clear the entry. It's possible that the GC
+	// has been shut down while this timer fired and got blocked on the lock,
+	// so if there's nothing in the map for us we just exit out since there
+	// is no work to do.
+	exp, ok := t.expires[expires]
+	if !ok {
+		return
+	}
+	delete(t.expires, expires)
 	t.expireCh <- exp.maxIndex
 }

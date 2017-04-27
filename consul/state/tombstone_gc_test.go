@@ -102,3 +102,18 @@ func TestTombstoneGC_Expire(t *testing.T) {
 	case <-time.After(20 * time.Millisecond):
 	}
 }
+
+func TestTombstoneGC_TimerAfterShutdown(t *testing.T) {
+	ttl := 2 * time.Microsecond
+	gran := 1 * time.Microsecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for i := 0; i < 1000; i++ {
+		gc.SetEnabled(true)
+		gc.Hint(100 + uint64(i))
+		gc.SetEnabled(false)
+	}
+}
