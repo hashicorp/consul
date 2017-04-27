@@ -109,7 +109,7 @@ successfully.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/query`                     | `application/json`         |
+| `POST`  | `/query`                     | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -224,7 +224,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    --request PUT \
+    --request POST \
     --data @payload.json \
     https://consul.rocks/v1/query
 ```
