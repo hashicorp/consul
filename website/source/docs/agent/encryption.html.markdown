@@ -46,7 +46,6 @@ $ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
        Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
       Cluster Addr: 10.1.10.12 (LAN: 8301, WAN: 8302)
     Gossip encrypt: true, RPC-TLS: false, TLS-Incoming: false
-             Atlas: <disabled>
 ...
 ```
 
