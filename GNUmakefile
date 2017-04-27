@@ -1,3 +1,4 @@
+SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/... \
 	github.com/jteeuwen/go-bindata/... \
