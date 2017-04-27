@@ -185,13 +185,14 @@ grpc://example.org:1443 {
 
 When no transport protocol is specified the default `dns://` is assumed.
 
-## Blog and Contact
+## Community
 
 - Website: <https://coredns.io>
+- Blog: <https://blog.coredns.io>
 - Twitter: [@corednsio](https://twitter.com/corednsio)
-- Docs: <https://miek.nl/tags/coredns/>
 - Github: <https://github.com/coredns/coredns>
-
+- Mailing list/group: <coredns-discuss@googlegroups.com>
+- Slack: #coredns on <https://slack.cncf.io>
 
 ## Deployment
 
