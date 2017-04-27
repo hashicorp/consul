@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -27,42 +28,43 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	s := testStateStore(t)
 
 	// Start with just a node.
+	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
-		ID:      makeRandomNodeID(t),
-		Node:    "node1",
-		Address: "1.2.3.4",
-		TaggedAddresses: map[string]string{
-			"hello": "world",
-		},
-		NodeMeta: map[string]string{
-			"somekey": "somevalue",
-		},
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
 	}
-	nodeID := req.ID
 	if err := s.EnsureRegistration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Retrieve the node and verify its contents.
 	verifyNode := func() {
+		node := &structs.Node{
+			ID:              nodeID,
+			Node:            "node1",
+			Address:         "1.2.3.4",
+			TaggedAddresses: map[string]string{"hello": "world"},
+			Meta:            map[string]string{"somekey": "somevalue"},
+			RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+		}
+
 		_, out, err := s.GetNode("node1")
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("got err %s want nil", err)
 		}
-		if out.ID != nodeID ||
-			out.Node != "node1" || out.Address != "1.2.3.4" ||
-			len(out.TaggedAddresses) != 1 ||
-			out.TaggedAddresses["hello"] != "world" ||
-			out.Meta["somekey"] != "somevalue" ||
-			out.CreateIndex != 1 || out.ModifyIndex != 1 {
-			t.Fatalf("bad node returned: %#v", out)
+		if got, want := out, node; !verify.Values(t, "GetNode", got, want) {
+			t.FailNow()
 		}
+
 		_, out2, err := s.GetNodeID(nodeID)
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("got err %s want nil", err)
 		}
-		if !reflect.DeepEqual(out, out2) {
-			t.Fatalf("bad node returned: %#v -- %#v", out, out2)
+		if got, want := out, out2; !verify.Values(t, "GetNodeID", got, want) {
+			t.FailNow()
 		}
 	}
 	verifyNode()
@@ -73,6 +75,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
+		Tags:    []string{"master"},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -80,34 +83,31 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 	// Verify that the service got registered.
 	verifyService := func() {
-		idx, out, err := s.NodeServices(nil, "node1")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 2 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if len(out.Services) != 1 {
-			t.Fatalf("bad: %#v", out.Services)
-		}
-		r := out.Services["redis1"]
-		if r == nil || r.ID != "redis1" || r.Service != "redis" ||
-			r.Address != "1.1.1.1" || r.Port != 8080 ||
-			r.CreateIndex != 2 || r.ModifyIndex != 2 {
-			t.Fatalf("bad service returned: %#v", r)
+		svcmap := map[string]*structs.NodeService{
+			"redis1": &structs.NodeService{
+				ID:        "redis1",
+				Service:   "redis",
+				Address:   "1.1.1.1",
+				Port:      8080,
+				Tags:      []string{"master"},
+				RaftIndex: structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
+			},
 		}
 
-		idx, r, err = s.NodeService("node1", "redis1")
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		idx, out, err := s.NodeServices(nil, "node1")
+		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if idx != 2 {
-			t.Fatalf("bad index: %d", idx)
+		if got, want := out.Services, svcmap; !verify.Values(t, "NodeServices", got, want) {
+			t.FailNow()
 		}
-		if r == nil || r.ID != "redis1" || r.Service != "redis" ||
-			r.Address != "1.1.1.1" || r.Port != 8080 ||
-			r.CreateIndex != 2 || r.ModifyIndex != 2 {
-			t.Fatalf("bad service returned: %#v", r)
+
+		idx, r, err := s.NodeService("node1", "redis1")
+		if gotidx, wantidx := idx, uint64(2); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
+		}
+		if got, want := r, svcmap["redis1"]; !verify.Values(t, "NodeService", got, want) {
+			t.FailNow()
 		}
 	}
 	verifyNode()
@@ -125,44 +125,44 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 	// Verify that the check got registered.
 	verifyCheck := func() {
-		idx, out, err := s.NodeChecks(nil, "node1")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 3 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if len(out) != 1 {
-			t.Fatalf("bad: %#v", out)
-		}
-		c := out[0]
-		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
-			c.CreateIndex != 3 || c.ModifyIndex != 3 {
-			t.Fatalf("bad check returned: %#v", c)
+		checks := structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:      "node1",
+				CheckID:   "check1",
+				Name:      "check",
+				Status:    "critical",
+				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
+			},
 		}
 
-		idx, c, err = s.NodeCheck("node1", "check1")
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		idx, out, err := s.NodeChecks(nil, "node1")
+		if gotidx, wantidx := idx, uint64(3); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
 		}
-		if idx != 3 {
-			t.Fatalf("bad index: %d", idx)
+		if got, want := out, checks; !verify.Values(t, "NodeChecks", got, want) {
+			t.FailNow()
 		}
-		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
-			c.CreateIndex != 3 || c.ModifyIndex != 3 {
-			t.Fatalf("bad check returned: %#v", c)
+
+		idx, c, err := s.NodeCheck("node1", "check1")
+		if gotidx, wantidx := idx, uint64(3); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
+		}
+		if got, want := c, checks[0]; !verify.Values(t, "NodeCheck", got, want) {
+			t.FailNow()
 		}
 	}
 	verifyNode()
 	verifyService()
 	verifyCheck()
 
-	// Add in another check via the slice.
+	// Add a service check which should populate the ServiceName
+	// and ServiceTags fields in the response.
 	req.Checks = structs.HealthChecks{
 		&structs.HealthCheck{
-			Node:    "node1",
-			CheckID: "check2",
-			Name:    "check",
+			Node:      "node1",
+			CheckID:   "check2",
+			Name:      "check",
+			ServiceID: "redis1",
 		},
 	}
 	if err := s.EnsureRegistration(4, req); err != nil {
@@ -173,26 +173,32 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	verifyNode()
 	verifyService()
 	verifyChecks := func() {
-		idx, out, err := s.NodeChecks(nil, "node1")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 4 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if len(out) != 2 {
-			t.Fatalf("bad: %#v", out)
-		}
-		c1 := out[0]
-		if c1.Node != "node1" || c1.CheckID != "check1" || c1.Name != "check" ||
-			c1.CreateIndex != 3 || c1.ModifyIndex != 4 {
-			t.Fatalf("bad check returned: %#v", c1)
+		checks := structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:      "node1",
+				CheckID:   "check1",
+				Name:      "check",
+				Status:    "critical",
+				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 4},
+			},
+			&structs.HealthCheck{
+				Node:        "node1",
+				CheckID:     "check2",
+				Name:        "check",
+				Status:      "critical",
+				ServiceID:   "redis1",
+				ServiceName: "redis",
+				ServiceTags: []string{"master"},
+				RaftIndex:   structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
+			},
 		}
 
-		c2 := out[1]
-		if c2.Node != "node1" || c2.CheckID != "check2" || c2.Name != "check" ||
-			c2.CreateIndex != 4 || c2.ModifyIndex != 4 {
-			t.Fatalf("bad check returned: %#v", c2)
+		idx, out, err := s.NodeChecks(nil, "node1")
+		if gotidx, wantidx := idx, uint64(4); err != nil || gotidx != wantidx {
+			t.Fatalf("got err, idx: %s, %d want nil, %d", err, gotidx, wantidx)
+		}
+		if got, want := out, checks; !verify.Values(t, "NodeChecks", got, want) {
+			t.FailNow()
 		}
 	}
 	verifyChecks()

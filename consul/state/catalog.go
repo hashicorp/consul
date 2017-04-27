@@ -908,8 +908,10 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 			return ErrMissingService
 		}
 
-		// Copy in the service name
-		hc.ServiceName = service.(*structs.ServiceNode).ServiceName
+		// Copy in the service name and tags
+		svc := service.(*structs.ServiceNode)
+		hc.ServiceName = svc.ServiceName
+		hc.ServiceTags = svc.ServiceTags
 	}
 
 	// Delete any sessions for this check if the health is critical.
@@ -1048,14 +1050,11 @@ func (s *Store) ChecksInState(ws memdb.WatchSet, state string) (uint64, structs.
 	var err error
 	if state == api.HealthAny {
 		iter, err = tx.Get("checks", "status")
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
 	} else {
 		iter, err = tx.Get("checks", "status", state)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
-		}
+	}
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 

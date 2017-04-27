@@ -487,6 +487,7 @@ type HealthCheck struct {
 	Output      string        // Holds output of script runs
 	ServiceID   string        // optional associated service
 	ServiceName string        // optional service name
+	ServiceTags []string      // optional service tags
 
 	RaftIndex
 }
@@ -503,7 +504,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.Notes != other.Notes ||
 		c.Output != other.Output ||
 		c.ServiceID != other.ServiceID ||
-		c.ServiceName != other.ServiceName {
+		c.ServiceName != other.ServiceName ||
+		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) {
 		return false
 	}
 

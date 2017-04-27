@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestHealth_Node(t *testing.T) {
@@ -173,7 +174,9 @@ func TestHealthChecks_AggregatedStatus(t *testing.T) {
 
 func TestHealth_Checks(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeName = "node123"
+	})
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -182,6 +185,7 @@ func TestHealth_Checks(t *testing.T) {
 	// Make a service with a check
 	reg := &AgentServiceRegistration{
 		Name: "foo",
+		Tags: []string{"bar"},
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
@@ -192,15 +196,27 @@ func TestHealth_Checks(t *testing.T) {
 	defer agent.ServiceDeregister("foo")
 
 	if err := testutil.WaitForResult(func() (bool, error) {
-		checks, meta, err := health.Checks("foo", nil)
+		checks := HealthChecks{
+			&HealthCheck{
+				Node:        "node123",
+				CheckID:     "service:foo",
+				Name:        "Service 'foo' check",
+				Status:      "critical",
+				ServiceID:   "foo",
+				ServiceName: "foo",
+				ServiceTags: []string{"bar"},
+			},
+		}
+
+		out, meta, err := health.Checks("foo", nil)
 		if err != nil {
 			return false, err
 		}
 		if meta.LastIndex == 0 {
 			return false, fmt.Errorf("bad: %v", meta)
 		}
-		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+		if got, want := out, checks; !verify.Values(t, "checks", got, want) {
+			return false, fmt.Errorf("health.Checks failed")
 		}
 		return true, nil
 	}); err != nil {
