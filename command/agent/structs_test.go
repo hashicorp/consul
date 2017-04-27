@@ -8,7 +8,6 @@ import (
 )
 
 func TestAgentStructs_HealthCheck(t *testing.T) {
-	t.Parallel()
 	def := CheckDefinition{}
 	check := def.HealthCheck("node1")
 
@@ -19,7 +18,6 @@ func TestAgentStructs_HealthCheck(t *testing.T) {
 }
 
 func TestAgentStructs_CheckTypes(t *testing.T) {
-	t.Parallel()
 	svc := new(ServiceDefinition)
 
 	// Singular Check field works

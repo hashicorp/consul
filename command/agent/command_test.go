@@ -24,12 +24,10 @@ func baseCommand(ui *cli.MockUi) base.Command {
 }
 
 func TestCommand_implements(t *testing.T) {
-	t.Parallel()
 	var _ cli.Command = new(Command)
 }
 
 func TestValidDatacenter(t *testing.T) {
-	t.Parallel()
 	shouldMatch := []string{
 		"dc1",
 		"east-aws-001",
@@ -53,7 +51,6 @@ func TestValidDatacenter(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	// do not t.Parallel()
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -123,7 +120,6 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
-	// do not t.Parallel()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -255,7 +251,6 @@ func TestReadCliConfig(t *testing.T) {
 }
 
 func TestRetryJoinFail(t *testing.T) {
-	// do not t.Parallel()
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -286,7 +281,6 @@ func TestRetryJoinFail(t *testing.T) {
 }
 
 func TestRetryJoinWanFail(t *testing.T) {
-	// do not t.Parallel()
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -318,7 +312,6 @@ func TestRetryJoinWanFail(t *testing.T) {
 }
 
 func TestDiscoverEC2Hosts(t *testing.T) {
-	t.Parallel()
 	if os.Getenv("AWS_REGION") == "" {
 		t.Skip("AWS_REGION not set, skipping")
 	}
@@ -349,7 +342,6 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 }
 
 func TestDiscoverGCEHosts(t *testing.T) {
-	t.Parallel()
 	if os.Getenv("GCE_PROJECT") == "" {
 		t.Skip("GCE_PROJECT not set, skipping")
 	}
@@ -377,7 +369,6 @@ func TestDiscoverGCEHosts(t *testing.T) {
 }
 
 func TestSetupScadaConn(t *testing.T) {
-	t.Parallel()
 	// Create a config and assign an infra name
 	conf1 := nextConfig()
 	conf1.AtlasInfrastructure = "hashicorp/test1"
@@ -422,7 +413,6 @@ func TestSetupScadaConn(t *testing.T) {
 }
 
 func TestProtectDataDir(t *testing.T) {
-	t.Parallel()
 	dir, err := ioutil.TempDir("", "consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -459,7 +449,6 @@ func TestProtectDataDir(t *testing.T) {
 }
 
 func TestBadDataDirPermissions(t *testing.T) {
-	t.Parallel()
 	dir, err := ioutil.TempDir("", "consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)

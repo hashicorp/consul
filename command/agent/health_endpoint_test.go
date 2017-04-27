@@ -15,7 +15,6 @@ import (
 )
 
 func TestHealthChecksInState(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, err := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
 		if err != nil {
@@ -72,7 +71,6 @@ func TestHealthChecksInState(t *testing.T) {
 }
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
-	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -118,7 +116,6 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -204,7 +201,6 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 }
 
 func TestHealthNodeChecks(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -251,7 +247,6 @@ func TestHealthNodeChecks(t *testing.T) {
 }
 
 func TestHealthServiceChecks(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -314,7 +309,6 @@ func TestHealthServiceChecks(t *testing.T) {
 }
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -378,7 +372,6 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -469,7 +462,6 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 }
 
 func TestHealthServiceNodes(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -551,7 +543,6 @@ func TestHealthServiceNodes(t *testing.T) {
 }
 
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -615,7 +606,6 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -706,7 +696,6 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
-	t.Parallel()
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -753,7 +742,6 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 }
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
-	t.Parallel()
 	dir1, srv1 := makeHTTPServerWithConfig(t,
 		func(c *Config) {
 			c.Datacenter = "dc1"
@@ -848,7 +836,6 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 }
 
 func TestFilterNonPassing(t *testing.T) {
-	t.Parallel()
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Checks: structs.HealthChecks{
