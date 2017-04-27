@@ -260,7 +260,7 @@ func TestClientTLSOptions(t *testing.T) {
 		conf.CAFile = "../test/client_certs/rootca.crt"
 		conf.CertFile = "../test/client_certs/server.crt"
 		conf.KeyFile = "../test/client_certs/server.key"
-		conf.VerifyIncoming = true
+		conf.VerifyIncomingHTTPS = true
 	})
 	defer s.Stop()
 

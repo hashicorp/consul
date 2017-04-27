@@ -1052,9 +1052,21 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> - If
   set to true, Consul requires that all incoming
   connections make use of TLS and that the client provides a certificate signed
+  by the Certificate Authority from the [`ca_file`](#ca_file). This applies to both
+  server RPC and to the HTTPS API. By default, this is false, and
+  Consul will not enforce the use of TLS or verify a client's authenticity.
+
+* <a name="verify_incoming_rpc"></a><a href="#verify_incoming_rpc">`verify_incoming_rpc`</a> - If
+  set to true, Consul requires that all incoming RPC
+  connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
-  Consul will not enforce the use of TLS or verify a client's authenticity. This
-  applies to both server RPC and to the HTTPS API. To enable the HTTPS API, you
+  Consul will not enforce the use of TLS or verify a client's authenticity.
+
+* <a name="verify_incoming_https"></a><a href="#verify_incoming_https">`verify_incoming_https`</a> - If
+  set to true, Consul requires that all incoming HTTPS
+  connections make use of TLS and that the client provides a certificate signed
+  by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
+  Consul will not enforce the use of TLS or verify a client's authenticity. To enable the HTTPS API, you
   must define an HTTPS port via the [`ports`](#ports) configuration. By default, HTTPS
   is disabled.
 
