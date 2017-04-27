@@ -221,18 +221,17 @@ func TestSessionDestroy(t *testing.T) {
 	})
 }
 
-func TestSessionTTL(t *testing.T) {
+func TestSessionCustomTTL(t *testing.T) {
 	t.Parallel()
-	// use the minimum legal ttl
-	testSessionTTL(t, 10*time.Second, nil)
+	ttl := 250 * time.Millisecond
+	testSessionTTL(t, ttl, customTTL(ttl))
 }
 
-func TestSessionTTLConfig(t *testing.T) {
-	t.Parallel()
-	testSessionTTL(t, 1*time.Second, func(c *Config) {
-		c.SessionTTLMinRaw = "1s"
-		c.SessionTTLMin = 1 * time.Second
-	})
+func customTTL(d time.Duration) func(c *Config) {
+	return func(c *Config) {
+		c.SessionTTLMinRaw = d.String()
+		c.SessionTTLMin = d
+	}
 }
 
 func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
@@ -277,10 +276,9 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 
 func TestSessionTTLRenew(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		TTL := "10s" // use the minimum legal ttl
-		ttl := 10 * time.Second
-
+	ttl := 250 * time.Millisecond
+	TTL := ttl.String()
+	httpTestWithConfig(t, func(srv *HTTPServer) {
 		id := makeTestSessionTTL(t, srv, TTL)
 
 		req, err := http.NewRequest("GET",
@@ -354,7 +352,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		if len(respObj) != 0 {
 			t.Fatalf("session '%s' should have destroyed", id)
 		}
-	})
+	}, customTTL(ttl))
 }
 
 func TestSessionGet(t *testing.T) {
