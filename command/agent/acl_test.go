@@ -17,6 +17,7 @@ import (
 )
 
 func TestACL_Bad_Config(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDownPolicy = "nope"
 
@@ -45,6 +46,7 @@ func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.AC
 }
 
 func TestACL_Version8(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(false)
 
@@ -70,6 +72,7 @@ func TestACL_Version8(t *testing.T) {
 }
 
 func TestACL_Disabled(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDisabledTTL = 10 * time.Millisecond
 	config.ACLEnforceVersion8 = Bool(true)
@@ -126,6 +129,7 @@ func TestACL_Disabled(t *testing.T) {
 }
 
 func TestACL_Special_IDs(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 	config.ACLAgentMasterToken = "towel"
@@ -181,6 +185,7 @@ func TestACL_Special_IDs(t *testing.T) {
 }
 
 func TestACL_Down_Deny(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDownPolicy = "deny"
 	config.ACLEnforceVersion8 = Bool(true)
@@ -213,6 +218,7 @@ func TestACL_Down_Deny(t *testing.T) {
 }
 
 func TestACL_Down_Allow(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDownPolicy = "allow"
 	config.ACLEnforceVersion8 = Bool(true)
@@ -245,6 +251,7 @@ func TestACL_Down_Allow(t *testing.T) {
 }
 
 func TestACL_Down_Extend(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLDownPolicy = "extend-cache"
 	config.ACLEnforceVersion8 = Bool(true)
@@ -325,6 +332,7 @@ func TestACL_Down_Extend(t *testing.T) {
 }
 
 func TestACL_Cache(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -509,6 +517,7 @@ func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) erro
 }
 
 func TestACL_vetServiceRegister(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -557,6 +566,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 }
 
 func TestACL_vetServiceUpdate(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -595,6 +605,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 }
 
 func TestACL_vetCheckRegister(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -680,6 +691,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 }
 
 func TestACL_vetCheckUpdate(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -738,6 +750,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 }
 
 func TestACL_filterMembers(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -776,6 +789,7 @@ func TestACL_filterMembers(t *testing.T) {
 }
 
 func TestACL_filterServices(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 
@@ -809,6 +823,7 @@ func TestACL_filterServices(t *testing.T) {
 }
 
 func TestACL_filterChecks(t *testing.T) {
+	t.Parallel()
 	config := nextConfig()
 	config.ACLEnforceVersion8 = Bool(true)
 

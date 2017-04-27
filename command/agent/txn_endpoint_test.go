@@ -13,6 +13,7 @@ import (
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte("{"))
 		req, err := http.NewRequest("PUT", "/v1/txn", buf)
@@ -34,6 +35,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 }
 
 func TestTxnEndpoint_Bad_Method(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte("{}"))
 		req, err := http.NewRequest("GET", "/v1/txn", buf)
@@ -52,6 +54,7 @@ func TestTxnEndpoint_Bad_Method(t *testing.T) {
 }
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
@@ -80,6 +83,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 }
 
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		value := strings.Repeat("X", maxKVSize/2)
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -123,6 +127,7 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 }
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
@@ -152,6 +157,7 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 }
 
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Make sure all incoming fields get converted properly to the internal
 		// RPC format.

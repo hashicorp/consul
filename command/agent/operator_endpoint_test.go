@@ -15,6 +15,7 @@ import (
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/operator/raft/configuration", body)
@@ -43,6 +44,7 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 }
 
 func TestOperator_RaftPeer(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("DELETE", "/v1/operator/raft/peer?address=nope", body)
@@ -79,6 +81,7 @@ func TestOperator_RaftPeer(t *testing.T) {
 }
 
 func TestOperator_KeyringInstall(t *testing.T) {
+	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
 	configFunc := func(c *Config) {
@@ -118,6 +121,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 }
 
 func TestOperator_KeyringList(t *testing.T) {
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	configFunc := func(c *Config) {
 		c.EncryptKey = key
@@ -169,6 +173,7 @@ func TestOperator_KeyringList(t *testing.T) {
 }
 
 func TestOperator_KeyringRemove(t *testing.T) {
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
 	configFunc := func(c *Config) {
@@ -231,6 +236,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 }
 
 func TestOperator_KeyringUse(t *testing.T) {
+	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
 	configFunc := func(c *Config) {
@@ -278,6 +284,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 }
 
 func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	configFunc := func(c *Config) {
 		c.EncryptKey = key
@@ -307,6 +314,7 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 }
 
 func TestOperator_AutopilotGetConfiguration(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/operator/autopilot/configuration", body)
@@ -333,6 +341,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 }
 
 func TestOperator_AutopilotSetConfiguration(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
 		req, err := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
@@ -363,6 +372,7 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 }
 
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
 		req, err := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
@@ -442,6 +452,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 }
 
 func TestOperator_ServerHealth(t *testing.T) {
+	t.Parallel()
 	cb := func(c *Config) {
 		c.RaftProtocol = 3
 	}
@@ -482,6 +493,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 }
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
+	t.Parallel()
 	threshold := time.Duration(-1)
 	cb := func(c *Config) {
 		c.RaftProtocol = 3
