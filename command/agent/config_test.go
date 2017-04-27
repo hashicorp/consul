@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"io/ioutil"
 	"net"
@@ -354,7 +355,8 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS
-	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12"}`
+	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12",
+	"tls_cipher_suites": "TLS_RSA_WITH_AES_256_CBC_SHA", "tls_prefer_server_cipher_suites": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -376,14 +378,25 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	if len(config.TLSCipherSuites) != 1 || config.TLSCipherSuites[0] != tls.TLS_RSA_WITH_AES_256_CBC_SHA {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if !config.TLSPreferServerCipherSuites {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// TLS keys
-	input = `{"ca_file": "my/ca/file", "cert_file": "my.cert", "key_file": "key.pem", "server_name": "example.com"}`
+	input = `{"ca_file": "my/ca/file", "ca_path":"my/ca/path", "cert_file": "my.cert", "key_file": "key.pem", "server_name": "example.com"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.CAFile != "my/ca/file" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.CAPath != "my/ca/path" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.CertFile != "my.cert" {

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
@@ -469,6 +470,10 @@ type Config struct {
 	// or VerifyOutgoing to verify the TLS connection.
 	CAFile string `mapstructure:"ca_file"`
 
+	// CAPath is a path to a directory of certificate authority files. This is used with
+	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	CAPath string `mapstructure:"ca_path"`
+
 	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
 	// Must be provided to serve TLS connections.
 	CertFile string `mapstructure:"cert_file"`
@@ -483,6 +488,14 @@ type Config struct {
 
 	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
 	TLSMinVersion string `mapstructure:"tls_min_version"`
+
+	// TLSCipherSuites is used to specify the list of supported ciphersuites.
+	TLSCipherSuites    []uint16 `mapstructure:"-" json:"-"`
+	TLSCipherSuitesRaw string   `mapstructure:"tls_cipher_suites"`
+
+	// TLSPreferServerCipherSuites specifies whether to prefer the server's ciphersuite
+	// over the client ciphersuites.
+	TLSPreferServerCipherSuites bool `mapstructure:"tls_prefer_server_cipher_suites"`
 
 	// StartJoin is a list of addresses to attempt to join when the
 	// agent starts. If Serf is unable to communicate with any of these
@@ -1178,6 +1191,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
 	}
 
+	if raw := result.TLSCipherSuitesRaw; raw != "" {
+		ciphers, err := tlsutil.ParseCiphers(raw)
+		if err != nil {
+			return nil, fmt.Errorf("TLSCipherSuites invalid: %v", err)
+		}
+		result.TLSCipherSuites = ciphers
+	}
+
 	return &result, nil
 }
 
@@ -1517,6 +1538,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.CAFile != "" {
 		result.CAFile = b.CAFile
 	}
+	if b.CAPath != "" {
+		result.CAPath = b.CAPath
+	}
 	if b.CertFile != "" {
 		result.CertFile = b.CertFile
 	}
@@ -1528,6 +1552,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.TLSMinVersion != "" {
 		result.TLSMinVersion = b.TLSMinVersion
+	}
+	if len(b.TLSCipherSuites) != 0 {
+		result.TLSCipherSuites = append(result.TLSCipherSuites, b.TLSCipherSuites...)
+	}
+	if b.TLSPreferServerCipherSuites {
+		result.TLSPreferServerCipherSuites = true
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)

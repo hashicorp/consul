@@ -8,6 +8,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-rootcerts"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -51,6 +53,10 @@ type Config struct {
 	// or VerifyOutgoing to verify the TLS connection.
 	CAFile string
 
+	// CAPath is a path to a directory containing certificate authority files. This is used
+	// with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	CAPath string
+
 	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
 	// Must be provided to serve TLS connections.
 	CertFile string
@@ -71,6 +77,13 @@ type Config struct {
 
 	// TLSMinVersion is the minimum accepted TLS version that can be used.
 	TLSMinVersion string
+
+	// CipherSuites is the list of TLS cipher suites to use.
+	CipherSuites []uint16
+
+	// PreferServerCipherSuites specifies whether to prefer the server's ciphersuite
+	// over the client ciphersuites.
+	PreferServerCipherSuites bool
 }
 
 // AppendCA opens and parses the CA file and adds the certificates to
@@ -130,15 +143,24 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 		tlsConfig.ServerName = "VerifyServerHostname"
 		tlsConfig.InsecureSkipVerify = false
 	}
+	if len(c.CipherSuites) != 0 {
+		tlsConfig.CipherSuites = c.CipherSuites
+	}
+	if c.PreferServerCipherSuites {
+		tlsConfig.PreferServerCipherSuites = true
+	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
-	if c.VerifyOutgoing && c.CAFile == "" {
+	if c.VerifyOutgoing && c.CAFile == "" && c.CAPath == "" {
 		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
-	// Parse the CA cert if any
-	err := c.AppendCA(tlsConfig.RootCAs)
-	if err != nil {
+	// Parse the CA certs if any
+	rootConfig := &rootcerts.Config{
+		CAFile: c.CAFile,
+		CAPath: c.CAPath,
+	}
+	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
 		return nil, err
 	}
 
@@ -305,10 +327,27 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 		tlsConfig.ServerName = c.NodeName
 	}
 
-	// Parse the CA cert if any
-	err := c.AppendCA(tlsConfig.ClientCAs)
-	if err != nil {
-		return nil, err
+	// Set the cipher suites
+	if len(c.CipherSuites) != 0 {
+		tlsConfig.CipherSuites = c.CipherSuites
+	}
+	if c.PreferServerCipherSuites {
+		tlsConfig.PreferServerCipherSuites = true
+	}
+
+	// Parse the CA certs if any
+	if c.CAFile != "" {
+		pool, err := rootcerts.LoadCAFile(c.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ClientCAs = pool
+	} else if c.CAPath != "" {
+		pool, err := rootcerts.LoadCAPath(c.CAPath)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ClientCAs = pool
 	}
 
 	// Add cert/key
@@ -322,7 +361,7 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	// Check if we require verification
 	if c.VerifyIncoming {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.CAFile == "" {
+		if c.CAFile == "" && c.CAPath == "" {
 			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
 		if cert == nil {
@@ -339,4 +378,44 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 		tlsConfig.MinVersion = tlsvers
 	}
 	return tlsConfig, nil
+}
+
+// ParseCiphers parse ciphersuites from the comma-separated string into recognized slice
+func ParseCiphers(cipherStr string) ([]uint16, error) {
+	suites := []uint16{}
+
+	cipherStr = strings.TrimSpace(cipherStr)
+	if cipherStr == "" {
+		return []uint16{}, nil
+	}
+	ciphers := strings.Split(cipherStr, ",")
+
+	cipherMap := map[string]uint16{
+		"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
+		"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		"TLS_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		"TLS_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":        tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_RC4_128_SHA":          tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":     tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	}
+	for _, cipher := range ciphers {
+		if v, ok := cipherMap[cipher]; ok {
+			suites = append(suites, v)
+		} else {
+			return suites, fmt.Errorf("unsupported cipher %q", cipher)
+		}
+	}
+
+	return suites, nil
 }
