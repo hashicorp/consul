@@ -532,15 +532,18 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
-	dir1, s1 := testServer(t)
+	ttl := 250 * time.Millisecond
+	TTL := ttl.String()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SessionTTLMin = ttl
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	TTL := "10s" // the minimum allowed ttl
-	ttl := 10 * time.Second
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	ids := []string{}
