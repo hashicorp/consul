@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
@@ -874,7 +874,7 @@ func TestAgent_ConsulService(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	wait.ForLeader(t, agent.RPC, "dc1")
 
 	// Consul service is registered
 	services := agent.state.Services()

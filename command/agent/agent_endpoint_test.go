@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
@@ -347,11 +346,12 @@ func TestAgent_Reload(t *testing.T) {
 		close(doneCh)
 	}()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(cmd.httpServers) == 1, nil
-	}); err != nil {
-		t.Fatalf("should have an http server")
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(cmd.httpServers), 1; got != want {
+			return fmt.Errorf("got %d HTTP servers want %d", got, want)
+		}
+		return nil
+	})
 
 	if _, ok := cmd.agent.state.services["redis"]; !ok {
 		t.Fatalf("missing redis service")
@@ -536,11 +536,12 @@ func TestAgent_Join(t *testing.T) {
 		t.Fatalf("should have 2 members")
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(a2.LANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatal("should have 2 members")
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(a2.LANMembers()), 2; got != want {
+			return fmt.Errorf("got %d LAN members want %d", got, want)
+		}
+		return nil
+	})
 }
 
 func TestAgent_Join_WAN(t *testing.T) {
@@ -571,11 +572,12 @@ func TestAgent_Join_WAN(t *testing.T) {
 		t.Fatalf("should have 2 members")
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(a2.WANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatal("should have 2 members")
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			return fmt.Errorf("got %d WAN members want %d", got, want)
+		}
+		return nil
+	})
 }
 
 func TestAgent_Join_ACLDeny(t *testing.T) {
@@ -664,13 +666,13 @@ func TestAgent_Leave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}); err != nil {
-		t.Fatalf("member status is %v, should be left", err)
-	}
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			return fmt.Errorf("got %q member status want %q", got, want)
+		}
+		return nil
+	})
 }
 
 func TestAgent_Leave_ACLDeny(t *testing.T) {
@@ -763,13 +765,13 @@ func TestAgent_ForceLeave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}); err != nil {
-		t.Fatalf("member status is %v, should be left", err)
-	}
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			return fmt.Errorf("got %q member status want %q", got, want)
+		}
+		return nil
+	})
 }
 
 func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
@@ -1931,8 +1933,7 @@ func TestAgent_Monitor(t *testing.T) {
 	}
 
 	// Try to stream logs until we see the expected log line
-	expected := []byte("raft: Initial configuration (index=1)")
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
 		resp = newClosableRecorder()
 		done := make(chan struct{})
@@ -1942,17 +1943,16 @@ func TestAgent_Monitor(t *testing.T) {
 			}
 			close(done)
 		}()
-
 		resp.Close()
 		<-done
 
-		if bytes.Contains(resp.Body.Bytes(), expected) {
-			return true, nil
+		got := resp.Body.Bytes()
+		want := []byte("raft: Initial configuration (index=1)")
+		if !bytes.Contains(got, want) {
+			return fmt.Errorf("did not see %q", want)
 		}
-		return false, fmt.Errorf("didn't see expected")
-	}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		return nil
+	})
 }
 
 type closableRecorder struct {

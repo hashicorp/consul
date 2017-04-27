@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -39,7 +39,7 @@ func TestStatusLeader(t *testing.T) {
 		t.Fatalf("unexpected leader: %v", leader)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	if err := msgpackrpc.CallWithCodec(codec, "Status.Leader", arg, &leader); err != nil {
 		t.Fatalf("err: %v", err)

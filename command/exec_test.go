@@ -9,7 +9,7 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/mitchellh/cli"
 )
 
@@ -91,12 +91,19 @@ func waitForLeader(t *testing.T, httpAddr string) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Fatal(t, func() error {
 		_, qm, err := client.Catalog().Nodes(nil)
-		return err == nil && qm.KnownLeader && qm.LastIndex > 0, err
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if err != nil {
+			return fmt.Errorf("Catalog.Nodes failed: %s", err)
+		}
+		if !qm.KnownLeader {
+			return fmt.Errorf("not leader")
+		}
+		if qm.LastIndex <= 0 {
+			return fmt.Errorf("index not updated")
+		}
+		return nil
+	})
 }
 
 func httpClient(addr string) (*consulapi.Client, error) {
@@ -202,18 +209,22 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	c.conf.localDC = "dc1"
 	c.conf.localNode = "foo"
 
-	var id string
-	if err := testutil.WaitForResult(func() (bool, error) {
-		id, err = c.createSession()
-		if err != nil && strings.Contains(err.Error(), "Failed to find Consul server") {
-			err = nil
+	var sessionID string
+	retry.Fatal(t, func() error {
+		id, err := c.createSession()
+		if err != nil {
+			if !strings.Contains(err.Error(), "Failed to find Consul server") {
+				return fmt.Errorf("createSession failed: %s", err)
+			}
 		}
-		return id != "", err
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if id == "" {
+			return fmt.Errorf("no session id")
+		}
+		sessionID = id
+		return nil
+	})
 
-	se, _, err := client.Session().Info(id, nil)
+	se, _, err := client.Session().Info(sessionID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -221,13 +232,13 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 		t.Fatalf("bad: %v", se)
 	}
 
-	c.sessionID = id
+	c.sessionID = sessionID
 	err = c.destroySession()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	se, _, err = client.Session().Info(id, nil)
+	se, _, err = client.Session().Info(sessionID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

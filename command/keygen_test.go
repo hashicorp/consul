@@ -2,9 +2,10 @@ package command
 
 import (
 	"encoding/base64"
+	"testing"
+
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
-	"testing"
 )
 
 func TestKeygenCommand_implements(t *testing.T) {

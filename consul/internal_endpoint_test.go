@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -20,7 +20,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -73,7 +73,7 @@ func TestInternal_NodeDump(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -172,7 +172,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	var out structs.KeyringResponses
 	req := structs.KeyringRequest{
@@ -355,7 +355,7 @@ func TestInternal_EventFire_Token(t *testing.T) {
 	codec := rpcClient(t, srv)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, srv.RPC, "dc1")
+	wait.ForLeader(t, srv.RPC, "dc1")
 
 	// No token is rejected
 	event := structs.EventFireRequest{

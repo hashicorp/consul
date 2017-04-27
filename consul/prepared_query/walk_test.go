@@ -3,10 +3,10 @@ package prepared_query
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"sort"
 )
 
 func TestWalk_ServiceQuery(t *testing.T) {

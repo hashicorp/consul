@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -18,7 +18,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET", "/v1/coordinate/datacenters", nil)
 	if err != nil {
@@ -46,7 +46,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Make sure an empty list is non-nil.
 	req, err := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)

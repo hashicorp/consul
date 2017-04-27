@@ -13,7 +13,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/miekg/dns"
 )
 
@@ -145,7 +146,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -240,7 +241,7 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -274,7 +275,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node with period in name
 	args := &structs.RegisterRequest{
@@ -316,7 +317,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -369,7 +370,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -415,7 +416,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -458,7 +459,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	defer srv.agent.Shutdown()
 	srv.domain = dns.Fqdn("custom")
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -500,7 +501,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -542,7 +543,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -665,7 +666,7 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with an external service.
 	{
@@ -741,7 +742,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register the initial node with a service
 	{
@@ -852,7 +853,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register the initial node with a service
 	{
@@ -994,7 +995,7 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -1089,7 +1090,7 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service whose address isn't an IP.
 	{
@@ -1184,7 +1185,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -1290,21 +1291,21 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
 
-	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
-	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
+	wait.ForLeader(t, srv1.agent.RPC, "dc1")
+	wait.ForLeader(t, srv2.agent.RPC, "dc2")
 
 	// Join WAN cluster
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		srv1.agent.config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", srv1.agent.config.Ports.SerfWan)
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			return fmt.Errorf("got %d WAN members want at least %d", got, want)
+		}
+		return nil
+	})
 
 	// Register a remote node with a service.
 	{
@@ -1466,7 +1467,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -1539,7 +1540,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -1600,7 +1601,7 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -1681,7 +1682,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a single node with multiple instances of a service.
 	{
@@ -1786,7 +1787,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a single node with multiple instances of a service.
 	{
@@ -2034,7 +2035,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes with health checks in various states.
 	{
@@ -2192,7 +2193,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes with all health checks in a critical state.
 	{
@@ -2309,7 +2310,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes with health checks in various states.
 	{
@@ -2432,7 +2433,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large number of nodes.
 	for i := 0; i < generateNumNodes; i++ {
@@ -2527,7 +2528,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large number of nodes.
 	for i := 0; i < generateNumNodes; i++ {
@@ -2596,7 +2597,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	longServiceName := "this-is-a-very-very-very-very-very-long-name-for-a-service"
 
@@ -2699,7 +2700,7 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
@@ -2848,7 +2849,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a name for an address.
 	{
@@ -2949,7 +2950,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -3070,7 +3071,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node with 2 services
 	args := &structs.RegisterRequest{
@@ -3173,7 +3174,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node and a service.
 	{
@@ -3366,8 +3367,8 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
 
-	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
-	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
+	wait.ForLeader(t, srv1.agent.RPC, "dc1")
+	wait.ForLeader(t, srv2.agent.RPC, "dc2")
 
 	// Join WAN cluster.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -3375,11 +3376,12 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			return fmt.Errorf("got %d WAN members want at least %d", got, want)
+		}
+		return nil
+	})
 
 	// Register a remote node with a service.
 	{
@@ -3466,7 +3468,7 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -3543,7 +3545,7 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -3626,7 +3628,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a service
 	args := &structs.RegisterRequest{
@@ -3676,7 +3678,7 @@ func TestDNS_AddressLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Look up the addresses
 	cases := map[string]string{
@@ -3715,7 +3717,7 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Look up the addresses
 	cases := map[string]string{
@@ -3785,7 +3787,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a v6-only service and a v4-only service.
 	{
@@ -3931,7 +3933,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	m := MockPreparedQuery{}
 	if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -3976,7 +3978,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Try invalid forms of queries that should hit the special invalid case
 	// of our query parser.
@@ -4016,7 +4018,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	m := MockPreparedQuery{}
 	if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -4438,7 +4440,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a node with a service.
 	{
@@ -4527,7 +4529,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	wait.ForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node.
 	args := &structs.RegisterRequest{

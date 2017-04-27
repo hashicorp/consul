@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/cli"
 )
@@ -108,22 +108,18 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 	}
 
 	// Wait for the updates to get flushed to the data store.
-	if err := testutil.WaitForResult(func() (bool, error) {
-		code := c.Run(args)
-		if code != 0 {
-			return false, fmt.Errorf("bad: %d: %#v", code, ui.ErrorWriter.String())
+	retry.Fatal(t, func() error {
+		if got, want := c.Run(args), 0; got != want {
+			return fmt.Errorf("got code %d want %d: %#v", got, want, ui.ErrorWriter.String())
 		}
 
 		// Make sure the proper RTT was reported in the output.
-		expected := fmt.Sprintf("rtt: %s", dist_str)
-		if !strings.Contains(ui.OutputWriter.String(), expected) {
-			return false, fmt.Errorf("bad: %#v", ui.OutputWriter.String())
+		if got, want := ui.OutputWriter.String(), fmt.Sprintf("rtt: %s", dist_str); !strings.Contains(got, want) {
+			return fmt.Errorf("got %q which does not contain %q", got, want)
 		}
 
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 
 	// Default to the agent's node.
 	{

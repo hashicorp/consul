@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -228,7 +229,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc2")
 
 	changes := structs.ACLRequests{
 		&structs.ACLRequest{
@@ -342,8 +343,8 @@ func TestACLReplication(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc2")
 
 	// Create a bunch of new tokens.
 	var id string
@@ -363,41 +364,45 @@ func TestACLReplication(t *testing.T) {
 		}
 	}
 
-	checkSame := func() (bool, error) {
+	checkSame := func() error {
 		index, remote, err := s1.fsm.State().ACLList(nil)
 		if err != nil {
-			return false, err
+			return err
 		}
 		_, local, err := s2.fsm.State().ACLList(nil)
 		if err != nil {
-			return false, err
+			return err
 		}
 		if len(remote) != len(local) {
-			return false, nil
+			return fmt.Errorf("acl count differs: %d != %d", len(remote), len(local))
 		}
 		for i, acl := range remote {
 			if !acl.IsSame(local[i]) {
-				return false, nil
+				return fmt.Errorf("acls differ")
 			}
 		}
 
-		var status structs.ACLReplicationStatus
 		s2.aclReplicationStatusLock.RLock()
-		status = s2.aclReplicationStatus
+		status := s2.aclReplicationStatus
 		s2.aclReplicationStatusLock.RUnlock()
-		if !status.Enabled || !status.Running ||
-			status.ReplicatedIndex != index ||
-			status.SourceDatacenter != "dc1" {
-			return false, nil
-		}
 
-		return true, nil
+		if !status.Enabled {
+			return fmt.Errorf("acl replication disabled")
+		}
+		if !status.Running {
+			return fmt.Errorf("acl replication stopped")
+		}
+		if got, want := status.ReplicatedIndex, index; got != want {
+			return fmt.Errorf("got acl replication index %d want %d", got, want)
+		}
+		if got, want := status.SourceDatacenter, "dc1"; got != want {
+			return fmt.Errorf("got acl replication dc %q want %q", got, want)
+		}
+		return nil
 	}
 
 	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
-	}
+	retry.Fatal(t, checkSame)
 
 	// Create more new tokens.
 	for i := 0; i < 1000; i++ {
@@ -418,9 +423,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
-	}
+	retry.Fatal(t, checkSame)
 
 	// Delete a token.
 	arg := structs.ACLRequest{
@@ -437,7 +440,5 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
-	}
+	retry.Fatal(t, checkSame)
 }

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
-	"path"
-	"reflect"
 )
 
 func TestConfigUtil_Values(t *testing.T) {

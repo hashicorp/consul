@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {
@@ -452,32 +452,30 @@ func TestOperator_ServerHealth(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if err := testutil.WaitForResult(func() (bool, error) {
+		//todo(fs): fix me
+		retry.Fatal(t, func() error {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
-				return false, fmt.Errorf("err: %v", err)
+				return fmt.Errorf("err: %v", err)
 			}
 			if resp.Code != 200 {
-				return false, fmt.Errorf("bad code: %d", resp.Code)
+				return fmt.Errorf("bad code: %d", resp.Code)
 			}
 			out, ok := obj.(*api.OperatorHealthReply)
 			if !ok {
-				return false, fmt.Errorf("unexpected: %T", obj)
+				return fmt.Errorf("unexpected: %T", obj)
 			}
 			if len(out.Servers) != 1 ||
 				!out.Servers[0].Healthy ||
 				out.Servers[0].Name != srv.agent.config.NodeName ||
 				out.Servers[0].SerfStatus != "alive" ||
 				out.FailureTolerance != 0 {
-				return false, fmt.Errorf("bad: %v", out)
+				return fmt.Errorf("bad: %v", out)
 			}
 
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-
+			return nil
+		})
 	}, cb)
 }
 
@@ -488,35 +486,32 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 		c.Autopilot.LastContactThreshold = &threshold
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("GET", "/v1/operator/autopilot/health", nil)
 
-		if err := testutil.WaitForResult(func() (bool, error) {
+		// todo(fs): why do we need more time here?
+		retry.FatalTimeout(t, 2*time.Second, func() error {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
-				return false, fmt.Errorf("err: %v", err)
+				return fmt.Errorf("OperatorServeHealth failed: %s", err)
 			}
-			if resp.Code != 429 {
-				return false, fmt.Errorf("bad code: %d", resp.Code)
+			if got, want := resp.Code, 429; got != want {
+				return fmt.Errorf("got status code %d want %d", got, want)
 			}
 			out, ok := obj.(*api.OperatorHealthReply)
 			if !ok {
-				return false, fmt.Errorf("unexpected: %T", obj)
+				return fmt.Errorf("got type %T want *api.OperatorHealthReply", obj)
 			}
-			if len(out.Servers) != 1 ||
-				out.Healthy ||
-				out.Servers[0].Name != srv.agent.config.NodeName {
-				return false, fmt.Errorf("bad: %v", out)
+			if got, want := len(out.Servers), 1; got != want {
+				return fmt.Errorf("got %d servers want %d", got, want)
 			}
-
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-
+			if got, want := out.Healthy, false; got != want {
+				return fmt.Errorf("got Healthy %v want %v", got, want)
+			}
+			if got, want := out.Servers[0].Name, srv.agent.config.NodeName; got != want {
+				return fmt.Errorf("got name %q want %q", got, want)
+			}
+			return nil
+		})
 	}, cb)
 }

@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -55,7 +56,7 @@ func TestCoordinate_Update(t *testing.T) {
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
@@ -199,7 +200,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
@@ -275,7 +276,7 @@ func TestCoordinate_ListDatacenters(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// It's super hard to force the Serfs into a known configuration of
 	// coordinates, so the best we can do is make sure our own DC shows
@@ -305,7 +306,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar", "baz"}
@@ -351,27 +352,29 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	}
 
 	// Now query back for all the nodes.
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		arg := structs.DCSpecificRequest{
-			Datacenter: "dc1",
-		}
+	retry.Fatal(t, func() error {
+		arg := structs.DCSpecificRequest{Datacenter: "dc1"}
 		resp := structs.IndexedCoordinates{}
 		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListNodes", &arg, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			return err
 		}
-		if len(resp.Coordinates) != 3 ||
-			resp.Coordinates[0].Node != "bar" ||
-			resp.Coordinates[1].Node != "baz" ||
-			resp.Coordinates[2].Node != "foo" {
-			return false, fmt.Errorf("bad: %v", resp.Coordinates)
+		if got, want := len(resp.Coordinates), 3; got != want {
+			return fmt.Errorf("got %d coordinates want %d", got, want)
+		}
+		if got, want := resp.Coordinates[0].Node, "bar"; got != want {
+			return fmt.Errorf("got %q node want %q", got, want)
+		}
+		if got, want := resp.Coordinates[1].Node, "baz"; got != want {
+			return fmt.Errorf("got %q node want %q", got, want)
+		}
+		if got, want := resp.Coordinates[2].Node, "foo"; got != want {
+			return fmt.Errorf("got %q node want %q", got, want)
 		}
 		verifyCoordinatesEqual(t, resp.Coordinates[0].Coord, arg2.Coord) // bar
 		verifyCoordinatesEqual(t, resp.Coordinates[1].Coord, arg3.Coord) // baz
 		verifyCoordinatesEqual(t, resp.Coordinates[2].Coord, arg1.Coord) // foo
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 }
 
 func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
@@ -386,7 +389,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar", "baz"}
@@ -446,21 +449,17 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	// Wait for all the coordinate updates to apply. Since we aren't
 	// enforcing version 8 ACLs, this should also allow us to read
 	// everything back without a token.
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		arg := structs.DCSpecificRequest{
-			Datacenter: "dc1",
-		}
+	retry.Fatal(t, func() error {
+		arg := structs.DCSpecificRequest{Datacenter: "dc1"}
 		resp := structs.IndexedCoordinates{}
 		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListNodes", &arg, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			return err
 		}
-		if len(resp.Coordinates) == 3 {
-			return true, nil
+		if got, want := len(resp.Coordinates), 3; got != want {
+			return fmt.Errorf("got %d coordinates want %d", got, want)
 		}
-		return false, fmt.Errorf("bad: %v", resp.Coordinates)
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 
 	// Now that we've waited for the batch processing to ingest the
 	// coordinates we can do the rest of the requests without the loop. We

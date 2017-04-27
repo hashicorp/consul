@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -62,20 +63,6 @@ func TestRetryJoin(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	doneCh := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
-	defer func() {
-		close(shutdownCh)
-		<-doneCh
-	}()
-
-	cmd := &Command{
-		Version:    version.Version,
-		ShutdownCh: shutdownCh,
-		Command:    baseCommand(new(cli.MockUi)),
-	}
-
 	serfAddr := fmt.Sprintf(
 		"%s:%d",
 		agent.config.BindAddr,
@@ -92,31 +79,41 @@ func TestRetryJoin(t *testing.T) {
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
 		"-advertise", agent.config.BindAddr,
 		"-retry-join", serfAddr,
-		"-retry-interval", "1s",
+		"-retry-interval", "10ms",
 		"-retry-join-wan", serfWanAddr,
-		"-retry-interval-wan", "1s",
+		"-retry-interval-wan", "10ms",
 	}
 
-	go func() {
-		if code := cmd.Run(args); code != 0 {
-			log.Printf("bad: %d", code)
-		}
-		close(doneCh)
+	shutdown := make(chan struct{})
+	cmd := &Command{
+		Version:    version.Version,
+		ShutdownCh: shutdown,
+		Command:    baseCommand(new(cli.MockUi)),
+	}
+
+	var wg sync.WaitGroup
+
+	// stop server on exit and wait until it is done
+	defer func() {
+		close(shutdown)
+		wg.Wait()
 	}()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
-		mem := agent.LANMembers()
-		if len(mem) != 2 {
-			return false, fmt.Errorf("bad: %#v", mem)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cmd.Run(args)
+	}()
+
+	retry.Fatal(t, func() error {
+		if got, want := len(agent.LANMembers()), 2; got != want {
+			return fmt.Errorf("got %d LAN members want %d", got, want)
 		}
-		mem = agent.WANMembers()
-		if len(mem) != 2 {
-			return false, fmt.Errorf("bad (wan): %#v", mem)
+		if got, want := len(agent.WANMembers()), 2; got != want {
+			return fmt.Errorf("got %d WAN members want %d", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		return nil
+	})
 }
 
 func TestReadCliConfig(t *testing.T) {
@@ -272,6 +269,7 @@ func TestRetryJoinFail(t *testing.T) {
 		"-data-dir", tmpDir,
 		"-retry-join", serfAddr,
 		"-retry-max", "1",
+		"-retry-interval", "10ms",
 	}
 
 	if code := cmd.Run(args); code == 0 {
@@ -302,6 +300,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 		"-data-dir", tmpDir,
 		"-retry-join-wan", serfAddr,
 		"-retry-max-wan", "1",
+		"-retry-interval-wan", "10ms",
 	}
 
 	if code := cmd.Run(args); code == 0 {

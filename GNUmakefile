@@ -41,13 +41,9 @@ cov:
 	gocov test ${GOFILES} | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test:
-	@./scripts/verify_no_uuid.sh
-	@env \
-		GOTAGS="${GOTAGS}" \
-		GOFILES="${GOFILES}" \
-		TESTARGS="${TESTARGS}" \
-		sh -c "'$(CURDIR)/scripts/test.sh'"
+test: dev
+	go test -i -run '^$$' ./...
+	go test -v -tags "$(GOTAGS)" $$(go list ./... | grep -v vendor)
 
 cover:
 	go test ${GOFILES} --cover

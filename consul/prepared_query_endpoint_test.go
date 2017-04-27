@@ -14,7 +14,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/testutil/wait"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -26,7 +27,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
@@ -190,7 +191,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -482,8 +483,8 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client.
 	var codec rpc.ClientCodec
@@ -630,7 +631,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for any prefix.
 	var token string
@@ -843,7 +844,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1094,7 +1095,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1300,7 +1301,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for prod- queries.
 	var token string
@@ -1445,8 +1446,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -1454,11 +1455,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(s1.WANMembers()), 2; got < want {
+			return fmt.Errorf("got %d members want at least %d", got, want)
+		}
+		return nil
+	})
 
 	// Create an ACL with read permission to the service.
 	var execToken string
@@ -2469,8 +2471,8 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client.
 	var codec rpc.ClientCodec
@@ -2694,8 +2696,8 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	wait.ForLeader(t, s1.RPC, "dc1")
+	wait.ForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -2703,11 +2705,12 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Fatal(t, func() error {
+		if got, want := len(s1.WANMembers()), 2; got < want {
+			return fmt.Errorf("got %d members want at least %d", got, want)
+		}
+		return nil
+	})
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}
