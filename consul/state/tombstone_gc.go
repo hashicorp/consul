@@ -142,8 +142,13 @@ func (t *TombstoneGC) expireTime(expires time.Time) {
 	// Get the maximum index and clear the entry
 	t.lock.Lock()
 	exp := t.expires[expires]
+	enabled := t.enabled
 	delete(t.expires, expires)
 	t.lock.Unlock()
+
+	if !enabled {
+		return
+	}
 
 	// Notify the expires channel
 	t.expireCh <- exp.maxIndex
