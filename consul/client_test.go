@@ -275,9 +275,9 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	}
 
 	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 	c.servers.ResetRebalanceTimer()
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 
 	if len(c.LANMembers()) != numServers+numClients {
 		t.Errorf("bad len: %d", len(c.LANMembers()))
@@ -291,7 +291,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	// Ping each server in the list
 	var pingCount int
 	for range servers {
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		s := c.servers.FindServer()
 		ok, err := c.connPool.PingConsulServer(s)
 		if !ok {
