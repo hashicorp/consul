@@ -27,7 +27,7 @@ func TestTombstoneGC(t *testing.T) {
 	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
-		t.Fatalf("should fail")
+		t.Fatalf("err: %v", err)
 	}
 	gc.SetEnabled(true)
 
@@ -81,7 +81,7 @@ func TestTombstoneGC_Expire(t *testing.T) {
 	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
-		t.Fatalf("should fail")
+		t.Fatalf("err: %v", err)
 	}
 	gc.SetEnabled(true)
 
