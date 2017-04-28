@@ -16,9 +16,9 @@ The following guides are available:
 
 * [ACLs](/docs/guides/acl.html) - This guide covers Consul's Access Control List (ACL) capability, which can be used to control access to Consul resources.
 
-* [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
-
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
+
+* [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
@@ -34,7 +34,6 @@ The following guides are available:
 
 * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
-* [Server Performance](/docs/guides/performance.html) - This guide covers minumum requirements for Consul servers as well as guidelines for running Consul servers in production.
-
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
 
+* [Server Performance](/docs/guides/performance.html) - This guide covers minumum requirements for Consul servers as well as guidelines for running Consul servers in production.
