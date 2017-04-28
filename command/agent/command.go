@@ -39,6 +39,9 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/go-autorest/autorest/azure"
 )
 
 // gracefulTimeout controls how long we wait before forcefully terminating
@@ -174,6 +177,10 @@ func (c *Command) readConfig() *Config {
 		"Google Compute Engine tag value to filter on for server discovery.")
 	f.StringVar(&cmdConfig.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
 		"Path to credentials JSON file to use with Google Compute Engine.")
+	f.StringVar(&cmdConfig.RetryJoinAzure.TagName, "retry-join-azure-tag-name", "",
+		"Azure tag name to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinAzure.TagValue, "retry-join-azure-tag-value", "",
+		"Azure tag value to filter on for server discovery.")
 	f.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
 		"Address of an agent to join -wan at start time with retries enabled. "+
 			"Can be specified multiple times.")
@@ -691,6 +698,55 @@ func gceInstancesAddressesForZone(ctx context.Context, logger *log.Logger, compu
 	return addresses, nil
 }
 
+// discoverAzureHosts searches an Azure Subscription, returning a list of instance ips
+// where AzureTag_Name = AzureTag_Value
+func (c *Config) discoverAzureHosts(logger *log.Logger) ([]string, error) {
+	var servers []string
+	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.RetryJoinAzure.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	// Get the ServicePrincipalToken for use searching the NetworkInterfaces
+	sbt, tokerr := azure.NewServicePrincipalToken(*oauthConfig,
+		c.RetryJoinAzure.ClientID,
+		c.RetryJoinAzure.SecretAccessKey,
+		azure.PublicCloud.ResourceManagerEndpoint,
+	)
+	if tokerr != nil {
+		return nil, tokerr
+	}
+	// Setup the client using autorest; followed the structure from Terraform
+	vmnet := network.NewInterfacesClient(c.RetryJoinAzure.SubscriptionID)
+	vmnet.Client.UserAgent = fmt.Sprint("Hashicorp-Consul")
+	vmnet.Authorizer = sbt
+	vmnet.Sender = autorest.CreateSender(autorest.WithLogging(logger))
+	// Get all Network interfaces across ResourceGroups unless there is a compelling reason to restrict
+	netres, neterr := vmnet.ListAll()
+	if neterr != nil {
+		return nil, neterr
+	}
+	// For now, ignore Primary interfaces, choose any PrivateIPAddress with the matching tags
+	for _, oneint := range *netres.Value {
+		// Make it a little more robust just in case there is actually no Tags
+		if oneint.Tags != nil {
+			if *(*oneint.Tags)[c.RetryJoinAzure.TagName] == c.RetryJoinAzure.TagValue {
+				// Make it a little more robust just in case IPConfigurations nil
+				if oneint.IPConfigurations != nil {
+					for _, onecfg := range *oneint.IPConfigurations {
+						// fmt.Println("Internal FQDN: ", *onecfg.Name, " IP: ", *onecfg.PrivateIPAddress)
+						// Only get the address if there is private IP address
+						if onecfg.PrivateIPAddress != nil {
+							servers = append(servers, *onecfg.PrivateIPAddress)
+						}
+					}
+				}
+			}
+		}
+	}
+	return servers, nil
+}
+
 // setupAgent is used to start the agent and various interfaces
 func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) error {
 	c.UI.Output("Starting Consul agent...")
@@ -817,8 +873,10 @@ func (c *Command) startupJoinWan(config *Config) error {
 // retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 	ec2Enabled := config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != ""
+	gceEnabled := config.RetryJoinGCE.TagValue != ""
+	azureEnabled := config.RetryJoinAzure.TagName != "" && config.RetryJoinAzure.TagValue != ""
 
-	if len(config.RetryJoin) == 0 && !ec2Enabled && config.RetryJoinGCE.TagValue == "" {
+	if len(config.RetryJoin) == 0 && !ec2Enabled && !gceEnabled && !azureEnabled {
 		return
 	}
 
@@ -836,12 +894,18 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
-		case config.RetryJoinGCE.TagValue != "":
+		case gceEnabled:
 			servers, err = config.discoverGCEHosts(logger)
 			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query GCE insances: %s", err)
+				logger.Printf("[ERROR] agent: Unable to query GCE instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
+		case azureEnabled:
+			servers, err = config.discoverAzureHosts(logger)
+			if err != nil {
+				logger.Printf("[ERROR] agent: Unable to query Azure instances: %s", err)
+			}
+			logger.Printf("[INFO] agent: Discovered %d servers from Azure", len(servers))
 		}
 
 		servers = append(servers, config.RetryJoin...)
