@@ -257,18 +257,27 @@ func TestSetupTLSConfig(t *testing.T) {
 func TestClientTLSOptions(t *testing.T) {
 	t.Parallel()
 	// Start a server that verifies incoming HTTPS connections
-	_, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	_, srvVerify := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.CAFile = "../test/client_certs/rootca.crt"
 		conf.CertFile = "../test/client_certs/server.crt"
 		conf.KeyFile = "../test/client_certs/server.key"
 		conf.VerifyIncomingHTTPS = true
 	})
-	defer s.Stop()
+	defer srvVerify.Stop()
+
+	// Start a server without VerifyIncomingHTTPS
+	_, srvNoVerify := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.CAFile = "../test/client_certs/rootca.crt"
+		conf.CertFile = "../test/client_certs/server.crt"
+		conf.KeyFile = "../test/client_certs/server.key"
+		conf.VerifyIncomingHTTPS = false
+	})
+	defer srvNoVerify.Stop()
 
 	// Client without a cert
 	t.Run("client without cert, validation", func(t *testing.T) {
 		client, err := NewClient(&Config{
-			Address: s.HTTPSAddr,
+			Address: srvVerify.HTTPSAddr,
 			Scheme:  "https",
 			TLSConfig: TLSConfig{
 				Address: "consul.test",
@@ -289,7 +298,7 @@ func TestClientTLSOptions(t *testing.T) {
 	// Client with a valid cert
 	t.Run("client with cert, validation", func(t *testing.T) {
 		client, err := NewClient(&Config{
-			Address: s.HTTPSAddr,
+			Address: srvVerify.HTTPSAddr,
 			Scheme:  "https",
 			TLSConfig: TLSConfig{
 				Address:  "consul.test",
@@ -309,19 +318,10 @@ func TestClientTLSOptions(t *testing.T) {
 		}
 	})
 
-	// Start a server without VerifyIncomingHTTPS
-	_, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.CAFile = "../test/client_certs/rootca.crt"
-		conf.CertFile = "../test/client_certs/server.crt"
-		conf.KeyFile = "../test/client_certs/server.key"
-		conf.VerifyIncomingHTTPS = false
-	})
-	defer s2.Stop()
-
 	// Client without a cert
 	t.Run("client without cert, no validation", func(t *testing.T) {
 		client, err := NewClient(&Config{
-			Address: s2.HTTPSAddr,
+			Address: srvNoVerify.HTTPSAddr,
 			Scheme:  "https",
 			TLSConfig: TLSConfig{
 				Address: "consul.test",
@@ -342,7 +342,7 @@ func TestClientTLSOptions(t *testing.T) {
 	// Client with a valid cert
 	t.Run("client with cert, no validation", func(t *testing.T) {
 		client, err := NewClient(&Config{
-			Address: s2.HTTPSAddr,
+			Address: srvNoVerify.HTTPSAddr,
 			Scheme:  "https",
 			TLSConfig: TLSConfig{
 				Address:  "consul.test",
