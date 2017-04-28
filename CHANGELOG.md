@@ -9,8 +9,8 @@ IMPROVEMENTS:
 * agent: Added the `ca_path`, `tls_cipher_suites`, and `tls_prefer_server_cipher_suites` options to give more flexibility around configuring TLS. [GH-2963]
 * agent: Reduced the timeouts for the `-dev` server mode so that the development server starts up almost instantly. [GH-2984]
 * agent: Added `verify_incoming_rpc` and `verify_incoming_https` options for more granular control over incoming TLS enforcement. [GH-2974]
-* api: Add ACL replication status endpoint. [GH-2947]
-* cli: Show Raft protocol version in `operator raft list-peers` command.[GH-2929]
+* api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
+* cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
 
 BUG FIXES:
 
