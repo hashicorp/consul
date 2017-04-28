@@ -96,6 +96,14 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	if err := s.agent.filterServices(token, &services); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	for _, s := range services {
+		if s.Tags == nil {
+			s.Tags = make([]string, 0)
+		}
+	}
+
 	return services, nil
 }
 
@@ -108,6 +116,14 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	if err := s.agent.filterChecks(token, &checks); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	for _, c := range checks {
+		if c.ServiceTags == nil {
+			c.ServiceTags = make([]string, 0)
+		}
+	}
+
 	return checks, nil
 }
 

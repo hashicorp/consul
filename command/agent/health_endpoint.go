@@ -37,6 +37,11 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
 	}
+	for _, c := range out.HealthChecks {
+		if c.ServiceTags == nil {
+			c.ServiceTags = make([]string, 0)
+		}
+	}
 	return out.HealthChecks, nil
 }
 
@@ -65,6 +70,11 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
+	}
+	for _, c := range out.HealthChecks {
+		if c.ServiceTags == nil {
+			c.ServiceTags = make([]string, 0)
+		}
 	}
 	return out.HealthChecks, nil
 }
@@ -96,6 +106,11 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
+	}
+	for _, c := range out.HealthChecks {
+		if c.ServiceTags == nil {
+			c.ServiceTags = make([]string, 0)
+		}
 	}
 	return out.HealthChecks, nil
 }
@@ -140,6 +155,9 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	translateAddresses(s.agent.config, args.Datacenter, out.Nodes)
 
 	// Use empty list instead of nil
+	if out.Nodes == nil {
+		out.Nodes = make(structs.CheckServiceNodes, 0)
+	}
 	for i := range out.Nodes {
 		// TODO (slackpad) It's lame that this isn't a slice of pointers
 		// but it's not a well-scoped change to fix this. We should
@@ -147,11 +165,15 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		if out.Nodes[i].Checks == nil {
 			out.Nodes[i].Checks = make(structs.HealthChecks, 0)
 		}
+		for _, c := range out.Nodes[i].Checks {
+			if c.ServiceTags == nil {
+				c.ServiceTags = make([]string, 0)
+			}
+		}
+		if out.Nodes[i].Service != nil && out.Nodes[i].Service.Tags == nil {
+			out.Nodes[i].Service.Tags = make([]string, 0)
+		}
 	}
-	if out.Nodes == nil {
-		out.Nodes = make(structs.CheckServiceNodes, 0)
-	}
-
 	return out.Nodes, nil
 }
 
