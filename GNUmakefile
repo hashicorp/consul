@@ -28,9 +28,9 @@ bin: tools
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev:
-	mkdir -p pkg/$(GOOS)_$(GOARCH)
+	mkdir -p pkg/$(GOOS)_$(GOARCH) bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
-	cp $(GOPATH)/bin/consul bin
+	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
 # dist builds binaries for all platforms and packages them for distribution
