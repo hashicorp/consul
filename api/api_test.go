@@ -256,6 +256,7 @@ func TestSetupTLSConfig(t *testing.T) {
 
 func TestClientTLSOptions(t *testing.T) {
 	t.Parallel()
+	// Start a server that verifies incoming HTTPS connections
 	_, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.CAFile = "../test/client_certs/rootca.crt"
 		conf.CertFile = "../test/client_certs/server.crt"
@@ -264,45 +265,102 @@ func TestClientTLSOptions(t *testing.T) {
 	})
 	defer s.Stop()
 
-	// Set up a client without certs
-	clientWithoutCerts, err := NewClient(&Config{
-		Address: s.HTTPSAddr,
-		Scheme:  "https",
-		TLSConfig: TLSConfig{
-			Address: "consul.test",
-			CAFile:  "../test/client_certs/rootca.crt",
-		},
+	// Client without a cert
+	t.Run("client without cert, validation", func(t *testing.T) {
+		client, err := NewClient(&Config{
+			Address: s.HTTPSAddr,
+			Scheme:  "https",
+			TLSConfig: TLSConfig{
+				Address: "consul.test",
+				CAFile:  "../test/client_certs/rootca.crt",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Should fail
+		_, err = client.Agent().Self()
+		if err == nil || !strings.Contains(err.Error(), "bad certificate") {
+			t.Fatal(err)
+		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	// Should fail
-	_, err = clientWithoutCerts.Agent().Self()
-	if err == nil || !strings.Contains(err.Error(), "bad certificate") {
-		t.Fatal(err)
-	}
+	// Client with a valid cert
+	t.Run("client with cert, validation", func(t *testing.T) {
+		client, err := NewClient(&Config{
+			Address: s.HTTPSAddr,
+			Scheme:  "https",
+			TLSConfig: TLSConfig{
+				Address:  "consul.test",
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// Set up a client with valid certs
-	clientWithCerts, err := NewClient(&Config{
-		Address: s.HTTPSAddr,
-		Scheme:  "https",
-		TLSConfig: TLSConfig{
-			Address:  "consul.test",
-			CAFile:   "../test/client_certs/rootca.crt",
-			CertFile: "../test/client_certs/client.crt",
-			KeyFile:  "../test/client_certs/client.key",
-		},
+		// Should succeed
+		_, err = client.Agent().Self()
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	// Should succeed
-	_, err = clientWithCerts.Agent().Self()
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Start a server without VerifyIncomingHTTPS
+	_, s2 := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.CAFile = "../test/client_certs/rootca.crt"
+		conf.CertFile = "../test/client_certs/server.crt"
+		conf.KeyFile = "../test/client_certs/server.key"
+		conf.VerifyIncomingHTTPS = false
+	})
+	defer s2.Stop()
+
+	// Client without a cert
+	t.Run("client without cert, no validation", func(t *testing.T) {
+		client, err := NewClient(&Config{
+			Address: s2.HTTPSAddr,
+			Scheme:  "https",
+			TLSConfig: TLSConfig{
+				Address: "consul.test",
+				CAFile:  "../test/client_certs/rootca.crt",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Should succeed
+		_, err = client.Agent().Self()
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// Client with a valid cert
+	t.Run("client with cert, no validation", func(t *testing.T) {
+		client, err := NewClient(&Config{
+			Address: s2.HTTPSAddr,
+			Scheme:  "https",
+			TLSConfig: TLSConfig{
+				Address:  "consul.test",
+				CAFile:   "../test/client_certs/rootca.crt",
+				CertFile: "../test/client_certs/client.crt",
+				KeyFile:  "../test/client_certs/client.key",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Should succeed
+		_, err = client.Agent().Self()
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestSetQueryOptions(t *testing.T) {

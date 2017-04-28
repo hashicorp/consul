@@ -79,6 +79,7 @@ type TestServerConfig struct {
 	CertFile            string                 `json:"cert_file,omitempty"`
 	KeyFile             string                 `json:"key_file,omitempty"`
 	VerifyIncoming      bool                   `json:"verify_incoming,omitempty"`
+	VerifyIncomingRPC   bool                   `json:"verify_incoming_rpc,omitempty"`
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	Stdout, Stderr      io.Writer              `json:"-"`
