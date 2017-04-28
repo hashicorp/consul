@@ -8,10 +8,11 @@ IMPROVEMENTS:
 * agent: Added the datacenter of a node to the catalog, health, and query API endpoints which contain a Node structure. [GH-2713]
 * agent: Added the `ca_path`, `tls_cipher_suites`, and `tls_prefer_server_cipher_suites` options to give more flexibility around configuring TLS. [GH-2963]
 * api: Add ACL replication status endpoint. [GH-2947]
-* cli: Show Raft protocol version in `operator raft list-peers` command [GH-2929]
+* cli: Show Raft protocol version in `operator raft list-peers` command.[GH-2929]
 
 BUG FIXES:
 
+* server: Fixed a panic when the tombstone garbage collector was stopped. [GH-2087]
 * ui: Add and update favicons [GH-2945]
 
 ## 0.8.1 (April 17, 2017)
