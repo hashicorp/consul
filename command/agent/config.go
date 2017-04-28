@@ -864,6 +864,23 @@ func DevConfig() *Config {
 	conf.DisableAnonymousSignature = true
 	conf.EnableUI = true
 	conf.BindAddr = "127.0.0.1"
+
+	conf.ConsulConfig = consul.DefaultConfig()
+	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
+	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+
+	conf.ConsulConfig.SerfWANConfig.MemberlistConfig.SuspicionMult = 3
+	conf.ConsulConfig.SerfWANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
+	conf.ConsulConfig.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	conf.ConsulConfig.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+
+	conf.ConsulConfig.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
+	conf.ConsulConfig.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
+	conf.ConsulConfig.RaftConfig.ElectionTimeout = 40 * time.Millisecond
+
+	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
+
 	return conf
 }
 
