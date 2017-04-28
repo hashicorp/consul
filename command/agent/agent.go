@@ -449,7 +449,7 @@ func (a *Agent) consulConfig() *consul.Config {
 		a.config.Version, a.config.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming
+	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
 	base.VerifyOutgoing = a.config.VerifyOutgoing
 	base.VerifyServerHostname = a.config.VerifyServerHostname
 	base.CAFile = a.config.CAFile

@@ -355,7 +355,8 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS
-	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12",
+	input = `{"verify_incoming": true, "verify_incoming_rpc": true, "verify_incoming_https": true,
+	"verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12",
 	"tls_cipher_suites": "TLS_RSA_WITH_AES_256_CBC_SHA", "tls_prefer_server_cipher_suites": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
@@ -363,6 +364,14 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.VerifyIncoming != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.VerifyIncomingRPC != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.VerifyIncomingHTTPS != true {
 		t.Fatalf("bad: %#v", config)
 	}
 

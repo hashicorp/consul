@@ -1052,18 +1052,30 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> - If
   set to true, Consul requires that all incoming
   connections make use of TLS and that the client provides a certificate signed
-  by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
-  Consul will not enforce the use of TLS or verify a client's authenticity. This
-  applies to both server RPC and to the HTTPS API. To enable the HTTPS API, you
-  must define an HTTPS port via the [`ports`](#ports) configuration. By default, HTTPS
-  is disabled.
+  by a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path).
+  This applies to both server RPC and to the HTTPS API. By default, this is false, and
+  Consul will not enforce the use of TLS or verify a client's authenticity.
+
+* <a name="verify_incoming_rpc"></a><a href="#verify_incoming_rpc">`verify_incoming_rpc`</a> - If
+  set to true, Consul requires that all incoming RPC
+  connections make use of TLS and that the client provides a certificate signed
+  by a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path). By default,
+  this is false, and Consul will not enforce the use of TLS or verify a client's authenticity.
+
+* <a name="verify_incoming_https"></a><a href="#verify_incoming_https">`verify_incoming_https`</a> - If
+  set to true, Consul requires that all incoming HTTPS
+  connections make use of TLS and that the client provides a certificate signed
+  by a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path). By default,
+  this is false, and Consul will not enforce the use of TLS or verify a client's authenticity. To
+  enable the HTTPS API, you must define an HTTPS port via the [`ports`](#ports) configuration. By
+  default, HTTPS is disabled.
 
 * <a name="verify_outgoing"></a><a href="#verify_outgoing">`verify_outgoing`</a> - If set to
   true, Consul requires that all outgoing connections
   make use of TLS and that the server provides a certificate that is signed by
-  the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and Consul
-  will not make use of TLS for outgoing connections. This applies to clients and servers
-  as both will make outgoing connections.
+  a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path). By default,
+  this is false, and Consul will not make use of TLS for outgoing connections. This applies to clients
+  and servers as both will make outgoing connections.
 
 * <a name="verify_server_hostname"></a><a href="#verify_server_hostname">`verify_server_hostname`</a> - If set to
   true, Consul verifies for all outgoing connections that the TLS certificate presented by the servers

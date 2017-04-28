@@ -453,6 +453,16 @@ type Config struct {
 	// must match a provided certificate authority. This can be used to force client auth.
 	VerifyIncoming bool `mapstructure:"verify_incoming"`
 
+	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
+	VerifyIncomingRPC bool `mapstructure:"verify_incoming_rpc"`
+
+	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
+	VerifyIncomingHTTPS bool `mapstructure:"verify_incoming_https"`
+
 	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
 	// This means that TLS requests are used. TLS connections must match a provided
 	// certificate authority. This is used to verify authenticity of server nodes.
@@ -1545,6 +1555,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.VerifyIncoming {
 		result.VerifyIncoming = true
+	}
+	if b.VerifyIncomingRPC {
+		result.VerifyIncomingRPC = true
+	}
+	if b.VerifyIncomingHTTPS {
+		result.VerifyIncomingHTTPS = true
 	}
 	if b.VerifyOutgoing {
 		result.VerifyOutgoing = true
