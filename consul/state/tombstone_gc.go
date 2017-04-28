@@ -60,7 +60,6 @@ func NewTombstoneGC(ttl, granularity time.Duration) (*TombstoneGC, error) {
 	t := &TombstoneGC{
 		ttl:         ttl,
 		granularity: granularity,
-		enabled:     false,
 		expires:     make(map[time.Time]*expireInterval),
 		expireCh:    make(chan uint64, 1),
 	}
