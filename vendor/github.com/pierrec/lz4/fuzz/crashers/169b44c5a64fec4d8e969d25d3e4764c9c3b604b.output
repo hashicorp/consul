@@ -1,0 +1,54 @@
+program hanged (timeout 10 seconds)
+
+SIGABRT: abort
+PC=0x5669b m=0
+
+goroutine 0 [idle]:
+runtime.mach_semaphore_wait(0x703, 0x7fff5fbff9a8, 0x8202fe401, 0x0, 0x1, 0x238cc0, 0x49b09, 0xffffffffffffffff, 0x600, 0x7fff5fbff90c, ...)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/sys_darwin_amd64.s:407 +0xb
+runtime.semasleep1(0xffffffffffffffff, 0x600)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/os1_darwin.go:385 +0xe5
+runtime.semasleep.func1()
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/os1_darwin.go:401 +0x29
+runtime.systemstack(0x7fff5fbff910)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/asm_amd64.s:278 +0xab
+runtime.semasleep(0xffffffffffffffff, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/os1_darwin.go:402 +0x36
+runtime.notesleep(0x239110)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/lock_sema.go:169 +0x100
+runtime.stopm()
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/proc1.go:1128 +0x112
+runtime.findrunnable(0x8202a4000, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/proc1.go:1530 +0x69e
+runtime.schedule()
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/proc1.go:1639 +0x267
+runtime.park_m(0x82028af00)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/proc1.go:1698 +0x18b
+runtime.mcall(0x7fff5fbffa90)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build890014890/src/runtime/asm_amd64.s:204 +0x5b
+
+goroutine 1 [running]:
+	goroutine running on other thread; stack unavailable
+
+rax    0xe
+rbx    0x703
+rcx    0x7fff5fbff898
+rdx    0x7fff5fbff910
+rdi    0x703
+rsi    0x238cc0
+rbp    0x239000
+rsp    0x7fff5fbff898
+r8     0x239000
+r9     0x8820290330
+r10    0x25ee08c1e
+r11    0x286
+r12    0x0
+r13    0x6d9e8a1cfd40
+r14    0x13fde99489843000
+r15    0x238960
+rip    0x5669b
+rflags 0x286
+cs     0x7
+fs     0x0
+gs     0x0
+exit status 2
