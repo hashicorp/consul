@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/pascaldekloe/goe/verify"
 )
 
@@ -21,22 +22,18 @@ func TestHealth_Node(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	name := info["Config"]["NodeName"].(string)
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		checks, meta, err := health.Node(name, nil)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("bad: %v", checks)
+			r.Fatalf("bad: %v", checks)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealthChecks_AggregatedStatus(t *testing.T) {
@@ -195,7 +192,7 @@ func TestHealth_Checks(t *testing.T) {
 	}
 	defer agent.ServiceDeregister("foo")
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		checks := HealthChecks{
 			&HealthCheck{
 				Node:        "node123",
@@ -210,18 +207,15 @@ func TestHealth_Checks(t *testing.T) {
 
 		out, meta, err := health.Checks("foo", nil)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if got, want := out, checks; !verify.Values(t, "checks", got, want) {
-			return false, fmt.Errorf("health.Checks failed")
+			r.Fatal("health.Checks failed")
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealth_Checks_NodeMetaFilter(t *testing.T) {
@@ -247,21 +241,18 @@ func TestHealth_Checks_NodeMetaFilter(t *testing.T) {
 	}
 	defer agent.ServiceDeregister("foo")
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		checks, meta, err := health.Checks("foo", &QueryOptions{NodeMeta: meta})
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+			r.Fatalf("Bad: %v", checks)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealth_Service(t *testing.T) {
@@ -269,29 +260,25 @@ func TestHealth_Service(t *testing.T) {
 	defer s.Stop()
 
 	health := c.Health()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, nil)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+			r.Fatalf("Bad: %v", checks)
 		}
 		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
-			return false, fmt.Errorf("Bad: %v", checks[0].Node)
+			r.Fatalf("Bad: %v", checks[0].Node)
 		}
 		if checks[0].Node.Datacenter != "dc1" {
-			return false, fmt.Errorf("Bad datacenter: %v", checks[0].Node)
+			r.Fatalf("Bad datacenter: %v", checks[0].Node)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealth_Service_NodeMetaFilter(t *testing.T) {
@@ -302,29 +289,25 @@ func TestHealth_Service_NodeMetaFilter(t *testing.T) {
 	defer s.Stop()
 
 	health := c.Health()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+			r.Fatalf("Bad: %v", checks)
 		}
 		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
-			return false, fmt.Errorf("Bad: %v", checks[0].Node)
+			r.Fatalf("Bad: %v", checks[0].Node)
 		}
 		if checks[0].Node.Datacenter != "dc1" {
-			return false, fmt.Errorf("Bad datacenter: %v", checks[0].Node)
+			r.Fatalf("Bad datacenter: %v", checks[0].Node)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealth_State(t *testing.T) {
@@ -333,22 +316,18 @@ func TestHealth_State(t *testing.T) {
 	defer s.Stop()
 
 	health := c.Health()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		checks, meta, err := health.State("any", nil)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+			r.Fatalf("Bad: %v", checks)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestHealth_State_NodeMetaFilter(t *testing.T) {
@@ -360,20 +339,16 @@ func TestHealth_State_NodeMetaFilter(t *testing.T) {
 	defer s.Stop()
 
 	health := c.Health()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		checks, meta, err := health.State("any", &QueryOptions{NodeMeta: meta})
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("bad: %v", meta)
+			r.Fatalf("bad: %v", meta)
 		}
 		if len(checks) == 0 {
-			return false, fmt.Errorf("Bad: %v", checks)
+			r.Fatalf("Bad: %v", checks)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }

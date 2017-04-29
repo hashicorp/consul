@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {
@@ -451,33 +451,27 @@ func TestOperator_ServerHealth(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		if err := testutil.WaitForResult(func() (bool, error) {
+		retry.Run("", t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
-				return false, fmt.Errorf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if resp.Code != 200 {
-				return false, fmt.Errorf("bad code: %d", resp.Code)
+				r.Fatalf("bad code: %d", resp.Code)
 			}
 			out, ok := obj.(*api.OperatorHealthReply)
 			if !ok {
-				return false, fmt.Errorf("unexpected: %T", obj)
+				r.Fatalf("unexpected: %T", obj)
 			}
 			if len(out.Servers) != 1 ||
 				!out.Servers[0].Healthy ||
 				out.Servers[0].Name != srv.agent.config.NodeName ||
 				out.Servers[0].SerfStatus != "alive" ||
 				out.FailureTolerance != 0 {
-				return false, fmt.Errorf("bad: %v", out)
+				r.Fatalf("bad: %v", out)
 			}
-
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-
+		})
 	}, cb)
 }
 
@@ -493,30 +487,24 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		if err := testutil.WaitForResult(func() (bool, error) {
+		retry.Run("", t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
-				return false, fmt.Errorf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if resp.Code != 429 {
-				return false, fmt.Errorf("bad code: %d", resp.Code)
+				r.Fatalf("bad code: %d", resp.Code)
 			}
 			out, ok := obj.(*api.OperatorHealthReply)
 			if !ok {
-				return false, fmt.Errorf("unexpected: %T", obj)
+				r.Fatalf("unexpected: %T", obj)
 			}
 			if len(out.Servers) != 1 ||
 				out.Healthy ||
 				out.Servers[0].Name != srv.agent.config.NodeName {
-				return false, fmt.Errorf("bad: %v", out)
+				r.Fatalf("bad: %#v", out.Servers)
 			}
-
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-
+		})
 	}, cb)
 }
