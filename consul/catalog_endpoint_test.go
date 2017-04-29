@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -603,13 +604,12 @@ func TestCatalog_ListNodes(t *testing.T) {
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 2, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if got, want := len(out.Nodes), 2; got != want {
+			r.Fatalf("got %d nodes want %d", got, want)
+		}
+	})
 
 	// Server node is auto added from Serf
 	if out.Nodes[1].Node != s1.config.NodeName {
@@ -646,13 +646,12 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 		},
 	}
 	var out structs.IndexedNodes
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 1, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if got, want := len(out.Nodes), 1; got != want {
+			r.Fatalf("got %d nodes want %d", got, want)
+		}
+	})
 
 	// Verify that only the correct node was returned
 	if out.Nodes[0].Node != "foo" {
@@ -677,14 +676,17 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	retry.
 
-	// Should get an empty list of nodes back
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 0, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		// Should get an empty list of nodes back
+		Run("", t, func(r *retry.R) {
+
+			msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+			if len(out.Nodes) != 0 {
+				r.Fatal(nil)
+			}
+		})
+
 }
 
 func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
@@ -890,12 +892,13 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var out structs.IndexedNodes
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 5, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if got, want := len(out.Nodes), 5; got != want {
+			r.Fatalf("got %d nodes want %d", got, want)
+		}
+	})
+
 	if out.Nodes[0].Node != "aaa" {
 		t.Fatalf("bad: %v", out)
 	}
@@ -918,12 +921,13 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 5, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if got, want := len(out.Nodes), 5; got != want {
+			r.Fatalf("got %d nodes want %d", got, want)
+		}
+	})
+
 	if out.Nodes[0].Node != "foo" {
 		t.Fatalf("bad: %v", out)
 	}

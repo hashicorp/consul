@@ -17,7 +17,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -78,21 +78,14 @@ func expectStatus(t *testing.T, script, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		// Should have at least 2 updates
-		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.Updates("foo"), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-
-		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		if got, want := mock.State("foo"), status; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
@@ -281,25 +274,18 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		// Should have at least 2 updates
-		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.Updates("foo"), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-
-		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		if got, want := mock.State("foo"), status; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-
 		// Allow slightly more data than CheckBufSize, for the header
 		if n := len(mock.Output("foo")); n > (CheckBufSize + 256) {
-			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+			r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckHTTPCritical(t *testing.T) {
@@ -387,20 +373,14 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		// Should have at least 2 updates
-		if mock.updates["bar"] < 2 {
-			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.Updates("bar"), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-
-		if mock.state["bar"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+		if got, want := mock.State("bar"), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
@@ -460,15 +440,11 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		if mock.state["skipverify_true"] != api.HealthPassing {
-			return false, fmt.Errorf("should be passing %v", mock.state)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.state["skipverify_true"], api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
@@ -495,15 +471,11 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		if mock.state["skipverify_true"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.state["skipverify_true"], api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
@@ -531,20 +503,15 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be false")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	retry.Run("", t, func(r *retry.R) {
 		// This should fail due to an invalid SSL cert
-		if mock.state["skipverify_false"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+		if got, want := mock.state["skipverify_false"], api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-
 		if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
-			return false, fmt.Errorf("should fail with certificate error %v", mock.output)
+			r.Fatalf("should fail with certificate error %v", mock.output)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func mockTCPServer(network string) net.Listener {
@@ -581,20 +548,14 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		// Should have at least 2 updates
-		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+	retry.Run("", t, func(r *retry.R) {
+		if got, want := mock.Updates("foo"), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-
-		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		if got, want := mock.State("foo"), status; got != want {
+			r.Fatalf("got state %q want %q", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCheckTCPCritical(t *testing.T) {
