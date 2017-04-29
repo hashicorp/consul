@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestCatalog_Datacenters(t *testing.T) {
@@ -14,19 +16,17 @@ func TestCatalog_Datacenters(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		datacenters, err := catalog.Datacenters()
 		if err != nil {
-			return false, err
+			t.Log("catalog.Datacenters: ", err)
+			continue
 		}
-
 		if len(datacenters) == 0 {
-			return false, fmt.Errorf("Bad: %v", datacenters)
+			t.Log("got 0 datacenters want at least one")
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -36,31 +36,35 @@ func TestCatalog_Nodes(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(func() { t.Fatal("no nodes") }); {
 		nodes, meta, err := catalog.Nodes(nil)
 		if err != nil {
-			return false, err
+			t.Log("catalog.Nodes: ", err)
+			continue
 		}
-
 		if meta.LastIndex == 0 {
-			return false, fmt.Errorf("Bad: %v", meta)
+			t.Log("got last index 0 want > 0")
+			continue
 		}
-
-		if len(nodes) == 0 {
-			return false, fmt.Errorf("Bad: %v", nodes)
+		want := []*Node{
+			{
+				ID:         s.Config.NodeID,
+				Node:       s.Config.NodeName,
+				Address:    "127.0.0.1",
+				Datacenter: "dc1",
+				TaggedAddresses: map[string]string{
+					"lan": "127.0.0.1",
+					"wan": "127.0.0.1",
+				},
+				Meta:        map[string]string{},
+				CreateIndex: meta.LastIndex - 1,
+				ModifyIndex: meta.LastIndex,
+			},
 		}
-
-		if _, ok := nodes[0].TaggedAddresses["wan"]; !ok {
-			return false, fmt.Errorf("Bad: %v", nodes[0])
+		if !verify.Values(t, "", nodes, want) {
+			continue
 		}
-
-		if nodes[0].Datacenter != "dc1" {
-			return false, fmt.Errorf("Bad datacenter: %v", nodes[0])
-		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
