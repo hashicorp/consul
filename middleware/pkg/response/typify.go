@@ -2,11 +2,12 @@ package response
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/miekg/dns"
 )
 
-// Type is the type of the message
+// Type is the type of the message.
 type Type int
 
 const (
@@ -26,54 +27,39 @@ const (
 	OtherError
 )
 
-func (t Type) String() string {
-	switch t {
-	case NoError:
-		return "NOERROR"
-	case NameError:
-		return "NXDOMAIN"
-	case NoData:
-		return "NODATA"
-	case Delegation:
-		return "DELEGATION"
-	case Meta:
-		return "META"
-	case Update:
-		return "UPDATE"
-	case OtherError:
-		return "OTHERERROR"
-	}
-	return ""
+var toString = map[Type]string{
+	NoError:    "NOERROR",
+	NameError:  "NXDOMAIN",
+	NoData:     "NODATA",
+	Delegation: "DELEGATION",
+	Meta:       "META",
+	Update:     "UPDATE",
+	OtherError: "OTHERERROR",
 }
+
+func (t Type) String() string { return toString[t] }
 
 // TypeFromString returns the type from the string s. If not type matches
 // the OtherError type and an error are returned.
 func TypeFromString(s string) (Type, error) {
-	switch s {
-	case "NOERROR":
-		return NoError, nil
-	case "NXDOMAIN":
-		return NameError, nil
-	case "NODATA":
-		return NoData, nil
-	case "DELEGATION":
-		return Delegation, nil
-	case "META":
-		return Meta, nil
-	case "UPDATE":
-		return Update, nil
-	case "OTHERERROR":
-		return OtherError, nil
+	for t, str := range toString {
+		if s == str {
+			return t, nil
+		}
 	}
 	return NoError, fmt.Errorf("invalid Type: %s", s)
 }
 
 // Typify classifies a message, it returns the Type.
-func Typify(m *dns.Msg) (Type, *dns.OPT) {
+func Typify(m *dns.Msg, t time.Time) (Type, *dns.OPT) {
 	if m == nil {
 		return OtherError, nil
 	}
 	opt := m.IsEdns0()
+	do := false
+	if opt != nil {
+		do = opt.Do()
+	}
 
 	if m.Opcode == dns.OpcodeUpdate {
 		return Update, opt
@@ -87,6 +73,13 @@ func Typify(m *dns.Msg) (Type, *dns.OPT) {
 	if len(m.Question) > 0 {
 		if m.Question[0].Qtype == dns.TypeAXFR || m.Question[0].Qtype == dns.TypeIXFR {
 			return Meta, opt
+		}
+	}
+
+	// If our message contains any expired sigs and we care about that, we should return expired
+	if do {
+		if expired := typifyExpired(m, t); expired {
+			return OtherError, opt
 		}
 	}
 
@@ -107,6 +100,7 @@ func Typify(m *dns.Msg) (Type, *dns.OPT) {
 	}
 
 	// Check length of different sections, and drop stuff that is just to large? TODO(miek).
+
 	if soa && m.Rcode == dns.RcodeSuccess {
 		return NoData, opt
 	}
@@ -114,7 +108,7 @@ func Typify(m *dns.Msg) (Type, *dns.OPT) {
 		return NameError, opt
 	}
 
-	if ns > 0 && ns == len(m.Ns) && m.Rcode == dns.RcodeSuccess {
+	if ns > 0 && ns > 0 && m.Rcode == dns.RcodeSuccess {
 		return Delegation, opt
 	}
 
@@ -123,4 +117,30 @@ func Typify(m *dns.Msg) (Type, *dns.OPT) {
 	}
 
 	return OtherError, opt
+}
+
+func typifyExpired(m *dns.Msg, t time.Time) bool {
+	if expired := typifyExpiredRRSIG(m.Answer, t); expired {
+		return true
+	}
+	if expired := typifyExpiredRRSIG(m.Ns, t); expired {
+		return true
+	}
+	if expired := typifyExpiredRRSIG(m.Extra, t); expired {
+		return true
+	}
+	return false
+}
+
+func typifyExpiredRRSIG(rrs []dns.RR, t time.Time) bool {
+	for _, r := range rrs {
+		if r.Header().Rrtype != dns.TypeRRSIG {
+			continue
+		}
+		ok := r.(*dns.RRSIG).ValidityPeriod(t)
+		if !ok {
+			return true
+		}
+	}
+	return false
 }

@@ -1,10 +1,6 @@
 package response
 
-import (
-	"fmt"
-
-	"github.com/miekg/dns"
-)
+import "fmt"
 
 // Class holds sets of Types
 type Class int
@@ -50,14 +46,8 @@ func ClassFromString(s string) (Class, error) {
 	return All, fmt.Errorf("invalid Class: %s", s)
 }
 
-// Classify classifies a dns message: it returns its Class.
-func Classify(m *dns.Msg) (Class, *dns.OPT) {
-	t, o := Typify(m)
-	return classify(t), o
-}
-
-// Does need to be exported?
-func classify(t Type) Class {
+// Classify classifies the Type t, it returns its Class.
+func Classify(t Type) Class {
 	switch t {
 	case NoError, Delegation:
 		return Success

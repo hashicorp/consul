@@ -63,7 +63,7 @@ type ResponseWriter struct {
 // WriteMsg implements the dns.ResponseWriter interface.
 func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
-	mt, opt := response.Typify(res)
+	mt, opt := response.Typify(res, time.Now().UTC())
 	if opt != nil {
 		do = opt.Do()
 	}

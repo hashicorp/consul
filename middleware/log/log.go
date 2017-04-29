@@ -52,7 +52,8 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			rc = 0
 		}
 
-		class, _ := response.Classify(rrw.Msg)
+		tpe, _ := response.Typify(rrw.Msg, time.Now().UTC())
+		class := response.Classify(tpe)
 		if rule.Class == response.All || rule.Class == class {
 			rep := replacer.New(r, rrw, CommonLogEmptyValue)
 			rule.Log.Println(rep.Replace(rule.Format))
