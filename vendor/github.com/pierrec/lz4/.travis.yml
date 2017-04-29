@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - 1.4
+  - 1.5
+
+script: 
+ - go test -cpu=2
+ - go test -cpu=2 -race

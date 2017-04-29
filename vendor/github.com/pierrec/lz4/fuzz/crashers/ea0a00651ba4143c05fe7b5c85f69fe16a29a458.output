@@ -1,0 +1,23 @@
+panic: runtime error: slice bounds out of range [recovered]
+	panic: runtime error: slice bounds out of range
+
+goroutine 1 [running]:
+io/ioutil.readAll.func1(0x8202b1e10)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/io/ioutil/ioutil.go:30 +0x228
+github.com/pierrec/lz4.(*Reader).readBlock(0x820312000, 0x820316000, 0x10000, 0x10000, 0x8202900c0, 0x0, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/github.com/pierrec/lz4/reader.go:241 +0xc62
+github.com/pierrec/lz4.(*Reader).Read(0x820312000, 0x820314000, 0x200, 0x200, 0x0, 0x0, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/github.com/pierrec/lz4/reader.go:178 +0x7a6
+bytes.(*Buffer).ReadFrom(0x8202b1d68, 0x88204290f0, 0x820312000, 0x0, 0x0, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/bytes/buffer.go:173 +0x3db
+io/ioutil.readAll(0x88204290f0, 0x820312000, 0x200, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/io/ioutil/ioutil.go:33 +0x1ed
+io/ioutil.ReadAll(0x88204290f0, 0x820312000, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/io/ioutil/ioutil.go:42 +0x80
+github.com/pierrec/lz4/fuzz.Fuzz(0x8820479000, 0x13, 0x200000, 0x8202900b8)
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/github.com/pierrec/lz4/fuzz/lz4.go:11 +0x15f
+github.com/dvyukov/go-fuzz/go-fuzz-dep.Main(0x1a7f18)
+	/Users/pierrecurto/sandbox/src/github.com/dvyukov/go-fuzz/go-fuzz-dep/main.go:47 +0x14c
+main.main()
+	/var/folders/bw/wf4p9qr50pg23qb4py4028140000gp/T/go-fuzz-build320605510/src/go-fuzz-main/main.go:10 +0x23
+exit status 2

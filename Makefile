@@ -12,7 +12,6 @@ coredns: check
 
 .PHONY: deps
 deps: core/zmiddleware.go core/dnsserver/zdirectives.go
-	go get ${BUILD_VERBOSE}
 	go get -u github.com/golang/lint/golint
 
 .PHONY: check
