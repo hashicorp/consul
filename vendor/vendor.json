@@ -360,10 +360,10 @@
 			"revisionTime": "2016-08-09T18:56:09Z"
 		},
 		{
-			"checksumSHA1": "Eh3iu/9RzHzNY4vHHPKaZISAgBo=",
+			"checksumSHA1": "SXjPQfi84j+BFZi4Fl1c/OC/f7M=",
 			"path": "github.com/docker/docker/pkg/system",
-			"revision": "eb28dde01f165849bf372e18200e83042c76f26c",
-			"revisionTime": "2016-08-09T18:56:09Z"
+			"revision": "f1571e8b67b4014189e356d20d4f388f0e9e88d3",
+			"revisionTime": "2017-04-28T23:08:38Z"
 		},
 		{
 			"checksumSHA1": "hZV62Xzt/i0e/WBKWww3rpkRAR4=",
