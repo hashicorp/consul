@@ -56,11 +56,21 @@ commit:
 	git commit -am"Release $(VERSION)"
 
 .PHONY: build
-build:
-	@echo Building: $(VERSION)
+build: build-arm build-darwin build-linux
+
+.PHONY: build-linux
+build-linux:
+	@echo Building: linux $(VERSION)
+
+.PHONY: build-darwin
+build-darwin:
+	@echo Building: darwin $(VERSION)
 	mkdir -p build/Darwin     && CGO_ENABLED=0 GOOS=darwin            go build -ldflags="-s -w" -o build/Darwin/$(NAME)
+
+.PHONY: build-arm
+build-arm:
+	@echo Building: arm $(VERSION)
 	mkdir -p build/Linux/Arm  && CGO_ENABLED=0 GOOS=linux GOARCH=arm  go build -ldflags="-s -w" -o build/Linux/Arm/$(NAME)
-	mkdir -p build/Linux      && CGO_ENABLED=0 GOOS=linux             go build -ldflags="-s -w" -o build/Linux/$(NAME)
 
 
 .PHONY: tar
