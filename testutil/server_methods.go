@@ -109,9 +109,20 @@ func (s *TestServer) ListKV(t *testing.T, prefix string) []string {
 // automatically adds a health check with the given status, which
 // can be one of "passing", "warning", or "critical".
 func (s *TestServer) AddService(t *testing.T, name, status string, tags []string) {
+	s.AddAddressableService(t, name, status, "", 0, tags) // set empty address and 0 as port for non-accessible service
+}
+
+// AddAddressableService adds a new service to the Consul instance by
+// passing "address" and "port". It is helpful when you need to prepare a fakeService
+// that maybe accessed with in target source code.
+// It also automatically adds a health check with the given status, which
+// can be one of "passing", "warning", or "critical", just like `AddService` does.
+func (s *TestServer) AddAddressableService(t *testing.T, name, status, address string, port int, tags []string) {
 	svc := &TestService{
-		Name: name,
-		Tags: tags,
+		Name:    name,
+		Tags:    tags,
+		Address: address,
+		Port:    port,
 	}
 	payload, err := s.encodePayload(svc)
 	if err != nil {
