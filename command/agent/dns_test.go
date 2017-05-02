@@ -1301,9 +1301,11 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a remote node with a service.
@@ -3376,9 +3378,11 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a remote node with a service.

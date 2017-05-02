@@ -336,7 +336,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	args := []string{
 		"-server",
-		"-data-dir", tmpDir,
+		"-dev",
 		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
 		"-config-file", tmpFile.Name(),
 	}
@@ -346,9 +346,11 @@ func TestAgent_Reload(t *testing.T) {
 		close(doneCh)
 	}()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(cmd.httpServers) == 1 {
-			break
+		if got, want := len(cmd.httpServers), 1; got != want {
+			t.Logf("got %d HTTP servers want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	if _, ok := cmd.agent.state.services["redis"]; !ok {
@@ -534,11 +536,12 @@ func TestAgent_Join(t *testing.T) {
 		t.Fatalf("should have 2 members")
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(a2.LANMembers()) == 2 {
-			break
+		if got, want := len(a2.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
 		}
+		break
 	}
-
 }
 
 func TestAgent_Join_WAN(t *testing.T) {
@@ -569,11 +572,12 @@ func TestAgent_Join_WAN(t *testing.T) {
 		t.Fatalf("should have 2 members")
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(a2.WANMembers()) == 2 {
-			break
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			t.Logf("got %d WAN members want %d", got, want)
+			continue
 		}
+		break
 	}
-
 }
 
 func TestAgent_Join_ACLDeny(t *testing.T) {
@@ -662,12 +666,13 @@ func TestAgent_Leave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		continue
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
+		}
+		break
 	}
-
 }
 
 func TestAgent_Leave_ACLDeny(t *testing.T) {
@@ -760,12 +765,13 @@ func TestAgent_ForceLeave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		continue
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
+		}
+		break
 	}
-
 }
 
 func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
@@ -1929,7 +1935,6 @@ func TestAgent_Monitor(t *testing.T) {
 	// Try to stream logs until we see the expected log line
 	expected := []byte("raft: Initial configuration (index=1)")
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
 		resp = newClosableRecorder()
 		done := make(chan struct{})
@@ -1943,13 +1948,12 @@ func TestAgent_Monitor(t *testing.T) {
 		resp.Close()
 		<-done
 
-		if bytes.Contains(resp.Body.Bytes(), expected) {
-			t.Log(nil)
-			break
+		if got, want := resp.Body.Bytes(), expected; !bytes.Contains(got, want) {
+			t.Logf("got %q which does not contain %q", got, want)
+			continue
 		}
-		continue
+		break
 	}
-
 }
 
 type closableRecorder struct {

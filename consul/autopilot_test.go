@@ -51,13 +51,13 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Bring up a new server
@@ -68,16 +68,17 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	// Kill a non-leader server
 	s3.Shutdown()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
 		}
-		if alive == 2 {
-			break
+		if got, want := alive, 2; got != want {
+			t.Logf("got %d alive servers want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Join the new server
@@ -89,13 +90,13 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 }
 
@@ -137,13 +138,13 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 4 {
-				break
+			if got, want := peers, 4; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Kill a non-leader server
@@ -152,13 +153,13 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	// Should be removed from the peers automatically
 	for _, s := range []*Server{s1, s2, s3} {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 }
 
@@ -193,13 +194,13 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -221,13 +222,13 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	// Wait for s4 to be removed
 	for _, s := range []*Server{s1, s2, s3} {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 }
 
@@ -259,13 +260,11 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	for r :=
 
-		// Wait for the new server to be added as a non-voter, but make sure
-		// it doesn't get promoted to a voter even after ServerStabilizationTime,
-		// because that would result in an even-numbered quorum count.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Wait for the new server to be added as a non-voter, but make sure
+	// it doesn't get promoted to a voter even after ServerStabilizationTime,
+	// because that would result in an even-numbered quorum count.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			t.Log(err)
@@ -273,7 +272,6 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		servers := future.Configuration().Servers
-
 		if len(servers) != 2 {
 			t.Logf("bad: %v", servers)
 			continue
@@ -310,7 +308,6 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			t.Log(err)
@@ -318,7 +315,6 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		servers := future.Configuration().Servers
-
 		if len(servers) != 3 {
 			t.Logf("bad: %v", servers)
 			continue
@@ -333,5 +329,4 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 		break
 	}
-
 }

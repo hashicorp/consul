@@ -30,15 +30,15 @@ func TestEvent_FireList(t *testing.T) {
 	var events []*UserEvent
 	var qm *QueryMeta
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		events, qm, err = event.List("", nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(events) > 0 {
-			break
+		if len(events) == 0 {
+			t.Log("no events")
+			continue
 		}
-		t.Log(err)
+		break
 	}
 
 	if events[len(events)-1].ID != id {

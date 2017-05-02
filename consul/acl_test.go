@@ -232,12 +232,12 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	client := rpcClient(t, s1)
@@ -285,12 +285,12 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -363,12 +363,12 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -422,12 +422,12 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -498,12 +498,12 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -576,12 +576,12 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		p1, _ := s1.numPeers()
-		if p1 == 2 {
-			break
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
-		t.Logf("%d", p1)
+		break
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -696,11 +696,8 @@ func TestACL_Replication(t *testing.T) {
 	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Wait for replication to occur.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Wait for replication to occur.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
 			t.Log(err)

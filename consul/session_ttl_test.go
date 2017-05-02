@@ -299,11 +299,12 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		peers, _ := s1.numPeers()
-		if peers == 3 {
-			break
+		if got, want := peers, 3; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Find the leader
@@ -362,11 +363,8 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	if len(leader.sessionTimers) != 0 {
 		t.Fatalf("session timers should be empty on the shutdown leader")
 	}
-	for r :=
-
-		// Find the new leader
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Find the new leader
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {
@@ -377,7 +375,6 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 			t.Log("Should have a new leader")
 			continue
 		}
-
 		// Ensure session timer is restored
 		if _, ok := leader.sessionTimers[id1]; !ok {
 			t.Log("missing session timer")
@@ -385,5 +382,4 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		}
 		break
 	}
-
 }

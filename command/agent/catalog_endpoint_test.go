@@ -90,13 +90,11 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		obj, err := srv.CatalogDatacenters(nil, nil)
 		if err != nil {
 			t.Log(err)
 			continue
 		}
-
 		dcs := obj.([]string)
 		if len(dcs) != 1 {
 			t.Logf("missing dc: %v", dcs)
@@ -104,7 +102,6 @@ func TestCatalogDatacenters(t *testing.T) {
 		}
 		break
 	}
-
 }
 
 func TestCatalogNodes(t *testing.T) {
@@ -222,9 +219,11 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a node with DC2.
@@ -702,9 +701,11 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a node with DC2.
@@ -941,9 +942,11 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a node with DC2.

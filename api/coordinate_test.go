@@ -13,20 +13,17 @@ func TestCoordinate_Datacenters(t *testing.T) {
 
 	coordinate := c.Coordinate()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		datacenters, err := coordinate.Datacenters()
 		if err != nil {
 			t.Log(err)
 			continue
 		}
-
 		if len(datacenters) == 0 {
 			t.Logf("Bad: %v", datacenters)
 			continue
 		}
 		break
 	}
-
 }
 
 func TestCoordinate_Nodes(t *testing.T) {
@@ -36,7 +33,6 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 	coordinate := c.Coordinate()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, _, err := coordinate.Nodes(nil)
 		if err != nil {
 			t.Log(err)
@@ -49,5 +45,4 @@ func TestCoordinate_Nodes(t *testing.T) {
 		// we can do is call the endpoint and make sure we don't
 		// get an error.
 	}
-
 }

@@ -350,11 +350,8 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Now query back for all the nodes.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Now query back for all the nodes.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -371,10 +368,9 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		}
 		verifyCoordinatesEqual(t, resp.Coordinates[0].Coord, arg2.Coord) // bar
 		verifyCoordinatesEqual(t, resp.Coordinates[1].Coord, arg3.Coord) // baz
-		verifyCoordinatesEqual(t, resp.Coordinates[2].Coord, arg1.Coord)
-		break // foo
+		verifyCoordinatesEqual(t, resp.Coordinates[2].Coord, arg1.Coord) // foo
+		break
 	}
-
 }
 
 func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
@@ -445,13 +441,10 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Wait for all the coordinate updates to apply. Since we aren't
-		// enforcing version 8 ACLs, this should also allow us to read
-		// everything back without a token.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Wait for all the coordinate updates to apply. Since we aren't
+	// enforcing version 8 ACLs, this should also allow us to read
+	// everything back without a token.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -459,11 +452,11 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListNodes", &arg, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(resp.Coordinates) == 3 {
-			t.Log(nil)
-			break
+		if got, want := len(resp.Coordinates), 3; got != want {
+			t.Logf("got %d coordinates want %d", got, want)
+			continue
 		}
-		continue
+		break
 	}
 
 	// Now that we've waited for the batch processing to ingest the

@@ -56,12 +56,13 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
-		m = a1.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		continue
+		m := a1.agent.LANMembers()
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got serf status %q want %q", got, want)
+			continue
+		}
+		break
 	}
-
 }
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {

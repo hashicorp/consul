@@ -332,9 +332,11 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(s1.WANMembers()) > 1 {
-			break
+		if got, want := len(s1.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Run a snapshot from each server locally and remotely to ensure we

@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -41,14 +40,15 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			break
+		if node == nil {
+			t.Log("no node")
+			continue
 		}
+		break
 	}
 
 	// Should have a check
@@ -117,14 +117,15 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			break
+		if node == nil {
+			t.Log("no node")
+			continue
 		}
+		break
 	}
 
 	// Should have a check
@@ -142,17 +143,16 @@ func TestLeader_FailedMember(t *testing.T) {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if checks[0].Status == api.HealthCritical {
-			break
+		if got, want := checks[0].Status, api.HealthCritical; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
 		}
-		t.Log(errors.New(checks[0].Status))
+		break
 	}
-
 }
 
 func TestLeader_LeftMember(t *testing.T) {
@@ -177,37 +177,34 @@ func TestLeader_LeftMember(t *testing.T) {
 	}
 
 	state := s1.fsm.State()
-	for r :=
-
-		// Should be registered
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
-		_, node, err := state.GetNode(c1.config.NodeName)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if node != nil {
-			break
-		}
-	}
-
-	// Node should leave
-	c1.Leave()
-	c1.Shutdown()
-	for r :=
-
-		// Should be deregistered
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Should be registered
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if node == nil {
-			break
+			t.Log("no node")
+			continue
 		}
+		break
 	}
 
+	// Node should leave
+	c1.Leave()
+	c1.Shutdown()
+	// Should be deregistered
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		_, node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if node != nil {
+			t.Log("node still there")
+			continue
+		}
+		break
+	}
 }
 
 func TestLeader_ReapMember(t *testing.T) {
@@ -232,18 +229,17 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 
 	state := s1.fsm.State()
-	for r :=
-
-		// Should be registered
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Should be registered
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			break
+		if node == nil {
+			t.Log("no node")
+			continue
 		}
+		break
 	}
 
 	// Simulate a node reaping
@@ -354,20 +350,18 @@ func TestLeader_Reconcile(t *testing.T) {
 	if node != nil {
 		t.Fatalf("client registered")
 	}
-	for r :=
-
-		// Should be registered
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Should be registered
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, node, err = state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			break
+		if node == nil {
+			t.Log("no node")
+			continue
 		}
+		break
 	}
-
 }
 
 func TestLeader_Reconcile_Races(t *testing.T) {
@@ -391,16 +385,15 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			t.Log(nil)
-			break
+		if node == nil {
+			continue
 		}
-		continue
+		nodeAddr = node.Address
+		break
 	}
 
 	// Add in some metadata via the catalog (as if the agent synced it
@@ -443,15 +436,15 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if checks[0].Status == api.HealthCritical {
-			break
+		if got, want := checks[0].Status, api.HealthCritical; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
 		}
-		t.Log(errors.New(checks[0].Status))
+		break
 	}
 
 	// Make sure the metadata didn't get clobbered.
@@ -493,16 +486,17 @@ func TestLeader_LeftServer(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
-	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 
+retry:
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// Kill any server
 		servers[0].Shutdown()
 
@@ -513,11 +507,13 @@ func TestLeader_LeftServer(t *testing.T) {
 
 		for _, s := range servers[1:] {
 			peers, _ := s.numPeers()
-			return peers == 2, fmt.Errorf("%d", peers)
+			if got, want := peers, 2; got != want {
+				t.Log("got %d peers want %d", got, want)
+				continue retry
+			}
 		}
 		break
 	}
-
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
@@ -546,13 +542,13 @@ func TestLeader_LeftLeader(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Kill the leader!
@@ -577,29 +573,28 @@ func TestLeader_LeftLeader(t *testing.T) {
 		}
 		remain = s
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 2 {
-				break
+			if got, want := peers, 2; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
-			t.Logf("%d", peers)
+			break
 		}
-
 	}
 
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if node == nil {
-			break
+		if node != nil {
+			t.Log("node still there")
+			continue
 		}
+		break
 	}
-
 }
 
 func TestLeader_MultiBootstrap(t *testing.T) {
@@ -622,13 +617,13 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers := s.serfLAN.Members()
-			if len(peers) == 2 {
-				break
+			if got, want := len(peers), 2; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Ensure we don't have multiple raft peers
@@ -666,13 +661,13 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	var leader *Server
@@ -697,26 +692,21 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	// Wait for a new leader
 	leader = nil
+retry:
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		for _, s := range servers {
 			if s.IsLeader() {
 				leader = s
-				return true, nil
+				break retry
 			}
 		}
-		continue
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if
-
 		// Check that the new leader has a pending GC expiration
-
-		leader.tombstoneGC.PendingExpiration() {
+		if leader.tombstoneGC.PendingExpiration() {
 			break
 		}
 	}
-
 }
 
 func TestLeader_ReapTombstones(t *testing.T) {
@@ -772,12 +762,9 @@ func TestLeader_ReapTombstones(t *testing.T) {
 			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
-	for r :=
-
-		// Check that the new leader has a pending GC expiration by
-		// watching for the tombstone to get removed.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Check that the new leader has a pending GC expiration by
+	// watching for the tombstone to get removed.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
@@ -785,11 +772,12 @@ func TestLeader_ReapTombstones(t *testing.T) {
 			t.Log(err)
 			continue
 		}
-		if stones.Next() == nil {
-			break
+		if stones.Next() != nil {
+			t.Logf("found tombstones")
+			continue
 		}
+		break
 	}
-
 }
 
 func TestLeader_RollRaftServer(t *testing.T) {
@@ -826,13 +814,13 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Kill the v1 server
@@ -840,14 +828,17 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range []*Server{s1, s3} {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			minVer, err := ServerMinRaftProtocol(s.LANMembers())
-			if minVer == 2 {
-				break
+			if err != nil {
+				t.Log(err)
+				continue
 			}
-			t.Log(err)
+			if got, want := minVer, 2; got != want {
+				t.Logf("got minVer %d want %d", got, want)
+				continue
+			}
+			break
 		}
-
 	}
 
 	// Replace the dead server with one running raft protocol v3
@@ -866,7 +857,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			addrs := 0
 			ids := 0
 			future := s.raft.GetConfiguration()
@@ -881,11 +871,16 @@ func TestLeader_RollRaftServer(t *testing.T) {
 					ids++
 				}
 			}
-			if addrs == 2 && ids == 1 {
-				break
+			if got, want := addrs, 2; got != want {
+				t.Logf("got %d addrs want %d", got, want)
+				continue
 			}
+			if got, want := ids, 1; got != want {
+				t.Logf("got %d ids want %d", got, want)
+				continue
+			}
+			break
 		}
-
 	}
 }
 
@@ -922,28 +917,29 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
 		}
-		if alive == 2 {
-			break
+		if got, want := alive, 2; got != want {
+			t.Logf("got %d alive servers want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Bring up a new server with s3's address that will get a different ID
@@ -966,12 +962,12 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			peers, _ := s.numPeers()
-			if peers == 3 {
-				break
+			if got, want := peers, 3; got != want {
+				t.Logf("got %d peers want %d", got, want)
+				continue
 			}
+			break
 		}
-
 	}
 }

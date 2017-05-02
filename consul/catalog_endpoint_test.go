@@ -605,11 +605,12 @@ func TestCatalog_ListNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		if len(out.Nodes) == 2 {
-			break
+		if got, want := len(out.Nodes), 2; got != want {
+			t.Logf("got %d nodes want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Server node is auto added from Serf
@@ -648,11 +649,12 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	}
 	var out structs.IndexedNodes
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		if len(out.Nodes) == 1 {
-			break
+		if got, want := len(out.Nodes), 1; got != want {
+			t.Logf("got %d nodes want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Verify that only the correct node was returned
@@ -678,17 +680,14 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Should get an empty list of nodes back
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		if len(out.Nodes) == 0 {
-			break
+		if got, want := len(out.Nodes), 0; got != want {
+			t.Logf("got %d nodes want %d", got, want)
+			continue
 		}
+		break
 	}
-
 }
 
 func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
@@ -895,11 +894,12 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 	}
 	var out structs.IndexedNodes
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		if len(out.Nodes) == 5 {
-			break
+		if got, want := len(out.Nodes), 5; got != want {
+			t.Logf("got %d nodes want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	if out.Nodes[0].Node != "aaa" {
@@ -925,11 +925,12 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-		if len(out.Nodes) == 5 {
-			break
+		if got, want := len(out.Nodes), 5; got != want {
+			t.Logf("got %d nodes want %d", got, want)
+			continue
 		}
+		break
 	}
 
 	if out.Nodes[0].Node != "foo" {

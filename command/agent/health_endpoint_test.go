@@ -22,7 +22,6 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -33,7 +32,6 @@ func TestHealthChecksInState(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			// Should be a non-nil empty list
 			nodes := obj.(structs.HealthChecks)
 			if nodes == nil || len(nodes) != 0 {
@@ -42,7 +40,6 @@ func TestHealthChecksInState(t *testing.T) {
 			}
 			break
 		}
-
 	})
 
 	httpTest(t, func(srv *HTTPServer) {
@@ -51,7 +48,6 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -62,7 +58,6 @@ func TestHealthChecksInState(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			// Should be 1 health check for the server
 			nodes := obj.(structs.HealthChecks)
 			if len(nodes) != 1 {
@@ -71,7 +66,6 @@ func TestHealthChecksInState(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 
@@ -98,7 +92,6 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -109,7 +102,6 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			// Should be 1 health check for the server
 			nodes := obj.(structs.HealthChecks)
 			if len(nodes) != 1 {
@@ -118,7 +110,6 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 
@@ -182,11 +173,8 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Retry until foo moves to the front of the line.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Retry until foo moves to the front of the line.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthChecksInState(resp, req)
 		if err != nil {
@@ -209,7 +197,6 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 		}
 		break
 	}
-
 }
 
 func TestHealthNodeChecks(t *testing.T) {
@@ -448,11 +435,8 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Retry until foo has moved to the front of the line.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Retry until foo has moved to the front of the line.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceChecks(resp, req)
 		if err != nil {
@@ -475,7 +459,6 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 		}
 		break
 	}
-
 }
 
 func TestHealthServiceNodes(t *testing.T) {
@@ -687,11 +670,8 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Retry until foo has moved to the front of the line.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Retry until foo has moved to the front of the line.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceNodes(resp, req)
 		if err != nil {
@@ -714,7 +694,6 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 		}
 		break
 	}
-
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
@@ -791,9 +770,11 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-		if len(srv1.agent.WANMembers()) > 1 {
-			break
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
 		}
+		break
 	}
 
 	// Register a node with DC2.

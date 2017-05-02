@@ -364,21 +364,21 @@ func TestACLReplication(t *testing.T) {
 		}
 	}
 
-	checkSame := func() (bool, error) {
+	checkSame := func() error {
 		index, remote, err := s1.fsm.State().ACLList(nil)
 		if err != nil {
-			return false, err
+			return err
 		}
 		_, local, err := s2.fsm.State().ACLList(nil)
 		if err != nil {
-			return false, err
+			return err
 		}
-		if len(remote) != len(local) {
-			return false, nil
+		if got, want := len(remote), len(local); got != want {
+			return fmt.Errorf("got %d remote ACLs want %d", got, want)
 		}
 		for i, acl := range remote {
-			if !acl.IsSame(local[i]) {
-				return false, nil
+			if got, want := acl, local[i]; !got.IsSame(want) {
+				return fmt.Errorf("got ACL %v want %v", got, want)
 			}
 		}
 
@@ -389,15 +389,13 @@ func TestACLReplication(t *testing.T) {
 		if !status.Enabled || !status.Running ||
 			status.ReplicatedIndex != index ||
 			status.SourceDatacenter != "dc1" {
-			return false, nil
+			return fmt.Errorf("ACL replication status differs")
 		}
 
-		return true, nil
+		return nil
 	}
-	for r :=
-
-		// Wait for the replica to converge.
-		retry.OneSec(); r.NextOr(t.FailNow); {
+	// Wait for the replica to converge.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		if err := checkSame(); err != nil {
 			t.Log(err)
 			continue
@@ -422,10 +420,8 @@ func TestACLReplication(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}
-	for r :=
-
-		// Wait for the replica to converge.
-		retry.OneSec(); r.NextOr(t.FailNow); {
+	// Wait for the replica to converge.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		if err := checkSame(); err != nil {
 			t.Log(err)
 			continue
@@ -446,10 +442,8 @@ func TestACLReplication(t *testing.T) {
 	if err := s1.RPC("ACL.Apply", &arg, &dontCare); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for r :=
-
-		// Wait for the replica to converge.
-		retry.OneSec(); r.NextOr(t.FailNow); {
+	// Wait for the replica to converge.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		if err := checkSame(); err != nil {
 			t.Log(err)
 			continue

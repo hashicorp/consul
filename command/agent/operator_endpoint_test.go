@@ -451,8 +451,8 @@ func TestOperator_ServerHealth(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
+		r := retry.Timer{Timeout: 3 * time.Second, Wait: 200 * time.Millisecond}
+		for r.NextOr(t.FailNow) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
@@ -494,8 +494,8 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
+		r := retry.Timer{Timeout: 3 * time.Second, Wait: 200 * time.Millisecond}
+		for r.NextOr(t.FailNow) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
 			if err != nil {
@@ -519,6 +519,5 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 			}
 			break
 		}
-
 	}, cb)
 }

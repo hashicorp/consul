@@ -123,7 +123,6 @@ func TestEventList(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				t.Log(err)
@@ -135,7 +134,6 @@ func TestEventList(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				t.Logf("bad: %#v", obj)
@@ -152,7 +150,6 @@ func TestEventList(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 
@@ -168,7 +165,6 @@ func TestEventList_Filter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			if err != nil {
 				t.Log(err)
@@ -180,7 +176,6 @@ func TestEventList_Filter(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				t.Logf("bad: %#v", obj)
@@ -197,7 +192,6 @@ func TestEventList_Filter(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 
@@ -216,7 +210,6 @@ func TestEventList_ACLFilter(t *testing.T) {
 	// Try no token.
 	{
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				t.Log(err)
@@ -228,7 +221,6 @@ func TestEventList_ACLFilter(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				t.Logf("bad: %#v", obj)
@@ -240,13 +232,11 @@ func TestEventList_ACLFilter(t *testing.T) {
 			}
 			break
 		}
-
 	}
 
 	// Try the root token.
 	{
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			if err != nil {
 				t.Log(err)
@@ -258,7 +248,6 @@ func TestEventList_ACLFilter(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				t.Logf("bad: %#v", obj)
@@ -270,7 +259,6 @@ func TestEventList_ACLFilter(t *testing.T) {
 			}
 			break
 		}
-
 	}
 }
 
@@ -283,7 +271,6 @@ func TestEventList_Blocking(t *testing.T) {
 
 		var index string
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				t.Log(err)
@@ -312,7 +299,6 @@ func TestEventList_Blocking(t *testing.T) {
 			}
 		}()
 		for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 			url := "/v1/event/list?index=" + index
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -325,7 +311,6 @@ func TestEventList_Blocking(t *testing.T) {
 				t.Log(err)
 				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				t.Logf("bad: %#v", obj)
@@ -337,7 +322,6 @@ func TestEventList_Blocking(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 
@@ -357,12 +341,10 @@ func TestEventList_EventBufOrder(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		}
-		for r :=
 
-			// Test that the event order is preserved when name
-			// filtering on a list of > 1 matching event.
-			retry.OneSec(); r.NextOr(t.FailNow); {
-
+		// Test that the event order is preserved when name
+		// filtering on a list of > 1 matching event.
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			url := "/v1/event/list?name=foo"
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -386,7 +368,6 @@ func TestEventList_EventBufOrder(t *testing.T) {
 			}
 			break
 		}
-
 	})
 }
 

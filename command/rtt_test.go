@@ -106,11 +106,8 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 		a.config.NodeName,
 		"dogs",
 	}
-	for r :=
-
-		// Wait for the updates to get flushed to the data store.
-		retry.OneSec(); r.NextOr(t.FailNow); {
-
+	// Wait for the updates to get flushed to the data store.
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		code := c.Run(args)
 		if code != 0 {
 			t.Logf("bad: %d: %#v", code, ui.ErrorWriter.String())

@@ -31,12 +31,10 @@ func TestPreparedQuery(t *testing.T) {
 
 	catalog := c.Catalog()
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		if _, err := catalog.Register(reg, nil); err != nil {
 			t.Log(err)
 			continue
 		}
-
 		if _, _, err := catalog.Node("foobar", nil); err != nil {
 			t.Log(err)
 			continue

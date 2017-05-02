@@ -92,14 +92,21 @@ func waitForLeader(t *testing.T, httpAddr string) {
 		t.Fatalf("err: %v", err)
 	}
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		_, qm, err := client.Catalog().Nodes(nil)
-		if err == nil && qm.KnownLeader && qm.LastIndex > 0 {
-			break
+		if err != nil {
+			t.Log(err)
+			continue
 		}
-		t.Log(err)
+		if !qm.KnownLeader {
+			t.Log("no leader")
+			continue
+		}
+		if qm.LastIndex == 0 {
+			t.Log("last index is 0")
+			continue
+		}
+		break
 	}
-
 }
 
 func httpClient(addr string) (*consulapi.Client, error) {
@@ -207,15 +214,16 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 
 	var id string
 	for r := retry.OneSec(); r.NextOr(t.FailNow); {
-
 		id, err = c.createSession()
-		if err != nil && strings.Contains(err.Error(), "Failed to find Consul server") {
-			err = nil
+		if err != nil {
+			t.Log(err)
+			continue
 		}
-		if id != "" {
-			break
+		if id == "" {
+			t.Log("no id")
+			continue
 		}
-		t.Log(err)
+		break
 	}
 
 	se, _, err := client.Session().Info(id, nil)
