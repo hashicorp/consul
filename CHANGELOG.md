@@ -12,6 +12,7 @@ IMPROVEMENTS:
 * agent: Updated parts of Consul's Docker library in order to fix the build on Illumos. [GH-2989]
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
+* ui: Added optional JSON validation when editing KV entries in the web UI. [GH-2712]
 
 BUG FIXES:
 
