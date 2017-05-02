@@ -41,7 +41,7 @@ func (c *WatchCommand) Run(args []string) int {
 
 	f := c.Command.NewFlagSet(c)
 	f.StringVar(&watchType, "type", "",
-		"Specifies the watch type. One of key, keyprefix services, nodes, "+
+		"Specifies the watch type. One of key, keyprefix, services, nodes, "+
 			"service, checks, or event.")
 	f.StringVar(&key, "key", "",
 		"Specifies the key to watch. Only for 'key' type.")
