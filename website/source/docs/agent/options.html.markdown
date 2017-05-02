@@ -238,6 +238,18 @@ will exit with an error at startup.
    - If none of these exist and discovery is being run from a GCE instance, the
      instance's configured service account will be used.
 
+* <a name="_retry_join_azure_tag_name"></a><a href="#_retry_join_azure_tag_name">`-retry-join-azure-tag-name`
+  </a> - The Azure instance tag name to filter on. When used with
+  [`-retry-join-azure-tag-value`](#_retry_join_azure_tag_value), Consul will attempt to join Azure
+  instances with the given tag name and value on startup.
+  </br></br>For Azure authentication the following methods are supported, in order:
+  - Static credentials (from the config file)
+
+  The only permission needed is the ListAll method for NetworkInterfaces. It is recommended you make a dedicated key used only for auto-joining.
+
+* <a name="_retry_join_azure_tag_value"></a><a href="#_retry_join_azure_tag_value">`-retry-join-azure-tag-value`
+  </a> - The Azure instance tag value to filter on.
+
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
 
@@ -849,6 +861,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     Equivalent to the <br>
     [`-retry-join-gce-credentials-file` command-line
     flag](#_retry_join_gce_credentials_file).
+
+* <a name="retry_join_azure"></a><a href="#retry_join_azure">`retry_join_azure`</a> - This is a nested object
+  that allows the setting of Azure-related [`-retry-join`](#_retry_join) options.
+  <br><br>
+  The following keys are valid:
+  * `tag_name` - The Azure instance tag name to filter on. Equivalent to the</br>
+    [`-retry-join-azure-tag-name` command-line flag](#_retry_join_azure_tag_name).
+  * `tag_value` - The Azure instance tag value to filter on. Equivalent to the</br>
+    [`-retry-join-azure-tag-value` command-line flag](#_retry_join_azure_tag_value).
+  * `subscription_id` - The Azure Subscription ID to use for authentication.
+  * `tenant_id` - The Azure Tenant ID to use for authentication.
+  * `client_id` - The Azure Client ID to use for authentication.
+  * `secret_access_key` - The Azure secret access key to use for authentication.
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).
