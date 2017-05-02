@@ -117,7 +117,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Node:       agent.config.NodeName,
 	}
 
-	verifyServices := func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -182,9 +182,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 
 		return true, nil
-	}
-
-	if err := testrpc.WaitForResult(verifyServices); err != nil {
+	}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -194,7 +192,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
 
-	verifyServicesAfterRemove := func() (bool, error) {
+	if err := testrpc.WaitForResult(func() (bool, error) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			return false, fmt.Errorf("err: %v", err)
 		}
@@ -245,9 +243,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 
 		return true, nil
-	}
-
-	if err := testrpc.WaitForResult(verifyServicesAfterRemove); err != nil {
+	}); err != nil {
 		t.Fatal(err)
 	}
 }
