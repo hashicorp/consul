@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestPreparedQuery(t *testing.T) {
@@ -30,18 +30,18 @@ func TestPreparedQuery(t *testing.T) {
 	}
 
 	catalog := c.Catalog()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+
 		if _, err := catalog.Register(reg, nil); err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
 
 		if _, _, err := catalog.Node("foobar", nil); err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 
 	// Create a simple prepared query.

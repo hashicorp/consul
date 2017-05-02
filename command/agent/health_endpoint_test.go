@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -20,26 +21,28 @@ func TestHealthChecksInState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 
-		if err := testrpc.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			if err := checkIndex(resp); err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 
 			// Should be a non-nil empty list
 			nodes := obj.(structs.HealthChecks)
 			if nodes == nil || len(nodes) != 0 {
-				return false, fmt.Errorf("bad: %v", obj)
+				t.Logf("bad: %v", obj)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
+
 	})
 
 	httpTest(t, func(srv *HTTPServer) {
@@ -47,26 +50,28 @@ func TestHealthChecksInState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 
-		if err := testrpc.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			if err := checkIndex(resp); err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 
 			// Should be 1 health check for the server
 			nodes := obj.(structs.HealthChecks)
 			if len(nodes) != 1 {
-				return false, fmt.Errorf("bad: %v", obj)
+				t.Logf("bad: %v", obj)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
+
 	})
 }
 
@@ -92,26 +97,28 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 
-		if err := testrpc.WaitForResult(func() (bool, error) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			if err := checkIndex(resp); err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 
 			// Should be 1 health check for the server
 			nodes := obj.(structs.HealthChecks)
 			if len(nodes) != 1 {
-				return false, fmt.Errorf("bad: %v", obj)
+				t.Logf("bad: %v", obj)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
+
 	})
 }
 
@@ -175,29 +182,34 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	for r :=
 
-	// Retry until foo moves to the front of the line.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+		// Retry until foo moves to the front of the line.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthChecksInState(resp, req)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Logf("err: %v", err)
+			continue
 		}
 		assertIndex(t, resp)
 		nodes = obj.(structs.HealthChecks)
 		if len(nodes) != 2 {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
 		if nodes[0].Node != "foo" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
 		if nodes[1].Node != "bar" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
+
 }
 
 func TestHealthNodeChecks(t *testing.T) {
@@ -436,29 +448,34 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	for r :=
 
-	// Retry until foo has moved to the front of the line.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+		// Retry until foo has moved to the front of the line.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceChecks(resp, req)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Logf("err: %v", err)
+			continue
 		}
 		assertIndex(t, resp)
 		nodes = obj.(structs.HealthChecks)
 		if len(nodes) != 2 {
-			return false, fmt.Errorf("bad: %v", obj)
+			t.Logf("bad: %v", obj)
+			continue
 		}
 		if nodes[0].Node != "foo" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
 		if nodes[1].Node != "bar" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
+
 }
 
 func TestHealthServiceNodes(t *testing.T) {
@@ -670,29 +687,34 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	for r :=
 
-	// Retry until foo has moved to the front of the line.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+		// Retry until foo has moved to the front of the line.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+
 		resp = httptest.NewRecorder()
 		obj, err = srv.HealthServiceNodes(resp, req)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Logf("err: %v", err)
+			continue
 		}
 		assertIndex(t, resp)
 		nodes = obj.(structs.CheckServiceNodes)
 		if len(nodes) != 2 {
-			return false, fmt.Errorf("bad: %v", obj)
+			t.Logf("bad: %v", obj)
+			continue
 		}
 		if nodes[0].Node.Node != "foo" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
 		if nodes[1].Node.Node != "bar" {
-			return false, fmt.Errorf("bad: %v", nodes)
+			t.Logf("bad: %v", nodes)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
+
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
@@ -768,10 +790,10 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatal(err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if len(srv1.agent.WANMembers()) > 1 {
+			break
+		}
 	}
 
 	// Register a node with DC2.

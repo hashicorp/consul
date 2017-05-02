@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -330,10 +331,10 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("failed to join WAN: %s", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if len(s1.WANMembers()) > 1 {
+			break
+		}
 	}
 
 	// Run a snapshot from each server locally and remotely to ensure we

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -88,21 +89,22 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
 		obj, err := srv.CatalogDatacenters(nil, nil)
 		if err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
 
 		dcs := obj.([]string)
 		if len(dcs) != 1 {
-			return false, fmt.Errorf("missing dc: %v", dcs)
+			t.Logf("missing dc: %v", dcs)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
+
 }
 
 func TestCatalogNodes(t *testing.T) {
@@ -219,10 +221,10 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if len(srv1.agent.WANMembers()) > 1 {
+			break
+		}
 	}
 
 	// Register a node with DC2.
@@ -699,10 +701,10 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if len(srv1.agent.WANMembers()) > 1 {
+			break
+		}
 	}
 
 	// Register a node with DC2.
@@ -938,10 +940,10 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if len(srv1.agent.WANMembers()) > 1 {
+			break
+		}
 	}
 
 	// Register a node with DC2.

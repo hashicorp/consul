@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -393,10 +394,15 @@ func TestACLReplication(t *testing.T) {
 
 		return true, nil
 	}
+	for r :=
 
-	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
+		// Wait for the replica to converge.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+		if err := checkSame(); err != nil {
+			t.Log(err)
+			continue
+		}
+		break
 	}
 
 	// Create more new tokens.
@@ -416,10 +422,15 @@ func TestACLReplication(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}
+	for r :=
 
-	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
+		// Wait for the replica to converge.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+		if err := checkSame(); err != nil {
+			t.Log(err)
+			continue
+		}
+		break
 	}
 
 	// Delete a token.
@@ -435,9 +446,15 @@ func TestACLReplication(t *testing.T) {
 	if err := s1.RPC("ACL.Apply", &arg, &dontCare); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	for r :=
 
-	// Wait for the replica to converge.
-	if err := testrpc.WaitForResult(checkSame); err != nil {
-		t.Fatalf("ACLs didn't converge")
+		// Wait for the replica to converge.
+		retry.OneSec(); r.NextOr(t.FailNow); {
+		if err := checkSame(); err != nil {
+			t.Log(err)
+			continue
+		}
+		break
 	}
+
 }
