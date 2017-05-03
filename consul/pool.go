@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/rpc"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
 	"github.com/hashicorp/yamux"
 )
 
@@ -129,6 +131,10 @@ type ConnPool struct {
 	// The maximum number of open streams to keep
 	maxStreams int
 
+	// memberFunc is a callback to get the serf members for determining
+	// when to initiate a TLS connection
+	memberFunc func() []serf.Member
+
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
@@ -151,11 +157,13 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
+func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper,
+	memberFunc func() []serf.Member) *ConnPool {
 	pool := &ConnPool{
 		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
+		memberFunc: memberFunc,
 		pool:       make(map[string]*Conn),
 		limiter:    make(map[string]chan struct{}),
 		tlsWrap:    tlsWrap,
@@ -280,22 +288,49 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration) 
 
 	// Check if TLS is enabled
 	if p.tlsWrap != nil {
-		// Switch the connection into TLS mode
-		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
-			conn.Close()
+		doWrap, err := memberExpectsTLS(addr.String(), p.memberFunc())
+		if err != nil {
 			return nil, nil, err
 		}
 
-		// Wrap the connection in a TLS client
-		tlsConn, err := p.tlsWrap(dc, conn)
-		if err != nil {
-			conn.Close()
-			return nil, nil, err
+		if doWrap {
+			// Switch the connection into TLS mode
+			if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+				conn.Close()
+				return nil, nil, err
+			}
+
+			// Wrap the connection in a TLS client
+			tlsConn, err := p.tlsWrap(dc, conn)
+			if err != nil {
+				conn.Close()
+				return nil, nil, err
+			}
+			conn = tlsConn
 		}
-		conn = tlsConn
 	}
 
 	return conn, hc, nil
+}
+
+// memberExpectsTLS returns true if the member with the specified address is
+// verifying incoming TLS connections
+func memberExpectsTLS(addr string, members []serf.Member) (bool, error) {
+	for _, member := range members {
+		port, err := strconv.Atoi(member.Tags["rpc_port"])
+		if err != nil {
+			return false, err
+		}
+		memberAddr := (&net.TCPAddr{IP: member.Addr, Port: port}).String()
+		if memberAddr == addr {
+			if _, ok := member.Tags["tls_verify_incoming"]; !ok {
+				return false, nil
+			}
+			break
+		}
+	}
+
+	return true, nil
 }
 
 // getNewConn is used to return a new connection
