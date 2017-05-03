@@ -60,6 +60,25 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Simple JSON5 parse test
+	input = `{data_dir: "/tmp/", log_level: "debug", /* comments! // single-line comments work, too */ ports: {server: 0x1f40},}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DataDir != "/tmp/" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.LogLevel != "debug" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.Ports.Server != 8000 {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Node info
 	input = `{"node_id": "bar", "disable_host_node_id": true, "node_name": "foo", "datacenter": "dc2"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
