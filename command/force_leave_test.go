@@ -1,13 +1,12 @@
 package command
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 )
@@ -56,13 +55,13 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	if len(m) != 2 {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		m = a1.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}); err != nil {
-		t.Fatalf("member status is %v, should be left", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		m := a1.agent.LANMembers()
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got serf status %q want %q", got, want)
+			continue
+		}
+		break
 	}
 }
 

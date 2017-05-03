@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/miekg/dns"
 )
 
@@ -1299,11 +1300,12 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Register a remote node with a service.
@@ -3375,10 +3377,12 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			t.Logf("got %d WAN members want at least %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Register a remote node with a service.

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestEventFire(t *testing.T) {
@@ -122,32 +122,33 @@ func TestEventList(t *testing.T) {
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 1 || list[0].Name != "test" {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
 			header := resp.Header().Get("X-Consul-Index")
 			if header == "" || header == "0" {
-				return false, fmt.Errorf("bad: %#v", header)
+				t.Logf("bad: %#v", header)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	})
 }
@@ -163,32 +164,33 @@ func TestEventList_Filter(t *testing.T) {
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 1 || list[0].Name != "foo" {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
 			header := resp.Header().Get("X-Consul-Index")
 			if header == "" || header == "0" {
-				return false, fmt.Errorf("bad: %#v", header)
+				t.Logf("bad: %#v", header)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	})
 }
@@ -207,53 +209,55 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	// Try no token.
 	{
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 0 {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	}
 
 	// Try the root token.
 	{
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 1 || list[0].Name != "foo" {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	}
 }
@@ -266,24 +270,25 @@ func TestEventList_Blocking(t *testing.T) {
 		}
 
 		var index string
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			_, err = srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			header := resp.Header().Get("X-Consul-Index")
 			if header == "" || header == "0" {
-				return false, fmt.Errorf("bad: %#v", header)
+				t.Logf("bad: %#v", header)
+				continue
 			}
 			index = header
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 
 		go func() {
@@ -293,29 +298,29 @@ func TestEventList_Blocking(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		}()
-
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			url := "/v1/event/list?index=" + index
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
-
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 2 || list[1].Name != "second" {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	})
 }
@@ -339,27 +344,29 @@ func TestEventList_EventBufOrder(t *testing.T) {
 
 		// Test that the event order is preserved when name
 		// filtering on a list of > 1 matching event.
-		if err := testutil.WaitForResult(func() (bool, error) {
+		for r := retry.OneSec(); r.NextOr(t.FailNow); {
 			url := "/v1/event/list?name=foo"
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
-				return false, err
+				t.Log(err)
+				continue
 			}
 			list, ok := obj.([]*UserEvent)
 			if !ok {
-				return false, fmt.Errorf("bad: %#v", obj)
+				t.Logf("bad: %#v", obj)
+				continue
 			}
 			if len(list) != 3 || list[2].ID != expected.ID {
-				return false, fmt.Errorf("bad: %#v", list)
+				t.Logf("bad: %#v", list)
+				continue
 			}
-			return true, nil
-		}); err != nil {
-			t.Fatal(err)
+			break
 		}
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 var testACLPolicy = `
@@ -230,12 +231,13 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	client := rpcClient(t, s1)
@@ -282,13 +284,15 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -358,13 +362,15 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
@@ -415,13 +421,15 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -489,13 +497,15 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -565,13 +575,15 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := p1, 2; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -684,26 +696,27 @@ func TestACL_Replication(t *testing.T) {
 	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Wait for replication to occur.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
 		if acl == nil {
-			return false, nil
+			t.Log(nil)
+			continue
 		}
 		_, acl, err = s3.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
 		if acl == nil {
-			return false, nil
+			t.Log(nil)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 
 	// Kill the ACL datacenter.

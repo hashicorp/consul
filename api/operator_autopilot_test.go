@@ -1,10 +1,10 @@
 package api
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestOperator_AutopilotGetSetConfiguration(t *testing.T) {
@@ -89,19 +89,24 @@ func TestOperator_AutopilotServerHealth(t *testing.T) {
 	defer s.Stop()
 
 	operator := c.Operator()
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		out, err := operator.AutopilotServerHealth(nil)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Logf("err: %v", err)
+			continue
 		}
-		if len(out.Servers) != 1 ||
-			!out.Servers[0].Healthy ||
-			out.Servers[0].Name != s.Config.NodeName {
-			return false, fmt.Errorf("bad: %v", out)
+		if got, want := len(out.Servers), 1; got != want {
+			t.Logf("got %d servers want %d", got, want)
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		if got, want := out.Servers[0].Healthy, true; got != want {
+			t.Logf("got healthy %s want %s", got, want)
+			continue
+		}
+		if got, want := out.Servers[0].Name, s.Config.NodeName; got != want {
+			t.Logf("got name %q want %q", got, want)
+			continue
+		}
+		break
 	}
 }

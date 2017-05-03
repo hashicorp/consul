@@ -17,7 +17,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -78,20 +78,17 @@ func expectStatus(t *testing.T, script, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+			t.Logf("should have 2 updates %v", mock.updates)
+			continue
 		}
-
 		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+			t.Logf("should be %v %v", status, mock.state)
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -281,24 +278,22 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+			t.Logf("should have 2 updates %v", mock.updates)
+			continue
 		}
-
 		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+			t.Logf("should be %v %v", status, mock.state)
+			continue
 		}
-
 		// Allow slightly more data than CheckBufSize, for the header
 		if n := len(mock.Output("foo")); n > (CheckBufSize + 256) {
-			return false, fmt.Errorf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+			t.Logf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -387,19 +382,17 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// Should have at least 2 updates
 		if mock.updates["bar"] < 2 {
-			return false, fmt.Errorf("should have at least 2 updates %v", mock.updates)
+			t.Logf("should have at least 2 updates %v", mock.updates)
+			continue
 		}
-
 		if mock.state["bar"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+			t.Logf("should be critical %v", mock.state)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -460,14 +453,12 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		if mock.state["skipverify_true"] != api.HealthPassing {
-			return false, fmt.Errorf("should be passing %v", mock.state)
+			t.Logf("should be passing %v", mock.state)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -495,14 +486,12 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		if mock.state["skipverify_true"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+			t.Logf("should be critical %v", mock.state)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -531,19 +520,17 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be false")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// This should fail due to an invalid SSL cert
 		if mock.state["skipverify_false"] != api.HealthCritical {
-			return false, fmt.Errorf("should be critical %v", mock.state)
+			t.Logf("should be critical %v", mock.state)
+			continue
 		}
-
 		if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
-			return false, fmt.Errorf("should fail with certificate error %v", mock.output)
+			t.Logf("should fail with certificate error %v", mock.output)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -581,20 +568,19 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		// Should have at least 2 updates
 		if mock.Updates("foo") < 2 {
-			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+			t.Logf("should have 2 updates %v", mock.updates)
+			continue
 		}
-
 		if mock.State("foo") != status {
-			return false, fmt.Errorf("should be %v %v", status, mock.state)
+			t.Logf("should be %v %v", status, mock.state)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
+
 }
 
 func TestCheckTCPCritical(t *testing.T) {

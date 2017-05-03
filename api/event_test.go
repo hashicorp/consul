@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestEvent_FireList(t *testing.T) {
@@ -29,14 +29,16 @@ func TestEvent_FireList(t *testing.T) {
 
 	var events []*UserEvent
 	var qm *QueryMeta
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		events, qm, err = event.List("", nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		return len(events) > 0, err
-	}); err != nil {
-		t.Fatal(err)
+		if len(events) == 0 {
+			t.Log("no events")
+			continue
+		}
+		break
 	}
 
 	if events[len(events)-1].ID != id {

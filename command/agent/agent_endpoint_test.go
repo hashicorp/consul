@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
@@ -337,7 +336,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	args := []string{
 		"-server",
-		"-data-dir", tmpDir,
+		"-dev",
 		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
 		"-config-file", tmpFile.Name(),
 	}
@@ -346,11 +345,12 @@ func TestAgent_Reload(t *testing.T) {
 		cmd.Run(args)
 		close(doneCh)
 	}()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(cmd.httpServers) == 1, nil
-	}); err != nil {
-		t.Fatalf("should have an http server")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(cmd.httpServers), 1; got != want {
+			t.Logf("got %d HTTP servers want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	if _, ok := cmd.agent.state.services["redis"]; !ok {
@@ -535,11 +535,12 @@ func TestAgent_Join(t *testing.T) {
 	if len(srv.agent.LANMembers()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(a2.LANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatal("should have 2 members")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(a2.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		break
 	}
 }
 
@@ -570,11 +571,12 @@ func TestAgent_Join_WAN(t *testing.T) {
 	if len(srv.agent.WANMembers()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		return len(a2.WANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatal("should have 2 members")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			t.Logf("got %d WAN members want %d", got, want)
+			continue
+		}
+		break
 	}
 }
 
@@ -663,13 +665,13 @@ func TestAgent_Leave(t *testing.T) {
 	if obj != nil {
 		t.Fatalf("Err: %v", obj)
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}); err != nil {
-		t.Fatalf("member status is %v, should be left", err)
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
+		}
+		break
 	}
 }
 
@@ -762,13 +764,13 @@ func TestAgent_ForceLeave(t *testing.T) {
 	if obj != nil {
 		t.Fatalf("Err: %v", obj)
 	}
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		m := srv.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}); err != nil {
-		t.Fatalf("member status is %v, should be left", err)
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			t.Logf("got status %q want %q", got, want)
+			continue
+		}
+		break
 	}
 }
 
@@ -1932,7 +1934,7 @@ func TestAgent_Monitor(t *testing.T) {
 
 	// Try to stream logs until we see the expected log line
 	expected := []byte("raft: Initial configuration (index=1)")
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
 		resp = newClosableRecorder()
 		done := make(chan struct{})
@@ -1946,12 +1948,11 @@ func TestAgent_Monitor(t *testing.T) {
 		resp.Close()
 		<-done
 
-		if bytes.Contains(resp.Body.Bytes(), expected) {
-			return true, nil
+		if got, want := resp.Body.Bytes(), expected; !bytes.Contains(got, want) {
+			t.Logf("got %q which does not contain %q", got, want)
+			continue
 		}
-		return false, fmt.Errorf("didn't see expected")
-	}); err != nil {
-		t.Fatalf("err: %v", err)
+		break
 	}
 }
 

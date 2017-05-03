@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -349,9 +350,8 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Now query back for all the nodes.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -363,14 +363,13 @@ func TestCoordinate_ListNodes(t *testing.T) {
 			resp.Coordinates[0].Node != "bar" ||
 			resp.Coordinates[1].Node != "baz" ||
 			resp.Coordinates[2].Node != "foo" {
-			return false, fmt.Errorf("bad: %v", resp.Coordinates)
+			t.Logf("bad: %v", resp.Coordinates)
+			continue
 		}
 		verifyCoordinatesEqual(t, resp.Coordinates[0].Coord, arg2.Coord) // bar
 		verifyCoordinatesEqual(t, resp.Coordinates[1].Coord, arg3.Coord) // baz
 		verifyCoordinatesEqual(t, resp.Coordinates[2].Coord, arg1.Coord) // foo
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -442,11 +441,10 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Wait for all the coordinate updates to apply. Since we aren't
 	// enforcing version 8 ACLs, this should also allow us to read
 	// everything back without a token.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -454,12 +452,11 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListNodes", &arg, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(resp.Coordinates) == 3 {
-			return true, nil
+		if got, want := len(resp.Coordinates), 3; got != want {
+			t.Logf("got %d coordinates want %d", got, want)
+			continue
 		}
-		return false, fmt.Errorf("bad: %v", resp.Coordinates)
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 
 	// Now that we've waited for the batch processing to ingest the

@@ -1,10 +1,9 @@
 package api
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestCoordinate_Datacenters(t *testing.T) {
@@ -13,20 +12,17 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	defer s.Stop()
 
 	coordinate := c.Coordinate()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		datacenters, err := coordinate.Datacenters()
 		if err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
-
 		if len(datacenters) == 0 {
-			return false, fmt.Errorf("Bad: %v", datacenters)
+			t.Logf("Bad: %v", datacenters)
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
@@ -36,19 +32,17 @@ func TestCoordinate_Nodes(t *testing.T) {
 	defer s.Stop()
 
 	coordinate := c.Coordinate()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		_, _, err := coordinate.Nodes(nil)
 		if err != nil {
-			return false, err
+			t.Log(err)
+			continue
 		}
+		break
 
 		// There's not a good way to populate coordinates without
 		// waiting for them to calculate and update, so the best
 		// we can do is call the endpoint and make sure we don't
 		// get an error.
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
 	}
 }

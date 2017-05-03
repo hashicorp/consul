@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -103,19 +103,16 @@ func TestRetryJoin(t *testing.T) {
 		}
 		close(doneCh)
 	}()
-
-	if err := testutil.WaitForResult(func() (bool, error) {
-		mem := agent.LANMembers()
-		if len(mem) != 2 {
-			return false, fmt.Errorf("bad: %#v", mem)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(agent.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
 		}
-		mem = agent.WANMembers()
-		if len(mem) != 2 {
-			return false, fmt.Errorf("bad (wan): %#v", mem)
+		if got, want := len(agent.WANMembers()), 2; got != want {
+			t.Logf("got %d WAN members want %d", got, want)
+			continue
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -297,12 +298,13 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		peers, _ := s1.numPeers()
-		return peers == 3, nil
-	}); err != nil {
-		t.Fatalf("should have 3 peers %s", err)
+		if got, want := peers, 3; got != want {
+			t.Logf("got %d peers want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Find the leader
@@ -361,9 +363,8 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	if len(leader.sessionTimers) != 0 {
 		t.Fatalf("session timers should be empty on the shutdown leader")
 	}
-
 	// Find the new leader
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {
@@ -371,16 +372,14 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 			}
 		}
 		if leader == nil {
-			return false, fmt.Errorf("Should have a new leader")
+			t.Log("Should have a new leader")
+			continue
 		}
-
 		// Ensure session timer is restored
 		if _, ok := leader.sessionTimers[id1]; !ok {
-			return false, fmt.Errorf("missing session timer")
+			t.Log("missing session timer")
+			continue
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }

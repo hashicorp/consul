@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
@@ -84,26 +85,32 @@ func TestClient_JoinLAN(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return c1.servers.NumServers() == 1, nil
-	}); err != nil {
-		t.Fatal("expected consul server")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := c1.servers.NumServers(), 1; got != want {
+			t.Logf("got %d servers want %d", got, want)
+			continue
+		}
+		break
 	}
-
 	// Check the members
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		server_check := len(s1.LANMembers()) == 2
-		client_check := len(c1.LANMembers()) == 2
-		return server_check && client_check, nil
-	}); err != nil {
-		t.Fatal("bad len")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		break
 	}
-
 	// Check we have a new consul
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return c1.servers.NumServers() == 1, nil
-	}); err != nil {
-		t.Fatal("expected consul server")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := c1.servers.NumServers(), 1; got != want {
+			t.Logf("got %d servers want %d", got, want)
+			continue
+		}
+		break
 	}
 }
 
@@ -187,13 +194,13 @@ func TestClient_RPC(t *testing.T) {
 	if len(c1.LANMembers()) != 2 {
 		t.Fatalf("bad len")
 	}
-
-	// RPC should succeed
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		err := c1.RPC("Status.Ping", struct{}{}, &out)
-		return err == nil, err
-	}); err != nil {
-		t.Fatal(err)
+		if err != nil {
+			t.Log(err)
+			continue
+		}
+		break
 	}
 }
 
@@ -212,13 +219,17 @@ func TestClient_RPC_Pool(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Wait for both agents to finish joining
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.LANMembers()) == 2 && len(c1.LANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.",
-			len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Blast out a bunch of RPC requests at the same time to try to get
@@ -226,19 +237,19 @@ func TestClient_RPC_Pool(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 150; i++ {
 		wg.Add(1)
-
 		go func() {
 			defer wg.Done()
 			var out struct{}
-			if err := testrpc.WaitForResult(func() (bool, error) {
+			for r := retry.OneSec(); r.NextOr(t.FailNow); {
 				err := c1.RPC("Status.Ping", struct{}{}, &out)
-				return err == nil, err
-			}); err != nil {
-				t.Fatal(err)
+				if err != nil {
+					t.Log(err)
+					continue
+				}
+				break
 			}
 		}()
 	}
-
 	wg.Wait()
 }
 
@@ -343,21 +354,22 @@ func TestClient_RPC_TLS(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Wait for joins to finish/RPC to succeed
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		if len(s1.LANMembers()) != 2 {
-			return false, fmt.Errorf("bad len: %v", len(s1.LANMembers()))
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
 		}
-
-		if len(c1.LANMembers()) != 2 {
-			return false, fmt.Errorf("bad len: %v", len(c1.LANMembers()))
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
 		}
-
 		err := c1.RPC("Status.Ping", struct{}{}, &out)
-		return err == nil, err
-	}); err != nil {
-		t.Fatal(err)
+		if err != nil {
+			t.Log(err)
+			continue
+		}
+		break
 	}
 }
 
@@ -382,12 +394,13 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
 		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
 	}
-
 	// Wait until we've got a healthy server.
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return c1.servers.NumServers() == 1, nil
-	}); err != nil {
-		t.Fatal("expected consul server")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := c1.servers.NumServers(), 1; got != want {
+			t.Logf("got %d servers want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Take a snapshot.
@@ -441,12 +454,13 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
 		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
 	}
-
 	// Wait until we've got a healthy server.
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return c1.servers.NumServers() == 1, nil
-	}); err != nil {
-		t.Fatal("expected consul server")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := c1.servers.NumServers(), 1; got != want {
+			t.Logf("got %d servers want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Take a snapshot.
@@ -494,12 +508,16 @@ func TestClientServer_UserEvent(t *testing.T) {
 
 	// Wait for the leader
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Check the members
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(c1.LANMembers()) == 2 && len(s1.LANMembers()) == 2, nil
-	}); err != nil {
-		t.Fatal("bad len")
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			t.Logf("got %d LAN members want %d", got, want)
+			continue
+		}
+		break
 	}
 
 	// Fire the user event

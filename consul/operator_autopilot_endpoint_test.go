@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 )
@@ -228,38 +229,42 @@ func TestOperator_ServerHealth(t *testing.T) {
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
+retry:
+	for r := retry.OneSec(); r.NextOr(t.FailNow); {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
 		var reply structs.OperatorHealthReply
 		err := msgpackrpc.CallWithCodec(codec, "Operator.ServerHealth", &arg, &reply)
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Logf("err: %v", err)
+			continue
 		}
 		if !reply.Healthy {
-			return false, fmt.Errorf("bad: %v", reply)
+			t.Logf("bad: %v", reply)
+			continue
 		}
 		if reply.FailureTolerance != 1 {
-			return false, fmt.Errorf("bad: %v", reply)
+			t.Logf("bad: %v", reply)
+			continue
 		}
 		if len(reply.Servers) != 3 {
-			return false, fmt.Errorf("bad: %v", reply)
+			t.Logf("bad: %v", reply)
+			continue
 		}
 		// Leader should have LastContact == 0, others should be positive
 		for _, s := range reply.Servers {
 			isLeader := s1.raft.Leader() == raft.ServerAddress(s.Address)
 			if isLeader && s.LastContact != 0 {
-				return false, fmt.Errorf("bad: %v", reply)
+				t.Logf("bad: %v", reply)
+				continue retry
 			}
 			if !isLeader && s.LastContact <= 0 {
-				return false, fmt.Errorf("bad: %v", reply)
+				t.Logf("bad: %v", reply)
+				continue retry
 			}
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
+		break
 	}
 }
 
