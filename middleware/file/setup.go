@@ -92,12 +92,17 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 			noReload := false
 			prxy := proxy.Proxy{}
+			t := []string{}
+			var e error
+
 			for c.NextBlock() {
-				t, _, e := TransferParse(c, false)
-				if e != nil {
-					return Zones{}, e
-				}
 				switch c.Val() {
+				case "transfer":
+					t, _, e = TransferParse(c, false)
+					if e != nil {
+						return Zones{}, e
+					}
+
 				case "no_reload":
 					noReload = true
 
@@ -128,40 +133,37 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 // TransferParse parses transfer statements: 'transfer to [address...]'.
 func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, err error) {
-	what := c.Val()
 	if !c.NextArg() {
 		return nil, nil, c.ArgErr()
 	}
 	value := c.Val()
-	switch what {
-	case "transfer":
-		if value == "to" {
-			tos = c.RemainingArgs()
-			for i := range tos {
-				if tos[i] != "*" {
-					normalized, err := dnsutil.ParseHostPort(tos[i], "53")
-					if err != nil {
-						return nil, nil, err
-					}
-					tos[i] = normalized
+	switch value {
+	case "to":
+		tos = c.RemainingArgs()
+		for i := range tos {
+			if tos[i] != "*" {
+				normalized, err := dnsutil.ParseHostPort(tos[i], "53")
+				if err != nil {
+					return nil, nil, err
 				}
+				tos[i] = normalized
 			}
 		}
-		if value == "from" {
-			if !secondary {
-				return nil, nil, fmt.Errorf("can't use `transfer from` when not being a secondary")
-			}
-			froms = c.RemainingArgs()
-			for i := range froms {
-				if froms[i] != "*" {
-					normalized, err := dnsutil.ParseHostPort(froms[i], "53")
-					if err != nil {
-						return nil, nil, err
-					}
-					froms[i] = normalized
-				} else {
-					return nil, nil, fmt.Errorf("can't use '*' in transfer from")
+
+	case "from":
+		if !secondary {
+			return nil, nil, fmt.Errorf("can't use `transfer from` when not being a secondary")
+		}
+		froms = c.RemainingArgs()
+		for i := range froms {
+			if froms[i] != "*" {
+				normalized, err := dnsutil.ParseHostPort(froms[i], "53")
+				if err != nil {
+					return nil, nil, err
 				}
+				froms[i] = normalized
+			} else {
+				return nil, nil, fmt.Errorf("can't use '*' in transfer from")
 			}
 		}
 	}

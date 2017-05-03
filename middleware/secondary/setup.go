@@ -48,6 +48,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 	names := []string{}
 	origins := []string{}
 	for c.Next() {
+
 		if c.Val() == "secondary" {
 			// secondary [origin]
 			origins = make([]string, len(c.ServerBlockKeys))
@@ -63,10 +64,18 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 			}
 
 			for c.NextBlock() {
-				t, f, e := file.TransferParse(c, true)
-				if e != nil {
-					return file.Zones{}, e
+
+				t, f := []string{}, []string{}
+				var e error
+
+				switch c.Val() {
+				case "transfer":
+					t, _, e = file.TransferParse(c, true)
+					if e != nil {
+						return file.Zones{}, e
+					}
 				}
+
 				for _, origin := range origins {
 					if t != nil {
 						z[origin].TransferTo = append(z[origin].TransferTo, t...)
