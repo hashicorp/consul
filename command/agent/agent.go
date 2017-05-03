@@ -133,8 +133,7 @@ type Agent struct {
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
-	reloadCh chan chan error) (*Agent, error) {
+func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
 	// Ensure we have a log sink
 	if logOutput == nil {
 		logOutput = os.Stderr
@@ -146,54 +145,6 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 	}
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
-	}
-
-	// Try to get an advertise address
-	if config.AdvertiseAddr != "" {
-		ipStr, err := parseSingleIPTemplate(config.AdvertiseAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
-		}
-		config.AdvertiseAddr = ipStr
-
-		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
-		}
-	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" && config.BindAddr != "[::]" {
-		config.AdvertiseAddr = config.BindAddr
-	} else {
-		var err error
-		var ip net.IP
-		if config.BindAddr == "[::]" {
-			ip, err = consul.GetPublicIPv6()
-		} else {
-			ip, err = consul.GetPrivateIP()
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
-		}
-		config.AdvertiseAddr = ip.String()
-	}
-
-	// Try to get an advertise address for the wan
-	if config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(config.AdvertiseAddrWan)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		config.AdvertiseAddrWan = ipStr
-
-		if ip := net.ParseIP(config.AdvertiseAddrWan); ip == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address for wan: %v", config.AdvertiseAddrWan)
-		}
-	} else {
-		config.AdvertiseAddrWan = config.AdvertiseAddr
-	}
-
-	// Create the default set of tagged addresses.
-	config.TaggedAddresses = map[string]string{
-		"lan": config.AdvertiseAddr,
-		"wan": config.AdvertiseAddrWan,
 	}
 
 	agent := &Agent{
@@ -288,7 +239,7 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 }
 
 // consulConfig is used to return a consul configuration
-func (a *Agent) consulConfig() *consul.Config {
+func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
 	if a.config.ConsulConfig != nil {
@@ -342,6 +293,52 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.SerfWanBindAddr != "" {
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfWanBindAddr
 	}
+	// Try to get an advertise address
+	switch {
+	case a.config.AdvertiseAddr != "":
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
+		}
+		a.config.AdvertiseAddr = ipStr
+
+	case a.config.BindAddr != "0.0.0.0" && a.config.BindAddr != "" && a.config.BindAddr != "[::]":
+		a.config.AdvertiseAddr = a.config.BindAddr
+
+	default:
+		ip, err := consul.GetPrivateIP()
+		if a.config.BindAddr == "[::]" {
+			ip, err = consul.GetPublicIPv6()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
+		}
+		a.config.AdvertiseAddr = ip.String()
+	}
+
+	// Try to get an advertise address for the wan
+	if a.config.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
+		}
+		a.config.AdvertiseAddrWan = ipStr
+	} else {
+		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
+	}
+
+	// Create the default set of tagged addresses.
+	a.config.TaggedAddresses = map[string]string{
+		"lan": a.config.AdvertiseAddr,
+		"wan": a.config.AdvertiseAddrWan,
+	}
+
 	if a.config.AdvertiseAddr != "" {
 		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
@@ -476,7 +473,7 @@ func (a *Agent) consulConfig() *consul.Config {
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput
-	return base
+	return base, nil
 }
 
 // parseSingleIPTemplate is used as a helper function to parse out a single IP
@@ -588,12 +585,13 @@ func (a *Agent) resolveTmplAddrs() error {
 
 // setupServer is used to initialize the Consul server
 func (a *Agent) setupServer() error {
-	config := a.consulConfig()
-
+	config, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
 	if err := a.setupKeyrings(config); err != nil {
 		return fmt.Errorf("Failed to configure keyring: %v", err)
 	}
-
 	server, err := consul.NewServer(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul server: %v", err)
@@ -604,12 +602,13 @@ func (a *Agent) setupServer() error {
 
 // setupClient is used to initialize the Consul client
 func (a *Agent) setupClient() error {
-	config := a.consulConfig()
-
+	config, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
 	if err := a.setupKeyrings(config); err != nil {
 		return fmt.Errorf("Failed to configure keyring: %v", err)
 	}
-
 	client, err := consul.NewClient(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul client: %v", err)
