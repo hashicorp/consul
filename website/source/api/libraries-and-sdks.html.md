@@ -48,6 +48,10 @@ the community.
   <li>
     <a href="https://github.com/Ecwid/consul-api">consul-api</a> - Java client for the Consul HTTP API
   </li>
+   <li>
+   <a href="http://cloud.spring.io/spring-cloud-consul/">Spring Cloud Consul</a> - Consul integration for <a href="https://projects.spring.io/spring-boot/">Spring Boot</a> applications (Uses
+    <a href="https://github.com/Ecwid/consul-api">consul-api</a> internally)
+  </li>
   <li>
     <a href="https://github.com/vert-x3/vertx-consul-client">vertx-consul-client</a> - Vert.x client for the Consul HTTP API
   </li>
