@@ -437,6 +437,11 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.AutopilotConfig.DisableUpgradeMigration = *a.config.Autopilot.DisableUpgradeMigration
 	}
 
+	// make sure the advertise address is always set
+	if base.RPCAdvertise == nil {
+		base.RPCAdvertise = base.RPCAddr
+	}
+
 	// Format the build string
 	revision := a.config.Revision
 	if len(revision) > 8 {
