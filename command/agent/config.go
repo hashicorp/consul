@@ -931,6 +931,49 @@ func (c *Config) GetTokenForAgent() string {
 	return ""
 }
 
+// verifyUniqueListeners checks to see if an address was used more than once in
+// the config
+func (c *Config) verifyUniqueListeners() error {
+	listeners := []struct {
+		host  string
+		port  int
+		descr string
+	}{
+		{c.Addresses.DNS, c.Ports.DNS, "DNS"},
+		{c.Addresses.HTTP, c.Ports.HTTP, "HTTP"},
+		{c.Addresses.HTTPS, c.Ports.HTTPS, "HTTPS"},
+		{c.AdvertiseAddr, c.Ports.Server, "Server RPC"},
+		{c.AdvertiseAddr, c.Ports.SerfLan, "Serf LAN"},
+		{c.AdvertiseAddr, c.Ports.SerfWan, "Serf WAN"},
+	}
+
+	type key struct {
+		host string
+		port int
+	}
+	m := make(map[key]string, len(listeners))
+
+	for _, l := range listeners {
+		if l.host == "" {
+			l.host = "0.0.0.0"
+		} else if strings.HasPrefix(l.host, "unix") {
+			// Don't compare ports on unix sockets
+			l.port = 0
+		}
+		if l.host == "0.0.0.0" && l.port <= 0 {
+			continue
+		}
+
+		k := key{l.host, l.port}
+		v, ok := m[k]
+		if ok {
+			return fmt.Errorf("%s address already configured for %s", l.descr, v)
+		}
+		m[k] = l.descr
+	}
+	return nil
+}
+
 // DecodeConfig reads the configuration from the given reader in JSON
 // format and decodes it into a proper Config structure.
 func DecodeConfig(r io.Reader) (*Config, error) {
