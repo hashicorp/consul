@@ -84,7 +84,7 @@ type Client struct {
 // configuration, potentially returning an error
 func NewClient(config *Config) (*Client, error) {
 	// Check the protocol version
-	if err := config.CheckVersion(); err != nil {
+	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
 
