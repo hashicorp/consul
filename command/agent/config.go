@@ -924,24 +924,23 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 func (c *Config) GetTokenForAgent() string {
 	if c.ACLAgentToken != "" {
 		return c.ACLAgentToken
-	} else if c.ACLToken != "" {
-		return c.ACLToken
-	} else {
-		return ""
 	}
+	if c.ACLToken != "" {
+		return c.ACLToken
+	}
+	return ""
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
 // format and decodes it into a proper Config structure.
 func DecodeConfig(r io.Reader) (*Config, error) {
 	var raw interface{}
-	var result Config
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&raw); err != nil {
+	if err := json.NewDecoder(r).Decode(&raw); err != nil {
 		return nil, err
 	}
 
 	// Check the result type
+	var result Config
 	if obj, ok := raw.(map[string]interface{}); ok {
 		// Check for a "services", "service" or "check" key, meaning
 		// this is actually a definition entry

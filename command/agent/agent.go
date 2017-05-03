@@ -290,11 +290,9 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter,
 // consulConfig is used to return a consul configuration
 func (a *Agent) consulConfig() *consul.Config {
 	// Start with the provided config or default config
-	var base *consul.Config
+	base := consul.DefaultConfig()
 	if a.config.ConsulConfig != nil {
 		base = a.config.ConsulConfig
-	} else {
-		base = consul.DefaultConfig()
 	}
 
 	// This is set when the agent starts up
@@ -346,10 +344,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.AdvertiseAddr != "" {
 		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		if a.config.AdvertiseAddrWan != "" {
 			base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrWan
-		} else {
-			base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		}
 		base.RPCAdvertise = &net.TCPAddr{
 			IP:   net.ParseIP(a.config.AdvertiseAddr),
@@ -445,8 +442,7 @@ func (a *Agent) consulConfig() *consul.Config {
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	base.Build = fmt.Sprintf("%s%s:%s",
-		a.config.Version, a.config.VersionPrerelease, revision)
+	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
