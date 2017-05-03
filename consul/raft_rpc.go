@@ -13,10 +13,13 @@ import (
 // RaftLayer implements the raft.StreamLayer interface,
 // so that we can use a single RPC layer for Raft and Consul
 type RaftLayer struct {
-	// Addr is the listener address to return
+	// src is the address for outgoing connections.
+	src net.Addr
+
+	// addr is the listener address to return.
 	addr net.Addr
 
-	// connCh is used to accept connections
+	// connCh is used to accept connections.
 	connCh chan net.Conn
 
 	// TLS wrapper
@@ -31,8 +34,9 @@ type RaftLayer struct {
 // NewRaftLayer is used to initialize a new RaftLayer which can
 // be used as a StreamLayer for Raft. If a tlsConfig is provided,
 // then the connection will use TLS.
-func NewRaftLayer(addr net.Addr, tlsWrap tlsutil.Wrapper) *RaftLayer {
+func NewRaftLayer(src, addr net.Addr, tlsWrap tlsutil.Wrapper) *RaftLayer {
 	layer := &RaftLayer{
+		src:     src,
 		addr:    addr,
 		connCh:  make(chan net.Conn),
 		tlsWrap: tlsWrap,
@@ -82,7 +86,8 @@ func (l *RaftLayer) Addr() net.Addr {
 
 // Dial is used to create a new outgoing connection
 func (l *RaftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", string(address), timeout)
+	d := &net.Dialer{LocalAddr: l.src, Timeout: timeout}
+	conn, err := d.Dial("tcp", string(address))
 	if err != nil {
 		return nil, err
 	}
