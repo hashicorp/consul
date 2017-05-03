@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * agent: Reduced the timeouts for the `-dev` server mode so that the development server starts up almost instantly. [GH-2984]
 * agent: Added `verify_incoming_rpc` and `verify_incoming_https` options for more granular control over incoming TLS enforcement. [GH-2974]
 * agent: Updated parts of Consul's Docker library in order to fix the build on Illumos. [GH-2989]
+* agent: Use bind address as source for outgoing connections. [GH-2822]
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
 * ui: Added optional JSON validation when editing KV entries in the web UI. [GH-2712]
