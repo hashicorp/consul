@@ -120,6 +120,9 @@ func (c *Conn) markForUse() {
 type ConnPool struct {
 	sync.Mutex
 
+	// src is the source address for outgoing connections.
+	src *net.TCPAddr
+
 	// LogOutput is used to control logging
 	logOutput io.Writer
 
@@ -129,7 +132,7 @@ type ConnPool struct {
 	// The maximum number of open streams to keep
 	maxStreams int
 
-	// Pool maps an address to a open connection
+	// pool maps an address to a open connection
 	pool map[string]*Conn
 
 	// limiter is used to throttle the number of connect attempts
@@ -151,8 +154,9 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
+func NewPool(src *net.TCPAddr, logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
 	pool := &ConnPool{
+		src:        src,
 		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
@@ -265,7 +269,8 @@ type HalfCloser interface {
 // given connection timeout.
 func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	conn, err := net.DialTimeout("tcp", addr.String(), defaultDialTimeout)
+	d := &net.Dialer{LocalAddr: p.src, Timeout: timeout}
+	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
 	}

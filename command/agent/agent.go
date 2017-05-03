@@ -439,6 +439,11 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCAdvertise = base.RPCAddr
 	}
 
+	// set the src address for outgoing rpc connections
+	// to RPCAdvertise with port 0 so that outgoing
+	// connections use a random port.
+	base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAdvertise.IP}
+
 	// Format the build string
 	revision := a.config.Revision
 	if len(revision) > 8 {
