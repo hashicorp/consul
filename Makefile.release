@@ -61,6 +61,7 @@ build: build-arm build-darwin build-linux
 .PHONY: build-linux
 build-linux:
 	@echo Building: linux $(VERSION)
+	mkdir -p build/Linux      && CGO_ENABLED=0 GOOS=linux             go build -ldflags="-s -w" -o build/Linux/$(NAME)
 
 .PHONY: build-darwin
 build-darwin:
