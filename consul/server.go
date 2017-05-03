@@ -598,34 +598,22 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Status)
 	s.rpcServer.Register(s.endpoints.Txn)
 
-	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
+	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
 		return err
 	}
-	s.rpcListener = list
-
-	var advertise net.Addr
-	if s.config.RPCAdvertise != nil {
-		advertise = s.config.RPCAdvertise
-	} else {
-		advertise = s.rpcListener.Addr()
-	}
+	s.rpcListener = ln
 
 	// Verify that we have a usable advertise address
-	addr, ok := advertise.(*net.TCPAddr)
-	if !ok {
-		list.Close()
-		return fmt.Errorf("RPC advertise address is not a TCP Address: %v", addr)
-	}
-	if addr.IP.IsUnspecified() {
-		list.Close()
-		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
+	if s.config.RPCAdvertise.IP.IsUnspecified() {
+		ln.Close()
+		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
 	}
 
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
-	s.raftLayer = NewRaftLayer(advertise, wrapper)
+	s.raftLayer = NewRaftLayer(s.config.RPCAdvertise, wrapper)
 	return nil
 }
 
