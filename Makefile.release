@@ -96,6 +96,8 @@ docker:
 docker-release:
 	@echo Pushing: $(VERSION)
 	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
+	docker push $(DOCKER_IMAGE_NAME):latest
+	docker push $(DOCKER_IMAGE_NAME):$(VERSION)
 
 .PHONY: clean
 clean:
