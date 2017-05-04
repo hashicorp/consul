@@ -176,7 +176,7 @@ type Server struct {
 
 	// reassertLeaderCh is used to signal the leader loop should re-run
 	// leadership actions after a snapshot restore.
-	reassertLeaderCh chan struct{}
+	reassertLeaderCh chan chan error
 
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
@@ -270,7 +270,7 @@ func NewServer(config *Config) (*Server, error) {
 		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
-		reassertLeaderCh:      make(chan struct{}),
+		reassertLeaderCh:      make(chan chan error),
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}

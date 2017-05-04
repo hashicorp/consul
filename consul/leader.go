@@ -76,6 +76,19 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 	var reconcileCh chan serf.Member
 	establishedLeader := false
 
+	reassert := func() error {
+		if !establishedLeader {
+			return fmt.Errorf("leadership has not been established")
+		}
+		if err := s.revokeLeadership(); err != nil {
+			return err
+		}
+		if err := s.establishLeadership(); err != nil {
+			return err
+		}
+		return nil
+	}
+
 RECONCILE:
 	// Setup a reconciliation timer
 	reconcileCh = nil
@@ -125,18 +138,8 @@ WAIT:
 			s.reconcileMember(member)
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
-		case <-s.reassertLeaderCh:
-			if !establishedLeader {
-				continue
-			}
-			if err := s.revokeLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
-				continue
-			}
-			if err := s.establishLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to re-establish leadership: %v", err)
-				continue
-			}
+		case errCh := <-s.reassertLeaderCh:
+			errCh <- reassert()
 		}
 	}
 }
