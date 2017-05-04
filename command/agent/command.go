@@ -1,13 +1,9 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,12 +16,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
@@ -36,9 +26,6 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	compute "google.golang.org/api/compute/v1"
 )
 
 // gracefulTimeout controls how long we wait before forcefully terminating
@@ -440,255 +427,6 @@ func (c *Command) readConfig() *Config {
 	config.VersionPrerelease = c.VersionPrerelease
 
 	return config
-}
-
-// verifyUniqueListeners checks to see if an address was used more than once in
-// the config
-func (c *Config) verifyUniqueListeners() error {
-	listeners := []struct {
-		host  string
-		port  int
-		descr string
-	}{
-		{c.Addresses.DNS, c.Ports.DNS, "DNS"},
-		{c.Addresses.HTTP, c.Ports.HTTP, "HTTP"},
-		{c.Addresses.HTTPS, c.Ports.HTTPS, "HTTPS"},
-		{c.AdvertiseAddr, c.Ports.Server, "Server RPC"},
-		{c.AdvertiseAddr, c.Ports.SerfLan, "Serf LAN"},
-		{c.AdvertiseAddr, c.Ports.SerfWan, "Serf WAN"},
-	}
-
-	type key struct {
-		host string
-		port int
-	}
-	m := make(map[key]string, len(listeners))
-
-	for _, l := range listeners {
-		if l.host == "" {
-			l.host = "0.0.0.0"
-		} else if strings.HasPrefix(l.host, "unix") {
-			// Don't compare ports on unix sockets
-			l.port = 0
-		}
-		if l.host == "0.0.0.0" && l.port <= 0 {
-			continue
-		}
-
-		k := key{l.host, l.port}
-		v, ok := m[k]
-		if ok {
-			return fmt.Errorf("%s address already configured for %s", l.descr, v)
-		}
-		m[k] = l.descr
-	}
-	return nil
-}
-
-// discoverEc2Hosts searches an AWS region, returning a list of instance ips
-// where EC2TagKey = EC2TagValue
-func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
-	config := c.RetryJoinEC2
-
-	ec2meta := ec2metadata.New(session.New())
-	if config.Region == "" {
-		logger.Printf("[INFO] agent: No EC2 region provided, querying instance metadata endpoint...")
-		identity, err := ec2meta.GetInstanceIdentityDocument()
-		if err != nil {
-			return nil, err
-		}
-		config.Region = identity.Region
-	}
-
-	awsConfig := &aws.Config{
-		Region: &config.Region,
-		Credentials: credentials.NewChainCredentials(
-			[]credentials.Provider{
-				&credentials.StaticProvider{
-					Value: credentials.Value{
-						AccessKeyID:     config.AccessKeyID,
-						SecretAccessKey: config.SecretAccessKey,
-					},
-				},
-				&credentials.EnvProvider{},
-				&credentials.SharedCredentialsProvider{},
-				defaults.RemoteCredProvider(*(defaults.Config()), defaults.Handlers()),
-			}),
-	}
-
-	svc := ec2.New(session.New(), awsConfig)
-
-	resp, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			{
-				Name: aws.String("tag:" + config.TagKey),
-				Values: []*string{
-					aws.String(config.TagValue),
-				},
-			},
-		},
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	var servers []string
-	for i := range resp.Reservations {
-		for _, instance := range resp.Reservations[i].Instances {
-			// Terminated instances don't have the PrivateIpAddress field
-			if instance.PrivateIpAddress != nil {
-				servers = append(servers, *instance.PrivateIpAddress)
-			}
-		}
-	}
-
-	return servers, nil
-}
-
-// discoverGCEHosts searches a Google Compute Engine region, returning a list
-// of instance ips that match the tags given in GCETags.
-func (c *Config) discoverGCEHosts(logger *log.Logger) ([]string, error) {
-	config := c.RetryJoinGCE
-	ctx := oauth2.NoContext
-	var client *http.Client
-	var err error
-
-	logger.Printf("[INFO] agent: Initializing GCE client")
-	if config.CredentialsFile != "" {
-		logger.Printf("[INFO] agent: Loading credentials from %s", config.CredentialsFile)
-		key, err := ioutil.ReadFile(config.CredentialsFile)
-		if err != nil {
-			return nil, err
-		}
-		jwtConfig, err := google.JWTConfigFromJSON(key, compute.ComputeScope)
-		if err != nil {
-			return nil, err
-		}
-		client = jwtConfig.Client(ctx)
-	} else {
-		logger.Printf("[INFO] agent: Using default credential chain")
-		client, err = google.DefaultClient(ctx, compute.ComputeScope)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	computeService, err := compute.New(client)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.ProjectName == "" {
-		logger.Printf("[INFO] agent: No GCE project provided, will discover from metadata.")
-		config.ProjectName, err = gceProjectIDFromMetadata(logger)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		logger.Printf("[INFO] agent: Using pre-defined GCE project name: %s", config.ProjectName)
-	}
-
-	zones, err := gceDiscoverZones(ctx, logger, computeService, config.ProjectName, config.ZonePattern)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Printf("[INFO] agent: Discovering GCE hosts with tag %s in zones: %s", config.TagValue, strings.Join(zones, ", "))
-
-	var servers []string
-	for _, zone := range zones {
-		addresses, err := gceInstancesAddressesForZone(ctx, logger, computeService, config.ProjectName, zone, config.TagValue)
-		if err != nil {
-			return nil, err
-		}
-		if len(addresses) > 0 {
-			logger.Printf("[INFO] agent: Discovered %d instances in %s/%s: %v", len(addresses), config.ProjectName, zone, addresses)
-		}
-		servers = append(servers, addresses...)
-	}
-
-	return servers, nil
-}
-
-// gceProjectIDFromMetadata queries the metadata service on GCE to get the
-// project ID (name) of an instance.
-func gceProjectIDFromMetadata(logger *log.Logger) (string, error) {
-	logger.Printf("[INFO] agent: Attempting to discover GCE project from metadata.")
-	client := &http.Client{}
-
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/project/project-id", nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Add("Metadata-Flavor", "Google")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-
-	project, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	logger.Printf("[INFO] agent: GCE project discovered as: %s", project)
-	return string(project), nil
-}
-
-// gceDiscoverZones discovers a list of zones from a supplied zone pattern, or
-// all of the zones available to a project.
-func gceDiscoverZones(ctx context.Context, logger *log.Logger, computeService *compute.Service, project, pattern string) ([]string, error) {
-	var zones []string
-
-	if pattern != "" {
-		logger.Printf("[INFO] agent: Discovering zones for project %s matching pattern: %s", project, pattern)
-	} else {
-		logger.Printf("[INFO] agent: Discovering all zones available to project: %s", project)
-	}
-
-	call := computeService.Zones.List(project)
-	if pattern != "" {
-		call = call.Filter(fmt.Sprintf("name eq %s", pattern))
-	}
-
-	if err := call.Pages(ctx, func(page *compute.ZoneList) error {
-		for _, v := range page.Items {
-			zones = append(zones, v.Name)
-		}
-		return nil
-	}); err != nil {
-		return zones, err
-	}
-
-	logger.Printf("[INFO] agent: Discovered GCE zones: %s", strings.Join(zones, ", "))
-	return zones, nil
-}
-
-// gceInstancesAddressesForZone locates all instances within a specific project
-// and zone, matching the supplied tag. Only the private IP addresses are
-// returned, but ID is also logged.
-func gceInstancesAddressesForZone(ctx context.Context, logger *log.Logger, computeService *compute.Service, project, zone, tag string) ([]string, error) {
-	var addresses []string
-	call := computeService.Instances.List(project, zone)
-	if err := call.Pages(ctx, func(page *compute.InstanceList) error {
-		for _, v := range page.Items {
-			for _, t := range v.Tags.Items {
-				if t == tag && len(v.NetworkInterfaces) > 0 && v.NetworkInterfaces[0].NetworkIP != "" {
-					addresses = append(addresses, v.NetworkInterfaces[0].NetworkIP)
-				}
-			}
-		}
-		return nil
-	}); err != nil {
-		return addresses, err
-	}
-
-	return addresses, nil
 }
 
 // setupAgent is used to start the agent and various interfaces

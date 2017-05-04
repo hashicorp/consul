@@ -174,6 +174,10 @@ type Server struct {
 	// Consul servers.
 	statsFetcher *StatsFetcher
 
+	// reassertLeaderCh is used to signal the leader loop should re-run
+	// leadership actions after a snapshot restore.
+	reassertLeaderCh chan struct{}
+
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
@@ -210,7 +214,7 @@ type endpoints struct {
 // configuration, potentially returning an error
 func NewServer(config *Config) (*Server, error) {
 	// Check the protocol version.
-	if err := config.CheckVersion(); err != nil {
+	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
 
@@ -257,7 +261,7 @@ func NewServer(config *Config) (*Server, error) {
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
+		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -266,6 +270,7 @@ func NewServer(config *Config) (*Server, error) {
 		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
+		reassertLeaderCh:      make(chan struct{}),
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
@@ -601,34 +606,22 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Status)
 	s.rpcServer.Register(s.endpoints.Txn)
 
-	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
+	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
 		return err
 	}
-	s.rpcListener = list
-
-	var advertise net.Addr
-	if s.config.RPCAdvertise != nil {
-		advertise = s.config.RPCAdvertise
-	} else {
-		advertise = s.rpcListener.Addr()
-	}
+	s.rpcListener = ln
 
 	// Verify that we have a usable advertise address
-	addr, ok := advertise.(*net.TCPAddr)
-	if !ok {
-		list.Close()
-		return fmt.Errorf("RPC advertise address is not a TCP Address: %v", addr)
-	}
-	if addr.IP.IsUnspecified() {
-		list.Close()
-		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
+	if s.config.RPCAdvertise.IP.IsUnspecified() {
+		ln.Close()
+		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
 	}
 
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
-	tlsEnabled := func(address raft.ServerAddress) bool {
+	tlsFunc := func(address raft.ServerAddress) bool {
 		s.localLock.RLock()
 		server, ok := s.localConsuls[address]
 		s.localLock.RUnlock()
@@ -639,7 +632,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 
 		return server.UseTLS
 	}
-	s.raftLayer = NewRaftLayer(advertise, wrapper, tlsEnabled)
+	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
 }
 

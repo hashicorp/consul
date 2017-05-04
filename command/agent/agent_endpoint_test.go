@@ -337,6 +337,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	args := []string{
 		"-server",
+		"-advertise", "127.0.0.1",
 		"-data-dir", tmpDir,
 		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
 		"-config-file", tmpFile.Name(),

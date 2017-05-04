@@ -195,12 +195,12 @@ func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	serfWanBind := agent.consulConfig().SerfWANConfig.MemberlistConfig.BindAddr
+	serfWanBind := consulConfig(agent).SerfWANConfig.MemberlistConfig.BindAddr
 	if serfWanBind != ip {
 		t.Fatalf("SerfWanBindAddr is should be a non-loopback IP not %s", serfWanBind)
 	}
 
-	serfLanBind := agent.consulConfig().SerfLANConfig.MemberlistConfig.BindAddr
+	serfLanBind := consulConfig(agent).SerfLANConfig.MemberlistConfig.BindAddr
 	if serfLanBind != ip {
 		t.Fatalf("SerfLanBindAddr is should be a non-loopback IP not %s", serfWanBind)
 	}
@@ -214,23 +214,23 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	serfLanAddr := agent.consulConfig().SerfLANConfig.MemberlistConfig.AdvertiseAddr
+	serfLanAddr := consulConfig(agent).SerfLANConfig.MemberlistConfig.AdvertiseAddr
 	if serfLanAddr != "127.0.0.42" {
 		t.Fatalf("SerfLan is not properly set to '127.0.0.42': %s", serfLanAddr)
 	}
-	serfLanPort := agent.consulConfig().SerfLANConfig.MemberlistConfig.AdvertisePort
+	serfLanPort := consulConfig(agent).SerfLANConfig.MemberlistConfig.AdvertisePort
 	if serfLanPort != 1233 {
 		t.Fatalf("SerfLan is not properly set to '1233': %d", serfLanPort)
 	}
-	serfWanAddr := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertiseAddr
+	serfWanAddr := consulConfig(agent).SerfWANConfig.MemberlistConfig.AdvertiseAddr
 	if serfWanAddr != "127.0.0.43" {
 		t.Fatalf("SerfWan is not properly set to '127.0.0.43': %s", serfWanAddr)
 	}
-	serfWanPort := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertisePort
+	serfWanPort := consulConfig(agent).SerfWANConfig.MemberlistConfig.AdvertisePort
 	if serfWanPort != 1234 {
 		t.Fatalf("SerfWan is not properly set to '1234': %d", serfWanPort)
 	}
-	rpc := agent.consulConfig().RPCAdvertise
+	rpc := consulConfig(agent).RPCAdvertise
 	if rpc != c.AdvertiseAddrs.RPC {
 		t.Fatalf("RPC is not properly set to %v: %s", c.AdvertiseAddrs.RPC, rpc)
 	}
@@ -253,7 +253,7 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 		defer agent.Shutdown()
 
 		raftMult := time.Duration(consul.DefaultRaftMultiplier)
-		r := agent.consulConfig().RaftConfig
+		r := consulConfig(agent).RaftConfig
 		def := raft.DefaultConfig()
 		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
 			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
@@ -271,7 +271,7 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 		defer agent.Shutdown()
 
 		const raftMult time.Duration = 99
-		r := agent.consulConfig().RaftConfig
+		r := consulConfig(agent).RaftConfig
 		def := raft.DefaultConfig()
 		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
 			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
@@ -288,12 +288,12 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 		defer os.RemoveAll(dir)
 		defer agent.Shutdown()
 
-		lan := agent.consulConfig().SerfLANConfig.ReconnectTimeout
+		lan := consulConfig(agent).SerfLANConfig.ReconnectTimeout
 		if lan != 3*24*time.Hour {
 			t.Fatalf("bad: %s", lan.String())
 		}
 
-		wan := agent.consulConfig().SerfWANConfig.ReconnectTimeout
+		wan := consulConfig(agent).SerfWANConfig.ReconnectTimeout
 		if wan != 3*24*time.Hour {
 			t.Fatalf("bad: %s", wan.String())
 		}
@@ -307,12 +307,12 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 		defer os.RemoveAll(dir)
 		defer agent.Shutdown()
 
-		lan := agent.consulConfig().SerfLANConfig.ReconnectTimeout
+		lan := consulConfig(agent).SerfLANConfig.ReconnectTimeout
 		if lan != 24*time.Hour {
 			t.Fatalf("bad: %s", lan.String())
 		}
 
-		wan := agent.consulConfig().SerfWANConfig.ReconnectTimeout
+		wan := consulConfig(agent).SerfWANConfig.ReconnectTimeout
 		if wan != 36*time.Hour {
 			t.Fatalf("bad: %s", wan.String())
 		}
@@ -327,7 +327,7 @@ func TestAgent_setupNodeID(t *testing.T) {
 	defer agent.Shutdown()
 
 	// The auto-assigned ID should be valid.
-	id := agent.consulConfig().NodeID
+	id := consulConfig(agent).NodeID
 	if _, err := uuid.ParseUUID(string(id)); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -337,7 +337,7 @@ func TestAgent_setupNodeID(t *testing.T) {
 	if err := agent.setupNodeID(c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if newID := agent.consulConfig().NodeID; id != newID {
+	if newID := consulConfig(agent).NodeID; id != newID {
 		t.Fatalf("bad: %q vs %q", id, newID)
 	}
 
@@ -357,7 +357,7 @@ func TestAgent_setupNodeID(t *testing.T) {
 	if err := agent.setupNodeID(c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if id := agent.consulConfig().NodeID; string(id) != newID {
+	if id := consulConfig(agent).NodeID; string(id) != newID {
 		t.Fatalf("bad: %q vs. %q", id, newID)
 	}
 
@@ -380,7 +380,7 @@ func TestAgent_setupNodeID(t *testing.T) {
 	if err := agent.setupNodeID(c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if id := agent.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
+	if id := consulConfig(agent).NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
 		t.Fatalf("bad: %q vs. %q", id, newID)
 	}
 }
@@ -1984,4 +1984,12 @@ func TestAgent_GetCoordinate(t *testing.T) {
 
 	check(true)
 	check(false)
+}
+
+func consulConfig(a *Agent) *consul.Config {
+	c, err := a.consulConfig()
+	if err != nil {
+		panic(err)
+	}
+	return c
 }

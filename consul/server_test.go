@@ -47,6 +47,7 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 		IP:   []byte{127, 0, 0, 1},
 		Port: getPort(),
 	}
+	config.RPCAdvertise = config.RPCAddr
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		t.Fatal(err)
