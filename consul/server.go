@@ -174,6 +174,10 @@ type Server struct {
 	// Consul servers.
 	statsFetcher *StatsFetcher
 
+	// reassertLeaderCh is used to signal the leader loop should re-run
+	// leadership actions after a snapshot restore.
+	reassertLeaderCh chan struct{}
+
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
@@ -266,6 +270,7 @@ func NewServer(config *Config) (*Server, error) {
 		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
+		reassertLeaderCh:      make(chan struct{}),
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
