@@ -101,9 +101,14 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, err
 		}
 
+		select {
 		// Tell the leader loop to reassert leader actions since we just
 		// replaced the state store contents.
-		s.reassertLeaderCh <- struct{}{}
+		case s.reassertLeaderCh <- struct{}{}:
+
+		// Make sure we don't get stuck during shutdown
+		case <-s.shutdownCh:
+		}
 
 		// Give the caller back an empty reader since there's nothing to
 		// stream back.
