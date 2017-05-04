@@ -1280,6 +1280,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		}, nil)
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -1287,6 +1288,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.TranslateWanAddrs = true
+		c.ACLDatacenter = ""
 	}, nil)
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
