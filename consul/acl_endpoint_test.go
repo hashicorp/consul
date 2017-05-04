@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -471,7 +472,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
 		c.ACLReplicationToken = "secret"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -483,12 +484,15 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	getR := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	var status structs.ACLReplicationStatus
-	err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !status.Enabled || !status.Running || status.SourceDatacenter != "dc2" {
-		t.Fatalf("bad: %#v", status)
-	}
+
+	retry.Run("", t, func(r *retry.R) {
+		var status structs.ACLReplicationStatus
+		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if !status.Enabled || !status.Running || status.SourceDatacenter != "dc2" {
+			r.Fatalf("bad: %#v", status)
+		}
+	})
 }

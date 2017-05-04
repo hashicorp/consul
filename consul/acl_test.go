@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
@@ -632,7 +633,7 @@ func TestACL_Replication(t *testing.T) {
 		c.ACLDefaultPolicy = "deny"
 		c.ACLDownPolicy = "extend-cache"
 		c.ACLReplicationToken = "root"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	defer os.RemoveAll(dir2)
@@ -643,7 +644,7 @@ func TestACL_Replication(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "deny"
 		c.ACLReplicationToken = "root"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	defer os.RemoveAll(dir3)
