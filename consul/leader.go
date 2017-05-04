@@ -124,6 +124,17 @@ WAIT:
 			goto RECONCILE
 		case member := <-reconcileCh:
 			s.reconcileMember(member)
+		case <-s.reassertLeaderCh:
+			if establishedLeader {
+				if err := s.revokeLeadership(); err != nil {
+					s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+					goto WAIT
+				}
+				if err := s.establishLeadership(); err != nil {
+					s.logger.Printf("[ERR] consul: failed to re-establish leadership: %v", err)
+					goto WAIT
+				}
+			}
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		}

@@ -100,12 +100,10 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		if err := barrier.Error(); err != nil {
 			return nil, err
 		}
-		if err := s.revokeLeadership(); err != nil {
-			return nil, err
-		}
-		if err := s.establishLeadership(); err != nil {
-			return nil, err
-		}
+
+		// Tell the leader loop to reassert leader actions since we just
+		// replaced the state store contents.
+		s.reassertLeaderCh <- struct{}{}
 
 		// Give the caller back an empty reader since there's nothing to
 		// stream back.
