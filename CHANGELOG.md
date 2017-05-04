@@ -18,6 +18,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * server: Fixed a panic when the tombstone garbage collector was stopped. [GH-2087]
+* server: Fixed a panic in Autopilot that could occur when a node is elected but cannot complete leader establishment and steps back down. [GH-2980]
 * ui: Add and update favicons [GH-2945]
 
 ## 0.8.1 (April 17, 2017)
