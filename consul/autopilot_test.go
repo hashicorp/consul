@@ -50,7 +50,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	}
 
 	for _, s := range servers {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 3; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -64,7 +64,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	// Kill a non-leader server
 	s3.Shutdown()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
@@ -84,7 +84,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 3; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -128,7 +128,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 4; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -140,7 +140,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 
 	// Should be removed from the peers automatically
 	for _, s := range []*Server{s1, s2, s3} {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 3; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -178,7 +178,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 3; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -203,7 +203,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 
 	// Wait for s4 to be removed
 	for _, s := range []*Server{s1, s2, s3} {
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			if got, want := numPeers(s), 3; got != want {
 				r.Fatalf("got %d peers want %d", got, want)
 			}
@@ -244,7 +244,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		// Wait for the new server to be added as a non-voter, but make sure
 		// it doesn't get promoted to a voter even after ServerStabilizationTime,
 		// because that would result in an even-numbered quorum count.
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			future := s1.raft.GetConfiguration()
 			if err := future.Error(); err != nil {
@@ -282,7 +282,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
 			r.Fatal(err)

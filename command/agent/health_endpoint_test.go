@@ -22,7 +22,7 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -46,7 +46,7 @@ func TestHealthChecksInState(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -88,7 +88,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
 			if err != nil {
@@ -170,7 +170,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	retry.
 
 		// Retry until foo moves to the front of the line.
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			resp = httptest.NewRecorder()
 			obj, err = srv.HealthChecksInState(resp, req)
@@ -431,7 +431,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	retry.
 
 		// Retry until foo has moved to the front of the line.
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			resp = httptest.NewRecorder()
 			obj, err = srv.HealthServiceChecks(resp, req)
@@ -665,7 +665,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	retry.
 
 		// Retry until foo has moved to the front of the line.
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			resp = httptest.NewRecorder()
 			obj, err = srv.HealthServiceNodes(resp, req)
@@ -761,7 +761,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}

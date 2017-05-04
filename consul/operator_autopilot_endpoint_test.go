@@ -229,7 +229,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}

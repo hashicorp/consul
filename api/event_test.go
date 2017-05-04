@@ -30,7 +30,7 @@ func TestEvent_FireList(t *testing.T) {
 	var events []*UserEvent
 	var qm *QueryMeta
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		events, qm, err = event.List("", nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)

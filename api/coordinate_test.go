@@ -12,7 +12,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	defer s.Stop()
 
 	coordinate := c.Coordinate()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		datacenters, err := coordinate.Datacenters()
 		if err != nil {
 			r.Fatal(err)
@@ -30,7 +30,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	defer s.Stop()
 
 	coordinate := c.Coordinate()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		_, _, err := coordinate.Nodes(nil)
 		if err != nil {
 			r.Fatal(err)

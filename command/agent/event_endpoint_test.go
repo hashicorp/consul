@@ -123,7 +123,7 @@ func TestEventList(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				r.Fatal(err)
@@ -161,7 +161,7 @@ func TestEventList_Filter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			if err != nil {
 				r.Fatal(err)
@@ -201,7 +201,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	// Try no token.
 	{
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				r.Fatal(err)
@@ -224,7 +224,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	// Try the root token.
 	{
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			if err != nil {
 				r.Fatal(err)
@@ -254,7 +254,7 @@ func TestEventList_Blocking(t *testing.T) {
 		}
 
 		var index string
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			req, err := http.NewRequest("GET", "/v1/event/list", nil)
 			if err != nil {
 				r.Fatal(err)
@@ -279,7 +279,7 @@ func TestEventList_Blocking(t *testing.T) {
 			}
 		}()
 
-		retry.Run("", t, func(r *retry.R) {
+		retry.Run(t, func(r *retry.R) {
 			url := "/v1/event/list?index=" + index
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -322,7 +322,7 @@ func TestEventList_EventBufOrder(t *testing.T) {
 
 			// Test that the event order is preserved when name
 			// filtering on a list of > 1 matching event.
-			Run("", t, func(r *retry.R) {
+			Run(t, func(r *retry.R) {
 
 				url := "/v1/event/list?name=foo"
 				req, err := http.NewRequest("GET", url, nil)

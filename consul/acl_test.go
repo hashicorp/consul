@@ -231,7 +231,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -281,7 +281,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -356,7 +356,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -412,7 +412,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -485,7 +485,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -560,7 +560,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 2; got != want {
 			r.Fatalf("got %d peers want %d", got, want)
 		}
@@ -679,7 +679,7 @@ func TestACL_Replication(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Wait for replication to occur.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
 			r.Fatal(err)

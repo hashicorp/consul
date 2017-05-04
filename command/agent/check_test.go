@@ -78,7 +78,7 @@ func expectStatus(t *testing.T, script, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
@@ -274,7 +274,7 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
@@ -373,7 +373,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 	check.Start()
 	defer check.Stop()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.Updates("bar"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
@@ -440,7 +440,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.state["skipverify_true"], api.HealthPassing; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
@@ -471,7 +471,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.state["skipverify_true"], api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
@@ -503,7 +503,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be false")
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		// This should fail due to an invalid SSL cert
 		if got, want := mock.state["skipverify_false"], api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
@@ -548,7 +548,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	}
 	check.Start()
 	defer check.Stop()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := mock.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}

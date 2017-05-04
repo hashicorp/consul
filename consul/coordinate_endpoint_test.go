@@ -351,7 +351,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Now query back for all the nodes.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
@@ -442,7 +442,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	// Wait for all the coordinate updates to apply. Since we aren't
 	// enforcing version 8 ACLs, this should also allow us to read
 	// everything back without a token.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}

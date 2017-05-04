@@ -175,7 +175,7 @@ func TestFireReceiveEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := len(agent.UserEvents()), 1; got != want {
 			r.Fatalf("got %d events want %d", got, want)
 		}

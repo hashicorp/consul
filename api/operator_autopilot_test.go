@@ -89,7 +89,7 @@ func TestOperator_AutopilotServerHealth(t *testing.T) {
 	defer s.Stop()
 
 	operator := c.Operator()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		out, err := operator.AutopilotServerHealth(nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
