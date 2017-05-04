@@ -471,7 +471,6 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
 		c.ACLReplicationToken = "secret"
-		c.ACLReplicationInterval = 0
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -480,6 +479,8 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
+	// TODO (slackpad) - This does a basic sanity check, but we can improve
+	// this by actually running some replication and looking at the results.
 	getR := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
@@ -488,7 +489,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !status.Enabled || !status.Running || status.SourceDatacenter != "dc2" {
+	if !status.Enabled || status.SourceDatacenter != "dc2" {
 		t.Fatalf("bad: %#v", status)
 	}
 }
