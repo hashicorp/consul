@@ -117,7 +117,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Node:       agent.config.NodeName,
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -188,7 +188,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -300,7 +300,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	}
 	var services structs.IndexedNodeServices
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -720,7 +720,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	var checks structs.IndexedHealthChecks
 
 	// Verify that we are in sync
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -799,7 +799,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	agent.StartSync()
 
 	// Verify that we are in sync
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -978,7 +978,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       agent.config.NodeName,
@@ -1032,7 +1032,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	agent.StartSync()
 	time.Sleep(200 * time.Millisecond)
 	// Verify that we are in sync
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       agent.config.NodeName,
@@ -1113,7 +1113,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		Node:       agent.config.NodeName,
 	}
 	var checks structs.IndexedHealthChecks
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -1141,7 +1141,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 	}
 	// Wait for a deferred update
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatal(err)
 		}
@@ -1242,7 +1242,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 	}
 	// Wait for the deferred update.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatal(err)
 		}
@@ -1292,7 +1292,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	retry.
 
 		// Wait for the sync
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 				r.Fatalf("err: %v", err)
@@ -1321,7 +1321,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 		// Wait for the sync - this should have been a sync of just the
 		// node info
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 				r.Fatalf("err: %v", err)
@@ -1514,7 +1514,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		Datacenter: agent.config.Datacenter,
 	}
 	var reply structs.IndexedCoordinates
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
 			r.Fatalf("err: %s", err)
 		}

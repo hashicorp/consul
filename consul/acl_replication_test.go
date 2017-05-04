@@ -395,7 +395,7 @@ func TestACLReplication(t *testing.T) {
 		return nil
 	}
 	// Wait for the replica to converge.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := checkSame(); err != nil {
 			r.Fatal(err)
 		}
@@ -419,7 +419,7 @@ func TestACLReplication(t *testing.T) {
 		}
 	}
 	// Wait for the replica to converge.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := checkSame(); err != nil {
 			r.Fatal(err)
 		}
@@ -439,7 +439,7 @@ func TestACLReplication(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Wait for the replica to converge.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if err := checkSame(); err != nil {
 			r.Fatal(err)
 		}

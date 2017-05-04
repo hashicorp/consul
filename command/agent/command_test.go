@@ -103,7 +103,7 @@ func TestRetryJoin(t *testing.T) {
 		}
 		close(doneCh)
 	}()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := len(agent.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}

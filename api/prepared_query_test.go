@@ -30,7 +30,7 @@ func TestPreparedQuery(t *testing.T) {
 	}
 
 	catalog := c.Catalog()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			r.Fatal(err)
 		}

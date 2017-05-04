@@ -485,7 +485,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		Datacenter: "dc1",
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		var status structs.ACLReplicationStatus
 		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
 		if err != nil {

@@ -55,7 +55,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	if len(m) != 2 {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		m = a1.agent.LANMembers()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)

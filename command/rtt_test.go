@@ -107,7 +107,7 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 		"dogs",
 	}
 	// Wait for the updates to get flushed to the data store.
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		code := c.Run(args)
 		if code != 0 {
 			r.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())

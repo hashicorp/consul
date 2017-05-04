@@ -604,7 +604,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		if got, want := len(out.Nodes), 2; got != want {
 			r.Fatalf("got %d nodes want %d", got, want)
@@ -646,7 +646,7 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 		},
 	}
 	var out structs.IndexedNodes
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		if got, want := len(out.Nodes), 1; got != want {
 			r.Fatalf("got %d nodes want %d", got, want)
@@ -679,7 +679,7 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	retry.
 
 		// Should get an empty list of nodes back
-		Run("", t, func(r *retry.R) {
+		Run(t, func(r *retry.R) {
 
 			msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 			if len(out.Nodes) != 0 {
@@ -892,7 +892,7 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var out structs.IndexedNodes
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		if got, want := len(out.Nodes), 5; got != want {
 			r.Fatalf("got %d nodes want %d", got, want)
@@ -921,7 +921,7 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		if got, want := len(out.Nodes), 5; got != want {
 			r.Fatalf("got %d nodes want %d", got, want)

@@ -74,12 +74,12 @@ func decorate(s string) string {
 	return fmt.Sprintf("%s:%d: %s", file, line, s)
 }
 
-func Run(desc string, t Failer, f func(r *R)) {
-	run(OneSec(), desc, t, f)
+func Run(t Failer, f func(r *R)) {
+	run(OneSec(), t, f)
 }
 
-func RunWith(r Retryer, desc string, t Failer, f func(r *R)) {
-	run(r, desc, t, f)
+func RunWith(r Retryer, t Failer, f func(r *R)) {
+	run(r, t, f)
 }
 
 func dedup(a []string) string {
@@ -101,10 +101,10 @@ func dedup(a []string) string {
 	return string(b.Bytes())
 }
 
-func run(r Retryer, desc string, t Failer, f func(r *R)) {
+func run(r Retryer, t Failer, f func(r *R)) {
 	rr := &R{}
 	fail := func() {
-		out := desc + "\n" + dedup(rr.output)
+		out := dedup(rr.output)
 		if out != "" {
 			t.Log(out)
 		}

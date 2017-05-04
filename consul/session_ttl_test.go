@@ -298,7 +298,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if got, want := numPeers(s1), 3; got != want {
 			r.Fatalf("got %d s1 peers want %d", got, want)
 		}
@@ -361,7 +361,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("session timers should be empty on the shutdown leader")
 	}
 	// Find the new leader
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 
 		leader = nil
 		for _, s := range servers {

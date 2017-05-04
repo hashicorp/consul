@@ -14,7 +14,7 @@ func TestCatalog_Datacenters(t *testing.T) {
 	defer s.Stop()
 
 	catalog := c.Catalog()
-	retry.Run("no datacenters", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		datacenters, err := catalog.Datacenters()
 		if err != nil {
 			r.Fatalf("catalog.Datacenters: ", err)
@@ -30,7 +30,7 @@ func TestCatalog_Nodes(t *testing.T) {
 	defer s.Stop()
 
 	catalog := c.Catalog()
-	retry.RunWith(retry.ThreeTimes(), "no nodes", t, func(r *retry.R) {
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
 		if err != nil {
 			r.Fatalf("catalog.Nodes: ", err)
@@ -68,7 +68,7 @@ func TestCatalog_Nodes_MetaFilter(t *testing.T) {
 
 	catalog := c.Catalog()
 	// Make sure we get the node back when filtering by its metadata
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: meta})
 		if err != nil {
 			r.Fatal(err)
@@ -95,7 +95,7 @@ func TestCatalog_Nodes_MetaFilter(t *testing.T) {
 		}
 	})
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		// Get nothing back when we use an invalid filter
 		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
 		if err != nil {
@@ -118,7 +118,7 @@ func TestCatalog_Services(t *testing.T) {
 	defer s.Stop()
 
 	catalog := c.Catalog()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Services(nil)
 		if err != nil {
 			r.Fatal(err)
@@ -143,7 +143,7 @@ func TestCatalog_Services_NodeMetaFilter(t *testing.T) {
 
 	catalog := c.Catalog()
 	// Make sure we get the service back when filtering by the node's metadata
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: meta})
 		if err != nil {
 			r.Fatal(err)
@@ -158,7 +158,7 @@ func TestCatalog_Services_NodeMetaFilter(t *testing.T) {
 		}
 	})
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		// Get nothing back when using an invalid filter
 		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
 		if err != nil {
@@ -181,7 +181,7 @@ func TestCatalog_Service(t *testing.T) {
 	defer s.Stop()
 
 	catalog := c.Catalog()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Service("consul", "", nil)
 		if err != nil {
 			r.Fatal(err)
@@ -210,7 +210,7 @@ func TestCatalog_Service_NodeMetaFilter(t *testing.T) {
 	defer s.Stop()
 
 	catalog := c.Catalog()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Service("consul", "", &QueryOptions{NodeMeta: meta})
 		if err != nil {
 			r.Fatal(err)
@@ -237,7 +237,7 @@ func TestCatalog_Node(t *testing.T) {
 
 	catalog := c.Catalog()
 	name, _ := c.Agent().NodeName()
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		info, meta, err := catalog.Node(name, nil)
 		if err != nil {
 			r.Fatal(err)
@@ -292,7 +292,7 @@ func TestCatalog_Registration(t *testing.T) {
 		Service:    service,
 		Check:      check,
 	}
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			r.Fatal(err)
 		}
@@ -332,7 +332,7 @@ func TestCatalog_Registration(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		node, _, err := catalog.Node("foobar", nil)
 		if err != nil {
 			r.Fatal(err)
@@ -355,7 +355,7 @@ func TestCatalog_Registration(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		health, _, err := c.Health().Node("foobar", nil)
 		if err != nil {
 			r.Fatal(err)
@@ -377,7 +377,7 @@ func TestCatalog_Registration(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		node, _, err := catalog.Node("foobar", nil)
 		if err != nil {
 			r.Fatal(err)
@@ -410,7 +410,7 @@ func TestCatalog_EnableTagOverride(t *testing.T) {
 		Service:    service,
 	}
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			r.Fatal(err)
 		}
@@ -442,7 +442,7 @@ func TestCatalog_EnableTagOverride(t *testing.T) {
 
 	service.EnableTagOverride = true
 
-	retry.Run("", t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			r.Fatal(err)
 		}
