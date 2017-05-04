@@ -331,7 +331,7 @@ func TestACLReplication(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
 		c.ACLReplicationToken = "root"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	defer os.RemoveAll(dir2)
@@ -348,7 +348,7 @@ func TestACLReplication(t *testing.T) {
 
 	// Create a bunch of new tokens.
 	var id string
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 50; i++ {
 		arg := structs.ACLRequest{
 			Datacenter: "dc1",
 			Op:         structs.ACLSet,
@@ -402,7 +402,7 @@ func TestACLReplication(t *testing.T) {
 	})
 
 	// Create more new tokens.
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 50; i++ {
 		arg := structs.ACLRequest{
 			Datacenter: "dc1",
 			Op:         structs.ACLSet,
