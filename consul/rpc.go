@@ -262,7 +262,7 @@ func (s *Server) forwardLeader(server *agent.Server, method string, args interfa
 	if server == nil {
 		return structs.ErrNoLeader
 	}
-	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, args, reply)
+	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
@@ -274,7 +274,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	}
 
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
-	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, args, reply); err != nil {
+	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
 		return err

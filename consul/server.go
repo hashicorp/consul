@@ -257,6 +257,7 @@ func NewServer(config *Config) (*Server, error) {
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
+		connPool:              NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -268,8 +269,6 @@ func NewServer(config *Config) (*Server, error) {
 		tombstoneGC:           gc,
 		shutdownCh:            make(chan struct{}),
 	}
-
-	s.connPool = NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, s.LANMembers)
 
 	// Set up the autopilot policy
 	s.autopilotPolicy = &BasicAutopilot{server: s}
@@ -380,7 +379,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
 	conf.Tags["build"] = s.config.Build
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
-	conf.Tags["rpc_port"] = fmt.Sprintf("%d", s.config.RPCAddr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}
@@ -390,8 +388,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.NonVoter {
 		conf.Tags["nonvoter"] = "1"
 	}
-	if s.config.VerifyIncoming {
-		conf.Tags["tls_verify_incoming"] = "1"
+	if s.config.CAFile != "" || s.config.CAPath != "" {
+		conf.Tags["use_tls"] = "1"
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
@@ -630,7 +628,18 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
-	s.raftLayer = NewRaftLayer(advertise, wrapper, s.LANMembers)
+	tlsEnabled := func(address raft.ServerAddress) bool {
+		s.localLock.RLock()
+		server, ok := s.localConsuls[address]
+		s.localLock.RUnlock()
+
+		if !ok {
+			return false
+		}
+
+		return server.UseTLS
+	}
+	s.raftLayer = NewRaftLayer(advertise, wrapper, tlsEnabled)
 	return nil
 }
 

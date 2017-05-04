@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 )
 
 // RaftLayer implements the raft.StreamLayer interface,
@@ -28,21 +27,21 @@ type RaftLayer struct {
 	closeCh   chan struct{}
 	closeLock sync.Mutex
 
-	// memberFunc is a callback to get the serf members for determining
-	// when to initiate a TLS connection
-	memberFunc func() []serf.Member
+	// tlsFunc is a callback to determine whether to use TLS for connecting to
+	// a given Raft server
+	tlsFunc func(raft.ServerAddress) bool
 }
 
 // NewRaftLayer is used to initialize a new RaftLayer which can
 // be used as a StreamLayer for Raft. If a tlsConfig is provided,
 // then the connection will use TLS.
-func NewRaftLayer(addr net.Addr, tlsWrap tlsutil.Wrapper, memberFunc func() []serf.Member) *RaftLayer {
+func NewRaftLayer(addr net.Addr, tlsWrap tlsutil.Wrapper, tlsFunc func(raft.ServerAddress) bool) *RaftLayer {
 	layer := &RaftLayer{
-		addr:       addr,
-		connCh:     make(chan net.Conn),
-		tlsWrap:    tlsWrap,
-		closeCh:    make(chan struct{}),
-		memberFunc: memberFunc,
+		addr:    addr,
+		connCh:  make(chan net.Conn),
+		tlsWrap: tlsWrap,
+		closeCh: make(chan struct{}),
+		tlsFunc: tlsFunc,
 	}
 	return layer
 }
@@ -94,24 +93,17 @@ func (l *RaftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net
 	}
 
 	// Check for tls mode
-	if l.tlsWrap != nil {
-		doWrap, err := memberExpectsTLS(string(address), l.memberFunc())
-		if err != nil {
+	if l.tlsFunc(address) && l.tlsWrap != nil {
+		// Switch the connection into TLS mode
+		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+			conn.Close()
 			return nil, err
 		}
 
-		if doWrap {
-			// Switch the connection into TLS mode
-			if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
-				conn.Close()
-				return nil, err
-			}
-
-			// Wrap the connection in a TLS client
-			conn, err = l.tlsWrap(conn)
-			if err != nil {
-				return nil, err
-			}
+		// Wrap the connection in a TLS client
+		conn, err = l.tlsWrap(conn)
+		if err != nil {
+			return nil, err
 		}
 	}
 

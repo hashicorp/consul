@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/rpc"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
 	"github.com/hashicorp/yamux"
 )
 
@@ -131,10 +129,6 @@ type ConnPool struct {
 	// The maximum number of open streams to keep
 	maxStreams int
 
-	// memberFunc is a callback to get the serf members for determining
-	// when to initiate a TLS connection
-	memberFunc func() []serf.Member
-
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
@@ -157,13 +151,11 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper,
-	memberFunc func() []serf.Member) *ConnPool {
+func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
 	pool := &ConnPool{
 		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
-		memberFunc: memberFunc,
 		pool:       make(map[string]*Conn),
 		limiter:    make(map[string]chan struct{}),
 		tlsWrap:    tlsWrap,
@@ -197,7 +189,7 @@ func (p *ConnPool) Shutdown() error {
 // wait for an existing connection attempt to finish, if one if in progress,
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
-func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) acquire(dc string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
 	addrStr := addr.String()
 
 	// Check to see if there's a pooled connection available. This is up
@@ -226,7 +218,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	// If we are the lead thread, make the new connection and then wake
 	// everybody else up to see if we got it.
 	if isLeadThread {
-		c, err := p.getNewConn(dc, addr, version)
+		c, err := p.getNewConn(dc, addr, version, useTLS)
 		p.Lock()
 		delete(p.limiter, addrStr)
 		close(wait)
@@ -271,7 +263,7 @@ type HalfCloser interface {
 
 // DialTimeout is used to establish a raw connection to the given server, with a
 // given connection timeout.
-func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration) (net.Conn, HalfCloser, error) {
+func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
 	conn, err := net.DialTimeout("tcp", addr.String(), defaultDialTimeout)
 	if err != nil {
@@ -287,56 +279,29 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration) 
 	}
 
 	// Check if TLS is enabled
-	if p.tlsWrap != nil {
-		doWrap, err := memberExpectsTLS(addr.String(), p.memberFunc())
-		if err != nil {
+	if useTLS && p.tlsWrap != nil {
+		// Switch the connection into TLS mode
+		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+			conn.Close()
 			return nil, nil, err
 		}
 
-		if doWrap {
-			// Switch the connection into TLS mode
-			if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
-				conn.Close()
-				return nil, nil, err
-			}
-
-			// Wrap the connection in a TLS client
-			tlsConn, err := p.tlsWrap(dc, conn)
-			if err != nil {
-				conn.Close()
-				return nil, nil, err
-			}
-			conn = tlsConn
+		// Wrap the connection in a TLS client
+		tlsConn, err := p.tlsWrap(dc, conn)
+		if err != nil {
+			conn.Close()
+			return nil, nil, err
 		}
+		conn = tlsConn
 	}
 
 	return conn, hc, nil
 }
 
-// memberExpectsTLS returns true if the member with the specified address is
-// verifying incoming TLS connections
-func memberExpectsTLS(addr string, members []serf.Member) (bool, error) {
-	for _, member := range members {
-		port, err := strconv.Atoi(member.Tags["rpc_port"])
-		if err != nil {
-			return false, err
-		}
-		memberAddr := (&net.TCPAddr{IP: member.Addr, Port: port}).String()
-		if memberAddr == addr {
-			if _, ok := member.Tags["tls_verify_incoming"]; !ok {
-				return false, nil
-			}
-			break
-		}
-	}
-
-	return true, nil
-}
-
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
 	// Get a new, raw connection.
-	conn, _, err := p.DialTimeout(dc, addr, defaultDialTimeout)
+	conn, _, err := p.DialTimeout(dc, addr, defaultDialTimeout, useTLS)
 	if err != nil {
 		return nil, err
 	}
@@ -402,11 +367,11 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 }
 
 // getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(dc string, addr net.Addr, version int) (*Conn, *StreamClient, error) {
+func (p *ConnPool) getClient(dc string, addr net.Addr, version int, useTLS bool) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(dc, addr, version)
+	conn, err := p.acquire(dc, addr, version, useTLS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
@@ -428,9 +393,9 @@ START:
 }
 
 // RPC is used to make an RPC call to a remote host
-func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
 	// Get a usable client
-	conn, sc, err := p.getClient(dc, addr, version)
+	conn, sc, err := p.getClient(dc, addr, version, useTLS)
 	if err != nil {
 		return fmt.Errorf("rpc error: %v", err)
 	}
@@ -453,7 +418,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) PingConsulServer(s *agent.Server) (bool, error) {
 	// Get a usable client
-	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
+	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version, s.UseTLS)
 	if err != nil {
 		return false, err
 	}
