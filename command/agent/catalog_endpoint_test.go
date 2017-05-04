@@ -195,6 +195,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -205,6 +206,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
@@ -674,6 +676,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -684,6 +687,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
@@ -913,6 +917,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -923,6 +928,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
