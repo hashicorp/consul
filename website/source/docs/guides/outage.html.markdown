@@ -124,21 +124,60 @@ periodic basis.
 
 The next step is to go to the [`-data-dir`](/docs/agent/options.html#_data_dir)
 of each Consul server. Inside that directory, there will be a `raft/`
-sub-directory. We need to create a `raft/peers.json` file. It should look
-something like:
+sub-directory. We need to create a `raft/peers.json` file. The format of this file
+depends on what the server has configured for its
+[Raft protocol](/docs/agent/options.html#_raft_protocol) version.
 
-```javascript
+For Raft protocol version 2 and earlier, this should be formatted as a JSON
+array containing the address and port of each Consul server in the cluster, like
+this:
+
+```json
 [
-"10.0.1.8:8300",
-"10.0.1.6:8300",
-"10.0.1.7:8300"
+  "10.1.0.1:8300",
+  "10.1.0.2:8300",
+  "10.1.0.3:8300"
 ]
 ```
 
-Simply create entries for all remaining servers. You must confirm
-that servers you do not include here have indeed failed and will not later
-rejoin the cluster. Ensure that this file is the same across all remaining
-server nodes.
+For Raft protocol version 3 and later, this should be formatted as a JSON
+array containing the node ID, address:port, and suffrage information of each
+Consul server in the cluster, like this:
+
+```
+[
+  {
+    "id": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "address": "10.1.0.1:8300",
+    "non_voter": false
+  },
+  {
+    "id": "8b6dda82-3103-11e7-93ae-92361f002671",
+    "address": "10.1.0.2:8300",
+    "non_voter": false
+  },
+  {
+    "id": "97e17742-3103-11e7-93ae-92361f002671",
+    "address": "10.1.0.3:8300",
+    "non_voter": false
+  }
+]
+```
+
+- `id` `(string: <required>)` - Specifies the [node ID](/docs/agent/options.html#_node_id)
+  of the server. This can be found in the logs when the server starts up if it was auto-generated,
+  and it can also be found inside the `node-id` file in the server's data directory.
+
+- `address` `(string: <required>)` - Specifies the IP and port of the server. The port is the
+  server's RPC port used for cluster communications.
+
+- `non_voter` `(bool: <false>)` - This controls whether the server is a non-voter, which is used
+  in some advanced [Autopilot](/docs/guides/autopilot.html) configurations. If omitted, it will
+  default to false, which is typical for most clusters.
+
+Simply create entries for all servers. You must confirm that servers you do not include here have
+indeed failed and will not later rejoin the cluster. Ensure that this file is the same across all
+remaining server nodes.
 
 At this point, you can restart all the remaining servers. In Consul 0.7 and
 later you will see them ingest recovery file:
@@ -177,8 +216,8 @@ command to inspect the Raft configuration:
 
 ```
 $ consul operator raft -list-peers
-Node     ID              Address         State     Voter
-alice    10.0.1.8:8300   10.0.1.8:8300   follower  true
-bob      10.0.1.6:8300   10.0.1.6:8300   leader    true
-carol    10.0.1.7:8300   10.0.1.7:8300   follower  true
+Node     ID              Address         State     Voter  RaftProtocol
+alice    10.0.1.8:8300   10.0.1.8:8300   follower  true   2
+bob      10.0.1.6:8300   10.0.1.6:8300   leader    true   2
+carol    10.0.1.7:8300   10.0.1.7:8300   follower  true   2
 ```
