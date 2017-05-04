@@ -65,9 +65,6 @@ func (s *Server) monitorLeadership() {
 // leaderLoop runs as long as we are the leader to run various
 // maintenance activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
-	// Ensure we revoke leadership on stepdown
-	defer s.revokeLeadership()
-
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
 	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
@@ -101,6 +98,7 @@ RECONCILE:
 			goto WAIT
 		}
 		establishedLeader = true
+		defer s.revokeLeadership()
 	}
 
 	// Reconcile any missing data
