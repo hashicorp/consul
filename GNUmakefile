@@ -28,10 +28,15 @@ bin: tools
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev:
-	mkdir -p pkg/$(GOOS)_$(GOARCH) bin/
+	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
+
+# linux builds a linux package indpendent of the source platform
+linux:
+	mkdir -p pkg/linux_amd64/
+	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)' -o pkg/linux_amd64/consul
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
