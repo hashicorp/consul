@@ -476,9 +476,10 @@ func TestOperator_ServerHealth(t *testing.T) {
 }
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
-	threshold := time.Duration(-1)
 	cb := func(c *Config) {
 		c.RaftProtocol = 3
+
+		threshold := time.Duration(-1)
 		c.Autopilot.LastContactThreshold = &threshold
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
