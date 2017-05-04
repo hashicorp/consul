@@ -518,10 +518,17 @@ func (s *Server) setupRaft() error {
 			}
 		} else if _, err := os.Stat(peersFile); err == nil {
 			s.logger.Printf("[INFO] consul: found peers.json file, recovering Raft configuration...")
-			configuration, err := raft.ReadPeersJSON(peersFile)
+
+			var configuration raft.Configuration
+			if s.config.RaftConfig.ProtocolVersion < 3 {
+				configuration, err = raft.ReadPeersJSON(peersFile)
+			} else {
+				configuration, err = raft.ReadConfigJSON(peersFile)
+			}
 			if err != nil {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
+
 			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
@@ -530,6 +537,7 @@ func (s *Server) setupRaft() error {
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
 			}
+
 			if err := os.Remove(peersFile); err != nil {
 				return fmt.Errorf("recovery failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
 			}
@@ -965,10 +973,54 @@ func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 // location.
 const peersInfoContent = `
 As of Consul 0.7.0, the peers.json file is only used for recovery
-after an outage. It should be formatted as a JSON array containing the address
-and port of each Consul server in the cluster, like this:
+after an outage. The format of this file depends on what the server has
+configured for its Raft protocol version. Please see the agent configuration
+page at https://www.consul.io/docs/agent/options.html#_raft_protocol for more
+details about this parameter.
 
-["10.1.0.1:8300","10.1.0.2:8300","10.1.0.3:8300"]
+For Raft protocol version 2 and earlier, this should be formatted as a JSON
+array containing the address and port of each Consul server in the cluster, like
+this:
+
+[
+  "10.1.0.1:8300",
+  "10.1.0.2:8300",
+  "10.1.0.3:8300"
+]
+
+For Raft protocol version 3 and later, this should be formatted as a JSON
+array containing the node ID, address:port, and suffrage information of each
+Consul server in the cluster, like this:
+
+[
+  {
+    "id": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "address": "10.1.0.1:8300",
+    "non_voter": false
+  },
+  {
+    "id": "8b6dda82-3103-11e7-93ae-92361f002671",
+    "address": "10.1.0.2:8300",
+    "non_voter": false
+  },
+  {
+    "id": "97e17742-3103-11e7-93ae-92361f002671",
+    "address": "10.1.0.3:8300",
+    "non_voter": false
+  }
+]
+
+The "id" field is the node ID of the server. This can be found in the logs when
+the server starts up, or in the "node-id" file inside the server's data
+directory.
+
+The "address" field is the address and port of the server.
+
+The "non_voter" field controls whether the server is a non-voter, which is used
+in some advanced Autopilot configurations, please see
+https://www.consul.io/docs/guides/autopilot.html for more information. If
+"non_voter" is omitted it will default to false, which is typical for most
+clusters.
 
 Under normal operation, the peers.json file will not be present.
 
