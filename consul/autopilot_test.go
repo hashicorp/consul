@@ -50,11 +50,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Bring up a new server
@@ -84,11 +80,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }
 
@@ -128,11 +120,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 4; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 4)) })
 	}
 
 	// Kill a non-leader server
@@ -140,11 +128,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 
 	// Should be removed from the peers automatically
 	for _, s := range []*Server{s1, s2, s3} {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }
 
@@ -178,11 +162,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -203,11 +183,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 
 	// Wait for s4 to be removed
 	for _, s := range []*Server{s1, s2, s3} {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }
 

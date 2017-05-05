@@ -298,11 +298,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	if _, err := s3.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 3; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 3)) })
 
 	// Find the leader
 	var leader *Server

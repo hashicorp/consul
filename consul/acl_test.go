@@ -231,11 +231,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	client := rpcClient(t, s1)
 	defer client.Close()
@@ -281,11 +277,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -356,11 +348,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -412,11 +400,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -485,11 +469,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -560,11 +540,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d peers want %d", got, want)
-		}
-	})
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1906,10 +1882,13 @@ service "service" {
 	}
 }
 
-func numPeers(s *Server) int {
+func wantPeers(s *Server, peers int) error {
 	n, err := s.numPeers()
 	if err != nil {
-		panic(err)
+		return err
 	}
-	return n
+	if got, want := n, peers; got != want {
+		return fmt.Errorf("got %d peers want %d", got, want)
+	}
+	return nil
 }
