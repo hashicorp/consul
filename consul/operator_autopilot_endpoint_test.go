@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -215,18 +214,12 @@ func TestOperator_ServerHealth(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	dir3, s3 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {

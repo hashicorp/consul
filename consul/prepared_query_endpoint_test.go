@@ -477,11 +477,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -1450,11 +1446,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
@@ -2464,11 +2456,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -2699,11 +2687,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)

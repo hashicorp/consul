@@ -196,11 +196,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -241,11 +237,7 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
@@ -513,11 +505,7 @@ func TestCatalog_ListDatacenters(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -554,14 +542,8 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 	defer s3.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
+	joinWAN(t, s3, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	var out []string
@@ -699,11 +681,7 @@ func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -767,11 +745,7 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -817,11 +791,7 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")

@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -40,14 +39,8 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -73,9 +66,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	})
 
 	// Join the new server
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 	servers[2] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
@@ -111,12 +102,8 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	servers := []*Server{s1, s2, s3, s4}
 
 	// Join the servers to s1
-	addr := fmt.Sprintf("127.0.0.1:%d", s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-
 	for _, s := range servers[1:] {
-		if _, err := s.JoinLAN([]string{addr}); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		joinLAN(t, s, s1)
 	}
 
 	for _, s := range servers {
@@ -152,13 +139,8 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Join the servers to s1
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-
 	for _, s := range servers[1:] {
-		if _, err := s.JoinLAN([]string{addr}); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		joinLAN(t, s, s1)
 	}
 
 	for _, s := range servers {
@@ -168,9 +150,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add s4 to peers directly
-	s4addr := fmt.Sprintf("127.0.0.1:%d",
-		s4.config.SerfLANConfig.MemberlistConfig.BindPort)
-	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(s4addr), 0, 0)
+	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(joinAddrLAN(s4)), 0, 0)
 
 	// Verify we have 4 peers
 	peers, err := s1.numPeers()
@@ -208,11 +188,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	// Wait for the new server to be added as a non-voter, but make sure
@@ -252,9 +228,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s1)
 	retry.Run(t, func(r *retry.R) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {

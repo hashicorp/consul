@@ -152,11 +152,7 @@ func TestServer_JoinLAN(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.LANMembers()), 2; got != want {
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
@@ -177,11 +173,7 @@ func TestServer_JoinWAN(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d s1 WAN members want %d", got, want)
@@ -212,11 +204,7 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	for _, s := range []*Server{s1, s2} {
 		retry.Run(t, func(r *retry.R) {
@@ -232,11 +220,7 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 	// Do just a LAN join for the new server and make sure it
 	// shows up in the WAN.
-	addr = fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s1)
 
 	for _, s := range []*Server{s1, s2, s3} {
 		retry.Run(t, func(r *retry.R) {
@@ -269,18 +253,10 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	defer s3.Shutdown()
 
 	// Join s2 to s1 on wan
-	addrs1 := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addrs1}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	// Join s3 to s2 on lan
-	addrs2 := fmt.Sprintf("127.0.0.1:%d",
-		s2.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s3.JoinLAN([]string{addrs2}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s2)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d s1 WAN members want %d", got, want)
@@ -343,11 +319,7 @@ func TestServer_LeaveLeader(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantPeers(s1, 2))
@@ -382,11 +354,7 @@ func TestServer_Leave(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantPeers(s1, 2))
@@ -446,11 +414,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.LANMembers()), 2; got != want {
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
@@ -487,11 +451,7 @@ func TestServer_Expect(t *testing.T) {
 	defer s4.Shutdown()
 
 	// Join the first two servers.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	// Should have no peers yet since the bootstrap didn't occur.
 	retry.Run(t, func(r *retry.R) {
@@ -500,9 +460,7 @@ func TestServer_Expect(t *testing.T) {
 	})
 
 	// Join the third node.
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s1)
 
 	// Now we have three servers so we should bootstrap.
 	retry.Run(t, func(r *retry.R) {
@@ -515,9 +473,7 @@ func TestServer_Expect(t *testing.T) {
 	// the fourth server.
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	termBefore := s1.raft.Stats()["last_log_term"]
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 
 	// Wait for the new server to see itself added to the cluster.
 	retry.Run(t, func(r *retry.R) {
@@ -553,11 +509,7 @@ func TestServer_BadExpect(t *testing.T) {
 	defer s3.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	// should have no peers yet
 	retry.Run(t, func(r *retry.R) {
@@ -566,9 +518,7 @@ func TestServer_BadExpect(t *testing.T) {
 	})
 
 	// join the third node
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s3, s1)
 
 	// should still have no peers (because s2 is in expect=2 mode)
 	retry.Run(t, func(r *retry.R) {

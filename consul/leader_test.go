@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -29,11 +28,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -103,11 +98,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Fail the member
 	c1.Shutdown()
@@ -165,11 +156,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	state := s1.fsm.State()
 
@@ -214,11 +201,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	state := s1.fsm.State()
 
@@ -326,11 +309,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Join before we have a leader, this should cause a reconcile!
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Should not be registered
 	state := s1.fsm.State()
@@ -365,11 +344,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Wait for the server to reconcile the client and register it.
 	state := s1.fsm.State()
@@ -462,14 +437,8 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -505,14 +474,8 @@ func TestLeader_LeftLeader(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -567,11 +530,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 	servers := []*Server{s1, s2}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) {
@@ -605,14 +564,8 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -749,14 +702,8 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -785,9 +732,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 	servers[1] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
@@ -838,14 +783,8 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
@@ -878,9 +817,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 	servers[2] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
