@@ -177,8 +177,7 @@ to static templates, except with some additional fields and features. Here's an 
   "Name": "geo-db",
   "Template": {
     "Type": "name_prefix_match",
-    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$",
-    "RemoveEmptyTags": false
+    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
   },
   "Service": {
     "Service": "mysql-${match(1)}",
@@ -193,7 +192,7 @@ to static templates, except with some additional fields and features. Here's an 
 ```
 
 The new `Template` structure configures a prepared query as a template instead of a
-static query. It has three fields:
+static query. It has two fields:
 
 `Type` is the query type, which must be "name_prefix_match". This means that the
 template will apply to any query lookup with a name whose prefix matches the `Name`
@@ -207,10 +206,6 @@ entire name, once this template is selected. In this example, the regular expres
 takes the first item after the "-" as the database name and everything else after as
 a tag. See the [RE2](https://github.com/google/re2/wiki/Syntax) reference for syntax
 of this regular expression.
-
-An optional `RemoveEmptyTags` boolean may be set to true, if the returned tags list
-is to be stripped of empty string elements. `RemoveEmptyTags` defaults to false
-(all tags are being returned, including empty strings).
 
 All other fields of the query have the same meanings as for a static query, except
 that several interpolation variables are available to dynamically populate the query
@@ -475,8 +470,7 @@ a JSON body will be returned like this:
     "Name": "geo-db",
     "Template": {
       "Type": "name_prefix_match",
-      "Regexp": "^geo-db-(.*?)-([^\\-]+?)$",
-      "RemoveEmptyTags": false
+      "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
     },
     "Service": {
       "Service": "mysql-customer",
