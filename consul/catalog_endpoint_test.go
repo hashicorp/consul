@@ -676,17 +676,13 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.
-
-		// Should get an empty list of nodes back
-		Run(t, func(r *retry.R) {
-
-			msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
-			if len(out.Nodes) != 0 {
-				r.Fatal(nil)
-			}
-		})
-
+	// Should get an empty list of nodes back
+	retry.Run(t, func(r *retry.R) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		if len(out.Nodes) != 0 {
+			r.Fatal(nil)
+		}
+	})
 }
 
 func TestCatalog_ListNodes_StaleRaad(t *testing.T) {

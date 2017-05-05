@@ -167,29 +167,25 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.
-
-		// Retry until foo moves to the front of the line.
-		Run(t, func(r *retry.R) {
-
-			resp = httptest.NewRecorder()
-			obj, err = srv.HealthChecksInState(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			assertIndex(t, resp)
-			nodes = obj.(structs.HealthChecks)
-			if len(nodes) != 2 {
-				r.Fatalf("bad: %v", nodes)
-			}
-			if nodes[0].Node != "foo" {
-				r.Fatalf("bad: %v", nodes)
-			}
-			if nodes[1].Node != "bar" {
-				r.Fatalf("bad: %v", nodes)
-			}
-		})
-
+	// Retry until foo moves to the front of the line.
+	retry.Run(t, func(r *retry.R) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthChecksInState(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.HealthChecks)
+		if len(nodes) != 2 {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[0].Node != "foo" {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			r.Fatalf("bad: %v", nodes)
+		}
+	})
 }
 
 func TestHealthNodeChecks(t *testing.T) {
@@ -428,29 +424,25 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.
-
-		// Retry until foo has moved to the front of the line.
-		Run(t, func(r *retry.R) {
-
-			resp = httptest.NewRecorder()
-			obj, err = srv.HealthServiceChecks(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			assertIndex(t, resp)
-			nodes = obj.(structs.HealthChecks)
-			if len(nodes) != 2 {
-				r.Fatalf("bad: %v", obj)
-			}
-			if nodes[0].Node != "foo" {
-				r.Fatalf("bad: %v", nodes)
-			}
-			if nodes[1].Node != "bar" {
-				r.Fatalf("bad: %v", nodes)
-			}
-		})
-
+	// Retry until foo has moved to the front of the line.
+	retry.Run(t, func(r *retry.R) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.HealthChecks)
+		if len(nodes) != 2 {
+			r.Fatalf("bad: %v", obj)
+		}
+		if nodes[0].Node != "foo" {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			r.Fatalf("bad: %v", nodes)
+		}
+	})
 }
 
 func TestHealthServiceNodes(t *testing.T) {
@@ -662,29 +654,25 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	retry.
-
-		// Retry until foo has moved to the front of the line.
-		Run(t, func(r *retry.R) {
-
-			resp = httptest.NewRecorder()
-			obj, err = srv.HealthServiceNodes(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			assertIndex(t, resp)
-			nodes = obj.(structs.CheckServiceNodes)
-			if len(nodes) != 2 {
-				r.Fatalf("bad: %v", obj)
-			}
-			if nodes[0].Node.Node != "foo" {
-				r.Fatalf("bad: %v", nodes)
-			}
-			if nodes[1].Node.Node != "bar" {
-				r.Fatalf("bad: %v", nodes)
-			}
-		})
-
+	// Retry until foo has moved to the front of the line.
+	retry.Run(t, func(r *retry.R) {
+		resp = httptest.NewRecorder()
+		obj, err = srv.HealthServiceNodes(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		assertIndex(t, resp)
+		nodes = obj.(structs.CheckServiceNodes)
+		if len(nodes) != 2 {
+			r.Fatalf("bad: %v", obj)
+		}
+		if nodes[0].Node.Node != "foo" {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[1].Node.Node != "bar" {
+			r.Fatalf("bad: %v", nodes)
+		}
+	})
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {

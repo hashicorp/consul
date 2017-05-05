@@ -239,37 +239,34 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	}
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	retry.
+	// Wait for the new server to be added as a non-voter, but make sure
+	// it doesn't get promoted to a voter even after ServerStabilizationTime,
+	// because that would result in an even-numbered quorum count.
+	retry.Run(t, func(r *retry.R) {
+		future := s1.raft.GetConfiguration()
+		if err := future.Error(); err != nil {
+			r.Fatal(err)
+		}
 
-		// Wait for the new server to be added as a non-voter, but make sure
-		// it doesn't get promoted to a voter even after ServerStabilizationTime,
-		// because that would result in an even-numbered quorum count.
-		Run(t, func(r *retry.R) {
+		servers := future.Configuration().Servers
 
-			future := s1.raft.GetConfiguration()
-			if err := future.Error(); err != nil {
-				r.Fatal(err)
-			}
-
-			servers := future.Configuration().Servers
-
-			if len(servers) != 2 {
-				r.Fatalf("bad: %v", servers)
-			}
-			if servers[1].Suffrage != raft.Nonvoter {
-				r.Fatalf("bad: %v", servers)
-			}
-			health := s1.getServerHealth(string(servers[1].ID))
-			if health == nil {
-				r.Fatal("nil health")
-			}
-			if !health.Healthy {
-				r.Fatalf("bad: %v", health)
-			}
-			if time.Now().Sub(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime {
-				r.Fatal("stable period not elapsed")
-			}
-		})
+		if len(servers) != 2 {
+			r.Fatalf("bad: %v", servers)
+		}
+		if servers[1].Suffrage != raft.Nonvoter {
+			r.Fatalf("bad: %v", servers)
+		}
+		health := s1.getServerHealth(string(servers[1].ID))
+		if health == nil {
+			r.Fatal("nil health")
+		}
+		if !health.Healthy {
+			r.Fatalf("bad: %v", health)
+		}
+		if time.Now().Sub(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime {
+			r.Fatal("stable period not elapsed")
+		}
+	})
 
 	// Now add another server and make sure they both get promoted to voters after stabilization
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {

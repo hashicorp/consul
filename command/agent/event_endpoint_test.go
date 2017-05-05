@@ -318,31 +318,27 @@ func TestEventList_EventBufOrder(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		}
-		retry.
-
-			// Test that the event order is preserved when name
-			// filtering on a list of > 1 matching event.
-			Run(t, func(r *retry.R) {
-
-				url := "/v1/event/list?name=foo"
-				req, err := http.NewRequest("GET", url, nil)
-				if err != nil {
-					r.Fatal(err)
-				}
-				resp := httptest.NewRecorder()
-				obj, err := srv.EventList(resp, req)
-				if err != nil {
-					r.Fatal(err)
-				}
-				list, ok := obj.([]*UserEvent)
-				if !ok {
-					r.Fatalf("bad: %#v", obj)
-				}
-				if len(list) != 3 || list[2].ID != expected.ID {
-					r.Fatalf("bad: %#v", list)
-				}
-			})
-
+		// Test that the event order is preserved when name
+		// filtering on a list of > 1 matching event.
+		retry.Run(t, func(r *retry.R) {
+			url := "/v1/event/list?name=foo"
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				r.Fatal(err)
+			}
+			resp := httptest.NewRecorder()
+			obj, err := srv.EventList(resp, req)
+			if err != nil {
+				r.Fatal(err)
+			}
+			list, ok := obj.([]*UserEvent)
+			if !ok {
+				r.Fatalf("bad: %#v", obj)
+			}
+			if len(list) != 3 || list[2].ID != expected.ID {
+				r.Fatalf("bad: %#v", list)
+			}
+		})
 	})
 }
 
