@@ -73,7 +73,7 @@ Prior to Autopilot, it would take 72 hours for dead servers to be automatically 
 or operators had to script a `consul force-leave`. If another server failure occurred,
 it could jeopardize the quorum, even if the failed Consul server had been automatically
 replaced. Autopilot helps prevent these kinds of outages by quickly removing failed
-servers as soon as a replacement Consul server comes online. When servers are removed 
+servers as soon as a replacement Consul server comes online. When servers are removed
 by the cleanup process they will enter the "left" state.
 
 This option can be disabled by running `consul operator autopilot set-config`
@@ -82,7 +82,7 @@ with the `-cleanup-dead-servers=false` option.
 ## Server Health Checking
 
 An internal health check runs on the leader to track the stability of servers.
-</br>A server is considered healthy if:
+</br>A server is considered healthy if all of the following conditions are true:
 
 - It has a SerfHealth status of 'Alive'
 - The time since its last contact with the current leader is below
