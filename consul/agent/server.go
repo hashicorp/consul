@@ -72,7 +72,9 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
-	_, useTLS := m.Tags["use_tls"]
+
+	tlsTag, ok := m.Tags["use_tls"]
+	useTLS := !ok || tlsTag == "1"
 
 	expect := 0
 	expect_str, ok := m.Tags["expect"]

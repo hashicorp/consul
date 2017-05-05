@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
@@ -757,5 +758,112 @@ func TestServer_Encrypted(t *testing.T) {
 	}
 	if !s2.Encrypted() {
 		t.Fatalf("should be encrypted")
+	}
+}
+
+func TestServer_VerifyOutgoingToNoTLS(t *testing.T) {
+	// Set up a server with no TLS configured
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a second server with TLS and VerifyOutgoing set
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+		c.VerifyOutgoing = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	if err := testrpc.WaitForResult(func() (bool, error) {
+		peers, err := s1.numPeers()
+		return peers == 2, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Have s2 make an RPC call to s1
+	s2.localLock.RLock()
+	var leader *agent.Server
+	for _, server := range s2.localConsuls {
+		if server.Name == s1.config.NodeName {
+			leader = server
+		}
+	}
+	success, err := s2.connPool.PingConsulServer(leader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !success {
+		t.Fatalf("bad: %v", success)
+	}
+}
+
+func TestServer_VerifyOutgoingToFullTLS(t *testing.T) {
+	// Set up a server with TLS and VerifyIncoming set
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+		c.VerifyIncoming = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a second server with TLS and VerifyOutgoing set
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+		c.VerifyOutgoing = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	if err := testrpc.WaitForResult(func() (bool, error) {
+		peers, err := s1.numPeers()
+		return peers == 2, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Have s2 make an RPC call to s1
+	s2.localLock.RLock()
+	var leader *agent.Server
+	for _, server := range s2.localConsuls {
+		if server.Name == s1.config.NodeName {
+			leader = server
+		}
+	}
+	success, err := s2.connPool.PingConsulServer(leader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !success {
+		t.Fatalf("bad: %v", success)
 	}
 }
