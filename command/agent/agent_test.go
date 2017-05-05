@@ -90,6 +90,7 @@ func nextConfig() *Config {
 	cons.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	cons.CoordinateUpdatePeriod = 100 * time.Millisecond
+	cons.ServerHealthInterval = 10 * time.Millisecond
 	return conf
 }
 

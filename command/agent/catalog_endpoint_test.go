@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -89,20 +90,17 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		obj, err := srv.CatalogDatacenters(nil, nil)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 
 		dcs := obj.([]string)
-		if len(dcs) != 1 {
-			return false, fmt.Errorf("missing dc: %v", dcs)
+		if got, want := len(dcs), 1; got != want {
+			r.Fatalf("got %d data centers want %d", got, want)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestCatalogNodes(t *testing.T) {
@@ -197,6 +195,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -207,6 +206,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
@@ -214,16 +214,15 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		srv1.agent.config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", srv1.agent.config.Ports.SerfWan)
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+	})
 
 	// Register a node with DC2.
 	{
@@ -677,6 +676,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -687,6 +687,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
@@ -699,11 +700,11 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+	})
 
 	// Register a node with DC2.
 	{
@@ -916,6 +917,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc1"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
@@ -926,6 +928,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		func(c *Config) {
 			c.Datacenter = "dc2"
 			c.TranslateWanAddrs = true
+			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
 	defer srv2.Shutdown()
@@ -938,11 +941,11 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(srv1.agent.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+	})
 
 	// Register a node with DC2.
 	{

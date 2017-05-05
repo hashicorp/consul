@@ -14,11 +14,13 @@ IMPROVEMENTS:
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
 * ui: Added optional JSON validation when editing KV entries in the web UI. [GH-2712]
+* ui: Updated ACL guide links and made guides open in a new tab. [GH-3010]
 
 BUG FIXES:
 
 * server: Fixed a panic when the tombstone garbage collector was stopped. [GH-2087]
 * server: Fixed a panic in Autopilot that could occur when a node is elected but cannot complete leader establishment and steps back down. [GH-2980]
+* server: Added a new peers.json format that allows outage recovery when using Raft protocol version 3 and higher. Previously, you'd have to set the Raft protocol version back to 2 in order to manually recover a cluster. See https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json for more details. [GH-3003]
 * ui: Add and update favicons [GH-2945]
 
 ## 0.8.1 (April 17, 2017)

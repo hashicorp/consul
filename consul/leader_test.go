@@ -1,8 +1,6 @@
 package consul
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -10,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
@@ -29,25 +28,21 @@ func TestLeader_RegisterMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Client should be registered
 	state := s1.fsm.State()
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node != nil, nil
-	}); err != nil {
-		t.Fatal("client not registered")
-	}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
 
 	// Should have a check
 	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
@@ -103,26 +98,22 @@ func TestLeader_FailedMember(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Fail the member
 	c1.Shutdown()
 
 	// Should be registered
 	state := s1.fsm.State()
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node != nil, nil
-	}); err != nil {
-		t.Fatal("client not registered")
-	}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
 
 	// Should have a check
 	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
@@ -139,15 +130,15 @@ func TestLeader_FailedMember(t *testing.T) {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return checks[0].Status == api.HealthCritical, errors.New(checks[0].Status)
-	}); err != nil {
-		t.Fatalf("check status is %v, should be critical", err)
-	}
+		if got, want := checks[0].Status, api.HealthCritical; got != want {
+			r.Fatalf("got status %q want %q", got, want)
+		}
+	})
 }
 
 func TestLeader_LeftMember(t *testing.T) {
@@ -165,41 +156,36 @@ func TestLeader_LeftMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	state := s1.fsm.State()
 
 	// Should be registered
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node != nil, nil
-	}); err != nil {
-		t.Fatal("client should be registered")
-	}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
 
 	// Node should leave
 	c1.Leave()
 	c1.Shutdown()
 
 	// Should be deregistered
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node == nil, nil
-	}); err != nil {
-		t.Fatal("client should not be registered")
-	}
+		if node != nil {
+			r.Fatal("client still registered")
+		}
+	})
 }
-
 func TestLeader_ReapMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -215,24 +201,20 @@ func TestLeader_ReapMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	state := s1.fsm.State()
 
 	// Should be registered
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node != nil, nil
-	}); err != nil {
-		t.Fatal("client should be registered")
-	}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
 
 	// Simulate a node reaping
 	mems := s1.LANMembers()
@@ -327,11 +309,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Join before we have a leader, this should cause a reconcile!
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Should not be registered
 	state := s1.fsm.State()
@@ -344,15 +322,15 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	// Should be registered
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		_, node, err = state.GetNode(c1.config.NodeName)
+	retry.Run(t, func(r *retry.R) {
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node != nil, nil
-	}); err != nil {
-		t.Fatal("client should be registered")
-	}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
 }
 
 func TestLeader_Reconcile_Races(t *testing.T) {
@@ -366,28 +344,21 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Wait for the server to reconcile the client and register it.
 	state := s1.fsm.State()
 	var nodeAddr string
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		if node != nil {
-			nodeAddr = node.Address
-			return true, nil
+		if node == nil {
+			r.Fatal("client not registered")
 		}
-		return false, nil
-	}); err != nil {
-		t.Fatalf("client should be registered: %v", err)
-	}
+		nodeAddr = node.Address
+	})
 
 	// Add in some metadata via the catalog (as if the agent synced it
 	// there). We also set the serfHealth check to failing so the reconile
@@ -428,15 +399,15 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return checks[0].Status == api.HealthCritical, errors.New(checks[0].Status)
-	}); err != nil {
-		t.Fatalf("check status should be critical: %v", err)
-	}
+		if got, want := checks[0].Status, api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
 
 	// Make sure the metadata didn't get clobbered.
 	_, node, err = state.GetNode(c1.config.NodeName)
@@ -466,42 +437,26 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		// Kill any server
 		servers[0].Shutdown()
 
 		// Force remove the non-leader (transition to left state)
 		if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		for _, s := range servers[1:] {
-			peers, _ := s.numPeers()
-			return peers == 2, fmt.Errorf("%d", peers)
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
 		}
-
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
@@ -519,22 +474,11 @@ func TestLeader_LeftLeader(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Kill the leader!
@@ -558,25 +502,20 @@ func TestLeader_LeftLeader(t *testing.T) {
 			continue
 		}
 		remain = s
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 2, fmt.Errorf("%d", peers)
-		}); err != nil {
-			t.Fatal("should have 2 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
 	}
 
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return node == nil, nil
-	}); err != nil {
-		t.Fatal("should be deregistered")
-	}
+		if node != nil {
+			r.Fatal("leader should be deregistered")
+		}
+	})
 }
 
 func TestLeader_MultiBootstrap(t *testing.T) {
@@ -591,19 +530,14 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 	servers := []*Server{s1, s2}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers := s.serfLAN.Members()
-			return len(peers) == 2, nil
-		}); err != nil {
-			t.Fatal("should have 2 peerss")
-		}
+		retry.Run(t, func(r *retry.R) {
+			if got, want := len(s.serfLAN.Members()), 2; got != want {
+				r.Fatalf("got %d peers want %d", got, want)
+			}
+		})
 	}
 
 	// Ensure we don't have multiple raft peers
@@ -630,22 +564,11 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	var leader *Server
@@ -670,24 +593,21 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	// Wait for a new leader
 	leader = nil
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		for _, s := range servers {
 			if s.IsLeader() {
 				leader = s
-				return true, nil
+				return
 			}
 		}
-		return false, nil
-	}); err != nil {
-		t.Fatal("should have leader")
-	}
+		r.Fatal("no leader")
+	})
 
-	// Check that the new leader has a pending GC expiration
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return leader.tombstoneGC.PendingExpiration(), nil
-	}); err != nil {
-		t.Fatal("should have pending expiration")
-	}
+	retry.Run(t, func(r *retry.R) {
+		if !leader.tombstoneGC.PendingExpiration() {
+			r.Fatal("leader has no pending GC expiration")
+		}
+	})
 }
 
 func TestLeader_ReapTombstones(t *testing.T) {
@@ -746,17 +666,17 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Check that the new leader has a pending GC expiration by
 	// watching for the tombstone to get removed.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
-		return stones.Next() == nil, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+		if stones.Next() != nil {
+			r.Fatal("should have no tombstones")
+		}
+	})
 }
 
 func TestLeader_RollRaftServer(t *testing.T) {
@@ -782,34 +702,26 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Kill the v1 server
 	s2.Shutdown()
 
 	for _, s := range []*Server{s1, s3} {
-		if err := testrpc.WaitForResult(func() (bool, error) {
+		retry.Run(t, func(r *retry.R) {
 			minVer, err := ServerMinRaftProtocol(s.LANMembers())
-			return minVer == 2, err
-		}); err != nil {
-			t.Fatalf("minimum protocol version among servers should be 2")
-		}
+			if err != nil {
+				r.Fatal(err)
+			}
+			if got, want := minVer, 2; got != want {
+				r.Fatalf("got min raft version %d want %d", got, want)
+			}
+		})
 	}
 
 	// Replace the dead server with one running raft protocol v3
@@ -820,19 +732,17 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 	servers[1] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
+		retry.Run(t, func(r *retry.R) {
 			addrs := 0
 			ids := 0
 			future := s.raft.GetConfiguration()
 			if err := future.Error(); err != nil {
-				return false, err
+				r.Fatal(err)
 			}
 			for _, server := range future.Configuration().Servers {
 				if string(server.ID) == string(server.Address) {
@@ -841,10 +751,13 @@ func TestLeader_RollRaftServer(t *testing.T) {
 					ids++
 				}
 			}
-			return addrs == 2 && ids == 1, nil
-		}); err != nil {
-			t.Fatalf("should see 2 legacy IDs and 1 GUID")
-		}
+			if got, want := addrs, 2; got != want {
+				r.Fatalf("got %d server addresses want %d", got, want)
+			}
+			if got, want := ids, 1; got != want {
+				r.Fatalf("got %d server ids want %d", got, want)
+			}
+		})
 	}
 }
 
@@ -870,38 +783,27 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		alive := 0
 		for _, m := range s1.LANMembers() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
 		}
-		return alive == 2, nil
-	}); err != nil {
-		t.Fatal("should have 2 alive members")
-	}
+		if got, want := alive, 2; got != want {
+			r.Fatalf("got %d alive members want %d", got, want)
+		}
+	})
 
 	// Bring up a new server with s3's address that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
@@ -915,18 +817,11 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
-	if _, err := s4.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s4, s1)
 	servers[2] = s4
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		if err := testrpc.WaitForResult(func() (bool, error) {
-			peers, _ := s.numPeers()
-			return peers == 3, nil
-		}); err != nil {
-			t.Fatal("should have 3 peers")
-		}
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }

@@ -1,15 +1,16 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 var testACLPolicy = `
@@ -225,18 +226,8 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	client := rpcClient(t, s1)
 	defer client.Close()
@@ -277,18 +268,9 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -353,18 +335,9 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
@@ -410,18 +383,9 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -484,18 +448,9 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -560,18 +515,9 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		p1, _ := s1.numPeers()
-		return p1 == 2, fmt.Errorf("%d", p1)
-	}); err != nil {
-		t.Fatal(err)
-	}
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
@@ -639,7 +585,7 @@ func TestACL_Replication(t *testing.T) {
 		c.ACLDefaultPolicy = "deny"
 		c.ACLDownPolicy = "extend-cache"
 		c.ACLReplicationToken = "root"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	defer os.RemoveAll(dir2)
@@ -650,21 +596,15 @@ func TestACL_Replication(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "deny"
 		c.ACLReplicationToken = "root"
-		c.ACLReplicationInterval = 0
+		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
+	joinWAN(t, s3, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 	testrpc.WaitForLeader(t, s1.RPC, "dc3")
@@ -684,27 +624,23 @@ func TestACL_Replication(t *testing.T) {
 	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	// Wait for replication to occur.
-	if err := testrpc.WaitForResult(func() (bool, error) {
+	retry.Run(t, func(r *retry.R) {
 		_, acl, err := s2.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if acl == nil {
-			return false, nil
+			r.Fatal(nil)
 		}
 		_, acl, err = s3.fsm.State().ACLGet(nil, id)
 		if err != nil {
-			return false, err
+			r.Fatal(err)
 		}
 		if acl == nil {
-			return false, nil
+			r.Fatal(nil)
 		}
-		return true, nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
 
 	// Kill the ACL datacenter.
 	s1.Shutdown()
@@ -763,11 +699,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")

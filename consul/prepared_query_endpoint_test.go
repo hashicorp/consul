@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -476,11 +477,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -1449,16 +1446,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
 
 	// Create an ACL with read permission to the service.
 	var execToken string
@@ -2463,11 +2456,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 	defer codec2.Close()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
@@ -2698,16 +2687,12 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err := testrpc.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) > 1, nil
-	}); err != nil {
-		t.Fatalf("Failed waiting for WAN join: %v", err)
-	}
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}
