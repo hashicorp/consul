@@ -40,7 +40,8 @@ type Server struct {
 	NonVoter    bool
 	Addr        net.Addr
 	Status      serf.MemberStatus
-	UseTLS      bool
+	// If true, use outgoing TLS when connecting to this server
+	UseTLS bool
 }
 
 // Key returns the corresponding Key

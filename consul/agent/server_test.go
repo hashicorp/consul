@@ -64,6 +64,7 @@ func TestIsConsulServer(t *testing.T) {
 			"vsn":           "1",
 			"expect":        "3",
 			"raft_vsn":      "3",
+			"use_tls":       "1",
 		},
 		Status: serf.StatusLeft,
 	}
@@ -94,6 +95,9 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	if parts.Status != serf.StatusLeft {
 		t.Fatalf("bad: %v", parts.Status)
+	}
+	if !parts.UseTLS {
+		t.Fatalf("bad: %v", parts.UseTLS)
 	}
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"

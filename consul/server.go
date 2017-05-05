@@ -628,7 +628,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 		s.localLock.RUnlock()
 
 		if !ok {
-			return false
+			return true
 		}
 
 		return server.UseTLS
