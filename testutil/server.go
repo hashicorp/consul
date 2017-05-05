@@ -23,7 +23,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
@@ -297,22 +299,30 @@ func (s *TestServer) Stop() error {
 	return nil
 }
 
+type failer struct {
+	failed bool
+}
+
+func (f *failer) Log(args ...interface{}) { fmt.Println(args) }
+func (f *failer) FailNow()                { f.failed = true }
+
 // waitForAPI waits for only the agent HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
 func (s *TestServer) waitForAPI() error {
-	if err := WaitForResult(func() (bool, error) {
+	f := &failer{}
+	retry.Run(f, func(r *retry.R) {
 		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
-			return false, errors.Wrap(err, "failed http get")
+			r.Fatal(err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			return false, errors.Wrap(err, "failed OK response")
+			r.Fatal("failed OK respose", err)
 		}
-		return true, nil
-	}); err != nil {
-		return errors.Wrap(err, "failed waiting for API")
+	})
+	if f.failed {
+		return errors.New("failed waiting for API")
 	}
 	return nil
 }
@@ -322,50 +332,52 @@ func (s *TestServer) waitForAPI() error {
 // 1 or more to be observed to confirm leader election is done.
 // It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader() error {
+	f := &failer{}
+	timer := &retry.Timer{Timeout: 3 * time.Second, Wait: 250 * time.Millisecond}
 	var index int64
-	if err := WaitForResult(func() (bool, error) {
+	retry.RunWith(timer, f, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
-			return false, errors.Wrap(err, "failed http get")
+			r.Fatal("failed http get", err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			return false, errors.Wrap(err, "failed OK response")
+			r.Fatal("failed OK response", err)
 		}
 
 		// Ensure we have a leader and a node registration.
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			return false, fmt.Errorf("Consul leader status: %#v", leader)
+			r.Fatalf("Consul leader status: %#v", leader)
 		}
 		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
-			return false, errors.Wrap(err, "bad consul index")
+			r.Fatal("bad consul index", err)
 		}
 		if index == 0 {
-			return false, fmt.Errorf("consul index is 0")
+			r.Fatal("consul index is 0")
 		}
 
 		// Watch for the anti-entropy sync to finish.
-		var parsed []map[string]interface{}
+		var v []map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&parsed); err != nil {
-			return false, err
+		if err := dec.Decode(&v); err != nil {
+			r.Fatal(err)
 		}
-		if len(parsed) < 1 {
-			return false, fmt.Errorf("No nodes")
+		if len(v) < 1 {
+			r.Fatal("No nodes")
 		}
-		taggedAddresses, ok := parsed[0]["TaggedAddresses"].(map[string]interface{})
+		taggedAddresses, ok := v[0]["TaggedAddresses"].(map[string]interface{})
 		if !ok {
-			return false, fmt.Errorf("Missing tagged addresses")
+			r.Fatal("Missing tagged addresses")
 		}
 		if _, ok := taggedAddresses["lan"]; !ok {
-			return false, fmt.Errorf("No lan tagged addresses")
+			r.Fatal("No lan tagged addresses")
 		}
-		return true, nil
-	}); err != nil {
-		return errors.Wrap(err, "failed waiting for leader")
+	})
+	if f.failed {
+		return errors.New("failed waiting for leader")
 	}
 	return nil
 }
