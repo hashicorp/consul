@@ -14,6 +14,10 @@ This page will not cover how to compile Consul from source, but compiling from
 source is covered in the [documentation](/docs/index.html) for those who want to
 be sure they're compiling source they trust into the final binary.
 
+~> **Note:** A full Vagrant demo which yields an equivalent setup of the
+two-node Consul cluster explained in this section is provided in the
+[demo section of the Consul repo](https://github.com/hashicorp/consul/tree/master/demo/vagrant-cluster-complete).
+
 ## Installing Consul
 
 To install Consul, find the [appropriate package](/downloads.html) for

@@ -1,0 +1,14 @@
+{
+    "bootstrap": false,
+    "server": false,
+    "data_dir": "/tmp/consul",
+    "bind_addr": "172.20.20.11",
+    "client_addr": "0.0.0.0",
+    "node_name": "agent-two",
+    "ui_dir": "/usr/local/bin/dist",
+    "start_join": ["172.20.20.10"],
+    
+    "encrypt": "Dt3P9SpKGAR/DIUN1cDirg==",
+    "log_level": "INFO",
+    "enable_syslog": true
+}

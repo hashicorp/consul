@@ -1,0 +1,14 @@
+Vagrant Consul Demo
+-------------------
+
+Welcome to your Vagrant-built virtual machine.
+Try out the following consul methods:
+
+  $ consul members
+  $ curl localhost:8500/v1/catalog/nodes
+  $ dig @127.0.0.1 -p 8600 agent-two.node.consul
+  $ curl http://localhost:8500/v1/health/state/critical
+  $ dig @127.0.0.1 -p 8600 web.service.consul
+  $ /vagrant/key_value.sh   # run the key_value demo
+  $ curl -v http://localhost:8500/v1/kv/?recurse
+
