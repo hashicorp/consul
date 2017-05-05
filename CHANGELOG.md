@@ -14,6 +14,7 @@ IMPROVEMENTS:
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
 * ui: Added optional JSON validation when editing KV entries in the web UI. [GH-2712]
+* ui: Updated ACL guide links and made guides open in a new tab. [GH-3010]
 
 BUG FIXES:
 
