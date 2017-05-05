@@ -52,7 +52,7 @@ gen:
 .PHONY: fmt
 fmt:
 	## run go fmt
-	@test -z "$$(gofmt -s -l . | grep -v vendor/ | tee /dev/stderr)" || \
+	@test -z "$$(find . -type d | grep -vE '(/vendor|^\.$$|/.git|/.travis)' | xargs gofmt -s -l  | tee /dev/stderr)" || \
 		(echo "please format Go code with 'gofmt -s -w'" && false)
 
 .PHONY: lint
