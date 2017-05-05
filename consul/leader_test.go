@@ -472,11 +472,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	retry.Run(t, func(r *retry.R) {
@@ -489,9 +485,7 @@ func TestLeader_LeftServer(t *testing.T) {
 		}
 
 		for _, s := range servers[1:] {
-			if got, want := numPeers(s), 2; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
 		}
 	})
 }
@@ -521,11 +515,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Kill the leader!
@@ -549,11 +539,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 			continue
 		}
 		remain = s
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 2; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
 	}
 
 	// Verify the old leader is deregistered
@@ -629,11 +615,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	var leader *Server
@@ -777,11 +759,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Kill the v1 server
@@ -870,11 +848,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	}
 
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
 	// Shut down a server, freeing up its address/port
@@ -911,10 +885,6 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) {
-			if got, want := numPeers(s), 3; got != want {
-				r.Fatalf("got %d peers want %d", got, want)
-			}
-		})
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }

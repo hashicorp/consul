@@ -350,12 +350,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 2; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
 	})
 
 	// Issue a leave to the leader
@@ -370,12 +366,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 
 	// Should lose a peer
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 1; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 1; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 1))
+		r.Check(wantPeers(s2, 1))
 	})
 }
 
@@ -397,12 +389,8 @@ func TestServer_Leave(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 2; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
 	})
 
 	// Issue a leave to the non-leader
@@ -417,12 +405,8 @@ func TestServer_Leave(t *testing.T) {
 
 	// Should lose a peer
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 1; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 1; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 1))
+		r.Check(wantPeers(s2, 1))
 	})
 }
 
@@ -477,12 +461,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	})
 	// Verify Raft has established a peer
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 2; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 2; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
 	})
 }
 
@@ -515,12 +495,8 @@ func TestServer_Expect(t *testing.T) {
 
 	// Should have no peers yet since the bootstrap didn't occur.
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 0; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 0; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 0))
+		r.Check(wantPeers(s2, 0))
 	})
 
 	// Join the third node.
@@ -530,15 +506,9 @@ func TestServer_Expect(t *testing.T) {
 
 	// Now we have three servers so we should bootstrap.
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 3; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 3; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
-		if got, want := numPeers(s3), 3; got != want {
-			r.Fatalf("got %d s3 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 3))
+		r.Check(wantPeers(s2, 3))
+		r.Check(wantPeers(s3, 3))
 	})
 
 	// Make sure a leader is elected, grab the current term and then add in
@@ -551,18 +521,10 @@ func TestServer_Expect(t *testing.T) {
 
 	// Wait for the new server to see itself added to the cluster.
 	retry.Run(t, func(r *retry.R) {
-		if got, want := numPeers(s1), 4; got != want {
-			r.Fatalf("got %d s1 peers want %d", got, want)
-		}
-		if got, want := numPeers(s2), 4; got != want {
-			r.Fatalf("got %d s2 peers want %d", got, want)
-		}
-		if got, want := numPeers(s3), 4; got != want {
-			r.Fatalf("got %d s3 peers want %d", got, want)
-		}
-		if got, want := numPeers(s4), 4; got != want {
-			r.Fatalf("got %d s4 peers want %d", got, want)
-		}
+		r.Check(wantPeers(s1, 4))
+		r.Check(wantPeers(s2, 4))
+		r.Check(wantPeers(s3, 4))
+		r.Check(wantPeers(s4, 4))
 	})
 
 	// Make sure there's still a leader and that the term didn't change,
@@ -597,24 +559,10 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 int
-	var p2 int
-	retry.
-
-		// should have no peers yet
-		Run(t, func(r *retry.R) {
-
-			p1, _ = s1.numPeers()
-			if p1 != 0 {
-				r.Fatalf("%d", p1)
-			}
-		})
+	// should have no peers yet
 	retry.Run(t, func(r *retry.R) {
-
-		p2, _ = s2.numPeers()
-		if p2 != 0 {
-			r.Fatalf("%d", p2)
-		}
+		r.Check(wantPeers(s1, 0))
+		r.Check(wantPeers(s2, 0))
 	})
 
 	// join the third node
@@ -622,32 +570,12 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 int
-	retry.
-
-		// should still have no peers (because s2 is in expect=2 mode)
-		Run(t, func(r *retry.R) {
-
-			p1, _ = s1.numPeers()
-			if p1 != 0 {
-				r.Fatalf("%d", p1)
-			}
-		})
+	// should still have no peers (because s2 is in expect=2 mode)
 	retry.Run(t, func(r *retry.R) {
-
-		p2, _ = s2.numPeers()
-		if p2 != 0 {
-			r.Fatalf("%d", p2)
-		}
+		r.Check(wantPeers(s1, 0))
+		r.Check(wantPeers(s2, 0))
+		r.Check(wantPeers(s3, 0))
 	})
-	retry.Run(t, func(r *retry.R) {
-
-		p3, _ = s3.numPeers()
-		if p3 != 0 {
-			r.Fatalf("%d", p3)
-		}
-	})
-
 }
 
 type fakeGlobalResp struct{}

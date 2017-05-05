@@ -56,6 +56,13 @@ func (r *R) Error(args ...interface{}) {
 	r.fail = true
 }
 
+func (r *R) Check(err error) {
+	if err != nil {
+		r.log(err.Error())
+		r.FailNow()
+	}
+}
+
 func (r *R) log(s string) {
 	r.output = append(r.output, decorate(s))
 }
