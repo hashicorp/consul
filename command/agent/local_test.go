@@ -1289,26 +1289,23 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		Node:       agent.config.NodeName,
 	}
 	var services structs.IndexedNodeServices
-	retry.
+	// Wait for the sync
+	retry.Run(t, func(r *retry.R) {
+		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
-		// Wait for the sync
-		Run(t, func(r *retry.R) {
-
-			if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
-				r.Fatalf("err: %v", err)
-			}
-
-			// Make sure we synced our node info - this should have ridden on the
-			// "consul" service sync
-			id := services.NodeServices.Node.ID
-			addrs := services.NodeServices.Node.TaggedAddresses
-			meta := services.NodeServices.Node.Meta
-			if id != conf.NodeID ||
-				!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
-				!reflect.DeepEqual(meta, conf.Meta) {
-				r.Fatalf("bad: %v", services.NodeServices.Node)
-			}
-		})
+		// Make sure we synced our node info - this should have ridden on the
+		// "consul" service sync
+		id := services.NodeServices.Node.ID
+		addrs := services.NodeServices.Node.TaggedAddresses
+		meta := services.NodeServices.Node.Meta
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			r.Fatalf("bad: %v", services.NodeServices.Node)
+		}
+	})
 
 	// Blow away the catalog version of the node info
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -1317,26 +1314,21 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
-	retry.
+	// Wait for the sync - this should have been a sync of just the node info
+	retry.Run(t, func(r *retry.R) {
+		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
-		// Wait for the sync - this should have been a sync of just the
-		// node info
-		Run(t, func(r *retry.R) {
-
-			if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
-				r.Fatalf("err: %v", err)
-			}
-
-			id := services.NodeServices.Node.ID
-			addrs := services.NodeServices.Node.TaggedAddresses
-			meta := services.NodeServices.Node.Meta
-			if id != conf.NodeID ||
-				!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
-				!reflect.DeepEqual(meta, conf.Meta) {
-				r.Fatalf("bad: %v", services.NodeServices.Node)
-			}
-		})
-
+		id := services.NodeServices.Node.ID
+		addrs := services.NodeServices.Node.TaggedAddresses
+		meta := services.NodeServices.Node.Meta
+		if id != conf.NodeID ||
+			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, conf.Meta) {
+			r.Fatalf("bad: %v", services.NodeServices.Node)
+		}
+	})
 }
 
 func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
