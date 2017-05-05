@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -227,10 +226,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d", s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	client := rpcClient(t, s1)
@@ -272,11 +268,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -343,11 +335,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -395,11 +383,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -464,11 +448,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -535,11 +515,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -627,14 +603,8 @@ func TestACL_Replication(t *testing.T) {
 	defer s3.Shutdown()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
+	joinWAN(t, s3, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 	testrpc.WaitForLeader(t, s1.RPC, "dc3")
@@ -729,11 +699,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	defer s2.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinWAN(t, s2, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
@@ -1880,15 +1846,4 @@ service "service" {
 	if err := vetDeregisterWithACL(perms, args, ns, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-}
-
-func wantPeers(s *Server, peers int) error {
-	n, err := s.numPeers()
-	if err != nil {
-		return err
-	}
-	if got, want := n, peers; got != want {
-		return fmt.Errorf("got %d peers want %d", got, want)
-	}
-	return nil
 }

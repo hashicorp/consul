@@ -80,10 +80,7 @@ func TestClient_JoinLAN(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d", s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.servers.NumServers(), 1; got != want {
 			r.Fatal("got %d servers want %d", got, want)
@@ -107,9 +104,8 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d", s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err == nil {
-		t.Fatalf("should error")
+	if _, err := c1.JoinLAN([]string{joinAddrLAN(s1)}); err == nil {
+		t.Fatal("should error")
 	}
 
 	time.Sleep(50 * time.Millisecond)
@@ -131,10 +127,8 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err == nil {
-		t.Fatalf("should error")
+	if _, err := c1.JoinLAN([]string{joinAddrWAN(s1)}); err == nil {
+		t.Fatal("should error")
 	}
 
 	time.Sleep(50 * time.Millisecond)
@@ -162,11 +156,7 @@ func TestClient_RPC(t *testing.T) {
 	}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Check the members
 	if len(s1.LANMembers()) != 2 {
@@ -195,11 +185,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 	defer c1.Shutdown()
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Wait for both agents to finish joining
 	retry.Run(t, func(r *retry.R) {
@@ -256,11 +242,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 	// Join all servers.
 	for _, s := range servers {
-		addr := fmt.Sprintf("127.0.0.1:%d",
-			s.config.SerfLANConfig.MemberlistConfig.BindPort)
-		if _, err := c.JoinLAN([]string{addr}); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		joinLAN(t, c, s)
 	}
 
 	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
@@ -327,11 +309,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Wait for joins to finish/RPC to succeed
 	retry.Run(t, func(r *retry.R) {
@@ -360,11 +338,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
 		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
 	}
@@ -419,11 +393,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
 		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
 	}
@@ -472,11 +442,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 	defer s1.Shutdown()
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := c1.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, c1, s1)
 
 	// Wait for the leader
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")

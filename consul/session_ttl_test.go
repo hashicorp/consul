@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -290,14 +289,8 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	servers := []*Server{s1, s2, s3}
 
 	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 3)) })
 
 	// Find the leader
