@@ -453,7 +453,10 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
-	base.VerifyOutgoing = a.config.VerifyOutgoing
+	if a.config.CAPath != "" || a.config.CAFile != "" {
+		base.VerifyOutgoing = true
+	}
+	base.ForceVerifyOutgoing = a.config.VerifyOutgoing
 	base.VerifyServerHostname = a.config.VerifyServerHostname
 	base.CAFile = a.config.CAFile
 	base.CAPath = a.config.CAPath

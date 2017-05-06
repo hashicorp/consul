@@ -132,8 +132,12 @@ type Config struct {
 	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
 	// This means that TLS requests are used, and TCP requests are not made. TLS connections
 	// must match a provided certificate authority. This is used to verify authenticity of
-	// server nodes.
+	// server nodes with the "use_tls" tag.
 	VerifyOutgoing bool
+
+	// ForceVerifyOutgoing is used to force outgoing TLS verification of all outgoing
+	// connections regardless of the destination.
+	ForceVerifyOutgoing bool
 
 	// VerifyServerHostname is used to enable hostname verification of servers. This
 	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.

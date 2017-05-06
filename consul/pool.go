@@ -144,6 +144,9 @@ type ConnPool struct {
 	// TLS wrapper
 	tlsWrap tlsutil.DCWrapper
 
+	// forceTLS is used to enforce outgoing TLS verification
+	forceTLS bool
+
 	// Used to indicate the pool is shutdown
 	shutdown   bool
 	shutdownCh chan struct{}
@@ -154,7 +157,7 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(src *net.TCPAddr, logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
+func NewPool(src *net.TCPAddr, logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper, forceTLS bool) *ConnPool {
 	pool := &ConnPool{
 		src:        src,
 		logOutput:  logOutput,
@@ -163,6 +166,7 @@ func NewPool(src *net.TCPAddr, logOutput io.Writer, maxTime time.Duration, maxSt
 		pool:       make(map[string]*Conn),
 		limiter:    make(map[string]chan struct{}),
 		tlsWrap:    tlsWrap,
+		forceTLS:   forceTLS,
 		shutdownCh: make(chan struct{}),
 	}
 	if maxTime > 0 {
@@ -284,7 +288,7 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 	}
 
 	// Check if TLS is enabled
-	if useTLS && p.tlsWrap != nil {
+	if (useTLS || p.forceTLS) && p.tlsWrap != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
 			conn.Close()

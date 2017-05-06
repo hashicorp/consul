@@ -261,7 +261,7 @@ func NewServer(config *Config) (*Server, error) {
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
+		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.ForceVerifyOutgoing),
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -393,7 +393,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.NonVoter {
 		conf.Tags["nonvoter"] = "1"
 	}
-	conf.Tags["use_tls"] = "0"
 	if s.config.CAFile != "" || s.config.CAPath != "" {
 		conf.Tags["use_tls"] = "1"
 	}
@@ -630,7 +629,13 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
+
+	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
+		if s.config.ForceVerifyOutgoing {
+			return true
+		}
+
 		s.localLock.RLock()
 		server, ok := s.localConsuls[address]
 		s.localLock.RUnlock()
