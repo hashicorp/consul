@@ -9,7 +9,7 @@ description: |-
 # Consul Enterprise Redundancy Zones
 
 [Consul Enterprise](https://www.hashicorp.com/consul.html) [redundancy
-zones](https://www.consul.io/docs/guides/autopilot.html#redundancy-zones) make
+zones](/docs/guides/autopilot.html#redundancy-zones) make
 it possible to have more servers than availability zones. For example, in an
 environment with three availability zones it's now possible to run one voter and
 one non-voter in each availability zone, for a total of six servers. If an

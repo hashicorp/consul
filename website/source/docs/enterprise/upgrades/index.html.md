@@ -9,7 +9,7 @@ description: |-
 # Consul Enterprise Automated Upgrades
 
 [Consul Enterprise](https://www.hashicorp.com/consul.html) supports an [upgrade
-pattern](https://www.consul.io/docs/guides/autopilot.html#upgrade-migrations)
+pattern](/docs/guides/autopilot.html#upgrade-migrations)
 that allows operators to deploy a complete cluster of new servers and then just wait
 for the upgrade to complete. As the new servers join the cluster, server
 introduction logic checks the version of each Consul server. If the version is

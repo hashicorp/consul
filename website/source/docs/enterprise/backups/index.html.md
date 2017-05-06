@@ -10,10 +10,10 @@ description: |-
 
 Consul's core snapshot functionality allows operators to save and restore the state of
 the Consul servers for disaster recovery. Snapshots are atomic and
-point-in-time, and  include key/value entries, service catalog, prepared
+point-in-time, and include key/value entries, service catalog, prepared
 queries, sessions, and ACLs.
 
 [Consul Enterprise](https://www.hashicorp.com/consul.html) provides a [highly
-available service](https://www.consul.io/docs/commands/snapshot/agent.html) that
+available service](/docs/commands/snapshot/agent.html) that
 integrates with the snapshot API to automatically manage taking snapshots,
-perform rotation and send backup files  offsite to Amazon S3.
+perform rotation and send backup files offsite to Amazon S3.
