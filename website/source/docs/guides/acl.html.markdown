@@ -568,7 +568,7 @@ to use for registration events:
 
 #### Session Rules
 
-The `session` policy controls access to [Session API](/api/session.html)] operations.
+The `session` policy controls access to [Session API](/api/session.html) operations.
 
 Session rules look like this:
 
