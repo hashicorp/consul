@@ -162,7 +162,7 @@ Note: No ACL is required because the ACL is specified in the URL path.
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the ACL token to
-  destroy. This is required and is specified as part of the URL path.
+  read. This is required and is specified as part of the URL path.
 
 ### Sample Request
 
