@@ -52,6 +52,12 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			return fmt.Errorf("Must provide service name with ID")
 		}
 
+		// Check the service address here and in the agent endpoint
+		// since service registration isn't sychronous.
+		if args.Service.Address == "0.0.0.0" {
+			return fmt.Errorf("Invalid service address")
+		}
+
 		// Apply the ACL policy if any. The 'consul' service is excluded
 		// since it is managed automatically internally (that behavior
 		// is going away after version 0.8). We check this same policy
