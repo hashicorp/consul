@@ -555,8 +555,10 @@ func (c *Command) startupJoinWan(config *Config) error {
 // retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 	ec2Enabled := config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != ""
+	gceEnabled := config.RetryJoinGCE.TagValue != ""
+	azureEnabled := config.RetryJoinAzure.TagName != "" && config.RetryJoinAzure.TagValue != ""
 
-	if len(config.RetryJoin) == 0 && !ec2Enabled && config.RetryJoinGCE.TagValue == "" {
+	if len(config.RetryJoin) == 0 && !ec2Enabled && !gceEnabled && !azureEnabled {
 		return
 	}
 
@@ -574,12 +576,18 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
-		case config.RetryJoinGCE.TagValue != "":
+		case gceEnabled:
 			servers, err = config.discoverGCEHosts(logger)
 			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query GCE insances: %s", err)
+				logger.Printf("[ERROR] agent: Unable to query GCE instances: %s", err)
 			}
 			logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
+		case azureEnabled:
+			servers, err = config.discoverAzureHosts(logger)
+			if err != nil {
+				logger.Printf("[ERROR] agent: Unable to query Azure instances: %s", err)
+			}
+			logger.Printf("[INFO] agent: Discovered %d servers from Azure", len(servers))
 		}
 
 		servers = append(servers, config.RetryJoin...)
