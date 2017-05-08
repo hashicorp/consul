@@ -452,6 +452,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	// Check the service address here and in the catalog RPC endpoint
+	// since service registration isn't sychronous.
+	if args.Address == "0.0.0.0" {
+		resp.WriteHeader(400)
+		fmt.Fprintf(resp, "Invalid service address")
+		return nil, nil
+	}
+
 	// Get the node service.
 	ns := args.NodeService()
 

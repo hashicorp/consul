@@ -55,6 +55,36 @@ func TestCatalogRegister(t *testing.T) {
 	}
 }
 
+func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "test",
+			Address: "0.0.0.0",
+			Port:    8080,
+		},
+	}
+	req.Body = encodeReq(args)
+
+	_, err = srv.CatalogRegister(nil, req)
+	if err == nil || err.Error() != "Invalid service address" {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestCatalogDeregister(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
