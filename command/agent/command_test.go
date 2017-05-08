@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -47,6 +48,36 @@ func TestValidDatacenter(t *testing.T) {
 		if validDatacenter.MatchString(m) {
 			t.Fatalf("expected no match: %s", m)
 		}
+	}
+}
+
+// TestConfigFail should test command line flags that lead to an immediate error.
+func TestConfigFail(t *testing.T) {
+	tests := []struct {
+		args []string
+		out  string
+	}{
+		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "0.0.0.0"},
+			out:  "==> Advertise address cannot be 0.0.0.0\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "0.0.0.0"},
+			out:  "==> Advertise WAN address cannot be 0.0.0.0\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
+			cmd := exec.Command("consul", tt.args...)
+			b, err := cmd.CombinedOutput()
+			if got, want := err, "exit status 1"; got == nil || got.Error() != want {
+				t.Fatalf("got err %q want %q", got, want)
+			}
+			if got, want := string(b), tt.out; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+		})
 	}
 }
 
