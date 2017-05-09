@@ -434,29 +434,29 @@ func TestLeader_LeftServer(t *testing.T) {
 	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
-	servers := []*Server{s1, s2, s3}
+
+	// Put s1 last so we don't trigger a leader election.
+	servers := []*Server{s2, s3, s1}
 
 	// Try to join
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
-
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
-	retry.Run(t, func(r *retry.R) {
-		// Kill any server
-		servers[0].Shutdown()
+	// Kill any server
+	servers[0].Shutdown()
 
-		// Force remove the non-leader (transition to left state)
-		if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
-			r.Fatalf("err: %v", err)
-		}
+	// Force remove the non-leader (transition to left state)
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		for _, s := range servers[1:] {
-			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
-		}
-	})
+	// Wait until the remaining servers show only 2 peers.
+	for _, s := range servers[1:] {
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
+	}
 }
 
 func TestLeader_LeftLeader(t *testing.T) {

@@ -184,12 +184,12 @@ func TestServer_JoinWAN(t *testing.T) {
 	})
 
 	// Check the router has both
-	if len(s1.router.GetDatacenters()) != 2 {
-		t.Fatalf("remote consul missing")
-	}
 	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.router.GetDatacenters()), 2; got != want {
+			r.Fatalf("got %d routes want %d", got, want)
+		}
 		if got, want := len(s2.router.GetDatacenters()), 2; got != want {
-			r.Fatalf("got %d data centers want %d", got, want)
+			r.Fatalf("got %d datacenters want %d", got, want)
 		}
 	})
 }
@@ -273,17 +273,17 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	})
 
 	// Check the router has both
-	if len(s1.router.GetDatacenters()) != 2 {
-		t.Fatalf("remote consul missing")
-	}
-
-	if len(s2.router.GetDatacenters()) != 2 {
-		t.Fatalf("remote consul missing")
-	}
-
-	if len(s2.localConsuls) != 2 {
-		t.Fatalf("local consul fellow s3 for s2 missing")
-	}
+	retry.Run(t, func(r *retry.R) {
+		if len(s1.router.GetDatacenters()) != 2 {
+			r.Fatalf("remote consul missing")
+		}
+		if len(s2.router.GetDatacenters()) != 2 {
+			r.Fatalf("remote consul missing")
+		}
+		if len(s2.localConsuls) != 2 {
+			r.Fatalf("local consul fellow s3 for s2 missing")
+		}
+	})
 
 	// Get and check the wan address of s2 from s1
 	var s2WanAddr string
