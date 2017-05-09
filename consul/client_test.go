@@ -83,7 +83,7 @@ func TestClient_JoinLAN(t *testing.T) {
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.servers.NumServers(), 1; got != want {
-			r.Fatal("got %d servers want %d", got, want)
+			r.Fatalf("got %d servers want %d", got, want)
 		}
 		if got, want := len(s1.LANMembers()), 2; got != want {
 			r.Fatalf("got %d server LAN members want %d", got, want)
@@ -346,7 +346,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.servers.NumServers(), 1; got != want {
-			r.Fatal("got %d servers want %d", got, want)
+			r.Fatalf("got %d servers want %d", got, want)
 		}
 	})
 
@@ -401,7 +401,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.servers.NumServers(), 1; got != want {
-			r.Fatal("got %d servers want %d", got, want)
+			r.Fatalf("got %d servers want %d", got, want)
 		}
 	})
 
