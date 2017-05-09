@@ -1,8 +1,12 @@
+// +build !linux,!windows,!freebsd,!solaris,!openbsd
+
 package system
 
-import "syscall"
+import (
+	"syscall"
+)
 
-// fromStatT converts a syscall.Stat_t type to a system.Stat_t type
+// fromStatT creates a system.StatT type from a syscall.Stat_t type
 func fromStatT(s *syscall.Stat_t) (*StatT, error) {
 	return &StatT{size: s.Size,
 		mode: uint32(s.Mode),
