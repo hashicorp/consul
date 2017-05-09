@@ -62,8 +62,24 @@ func TestConfigFail(t *testing.T) {
 			out:  "==> Advertise address cannot be 0.0.0.0\n",
 		},
 		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "::"},
+			out:  "==> Advertise address cannot be ::\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "[::]"},
+			out:  "==> Advertise address cannot be [::]\n",
+		},
+		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "0.0.0.0"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "::"},
+			out:  "==> Advertise WAN address cannot be ::\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "[::]"},
+			out:  "==> Advertise WAN address cannot be [::]\n",
 		},
 	}
 
