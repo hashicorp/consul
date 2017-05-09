@@ -697,3 +697,7 @@ func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 	f(srv)
 }
+
+func isPermissionDenied(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
+}
