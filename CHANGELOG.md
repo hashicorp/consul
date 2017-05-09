@@ -19,6 +19,7 @@ IMPROVEMENTS:
 * agent: Added `verify_incoming_rpc` and `verify_incoming_https` options for more granular control over incoming TLS enforcement. [GH-2974]
 * agent: Use bind address as source for outgoing connections. [GH-2822]
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
+* api: HttpClient now defaults to nil in the client config and will be generated if left blank. A NewHttpClient function has been added for creating an HttpClient with a custom Transport or TLS config. [GH-2922]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
 * ui: Added optional JSON validation when editing KV entries in the web UI. [GH-2712]
 * ui: Updated ACL guide links and made guides open in a new tab. [GH-3010]
