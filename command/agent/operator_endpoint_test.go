@@ -17,11 +17,7 @@ import (
 func TestOperator_RaftConfiguration(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/operator/raft/configuration", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/operator/raft/configuration", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.OperatorRaftConfiguration(resp, req)
 		if err != nil {
@@ -45,15 +41,11 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 func TestOperator_RaftPeer(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("DELETE", "/v1/operator/raft/peer?address=nope", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/operator/raft/peer?address=nope", body)
 		// If we get this error, it proves we sent the address all the
 		// way through.
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorRaftPeer(resp, req)
+		_, err := srv.OperatorRaftPeer(resp, req)
 		if err == nil || !strings.Contains(err.Error(),
 			"address \"nope\" was not found in the Raft configuration") {
 			t.Fatalf("err: %v", err)
@@ -62,15 +54,11 @@ func TestOperator_RaftPeer(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("DELETE", "/v1/operator/raft/peer?id=nope", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/operator/raft/peer?id=nope", body)
 		// If we get this error, it proves we sent the ID all the
 		// way through.
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorRaftPeer(resp, req)
+		_, err := srv.OperatorRaftPeer(resp, req)
 		if err == nil || !strings.Contains(err.Error(),
 			"id \"nope\" was not found in the Raft configuration") {
 			t.Fatalf("err: %v", err)
@@ -86,13 +74,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
-		req, err := http.NewRequest("POST", "/v1/operator/keyring", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("POST", "/v1/operator/keyring", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringEndpoint(resp, req)
+		_, err := srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -123,11 +107,7 @@ func TestOperator_KeyringList(t *testing.T) {
 		c.EncryptKey = key
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/operator/keyring", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/operator/keyring", nil)
 		resp := httptest.NewRecorder()
 		r, err := srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
@@ -199,14 +179,9 @@ func TestOperator_KeyringRemove(t *testing.T) {
 		}
 
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", tempKey))
-		req, err := http.NewRequest("DELETE", "/v1/operator/keyring", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/operator/keyring", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringEndpoint(resp, req)
-		if err != nil {
+		if _, err := srv.OperatorKeyringEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -242,13 +217,9 @@ func TestOperator_KeyringUse(t *testing.T) {
 		}
 
 		body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
-		req, err := http.NewRequest("PUT", "/v1/operator/keyring", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/operator/keyring", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.OperatorKeyringEndpoint(resp, req)
+		_, err := srv.OperatorKeyringEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -288,13 +259,9 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 			"asdf": "Error parsing relay factor",
 		}
 		for relayFactor, errString := range cases {
-			req, err := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
 			resp := httptest.NewRecorder()
-			_, err = srv.OperatorKeyringEndpoint(resp, req)
+			_, err := srv.OperatorKeyringEndpoint(resp, req)
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -309,11 +276,7 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/operator/autopilot/configuration", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/operator/autopilot/configuration", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.OperatorAutopilotConfiguration(resp, req)
 		if err != nil {
@@ -335,13 +298,9 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
-		req, err := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
 		resp := httptest.NewRecorder()
-		if _, err = srv.OperatorAutopilotConfiguration(resp, req); err != nil {
+		if _, err := srv.OperatorAutopilotConfiguration(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 200 {
@@ -365,13 +324,9 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
-		req, err := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
 		resp := httptest.NewRecorder()
-		if _, err = srv.OperatorAutopilotConfiguration(resp, req); err != nil {
+		if _, err := srv.OperatorAutopilotConfiguration(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 200 {
@@ -394,12 +349,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 		// Create a CAS request, bad index
 		{
 			buf := bytes.NewBuffer([]byte(`{"CleanupDeadServers": true}`))
-			req, err := http.NewRequest("PUT",
-				fmt.Sprintf("/v1/operator/autopilot/configuration?cas=%d", reply.ModifyIndex-1), buf)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/operator/autopilot/configuration?cas=%d", reply.ModifyIndex-1), buf)
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorAutopilotConfiguration(resp, req)
 			if err != nil {
@@ -414,12 +364,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 		// Create a CAS request, good index
 		{
 			buf := bytes.NewBuffer([]byte(`{"CleanupDeadServers": true}`))
-			req, err := http.NewRequest("PUT",
-				fmt.Sprintf("/v1/operator/autopilot/configuration?cas=%d", reply.ModifyIndex), buf)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/operator/autopilot/configuration?cas=%d", reply.ModifyIndex), buf)
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorAutopilotConfiguration(resp, req)
 			if err != nil {
@@ -447,10 +392,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
@@ -484,10 +426,7 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	}
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("GET", "/v1/operator/autopilot/health", body)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.OperatorServerHealth(resp, req)
