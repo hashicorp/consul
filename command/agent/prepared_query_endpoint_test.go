@@ -131,11 +131,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		req, err := http.NewRequest("POST", "/v1/query?token=my-token", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("POST", "/v1/query?token=my-token", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQueryGeneral(resp, req)
 		if err != nil {
@@ -167,11 +163,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQueryGeneral(resp, req)
 		if err != nil {
@@ -215,11 +207,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query?token=my-token&consistent=true", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query?token=my-token&consistent=true", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQueryGeneral(resp, req)
 		if err != nil {
@@ -251,11 +239,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/execute", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -307,11 +291,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/execute?token=my-token&consistent=true&near=my-node&limit=5", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?token=my-token&consistent=true&near=my-node&limit=5", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -350,11 +330,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			return nil
 		}
 
-		req, err := http.NewRequest("GET", "/v1/query/my-id/execute", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute", nil)
 		resp := httptest.NewRecorder()
 		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -382,11 +358,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -433,11 +405,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -465,14 +433,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/not-there/execute", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 404 {
@@ -516,11 +479,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/explain?token=my-token&consistent=true&near=my-node&limit=5", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/explain?token=my-token&consistent=true&near=my-node&limit=5", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -540,14 +499,9 @@ func TestPreparedQuery_Explain(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/not-there/explain", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/not-there/explain", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 404 {
@@ -584,11 +538,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id?token=my-token&consistent=true", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/my-id?token=my-token&consistent=true", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
@@ -608,14 +558,9 @@ func TestPreparedQuery_Get(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 404 {
@@ -689,14 +634,9 @@ func TestPreparedQuery_Update(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		req, err := http.NewRequest("PUT", "/v1/query/my-id?token=my-token", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/query/my-id?token=my-token", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 200 {
@@ -740,14 +680,9 @@ func TestPreparedQuery_Delete(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		req, err := http.NewRequest("DELETE", "/v1/query/my-id?token=my-token", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/query/my-id?token=my-token", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 200 {
@@ -759,14 +694,9 @@ func TestPreparedQuery_Delete(t *testing.T) {
 func TestPreparedQuery_BadMethods(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("DELETE", "/v1/query", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/query", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQueryGeneral(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQueryGeneral(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 405 {
@@ -776,14 +706,9 @@ func TestPreparedQuery_BadMethods(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("POST", "/v1/query/my-id", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("POST", "/v1/query/my-id", body)
 		resp := httptest.NewRecorder()
-		_, err = srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if resp.Code != 405 {
@@ -794,11 +719,7 @@ func TestPreparedQuery_BadMethods(t *testing.T) {
 
 func TestPreparedQuery_parseLimit(t *testing.T) {
 	body := bytes.NewBuffer(nil)
-	req, err := http.NewRequest("GET", "/v1/query", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/query", body)
 	limit := 99
 	if err := parseLimit(req, &limit); err != nil {
 		t.Fatalf("err: %v", err)
@@ -807,10 +728,7 @@ func TestPreparedQuery_parseLimit(t *testing.T) {
 		t.Fatalf("bad limit: %d", limit)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/query?limit=11", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ = http.NewRequest("GET", "/v1/query?limit=11", body)
 	if err := parseLimit(req, &limit); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -818,10 +736,7 @@ func TestPreparedQuery_parseLimit(t *testing.T) {
 		t.Fatalf("bad limit: %d", limit)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/query?limit=bob", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ = http.NewRequest("GET", "/v1/query?limit=bob", body)
 	if err := parseLimit(req, &limit); err == nil {
 		t.Fatalf("bad: %v", err)
 	}
@@ -863,11 +778,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			req, err := http.NewRequest("POST", "/v1/query", body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("POST", "/v1/query", body)
 			resp := httptest.NewRecorder()
 			obj, err := srv.PreparedQueryGeneral(resp, req)
 			if err != nil {
@@ -886,11 +797,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 		// List them all.
 		{
 			body := bytes.NewBuffer(nil)
-			req, err := http.NewRequest("GET", "/v1/query?token=root", body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("GET", "/v1/query?token=root", body)
 			resp := httptest.NewRecorder()
 			obj, err := srv.PreparedQueryGeneral(resp, req)
 			if err != nil {
@@ -911,11 +818,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 		// Execute it.
 		{
 			body := bytes.NewBuffer(nil)
-			req, err := http.NewRequest("GET", "/v1/query/"+id+"/execute", body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("GET", "/v1/query/"+id+"/execute", body)
 			resp := httptest.NewRecorder()
 			obj, err := srv.PreparedQuerySpecific(resp, req)
 			if err != nil {
@@ -936,11 +839,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 		// Read it back.
 		{
 			body := bytes.NewBuffer(nil)
-			req, err := http.NewRequest("GET", "/v1/query/"+id, body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("GET", "/v1/query/"+id, body)
 			resp := httptest.NewRecorder()
 			obj, err := srv.PreparedQuerySpecific(resp, req)
 			if err != nil {
@@ -973,14 +872,9 @@ func TestPreparedQuery_Integration(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			req, err := http.NewRequest("PUT", "/v1/query/"+id, body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("PUT", "/v1/query/"+id, body)
 			resp := httptest.NewRecorder()
-			_, err = srv.PreparedQuerySpecific(resp, req)
-			if err != nil {
+			if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 			if resp.Code != 200 {
@@ -991,14 +885,9 @@ func TestPreparedQuery_Integration(t *testing.T) {
 		// Delete it.
 		{
 			body := bytes.NewBuffer(nil)
-			req, err := http.NewRequest("DELETE", "/v1/query/"+id, body)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
+			req, _ := http.NewRequest("DELETE", "/v1/query/"+id, body)
 			resp := httptest.NewRecorder()
-			_, err = srv.PreparedQuerySpecific(resp, req)
-			if err != nil {
+			if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 			if resp.Code != 200 {
