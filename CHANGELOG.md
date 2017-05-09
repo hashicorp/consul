@@ -6,6 +6,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* build: Added a vendor fix to allow compilation on Illumos. [GH-3024]
+
 ## 0.8.2 (May 9, 2017)
 
 IMPROVEMENTS:
