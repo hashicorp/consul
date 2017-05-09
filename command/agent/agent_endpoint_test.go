@@ -229,8 +229,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 
 	// Try without a token.
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	_, err := srv.AgentSelf(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentSelf(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -330,16 +329,14 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 
 	// Try without a token.
 	req, _ := http.NewRequest("PUT", "/v1/agent/reload", nil)
-	_, err := srv.AgentReload(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentReload(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Try with a read only token (resolved on the servers).
 	ro := makeReadOnlyAgentACL(t, srv)
 	req, _ = http.NewRequest("PUT", fmt.Sprintf("/v1/agent/reload?token=%s", ro), nil)
-	_, err = srv.AgentReload(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentReload(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -500,8 +497,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	// Try without a token.
 	{
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
-		_, err := srv.AgentJoin(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentJoin(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -519,8 +515,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	ro := makeReadOnlyAgentACL(t, srv)
 	{
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s?token=%s", addr, ro), nil)
-		_, err := srv.AgentJoin(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentJoin(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -572,8 +567,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 		defer srv.agent.Shutdown()
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
-		_, err := srv.AgentLeave(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -601,8 +595,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 		ro := makeReadOnlyAgentACL(t, srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
-		_, err := srv.AgentLeave(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -654,8 +647,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	// Try without a token.
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/force-leave/nope", nil)
-		_, err := srv.AgentForceLeave(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentForceLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -673,8 +665,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	ro := makeReadOnlyAgentACL(t, srv)
 	{
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/force-leave/nope?token=%s", ro), nil)
-		_, err := srv.AgentForceLeave(nil, req)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if _, err := srv.AgentForceLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -808,8 +799,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 		},
 	}
 	req.Body = encodeReq(args)
-	_, err := srv.AgentRegisterCheck(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentRegisterCheck(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -861,8 +851,7 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("GET", "/v1/agent/check/deregister/test", nil)
-	_, err := srv.AgentDeregisterCheck(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentDeregisterCheck(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -915,8 +904,7 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("GET", "/v1/agent/check/pass/test", nil)
-	_, err := srv.AgentCheckPass(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentCheckPass(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -969,8 +957,7 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("GET", "/v1/agent/check/warn/test", nil)
-	_, err := srv.AgentCheckWarn(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentCheckWarn(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1023,8 +1010,7 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("GET", "/v1/agent/check/fail/test", nil)
-	_, err := srv.AgentCheckFail(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentCheckFail(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1163,8 +1149,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	// Try with no token.
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
 	req.Body = encodeReq(checkUpdate{api.HealthPassing, "hello-passing"})
-	_, err := srv.AgentCheckUpdate(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentCheckUpdate(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1256,8 +1241,7 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	// Try with no token.
 	req, _ := http.NewRequest("GET", "/v1/agent/service/register", nil)
 	req.Body = encodeReq(args)
-	_, err := srv.AgentRegisterService(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentRegisterService(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1349,8 +1333,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 
 	// Try without a token.
 	req, _ := http.NewRequest("GET", "/v1/agent/service/deregister/test", nil)
-	_, err := srv.AgentDeregisterService(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentDeregisterService(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1505,8 +1488,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken", nil)
-	_, err := srv.AgentServiceMaintenance(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentServiceMaintenance(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1610,8 +1592,7 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 
 	// Try with no token.
 	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
-	_, err := srv.AgentNodeMaintenance(nil, req)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if _, err := srv.AgentNodeMaintenance(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
