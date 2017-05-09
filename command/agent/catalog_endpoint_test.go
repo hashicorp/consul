@@ -23,13 +23,11 @@ func TestCatalogRegister(t *testing.T) {
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
-	req, _ := http.NewRequest("GET", "/v1/catalog/register", nil)
 	args := &structs.RegisterRequest{
 		Node:    "foo",
 		Address: "127.0.0.1",
 	}
-	req.Body = encodeReq(args)
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
 	obj, err := srv.CatalogRegister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -62,10 +60,6 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
 			args := &structs.RegisterRequest{
 				Node:    "foo",
 				Address: "127.0.0.1",
@@ -75,9 +69,8 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 					Port:    8080,
 				},
 			}
-			req.Body = encodeReq(args)
-
-			_, err = srv.CatalogRegister(nil, req)
+			req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
+			_, err := srv.CatalogRegister(nil, req)
 			if err == nil || err.Error() != "Invalid service address" {
 				t.Fatalf("err: %v", err)
 			}
@@ -94,12 +87,8 @@ func TestCatalogDeregister(t *testing.T) {
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
-	req, _ := http.NewRequest("GET", "/v1/catalog/deregister", nil)
-	args := &structs.DeregisterRequest{
-		Node: "foo",
-	}
-	req.Body = encodeReq(args)
-
+	args := &structs.DeregisterRequest{Node: "foo"}
+	req, _ := http.NewRequest("GET", "/v1/catalog/deregister", jsonReader(args))
 	obj, err := srv.CatalogDeregister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)

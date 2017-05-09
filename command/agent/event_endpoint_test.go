@@ -207,7 +207,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 		})
 	}
 
-	// Try the root token.
+	// Try root token.
 	{
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("GET", "/v1/event/list?token=root", nil)

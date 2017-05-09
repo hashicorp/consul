@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,16 +24,12 @@ import (
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
-	raw := map[string]interface{}{
+	args := map[string]interface{}{
 		"Name":  "User Token",
 		"Type":  "client",
-		"Rules": fmt.Sprintf(`agent "" { policy = "read" }`),
+		"Rules": `agent "" { policy = "read" }`,
 	}
-	enc.Encode(raw)
-
-	req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", body)
+	req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
 	obj, err := srv.ACLCreate(resp, req)
 	if err != nil {
@@ -678,15 +673,13 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Register node
-	req, _ := http.NewRequest("GET", "/v1/agent/check/register?token=abc123", nil)
 	args := &CheckDefinition{
 		Name: "test",
 		CheckType: CheckType{
 			TTL: 15 * time.Second,
 		},
 	}
-	req.Body = encodeReq(args)
-
+	req, _ := http.NewRequest("GET", "/v1/agent/check/register?token=abc123", jsonReader(args))
 	obj, err := srv.AgentRegisterCheck(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -724,7 +717,6 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Register node
-	req, _ := http.NewRequest("GET", "/v1/agent/check/register", nil)
 	args := &CheckDefinition{
 		Name: "test",
 		CheckType: CheckType{
@@ -732,8 +724,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 		},
 		Status: api.HealthPassing,
 	}
-	req.Body = encodeReq(args)
-
+	req, _ := http.NewRequest("GET", "/v1/agent/check/register", jsonReader(args))
 	obj, err := srv.AgentRegisterCheck(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -765,7 +756,6 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Register node
-	req, _ := http.NewRequest("GET", "/v1/agent/check/register", nil)
 	args := &CheckDefinition{
 		Name: "test",
 		CheckType: CheckType{
@@ -773,8 +763,7 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 		},
 		Status: "fluffy",
 	}
-	req.Body = encodeReq(args)
-
+	req, _ := http.NewRequest("GET", "/v1/agent/check/register", jsonReader(args))
 	resp := httptest.NewRecorder()
 	if _, err := srv.AgentRegisterCheck(resp, req); err != nil {
 		t.Fatalf("err: %v", err)
@@ -790,22 +779,21 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Try with no token.
-	req, _ := http.NewRequest("GET", "/v1/agent/check/register", nil)
 	args := &CheckDefinition{
 		Name: "test",
 		CheckType: CheckType{
 			TTL: 15 * time.Second,
 		},
 	}
-	req.Body = encodeReq(args)
+
+	// Try with no token.
+	req, _ := http.NewRequest("GET", "/v1/agent/check/register", jsonReader(args))
 	if _, err := srv.AgentRegisterCheck(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Try the root token.
-	req, _ = http.NewRequest("GET", "/v1/agent/check/register?token=root", nil)
-	req.Body = encodeReq(args)
+	req, _ = http.NewRequest("GET", "/v1/agent/check/register?token=root", jsonReader(args))
 	if _, err := srv.AgentRegisterCheck(nil, req); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1040,9 +1028,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
-		req.Body = encodeReq(c)
-
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(c))
 		resp := httptest.NewRecorder()
 		obj, err := srv.AgentCheckUpdate(resp, req)
 		if err != nil {
@@ -1063,13 +1049,11 @@ func TestAgent_UpdateCheck(t *testing.T) {
 
 	// Make sure abusive levels of output are capped.
 	{
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
-		update := checkUpdate{
+		args := checkUpdate{
 			Status: api.HealthPassing,
 			Output: strings.Repeat("-= bad -=", 5*CheckBufSize),
 		}
-		req.Body = encodeReq(update)
-
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
 		obj, err := srv.AgentCheckUpdate(resp, req)
 		if err != nil {
@@ -1093,12 +1077,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 
 	// Check a bogus status.
 	{
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
-		update := checkUpdate{
-			Status: "itscomplicated",
-		}
-		req.Body = encodeReq(update)
-
+		args := checkUpdate{Status: "itscomplicated"}
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
 		obj, err := srv.AgentCheckUpdate(resp, req)
 		if err != nil {
@@ -1114,12 +1094,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 
 	// Check a bogus verb.
 	{
-		req, _ := http.NewRequest("POST", "/v1/agent/check/update/test", nil)
-		update := checkUpdate{
-			Status: api.HealthPassing,
-		}
-		req.Body = encodeReq(update)
-
+		args := checkUpdate{Status: api.HealthPassing}
+		req, _ := http.NewRequest("POST", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
 		obj, err := srv.AgentCheckUpdate(resp, req)
 		if err != nil {
@@ -1147,15 +1123,15 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	}
 
 	// Try with no token.
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
-	req.Body = encodeReq(checkUpdate{api.HealthPassing, "hello-passing"})
+	args := checkUpdate{api.HealthPassing, "hello-passing"}
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 	if _, err := srv.AgentCheckUpdate(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Try with the root token.
-	req, _ = http.NewRequest("PUT", "/v1/agent/check/update/test?token=root", nil)
-	req.Body = encodeReq(checkUpdate{api.HealthPassing, "hello-passing"})
+	args = checkUpdate{api.HealthPassing, "hello-passing"}
+	req, _ = http.NewRequest("PUT", "/v1/agent/check/update/test?token=root", jsonReader(args))
 	if _, err := srv.AgentCheckUpdate(nil, req); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1167,7 +1143,6 @@ func TestAgent_RegisterService(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", nil)
 	args := &ServiceDefinition{
 		Name: "test",
 		Tags: []string{"master"},
@@ -1184,7 +1159,7 @@ func TestAgent_RegisterService(t *testing.T) {
 			},
 		},
 	}
-	req.Body = encodeReq(args)
+	req, _ := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", jsonReader(args))
 
 	obj, err := srv.AgentRegisterService(nil, req)
 	if err != nil {
@@ -1239,15 +1214,13 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	}
 
 	// Try with no token.
-	req, _ := http.NewRequest("GET", "/v1/agent/service/register", nil)
-	req.Body = encodeReq(args)
+	req, _ := http.NewRequest("GET", "/v1/agent/service/register", jsonReader(args))
 	if _, err := srv.AgentRegisterService(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Try with the root token.
-	req, _ = http.NewRequest("GET", "/v1/agent/service/register?token=root", nil)
-	req.Body = encodeReq(args)
+	req, _ = http.NewRequest("GET", "/v1/agent/service/register?token=root", jsonReader(args))
 	if _, err := srv.AgentRegisterService(nil, req); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1261,19 +1234,17 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", nil)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
 			args := &ServiceDefinition{
 				Name:    "test",
 				Address: addr,
 				Port:    8000,
 			}
-			req.Body = encodeReq(args)
-
+			req, _ := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", jsonReader(args))
 			resp := httptest.NewRecorder()
-			_, err = srv.AgentRegisterService(resp, req)
+			_, err := srv.AgentRegisterService(resp, req)
+			if err != nil {
+				t.Fatalf("got error %v want nil", err)
+			}
 			if got, want := resp.Code, 400; got != want {
 				t.Fatalf("got code %d want %d", got, want)
 			}
@@ -1609,8 +1580,6 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// First register the service
-	req, _ := http.NewRequest("GET", "/v1/agent/service/register", nil)
 	args := &ServiceDefinition{
 		Name: "memcache",
 		Port: 8000,
@@ -1618,14 +1587,14 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 			TTL: 15 * time.Second,
 		},
 	}
-	req.Body = encodeReq(args)
 
+	// First register the service
+	req, _ := http.NewRequest("GET", "/v1/agent/service/register", jsonReader(args))
 	if _, err := srv.AgentRegisterService(nil, req); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Now register an additional check
-	req, _ = http.NewRequest("GET", "/v1/agent/check/register", nil)
 	checkArgs := &CheckDefinition{
 		Name:      "memcache_check2",
 		ServiceID: "memcache",
@@ -1633,8 +1602,7 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 			TTL: 15 * time.Second,
 		},
 	}
-	req.Body = encodeReq(checkArgs)
-
+	req, _ = http.NewRequest("GET", "/v1/agent/check/register", jsonReader(checkArgs))
 	if _, err := srv.AgentRegisterCheck(nil, req); err != nil {
 		t.Fatalf("err: %v", err)
 	}

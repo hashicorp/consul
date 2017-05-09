@@ -72,13 +72,6 @@ RECONF:
 	return dir, servers[0]
 }
 
-func encodeReq(obj interface{}) io.ReadCloser {
-	buf := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(buf)
-	enc.Encode(obj)
-	return ioutil.NopCloser(buf)
-}
-
 func TestHTTPServer_UnixSocket(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
@@ -700,4 +693,15 @@ func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config
 
 func isPermissionDenied(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
+}
+
+func jsonReader(v interface{}) io.Reader {
+	if v == nil {
+		return nil
+	}
+	b := new(bytes.Buffer)
+	if err := json.NewEncoder(b).Encode(v); err != nil {
+		panic(err)
+	}
+	return b
 }
