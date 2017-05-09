@@ -1306,10 +1306,15 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}
+		if got, want := len(srv2.agent.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
 	})
 
-	// Register a remote node with a service.
-	{
+	// Register a remote node with a service. This is in a retry since we
+	// need the datacenter to have a route which takes a little more time
+	// beyond the join, and we don't have direct access to the router here.
+	retry.Run(t, func(r *retry.R) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc2",
 			Node:       "foo",
@@ -1324,9 +1329,9 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 
 		var out struct{}
 		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-	}
+	})
 
 	// Register an equivalent prepared query.
 	var id string
@@ -3381,10 +3386,15 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}
+		if got, want := len(srv2.agent.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
 	})
 
-	// Register a remote node with a service.
-	{
+	// Register a remote node with a service. This is in a retry since we
+	// need the datacenter to have a route which takes a little more time
+	// beyond the join, and we don't have direct access to the router here.
+	retry.Run(t, func(r *retry.R) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc2",
 			Node:       "foo",
@@ -3399,9 +3409,9 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 
 		var out struct{}
 		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-	}
+	})
 
 	// Register a local prepared query.
 	{
