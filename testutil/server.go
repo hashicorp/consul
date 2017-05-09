@@ -84,6 +84,7 @@ type TestServerConfig struct {
 	VerifyIncomingRPC   bool                   `json:"verify_incoming_rpc,omitempty"`
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
+	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
 }
@@ -121,6 +122,7 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  randomPort(),
 			RPC:     randomPort(),
 		},
+		ReadyTimeout: 3 * time.Second,
 	}
 }
 
@@ -333,7 +335,10 @@ func (s *TestServer) waitForAPI() error {
 // It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader() error {
 	f := &failer{}
-	timer := &retry.Timer{Timeout: 3 * time.Second, Wait: 250 * time.Millisecond}
+	timer := &retry.Timer{
+		Timeout: s.Config.ReadyTimeout,
+		Wait:    250 * time.Millisecond,
+	}
 	var index int64
 	retry.RunWith(timer, f, func(r *retry.R) {
 		// Query the API and check the status code.
