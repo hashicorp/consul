@@ -1,3 +1,11 @@
+## 0.8.3 (UNRELEASED)
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
 ## 0.8.2 (May 9, 2017)
 
 IMPROVEMENTS:
@@ -21,8 +29,6 @@ BUG FIXES:
 * ui: Add and update favicons [GH-2945]
 
 ## 0.8.1 (April 17, 2017)
-
-FEATURES:
 
 IMPROVEMENTS:
 
