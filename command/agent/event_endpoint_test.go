@@ -187,8 +187,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Try no token.
-	{
+	t.Run("no token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
@@ -205,10 +204,9 @@ func TestEventList_ACLFilter(t *testing.T) {
 				r.Fatalf("bad: %#v", list)
 			}
 		})
-	}
+	})
 
-	// Try root token.
-	{
+	t.Run("root token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			resp := httptest.NewRecorder()
@@ -225,7 +223,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 				r.Fatalf("bad: %#v", list)
 			}
 		})
-	}
+	})
 }
 
 func TestEventList_Blocking(t *testing.T) {
