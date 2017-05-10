@@ -24,14 +24,12 @@ app = [
 
 libs.each do |js_file|
   File.open("static/application.min.js", "a") do |f|
-    puts "cat #{js_file}"
     f << File.read(js_file)
   end
 end
 
 app.each do |js_file|
   File.open("static/application.min.js", "a") do |f|
-    puts "compile #{js_file}"
     f << Uglifier.compile(File.read(js_file))
   end
 end
