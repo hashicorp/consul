@@ -558,27 +558,6 @@ func TestACLResolution(t *testing.T) {
 			t.Fatalf("bad: %s", token)
 		}
 
-		// Check when AtlasACLToken set, wrong server
-		srv.agent.config.AtlasACLToken = "atlas"
-		srv.parseToken(req, &token)
-		if token != "agent" {
-			t.Fatalf("bad: %s", token)
-		}
-
-		// Check when AtlasACLToken set, correct server
-		srv.addr = scadaHTTPAddr
-		srv.parseToken(req, &token)
-		if token != "atlas" {
-			t.Fatalf("bad: %s", token)
-		}
-
-		// Check when AtlasACLToken not, correct server
-		srv.agent.config.AtlasACLToken = ""
-		srv.parseToken(req, &token)
-		if token != "agent" {
-			t.Fatalf("bad: %s", token)
-		}
-
 		// Explicit token has highest precedence
 		srv.parseToken(reqToken, &token)
 		if token != "foo" {
@@ -597,39 +576,6 @@ func TestACLResolution(t *testing.T) {
 			t.Fatalf("bad: %s", token)
 		}
 	})
-}
-
-func TestScadaHTTP(t *testing.T) {
-	// Create the agent
-	dir, agent := makeAgent(t, nextConfig())
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	// Create a generic listener
-	list, err := net.Listen("tcp", ":0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer list.Close()
-
-	// Create the SCADA HTTP server
-	scadaHTTP := newScadaHTTP(agent, list)
-
-	// Returned server uses the listener and scada addr
-	if scadaHTTP.listener != list {
-		t.Fatalf("bad listener: %#v", scadaHTTP)
-	}
-	if scadaHTTP.addr != scadaHTTPAddr {
-		t.Fatalf("expected %v, got: %v", scadaHTTP.addr, scadaHTTPAddr)
-	}
-
-	// Check that debug endpoints were not enabled. This will cause
-	// the serve mux to panic if the routes are already handled.
-	mockFn := func(w http.ResponseWriter, r *http.Request) {}
-	scadaHTTP.mux.HandleFunc("/debug/pprof/", mockFn)
-	scadaHTTP.mux.HandleFunc("/debug/pprof/cmdline", mockFn)
-	scadaHTTP.mux.HandleFunc("/debug/pprof/profile", mockFn)
-	scadaHTTP.mux.HandleFunc("/debug/pprof/symbol", mockFn)
 }
 
 func TestEnableWebUI(t *testing.T) {

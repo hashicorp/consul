@@ -21,14 +21,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-var (
-	// scadaHTTPAddr is the address associated with the
-	// HTTPServer. When populating an ACL token for a request,
-	// this is checked to switch between the ACLToken and
-	// AtlasACLToken
-	scadaHTTPAddr = "SCADA"
-)
-
 // HTTPServer is used to wrap an Agent and expose various API's
 // in a RESTful manner
 type HTTPServer struct {
@@ -153,27 +145,6 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	}
 
 	return servers, nil
-}
-
-// newScadaHTTP creates a new HTTP server wrapping the SCADA
-// listener such that HTTP calls can be sent from the brokers.
-func newScadaHTTP(agent *Agent, list net.Listener) *HTTPServer {
-	// Create the mux
-	mux := http.NewServeMux()
-
-	// Create the server
-	srv := &HTTPServer{
-		agent:    agent,
-		mux:      mux,
-		listener: list,
-		logger:   agent.logger,
-		addr:     scadaHTTPAddr,
-	}
-	srv.registerHandlers(false) // Never allow debug for SCADA
-
-	// Start the server
-	go http.Serve(list, mux)
-	return srv
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -564,12 +535,6 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 
 	if other := req.Header.Get("X-Consul-Token"); other != "" {
 		*token = other
-		return
-	}
-
-	// Set the AtlasACLToken if SCADA
-	if s.addr == scadaHTTPAddr && s.agent.config.AtlasACLToken != "" {
-		*token = s.agent.config.AtlasACLToken
 		return
 	}
 
