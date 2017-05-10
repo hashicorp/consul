@@ -41,7 +41,7 @@ func NewStatsFetcher(logger *log.Logger, pool *ConnPool, datacenter string) *Sta
 func (f *StatsFetcher) fetch(server *agent.Server, replyCh chan *structs.ServerStats) {
 	var args struct{}
 	var reply structs.ServerStats
-	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", &args, &reply)
+	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", server.UseTLS, &args, &reply)
 	if err != nil {
 		f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
 			server.Name, err)

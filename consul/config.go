@@ -129,11 +129,14 @@ type Config struct {
 	// must match a provided certificate authority. This can be used to force client auth.
 	VerifyIncoming bool
 
-	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
+	// VerifyOutgoing is used to force verification of the authenticity of outgoing connections.
 	// This means that TLS requests are used, and TCP requests are not made. TLS connections
-	// must match a provided certificate authority. This is used to verify authenticity of
-	// server nodes.
+	// must match a provided certificate authority.
 	VerifyOutgoing bool
+
+	// UseTLS is used to enable TLS for outgoing connections to other TLS-capable Consul
+	// servers. This doesn't imply any verification, it only enables TLS if possible.
+	UseTLS bool
 
 	// VerifyServerHostname is used to enable hostname verification of servers. This
 	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
@@ -439,6 +442,7 @@ func (c *Config) tlsConfig() *tlsutil.Config {
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyOutgoing:           c.VerifyOutgoing,
 		VerifyServerHostname:     c.VerifyServerHostname,
+		UseTLS:                   c.UseTLS,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,

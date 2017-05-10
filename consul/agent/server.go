@@ -40,6 +40,9 @@ type Server struct {
 	NonVoter    bool
 	Addr        net.Addr
 	Status      serf.MemberStatus
+
+	// If true, use TLS when connecting to this server
+	UseTLS bool
 }
 
 // Key returns the corresponding Key
@@ -71,6 +74,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
+
+	_, useTLS := m.Tags["use_tls"]
 
 	expect := 0
 	expect_str, ok := m.Tags["expect"]
@@ -135,6 +140,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		RaftVersion: raft_vsn,
 		Status:      m.Status,
 		NonVoter:    nonVoter,
+		UseTLS:      useTLS,
 	}
 	return true, parts
 }

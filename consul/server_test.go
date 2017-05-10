@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
@@ -576,5 +577,113 @@ func TestServer_Encrypted(t *testing.T) {
 	}
 	if !s2.Encrypted() {
 		t.Fatalf("should be encrypted")
+	}
+}
+
+func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+
+	// Have s2 make an RPC call to s1
+	s2.localLock.RLock()
+	var leader *agent.Server
+	for _, server := range s2.localConsuls {
+		if server.Name == s1.config.NodeName {
+			leader = server
+		}
+	}
+	s2.localLock.RUnlock()
+	return s2.connPool.PingConsulServer(leader)
+}
+
+func TestServer_TLSToNoTLS(t *testing.T) {
+	// Set up a server with no TLS configured
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a second server with TLS configured
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	success, err := testVerifyRPC(s1, s2, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !success {
+		t.Fatalf("bad: %v", success)
+	}
+}
+
+func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
+	// Set up a server with no TLS configured
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a second server with TLS and VerifyOutgoing set
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+		c.VerifyOutgoing = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	_, err := testVerifyRPC(s1, s2, t)
+	if err == nil || !strings.Contains(err.Error(), "remote error: tls") {
+		t.Fatalf("should fail")
+	}
+}
+
+func TestServer_TLSToFullVerify(t *testing.T) {
+	// Set up a server with TLS and VerifyIncoming set
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+		c.VerifyIncoming = true
+		c.VerifyOutgoing = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a second server with TLS configured
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.CAFile = "../test/client_certs/rootca.crt"
+		c.CertFile = "../test/client_certs/server.crt"
+		c.KeyFile = "../test/client_certs/server.key"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	success, err := testVerifyRPC(s1, s2, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !success {
+		t.Fatalf("bad: %v", success)
 	}
 }

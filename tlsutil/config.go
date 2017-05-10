@@ -49,6 +49,9 @@ type Config struct {
 	// existing clients.
 	VerifyServerHostname bool
 
+	// UseTLS is used to enable outgoing TLS connections to Consul servers.
+	UseTLS bool
+
 	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
 	// or VerifyOutgoing to verify the TLS connection.
 	CAFile string
@@ -126,7 +129,7 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	if c.VerifyServerHostname {
 		c.VerifyOutgoing = true
 	}
-	if !c.VerifyOutgoing {
+	if !c.UseTLS && !c.VerifyOutgoing {
 		return nil, nil
 	}
 	// Create the tlsConfig
