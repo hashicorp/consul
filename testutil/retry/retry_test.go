@@ -6,7 +6,7 @@ import (
 )
 
 // delta defines the time band a test run should complete in.
-var delta = 5 * time.Millisecond
+var delta = 10 * time.Millisecond
 
 func TestRetryer(t *testing.T) {
 	tests := []struct {

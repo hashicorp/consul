@@ -59,10 +59,10 @@ rules:
 | [`event`](#event-rules)          | Listing and firing events in the [Event API](/api/event.html) |
 | [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv.html) |
 | [`keyring`](#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring.html) |
-| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), [Network Coordinate API](/api/coordinate.html), and [Agent API](/api/agent.html) |
+| [`node`](#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), [Prepared Query API](/api/query.html), [Network Coordinate API](/api/coordinate.html), and [Agent API](/api/agent.html) |
 | [`operator`](#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator.html), other than the [Keyring API](/api/operator/keyring.html) |
 | [`query`](#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query.html)
-| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), and [Agent API](/api/agent.html) |
+| [`service`](#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog.html), [Health API](/api/health.html), [Prepared Query API](/api/query.html), and [Agent API](/api/agent.html) |
 | [`session`](#session-rules)      | Session operations in the [Session API](/api/session.html) |
 
 Since Consul snapshots actually contain ACL tokens, the

@@ -1497,6 +1497,37 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
+		t.Run("addr "+addr, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			args := &ServiceDefinition{
+				Name:    "test",
+				Address: addr,
+				Port:    8000,
+			}
+			req.Body = encodeReq(args)
+
+			resp := httptest.NewRecorder()
+			_, err = srv.AgentRegisterService(resp, req)
+			if got, want := resp.Code, 400; got != want {
+				t.Fatalf("got code %d want %d", got, want)
+			}
+			if got, want := resp.Body.String(), "Invalid service address"; got != want {
+				t.Fatalf("got body %q want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
