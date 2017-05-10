@@ -134,8 +134,8 @@ type Config struct {
 	// must match a provided certificate authority.
 	VerifyOutgoing bool
 
-	// UseTLS is used to enable outgoing TLS verification of all outgoing connections to
-	// other Consul servers.
+	// UseTLS is used to enable TLS for outgoing connections to other TLS-capable Consul
+	// servers. This doesn't imply any verification, it only enables TLS if possible.
 	UseTLS bool
 
 	// VerifyServerHostname is used to enable hostname verification of servers. This
