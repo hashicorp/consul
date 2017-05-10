@@ -19,16 +19,12 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	c.UI.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
-
 	config := agent.DefaultConfig()
-	var supplement string
-	if config.Protocol < consul.ProtocolVersionMax {
-		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
-			config.Protocol)
-	}
-	c.UI.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
-		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
+
+	c.UI.Output(c.HumanVersion)
+	c.UI.Output(fmt.Sprintf("default protocol: %d", config.Protocol))
+	c.UI.Output(fmt.Sprintf("minimum protocol: %d", consul.ProtocolVersionMin))
+	c.UI.Output(fmt.Sprintf("maximum protocol: %d", consul.ProtocolVersionMax))
 
 	return 0
 }

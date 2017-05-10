@@ -449,7 +449,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
+	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPre, revision)
 
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
@@ -1579,7 +1579,7 @@ func (a *Agent) Stats() map[string]map[string]string {
 	stats["build"] = map[string]string{
 		"revision":   revision,
 		"version":    a.config.Version,
-		"prerelease": a.config.VersionPrerelease,
+		"prerelease": a.config.VersionPre,
 	}
 	return stats
 }

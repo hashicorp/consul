@@ -737,8 +737,8 @@ type Config struct {
 	// Version is the release version number
 	Version string `mapstructure:"-"`
 
-	// VersionPrerelease is a label for pre-release builds
-	VersionPrerelease string `mapstructure:"-"`
+	// VersionPre is a label for pre-release builds
+	VersionPre string `mapstructure:"-"`
 
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.Plan `mapstructure:"-" json:"-"`

@@ -55,7 +55,7 @@ func nextConfig() *Config {
 	}
 
 	conf.Version = version.Version
-	conf.VersionPrerelease = "c.d"
+	conf.VersionPre = "c.d"
 	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
