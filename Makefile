@@ -210,6 +210,7 @@ ui:
 	@mv bindata_assetfs.go command/agent
 	@$(MAKE) -f "${MKFILE_PATH}" format
 
+# vet checks the code for common errors and formatting
 vet:
 	@echo "==> Vetting ${PROJECT}..."
 	@go vet $(GOFILES); if [ $$? -eq 1 ]; then \
