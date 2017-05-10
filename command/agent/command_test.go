@@ -409,50 +409,6 @@ func TestDiscoverGCEHosts(t *testing.T) {
 	}
 }
 
-func TestSetupScadaConn(t *testing.T) {
-	// Create a config and assign an infra name
-	conf1 := nextConfig()
-	conf1.AtlasInfrastructure = "hashicorp/test1"
-	conf1.AtlasToken = "abc"
-
-	dir, agent := makeAgent(t, conf1)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	cmd := &Command{
-		ShutdownCh: make(chan struct{}),
-		Command:    baseCommand(new(cli.MockUi)),
-		agent:      agent,
-	}
-
-	// First start creates the scada conn
-	if err := cmd.setupScadaConn(conf1); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	http1 := cmd.scadaHTTP
-	provider1 := cmd.scadaProvider
-
-	// Performing setup again tears down original and replaces
-	// with a new SCADA client.
-	conf2 := nextConfig()
-	conf2.AtlasInfrastructure = "hashicorp/test2"
-	conf2.AtlasToken = "123"
-	if err := cmd.setupScadaConn(conf2); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if cmd.scadaHTTP == http1 || cmd.scadaProvider == provider1 {
-		t.Fatalf("should change: %#v %#v", cmd.scadaHTTP, cmd.scadaProvider)
-	}
-
-	// Original provider and listener must be closed
-	if !provider1.IsShutdown() {
-		t.Fatalf("should be shutdown")
-	}
-	if _, err := http1.listener.Accept(); !strings.Contains(err.Error(), "closed") {
-		t.Fatalf("should be closed")
-	}
-}
-
 func TestProtectDataDir(t *testing.T) {
 	dir, err := ioutil.TempDir("", "consul")
 	if err != nil {

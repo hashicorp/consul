@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -24,7 +23,6 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
 )
 
@@ -52,8 +50,6 @@ type Command struct {
 	agent             *Agent
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
-	scadaProvider     *scada.Provider
-	scadaHTTP         *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -65,7 +61,6 @@ func (c *Command) readConfig() *Config {
 	var retryIntervalWan string
 	var dnsRecursors []string
 	var dev bool
-	var dcDeprecated string
 	var nodeMeta []string
 
 	f := c.Command.NewFlagSet(c)
@@ -91,7 +86,6 @@ func (c *Command) readConfig() *Config {
 		"Setting this to true will prevent Consul from using information from the"+
 			" host to generate a node ID, and will cause Consul to generate a"+
 			" random node ID instead.")
-	f.StringVar(&dcDeprecated, "dc", "", "Datacenter of the agent (deprecated: use 'datacenter' instead).")
 	f.StringVar(&cmdConfig.Datacenter, "datacenter", "", "Datacenter of the agent.")
 	f.StringVar(&cmdConfig.DataDir, "data-dir", "", "Path to a data directory to store agent state.")
 	f.BoolVar(&cmdConfig.EnableUI, "ui", false, "Enables the built-in static web UI server.")
@@ -118,15 +112,6 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "Sets the advertise address to use.")
 	f.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "",
 		"Sets address to advertise on WAN instead of -advertise address.")
-
-	f.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "",
-		"(deprecated) Sets the Atlas infrastructure name, enables SCADA.")
-	f.StringVar(&cmdConfig.AtlasToken, "atlas-token", "",
-		"(deprecated) Provides the Atlas API token.")
-	f.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false,
-		"(deprecated) Enables auto-joining the Atlas cluster.")
-	f.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "",
-		"(deprecated) The address of the endpoint for Atlas integration.")
 
 	f.IntVar(&cmdConfig.Protocol, "protocol", -1,
 		"Sets the protocol version. Defaults to latest.")
@@ -169,8 +154,41 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&retryIntervalWan, "retry-interval-wan", "",
 		"Time to wait between join -wan attempts.")
 
+	// deprecated flags
+	var dcDeprecated string
+	var atlasJoin bool
+	var atlasInfrastructure, atlasToken, atlasEndpoint string
+	f.StringVar(&dcDeprecated, "dc", "",
+		"(deprecated) Datacenter of the agent (use 'datacenter' instead).")
+	f.StringVar(&atlasInfrastructure, "atlas", "",
+		"(deprecated) Sets the Atlas infrastructure name, enables SCADA.")
+	f.StringVar(&atlasToken, "atlas-token", "",
+		"(deprecated) Provides the Atlas API token.")
+	f.BoolVar(&atlasJoin, "atlas-join", false,
+		"(deprecated) Enables auto-joining the Atlas cluster.")
+	f.StringVar(&atlasEndpoint, "atlas-endpoint", "",
+		"(deprecated) The address of the endpoint for Atlas integration.")
+
 	if err := c.Command.Parse(c.args); err != nil {
 		return nil
+	}
+
+	// check deprecated flags
+	if atlasInfrastructure != "" {
+		c.UI.Warn("WARNING: 'atlas' is deprecated")
+	}
+	if atlasToken != "" {
+		c.UI.Warn("WARNING: 'atlas-token' is deprecated")
+	}
+	if atlasJoin {
+		c.UI.Warn("WARNING: 'atlas-join' is deprecated")
+	}
+	if atlasEndpoint != "" {
+		c.UI.Warn("WARNING: 'atlas-endpoint' is deprecated")
+	}
+	if dcDeprecated != "" && cmdConfig.Datacenter == "" {
+		c.UI.Warn("WARNING: 'dc' is deprecated. Use 'datacenter' instead")
+		cmdConfig.Datacenter = dcDeprecated
 	}
 
 	if retryInterval != "" {
@@ -308,14 +326,6 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
-	// Output a warning if the 'dc' flag has been used.
-	if dcDeprecated != "" {
-		c.UI.Error("WARNING: the 'dc' flag has been deprecated. Use 'datacenter' instead")
-
-		// Making sure that we don't break previous versions.
-		config.Datacenter = dcDeprecated
-	}
-
 	// Ensure the datacenter is always lowercased. The DNS endpoints automatically
 	// lowercase all queries, and internally we expect DC1 and dc1 to be the same.
 	config.Datacenter = strings.ToLower(config.Datacenter)
@@ -448,13 +458,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 	c.agent = agent
-
-	// Enable the SCADA integration
-	if err := c.setupScadaConn(config); err != nil {
-		agent.Shutdown()
-		c.UI.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
-		return err
-	}
 
 	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
 		servers, err := NewHTTPServers(agent, config, logOutput)
@@ -799,16 +802,6 @@ func (c *Command) Run(args []string) int {
 		defer server.Shutdown()
 	}
 
-	// Check and shut down the SCADA listeners at the end
-	defer func() {
-		if c.scadaHTTP != nil {
-			c.scadaHTTP.Shutdown()
-		}
-		if c.scadaProvider != nil {
-			c.scadaProvider.Shutdown()
-		}
-	}()
-
 	// Join startup nodes if specified
 	if err := c.startupJoin(config); err != nil {
 		c.UI.Error(err.Error())
@@ -860,12 +853,6 @@ func (c *Command) Run(args []string) int {
 		gossipEncrypted = c.agent.client.Encrypted()
 	}
 
-	// Determine the Atlas cluster
-	atlas := "<disabled>"
-	if config.AtlasInfrastructure != "" {
-		atlas = fmt.Sprintf("(Infrastructure: '%s' Join: %v)", config.AtlasInfrastructure, config.AtlasJoin)
-	}
-
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -881,7 +868,6 @@ func (c *Command) Run(args []string) int {
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
-	c.UI.Info(fmt.Sprintf("         Atlas: %s", atlas))
 
 	// Enable log streaming
 	c.UI.Info("")
@@ -1064,64 +1050,7 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 		}(wp)
 	}
 
-	// Reload SCADA client if we have a change
-	if newConf.AtlasInfrastructure != config.AtlasInfrastructure ||
-		newConf.AtlasToken != config.AtlasToken ||
-		newConf.AtlasEndpoint != config.AtlasEndpoint {
-		if err := c.setupScadaConn(newConf); err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("Failed reloading SCADA client: %s", err))
-			return nil, errs
-		}
-	}
-
 	return newConf, errs
-}
-
-// startScadaClient is used to start a new SCADA provider and listener,
-// replacing any existing listeners.
-func (c *Command) setupScadaConn(config *Config) error {
-	// Shut down existing SCADA listeners
-	if c.scadaProvider != nil {
-		c.scadaProvider.Shutdown()
-	}
-	if c.scadaHTTP != nil {
-		c.scadaHTTP.Shutdown()
-	}
-
-	// No-op if we don't have an infrastructure
-	if config.AtlasInfrastructure == "" {
-		return nil
-	}
-
-	c.UI.Error("WARNING: The hosted version of Consul Enterprise will be deprecated " +
-		"on March 7th, 2017. For details, see " +
-		"https://atlas.hashicorp.com/help/consul/alternatives")
-
-	scadaConfig := &scada.Config{
-		Service:      "consul",
-		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
-		ResourceType: "infrastructures",
-		Meta: map[string]string{
-			"auto-join":  strconv.FormatBool(config.AtlasJoin),
-			"datacenter": config.Datacenter,
-			"server":     strconv.FormatBool(config.Server),
-		},
-		Atlas: scada.AtlasConfig{
-			Endpoint:       config.AtlasEndpoint,
-			Infrastructure: config.AtlasInfrastructure,
-			Token:          config.AtlasToken,
-		},
-	}
-
-	// Create the new provider and listener
-	c.UI.Output("Connecting to Atlas: " + config.AtlasInfrastructure)
-	provider, list, err := scada.NewHTTPProvider(scadaConfig, c.logOutput)
-	if err != nil {
-		return err
-	}
-	c.scadaProvider = provider
-	c.scadaHTTP = newScadaHTTP(c.agent, list)
-	return nil
 }
 
 func (c *Command) Synopsis() string {
