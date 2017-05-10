@@ -122,7 +122,7 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  randomPort(),
 			RPC:     randomPort(),
 		},
-		ReadyTimeout: 3 * time.Second,
+		ReadyTimeout: 10 * time.Second,
 	}
 }
 
