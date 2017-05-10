@@ -1968,3 +1968,23 @@ func (d dirEnts) Less(i, j int) bool {
 func (d dirEnts) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
 }
+
+// isAddrANY checks if the given ip address is an IPv4 or IPv6 ANY address. ip
+// can be either a *net.IP or a string. It panics on another type.
+func isAddrANY(ip interface{}) bool {
+	if ip == nil {
+		return false
+	}
+	var ips string
+	switch x := ip.(type) {
+	case net.IP:
+		ips = x.String()
+	case *net.IP:
+		ips = x.String()
+	case string:
+		ips = x
+	default:
+		panic(fmt.Sprintf("invalid type: %T", ip))
+	}
+	return ips == "0.0.0.0" || ips == "::" || ips == "[::]"
+}
