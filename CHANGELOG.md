@@ -5,6 +5,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Added a check which prevents advertising or setting a service to a zero address (`0.0.0.0`, `[::]`, `::`). [GH-2961]
+* agent: Added a method for gracefully transitioning to TLS on an existing cluster. [GH-3001]
 
 BUG FIXES:
 
