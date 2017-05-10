@@ -1707,7 +1707,7 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 
 	// Try without a token.
 	req, _ := http.NewRequest("GET", "/v1/agent/monitor", nil)
-	if _, err := srv.AgentMonitor(nil, req); err != errPermissionDenied {
+	if _, err := srv.AgentMonitor(nil, req); !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
