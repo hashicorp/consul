@@ -616,7 +616,7 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 		c.CAFile = "../test/client_certs/rootca.crt"
 		c.CertFile = "../test/client_certs/server.crt"
 		c.KeyFile = "../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -645,7 +645,6 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 		c.CertFile = "../test/client_certs/server.crt"
 		c.KeyFile = "../test/client_certs/server.key"
 		c.VerifyOutgoing = true
-		c.ForceVerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -664,7 +663,7 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		c.KeyFile = "../test/client_certs/server.key"
 		c.VerifyIncoming = true
 		c.VerifyOutgoing = true
-		c.ForceVerifyOutgoing = true
+		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -677,7 +676,7 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		c.CAFile = "../test/client_certs/rootca.crt"
 		c.CertFile = "../test/client_certs/server.crt"
 		c.KeyFile = "../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

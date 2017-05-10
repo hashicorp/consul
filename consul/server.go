@@ -261,7 +261,7 @@ func NewServer(config *Config) (*Server, error) {
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.ForceVerifyOutgoing),
+		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.VerifyOutgoing),
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -393,7 +393,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.NonVoter {
 		conf.Tags["nonvoter"] = "1"
 	}
-	if s.config.CAFile != "" || s.config.CAPath != "" {
+	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
@@ -632,7 +632,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 
 	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
-		if s.config.ForceVerifyOutgoing {
+		if s.config.VerifyOutgoing {
 			return true
 		}
 
