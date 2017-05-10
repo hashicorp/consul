@@ -234,6 +234,11 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
+	// Check if TLS is enabled
+	if config.CAFile != "" || config.CAPath != "" {
+		config.UseTLS = true
+	}
+
 	// Create the TLS wrapper for outgoing connections.
 	tlsConf := config.tlsConfig()
 	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
@@ -641,7 +646,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 		s.localLock.RUnlock()
 
 		if !ok {
-			return true
+			return false
 		}
 
 		return server.UseTLS

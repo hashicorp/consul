@@ -49,8 +49,7 @@ type Config struct {
 	// existing clients.
 	VerifyServerHostname bool
 
-	// UseTLS is used to enable outgoing TLS verification of all outgoing connections to
-	// other Consul servers.
+	// UseTLS is used to enable outgoing TLS connections to Consul servers.
 	UseTLS bool
 
 	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming

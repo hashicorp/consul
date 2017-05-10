@@ -599,6 +599,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 			leader = server
 		}
 	}
+	s2.localLock.RUnlock()
 	return s2.connPool.PingConsulServer(leader)
 }
 
@@ -610,13 +611,12 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Add a second server with TLS and VerifyOutgoing set
+	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.CAFile = "../test/client_certs/rootca.crt"
 		c.CertFile = "../test/client_certs/server.crt"
 		c.KeyFile = "../test/client_certs/server.key"
-		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -638,7 +638,7 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Add a second server with TLS and ForceVerifyOutgoing set
+	// Add a second server with TLS and VerifyOutgoing set
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.CAFile = "../test/client_certs/rootca.crt"
@@ -663,20 +663,18 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		c.KeyFile = "../test/client_certs/server.key"
 		c.VerifyIncoming = true
 		c.VerifyOutgoing = true
-		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Add a second server with TLS and VerifyOutgoing set
+	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.CAFile = "../test/client_certs/rootca.crt"
 		c.CertFile = "../test/client_certs/server.crt"
 		c.KeyFile = "../test/client_certs/server.key"
-		c.UseTLS = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
