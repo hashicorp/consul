@@ -550,40 +550,31 @@ func TestAgent_Leave(t *testing.T) {
 }
 
 func TestAgent_Leave_ACLDeny(t *testing.T) {
-	t.Run("no token", func(t *testing.T) {
-		dir, srv := makeHTTPServerWithACLs(t)
-		defer os.RemoveAll(dir)
-		defer srv.Shutdown()
-		defer srv.agent.Shutdown()
+	dir, srv := makeHTTPServerWithACLs(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
 
+	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
 		if _, err := srv.AgentLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
-		dir, srv := makeHTTPServerWithACLs(t)
-		defer os.RemoveAll(dir)
-		defer srv.Shutdown()
-		defer srv.agent.Shutdown()
-
-		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
-		if _, err := srv.AgentLeave(nil, req); err != nil {
+	t.Run("read-only token", func(t *testing.T) {
+		ro := makeReadOnlyAgentACL(t, srv)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
+		if _, err := srv.AgentLeave(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
-	// this test fails when all subtests share the same server.
-	t.Run("read-only token", func(t *testing.T) {
-		dir, srv := makeHTTPServerWithACLs(t)
-		defer os.RemoveAll(dir)
-		defer srv.Shutdown()
-		defer srv.agent.Shutdown()
-
-		ro := makeReadOnlyAgentACL(t, srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
-		if _, err := srv.AgentLeave(nil, req); !isPermissionDenied(err) {
+	// this sub-test will change the state so that there is no leader.
+	// it must therefore be the last one in this list.
+	t.Run("agent master token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
+		if _, err := srv.AgentLeave(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	})
