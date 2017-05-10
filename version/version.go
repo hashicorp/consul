@@ -2,40 +2,25 @@ package version
 
 import (
 	"fmt"
-	"strings"
 )
 
 var (
 	// The git commit that was compiled. These will be filled in by the
 	// compiler.
-	GitCommit   string
-	GitDescribe string
+	Name      string
+	GitCommit string
 
 	// Release versions of the build. These will be filled in by one of the
 	// build tag-specific files.
-	Version           = "unknown"
-	VersionPrerelease = "unknown"
+	Version    string
+	VersionPre string
 )
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
 // for displaying to humans.
 func GetHumanVersion() string {
-	version := Version
-	if GitDescribe != "" {
-		version = GitDescribe
+	if VersionPre == "" {
+		return fmt.Sprintf("%s %s", Name, Version)
 	}
-
-	release := VersionPrerelease
-	if GitDescribe == "" && release == "" {
-		release = "dev"
-	}
-	if release != "" {
-		version += fmt.Sprintf("-%s", release)
-		if GitCommit != "" {
-			version += fmt.Sprintf(" (%s)", GitCommit)
-		}
-	}
-
-	// Strip off any single quotes added by the git information.
-	return strings.Replace(version, "'", "", -1)
+	return fmt.Sprintf("%s %s (%s)", Name, Version, GitCommit)
 }

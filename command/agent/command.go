@@ -40,20 +40,20 @@ var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 // exit.
 type Command struct {
 	base.Command
-	Revision          string
-	Version           string
-	VersionPrerelease string
-	HumanVersion      string
-	ShutdownCh        <-chan struct{}
-	configReloadCh    chan chan error
-	args              []string
-	logFilter         *logutils.LevelFilter
-	logOutput         io.Writer
-	agent             *Agent
-	httpServers       []*HTTPServer
-	dnsServer         *DNSServer
-	scadaProvider     *scada.Provider
-	scadaHTTP         *HTTPServer
+	Revision       string
+	Version        string
+	VersionPre     string
+	HumanVersion   string
+	ShutdownCh     <-chan struct{}
+	configReloadCh chan chan error
+	args           []string
+	logFilter      *logutils.LevelFilter
+	logOutput      io.Writer
+	agent          *Agent
+	httpServers    []*HTTPServer
+	dnsServer      *DNSServer
+	scadaProvider  *scada.Provider
+	scadaHTTP      *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -434,7 +434,7 @@ func (c *Command) readConfig() *Config {
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
-	config.VersionPrerelease = c.VersionPrerelease
+	config.VersionPre = c.VersionPre
 
 	return config
 }
@@ -487,8 +487,8 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	// Setup update checking
 	if !config.DisableUpdateCheck {
 		version := config.Version
-		if config.VersionPrerelease != "" {
-			version += fmt.Sprintf("-%s", config.VersionPrerelease)
+		if config.VersionPre != "" {
+			version += fmt.Sprintf("-%s", config.VersionPre)
 		}
 		updateParams := &checkpoint.CheckParams{
 			Product: "consul",
@@ -1099,7 +1099,7 @@ func (c *Command) setupScadaConn(config *Config) error {
 
 	scadaConfig := &scada.Config{
 		Service:      "consul",
-		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
+		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPre),
 		ResourceType: "infrastructures",
 		Meta: map[string]string{
 			"auto-join":  strconv.FormatBool(config.AtlasJoin),

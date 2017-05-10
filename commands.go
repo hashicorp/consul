@@ -25,11 +25,11 @@ func init() {
 					Flags: base.FlagSetNone,
 					UI:    ui,
 				},
-				Revision:          version.GitCommit,
-				Version:           version.Version,
-				VersionPrerelease: version.VersionPrerelease,
-				HumanVersion:      version.GetHumanVersion(),
-				ShutdownCh:        make(chan struct{}),
+				Revision:     version.GitCommit,
+				Version:      version.Version,
+				VersionPre:   version.VersionPre,
+				HumanVersion: version.GetHumanVersion(),
+				ShutdownCh:   make(chan struct{}),
 			}, nil
 		},
 
