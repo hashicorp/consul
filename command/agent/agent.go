@@ -305,7 +305,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		}
 		a.config.AdvertiseAddr = ipStr
 
-	case a.config.BindAddr != "0.0.0.0" && a.config.BindAddr != "" && a.config.BindAddr != "[::]":
+	case a.config.BindAddr != "" && !isAddrANY(a.config.BindAddr):
 		a.config.AdvertiseAddr = a.config.BindAddr
 
 	default:
