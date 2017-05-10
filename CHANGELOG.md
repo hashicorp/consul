@@ -1,6 +1,20 @@
-## 0.8.2 (UNRELEASED)
+## 0.8.3 (UNRELEASED)
 
 FEATURES:
+
+IMPROVEMENTS:
+
+* agent: Added a check which prevents advertising or setting a service to a zero address (`0.0.0.0`, `[::]`, `::`). [GH-2961]
+
+BUG FIXES:
+
+* build: Added a vendor fix to allow compilation on Illumos. [GH-3024]
+
+## 0.8.2 (May 9, 2017)
+
+BREAKING CHANGES:
+
+* api: HttpClient now defaults to nil in the client config and will be generated if left blank. A NewHttpClient function has been added for creating an HttpClient with a custom Transport or TLS config. [GH-2922]
 
 IMPROVEMENTS:
 
@@ -9,7 +23,6 @@ IMPROVEMENTS:
 * agent: Added the `ca_path`, `tls_cipher_suites`, and `tls_prefer_server_cipher_suites` options to give more flexibility around configuring TLS. [GH-2963]
 * agent: Reduced the timeouts for the `-dev` server mode so that the development server starts up almost instantly. [GH-2984]
 * agent: Added `verify_incoming_rpc` and `verify_incoming_https` options for more granular control over incoming TLS enforcement. [GH-2974]
-* agent: Updated parts of Consul's Docker library in order to fix the build on Illumos. [GH-2989]
 * agent: Use bind address as source for outgoing connections. [GH-2822]
 * api: Added the ACL replication status endpoint to the Go API client library. [GH-2947]
 * cli: Added Raft protocol version to output of `operator raft list-peers` command.[GH-2929]
@@ -24,8 +37,6 @@ BUG FIXES:
 * ui: Add and update favicons [GH-2945]
 
 ## 0.8.1 (April 17, 2017)
-
-FEATURES:
 
 IMPROVEMENTS:
 

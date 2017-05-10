@@ -18,10 +18,7 @@ func TestEventFire(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer([]byte("test"))
 		url := "/v1/event/fire/test?node=Node&service=foo&tag=bar"
-		req, err := http.NewRequest("PUT", url, body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("PUT", url, body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.EventFire(resp, req)
 		if err != nil {
@@ -84,10 +81,7 @@ func TestEventFire_token(t *testing.T) {
 		for _, c := range tcases {
 			// Try to fire the event over the HTTP interface
 			url := fmt.Sprintf("/v1/event/fire/%s?token=%s", c.event, token)
-			req, err := http.NewRequest("PUT", url, nil)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			req, _ := http.NewRequest("PUT", url, nil)
 			resp := httptest.NewRecorder()
 			if _, err := srv.EventFire(resp, req); err != nil {
 				t.Fatalf("err: %s", err)
@@ -124,10 +118,7 @@ func TestEventList(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			req, err := http.NewRequest("GET", "/v1/event/list", nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
@@ -162,10 +153,7 @@ func TestEventList_Filter(t *testing.T) {
 		}
 
 		retry.Run(t, func(r *retry.R) {
-			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
@@ -199,13 +187,9 @@ func TestEventList_ACLFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Try no token.
-	{
+	t.Run("no token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, err := http.NewRequest("GET", "/v1/event/list", nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
@@ -220,15 +204,11 @@ func TestEventList_ACLFilter(t *testing.T) {
 				r.Fatalf("bad: %#v", list)
 			}
 		})
-	}
+	})
 
-	// Try the root token.
-	{
+	t.Run("root token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, err := http.NewRequest("GET", "/v1/event/list?token=root", nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
@@ -243,7 +223,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 				r.Fatalf("bad: %#v", list)
 			}
 		})
-	}
+	})
 }
 
 func TestEventList_Blocking(t *testing.T) {
@@ -255,13 +235,9 @@ func TestEventList_Blocking(t *testing.T) {
 
 		var index string
 		retry.Run(t, func(r *retry.R) {
-			req, err := http.NewRequest("GET", "/v1/event/list", nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
-			_, err = srv.EventList(resp, req)
-			if err != nil {
+			if _, err := srv.EventList(resp, req); err != nil {
 				r.Fatal(err)
 			}
 			header := resp.Header().Get("X-Consul-Index")
@@ -281,10 +257,7 @@ func TestEventList_Blocking(t *testing.T) {
 
 		retry.Run(t, func(r *retry.R) {
 			url := "/v1/event/list?index=" + index
-			req, err := http.NewRequest("GET", url, nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {
@@ -322,10 +295,7 @@ func TestEventList_EventBufOrder(t *testing.T) {
 		// filtering on a list of > 1 matching event.
 		retry.Run(t, func(r *retry.R) {
 			url := "/v1/event/list?name=foo"
-			req, err := http.NewRequest("GET", url, nil)
-			if err != nil {
-				r.Fatal(err)
-			}
+			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
 			obj, err := srv.EventList(resp, req)
 			if err != nil {

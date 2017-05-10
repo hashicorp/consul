@@ -72,13 +72,6 @@ RECONF:
 	return dir, servers[0]
 }
 
-func encodeReq(obj interface{}) io.ReadCloser {
-	buf := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(buf)
-	enc.Encode(obj)
-	return ioutil.NopCloser(buf)
-}
-
 func TestHTTPServer_UnixSocket(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
@@ -357,7 +350,6 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
-
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 		return nil, nil
 	}
@@ -414,11 +406,7 @@ func TestParseSource(t *testing.T) {
 
 	// Default is agent's DC and no node (since the user didn't care, then
 	// just give them the cheapest possible query).
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
 	source := structs.QuerySource{}
 	srv.parseSource(req, &source)
 	if source.Datacenter != "dc1" || source.Node != "" {
@@ -426,11 +414,7 @@ func TestParseSource(t *testing.T) {
 	}
 
 	// Adding the source parameter should set that node.
-	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?near=bob", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob", nil)
 	source = structs.QuerySource{}
 	srv.parseSource(req, &source)
 	if source.Datacenter != "dc1" || source.Node != "bob" {
@@ -439,11 +423,7 @@ func TestParseSource(t *testing.T) {
 
 	// We should follow whatever dc parameter was given so that the node is
 	// looked up correctly on the receiving end.
-	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?near=bob&dc=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&dc=foo", nil)
 	source = structs.QuerySource{}
 	srv.parseSource(req, &source)
 	if source.Datacenter != "foo" || source.Node != "bob" {
@@ -451,11 +431,7 @@ func TestParseSource(t *testing.T) {
 	}
 
 	// The magic "_agent" node name will use the agent's local node name.
-	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?near=_agent", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=_agent", nil)
 	source = structs.QuerySource{}
 	srv.parseSource(req, &source)
 	if source.Datacenter != "dc1" || source.Node != srv.agent.config.NodeName {
@@ -467,12 +443,7 @@ func TestParseWait(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?wait=60s&index=1000", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=1000", nil)
 	if d := parseWait(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
@@ -489,12 +460,7 @@ func TestParseWait_InvalidTime(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?wait=60foo&index=1000", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60foo&index=1000", nil)
 	if d := parseWait(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
@@ -508,12 +474,7 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?wait=60s&index=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=foo", nil)
 	if d := parseWait(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
@@ -527,12 +488,7 @@ func TestParseConsistency(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?stale", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
 	if d := parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
@@ -545,12 +501,7 @@ func TestParseConsistency(t *testing.T) {
 	}
 
 	b = structs.QueryOptions{}
-	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?consistent", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?consistent", nil)
 	if d := parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
@@ -567,12 +518,7 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?stale&consistent", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
 	if d := parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
@@ -586,33 +532,15 @@ func TestParseConsistency_Invalid(t *testing.T) {
 func TestACLResolution(t *testing.T) {
 	var token string
 	// Request without token
-	req, err := http.NewRequest("GET",
-		"/v1/catalog/nodes", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
 	// Request with explicit token
-	reqToken, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?token=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	reqToken, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=foo", nil)
 	// Request with header token only
-	reqHeaderToken, err := http.NewRequest("GET",
-		"/v1/catalog/nodes", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	reqHeaderToken, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
 	reqHeaderToken.Header.Add("X-Consul-Token", "bar")
 
 	// Request with header and querystring tokens
-	reqBothTokens, err := http.NewRequest("GET",
-		"/v1/catalog/nodes?token=baz", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
 	httpTest(t, func(srv *HTTPServer) {
@@ -706,11 +634,7 @@ func TestScadaHTTP(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	httpTestWithConfig(t, func(s *HTTPServer) {
-		req, err := http.NewRequest("GET", "/ui/", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/ui/", nil)
 		// Perform the request
 		resp := httptest.NewRecorder()
 		s.mux.ServeHTTP(resp, req)
@@ -765,4 +689,19 @@ func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config
 	defer srv.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 	f(srv)
+}
+
+func isPermissionDenied(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
+}
+
+func jsonReader(v interface{}) io.Reader {
+	if v == nil {
+		return nil
+	}
+	b := new(bytes.Buffer)
+	if err := json.NewEncoder(b).Encode(v); err != nil {
+		panic(err)
+	}
+	return b
 }

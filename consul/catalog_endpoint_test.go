@@ -46,6 +46,35 @@ func TestCatalog_Register(t *testing.T) {
 	}
 }
 
+func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
+		t.Run("addr "+addr, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					Service: "db",
+					Address: addr,
+					Port:    8000,
+				},
+			}
+			var out struct{}
+
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err == nil || err.Error() != "Invalid service address" {
+				t.Fatalf("got error %v want 'Invalid service address'", err)
+			}
+		})
+	}
+}
+
 func TestCatalog_Register_NodeID(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

@@ -31,11 +31,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 
 	for _, key := range keys {
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/"+key, buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -48,11 +44,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	}
 
 	for _, key := range keys {
-		req, err := http.NewRequest("GET", "/v1/kv/"+key, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/kv/"+key, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -75,14 +67,9 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	}
 
 	for _, key := range keys {
-		req, err := http.NewRequest("DELETE", "/v1/kv/"+key, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/kv/"+key, nil)
 		resp := httptest.NewRecorder()
-		_, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
+		if _, err := srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -106,11 +93,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 
 	for _, key := range keys {
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/"+key, buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -124,11 +107,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 
 	{
 		// Get all the keys
-		req, err := http.NewRequest("GET", "/v1/kv/?recurse", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -153,25 +132,16 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 	}
 
 	{
-		req, err := http.NewRequest("DELETE", "/v1/kv/?recurse", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
-		_, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
+		if _, err := srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
 	{
 		// Get all the keys
-		req, err := http.NewRequest("GET", "/v1/kv/?recurse", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -194,11 +164,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/test", buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -210,11 +176,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 		}
 	}
 
-	req, err := http.NewRequest("GET", "/v1/kv/test", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/kv/test", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.KVSEndpoint(resp, req)
 	if err != nil {
@@ -225,12 +187,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	// Create a CAS request, bad index
 	{
 		buf := bytes.NewBuffer([]byte("zip"))
-		req, err := http.NewRequest("DELETE",
-			fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex-1), buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex-1), buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -245,12 +202,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	// Create a CAS request, good index
 	{
 		buf := bytes.NewBuffer([]byte("zip"))
-		req, err := http.NewRequest("DELETE",
-			fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex), buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex), buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -281,11 +233,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/test?flags=50", buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/test?flags=50", buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -297,11 +245,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 		}
 	}
 
-	req, err := http.NewRequest("GET", "/v1/kv/test", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/kv/test", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.KVSEndpoint(resp, req)
 	if err != nil {
@@ -317,12 +261,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	// Create a CAS request, bad index
 	{
 		buf := bytes.NewBuffer([]byte("zip"))
-		req, err := http.NewRequest("PUT",
-			fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex-1), buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex-1), buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -337,12 +276,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	// Create a CAS request, good index
 	{
 		buf := bytes.NewBuffer([]byte("zip"))
-		req, err := http.NewRequest("PUT",
-			fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex), buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex), buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -386,11 +320,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 	for _, key := range keys {
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/"+key, buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -404,11 +334,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 	{
 		// Get all the keys
-		req, err := http.NewRequest("GET", "/v1/kv/?keys&seperator=/", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/kv/?keys&seperator=/", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -432,12 +358,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		// Acquire the lock
 		id := makeTestSession(t, srv)
-		req, err := http.NewRequest("PUT",
-			"/v1/kv/test?acquire="+id, bytes.NewReader(nil))
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/test?acquire="+id, bytes.NewReader(nil))
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -448,10 +369,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 		}
 
 		// Verify we have the lock
-		req, err = http.NewRequest("GET", "/v1/kv/test", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -465,11 +383,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 		}
 
 		// Release the lock
-		req, err = http.NewRequest("PUT",
-			"/v1/kv/test?release="+id, bytes.NewReader(nil))
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ = http.NewRequest("PUT", "/v1/kv/test?release="+id, bytes.NewReader(nil))
 		resp = httptest.NewRecorder()
 		obj, err = srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -480,10 +394,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 		}
 
 		// Verify we do not have the lock
-		req, err = http.NewRequest("GET", "/v1/kv/test", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -501,10 +412,7 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/test", buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -514,10 +422,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 			t.Fatalf("should work")
 		}
 
-		req, err = http.NewRequest("GET", "/v1/kv/test?raw", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ = http.NewRequest("GET", "/v1/kv/test?raw", nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -534,11 +439,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 
 func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
 		resp := httptest.NewRecorder()
 		if _, err := srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -555,11 +456,7 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 
 func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
 		resp := httptest.NewRecorder()
 		if _, err := srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)

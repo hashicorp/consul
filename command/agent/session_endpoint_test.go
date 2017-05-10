@@ -45,11 +45,7 @@ func TestSessionCreate(t *testing.T) {
 		}
 		enc.Encode(raw)
 
-		req, err := http.NewRequest("PUT", "/v1/session/create", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionCreate(resp, req)
 		if err != nil {
@@ -94,11 +90,7 @@ func TestSessionCreateDelete(t *testing.T) {
 		}
 		enc.Encode(raw)
 
-		req, err := http.NewRequest("PUT", "/v1/session/create", body)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionCreate(resp, req)
 		if err != nil {
@@ -144,10 +136,7 @@ func TestFixupLockDelay(t *testing.T) {
 }
 
 func makeTestSession(t *testing.T, srv *HTTPServer) string {
-	req, err := http.NewRequest("PUT", "/v1/session/create", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ := http.NewRequest("PUT", "/v1/session/create", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {
@@ -166,10 +155,7 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	}
 	enc.Encode(raw)
 
-	req, err := http.NewRequest("PUT", "/v1/session/create", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {
@@ -188,10 +174,7 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 	}
 	enc.Encode(raw)
 
-	req, err := http.NewRequest("PUT", "/v1/session/create", body)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {
@@ -205,7 +188,7 @@ func TestSessionDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
 
-		req, err := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+		req, _ := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionDestroy(resp, req)
 		if err != nil {
@@ -235,8 +218,7 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 
 		id := makeTestSessionTTL(t, srv, TTL)
 
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionGet(resp, req)
 		if err != nil {
@@ -255,8 +237,7 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 
 		time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionGet(resp, req)
 		if err != nil {
@@ -275,8 +256,7 @@ func TestSessionTTLRenew(t *testing.T) {
 	httpTestWithConfig(t, func(srv *HTTPServer) {
 		id := makeTestSessionTTL(t, srv, TTL)
 
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionGet(resp, req)
 		if err != nil {
@@ -296,8 +276,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		// Sleep to consume some time before renew
 		time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
 
-		req, err = http.NewRequest("PUT",
-			"/v1/session/renew/"+id, nil)
+		req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionRenew(resp, req)
 		if err != nil {
@@ -314,8 +293,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		// Sleep for ttl * TTL Multiplier
 		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionGet(resp, req)
 		if err != nil {
@@ -332,8 +310,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		// now wait for timeout and expect session to get destroyed
 		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-		req, err = http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionGet(resp, req)
 		if err != nil {
@@ -351,7 +328,7 @@ func TestSessionTTLRenew(t *testing.T) {
 
 func TestSessionGet(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
+		req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionGet(resp, req)
 		if err != nil {
@@ -369,8 +346,7 @@ func TestSessionGet(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
 
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionGet(resp, req)
 		if err != nil {
@@ -388,7 +364,7 @@ func TestSessionGet(t *testing.T) {
 
 func TestSessionList(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/session/list", nil)
+		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionList(resp, req)
 		if err != nil {
@@ -409,7 +385,7 @@ func TestSessionList(t *testing.T) {
 			ids = append(ids, makeTestSession(t, srv))
 		}
 
-		req, err := http.NewRequest("GET", "/v1/session/list", nil)
+		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionList(resp, req)
 		if err != nil {
@@ -427,8 +403,7 @@ func TestSessionList(t *testing.T) {
 
 func TestSessionsForNode(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET",
-			"/v1/session/node/"+srv.agent.config.NodeName, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/node/"+srv.agent.config.NodeName, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionsForNode(resp, req)
 		if err != nil {
@@ -449,8 +424,7 @@ func TestSessionsForNode(t *testing.T) {
 			ids = append(ids, makeTestSession(t, srv))
 		}
 
-		req, err := http.NewRequest("GET",
-			"/v1/session/node/"+srv.agent.config.NodeName, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/node/"+srv.agent.config.NodeName, nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.SessionsForNode(resp, req)
 		if err != nil {
@@ -472,10 +446,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 
 		// now create a new key for the session and acquire it
 		buf := bytes.NewBuffer([]byte("test"))
-		req, err := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		req, _ := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
 		resp := httptest.NewRecorder()
 		obj, err := srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -487,7 +458,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 		}
 
 		// now destroy the session, this should delete the key created above
-		req, err = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+		req, _ = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionDestroy(resp, req)
 		if err != nil {

@@ -361,6 +361,16 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	if config.AdvertiseAddr == "0.0.0.0" || config.AdvertiseAddr == "::" || config.AdvertiseAddr == "[::]" {
+		c.UI.Error("Advertise address cannot be " + config.AdvertiseAddr)
+		return nil
+	}
+
+	if config.AdvertiseAddrWan == "0.0.0.0" || config.AdvertiseAddrWan == "::" || config.AdvertiseAddrWan == "[::]" {
+		c.UI.Error("Advertise WAN address cannot be " + config.AdvertiseAddrWan)
+		return nil
+	}
+
 	// Compile all the watches
 	for _, params := range config.Watches {
 		// Parse the watches, excluding the handler

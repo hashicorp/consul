@@ -17,11 +17,7 @@ import (
 
 func TestHealthChecksInState(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
@@ -41,11 +37,7 @@ func TestHealthChecksInState(t *testing.T) {
 	})
 
 	httpTest(t, func(srv *HTTPServer) {
-		req, err := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
@@ -83,11 +75,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		req, err := http.NewRequest("GET", "/v1/health/state/critical?node-meta=somekey:somevalue", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		req, _ := http.NewRequest("GET", "/v1/health/state/critical?node-meta=somekey:somevalue", nil)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := srv.HealthChecksInState(resp, req)
@@ -136,11 +124,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", "/v1/health/state/critical?dc=dc1&near=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/state/critical?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthChecksInState(resp, req)
 	if err != nil {
@@ -196,11 +180,7 @@ func TestHealthNodeChecks(t *testing.T) {
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	req, err := http.NewRequest("GET", "/v1/health/node/nope?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/node/nope?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthNodeChecks(resp, req)
 	if err != nil {
@@ -214,12 +194,7 @@ func TestHealthNodeChecks(t *testing.T) {
 		t.Fatalf("bad: %v", obj)
 	}
 
-	req, err = http.NewRequest("GET",
-		fmt.Sprintf("/v1/health/node/%s?dc=dc1", srv.agent.config.NodeName), nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/v1/health/node/%s?dc=dc1", srv.agent.config.NodeName), nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthNodeChecks(resp, req)
 	if err != nil {
@@ -242,11 +217,7 @@ func TestHealthServiceChecks(t *testing.T) {
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	req, err := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceChecks(resp, req)
 	if err != nil {
@@ -277,11 +248,7 @@ func TestHealthServiceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthServiceChecks(resp, req)
 	if err != nil {
@@ -304,11 +271,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	req, err := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceChecks(resp, req)
 	if err != nil {
@@ -340,11 +303,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthServiceChecks(resp, req)
 	if err != nil {
@@ -393,11 +352,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", "/v1/health/checks/test?dc=dc1&near=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/checks/test?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceChecks(resp, req)
 	if err != nil {
@@ -453,11 +408,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -472,11 +423,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Fatalf("bad: %v", obj)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1", nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -506,11 +453,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -534,11 +477,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -569,11 +508,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&node-meta=somekey:somevalue", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp = httptest.NewRecorder()
 	obj, err = srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -623,11 +558,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", "/v1/health/service/test?dc=dc1&near=foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -701,11 +632,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", "/v1/health/service/consul?passing", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing", nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.HealthServiceNodes(resp, req)
 	if err != nil {
@@ -776,10 +703,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	}
 
 	// Query for a service in DC2 from DC1.
-	req, err := http.NewRequest("GET", "/v1/health/service/http_wan_translation_test?dc=dc2", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	req, _ := http.NewRequest("GET", "/v1/health/service/http_wan_translation_test?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := srv1.HealthServiceNodes(resp1, req)
 	if err1 != nil {

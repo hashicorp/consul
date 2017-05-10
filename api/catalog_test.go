@@ -17,7 +17,7 @@ func TestCatalog_Datacenters(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		datacenters, err := catalog.Datacenters()
 		if err != nil {
-			r.Fatalf("catalog.Datacenters: ", err)
+			r.Fatal(err)
 		}
 		if len(datacenters) < 1 {
 			r.Fatal("got 0 datacenters want at least one")
@@ -33,7 +33,7 @@ func TestCatalog_Nodes(t *testing.T) {
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
 		if err != nil {
-			r.Fatalf("catalog.Nodes: ", err)
+			r.Fatal(err)
 		}
 		if meta.LastIndex == 0 {
 			r.Fatal("got last index 0 want > 0")

@@ -82,7 +82,7 @@ func decorate(s string) string {
 }
 
 func Run(t Failer, f func(r *R)) {
-	run(OneSec(), t, f)
+	run(TwoSeconds(), t, f)
 }
 
 func RunWith(r Retryer, t Failer, f func(r *R)) {
@@ -133,9 +133,9 @@ func run(r Retryer, t Failer, f func(r *R)) {
 	}
 }
 
-// OneSec repeats an operation for one second and waits 25ms in between.
-func OneSec() *Timer {
-	return &Timer{Timeout: time.Second, Wait: 25 * time.Millisecond}
+// TwoSeconds repeats an operation for two seconds and waits 25ms in between.
+func TwoSeconds() *Timer {
+	return &Timer{Timeout: 2 * time.Second, Wait: 25 * time.Millisecond}
 }
 
 // ThreeTimes repeats an operation three times and waits 25ms in between.
