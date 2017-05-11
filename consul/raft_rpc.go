@@ -29,18 +29,23 @@ type RaftLayer struct {
 	closed    bool
 	closeCh   chan struct{}
 	closeLock sync.Mutex
+
+	// tlsFunc is a callback to determine whether to use TLS for connecting to
+	// a given Raft server
+	tlsFunc func(raft.ServerAddress) bool
 }
 
 // NewRaftLayer is used to initialize a new RaftLayer which can
 // be used as a StreamLayer for Raft. If a tlsConfig is provided,
 // then the connection will use TLS.
-func NewRaftLayer(src, addr net.Addr, tlsWrap tlsutil.Wrapper) *RaftLayer {
+func NewRaftLayer(src, addr net.Addr, tlsWrap tlsutil.Wrapper, tlsFunc func(raft.ServerAddress) bool) *RaftLayer {
 	layer := &RaftLayer{
 		src:     src,
 		addr:    addr,
 		connCh:  make(chan net.Conn),
 		tlsWrap: tlsWrap,
 		closeCh: make(chan struct{}),
+		tlsFunc: tlsFunc,
 	}
 	return layer
 }
@@ -93,7 +98,7 @@ func (l *RaftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net
 	}
 
 	// Check for tls mode
-	if l.tlsWrap != nil {
+	if l.tlsFunc(address) && l.tlsWrap != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
 			conn.Close()

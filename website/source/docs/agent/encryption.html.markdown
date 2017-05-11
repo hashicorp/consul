@@ -70,10 +70,10 @@ and [`verify_incoming`](/docs/agent/options.html#verify_incoming) options, respe
 
 If [`verify_outgoing`](/docs/agent/options.html#verify_outgoing) is set, agents verify the
 authenticity of Consul for outgoing connections. Server nodes must present a certificate signed
-by the certificate authority present on all agents, set via the agent's
-[`ca_file`](/docs/agent/options.html#ca_file) option. All server nodes must have an
-appropriate key pair set using [`cert_file`](/docs/agent/options.html#cert_file) and
-[`key_file`](/docs/agent/options.html#key_file).
+by a common certificate authority present on all agents, set via the agent's
+[`ca_file`](/docs/agent/options.html#ca_file) and [`ca_path`](/docs/agent/options.html#ca_path)
+options. All server nodes must have an appropriate key pair set using [`cert_file`]
+(/docs/agent/options.html#cert_file) and [`key_file`](/docs/agent/options.html#key_file).
 
 If [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname) is set, then
 outgoing connections perform hostname verification. All servers must have a certificate
@@ -92,3 +92,21 @@ also disallow any non-TLS connections. To force clients to use TLS,
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.
+
+## Configuring TLS on an existing cluster
+
+As of version 0.8.3, Consul supports migrating to TLS-encrypted traffic on a running cluster
+without downtime. This process assumes a starting point with no TLS settings configured, and involves
+an intermediate step in order to get to full TLS encryption:
+
+1. Generate the necessary keys/certs and set the `ca_file`/`ca_path`, `cert_file`, and `key_file`
+settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming`
+options are set to `false`. HTTPS for the API can be enabled at this point by
+setting the [`https`](/docs/agent/options.html#http_port) port.
+2. Perform a rolling restart of each agent in the cluster. After this step, TLS should be enabled
+everywhere but the agents will not yet be enforcing TLS.
+3. Change the `verify_incoming` and `verify_outgoing` settings (as well as `verify_server_hostname`
+if applicable) to `true`.
+4. Perform another rolling restart of each agent in the cluster.
+
+At this point, full TLS encryption for RPC communication should be enabled.

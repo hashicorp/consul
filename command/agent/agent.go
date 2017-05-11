@@ -305,7 +305,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		}
 		a.config.AdvertiseAddr = ipStr
 
-	case a.config.BindAddr != "0.0.0.0" && a.config.BindAddr != "" && a.config.BindAddr != "[::]":
+	case a.config.BindAddr != "" && !isAddrANY(a.config.BindAddr):
 		a.config.AdvertiseAddr = a.config.BindAddr
 
 	default:
@@ -440,9 +440,10 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// set the src address for outgoing rpc connections
-	// to RPCAdvertise with port 0 so that outgoing
-	// connections use a random port.
-	base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAdvertise.IP}
+	// Use port 0 so that outgoing connections use a random port.
+	if !isAddrANY(base.RPCAddr.IP) {
+		base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAddr.IP}
+	}
 
 	// Format the build string
 	revision := a.config.Revision
@@ -453,6 +454,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
+	if a.config.CAPath != "" || a.config.CAFile != "" {
+		base.UseTLS = true
+	}
 	base.VerifyOutgoing = a.config.VerifyOutgoing
 	base.VerifyServerHostname = a.config.VerifyServerHostname
 	base.CAFile = a.config.CAFile

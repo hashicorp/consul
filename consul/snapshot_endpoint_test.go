@@ -44,7 +44,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		Op:         structs.SnapshotSave,
 	}
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -116,7 +116,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
-	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 		&args, snap, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -187,7 +187,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 		Op:         structs.SnapshotSave,
 	}
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+	snap, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
 		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -220,7 +220,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
-	restore, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+	restore, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
 		&args, snap, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -257,7 +257,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
@@ -271,7 +271,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 			Op:         structs.SnapshotRestore,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr,
+		_, err := SnapshotRPC(s1.connPool, s1.config.Datacenter, s1.config.RPCAddr, false,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("err: %v", err)
@@ -358,7 +358,7 @@ func TestSnapshot_AllowStale(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), structs.ErrNoLeader.Error()) {
 			t.Fatalf("err: %v", err)
@@ -375,7 +375,7 @@ func TestSnapshot_AllowStale(t *testing.T) {
 			Op:         structs.SnapshotSave,
 		}
 		var reply structs.SnapshotResponse
-		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr,
+		_, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err == nil || !strings.Contains(err.Error(), "Raft error when taking snapshot") {
 			t.Fatalf("err: %v", err)

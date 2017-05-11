@@ -234,6 +234,11 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
+	// Check if TLS is enabled
+	if config.CAFile != "" || config.CAPath != "" {
+		config.UseTLS = true
+	}
+
 	// Create the TLS wrapper for outgoing connections.
 	tlsConf := config.tlsConfig()
 	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
@@ -261,7 +266,7 @@ func NewServer(config *Config) (*Server, error) {
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
+		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.VerifyOutgoing),
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -392,6 +397,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 	if s.config.NonVoter {
 		conf.Tags["nonvoter"] = "1"
+	}
+	if s.config.UseTLS {
+		conf.Tags["use_tls"] = "1"
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
@@ -626,7 +634,24 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
-	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper)
+
+	// Define a callback for determining whether to wrap a connection with TLS
+	tlsFunc := func(address raft.ServerAddress) bool {
+		if s.config.VerifyOutgoing {
+			return true
+		}
+
+		s.localLock.RLock()
+		server, ok := s.localConsuls[address]
+		s.localLock.RUnlock()
+
+		if !ok {
+			return false
+		}
+
+		return server.UseTLS
+	}
+	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
 }
 

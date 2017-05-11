@@ -696,27 +696,6 @@ type Config struct {
 	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 
-	// AtlasInfrastructure is the name of the infrastructure we belong to. e.g. hashicorp/stage
-	AtlasInfrastructure string `mapstructure:"atlas_infrastructure"`
-
-	// AtlasToken is our authentication token from Atlas
-	AtlasToken string `mapstructure:"atlas_token" json:"-"`
-
-	// AtlasACLToken is applied to inbound requests if no other token
-	// is provided. This takes higher precedence than the ACLToken.
-	// Without this, the ACLToken is used. If that is not specified either,
-	// then the 'anonymous' token is used. This can be set to 'anonymous'
-	// to reduce the Atlas privileges to below that of the ACLToken.
-	AtlasACLToken string `mapstructure:"atlas_acl_token" json:"-"`
-
-	// AtlasJoin controls if Atlas will attempt to auto-join the node
-	// to it's cluster. Requires Atlas integration.
-	AtlasJoin bool `mapstructure:"atlas_join"`
-
-	// AtlasEndpoint is the SCADA endpoint used for Atlas integration. If
-	// empty, the defaults from the provider are used.
-	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
-
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
@@ -764,6 +743,14 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+
+	// deprecated fields
+	// keep them exported since otherwise the error messages don't show up
+	DeprecatedAtlasInfrastructure string `mapstructure:"atlas_infrastructure" json:"-"`
+	DeprecatedAtlasToken          string `mapstructure:"atlas_token" json:"-"`
+	DeprecatedAtlasACLToken       string `mapstructure:"atlas_acl_token" json:"-"`
+	DeprecatedAtlasJoin           bool   `mapstructure:"atlas_join" json:"-"`
+	DeprecatedAtlasEndpoint       string `mapstructure:"atlas_endpoint" json:"-"`
 }
 
 // Bool is used to initialize bool pointers in struct literals.
@@ -1085,6 +1072,26 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 	if result.Addresses.RPC != "" {
 		fmt.Fprintln(os.Stderr, "==> DEPRECATION: addresses.rpc is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+	if result.DeprecatedAtlasInfrastructure != "" {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_infrastructure is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+	if result.DeprecatedAtlasToken != "" {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_token is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+	if result.DeprecatedAtlasACLToken != "" {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_acl_token is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+	if result.DeprecatedAtlasJoin != false {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_join is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+	}
+	if result.DeprecatedAtlasEndpoint != "" {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_endpoint is deprecated and "+
 			"is no longer used. Please remove it from your configuration.")
 	}
 
@@ -1861,21 +1868,6 @@ func MergeConfig(a, b *Config) *Config {
 	if b.UnixSockets.Perms != "" {
 		result.UnixSockets.Perms = b.UnixSockets.Perms
 	}
-	if b.AtlasInfrastructure != "" {
-		result.AtlasInfrastructure = b.AtlasInfrastructure
-	}
-	if b.AtlasToken != "" {
-		result.AtlasToken = b.AtlasToken
-	}
-	if b.AtlasACLToken != "" {
-		result.AtlasACLToken = b.AtlasACLToken
-	}
-	if b.AtlasJoin {
-		result.AtlasJoin = true
-	}
-	if b.AtlasEndpoint != "" {
-		result.AtlasEndpoint = b.AtlasEndpoint
-	}
 	if b.DisableCoordinates {
 		result.DisableCoordinates = true
 	}
@@ -2008,4 +2000,24 @@ func (d dirEnts) Less(i, j int) bool {
 
 func (d dirEnts) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
+}
+
+// isAddrANY checks if the given ip address is an IPv4 or IPv6 ANY address. ip
+// can be either a *net.IP or a string. It panics on another type.
+func isAddrANY(ip interface{}) bool {
+	if ip == nil {
+		return false
+	}
+	var ips string
+	switch x := ip.(type) {
+	case net.IP:
+		ips = x.String()
+	case *net.IP:
+		ips = x.String()
+	case string:
+		ips = x
+	default:
+		panic(fmt.Sprintf("invalid type: %T", ip))
+	}
+	return ips == "0.0.0.0" || ips == "::" || ips == "[::]"
 }
