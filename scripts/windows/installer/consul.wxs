@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension">
+
+  <?if $(sys.BUILDARCH)=x64 ?>
+    <?define PlatformProgramFiles = "ProgramFiles64Folder" ?>
+    <?define ConsulPlatform = "amd64" ?>
+  <?else ?>
+    <?define PlatformProgramFiles = "ProgramFilesFolder" ?>
+    <?define ConsulPlatform = "386" ?>
+  <?endif ?>
+
+  <Product Id="*" UpgradeCode="85e4bc35-479b-436d-993d-b71e0c9d9a3d" 
+           Name="Consul" Version="$(var.Version)" Manufacturer="HashiCorp Inc." 
+           Language="1033" Codepage="1252">
+    <Package Id="*" Manufacturer="HashiCorp Inc." InstallScope="perMachine" 
+             Description="HashiCorp Consul $(var.Version) installer" Compressed="yes" />
+    <Media Id="1" Cabinet="consul.cab" EmbedCab="yes"/>
+    <MajorUpgrade Schedule="afterInstallExecute" DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
+
+    <Icon Id="consul.ico" SourceFile="consul.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="consul.ico" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFiles)">
+        <Directory Id="APPLICATIONROOTDIRECTORY" Name="Consul">
+          <Directory Id="ConfigurationDir" Name="consul.d" />
+          <Directory Id="LogsDir" Name="logs" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="BaseFiles" Directory="APPLICATIONROOTDIRECTORY">
+      <Component>
+        <File Id="consul.exe" Name="consul.exe" Source="Work\consul-$(var.Version)-$(var.ConsulPlatform).exe" KeyPath="yes">
+          <fw:FirewallException Id="SerfTcp" Name="Consul (Serf TCP)" Description="Consul - Serf gossip protocol over TCP" Port="8301" Protocol="tcp" Scope="any" />
+          <fw:FirewallException Id="SerfUdp" Name="Consul (Serf UDP)" Description="Consul - Serf gossip protocol over UDP" Port="8301" Protocol="udp" Scope="any" />
+        </File>
+      </Component>
+    </ComponentGroup>
+    <ComponentGroup Id="CreateExtraFolders">
+      <Component Id="CreateConfigDirectory" Directory="ConfigurationDir" Guid="54e2a16c-90d9-4f07-9679-7664395130c3">
+        <CreateFolder />
+      </Component>
+      <Component Id="CreateLogsDirectory" Directory="LogsDir" Guid="cc3dffd1-70ef-4419-b95a-886086ccca99">
+        <CreateFolder />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="RegistryEntries" Directory="TARGETDIR">
+      <Component Id="DoNotCacheNegativeDns">
+        <RegistryKey Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\Dnscache\Parameters">
+          <RegistryValue Type="integer" Name="MaxNegativeCacheTtl" Value="0" KeyPath="yes" />
+        </RegistryKey>
+        <ServiceControl Id="RestartDnscacheService" Name="Dnscache" Stop="both" Start="both" Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="ServiceFiles" Directory="APPLICATIONROOTDIRECTORY">
+      <Component>
+        <File Id="consul_wrapper.exe" Source="Work\winsw.exe" Name="consul_wrapper.exe" KeyPath="yes" />
+        <ServiceInstall Id="InstallConsulService" Name="Consul" ErrorControl="normal" Start="auto" Type="ownProcess" />
+        <ServiceControl Id="ServiceStateControl" Name="Consul" Remove="uninstall" Start="install" Stop="both" />
+      </Component>
+      <Component>
+        <File Id="consul_wrapper.exe.config" Source="consul_wrapper.exe.config" KeyPath="yes" />
+      </Component>
+      <Component>
+        <File Id="consul_wrapper.xml" Source="consul_wrapper.xml" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="DefaultFeature" Level="1">
+      <ComponentGroupRef Id="BaseFiles" />
+      <ComponentGroupRef Id="CreateExtraFolders" />
+      <ComponentGroupRef Id="RegistryEntries" />
+      <ComponentGroupRef Id="ServiceFiles" />
+    </Feature>
+  </Product>
+</Wix>
