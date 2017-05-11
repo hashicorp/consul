@@ -27,7 +27,6 @@ type HTTPServer struct {
 	mux      *http.ServeMux
 	listener net.Listener
 	logger   *log.Logger
-	uiDir    string
 	addr     string
 }
 
@@ -80,7 +79,6 @@ func NewHTTPServers(agent *Agent) ([]*HTTPServer, error) {
 			mux:      mux,
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UIDir,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -132,7 +130,6 @@ func NewHTTPServers(agent *Agent) ([]*HTTPServer, error) {
 			mux:      mux,
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UIDir,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -293,8 +290,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	}
 
 	// Use the custom UI dir if provided.
-	if s.uiDir != "" {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	if s.agent.config.UIDir != "" {
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
 	} else if s.agent.config.EnableUI {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
@@ -391,7 +388,7 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 
 // Returns true if the UI is enabled.
 func (s *HTTPServer) IsUIEnabled() bool {
-	return s.uiDir != "" || s.agent.config.EnableUI
+	return s.agent.config.UIDir != "" || s.agent.config.EnableUI
 }
 
 // Renders a simple index page

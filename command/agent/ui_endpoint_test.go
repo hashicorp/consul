@@ -33,7 +33,7 @@ func TestUiIndex(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Create file
-	path := filepath.Join(srv.uiDir, "my-file")
+	path := filepath.Join(srv.agent.config.UIDir, "my-file")
 	if err := ioutil.WriteFile(path, []byte("test"), 777); err != nil {
 		t.Fatalf("err: %v", err)
 	}
