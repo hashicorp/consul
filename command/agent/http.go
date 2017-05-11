@@ -295,12 +295,11 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	} else if s.agent.config.EnableUI {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
-
 }
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
-	f := func(resp http.ResponseWriter, req *http.Request) {
+func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
 
@@ -322,6 +321,17 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 		}
 
+		handleErr := func(err error) {
+			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			code := http.StatusInternalServerError // 500
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
+				code = http.StatusForbidden // 403
+			}
+			resp.WriteHeader(code)
+			fmt.Fprint(resp, errMsg)
+		}
+
 		// TODO (slackpad) We may want to consider redacting prepared
 		// query names/IDs here since they are proxies for tokens. But,
 		// knowing one only gives you read access to service listings
@@ -337,34 +347,22 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
 		}()
 		obj, err := handler(resp, req)
-
-		// Check for an error
-	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
-			code := http.StatusInternalServerError // 500
-			errMsg := err.Error()
-			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
-				code = http.StatusForbidden // 403
-			}
-
-			resp.WriteHeader(code)
-			fmt.Fprint(resp, err.Error())
+			handleErr(err)
+			return
+		}
+		if obj == nil {
 			return
 		}
 
-		if obj != nil {
-			var buf []byte
-			buf, err = s.marshalJSON(req, obj)
-			if err != nil {
-				goto HAS_ERR
-			}
-
-			resp.Header().Set("Content-Type", "application/json")
-			resp.Write(buf)
+		buf, err := s.marshalJSON(req, obj)
+		if err != nil {
+			handleErr(err)
+			return
 		}
+		resp.Header().Set("Content-Type", "application/json")
+		resp.Write(buf)
 	}
-	return f
 }
 
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
