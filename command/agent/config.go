@@ -805,13 +805,13 @@ type UnixSocketConfig struct {
 	UnixSocketPermissions `mapstructure:",squash"`
 }
 
-// unixSocketAddr tests if a given address describes a domain socket,
+// socketPath tests if a given address describes a domain socket,
 // and returns the relevant path part of the string if it is.
-func unixSocketAddr(addr string) (string, bool) {
+func socketPath(addr string) string {
 	if !strings.HasPrefix(addr, "unix://") {
-		return "", false
+		return ""
 	}
-	return strings.TrimPrefix(addr, "unix://"), true
+	return strings.TrimPrefix(addr, "unix://")
 }
 
 type dirEnts []os.FileInfo
@@ -921,7 +921,7 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 		addr = c.ClientAddr
 	}
 
-	if path, ok := unixSocketAddr(addr); ok {
+	if path := socketPath(addr); path != "" {
 		return &net.UnixAddr{Name: path, Net: "unix"}, nil
 	}
 	ip := net.ParseIP(addr)

@@ -109,7 +109,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	// Ensure we can get a response from the socket.
-	path, _ := unixSocketAddr(srv.agent.config.Addresses.HTTP)
+	path := socketPath(srv.agent.config.Addresses.HTTP)
 	trans := cleanhttp.DefaultTransport()
 	trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 		return net.Dial("unix", path)

@@ -1893,14 +1893,11 @@ func TestReadConfigPaths_dir(t *testing.T) {
 }
 
 func TestUnixSockets(t *testing.T) {
-	path1, ok := unixSocketAddr("unix:///path/to/socket")
-	if !ok || path1 != "/path/to/socket" {
-		t.Fatalf("bad: %v %v", ok, path1)
+	if p := socketPath("unix:///path/to/socket"); p != "/path/to/socket" {
+		t.Fatalf("bad: %q", p)
 	}
-
-	path2, ok := unixSocketAddr("notunix://blah")
-	if ok || path2 != "" {
-		t.Fatalf("bad: %v %v", ok, path2)
+	if p := socketPath("notunix://blah"); p != "" {
+		t.Fatalf("bad: %q", p)
 	}
 }
 
