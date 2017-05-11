@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -34,12 +33,9 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, logOutput io.Writer) ([]*HTTPServer, error) {
-	if logOutput == nil {
-		return nil, fmt.Errorf("Please provide a valid logOutput(io.Writer)")
-	}
-
+func NewHTTPServers(agent *Agent) ([]*HTTPServer, error) {
 	config := agent.config
+	logOutput := agent.logOutput
 
 	var servers []*HTTPServer
 
