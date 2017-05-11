@@ -96,7 +96,6 @@ type Config struct {
 	RPCAdvertise *net.TCPAddr
 
 	// RPCSrcAddr is the source address for outgoing RPC connections.
-	// It is RPCAdvertise with the port set to zero.
 	RPCSrcAddr *net.TCPAddr
 
 	// SerfLANConfig is the configuration for the intra-dc serf
