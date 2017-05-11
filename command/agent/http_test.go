@@ -60,7 +60,7 @@ RECONF:
 	}
 
 	dir, agent := makeAgentLog(t, conf, l, logWriter)
-	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
+	servers, err := NewHTTPServers(agent, agent.logOutput)
 	if err != nil {
 		if configTry < 3 {
 			goto RECONF
@@ -160,7 +160,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// Try to start the server with the same path anyways.
-	if _, err := NewHTTPServers(agent, conf, agent.logOutput); err != nil {
+	if _, err := NewHTTPServers(agent, agent.logOutput); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

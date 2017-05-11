@@ -34,10 +34,12 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
+func NewHTTPServers(agent *Agent, logOutput io.Writer) ([]*HTTPServer, error) {
 	if logOutput == nil {
 		return nil, fmt.Errorf("Please provide a valid logOutput(io.Writer)")
 	}
+
+	config := agent.config
 
 	var servers []*HTTPServer
 

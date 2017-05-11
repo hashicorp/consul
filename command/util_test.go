@@ -78,7 +78,7 @@ func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh 
 
 	conf.Addresses.HTTP = "127.0.0.1"
 	httpAddr := fmt.Sprintf("127.0.0.1:%d", conf.Ports.HTTP)
-	http, err := agent.NewHTTPServers(a, conf, os.Stderr)
+	http, err := agent.NewHTTPServers(a, os.Stderr)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))

@@ -466,7 +466,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.agent = agent
 
 	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
-		servers, err := NewHTTPServers(agent, config, logOutput)
+		servers, err := NewHTTPServers(agent, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.UI.Error(fmt.Sprintf("Error starting http servers: %s", err))
