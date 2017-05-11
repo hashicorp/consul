@@ -1,0 +1,21 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "hashicorp/precise64"
+
+  config.vm.provision "docker" do |d|
+    d.build_image "./", args: "-t user/consul"
+
+    # d.run "n1", image: "user/consul"
+    # d.run "n2", image: "user/consul"
+    # d.run "n3", image: "user/consul"
+    # d.run "n4", image: "user/consul"
+    # d.run "n5", image: "user/consul"
+  end
+
+  config.vm.network "private_network", ip: "172.20.20.10"
+end
