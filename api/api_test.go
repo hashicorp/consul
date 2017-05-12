@@ -4,7 +4,6 @@ import (
 	crand "crypto/rand"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,7 +43,7 @@ func makeClientWithConfig(
 		cb1(conf)
 	}
 	// Create server
-	server, err := testutil.NewTestServerConfig(t.Name(), cb2)
+	server, err := testutil.NewTestServerConfigT(t, cb2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -481,10 +480,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tempDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 

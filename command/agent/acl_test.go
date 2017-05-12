@@ -3,7 +3,6 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	rawacl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 )
@@ -21,10 +21,7 @@ func TestACL_Bad_Config(t *testing.T) {
 	config.ACLDownPolicy = "nope"
 
 	var err error
-	config.DataDir, err = ioutil.TempDir("", t.Name()+"-agent")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	config.DataDir = testutil.TempDir(t, "agent")
 	defer os.RemoveAll(config.DataDir)
 
 	_, err = Create(config, nil, nil, nil)

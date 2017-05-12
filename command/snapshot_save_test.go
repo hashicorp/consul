@@ -1,13 +1,13 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -74,10 +74,7 @@ func TestSnapshotSaveCommand_Run(t *testing.T) {
 
 	ui, c := testSnapshotSaveCommand(t)
 
-	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
 	file := path.Join(dir, "backup.tgz")

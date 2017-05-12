@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
@@ -23,14 +23,6 @@ func getPort() int {
 	return int(atomic.AddInt32(&nextPort, 1))
 }
 
-func tmpDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return dir
-}
-
 func configureTLS(config *Config) {
 	config.CAFile = "../test/ca/root.cer"
 	config.CertFile = "../test/key/ourdomain.cer"
@@ -38,7 +30,7 @@ func configureTLS(config *Config) {
 }
 
 func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
-	dir := tmpDir(t)
+	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
 	config.NodeName = NodeName

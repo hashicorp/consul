@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestConfigEncryptBytes(t *testing.T) {
@@ -1797,10 +1798,7 @@ func TestReadConfigPaths_badPath(t *testing.T) {
 }
 
 func TestReadConfigPaths_file(t *testing.T) {
-	tf, err := ioutil.TempFile("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tf := testutil.TempFile(t, "consul")
 	tf.Write([]byte(`{"node_name":"bar"}`))
 	tf.Close()
 	defer os.Remove(tf.Name())
@@ -1816,13 +1814,10 @@ func TestReadConfigPaths_file(t *testing.T) {
 }
 
 func TestReadConfigPaths_dir(t *testing.T) {
-	td, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
-	err = ioutil.WriteFile(filepath.Join(td, "a.json"),
+	err := ioutil.WriteFile(filepath.Join(td, "a.json"),
 		[]byte(`{"node_name": "bar"}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)

@@ -15,15 +15,13 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
 func TestUiIndex(t *testing.T) {
 	// Make a test dir to serve UI files
-	uiDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	uiDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(uiDir)
 
 	// Make the server

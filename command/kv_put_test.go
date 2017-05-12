@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -179,10 +179,7 @@ func TestKVPutCommand_File(t *testing.T) {
 
 	ui, c := testKVPutCommand(t)
 
-	f, err := ioutil.TempFile("", t.Name()+"-kv-put-command-file")
-	if err != nil {
-		t.Fatalf("err: %#v", err)
-	}
+	f := testutil.TempFile(t, "kv-put-command-file")
 	defer os.Remove(f.Name())
 	if _, err := f.WriteString("bar"); err != nil {
 		t.Fatalf("err: %#v", err)

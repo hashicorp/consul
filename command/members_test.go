@@ -2,10 +2,11 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/base"
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/command/base"
+	"github.com/mitchellh/cli"
 )
 
 func testMembersCommand(t *testing.T) (*cli.MockUi, *MembersCommand) {
