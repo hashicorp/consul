@@ -21,8 +21,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil/retry"
@@ -169,67 +171,61 @@ type TestServer struct {
 	WANAddr   string
 
 	HTTPClient *http.Client
+
+	tmpdir string
 }
 
 // NewTestServer is an easy helper method to create a new Consul
 // test server with the most basic configuration.
-func NewTestServer(name string) (*TestServer, error) {
-	return NewTestServerConfig(name, nil)
+func NewTestServer() (*TestServer, error) {
+	return NewTestServerConfigT(nil, nil)
+}
+
+func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
+	return NewTestServerConfigT(nil, cb)
 }
 
 // NewTestServerConfig creates a new TestServer, and makes a call to an optional
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfig(name string, cb ServerConfigCallback) (*TestServer, error) {
-	if path, err := exec.LookPath("consul"); err != nil || path == "" {
+func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+	path, err := exec.LookPath("consul")
+	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
 			"consul or skip this test")
 	}
 
-	dataDir, err := ioutil.TempDir("", name+"-consul")
-	if err != nil {
-		return nil, errors.Wrap(err, "failed creating tempdir")
-	}
-
-	configFile, err := ioutil.TempFile(dataDir, name+"-config")
-	if err != nil {
-		defer os.RemoveAll(dataDir)
-		return nil, errors.Wrap(err, "failed creating temp config")
-	}
-
-	consulConfig := defaultServerConfig()
-	consulConfig.DataDir = dataDir
-
+	tmpdir := TempDir(t, "consul")
+	cfg := defaultServerConfig()
+	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
-		cb(consulConfig)
+		cb(cfg)
 	}
 
-	configContent, err := json.Marshal(consulConfig)
+	b, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
-	if _, err := configFile.Write(configContent); err != nil {
-		defer configFile.Close()
-		defer os.RemoveAll(dataDir)
+	configFile := filepath.Join(tmpdir, "config.json")
+	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
+		defer os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
-	configFile.Close()
 
 	stdout := io.Writer(os.Stdout)
-	if consulConfig.Stdout != nil {
-		stdout = consulConfig.Stdout
+	if cfg.Stdout != nil {
+		stdout = cfg.Stdout
 	}
-
 	stderr := io.Writer(os.Stderr)
-	if consulConfig.Stderr != nil {
-		stderr = consulConfig.Stderr
+	if cfg.Stderr != nil {
+		stderr = cfg.Stderr
 	}
 
 	// Start the server
-	args := []string{"agent", "-config-file", configFile.Name()}
-	args = append(args, consulConfig.Args...)
+	args := []string{"agent", "-config-file", configFile}
+	args = append(args, cfg.Args...)
 	cmd := exec.Command("consul", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -237,68 +233,63 @@ func NewTestServerConfig(name string, cb ServerConfigCallback) (*TestServer, err
 		return nil, errors.Wrap(err, "failed starting command")
 	}
 
-	var httpAddr string
-	var client *http.Client
-	if strings.HasPrefix(consulConfig.Addresses.HTTP, "unix://") {
-		httpAddr = consulConfig.Addresses.HTTP
-		trans := cleanhttp.DefaultTransport()
-		trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", httpAddr[7:])
+	httpAddr := fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTP)
+	client := cleanhttp.DefaultClient()
+	if strings.HasPrefix(cfg.Addresses.HTTP, "unix://") {
+		httpAddr = cfg.Addresses.HTTP
+		tr := cleanhttp.DefaultTransport()
+		tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", httpAddr[len("unix://"):])
 		}
-		client = &http.Client{
-			Transport: trans,
-		}
-	} else {
-		httpAddr = fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP)
-		client = cleanhttp.DefaultClient()
+		client = &http.Client{Transport: tr}
 	}
 
 	server := &TestServer{
-		Config: consulConfig,
+		Config: cfg,
 		cmd:    cmd,
 
 		HTTPAddr:  httpAddr,
-		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTPS),
-		LANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
-		WANAddr:   fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
+		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
+		LANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
+		WANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
 
 		HTTPClient: client,
+
+		tmpdir: tmpdir,
 	}
 
 	// Wait for the server to be ready
-	var startErr error
-	if consulConfig.Bootstrap {
-		startErr = server.waitForLeader()
+	if cfg.Bootstrap {
+		err = server.waitForLeader()
 	} else {
-		startErr = server.waitForAPI()
+		err = server.waitForAPI()
 	}
-	if startErr != nil {
+	if err != nil {
 		defer server.Stop()
-		return nil, errors.Wrap(startErr, "failed waiting for server to start")
+		return nil, errors.Wrap(err, "failed waiting for server to start")
 	}
-
 	return server, nil
 }
 
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer os.RemoveAll(s.Config.DataDir)
-
-	if s.cmd != nil {
-		if s.cmd.Process != nil {
-			if err := s.cmd.Process.Kill(); err != nil {
-				return errors.Wrap(err, "failed to kill consul server")
-			}
-		}
-
-		// wait for the process to exit to be sure that the data dir can be
-		// deleted on all platforms.
-		return s.cmd.Wait()
-	}
+	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
-	return nil
+	if s.cmd == nil {
+		return nil
+	}
+
+	if s.cmd.Process != nil {
+		if err := s.cmd.Process.Kill(); err != nil {
+			return errors.Wrap(err, "failed to kill consul server")
+		}
+	}
+
+	// wait for the process to exit to be sure that the data dir can be
+	// deleted on all platforms.
+	return s.cmd.Wait()
 }
 
 type failer struct {

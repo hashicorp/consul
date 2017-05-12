@@ -1,11 +1,12 @@
 package agent
 
 import (
-	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestAEScale(t *testing.T) {
@@ -37,10 +38,7 @@ func TestSetFilePermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
-	tempFile, err := ioutil.TempFile("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tempFile := testutil.TempFile(t, "consul")
 	path := tempFile.Name()
 	defer os.Remove(path)
 

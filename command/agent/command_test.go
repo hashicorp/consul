@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -103,10 +103,7 @@ func TestRetryJoin(t *testing.T) {
 	defer agent.Shutdown()
 
 	conf2 := nextConfig()
-	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
 	doneCh := make(chan struct{})
@@ -162,10 +159,7 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
 	shutdownCh := make(chan struct{})
@@ -294,10 +288,7 @@ func TestReadCliConfig(t *testing.T) {
 
 func TestRetryJoinFail(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
 	shutdownCh := make(chan struct{})
@@ -325,10 +316,7 @@ func TestRetryJoinFail(t *testing.T) {
 
 func TestRetryJoinWanFail(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
 	shutdownCh := make(chan struct{})
@@ -413,24 +401,18 @@ func TestDiscoverGCEHosts(t *testing.T) {
 }
 
 func TestProtectDataDir(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 
 	if err := os.MkdirAll(filepath.Join(dir, "mdb"), 0700); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	cfgFile, err := ioutil.TempFile("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	cfgFile := testutil.TempFile(t, "consul")
 	defer os.Remove(cfgFile.Name())
 
 	content := fmt.Sprintf(`{"server": true, "data_dir": "%s"}`, dir)
-	_, err = cfgFile.Write([]byte(content))
+	_, err := cfgFile.Write([]byte(content))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -449,10 +431,7 @@ func TestProtectDataDir(t *testing.T) {
 }
 
 func TestBadDataDirPermissions(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name()+"-consul")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 
 	dataDir := filepath.Join(dir, "mdb")

@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
@@ -67,10 +67,7 @@ func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh 
 		cb(conf)
 	}
 
-	dir, err := ioutil.TempDir("", t.Name()+"-agent")
-	if err != nil {
-		t.Fatalf(fmt.Sprintf("err: %v", err))
-	}
+	dir := testutil.TempDir(t, "agent")
 	conf.DataDir = dir
 
 	a, err := agent.Create(conf, lw, nil, reloadCh)

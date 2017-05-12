@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -14,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 )
@@ -126,10 +126,7 @@ func makeRaft(t *testing.T, dir string) (*raft.Raft, *MockFSM) {
 }
 
 func TestSnapshot(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
 	// Make a Raft and populate it with some data. We tee everything we
@@ -238,10 +235,7 @@ func TestSnapshot_BadVerify(t *testing.T) {
 }
 
 func TestSnapshot_BadRestore(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
 	// Make a Raft and populate it with some data.
