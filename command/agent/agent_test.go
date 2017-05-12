@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -185,6 +186,10 @@ func TestAgent_RPCPing(t *testing.T) {
 }
 
 func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("skip test on macOS to avoid firewall warning dialog")
+	}
+
 	c := nextConfig()
 	ip, err := externalIP()
 	if err != nil {
