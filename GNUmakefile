@@ -48,7 +48,7 @@ cov:
 
 test: dev
 	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
-	( set -o pipefail ; go test -tags "$(GOTAGS)" -v $(GOFILES) | tee test.log )
+	( set -o pipefail ; go test -tags "$(GOTAGS)" -v ./... | tee test.log )
 
 cover:
 	go test $(GOFILES) --cover
