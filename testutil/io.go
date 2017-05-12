@@ -23,7 +23,7 @@ var tmpdir = "/tmp/consul-test"
 
 func init() {
 	if err := os.MkdirAll(tmpdir, 0755); err != nil {
-		fmt.Println("Cannot create %s. Reverting to /tmp", tmpdir)
+		fmt.Printf("Cannot create %s. Reverting to /tmp\n", tmpdir)
 		tmpdir = "/tmp"
 	}
 }
