@@ -1,4 +1,4 @@
-## 0.8.3 (UNRELEASED)
+## 0.8.4 (UNRELEASED)
 
 FEATURES:
 
@@ -10,8 +10,13 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* agent: Fixed an issue where NAT-configured agents with a non-routable advertise address would refuse to make RPC connections to Consul servers. This was a regression related to GH-2822 in Consul 0.8.2. [GH-3028]
 * build: Added a vendor fix to allow compilation on Illumos. [GH-3024]
+
+## 0.8.3 (May 12, 2017)
+
+BUG FIXES:
+
+* agent: Fixed an issue where NAT-configured agents with a non-routable advertise address would refuse to make RPC connections to Consul servers. This was a regression related to GH-2822 in Consul 0.8.2. [GH-3028]
 
 ## 0.8.2 (May 9, 2017)
 
