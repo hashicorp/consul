@@ -135,6 +135,7 @@ func TestRetryJoin(t *testing.T) {
 
 	args := []string{
 		"-server",
+		"-bind", agent.config.BindAddr,
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
 		"-advertise", agent.config.BindAddr,
@@ -310,6 +311,7 @@ func TestRetryJoinFail(t *testing.T) {
 	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfLan)
 
 	args := []string{
+		"-bind", conf.BindAddr,
 		"-data-dir", tmpDir,
 		"-retry-join", serfAddr,
 		"-retry-max", "1",
@@ -341,6 +343,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	args := []string{
 		"-server",
+		"-bind", conf.BindAddr,
 		"-data-dir", tmpDir,
 		"-retry-join-wan", serfAddr,
 		"-retry-max-wan", "1",
