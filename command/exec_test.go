@@ -35,7 +35,7 @@ func TestExecCommandRun(t *testing.T) {
 	waitForLeader(t, a1.httpAddr)
 
 	ui, c := testExecCommand(t)
-	args := []string{"-http-addr=" + a1.httpAddr, "-wait=10s", "uptime"}
+	args := []string{"-http-addr=" + a1.httpAddr, "-wait=500ms", "uptime"}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -73,8 +73,7 @@ func TestExecCommandRun_CrossDC(t *testing.T) {
 	waitForLeader(t, a2.httpAddr)
 
 	ui, c := testExecCommand(t)
-	args := []string{"-http-addr=" + a1.httpAddr,
-		"-wait=400ms", "-datacenter=dc2", "uptime"}
+	args := []string{"-http-addr=" + a1.httpAddr, "-wait=500ms", "-datacenter=dc2", "uptime"}
 
 	code := c.Run(args)
 	if code != 0 {
