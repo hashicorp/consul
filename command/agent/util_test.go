@@ -37,7 +37,7 @@ func TestSetFilePermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
-	tempFile, err := ioutil.TempFile("", "consul")
+	tempFile, err := ioutil.TempFile("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

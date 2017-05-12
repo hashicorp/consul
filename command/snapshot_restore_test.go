@@ -75,7 +75,7 @@ func TestSnapshotRestoreCommand_Run(t *testing.T) {
 
 	ui, c := testSnapshotRestoreCommand(t)
 
-	dir, err := ioutil.TempDir("", "snapshot")
+	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

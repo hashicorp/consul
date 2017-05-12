@@ -95,7 +95,7 @@ func nextConfig() *Config {
 }
 
 func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWriter) (string, *Agent) {
-	dir, err := ioutil.TempDir("", "agent")
+	dir, err := ioutil.TempDir("", t.Name()+"-agent")
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("err: %v", err))
 	}
@@ -111,7 +111,7 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWri
 }
 
 func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
-	dir, err := ioutil.TempDir("", "agent")
+	dir, err := ioutil.TempDir("", t.Name()+"-agent")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

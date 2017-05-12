@@ -67,7 +67,7 @@ func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh 
 		cb(conf)
 	}
 
-	dir, err := ioutil.TempDir("", "agent")
+	dir, err := ioutil.TempDir("", t.Name()+"-agent")
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("err: %v", err))
 	}

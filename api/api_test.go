@@ -44,7 +44,7 @@ func makeClientWithConfig(
 		cb1(conf)
 	}
 	// Create server
-	server, err := testutil.NewTestServerConfig(cb2)
+	server, err := testutil.NewTestServerConfig(t.Name(), cb2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -481,7 +481,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", "consul")
+	tempDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

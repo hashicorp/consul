@@ -32,7 +32,7 @@ func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 
 	// Create our initial empty config file, to be overwritten later
-	configFile, err := ioutil.TempFile("", "reload")
+	configFile, err := ioutil.TempFile("", t.Name()+"-reload")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

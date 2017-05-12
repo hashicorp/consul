@@ -1797,7 +1797,7 @@ func TestReadConfigPaths_badPath(t *testing.T) {
 }
 
 func TestReadConfigPaths_file(t *testing.T) {
-	tf, err := ioutil.TempFile("", "consul")
+	tf, err := ioutil.TempFile("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1816,7 +1816,7 @@ func TestReadConfigPaths_file(t *testing.T) {
 }
 
 func TestReadConfigPaths_dir(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

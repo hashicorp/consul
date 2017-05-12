@@ -126,7 +126,7 @@ func makeRaft(t *testing.T, dir string) (*raft.Raft, *MockFSM) {
 }
 
 func TestSnapshot(t *testing.T) {
-	dir, err := ioutil.TempDir("", "snapshot")
+	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestSnapshot_BadVerify(t *testing.T) {
 }
 
 func TestSnapshot_BadRestore(t *testing.T) {
-	dir, err := ioutil.TempDir("", "snapshot")
+	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

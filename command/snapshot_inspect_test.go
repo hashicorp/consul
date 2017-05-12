@@ -73,7 +73,7 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)
 
-	dir, err := ioutil.TempDir("", "snapshot")
+	dir, err := ioutil.TempDir("", t.Name()+"-snapshot")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

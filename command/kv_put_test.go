@@ -179,7 +179,7 @@ func TestKVPutCommand_File(t *testing.T) {
 
 	ui, c := testKVPutCommand(t)
 
-	f, err := ioutil.TempFile("", "kv-put-command-file")
+	f, err := ioutil.TempFile("", t.Name()+"-kv-put-command-file")
 	if err != nil {
 		t.Fatalf("err: %#v", err)
 	}

@@ -25,7 +25,7 @@ func TestValidateCommand_implements(t *testing.T) {
 }
 
 func TestValidateCommandFailOnEmptyFile(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "consul")
+	tmpFile, err := ioutil.TempFile("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -41,7 +41,7 @@ func TestValidateCommandFailOnEmptyFile(t *testing.T) {
 }
 
 func TestValidateCommandSucceedOnEmptyDir(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -57,7 +57,7 @@ func TestValidateCommandSucceedOnEmptyDir(t *testing.T) {
 }
 
 func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -79,7 +79,7 @@ func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
 }
 
 func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -100,7 +100,7 @@ func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
 }
 
 func TestValidateCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -121,7 +121,7 @@ func TestValidateCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
 }
 
 func TestValidateCommandQuiet(t *testing.T) {
-	td, err := ioutil.TempDir("", "consul")
+	td, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

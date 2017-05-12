@@ -24,7 +24,7 @@ func getPort() int {
 }
 
 func tmpDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "consul")
+	dir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

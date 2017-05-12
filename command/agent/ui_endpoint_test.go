@@ -20,7 +20,7 @@ import (
 
 func TestUiIndex(t *testing.T) {
 	// Make a test dir to serve UI files
-	uiDir, err := ioutil.TempDir("", "consul")
+	uiDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
