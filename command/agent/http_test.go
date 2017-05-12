@@ -77,12 +77,12 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", "consul")
+	tempDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer os.RemoveAll(tempDir)
-	socket := filepath.Join(tempDir, "test.sock")
+	socket := filepath.Join(tempDir, t.Name()+".sock")
 
 	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
 		c.Addresses.HTTP = "unix://" + socket
@@ -139,12 +139,12 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", "consul")
+	tempDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer os.RemoveAll(tempDir)
-	socket := filepath.Join(tempDir, "test.sock")
+	socket := filepath.Join(tempDir, t.Name()+".sock")
 
 	// Create a regular file at the socket path
 	if err := ioutil.WriteFile(socket, []byte("hello world"), 0644); err != nil {

@@ -81,7 +81,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 	expected := fmt.Sprintf(`["%s"]`, key1)
 
-	dir, err := ioutil.TempDir("", "consul")
+	dir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

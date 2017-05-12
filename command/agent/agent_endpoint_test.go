@@ -243,7 +243,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 
 func TestAgent_Reload(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
+	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -21,7 +21,7 @@ func TestACL_Bad_Config(t *testing.T) {
 	config.ACLDownPolicy = "nope"
 
 	var err error
-	config.DataDir, err = ioutil.TempDir("", "agent")
+	config.DataDir, err = ioutil.TempDir("", t.Name()+"-agent")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

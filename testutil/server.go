@@ -173,26 +173,26 @@ type TestServer struct {
 
 // NewTestServer is an easy helper method to create a new Consul
 // test server with the most basic configuration.
-func NewTestServer() (*TestServer, error) {
-	return NewTestServerConfig(nil)
+func NewTestServer(name string) (*TestServer, error) {
+	return NewTestServerConfig(name, nil)
 }
 
 // NewTestServerConfig creates a new TestServer, and makes a call to an optional
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfig(name string, cb ServerConfigCallback) (*TestServer, error) {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
 			"consul or skip this test")
 	}
 
-	dataDir, err := ioutil.TempDir("", "consul")
+	dataDir, err := ioutil.TempDir("", name+"-consul")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating tempdir")
 	}
 
-	configFile, err := ioutil.TempFile(dataDir, "config")
+	configFile, err := ioutil.TempFile(dataDir, name+"-config")
 	if err != nil {
 		defer os.RemoveAll(dataDir)
 		return nil, errors.Wrap(err, "failed creating temp config")

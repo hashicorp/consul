@@ -103,7 +103,7 @@ func TestRetryJoin(t *testing.T) {
 	defer agent.Shutdown()
 
 	conf2 := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
+	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -161,7 +161,7 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "consul")
+	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -293,7 +293,7 @@ func TestReadCliConfig(t *testing.T) {
 
 func TestRetryJoinFail(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
+	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -323,7 +323,7 @@ func TestRetryJoinFail(t *testing.T) {
 
 func TestRetryJoinWanFail(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
+	tmpDir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -410,7 +410,7 @@ func TestDiscoverGCEHosts(t *testing.T) {
 }
 
 func TestProtectDataDir(t *testing.T) {
-	dir, err := ioutil.TempDir("", "consul")
+	dir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -420,7 +420,7 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	cfgFile, err := ioutil.TempFile("", "consul")
+	cfgFile, err := ioutil.TempFile("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -446,7 +446,7 @@ func TestProtectDataDir(t *testing.T) {
 }
 
 func TestBadDataDirPermissions(t *testing.T) {
-	dir, err := ioutil.TempDir("", "consul")
+	dir, err := ioutil.TempDir("", t.Name()+"-consul")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
