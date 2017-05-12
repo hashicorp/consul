@@ -500,7 +500,7 @@ func TestSemaphore_OneShot(t *testing.T) {
 		t.Fatalf("should not have acquired the semaphore")
 	}
 	diff := time.Now().Sub(start)
-	if diff < contender.opts.SemaphoreWaitTime || diff > 2*contender.opts.SemaphoreWaitTime {
+	if diff < contender.opts.SemaphoreWaitTime {
 		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}
 
