@@ -5,8 +5,10 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Added a check which prevents advertising or setting a service to a zero address (`0.0.0.0`, `[::]`, `::`). [GH-2961]
+* agent: Allow binding to any public IPv6 address with `::` [GH-2285]
 * agent: Added a method for gracefully transitioning to TLS on an existing cluster. [GH-1705]
 * agent: Removed SCADA-related code for Atlas and deprecated all Atlas-related configuration options. [GH-3032]
+* build: Provide linux/arm64 package [GH-3042]
 
 BUG FIXES:
 
