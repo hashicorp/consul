@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestConfigEncryptBytes(t *testing.T) {
@@ -1324,13 +1325,13 @@ func TestDecodeConfig_Checks(t *testing.T) {
 		"checks": [
 			{
 				"id": "chk1",
-				"name": "mem",
+				"name": "name1",
 				"script": "/bin/check_mem",
 				"interval": "5s"
 			},
 			{
 				"id": "chk2",
-				"name": "cpu",
+				"name": "name2",
 				"script": "/bin/check_cpu",
 				"interval": "10s"
 			},
@@ -1369,76 +1370,61 @@ func TestDecodeConfig_Checks(t *testing.T) {
 		]
 	}`
 
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	got, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := &Config{
+	want := &Config{
 		Checks: []*CheckDefinition{
 			&CheckDefinition{
-				ID:   "chk1",
-				Name: "mem",
-				CheckType: CheckType{
-					Script:   "/bin/check_mem",
-					Interval: 5 * time.Second,
-				},
+				ID:       "chk1",
+				Name:     "name1",
+				Script:   "/bin/check_mem",
+				Interval: 5 * time.Second,
 			},
 			&CheckDefinition{
-				ID:   "chk2",
-				Name: "cpu",
-				CheckType: CheckType{
-					Script:   "/bin/check_cpu",
-					Interval: 10 * time.Second,
-				},
+				ID:       "chk2",
+				Name:     "name2",
+				Script:   "/bin/check_cpu",
+				Interval: 10 * time.Second,
 			},
 			&CheckDefinition{
 				ID:        "chk3",
 				Name:      "service:redis:tx",
 				ServiceID: "redis",
-				CheckType: CheckType{
-					Script:   "/bin/check_redis_tx",
-					Interval: time.Minute,
-				},
+				Script:    "/bin/check_redis_tx",
+				Interval:  time.Minute,
 			},
 			&CheckDefinition{
 				ID:        "chk4",
 				Name:      "service:elasticsearch:health",
 				ServiceID: "elasticsearch",
-				CheckType: CheckType{
-					HTTP:     "http://localhost:9200/_cluster_health",
-					Interval: 10 * time.Second,
-					Timeout:  100 * time.Millisecond,
-				},
+				HTTP:      "http://localhost:9200/_cluster_health",
+				Interval:  10 * time.Second,
+				Timeout:   100 * time.Millisecond,
 			},
 			&CheckDefinition{
-				ID:        "chk5",
-				Name:      "service:sslservice",
-				ServiceID: "sslservice",
-				CheckType: CheckType{
-					HTTP:          "https://sslservice/status",
-					Interval:      10 * time.Second,
-					Timeout:       100 * time.Millisecond,
-					TLSSkipVerify: false,
-				},
+				ID:            "chk5",
+				Name:          "service:sslservice",
+				ServiceID:     "sslservice",
+				HTTP:          "https://sslservice/status",
+				Interval:      10 * time.Second,
+				Timeout:       100 * time.Millisecond,
+				TLSSkipVerify: false,
 			},
 			&CheckDefinition{
-				ID:        "chk6",
-				Name:      "service:insecure-sslservice",
-				ServiceID: "insecure-sslservice",
-				CheckType: CheckType{
-					HTTP:          "https://insecure-sslservice/status",
-					Interval:      10 * time.Second,
-					Timeout:       100 * time.Millisecond,
-					TLSSkipVerify: true,
-				},
+				ID:            "chk6",
+				Name:          "service:insecure-sslservice",
+				ServiceID:     "insecure-sslservice",
+				HTTP:          "https://insecure-sslservice/status",
+				Interval:      10 * time.Second,
+				Timeout:       100 * time.Millisecond,
+				TLSSkipVerify: true,
 			},
 		},
 	}
-
-	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("bad: %#v", config)
-	}
+	verify.Values(t, "", got, want)
 }
 
 func TestDecodeConfig_Multiples(t *testing.T) {
@@ -1452,6 +1438,8 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 				],
 				"port": 6000,
 				"check": {
+					"checkID": "chk1",
+					"name": "name1",
 					"script": "/bin/check_redis -p 6000",
 					"interval": "5s",
 					"ttl": "20s"
@@ -1460,23 +1448,25 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 		],
 		"checks": [
 			{
-				"id": "chk1",
-				"name": "mem",
+				"id": "chk2",
+				"name": "name2",
 				"script": "/bin/check_mem",
 				"interval": "10s"
 			}
 		]
 	}`
 
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	got, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := &Config{
+	want := &Config{
 		Services: []*ServiceDefinition{
 			&ServiceDefinition{
 				Check: CheckType{
+					CheckID:  "chk1",
+					Name:     "name1",
 					Interval: 5 * time.Second,
 					Script:   "/bin/check_redis -p 6000",
 					TTL:      20 * time.Second,
@@ -1491,19 +1481,15 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 		},
 		Checks: []*CheckDefinition{
 			&CheckDefinition{
-				ID:   "chk1",
-				Name: "mem",
-				CheckType: CheckType{
-					Script:   "/bin/check_mem",
-					Interval: 10 * time.Second,
-				},
+				ID:       "chk2",
+				Name:     "name2",
+				Script:   "/bin/check_mem",
+				Interval: 10 * time.Second,
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("bad: %#v", config)
-	}
+	verify.Values(t, "", got, want)
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -1863,4 +1849,44 @@ func TestUnixSockets(t *testing.T) {
 	if ok || path2 != "" {
 		t.Fatalf("bad: %v %v", ok, path2)
 	}
+}
+
+func TestCheckDefinitionToCheckType(t *testing.T) {
+	got := &CheckDefinition{
+		ID:     "id",
+		Name:   "name",
+		Status: "green",
+		Notes:  "notes",
+
+		ServiceID:         "svcid",
+		Token:             "tok",
+		Script:            "/bin/foo",
+		HTTP:              "someurl",
+		TCP:               "host:port",
+		Interval:          1 * time.Second,
+		DockerContainerID: "abc123",
+		Shell:             "/bin/ksh",
+		TLSSkipVerify:     true,
+		Timeout:           2 * time.Second,
+		TTL:               3 * time.Second,
+		DeregisterCriticalServiceAfter: 4 * time.Second,
+	}
+	want := &CheckType{
+		CheckID: "id",
+		Name:    "name",
+		Status:  "green",
+		Notes:   "notes",
+
+		Script:            "/bin/foo",
+		HTTP:              "someurl",
+		TCP:               "host:port",
+		Interval:          1 * time.Second,
+		DockerContainerID: "abc123",
+		Shell:             "/bin/ksh",
+		TLSSkipVerify:     true,
+		Timeout:           2 * time.Second,
+		TTL:               3 * time.Second,
+		DeregisterCriticalServiceAfter: 4 * time.Second,
+	}
+	verify.Values(t, "", got.CheckType(), want)
 }

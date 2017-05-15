@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 const (
@@ -423,100 +424,148 @@ func TestAgent_makeNodeID(t *testing.T) {
 }
 
 func TestAgent_AddService(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
+	cfg := nextConfig()
+	cfg.NodeName = "node1"
+	dir, agent := makeAgent(t, cfg)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	// Service registration with a single check
-	{
-		srv := &structs.NodeService{
-			ID:      "redis",
-			Service: "redis",
-			Tags:    []string{"foo"},
-			Port:    8000,
-		}
-		chkTypes := CheckTypes{
-			&CheckType{
-				TTL:   time.Minute,
-				Notes: "redis heath check 2",
+	tests := []struct {
+		desc       string
+		srv        *structs.NodeService
+		chkTypes   CheckTypes
+		healthChks map[string]*structs.HealthCheck
+	}{
+		{
+			"one check",
+			&structs.NodeService{
+				ID:      "svcid1",
+				Service: "svcname1",
+				Tags:    []string{"tag1"},
+				Port:    8100,
 			},
-		}
-		err := agent.AddService(srv, chkTypes, false, "")
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		// Ensure we have a state mapping
-		if _, ok := agent.state.Services()["redis"]; !ok {
-			t.Fatalf("missing redis service")
-		}
-
-		// Ensure the check is registered
-		if _, ok := agent.state.Checks()["service:redis"]; !ok {
-			t.Fatalf("missing redis check")
-		}
-
-		// Ensure a TTL is setup
-		if _, ok := agent.checkTTLs["service:redis"]; !ok {
-			t.Fatalf("missing redis check ttl")
-		}
-
-		// Ensure the notes are passed through
-		if agent.state.Checks()["service:redis"].Notes == "" {
-			t.Fatalf("missing redis check notes")
-		}
+			CheckTypes{
+				&CheckType{
+					CheckID: "check1",
+					Name:    "name1",
+					TTL:     time.Minute,
+					Notes:   "note1",
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					Name:        "name1",
+					Status:      "critical",
+					Notes:       "note1",
+					ServiceID:   "svcid1",
+					ServiceName: "svcname1",
+				},
+			},
+		},
+		{
+			"multiple checks",
+			&structs.NodeService{
+				ID:      "svcid2",
+				Service: "svcname2",
+				Tags:    []string{"tag2"},
+				Port:    8200,
+			},
+			CheckTypes{
+				&CheckType{
+					CheckID: "check1",
+					Name:    "name1",
+					TTL:     time.Minute,
+					Notes:   "note1",
+				},
+				&CheckType{
+					CheckID: "check-noname",
+					TTL:     time.Minute,
+				},
+				&CheckType{
+					Name: "check-noid",
+					TTL:  time.Minute,
+				},
+				&CheckType{
+					TTL: time.Minute,
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					Name:        "name1",
+					Status:      "critical",
+					Notes:       "note1",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"check-noname": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check-noname",
+					Name:        "Service 'svcname2' check",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"service:svcid2:3": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "service:svcid2:3",
+					Name:        "check-noid",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"service:svcid2:4": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "service:svcid2:4",
+					Name:        "Service 'svcname2' check",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+			},
+		},
 	}
 
-	// Service registration with multiple checks
-	{
-		srv := &structs.NodeService{
-			ID:      "memcache",
-			Service: "memcache",
-			Tags:    []string{"bar"},
-			Port:    8000,
-		}
-		chkTypes := CheckTypes{
-			&CheckType{
-				TTL:   time.Minute,
-				Notes: "memcache health check 1",
-			},
-			&CheckType{
-				TTL:   time.Second,
-				Notes: "memcache heath check 2",
-			},
-		}
-		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			// check the service registration
+			t.Run(tt.srv.ID, func(t *testing.T) {
+				err := agent.AddService(tt.srv, tt.chkTypes, false, "")
+				if err != nil {
+					t.Fatalf("err: %v", err)
+				}
 
-		// Ensure we have a state mapping
-		if _, ok := agent.state.Services()["memcache"]; !ok {
-			t.Fatalf("missing memcache service")
-		}
+				got, want := agent.state.Services()[tt.srv.ID], tt.srv
+				verify.Values(t, "", got, want)
+			})
 
-		// Ensure both checks were added
-		if _, ok := agent.state.Checks()["service:memcache:1"]; !ok {
-			t.Fatalf("missing memcache:1 check")
-		}
-		if _, ok := agent.state.Checks()["service:memcache:2"]; !ok {
-			t.Fatalf("missing memcache:2 check")
-		}
+			// check the health checks
+			for k, v := range tt.healthChks {
+				t.Run(k, func(t *testing.T) {
+					got, want := agent.state.Checks()[types.CheckID(k)], v
+					verify.Values(t, k, got, want)
+				})
+			}
 
-		// Ensure a TTL is setup
-		if _, ok := agent.checkTTLs["service:memcache:1"]; !ok {
-			t.Fatalf("missing memcache:1 check ttl")
-		}
-		if _, ok := agent.checkTTLs["service:memcache:2"]; !ok {
-			t.Fatalf("missing memcache:2 check ttl")
-		}
-
-		// Ensure the notes are passed through
-		if agent.state.Checks()["service:memcache:1"].Notes == "" {
-			t.Fatalf("missing redis check notes")
-		}
-		if agent.state.Checks()["service:memcache:2"].Notes == "" {
-			t.Fatalf("missing redis check notes")
-		}
+			// check the ttl checks
+			for k := range tt.healthChks {
+				t.Run(k+" ttl", func(t *testing.T) {
+					chk := agent.checkTTLs[types.CheckID(k)]
+					if chk == nil {
+						t.Fatal("got nil want TTL check")
+					}
+					if got, want := string(chk.CheckID), k; got != want {
+						t.Fatalf("got CheckID %v want %v", got, want)
+					}
+					if got, want := chk.TTL, time.Minute; got != want {
+						t.Fatalf("got TTL %v want %v", got, want)
+					}
+				})
+			}
+		})
 	}
 }
 
@@ -558,10 +607,10 @@ func TestAgent_RemoveService(t *testing.T) {
 			ID:        "check2",
 			Name:      "check2",
 			ServiceID: "memcache",
-			CheckType: CheckType{TTL: time.Minute},
+			TTL:       time.Minute,
 		}
 		hc := check.HealthCheck("node1")
-		if err := agent.AddCheck(hc, &check.CheckType, false, ""); err != nil {
+		if err := agent.AddCheck(hc, check.CheckType(), false, ""); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -616,6 +665,56 @@ func TestAgent_RemoveService(t *testing.T) {
 		if _, ok := agent.checkTTLs["service:redis:2"]; ok {
 			t.Fatalf("check ttl for redis:2 should be removed")
 		}
+	}
+}
+
+func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
+	cfg := nextConfig()
+	cfg.NodeName = "node1"
+	dir, agent := makeAgent(t, cfg)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
+	chk1 := &CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
+	chk2 := &CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
+	hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+
+	// register service with chk1
+	if err := agent.AddService(svc, CheckTypes{chk1}, false, ""); err != nil {
+		t.Fatal("Failed to register service", err)
+	}
+
+	// verify chk1 exists
+	if agent.state.Checks()["chk1"] == nil {
+		t.Fatal("Could not find health check chk1")
+	}
+
+	// update the service with chk2
+	if err := agent.AddService(svc, CheckTypes{chk2}, false, ""); err != nil {
+		t.Fatal("Failed to update service", err)
+	}
+
+	// check that both checks are there
+	if got, want := agent.state.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
+		t.FailNow()
+	}
+	if got, want := agent.state.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
+		t.FailNow()
+	}
+
+	// Remove service
+	if err := agent.RemoveService("redis", false); err != nil {
+		t.Fatal("Failed to remove service", err)
+	}
+
+	// Check that both checks are gone
+	if agent.state.Checks()["chk1"] != nil {
+		t.Fatal("Found health check chk1 want nil")
+	}
+	if agent.state.Checks()["chk2"] != nil {
+		t.Fatal("Found health check chk2 want nil")
 	}
 }
 
@@ -1272,13 +1371,11 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 
 	// Start again with the check registered in config
 	check2 := &CheckDefinition{
-		ID:    "mem",
-		Name:  "memory check",
-		Notes: "my cool notes",
-		CheckType: CheckType{
-			Script:   "/bin/check-redis.py",
-			Interval: 30 * time.Second,
-		},
+		ID:       "mem",
+		Name:     "memory check",
+		Notes:    "my cool notes",
+		Script:   "/bin/check-redis.py",
+		Interval: 30 * time.Second,
 	}
 
 	config.Checks = []*CheckDefinition{check2}
@@ -1308,9 +1405,7 @@ func TestAgent_loadChecks_token(t *testing.T) {
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Token: "abc123",
-		CheckType: CheckType{
-			TTL: 10 * time.Second,
-		},
+		TTL:   10 * time.Second,
 	})
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)

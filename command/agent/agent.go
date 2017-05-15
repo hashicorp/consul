@@ -1158,14 +1158,21 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 
 	// Create an associated health check
 	for i, chkType := range chkTypes {
-		checkID := fmt.Sprintf("service:%s", service.ID)
-		if len(chkTypes) > 1 {
-			checkID += fmt.Sprintf(":%d", i+1)
+		checkID := string(chkType.CheckID)
+		if checkID == "" {
+			checkID = fmt.Sprintf("service:%s", service.ID)
+			if len(chkTypes) > 1 {
+				checkID += fmt.Sprintf(":%d", i+1)
+			}
+		}
+		name := chkType.Name
+		if name == "" {
+			name = fmt.Sprintf("Service '%s' check", service.Service)
 		}
 		check := &structs.HealthCheck{
 			Node:        a.config.NodeName,
 			CheckID:     types.CheckID(checkID),
-			Name:        fmt.Sprintf("Service '%s' check", service.Service),
+			Name:        name,
 			Status:      api.HealthCritical,
 			Notes:       chkType.Notes,
 			ServiceID:   service.ID,
@@ -1703,7 +1710,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
-		chkType := &check.CheckType
+		chkType := check.CheckType()
 		if err := a.AddCheck(health, chkType, false, check.Token); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
 		}
