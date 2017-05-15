@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/logutils"
@@ -454,7 +455,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 	// Check the service address here and in the catalog RPC endpoint
 	// since service registration isn't sychronous.
-	if args.Address == "0.0.0.0" || args.Address == "::" || args.Address == "[::]" {
+	if ipaddr.IsAny(args.Address) {
 		resp.WriteHeader(400)
 		fmt.Fprintf(resp, "Invalid service address")
 		return nil, nil
