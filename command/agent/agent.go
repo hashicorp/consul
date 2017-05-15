@@ -310,7 +310,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	default:
 		ip, err := consul.GetPrivateIP()
-		if a.config.BindAddr == "[::]" {
+		if isIPv6ANY(a.config.BindAddr) {
 			ip, err = consul.GetPublicIPv6()
 		}
 		if err != nil {
