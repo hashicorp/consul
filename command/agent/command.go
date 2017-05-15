@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
@@ -372,12 +373,12 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
-	if isAddrANY(config.AdvertiseAddr) {
+	if ipaddr.IsAny(config.AdvertiseAddr) {
 		c.UI.Error("Advertise address cannot be " + config.AdvertiseAddr)
 		return nil
 	}
 
-	if isAddrANY(config.AdvertiseAddrWan) {
+	if ipaddr.IsAny(config.AdvertiseAddrWan) {
 		c.UI.Error("Advertise WAN address cannot be " + config.AdvertiseAddrWan)
 		return nil
 	}

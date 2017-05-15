@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
@@ -316,12 +317,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		}
 		a.config.AdvertiseAddr = ipStr
 
-	case a.config.BindAddr != "" && !isAddrANY(a.config.BindAddr):
+	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
 		a.config.AdvertiseAddr = a.config.BindAddr
 
 	default:
 		ip, err := consul.GetPrivateIP()
-		if isIPv6ANY(a.config.BindAddr) {
+		if ipaddr.IsAnyV6(a.config.BindAddr) {
 			ip, err = consul.GetPublicIPv6()
 		}
 		if err != nil {
@@ -452,7 +453,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	// set the src address for outgoing rpc connections
 	// Use port 0 so that outgoing connections use a random port.
-	if !isAddrANY(base.RPCAddr.IP) {
+	if !ipaddr.IsAny(base.RPCAddr.IP) {
 		base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAddr.IP}
 	}
 
