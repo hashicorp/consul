@@ -2,9 +2,7 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
-	"net"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -15,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
@@ -35,7 +34,6 @@ type agentWrapper struct {
 	config   *agent.Config
 	agent    *agent.Agent
 	http     *agent.HTTPServer
-	addr     string
 	httpAddr string
 }
 
@@ -63,22 +61,13 @@ func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 }
 
 func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh chan chan error) *agentWrapper {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	lw := logger.NewLogWriter(512)
-
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
 	}
 
-	dir, err := ioutil.TempDir("", "agent")
-	if err != nil {
-		t.Fatalf(fmt.Sprintf("err: %v", err))
-	}
+	dir := testutil.TempDir(t, "agent")
 	conf.DataDir = dir
 
 	a, err := agent.Create(conf, lw, nil, reloadCh)
@@ -105,7 +94,6 @@ func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh 
 		config:   conf,
 		agent:    a,
 		http:     http[0],
-		addr:     l.Addr().String(),
 		httpAddr: httpAddr,
 	}
 }

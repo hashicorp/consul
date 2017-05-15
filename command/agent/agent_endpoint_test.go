@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
@@ -243,18 +244,12 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 
 func TestAgent_Reload(t *testing.T) {
 	conf := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
 	// Write initial config, to be reloaded later
-	tmpFile, err := ioutil.TempFile(tmpDir, "config")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	_, err = tmpFile.WriteString(`{"acl_enforce_version_8": false, "service":{"name":"redis"}}`)
+	tmpFile := testutil.TempFile(t, "config")
+	_, err := tmpFile.WriteString(`{"acl_enforce_version_8": false, "service":{"name":"redis"}}`)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -278,7 +273,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	args := []string{
 		"-server",
-		"-advertise", "127.0.0.1",
+		"-bind", "127.0.0.1",
 		"-data-dir", tmpDir,
 		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
 		"-config-file", tmpFile.Name(),

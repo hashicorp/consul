@@ -11,13 +11,14 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
 
 func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
-	dir := tmpDir(t)
+	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 	config.Datacenter = "dc1"
 	config.DataDir = dir

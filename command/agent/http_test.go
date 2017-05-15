@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -77,10 +78,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tempDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
@@ -139,10 +137,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	tempDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 

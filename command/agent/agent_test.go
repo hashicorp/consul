@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
@@ -95,10 +97,7 @@ func nextConfig() *Config {
 }
 
 func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWriter) (string, *Agent) {
-	dir, err := ioutil.TempDir("", "agent")
-	if err != nil {
-		t.Fatalf(fmt.Sprintf("err: %v", err))
-	}
+	dir := testutil.TempDir(t, "agent")
 
 	conf.DataDir = dir
 	agent, err := Create(conf, l, writer, nil)
@@ -111,10 +110,7 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer, writer *logger.LogWri
 }
 
 func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
-	dir, err := ioutil.TempDir("", "agent")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "agent")
 
 	conf.DataDir = dir
 
@@ -185,6 +181,10 @@ func TestAgent_RPCPing(t *testing.T) {
 }
 
 func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("skip test on macOS to avoid firewall warning dialog")
+	}
+
 	c := nextConfig()
 	ip, err := externalIP()
 	if err != nil {
