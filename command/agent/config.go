@@ -1986,5 +1986,13 @@ func isAddrANY(ip interface{}) bool {
 	default:
 		panic(fmt.Sprintf("invalid type: %T", ip))
 	}
-	return ips == "0.0.0.0" || ips == "::" || ips == "[::]"
+	return isIPv4Any(ips) || isIPv6ANY(ips)
+}
+
+func isIPv4Any(ip string) bool {
+	return ip == "0.0.0.0"
+}
+
+func isIPv6ANY(ip string) bool {
+	return ip == "::" || ip == "[::]"
 }
