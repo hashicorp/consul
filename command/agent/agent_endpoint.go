@@ -258,7 +258,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	health := args.HealthCheck(s.agent.config.NodeName)
 
 	// Verify the check type.
-	chkType := &args.CheckType
+	chkType := args.CheckType()
 	if !chkType.Valid() {
 		resp.WriteHeader(400)
 		fmt.Fprint(resp, invalidCheckMessage)

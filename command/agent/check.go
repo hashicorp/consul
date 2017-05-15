@@ -44,6 +44,17 @@ const (
 // provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
 // Docker/Interval.
 type CheckType struct {
+	// fields already embedded in CheckDefinition
+	// Note: CheckType.CheckID == CheckDefinition.ID
+
+	CheckID types.CheckID
+	Name    string
+	Status  string
+	Notes   string
+
+	// fields copied to CheckDefinition
+	// Update CheckDefinition when adding fields here
+
 	Script            string
 	HTTP              string
 	TCP               string
@@ -51,18 +62,13 @@ type CheckType struct {
 	DockerContainerID string
 	Shell             string
 	TLSSkipVerify     bool
-
-	Timeout time.Duration
-	TTL     time.Duration
+	Timeout           time.Duration
+	TTL               time.Duration
 
 	// DeregisterCriticalServiceAfter, if >0, will cause the associated
 	// service, if any, to be deregistered if this check is critical for
 	// longer than this duration.
 	DeregisterCriticalServiceAfter time.Duration
-
-	Status string
-
-	Notes string
 }
 type CheckTypes []*CheckType
 

@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 const (
@@ -423,22 +424,25 @@ func TestAgent_makeNodeID(t *testing.T) {
 }
 
 func TestAgent_AddService(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
+	cfg := nextConfig()
+	cfg.NodeName = "node1"
+	dir, agent := makeAgent(t, cfg)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	// Service registration with a single check
-	{
+	t.Run("register svc with one check", func(t *testing.T) {
 		srv := &structs.NodeService{
-			ID:      "redis",
-			Service: "redis",
-			Tags:    []string{"foo"},
+			ID:      "svcid",
+			Service: "svcname",
+			Tags:    []string{"tag1"},
 			Port:    8000,
 		}
 		chkTypes := CheckTypes{
 			&CheckType{
-				TTL:   time.Minute,
-				Notes: "redis heath check 2",
+				CheckID: "check1",
+				Name:    "name1",
+				TTL:     time.Minute,
+				Notes:   "note1",
 			},
 		}
 		err := agent.AddService(srv, chkTypes, false, "")
@@ -446,78 +450,119 @@ func TestAgent_AddService(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		// Ensure we have a state mapping
-		if _, ok := agent.state.Services()["redis"]; !ok {
-			t.Fatalf("missing redis service")
+		gotsvc := agent.state.Services()["svcid"]
+		wantsvc := &structs.NodeService{
+			ID:      "svcid",
+			Service: "svcname",
+			Tags:    []string{"tag1"},
+			Port:    8000,
 		}
+		verify.Values(t, "", gotsvc, wantsvc)
 
-		// Ensure the check is registered
-		if _, ok := agent.state.Checks()["service:redis"]; !ok {
-			t.Fatalf("missing redis check")
+		gotchk := agent.state.Checks()["check1"]
+		wantchk := &structs.HealthCheck{
+			Node:        "node1",
+			CheckID:     "check1",
+			Name:        "name1",
+			Status:      "critical",
+			Notes:       "note1",
+			ServiceID:   "svcid",
+			ServiceName: "svcname",
 		}
+		verify.Values(t, "", gotchk, wantchk)
 
-		// Ensure a TTL is setup
-		if _, ok := agent.checkTTLs["service:redis"]; !ok {
-			t.Fatalf("missing redis check ttl")
+		chk1 := agent.checkTTLs["check1"]
+		if chk1 == nil {
+			t.Fatalf("missing TTL check")
 		}
-
-		// Ensure the notes are passed through
-		if agent.state.Checks()["service:redis"].Notes == "" {
-			t.Fatalf("missing redis check notes")
+		if got, want := string(chk1.CheckID), "check1"; got != want {
+			t.Fatalf("got CheckID %v want %v", got, want)
 		}
-	}
+		if got, want := chk1.TTL, time.Minute; got != want {
+			t.Fatalf("got TTL %v want %v", got, want)
+		}
+	})
 
-	// Service registration with multiple checks
-	{
+	t.Run("register svc with multiple checks", func(t *testing.T) {
 		srv := &structs.NodeService{
-			ID:      "memcache",
-			Service: "memcache",
-			Tags:    []string{"bar"},
+			ID:      "svcid",
+			Service: "svcname",
+			Tags:    []string{"tag1"},
 			Port:    8000,
 		}
 		chkTypes := CheckTypes{
 			&CheckType{
-				TTL:   time.Minute,
-				Notes: "memcache health check 1",
+				CheckID: "check1",
+				Name:    "name1",
+				TTL:     time.Minute,
+				Notes:   "note1",
 			},
 			&CheckType{
-				TTL:   time.Second,
-				Notes: "memcache heath check 2",
+				CheckID: "check2",
+				Name:    "name2",
+				TTL:     time.Second,
+				Notes:   "note2",
 			},
 		}
 		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
-		// Ensure we have a state mapping
-		if _, ok := agent.state.Services()["memcache"]; !ok {
-			t.Fatalf("missing memcache service")
+		gotsvc := agent.state.Services()["svcid"]
+		wantsvc := &structs.NodeService{
+			ID:      "svcid",
+			Service: "svcname",
+			Tags:    []string{"tag1"},
+			Port:    8000,
+		}
+		verify.Values(t, "", gotsvc, wantsvc)
+
+		gotchk1 := agent.state.Checks()["check1"]
+		wantchk1 := &structs.HealthCheck{
+			Node:        "node1",
+			CheckID:     "check1",
+			Name:        "name1",
+			Status:      "critical",
+			Notes:       "note1",
+			ServiceID:   "svcid",
+			ServiceName: "svcname",
+		}
+		verify.Values(t, "", gotchk1, wantchk1)
+
+		gotchk2 := agent.state.Checks()["check2"]
+		wantchk2 := &structs.HealthCheck{
+			Node:        "node1",
+			CheckID:     "check2",
+			Name:        "name2",
+			Status:      "critical",
+			Notes:       "note2",
+			ServiceID:   "svcid",
+			ServiceName: "svcname",
+		}
+		verify.Values(t, "", gotchk2, wantchk2)
+
+		chk1 := agent.checkTTLs["check1"]
+		if chk1 == nil {
+			t.Fatalf("missing TTL check")
+		}
+		if got, want := string(chk1.CheckID), "check1"; got != want {
+			t.Fatalf("got CheckID %v want %v", got, want)
+		}
+		if got, want := chk1.TTL, time.Minute; got != want {
+			t.Fatalf("got TTL %v want %v", got, want)
 		}
 
-		// Ensure both checks were added
-		if _, ok := agent.state.Checks()["service:memcache:1"]; !ok {
-			t.Fatalf("missing memcache:1 check")
+		chk2 := agent.checkTTLs["check2"]
+		if chk2 == nil {
+			t.Fatalf("missing TTL check")
 		}
-		if _, ok := agent.state.Checks()["service:memcache:2"]; !ok {
-			t.Fatalf("missing memcache:2 check")
+		if got, want := string(chk2.CheckID), "check2"; got != want {
+			t.Fatalf("got CheckID %v want %v", got, want)
 		}
-
-		// Ensure a TTL is setup
-		if _, ok := agent.checkTTLs["service:memcache:1"]; !ok {
-			t.Fatalf("missing memcache:1 check ttl")
+		if got, want := chk2.TTL, time.Second; got != want {
+			t.Fatalf("got TTL %v want %v", got, want)
 		}
-		if _, ok := agent.checkTTLs["service:memcache:2"]; !ok {
-			t.Fatalf("missing memcache:2 check ttl")
-		}
-
-		// Ensure the notes are passed through
-		if agent.state.Checks()["service:memcache:1"].Notes == "" {
-			t.Fatalf("missing redis check notes")
-		}
-		if agent.state.Checks()["service:memcache:2"].Notes == "" {
-			t.Fatalf("missing redis check notes")
-		}
-	}
+	})
 }
 
 func TestAgent_RemoveService(t *testing.T) {
@@ -558,10 +603,10 @@ func TestAgent_RemoveService(t *testing.T) {
 			ID:        "check2",
 			Name:      "check2",
 			ServiceID: "memcache",
-			CheckType: CheckType{TTL: time.Minute},
+			TTL:       time.Minute,
 		}
 		hc := check.HealthCheck("node1")
-		if err := agent.AddCheck(hc, &check.CheckType, false, ""); err != nil {
+		if err := agent.AddCheck(hc, check.CheckType(), false, ""); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -1272,13 +1317,11 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 
 	// Start again with the check registered in config
 	check2 := &CheckDefinition{
-		ID:    "mem",
-		Name:  "memory check",
-		Notes: "my cool notes",
-		CheckType: CheckType{
-			Script:   "/bin/check-redis.py",
-			Interval: 30 * time.Second,
-		},
+		ID:       "mem",
+		Name:     "memory check",
+		Notes:    "my cool notes",
+		Script:   "/bin/check-redis.py",
+		Interval: 30 * time.Second,
 	}
 
 	config.Checks = []*CheckDefinition{check2}
@@ -1308,9 +1351,7 @@ func TestAgent_loadChecks_token(t *testing.T) {
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Token: "abc123",
-		CheckType: CheckType{
-			TTL: 10 * time.Second,
-		},
+		TTL:   10 * time.Second,
 	})
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)

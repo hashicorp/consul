@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"time"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/types"
@@ -52,7 +54,22 @@ type CheckDefinition struct {
 	ServiceID string
 	Token     string
 	Status    string
-	CheckType `mapstructure:",squash"`
+
+	// Copied fields from CheckType without the fields
+	// already present in CheckDefinition:
+	//
+	//   ID (CheckID), Name, Status, Notes
+	//
+	Script                         string
+	HTTP                           string
+	TCP                            string
+	Interval                       time.Duration
+	DockerContainerID              string
+	Shell                          string
+	TLSSkipVerify                  bool
+	Timeout                        time.Duration
+	TTL                            time.Duration
+	DeregisterCriticalServiceAfter time.Duration
 }
 
 func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
@@ -71,6 +88,25 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		health.CheckID = types.CheckID(health.Name)
 	}
 	return health
+}
+
+func (c *CheckDefinition) CheckType() *CheckType {
+	return &CheckType{
+		CheckID:           c.ID,
+		Name:              c.Name,
+		Script:            c.Script,
+		HTTP:              c.HTTP,
+		TCP:               c.TCP,
+		Interval:          c.Interval,
+		DockerContainerID: c.DockerContainerID,
+		Shell:             c.Shell,
+		TLSSkipVerify:     c.TLSSkipVerify,
+		Timeout:           c.Timeout,
+		TTL:               c.TTL,
+		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
+		Status: c.Status,
+		Notes:  c.Notes,
+	}
 }
 
 // persistedService is used to wrap a service definition and bundle it

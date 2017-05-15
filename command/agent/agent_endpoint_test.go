@@ -650,9 +650,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	// Register node
 	args := &CheckDefinition{
 		Name: "test",
-		CheckType: CheckType{
-			TTL: 15 * time.Second,
-		},
+		TTL:  15 * time.Second,
 	}
 	req, _ := http.NewRequest("GET", "/v1/agent/check/register?token=abc123", jsonReader(args))
 	obj, err := srv.AgentRegisterCheck(nil, req)
@@ -693,10 +691,8 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 
 	// Register node
 	args := &CheckDefinition{
-		Name: "test",
-		CheckType: CheckType{
-			TTL: 15 * time.Second,
-		},
+		Name:   "test",
+		TTL:    15 * time.Second,
 		Status: api.HealthPassing,
 	}
 	req, _ := http.NewRequest("GET", "/v1/agent/check/register", jsonReader(args))
@@ -732,10 +728,8 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 
 	// Register node
 	args := &CheckDefinition{
-		Name: "test",
-		CheckType: CheckType{
-			TTL: 15 * time.Second,
-		},
+		Name:   "test",
+		TTL:    15 * time.Second,
 		Status: "fluffy",
 	}
 	req, _ := http.NewRequest("GET", "/v1/agent/check/register", jsonReader(args))
@@ -756,9 +750,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	args := &CheckDefinition{
 		Name: "test",
-		CheckType: CheckType{
-			TTL: 15 * time.Second,
-		},
+		TTL:  15 * time.Second,
 	}
 
 	t.Run("no token", func(t *testing.T) {
@@ -1596,9 +1588,7 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	checkArgs := &CheckDefinition{
 		Name:      "memcache_check2",
 		ServiceID: "memcache",
-		CheckType: CheckType{
-			TTL: 15 * time.Second,
-		},
+		TTL:       15 * time.Second,
 	}
 	req, _ = http.NewRequest("GET", "/v1/agent/check/register", jsonReader(checkArgs))
 	if _, err := srv.AgentRegisterCheck(nil, req); err != nil {
