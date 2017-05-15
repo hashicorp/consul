@@ -28,7 +28,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	var c *coordinate.Coordinate
 	if !s.agent.config.DisableCoordinates {
 		var err error
-		if c, err = s.agent.GetCoordinate(); err != nil {
+		if c, err = s.agent.GetLANCoordinate(); err != nil {
 			return nil, err
 		}
 	}

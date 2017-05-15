@@ -192,7 +192,7 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 
-	c, err := srv.agent.server.GetLANCoordinate()
+	c, err := srv.agent.GetLANCoordinate()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
