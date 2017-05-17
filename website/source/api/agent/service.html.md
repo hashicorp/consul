@@ -100,7 +100,9 @@ The table below shows this endpoint's support for
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
-  and/or `Name` field.
+  and/or `Name` field. Even though the behavior is deterministic, it
+  is recommended for all checks to either let consul set the `CheckID`
+  by leaving the field empty/omitting it or to provide a unique value.
 
 - `EnableTagOverride` `(bool: false)` - Specifies to disable the anti-entropy
   feature for this service's tags. If `EnableTagOverride` is set to `true` then

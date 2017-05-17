@@ -697,16 +697,12 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// check that both checks are there
-	if got, want := agent.state.Checks()["chk1"], hchk1; !verify.Values(t, "chk1", got, want) {
+	if got, want := agent.state.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
-	if got, want := agent.state.Checks()["chk2"], hchk2; !verify.Values(t, "chk1", got, want) {
+	if got, want := agent.state.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
-
-	// check that chk1 is "dangling", i.e. that it isn't
-	// returned as the list of checks for the service.
-	// todo(fs): how do I do this properly?
 
 	// Remove service
 	if err := agent.RemoveService("redis", false); err != nil {
