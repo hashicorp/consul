@@ -668,6 +668,60 @@ func TestAgent_RemoveService(t *testing.T) {
 	}
 }
 
+func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
+	cfg := nextConfig()
+	cfg.NodeName = "node1"
+	dir, agent := makeAgent(t, cfg)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
+	chk1 := &CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
+	chk2 := &CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
+	hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+
+	// register service with chk1
+	if err := agent.AddService(svc, CheckTypes{chk1}, false, ""); err != nil {
+		t.Fatal("Failed to register service", err)
+	}
+
+	// verify chk1 exists
+	if agent.state.Checks()["chk1"] == nil {
+		t.Fatal("Could not find health check chk1")
+	}
+
+	// update the service with chk2
+	if err := agent.AddService(svc, CheckTypes{chk2}, false, ""); err != nil {
+		t.Fatal("Failed to update service", err)
+	}
+
+	// check that both checks are there
+	if got, want := agent.state.Checks()["chk1"], hchk1; !verify.Values(t, "chk1", got, want) {
+		t.FailNow()
+	}
+	if got, want := agent.state.Checks()["chk2"], hchk2; !verify.Values(t, "chk1", got, want) {
+		t.FailNow()
+	}
+
+	// check that chk1 is "dangling", i.e. that it isn't
+	// returned as the list of checks for the service.
+	// todo(fs): how do I do this properly?
+
+	// Remove service
+	if err := agent.RemoveService("redis", false); err != nil {
+		t.Fatal("Failed to remove service", err)
+	}
+
+	// Check that both checks are gone
+	if agent.state.Checks()["chk1"] != nil {
+		t.Fatal("Found health check chk1 want nil")
+	}
+	if agent.state.Checks()["chk2"] != nil {
+		t.Fatal("Found health check chk2 want nil")
+	}
+}
+
 func TestAgent_AddCheck(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
