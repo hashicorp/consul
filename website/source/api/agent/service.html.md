@@ -108,7 +108,7 @@ The table below shows this endpoint's support for
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field. The automatically generated `Name` and `CheckID` depend
   on the position of the check within the array, so even though the behavior is
-  determinsitic, it is recommended for all checks to either let consul set the
+  deterministic, it is recommended for all checks to either let consul set the
   `CheckID` by leaving the field empty/omitting it or to provide a unique value.
 
 - `EnableTagOverride` `(bool: false)` - Specifies to disable the anti-entropy
