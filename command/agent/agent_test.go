@@ -430,139 +430,143 @@ func TestAgent_AddService(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	t.Run("register svc with one check", func(t *testing.T) {
-		srv := &structs.NodeService{
-			ID:      "svcid",
-			Service: "svcname",
-			Tags:    []string{"tag1"},
-			Port:    8000,
-		}
-		chkTypes := CheckTypes{
-			&CheckType{
-				CheckID: "check1",
-				Name:    "name1",
-				TTL:     time.Minute,
-				Notes:   "note1",
+	tests := []struct {
+		desc       string
+		srv        *structs.NodeService
+		chkTypes   CheckTypes
+		healthChks map[string]*structs.HealthCheck
+	}{
+		{
+			"one check",
+			&structs.NodeService{
+				ID:      "svcid1",
+				Service: "svcname1",
+				Tags:    []string{"tag1"},
+				Port:    8100,
 			},
-		}
-		err := agent.AddService(srv, chkTypes, false, "")
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		gotsvc := agent.state.Services()["svcid"]
-		wantsvc := &structs.NodeService{
-			ID:      "svcid",
-			Service: "svcname",
-			Tags:    []string{"tag1"},
-			Port:    8000,
-		}
-		verify.Values(t, "", gotsvc, wantsvc)
-
-		gotchk := agent.state.Checks()["check1"]
-		wantchk := &structs.HealthCheck{
-			Node:        "node1",
-			CheckID:     "check1",
-			Name:        "name1",
-			Status:      "critical",
-			Notes:       "note1",
-			ServiceID:   "svcid",
-			ServiceName: "svcname",
-		}
-		verify.Values(t, "", gotchk, wantchk)
-
-		chk1 := agent.checkTTLs["check1"]
-		if chk1 == nil {
-			t.Fatalf("missing TTL check")
-		}
-		if got, want := string(chk1.CheckID), "check1"; got != want {
-			t.Fatalf("got CheckID %v want %v", got, want)
-		}
-		if got, want := chk1.TTL, time.Minute; got != want {
-			t.Fatalf("got TTL %v want %v", got, want)
-		}
-	})
-
-	t.Run("register svc with multiple checks", func(t *testing.T) {
-		srv := &structs.NodeService{
-			ID:      "svcid",
-			Service: "svcname",
-			Tags:    []string{"tag1"},
-			Port:    8000,
-		}
-		chkTypes := CheckTypes{
-			&CheckType{
-				CheckID: "check1",
-				Name:    "name1",
-				TTL:     time.Minute,
-				Notes:   "note1",
+			CheckTypes{
+				&CheckType{
+					CheckID: "check1",
+					Name:    "name1",
+					TTL:     time.Minute,
+					Notes:   "note1",
+				},
 			},
-			&CheckType{
-				CheckID: "check2",
-				Name:    "name2",
-				TTL:     time.Second,
-				Notes:   "note2",
+			map[string]*structs.HealthCheck{
+				"check1": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					Name:        "name1",
+					Status:      "critical",
+					Notes:       "note1",
+					ServiceID:   "svcid1",
+					ServiceName: "svcname1",
+				},
 			},
-		}
-		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		},
+		{
+			"multiple checks",
+			&structs.NodeService{
+				ID:      "svcid2",
+				Service: "svcname2",
+				Tags:    []string{"tag2"},
+				Port:    8200,
+			},
+			CheckTypes{
+				&CheckType{
+					CheckID: "check1",
+					Name:    "name1",
+					TTL:     time.Minute,
+					Notes:   "note1",
+				},
+				&CheckType{
+					CheckID: "check-noname",
+					TTL:     time.Minute,
+				},
+				&CheckType{
+					Name: "check-noid",
+					TTL:  time.Minute,
+				},
+				&CheckType{
+					TTL: time.Minute,
+				},
+			},
+			map[string]*structs.HealthCheck{
+				"check1": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					Name:        "name1",
+					Status:      "critical",
+					Notes:       "note1",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"check-noname": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check-noname",
+					Name:        "Service 'svcname2' check",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"service:svcid2:3": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "service:svcid2:3",
+					Name:        "check-noid",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+				"service:svcid2:4": &structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "service:svcid2:4",
+					Name:        "Service 'svcname2' check",
+					Status:      "critical",
+					ServiceID:   "svcid2",
+					ServiceName: "svcname2",
+				},
+			},
+		},
+	}
 
-		gotsvc := agent.state.Services()["svcid"]
-		wantsvc := &structs.NodeService{
-			ID:      "svcid",
-			Service: "svcname",
-			Tags:    []string{"tag1"},
-			Port:    8000,
-		}
-		verify.Values(t, "", gotsvc, wantsvc)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			// check the service registration
+			t.Run(tt.srv.ID, func(t *testing.T) {
+				err := agent.AddService(tt.srv, tt.chkTypes, false, "")
+				if err != nil {
+					t.Fatalf("err: %v", err)
+				}
 
-		gotchk1 := agent.state.Checks()["check1"]
-		wantchk1 := &structs.HealthCheck{
-			Node:        "node1",
-			CheckID:     "check1",
-			Name:        "name1",
-			Status:      "critical",
-			Notes:       "note1",
-			ServiceID:   "svcid",
-			ServiceName: "svcname",
-		}
-		verify.Values(t, "", gotchk1, wantchk1)
+				got, want := agent.state.Services()[tt.srv.ID], tt.srv
+				verify.Values(t, "", got, want)
+			})
 
-		gotchk2 := agent.state.Checks()["check2"]
-		wantchk2 := &structs.HealthCheck{
-			Node:        "node1",
-			CheckID:     "check2",
-			Name:        "name2",
-			Status:      "critical",
-			Notes:       "note2",
-			ServiceID:   "svcid",
-			ServiceName: "svcname",
-		}
-		verify.Values(t, "", gotchk2, wantchk2)
+			// check the health checks
+			for k, v := range tt.healthChks {
+				t.Run(k, func(t *testing.T) {
+					got, want := agent.state.Checks()[types.CheckID(k)], v
+					verify.Values(t, k, got, want)
+				})
+			}
 
-		chk1 := agent.checkTTLs["check1"]
-		if chk1 == nil {
-			t.Fatalf("missing TTL check")
-		}
-		if got, want := string(chk1.CheckID), "check1"; got != want {
-			t.Fatalf("got CheckID %v want %v", got, want)
-		}
-		if got, want := chk1.TTL, time.Minute; got != want {
-			t.Fatalf("got TTL %v want %v", got, want)
-		}
-
-		chk2 := agent.checkTTLs["check2"]
-		if chk2 == nil {
-			t.Fatalf("missing TTL check")
-		}
-		if got, want := string(chk2.CheckID), "check2"; got != want {
-			t.Fatalf("got CheckID %v want %v", got, want)
-		}
-		if got, want := chk2.TTL, time.Second; got != want {
-			t.Fatalf("got TTL %v want %v", got, want)
-		}
-	})
+			// check the ttl checks
+			for k := range tt.healthChks {
+				t.Run(k+" ttl", func(t *testing.T) {
+					chk := agent.checkTTLs[types.CheckID(k)]
+					if chk == nil {
+						t.Fatal("got nil want TTL check")
+					}
+					if got, want := string(chk.CheckID), k; got != want {
+						t.Fatalf("got CheckID %v want %v", got, want)
+					}
+					if got, want := chk.TTL, time.Minute; got != want {
+						t.Fatalf("got TTL %v want %v", got, want)
+					}
+				})
+			}
+		})
+	}
 }
 
 func TestAgent_RemoveService(t *testing.T) {
