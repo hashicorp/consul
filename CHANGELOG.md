@@ -8,8 +8,9 @@ IMPROVEMENTS:
 * agent: Allow binding to any public IPv6 address with `::` [GH-2285]
 * agent: Added a method for gracefully transitioning to TLS on an existing cluster. [GH-1705]
 * agent: Removed SCADA-related code for Atlas and deprecated all Atlas-related configuration options. [GH-3032]
-* agent: Support custom check id and name [GH-3047]
-* build: Provide linux/arm64 package [GH-3042]
+* agent: Added support for custom check id and name when registering checks along with a service. [GH-3047]
+* build: Added support for linux/arm64 binaries. [GH-3042]
+* ui: Added a sticky scroll to the KV side panel so the KV edit box always stays in place. [GH-2812]
 
 BUG FIXES:
 
