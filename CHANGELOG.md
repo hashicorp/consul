@@ -14,6 +14,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * build: Added a vendor fix to allow compilation on Illumos. [GH-3024]
+* cli: Fixed an issue where `consul exec` would return a 0 exit code, even when there were nodes that didn't respond. [GH-2757]
 
 ## 0.8.3 (May 12, 2017)
 
