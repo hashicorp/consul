@@ -282,7 +282,7 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Kill(); err != nil {
+		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
 			return errors.Wrap(err, "failed to kill consul server")
 		}
 	}
