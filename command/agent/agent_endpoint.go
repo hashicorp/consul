@@ -74,14 +74,14 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	// Trigger the reload
 	errCh := make(chan error, 0)
 	select {
-	case <-s.agent.ShutdownCh():
+	case <-s.agent.shutdownCh:
 		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
 	case s.agent.reloadCh <- errCh:
 	}
 
 	// Wait for the result of the reload, or for the agent to shutdown
 	select {
-	case <-s.agent.ShutdownCh():
+	case <-s.agent.shutdownCh:
 		return nil, fmt.Errorf("Agent was shutdown before reload could be completed")
 	case err := <-errCh:
 		return nil, err
@@ -656,15 +656,15 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		logCh:  make(chan string, 512),
 		logger: s.agent.logger,
 	}
-	s.agent.logWriter.RegisterHandler(handler)
-	defer s.agent.logWriter.DeregisterHandler(handler)
+	s.agent.LogWriter.RegisterHandler(handler)
+	defer s.agent.LogWriter.DeregisterHandler(handler)
 	notify := resp.(http.CloseNotifier).CloseNotify()
 
 	// Stream logs until the connection is closed.
 	for {
 		select {
 		case <-notify:
-			s.agent.logWriter.DeregisterHandler(handler)
+			s.agent.LogWriter.DeregisterHandler(handler)
 			if handler.droppedCount > 0 {
 				s.agent.logger.Printf("[WARN] agent: Dropped %d logs during monitor request", handler.droppedCount)
 			}

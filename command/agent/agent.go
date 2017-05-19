@@ -83,10 +83,10 @@ type Agent struct {
 	logger *log.Logger
 
 	// Output sink for logs
-	logOutput io.Writer
+	LogOutput io.Writer
 
 	// Used for streaming logs to
-	logWriter *logger.LogWriter
+	LogWriter *logger.LogWriter
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -160,23 +160,7 @@ type Agent struct {
 	wgServers sync.WaitGroup
 }
 
-// Create is used to create a new Agent. Returns
-// the agent or potentially an error.
-func Create(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
-	a, err := NewAgent(c, logOutput, logWriter, reloadCh)
-	if err != nil {
-		return nil, err
-	}
-	if err := a.Start(); err != nil {
-		return nil, err
-	}
-	return a, nil
-}
-
-func NewAgent(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
+func NewAgent(c *Config) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -199,8 +183,6 @@ func NewAgent(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloa
 	a := &Agent{
 		config:         c,
 		acls:           acls,
-		logOutput:      logOutput,
-		logWriter:      logWriter,
 		checkReapAfter: make(map[types.CheckID]time.Duration),
 		checkMonitors:  make(map[types.CheckID]*CheckMonitor),
 		checkTTLs:      make(map[types.CheckID]*CheckTTL),
@@ -209,7 +191,7 @@ func NewAgent(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloa
 		checkDockers:   make(map[types.CheckID]*CheckDocker),
 		eventCh:        make(chan serf.UserEvent, 1024),
 		eventBuf:       make([]*UserEvent, 256),
-		reloadCh:       reloadCh,
+		reloadCh:       make(chan chan error),
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 		dnsAddr:        dnsAddr,
@@ -224,7 +206,10 @@ func NewAgent(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloa
 func (a *Agent) Start() error {
 	c := a.config
 
-	a.logger = log.New(a.logOutput, "", log.LstdFlags)
+	if a.LogOutput == nil {
+		a.LogOutput = os.Stderr
+	}
+	a.logger = log.New(a.LogOutput, "", log.LstdFlags)
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
@@ -294,7 +279,7 @@ func (a *Agent) Start() error {
 
 	// start dns server
 	if c.Ports.DNS > 0 {
-		srv, err := NewDNSServer(a, &c.DNSConfig, a.logOutput, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
+		srv, err := NewDNSServer(a, &c.DNSConfig, a.LogOutput, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
 		if err != nil {
 			return fmt.Errorf("error starting DNS server: %s", err)
 		}
@@ -659,7 +644,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// Setup the loggers
-	base.LogOutput = a.logOutput
+	base.LogOutput = a.LogOutput
 	return base, nil
 }
 
@@ -1038,6 +1023,12 @@ func (a *Agent) Shutdown() error {
 	a.shutdown = true
 	close(a.shutdownCh)
 	return err
+}
+
+// ReloadCh is used to return a channel that can be
+// used for triggering reloads and returning a response.
+func (a *Agent) ReloadCh() chan chan error {
+	return a.reloadCh
 }
 
 // ShutdownCh is used to return a channel that can be

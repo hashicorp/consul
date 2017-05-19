@@ -53,20 +53,21 @@ func testAgentWithAPIClient(t *testing.T) (*server, *api.Client) {
 }
 
 func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *server {
-	return testAgentWithConfigReload(t, cb, nil)
-}
-
-func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh chan chan error) *server {
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
 	}
 
 	conf.DataDir = testutil.TempDir(t, "agent")
-	a, err := agent.Create(conf, logger.NewLogWriter(512), nil, reloadCh)
+	a, err := agent.NewAgent(conf)
 	if err != nil {
 		os.RemoveAll(conf.DataDir)
-		t.Fatalf("err: %v", err)
+		t.Fatal("Error creating agent:", err)
+	}
+	a.LogOutput = logger.NewLogWriter(512)
+	if err := a.Start(); err != nil {
+		os.RemoveAll(conf.DataDir)
+		t.Fatalf("Error starting agent: %v", err)
 	}
 
 	conf.Addresses.HTTP = "127.0.0.1"

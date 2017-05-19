@@ -13,13 +13,12 @@ func TestReloadCommand_implements(t *testing.T) {
 }
 
 func TestReloadCommandRun(t *testing.T) {
-	reloadCh := make(chan chan error)
-	a1 := testAgentWithConfigReload(t, nil, reloadCh)
+	a1 := testAgentWithConfig(t, nil)
 	defer a1.Shutdown()
 
 	// Setup a dummy response to errCh to simulate a successful reload
 	go func() {
-		errCh := <-reloadCh
+		errCh := <-a1.agent.ReloadCh()
 		errCh <- nil
 	}()
 

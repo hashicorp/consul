@@ -45,7 +45,6 @@ type Command struct {
 	VersionPrerelease string
 	HumanVersion      string
 	ShutdownCh        <-chan struct{}
-	configReloadCh    chan chan error
 	args              []string
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
@@ -644,9 +643,6 @@ func (c *Command) Run(args []string) int {
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 
-	// Setup the channel for triggering config reloads
-	c.configReloadCh = make(chan chan error)
-
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -741,8 +737,14 @@ func (c *Command) Run(args []string) int {
 
 	// Create the agent
 	c.UI.Output("Starting Consul agent...")
-	agent, err := Create(config, logOutput, logWriter, c.configReloadCh)
+	agent, err := NewAgent(config)
 	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
+		return 1
+	}
+	agent.LogOutput = logOutput
+	agent.LogWriter = logWriter
+	if err := agent.Start(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
@@ -865,7 +867,7 @@ WAIT:
 	select {
 	case s := <-signalCh:
 		sig = s
-	case ch := <-c.configReloadCh:
+	case ch := <-c.agent.reloadCh:
 		sig = syscall.SIGHUP
 		reloadErrCh = ch
 	case <-c.ShutdownCh:

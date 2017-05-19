@@ -17,14 +17,11 @@ import (
 )
 
 func TestACL_Bad_Config(t *testing.T) {
-	config := nextConfig()
-	config.ACLDownPolicy = "nope"
+	c := nextConfig()
+	c.ACLDownPolicy = "nope"
+	c.DataDir = testutil.TempDir(t, "agent")
 
-	var err error
-	config.DataDir = testutil.TempDir(t, "agent")
-	defer os.RemoveAll(config.DataDir)
-
-	_, err = Create(config, nil, nil, nil)
+	_, err := NewAgent(c)
 	if err == nil || !strings.Contains(err.Error(), "invalid ACL down policy") {
 		t.Fatalf("err: %v", err)
 	}
