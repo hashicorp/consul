@@ -220,7 +220,7 @@ $ curl \
     https://consul.rocks/v1/catalog/datacenters
 ```
 
-### Sample Respons
+### Sample Response
 
 ```json
 ["dc1", "dc2"]
