@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -35,6 +36,7 @@ func TempDir(t *testing.T, name string) string {
 	if t != nil && t.Name() != "" {
 		name = t.Name() + "-" + name
 	}
+	name = strings.Replace(name, "/", "_", -1)
 	d, err := ioutil.TempDir(tmpdir, name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
