@@ -20,8 +20,6 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-var offset uint64
-
 func init() {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
@@ -29,25 +27,23 @@ func init() {
 	version.Version = "0.8.0"
 }
 
-type agentWrapper struct {
-	dir      string
-	config   *agent.Config
+type server struct {
 	agent    *agent.Agent
-	http     *agent.HTTPServer
+	config   *agent.Config
 	httpAddr string
+	dir      string
 }
 
-func (a *agentWrapper) Shutdown() {
+func (a *server) Shutdown() {
 	a.agent.Shutdown()
-	a.http.Shutdown()
 	os.RemoveAll(a.dir)
 }
 
-func testAgent(t *testing.T) *agentWrapper {
+func testAgent(t *testing.T) *server {
 	return testAgentWithConfig(t, nil)
 }
 
-func testAgentWithAPIClient(t *testing.T) (*agentWrapper, *api.Client) {
+func testAgentWithAPIClient(t *testing.T) (*server, *api.Client) {
 	agent := testAgentWithConfig(t, func(c *agent.Config) {})
 	client, err := api.NewClient(&api.Config{Address: agent.httpAddr})
 	if err != nil {
@@ -56,71 +52,54 @@ func testAgentWithAPIClient(t *testing.T) (*agentWrapper, *api.Client) {
 	return agent, client
 }
 
-func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
+func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *server {
 	return testAgentWithConfigReload(t, cb, nil)
 }
 
-func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh chan chan error) *agentWrapper {
-	lw := logger.NewLogWriter(512)
+func testAgentWithConfigReload(t *testing.T, cb func(c *agent.Config), reloadCh chan chan error) *server {
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
 	}
 
-	dir := testutil.TempDir(t, "agent")
-	conf.DataDir = dir
-
-	a, err := agent.Create(conf, lw, nil, reloadCh)
+	conf.DataDir = testutil.TempDir(t, "agent")
+	a, err := agent.Create(conf, logger.NewLogWriter(512), nil, reloadCh)
 	if err != nil {
-		os.RemoveAll(dir)
-		t.Fatalf(fmt.Sprintf("err: %v", err))
+		os.RemoveAll(conf.DataDir)
+		t.Fatalf("err: %v", err)
 	}
 
 	conf.Addresses.HTTP = "127.0.0.1"
-	httpAddr := fmt.Sprintf("127.0.0.1:%d", conf.Ports.HTTP)
-	http, err := agent.NewHTTPServers(a)
-	if err != nil {
-		os.RemoveAll(dir)
-		t.Fatalf(fmt.Sprintf("err: %v", err))
-	}
-
-	if http == nil || len(http) == 0 {
-		os.RemoveAll(dir)
-		t.Fatalf(fmt.Sprintf("Could not create HTTP server to listen on: %s", httpAddr))
-	}
-
-	return &agentWrapper{
-		dir:      dir,
-		config:   conf,
-		agent:    a,
-		http:     http[0],
-		httpAddr: httpAddr,
-	}
+	addr := fmt.Sprintf("%s:%d", conf.Addresses.HTTP, conf.Ports.HTTP)
+	return &server{agent: a, config: conf, httpAddr: addr, dir: conf.DataDir}
 }
 
-func nextConfig() *agent.Config {
-	idx := int(atomic.AddUint64(&offset, 1))
-	conf := agent.DefaultConfig()
+var nextPort uint64 = 10000
 
+func nextConfig() *agent.Config {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
 	}
 
+	port := int(atomic.AddUint64(&nextPort, 10))
+
+	conf := agent.DefaultConfig()
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
-	conf.NodeName = fmt.Sprintf("Node %d", idx)
+	conf.NodeName = fmt.Sprintf("Node %d", port)
 	conf.NodeID = types.NodeID(nodeID)
 	conf.BindAddr = "127.0.0.1"
 	conf.Server = true
-
 	conf.Version = version.Version
-
-	conf.Ports.HTTP = 10000 + 10*idx
-	conf.Ports.HTTPS = 10401 + 10*idx
-	conf.Ports.SerfLan = 10201 + 10*idx
-	conf.Ports.SerfWan = 10202 + 10*idx
-	conf.Ports.Server = 10300 + 10*idx
+	conf.Ports = agent.PortConfig{
+		DNS:     port + 1,
+		HTTP:    port + 2,
+		HTTPS:   port + 3,
+		SerfLan: port + 4,
+		SerfWan: port + 5,
+		Server:  port + 6,
+	}
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons

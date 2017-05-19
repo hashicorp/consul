@@ -98,7 +98,6 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -175,7 +174,6 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 func TestHealthNodeChecks(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -212,7 +210,6 @@ func TestHealthNodeChecks(t *testing.T) {
 func TestHealthServiceChecks(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -266,7 +263,6 @@ func TestHealthServiceChecks(t *testing.T) {
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -321,7 +317,6 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -403,7 +398,6 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 func TestHealthServiceNodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -472,7 +466,6 @@ func TestHealthServiceNodes(t *testing.T) {
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -527,7 +520,6 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -609,7 +601,6 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -656,7 +647,6 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
 	defer srv1.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
@@ -667,7 +657,6 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
 	defer srv2.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
 

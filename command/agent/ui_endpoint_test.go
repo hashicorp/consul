@@ -29,7 +29,6 @@ func TestUiIndex(t *testing.T) {
 		c.UIDir = uiDir
 	})
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Create file
@@ -41,7 +40,7 @@ func TestUiIndex(t *testing.T) {
 	// Register node
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
-	req.URL.Host = srv.listener.Addr().String()
+	req.URL.Host = srv.Addr
 
 	// Make the request
 	client := cleanhttp.DefaultClient()
@@ -66,7 +65,6 @@ func TestUiIndex(t *testing.T) {
 func TestUiNodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -106,7 +104,6 @@ func TestUiNodes(t *testing.T) {
 func TestUiNodeInfo(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")

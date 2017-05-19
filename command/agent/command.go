@@ -50,8 +50,6 @@ type Command struct {
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
 	agent             *Agent
-	httpServers       []*HTTPServer
-	dnsServer         *DNSServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -455,70 +453,6 @@ func (c *Command) readConfig() *Config {
 	return config
 }
 
-// setupAgent is used to start the agent and various interfaces
-func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logger.LogWriter) error {
-	c.UI.Output("Starting Consul agent...")
-	agent, err := Create(config, logOutput, logWriter, c.configReloadCh)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
-		return err
-	}
-	c.agent = agent
-
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
-		servers, err := NewHTTPServers(agent)
-		if err != nil {
-			agent.Shutdown()
-			c.UI.Error(fmt.Sprintf("Error starting http servers: %s", err))
-			return err
-		}
-		c.httpServers = servers
-	}
-
-	if config.Ports.DNS > 0 {
-		dnsAddr, err := config.ClientListener(config.Addresses.DNS, config.Ports.DNS)
-		if err != nil {
-			agent.Shutdown()
-			c.UI.Error(fmt.Sprintf("Invalid DNS bind address: %s", err))
-			return err
-		}
-
-		server, err := NewDNSServer(agent, &config.DNSConfig, logOutput,
-			config.Domain, dnsAddr.String(), config.DNSRecursors)
-		if err != nil {
-			agent.Shutdown()
-			c.UI.Error(fmt.Sprintf("Error starting dns server: %s", err))
-			return err
-		}
-		c.dnsServer = server
-	}
-
-	// Setup update checking
-	if !config.DisableUpdateCheck {
-		version := config.Version
-		if config.VersionPrerelease != "" {
-			version += fmt.Sprintf("-%s", config.VersionPrerelease)
-		}
-		updateParams := &checkpoint.CheckParams{
-			Product: "consul",
-			Version: version,
-		}
-		if !config.DisableAnonymousSignature {
-			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
-		}
-
-		// Schedule a periodic check with expected interval of 24 hours
-		checkpoint.CheckInterval(updateParams, 24*time.Hour, c.checkpointResults)
-
-		// Do an immediate check within the next 30 seconds
-		go func() {
-			time.Sleep(lib.RandomStagger(30 * time.Second))
-			c.checkpointResults(checkpoint.Check(updateParams))
-		}()
-	}
-	return nil
-}
-
 // checkpointResults is used to handler periodic results from our update checker
 func (c *Command) checkpointResults(results *checkpoint.CheckResponse, err error) {
 	if err != nil {
@@ -806,16 +740,39 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Create the agent
-	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
+	c.UI.Output("Starting Consul agent...")
+	agent, err := Create(config, logOutput, logWriter, c.configReloadCh)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
+	c.agent = agent
+
+	// Setup update checking
+	if !config.DisableUpdateCheck {
+		version := config.Version
+		if config.VersionPrerelease != "" {
+			version += fmt.Sprintf("-%s", config.VersionPrerelease)
+		}
+		updateParams := &checkpoint.CheckParams{
+			Product: "consul",
+			Version: version,
+		}
+		if !config.DisableAnonymousSignature {
+			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
+		}
+
+		// Schedule a periodic check with expected interval of 24 hours
+		checkpoint.CheckInterval(updateParams, 24*time.Hour, c.checkpointResults)
+
+		// Do an immediate check within the next 30 seconds
+		go func() {
+			time.Sleep(lib.RandomStagger(30 * time.Second))
+			c.checkpointResults(checkpoint.Check(updateParams))
+		}()
+	}
+
 	defer c.agent.Shutdown()
-	if c.dnsServer != nil {
-		defer c.dnsServer.Shutdown()
-	}
-	for _, server := range c.httpServers {
-		defer server.Shutdown()
-	}
 
 	// Join startup nodes if specified
 	if err := c.startupJoin(config); err != nil {
@@ -831,7 +788,6 @@ func (c *Command) Run(args []string) int {
 
 	// Get the new client http listener addr
 	var httpAddr net.Addr
-	var err error
 	if config.Ports.HTTP != -1 {
 		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	} else if config.Ports.HTTPS != -1 {

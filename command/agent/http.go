@@ -1,300 +1,161 @@
 package agent
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/mapstructure"
 )
 
-// HTTPServer is used to wrap an Agent and expose various API's
-// in a RESTful manner
+// HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
-	agent    *Agent
-	mux      *http.ServeMux
-	listener net.Listener
-	logger   *log.Logger
-	addr     string
+	*http.Server
+	agent *Agent
 }
 
-// NewHTTPServers starts new HTTP servers to provide an interface to
-// the agent.
-func NewHTTPServers(agent *Agent) ([]*HTTPServer, error) {
-	config := agent.config
-	logOutput := agent.logOutput
-
-	var servers []*HTTPServer
-
-	if config.Ports.HTTPS > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
-		if err != nil {
-			return nil, err
-		}
-
-		tlsConf := &tlsutil.Config{
-			VerifyIncoming:           config.VerifyIncoming || config.VerifyIncomingHTTPS,
-			VerifyOutgoing:           config.VerifyOutgoing,
-			CAFile:                   config.CAFile,
-			CAPath:                   config.CAPath,
-			CertFile:                 config.CertFile,
-			KeyFile:                  config.KeyFile,
-			NodeName:                 config.NodeName,
-			ServerName:               config.ServerName,
-			TLSMinVersion:            config.TLSMinVersion,
-			CipherSuites:             config.TLSCipherSuites,
-			PreferServerCipherSuites: config.TLSPreferServerCipherSuites,
-		}
-
-		tlsConfig, err := tlsConf.IncomingTLSConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
-		}
-
-		list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
-
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			addr:     httpAddr.String(),
-		}
-		srv.registerHandlers(config.EnableDebug)
-
-		// Start the server
-		go http.Serve(list, mux)
-		servers = append(servers, srv)
-	}
-
-	if config.Ports.HTTP > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
-		}
-
-		// Error if we are trying to bind a domain socket to an existing path
-		path := socketPath(config.Addresses.HTTP)
-		if path != "" {
-			if _, err := os.Stat(path); !os.IsNotExist(err) {
-				agent.logger.Printf("[WARN] agent: Replacing socket %q", path)
-			}
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return nil, fmt.Errorf("error removing socket file: %s", err)
-			}
-		}
-
-		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
-		}
-
-		var list net.Listener
-		if path != "" {
-			// Set up ownership/permission bits on the socket file
-			if err := setFilePermissions(path, config.UnixSockets); err != nil {
-				return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
-			}
-			list = ln
-		} else {
-			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
-		}
-
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			addr:     httpAddr.String(),
-		}
-		srv.registerHandlers(config.EnableDebug)
-
-		// Start the server
-		go http.Serve(list, mux)
-		servers = append(servers, srv)
-	}
-
-	return servers, nil
+func NewHTTPServer(addr string, a *Agent) *HTTPServer {
+	s := &HTTPServer{&http.Server{Addr: addr}, a}
+	s.Server.Handler = s.handler(s.agent.config.EnableDebug)
+	return s
 }
 
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by NewHttpServer so
-// dead TCP connections eventually go away.
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
+// handler is used to attach our handlers to the mux
+func (s *HTTPServer) handler(enableDebug bool) http.Handler {
+	mux := http.NewServeMux()
 
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(30 * time.Second)
-	return tc, nil
-}
-
-// Shutdown is used to shutdown the HTTP server
-func (s *HTTPServer) Shutdown() {
-	if s != nil {
-		s.logger.Printf("[DEBUG] http: Shutting down http server (%v)", s.addr)
-		s.listener.Close()
-	}
-}
-
-// handleFuncMetrics takes the given pattern and handler and wraps to produce
-// metrics based on the pattern and request.
-func (s *HTTPServer) handleFuncMetrics(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	// Get the parts of the pattern. We omit any initial empty for the
-	// leading slash, and put an underscore as a "thing" placeholder if we
-	// see a trailing slash, which means the part after is parsed. This lets
-	// us distinguish from things like /v1/query and /v1/query/<query id>.
-	var parts []string
-	for i, part := range strings.Split(pattern, "/") {
-		if part == "" {
-			if i == 0 {
-				continue
-			} else {
+	// handleFuncMetrics takes the given pattern and handler and wraps to produce
+	// metrics based on the pattern and request.
+	handleFuncMetrics := func(pattern string, handler http.HandlerFunc) {
+		// Get the parts of the pattern. We omit any initial empty for the
+		// leading slash, and put an underscore as a "thing" placeholder if we
+		// see a trailing slash, which means the part after is parsed. This lets
+		// us distinguish from things like /v1/query and /v1/query/<query id>.
+		var parts []string
+		for i, part := range strings.Split(pattern, "/") {
+			if part == "" {
+				if i == 0 {
+					continue
+				}
 				part = "_"
 			}
+			parts = append(parts, part)
 		}
-		parts = append(parts, part)
+
+		// Register the wrapper, which will close over the expensive-to-compute
+		// parts from above.
+		wrapper := func(resp http.ResponseWriter, req *http.Request) {
+			start := time.Now()
+			handler(resp, req)
+			key := append([]string{"consul", "http", req.Method}, parts...)
+			metrics.MeasureSince(key, start)
+		}
+		mux.HandleFunc(pattern, wrapper)
 	}
 
-	// Register the wrapper, which will close over the expensive-to-compute
-	// parts from above.
-	wrapper := func(resp http.ResponseWriter, req *http.Request) {
-		start := time.Now()
-		handler(resp, req)
-
-		key := append([]string{"consul", "http", req.Method}, parts...)
-		metrics.MeasureSince(key, start)
-	}
-	s.mux.HandleFunc(pattern, wrapper)
-}
-
-// registerHandlers is used to attach our handlers to the mux
-func (s *HTTPServer) registerHandlers(enableDebug bool) {
-	s.mux.HandleFunc("/", s.Index)
+	mux.HandleFunc("/", s.Index)
 
 	// API V1.
 	if s.agent.config.ACLDatacenter != "" {
-		s.handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
-		s.handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
-		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
-		s.handleFuncMetrics("/v1/acl/info/", s.wrap(s.ACLGet))
-		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
-		s.handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
-		s.handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
+		handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
+		handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
+		handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
+		handleFuncMetrics("/v1/acl/info/", s.wrap(s.ACLGet))
+		handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
+		handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
+		handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 	} else {
-		s.handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/info/", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
-		s.handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/info/", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
 	}
-	s.handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
-	s.handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	s.handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
-	s.handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
-	s.handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
-	s.handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
-	s.handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
-	s.handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
-	s.handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
-	s.handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
-	s.handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	s.handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	s.handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	s.handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	s.handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	s.handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
-	s.handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	s.handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	s.handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
-	s.handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	s.handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	s.handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	s.handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	s.handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
-	s.handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	s.handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+	handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
+	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
+	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
+	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
+	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
+	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
+	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
+	handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
+	handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
+	handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+	handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
+	handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
+	handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
+	handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
+	handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
+	handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
+	handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
+	handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
+	handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
+	handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
+	handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
+	handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
+	handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
+	handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
+	handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
+	handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
 	if !s.agent.config.DisableCoordinates {
-		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
 	} else {
-		s.handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		s.handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
 	}
-	s.handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
-	s.handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
-	s.handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	s.handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	s.handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	s.handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
-	s.handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	s.handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	s.handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
-	s.handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
-	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
-	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
-	s.handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
-	s.handleFuncMetrics("/v1/operator/autopilot/configuration", s.wrap(s.OperatorAutopilotConfiguration))
-	s.handleFuncMetrics("/v1/operator/autopilot/health", s.wrap(s.OperatorServerHealth))
-	s.handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
-	s.handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
-	s.handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
-	s.handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	s.handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
-	s.handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
-	s.handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
-	s.handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
-	s.handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
-	s.handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
-	s.handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
-	s.handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
+	handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
+	handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
+	handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
+	handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
+	handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
+	handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+	handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
+	handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
+	handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
+	handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
+	handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
+	handleFuncMetrics("/v1/operator/autopilot/configuration", s.wrap(s.OperatorAutopilotConfiguration))
+	handleFuncMetrics("/v1/operator/autopilot/health", s.wrap(s.OperatorServerHealth))
+	handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
+	handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+	handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
+	handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
+	handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
+	handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
+	handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
+	handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
+	handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
+	handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
+	handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
+	handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
 
 	// Debug endpoints.
 	if enableDebug {
-		s.handleFuncMetrics("/debug/pprof/", pprof.Index)
-		s.handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
-		s.handleFuncMetrics("/debug/pprof/profile", pprof.Profile)
-		s.handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
+		handleFuncMetrics("/debug/pprof/", pprof.Index)
+		handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
+		handleFuncMetrics("/debug/pprof/profile", pprof.Profile)
+		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
 	// Use the custom UI dir if provided.
 	if s.agent.config.UIDir != "" {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
 	} else if s.agent.config.EnableUI {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
+	return mux
 }
 
 // wrap is used to wrap functions to make them more convenient
@@ -306,7 +167,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
-			s.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
+			s.agent.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
 			resp.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -322,7 +183,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		}
 
 		handleErr := func(err error) {
-			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			code := http.StatusInternalServerError // 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
@@ -344,7 +205,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
+			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
 		}()
 		obj, err := handler(resp, req)
 		if err != nil {

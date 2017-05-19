@@ -10,7 +10,6 @@ import (
 func TestStatusLeader(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -28,7 +27,6 @@ func TestStatusLeader(t *testing.T) {
 func TestStatusPeers(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	obj, err := srv.StatusPeers(nil, nil)

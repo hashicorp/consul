@@ -17,7 +17,6 @@ import (
 func TestCatalogRegister(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -53,7 +52,6 @@ func TestCatalogRegister(t *testing.T) {
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -81,7 +79,6 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 func TestCatalogDeregister(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -103,7 +100,6 @@ func TestCatalogDeregister(t *testing.T) {
 func TestCatalogDatacenters(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
@@ -122,7 +118,6 @@ func TestCatalogDatacenters(t *testing.T) {
 func TestCatalogNodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -158,7 +153,6 @@ func TestCatalogNodes(t *testing.T) {
 func TestCatalogNodes_MetaFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -206,7 +200,6 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
 	defer srv1.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
@@ -217,7 +210,6 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
 	defer srv2.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
 
@@ -302,7 +294,6 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 func TestCatalogNodes_Blocking(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -358,7 +349,6 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 func TestCatalogNodes_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -445,7 +435,6 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 func TestCatalogServices(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -483,7 +472,6 @@ func TestCatalogServices(t *testing.T) {
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -527,7 +515,6 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 func TestCatalogServiceNodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -583,7 +570,6 @@ func TestCatalogServiceNodes(t *testing.T) {
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -646,7 +632,6 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
 	defer srv1.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
@@ -657,7 +642,6 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
 	defer srv2.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
 
@@ -734,7 +718,6 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -824,7 +807,6 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 func TestCatalogNodeServices(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -867,7 +849,6 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
 	defer srv1.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
@@ -878,7 +859,6 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 			c.ACLDatacenter = ""
 		})
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
 	defer srv2.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
 

@@ -51,26 +51,13 @@ func makeHTTPServerWithACLs(t *testing.T) (string, *HTTPServer) {
 }
 
 func makeHTTPServerWithConfigLog(t *testing.T, cb func(c *Config), l io.Writer, logWriter *logger.LogWriter) (string, *HTTPServer) {
-	configTry := 0
-RECONF:
-	configTry++
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
 	}
 
 	dir, agent := makeAgentLog(t, conf, l, logWriter)
-	servers, err := NewHTTPServers(agent)
-	if err != nil {
-		if configTry < 3 {
-			goto RECONF
-		}
-		t.Fatalf("err: %v", err)
-	}
-	if len(servers) == 0 {
-		t.Fatalf(fmt.Sprintf("Failed to make HTTP server"))
-	}
-	return dir, servers[0]
+	return dir, agent.httpServers[0]
 }
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
@@ -91,7 +78,6 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 		c.UnixSockets.Perms = "0777"
 	})
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Ensure the socket was created
@@ -158,12 +144,9 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
-	// Try to start the server with the same path anyways.
-	if _, err := NewHTTPServers(agent); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
+	defer agent.Shutdown()
 	// Ensure the file was replaced by the socket
 	fi, err = os.Stat(socket)
 	if err != nil {
@@ -238,7 +221,6 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	{
 		dir, srv := makeHTTPServer(t)
 		defer os.RemoveAll(dir)
-		defer srv.Shutdown()
 		defer srv.agent.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -260,7 +242,6 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		dir, srv := makeHTTPServer(t)
 		srv.agent.config.TranslateWanAddrs = true
 		defer os.RemoveAll(dir)
-		defer srv.Shutdown()
 		defer srv.agent.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -286,7 +267,6 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -313,7 +293,6 @@ func TestContentTypeIsJSON(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -336,12 +315,11 @@ func TestContentTypeIsJSON(t *testing.T) {
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Attach a custom logger so we can inspect it
 	buf := &bytes.Buffer{}
-	srv.logger = log.New(buf, "", log.LstdFlags)
+	srv.agent.logger = log.New(buf, "", log.LstdFlags)
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
@@ -367,7 +345,6 @@ func TestPrettyPrintBare(t *testing.T) {
 func testPrettyPrint(pretty string, t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	r := &structs.DirEntry{Key: "key"}
@@ -396,7 +373,6 @@ func testPrettyPrint(pretty string, t *testing.T) {
 func TestParseSource(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Default is agent's DC and no node (since the user didn't care, then
@@ -578,7 +554,7 @@ func TestEnableWebUI(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/ui/", nil)
 		// Perform the request
 		resp := httptest.NewRecorder()
-		s.mux.ServeHTTP(resp, req)
+		s.Handler.ServeHTTP(resp, req)
 
 		// Check the result
 		if resp.Code != 200 {
@@ -626,7 +602,6 @@ func httpTest(t *testing.T, f func(srv *HTTPServer)) {
 func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
 	dir, srv := makeHTTPServerWithConfig(t, cb)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
 	f(srv)

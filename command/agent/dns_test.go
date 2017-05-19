@@ -34,35 +34,25 @@ func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	return makeDNSServerConfig(t, nil, nil)
 }
 
-func makeDNSServerConfig(
-	t *testing.T,
-	agentFn func(c *Config),
-	dnsFn func(*DNSConfig)) (string, *DNSServer) {
+func makeDNSServerConfig(t *testing.T, agentFn func(c *Config), dnsFn func(*DNSConfig)) (string, *DNSServer) {
 	// Create the configs and apply the functions
-	agentConf := nextConfig()
+	c := nextConfig()
 	if agentFn != nil {
-		agentFn(agentConf)
+		agentFn(c)
 	}
-	dnsConf := &DefaultConfig().DNSConfig
+	c.DNSConfig = DefaultConfig().DNSConfig
 	if dnsFn != nil {
-		dnsFn(dnsConf)
+		dnsFn(&c.DNSConfig)
 	}
 
 	// Add in the recursor if any
-	if r := agentConf.DNSRecursor; r != "" {
-		agentConf.DNSRecursors = append(agentConf.DNSRecursors, r)
+	if r := c.DNSRecursor; r != "" {
+		c.DNSRecursors = append(c.DNSRecursors, r)
 	}
 
 	// Start the server
-	addr, _ := agentConf.ClientListener(agentConf.Addresses.DNS, agentConf.Ports.DNS)
-	dir, agent := makeAgent(t, agentConf)
-	server, err := NewDNSServer(agent, dnsConf, agent.logOutput,
-		agentConf.Domain, addr.String(), agentConf.DNSRecursors)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	return dir, server
+	dir, agent := makeAgent(t, c)
+	return dir, agent.dnsServers[0]
 }
 
 // makeRecursor creates a generic DNS server which always returns
@@ -1283,7 +1273,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 			c.ACLDatacenter = ""
 		}, nil)
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
 
 	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
@@ -1291,7 +1281,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 		c.ACLDatacenter = ""
 	}, nil)
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
@@ -2421,6 +2411,9 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 		}
 
 		// Only 1 is passing, so we should only get 1 answer
+		for _, a := range in.Answer {
+			fmt.Println(question, a)
+		}
 		if len(in.Answer) != 1 {
 			t.Fatalf("Bad: %#v", in)
 		}
@@ -3364,14 +3357,14 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		c.TranslateWanAddrs = true
 	}, nil)
 	defer os.RemoveAll(dir1)
-	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
 
 	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.TranslateWanAddrs = true
 	}, nil)
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
 	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")

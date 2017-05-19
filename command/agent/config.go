@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -760,6 +761,47 @@ type Config struct {
 	DeprecatedAtlasEndpoint       string `mapstructure:"atlas_endpoint" json:"-"`
 }
 
+// IncomingTLSConfig returns the TLS configuration for TLS
+// connections to consul.
+func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
+	tc := &tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+	}
+	return tc.IncomingTLSConfig()
+}
+
+// HTTPAddrs returns the bind addresses for the HTTP server and
+// the application protocol which should be served, e.g. 'http'
+// or 'https'.
+func (c *Config) HTTPAddrs() (map[string][]net.Addr, error) {
+	m := map[string][]net.Addr{}
+	if c.Ports.HTTP > 0 {
+		a, err := c.ClientListener(c.Addresses.HTTP, c.Ports.HTTP)
+		if err != nil {
+			return nil, err
+		}
+		m["http"] = []net.Addr{a}
+	}
+	if c.Ports.HTTPS > 0 {
+		a, err := c.ClientListener(c.Addresses.HTTPS, c.Ports.HTTPS)
+		if err != nil {
+			return nil, err
+		}
+		m["https"] = []net.Addr{a}
+	}
+	return m, nil
+}
+
 // Bool is used to initialize bool pointers in struct literals.
 func Bool(b bool) *bool {
 	return &b
@@ -914,13 +956,10 @@ func (c *Config) EncryptBytes() ([]byte, error) {
 // ClientListener is used to format a listener for a
 // port on a ClientAddr
 func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
-	var addr string
+	addr := c.ClientAddr
 	if override != "" {
 		addr = override
-	} else {
-		addr = c.ClientAddr
 	}
-
 	if path := socketPath(addr); path != "" {
 		return &net.UnixAddr{Name: path, Net: "unix"}, nil
 	}

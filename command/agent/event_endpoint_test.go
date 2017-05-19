@@ -178,7 +178,6 @@ func TestEventList_Filter(t *testing.T) {
 func TestEventList_ACLFilter(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Fire an event.

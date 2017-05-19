@@ -15,7 +15,6 @@ import (
 func TestCoordinate_Datacenters(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -39,7 +38,6 @@ func TestCoordinate_Datacenters(t *testing.T) {
 func TestCoordinate_Nodes(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")

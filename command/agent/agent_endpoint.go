@@ -223,7 +223,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 // only warn because the write did succeed and anti-entropy will sync later.
 func (s *HTTPServer) syncChanges() {
 	if err := s.agent.state.syncChanges(); err != nil {
-		s.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+		s.agent.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
 	}
 }
 
@@ -654,7 +654,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	handler := &httpLogHandler{
 		filter: filter,
 		logCh:  make(chan string, 512),
-		logger: s.logger,
+		logger: s.agent.logger,
 	}
 	s.agent.logWriter.RegisterHandler(handler)
 	defer s.agent.logWriter.DeregisterHandler(handler)

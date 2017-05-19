@@ -43,7 +43,6 @@ func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
 func TestAgent_Services(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -71,7 +70,6 @@ func TestAgent_Services(t *testing.T) {
 func TestAgent_Services_ACLFilter(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -102,7 +100,6 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 func TestAgent_Checks(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk1 := &structs.HealthCheck{
@@ -130,7 +127,6 @@ func TestAgent_Checks(t *testing.T) {
 func TestAgent_Checks_ACLFilter(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk1 := &structs.HealthCheck{
@@ -174,7 +170,6 @@ func TestAgent_Self(t *testing.T) {
 		conf.Meta = meta
 	})
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
@@ -216,7 +211,6 @@ func TestAgent_Self(t *testing.T) {
 func TestAgent_Self_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -285,7 +279,10 @@ func TestAgent_Reload(t *testing.T) {
 	}()
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(cmd.httpServers), 1; got != want {
+		if cmd == nil || cmd.agent == nil {
+			r.Fatal("waiting for agent")
+		}
+		if got, want := len(cmd.agent.httpServers), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
 	})
@@ -299,7 +296,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	srv := cmd.httpServers[0]
+	srv := cmd.agent.httpServers[0]
 	req, _ := http.NewRequest("PUT", "/v1/agent/reload", nil)
 	if _, err := srv.AgentReload(nil, req); err != nil {
 		t.Fatalf("Err: %v", err)
@@ -313,7 +310,6 @@ func TestAgent_Reload(t *testing.T) {
 func TestAgent_Reload_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -340,7 +336,6 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 func TestAgent_Members(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
@@ -361,7 +356,6 @@ func TestAgent_Members(t *testing.T) {
 func TestAgent_Members_WAN(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/members?wan=true", nil)
@@ -382,7 +376,6 @@ func TestAgent_Members_WAN(t *testing.T) {
 func TestAgent_Members_ACLFilter(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -413,7 +406,6 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 func TestAgent_Join(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	dir2, a2 := makeAgent(t, nextConfig())
@@ -444,7 +436,6 @@ func TestAgent_Join(t *testing.T) {
 func TestAgent_Join_WAN(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	dir2, a2 := makeAgent(t, nextConfig())
@@ -475,7 +466,6 @@ func TestAgent_Join_WAN(t *testing.T) {
 func TestAgent_Join_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	dir2, a2 := makeAgent(t, nextConfig())
@@ -510,7 +500,6 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 func TestAgent_Leave(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	dir2, srv2 := makeHTTPServerWithConfig(t, func(c *Config) {
@@ -518,7 +507,7 @@ func TestAgent_Leave(t *testing.T) {
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
-	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", srv2.agent.config.Ports.SerfLan)
@@ -547,7 +536,6 @@ func TestAgent_Leave(t *testing.T) {
 func TestAgent_Leave_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -578,7 +566,6 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 func TestAgent_ForceLeave(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	dir2, a2 := makeAgent(t, nextConfig())
@@ -615,7 +602,6 @@ func TestAgent_ForceLeave(t *testing.T) {
 func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -644,7 +630,6 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 func TestAgent_RegisterCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register node
@@ -686,7 +671,6 @@ func TestAgent_RegisterCheck(t *testing.T) {
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register node
@@ -723,7 +707,6 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register node
@@ -745,7 +728,6 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	args := &CheckDefinition{
@@ -771,7 +753,6 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 func TestAgent_DeregisterCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -798,7 +779,6 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -824,7 +804,6 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 func TestAgent_PassCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -852,7 +831,6 @@ func TestAgent_PassCheck(t *testing.T) {
 func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -879,7 +857,6 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 func TestAgent_WarnCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -907,7 +884,6 @@ func TestAgent_WarnCheck(t *testing.T) {
 func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -934,7 +910,6 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 func TestAgent_FailCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -962,7 +937,6 @@ func TestAgent_FailCheck(t *testing.T) {
 func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -989,7 +963,6 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 func TestAgent_UpdateCheck(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -1089,7 +1062,6 @@ func TestAgent_UpdateCheck(t *testing.T) {
 func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -1118,7 +1090,6 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	args := &ServiceDefinition{
@@ -1171,7 +1142,6 @@ func TestAgent_RegisterService(t *testing.T) {
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	args := &ServiceDefinition{
@@ -1209,7 +1179,6 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
@@ -1238,7 +1207,6 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 func TestAgent_DeregisterService(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	service := &structs.NodeService{
@@ -1271,7 +1239,6 @@ func TestAgent_DeregisterService(t *testing.T) {
 func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	service := &structs.NodeService{
@@ -1300,7 +1267,6 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("not PUT", func(t *testing.T) {
@@ -1351,7 +1317,6 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register the service
@@ -1394,7 +1359,6 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register the service
@@ -1431,7 +1395,6 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Register the service.
@@ -1461,7 +1424,6 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Fails on non-PUT
@@ -1488,7 +1450,6 @@ func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Force the node into maintenance mode
@@ -1521,7 +1482,6 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Force the node into maintenance mode
@@ -1546,7 +1506,6 @@ func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	t.Run("no token", func(t *testing.T) {
@@ -1567,7 +1526,6 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 func TestAgent_RegisterCheck_Service(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	args := &ServiceDefinition{
@@ -1616,7 +1574,6 @@ func TestAgent_Monitor(t *testing.T) {
 
 	dir, srv := makeHTTPServerWithConfigLog(t, nil, logger, logWriter)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Try passing an invalid log level
@@ -1678,7 +1635,6 @@ func (r *closableRecorder) CloseNotify() <-chan bool {
 func TestAgent_Monitor_ACLDeny(t *testing.T) {
 	dir, srv := makeHTTPServerWithACLs(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	// Try without a token.

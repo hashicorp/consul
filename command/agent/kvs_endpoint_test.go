@@ -16,7 +16,6 @@ import (
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -78,7 +77,6 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 func TestKVSEndpoint_Recurse(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -157,7 +155,6 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -226,7 +223,6 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 func TestKVSEndpoint_CAS(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
@@ -305,7 +301,6 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 func TestKVSEndpoint_ListKeys(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
 	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")

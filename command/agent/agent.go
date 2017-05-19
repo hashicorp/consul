@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -141,27 +143,62 @@ type Agent struct {
 	// agent methods use this, so use with care and never override
 	// outside of a unit test.
 	endpoints map[string]string
+
+	// dnsAddr is the address the DNS server binds to
+	dnsAddr net.Addr
+
+	// dnsServer provides the DNS API
+	dnsServers []*DNSServer
+
+	// httpAddrs are the addresses per protocol the HTTP server binds to
+	httpAddrs map[string][]net.Addr
+
+	// httpServers provides the HTTP API on various endpoints
+	httpServers []*HTTPServer
+
+	// wgServers is the wait group for all HTTP and DNS servers
+	wgServers sync.WaitGroup
 }
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
-	// Ensure we have a log sink
+func Create(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
+	a, err := NewAgent(c, logOutput, logWriter, reloadCh)
+	if err != nil {
+		return nil, err
+	}
+	if err := a.Start(); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func NewAgent(c *Config, logOutput io.Writer, logWriter *logger.LogWriter, reloadCh chan chan error) (*Agent, error) {
 	if logOutput == nil {
 		logOutput = os.Stderr
 	}
-
-	// Validate the config
-	if config.Datacenter == "" {
+	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
-	if config.DataDir == "" && !config.DevMode {
+	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
+	dnsAddr, err := c.ClientListener(c.Addresses.DNS, c.Ports.DNS)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid DNS bind address: %s", err)
+	}
+	httpAddrs, err := c.HTTPAddrs()
+	if err != nil {
+		return nil, fmt.Errorf("Invalid HTTP bind address: %s", err)
+	}
+	acls, err := newACLManager(c)
+	if err != nil {
+		return nil, err
+	}
 
-	agent := &Agent{
-		config:         config,
-		logger:         log.New(logOutput, "", log.LstdFlags),
+	a := &Agent{
+		config:         c,
+		acls:           acls,
 		logOutput:      logOutput,
 		logWriter:      logWriter,
 		checkReapAfter: make(map[types.CheckID]time.Duration),
@@ -175,79 +212,200 @@ func Create(config *Config, logOutput io.Writer, logWriter *logger.LogWriter, re
 		reloadCh:       reloadCh,
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
+		dnsAddr:        dnsAddr,
+		httpAddrs:      httpAddrs,
 	}
-	if err := agent.resolveTmplAddrs(); err != nil {
+	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
 	}
+	return a, nil
+}
 
-	// Initialize the ACL manager.
-	acls, err := newACLManager(config)
-	if err != nil {
-		return nil, err
-	}
-	agent.acls = acls
+func (a *Agent) Start() error {
+	c := a.config
+
+	a.logger = log.New(a.logOutput, "", log.LstdFlags)
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
-	if err := agent.setupNodeID(config); err != nil {
-		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
+	if err := a.setupNodeID(c); err != nil {
+		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
 	// Initialize the local state.
-	agent.state.Init(config, agent.logger)
+	a.state.Init(c, a.logger)
 
 	// Setup either the client or the server.
-	if config.Server {
-		err = agent.setupServer()
-		agent.state.SetIface(agent.delegate)
+	if c.Server {
+		server, err := a.makeServer()
+		if err != nil {
+			return err
+		}
+
+		a.delegate = server
+		a.state.SetIface(server)
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
 			Service: consul.ConsulServiceName,
 			ID:      consul.ConsulServiceID,
-			Port:    agent.config.Ports.Server,
+			Port:    c.Ports.Server,
 			Tags:    []string{},
 		}
 
-		agent.state.AddService(&consulService, agent.config.GetTokenForAgent())
+		a.state.AddService(&consulService, c.GetTokenForAgent())
 	} else {
-		err = agent.setupClient()
-		agent.state.SetIface(agent.delegate)
-	}
-	if err != nil {
-		return nil, err
+		client, err := a.makeClient()
+		if err != nil {
+			return err
+		}
+
+		a.delegate = client
+		a.state.SetIface(client)
 	}
 
 	// Load checks/services/metadata.
-	if err := agent.loadServices(config); err != nil {
-		return nil, err
+	if err := a.loadServices(c); err != nil {
+		return err
 	}
-	if err := agent.loadChecks(config); err != nil {
-		return nil, err
+	if err := a.loadChecks(c); err != nil {
+		return err
 	}
-	if err := agent.loadMetadata(config); err != nil {
-		return nil, err
+	if err := a.loadMetadata(c); err != nil {
+		return err
 	}
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
-	go agent.reapServices()
+	go a.reapServices()
 
 	// Start handling events.
-	go agent.handleEvents()
+	go a.handleEvents()
 
 	// Start sending network coordinate to the server.
-	if !config.DisableCoordinates {
-		go agent.sendCoordinate()
+	if !c.DisableCoordinates {
+		go a.sendCoordinate()
 	}
 
 	// Write out the PID file if necessary.
-	err = agent.storePid()
-	if err != nil {
-		return nil, err
+	if err := a.storePid(); err != nil {
+		return err
 	}
 
-	return agent, nil
+	// start dns server
+	if c.Ports.DNS > 0 {
+		srv, err := NewDNSServer(a, &c.DNSConfig, a.logOutput, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
+		if err != nil {
+			return fmt.Errorf("error starting DNS server: %s", err)
+		}
+		a.dnsServers = []*DNSServer{srv}
+	}
+
+	// start HTTP servers
+	return a.startHTTP(a.httpAddrs)
+}
+
+func (a *Agent) startHTTP(httpAddrs map[string][]net.Addr) error {
+	// ln contains the list of pending listeners until the
+	// actual server is created and the listeners are used.
+	var ln []net.Listener
+
+	// cleanup the listeners on error. ln should be empty on success.
+	defer func() {
+		for _, l := range ln {
+			l.Close()
+		}
+	}()
+
+	// bind to the listeners for all addresses and protocols
+	// before we start the servers so that we can fail early
+	// if we can't bind to one of the addresses.
+	for proto, addrs := range httpAddrs {
+		for _, addr := range addrs {
+			switch addr.(type) {
+			case *net.UnixAddr:
+				switch proto {
+				case "http":
+					if _, err := os.Stat(addr.String()); !os.IsNotExist(err) {
+						a.logger.Printf("[WARN] agent: Replacing socket %q", addr.String())
+					}
+					l, err := ListenUnix(addr.String(), a.config.UnixSockets)
+					if err != nil {
+						return err
+					}
+					ln = append(ln, l)
+
+				default:
+					return fmt.Errorf("invalid protocol: %q", proto)
+				}
+
+			case *net.TCPAddr:
+				switch proto {
+				case "http":
+					l, err := ListenTCP(addr.String())
+					if err != nil {
+						return err
+					}
+					ln = append(ln, l)
+
+				case "https":
+					tlscfg, err := a.config.IncomingTLSConfig()
+					if err != nil {
+						return fmt.Errorf("invalid TLS configuration: %s", err)
+					}
+					l, err := ListenTLS(addr.String(), tlscfg)
+					if err != nil {
+						return err
+					}
+					ln = append(ln, l)
+
+				default:
+					return fmt.Errorf("invalid protocol: %q", proto)
+				}
+
+			default:
+				return fmt.Errorf("invalid address type: %T", addr)
+			}
+		}
+	}
+
+	// https://github.com/golang/go/issues/20239
+	//
+	// In go1.8.1 there is a race between Serve and Shutdown. If
+	// Shutdown is called before the Serve go routine was scheduled then
+	// the Serve go routine never returns. This deadlocks the agent
+	// shutdown for some tests since it will wait forever.
+	//
+	// We solve this with another WaitGroup which checks that the Serve
+	// go routine was called and after that it should be safe to call
+	// Shutdown on that server.
+	var up sync.WaitGroup
+	for _, l := range ln {
+		l := l // capture loop var
+
+		// create a server per listener instead of a single
+		// server with multiple listeners to take advantage
+		// of the Addr field for logging. Since the server
+		// does not keep state and they all share the same
+		// agent there is no overhead.
+		addr := l.Addr().String()
+		srv := NewHTTPServer(addr, a)
+		a.httpServers = append(a.httpServers, srv)
+
+		up.Add(1)
+		a.wgServers.Add(1)
+		go func() {
+			defer a.wgServers.Done()
+			up.Done()
+			a.logger.Printf("[INFO] agent: Starting HTTP server on %s", addr)
+			if err := srv.Serve(l); err != nil && err != http.ErrServerClosed {
+				a.logger.Print(err)
+			}
+		}()
+	}
+	up.Wait()
+	ln = nil
+	return nil
 }
 
 // consulConfig is used to return a consul configuration
@@ -612,38 +770,36 @@ func (a *Agent) resolveTmplAddrs() error {
 	return nil
 }
 
-// setupServer is used to initialize the Consul server
-func (a *Agent) setupServer() error {
+// makeServer creates a new consul server.
+func (a *Agent) makeServer() (*consul.Server, error) {
 	config, err := a.consulConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := a.setupKeyrings(config); err != nil {
-		return fmt.Errorf("Failed to configure keyring: %v", err)
+		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 	server, err := consul.NewServer(config)
 	if err != nil {
-		return fmt.Errorf("Failed to start Consul server: %v", err)
+		return nil, fmt.Errorf("Failed to start Consul server: %v", err)
 	}
-	a.delegate = server
-	return nil
+	return server, nil
 }
 
-// setupClient is used to initialize the Consul client
-func (a *Agent) setupClient() error {
+// makeClient creates a new consul client.
+func (a *Agent) makeClient() (*consul.Client, error) {
 	config, err := a.consulConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := a.setupKeyrings(config); err != nil {
-		return fmt.Errorf("Failed to configure keyring: %v", err)
+		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 	client, err := consul.NewClient(config)
 	if err != nil {
-		return fmt.Errorf("Failed to start Consul client: %v", err)
+		return nil, fmt.Errorf("Failed to start Consul client: %v", err)
 	}
-	a.delegate = client
-	return nil
+	return client, nil
 }
 
 // makeRandomID will generate a random UUID for a node.
@@ -830,6 +986,27 @@ func (a *Agent) Shutdown() error {
 	if a.shutdown {
 		return nil
 	}
+	a.logger.Println("[INFO] agent: Requesting shutdown")
+
+	// Stop all API endpoints
+	a.logger.Println("[INFO] agent: Stopping DNS endpoints")
+	for _, srv := range a.dnsServers {
+		srv.Shutdown()
+	}
+	for _, srv := range a.httpServers {
+		a.logger.Println("[INFO] agent: Stopping HTTP endpoint", srv.Addr)
+
+		// old behavior: just die
+		// srv.Close()
+
+		// graceful shutdown
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+		srv.Shutdown(ctx)
+	}
+	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
+	a.wgServers.Wait()
+	a.logger.Print("[INFO] agent: Endpoints down")
 
 	// Stop all the checks
 	a.checkLock.Lock()
@@ -849,8 +1026,8 @@ func (a *Agent) Shutdown() error {
 		chk.Stop()
 	}
 
-	a.logger.Println("[INFO] agent: requesting shutdown")
 	err := a.delegate.Shutdown()
+	a.logger.Print("[INFO] agent: delegate down")
 
 	pidErr := a.deletePid()
 	if pidErr != nil {
