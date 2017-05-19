@@ -713,10 +713,9 @@ func (c *Command) Run(args []string) int {
 	// Setup the channel for triggering config reloads
 	c.configReloadCh = make(chan chan error)
 
-	/* Setup telemetry
-	Aggregate on 10 second intervals for 1 minute. Expose the
-	metrics over stderr when there is a SIGUSR1 received.
-	*/
+	// Setup telemetry
+	// Aggregate on 10 second intervals for 1 minute. Expose the
+	// metrics over stderr when there is a SIGUSR1 received.
 	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(inm)
 	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
