@@ -289,8 +289,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Node:       "my-node",
 				},
 				Agent: structs.QuerySource{
-					Datacenter: a.config.Datacenter,
-					Node:       a.config.NodeName,
+					Datacenter: a.Config.Datacenter,
+					Node:       a.Config.NodeName,
 				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",
@@ -340,8 +340,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				t.Fatalf("expect node to be empty, got %q", args.Source.Node)
 			}
 			expect := structs.QuerySource{
-				Datacenter: a.config.Datacenter,
-				Node:       a.config.NodeName,
+				Datacenter: a.Config.Datacenter,
+				Node:       a.Config.NodeName,
 			}
 			if !reflect.DeepEqual(args.Agent, expect) {
 				t.Fatalf("expect: %#v\nactual: %#v", expect, args.Agent)
@@ -493,8 +493,8 @@ func TestPreparedQuery_Explain(t *testing.T) {
 					Node:       "my-node",
 				},
 				Agent: structs.QuerySource{
-					Datacenter: a.config.Datacenter,
-					Node:       a.config.NodeName,
+					Datacenter: a.Config.Datacenter,
+					Node:       a.Config.NodeName,
 				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",
@@ -808,7 +808,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 	{
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
-			Node:       a.config.NodeName,
+			Node:       a.Config.NodeName,
 			Address:    "127.0.0.1",
 			Service: &structs.NodeService{
 				Service: "my-service",

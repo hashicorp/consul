@@ -22,11 +22,11 @@ func TestSessionCreate(t *testing.T) {
 	// Create a health check
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
-		Node:       a.config.NodeName,
+		Node:       a.Config.NodeName,
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			CheckID:   "consul",
-			Node:      a.config.NodeName,
+			Node:      a.Config.NodeName,
 			Name:      "consul",
 			ServiceID: "consul",
 			Status:    api.HealthPassing,
@@ -42,7 +42,7 @@ func TestSessionCreate(t *testing.T) {
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
 		"Name":      "my-cool-session",
-		"Node":      a.config.NodeName,
+		"Node":      a.Config.NodeName,
 		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
 		"LockDelay": "20s",
 	}
@@ -68,11 +68,11 @@ func TestSessionCreateDelete(t *testing.T) {
 	// Create a health check
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
-		Node:       a.config.NodeName,
+		Node:       a.Config.NodeName,
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			CheckID:   "consul",
-			Node:      a.config.NodeName,
+			Node:      a.Config.NodeName,
 			Name:      "consul",
 			ServiceID: "consul",
 			Status:    api.HealthPassing,
@@ -88,7 +88,7 @@ func TestSessionCreateDelete(t *testing.T) {
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
 		"Name":      "my-cool-session",
-		"Node":      a.config.NodeName,
+		"Node":      a.Config.NodeName,
 		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
 		"LockDelay": "20s",
 		"Behavior":  structs.SessionKeysDelete,

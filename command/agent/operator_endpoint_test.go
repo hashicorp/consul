@@ -430,7 +430,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 		}
 		if len(out.Servers) != 1 ||
 			!out.Servers[0].Healthy ||
-			out.Servers[0].Name != a.config.NodeName ||
+			out.Servers[0].Name != a.Config.NodeName ||
 			out.Servers[0].SerfStatus != "alive" ||
 			out.FailureTolerance != 0 {
 			r.Fatalf("bad: %v", out)
@@ -464,7 +464,7 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 		}
 		if len(out.Servers) != 1 ||
 			out.Healthy ||
-			out.Servers[0].Name != a.config.NodeName {
+			out.Servers[0].Name != a.Config.NodeName {
 			r.Fatalf("bad: %#v", out.Servers)
 		}
 	})
