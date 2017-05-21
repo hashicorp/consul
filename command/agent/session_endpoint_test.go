@@ -16,93 +16,95 @@ import (
 
 func TestSessionCreate(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		// Create a health check
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       srv.agent.config.NodeName,
-			Address:    "127.0.0.1",
-			Check: &structs.HealthCheck{
-				CheckID:   "consul",
-				Node:      srv.agent.config.NodeName,
-				Name:      "consul",
-				ServiceID: "consul",
-				Status:    api.HealthPassing,
-			},
-		}
-		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		// Associate session with node and 2 health checks
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
-			"Name":      "my-cool-session",
-			"Node":      srv.agent.config.NodeName,
-			"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
-			"LockDelay": "20s",
-		}
-		enc.Encode(raw)
+	// Create a health check
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.config.NodeName,
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			CheckID:   "consul",
+			Node:      a.config.NodeName,
+			Name:      "consul",
+			ServiceID: "consul",
+			Status:    api.HealthPassing,
+		},
+	}
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	// Associate session with node and 2 health checks
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"Name":      "my-cool-session",
+		"Node":      a.config.NodeName,
+		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
+		"LockDelay": "20s",
+	}
+	enc.Encode(raw)
 
-		if _, ok := obj.(sessionCreateResponse); !ok {
-			t.Fatalf("should work")
-		}
-	})
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, ok := obj.(sessionCreateResponse); !ok {
+		t.Fatalf("should work")
+	}
 }
 
 func TestSessionCreateDelete(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		// Create a health check
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       srv.agent.config.NodeName,
-			Address:    "127.0.0.1",
-			Check: &structs.HealthCheck{
-				CheckID:   "consul",
-				Node:      srv.agent.config.NodeName,
-				Name:      "consul",
-				ServiceID: "consul",
-				Status:    api.HealthPassing,
-			},
-		}
-		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		// Associate session with node and 2 health checks, and make it delete on session destroy
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
-			"Name":      "my-cool-session",
-			"Node":      srv.agent.config.NodeName,
-			"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
-			"LockDelay": "20s",
-			"Behavior":  structs.SessionKeysDelete,
-		}
-		enc.Encode(raw)
+	// Create a health check
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.config.NodeName,
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			CheckID:   "consul",
+			Node:      a.config.NodeName,
+			Name:      "consul",
+			ServiceID: "consul",
+			Status:    api.HealthPassing,
+		},
+	}
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	// Associate session with node and 2 health checks, and make it delete on session destroy
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"Name":      "my-cool-session",
+		"Node":      a.config.NodeName,
+		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
+		"LockDelay": "20s",
+		"Behavior":  structs.SessionKeysDelete,
+	}
+	enc.Encode(raw)
 
-		if _, ok := obj.(sessionCreateResponse); !ok {
-			t.Fatalf("should work")
-		}
-	})
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, ok := obj.(sessionCreateResponse); !ok {
+		t.Fatalf("should work")
+	}
 }
 
 func TestFixupLockDelay(t *testing.T) {
@@ -189,155 +191,153 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 
 func TestSessionDestroy(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestSession(t, srv)
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionDestroy(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp := obj.(bool); !resp {
-			t.Fatalf("should work")
-		}
-	})
+	id := makeTestSession(t, a.srv)
+
+	req, _ := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionDestroy(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp := obj.(bool); !resp {
+		t.Fatalf("should work")
+	}
 }
 
 func TestSessionCustomTTL(t *testing.T) {
 	t.Parallel()
 	ttl := 250 * time.Millisecond
-	testSessionTTL(t, ttl, customTTL(ttl))
-}
+	config := TestConfig()
+	config.SessionTTLMin = ttl
+	config.SessionTTLMinRaw = ttl.String()
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
-func customTTL(d time.Duration) func(c *Config) {
-	return func(c *Config) {
-		c.SessionTTLMinRaw = d.String()
-		c.SessionTTLMin = d
+	id := makeTestSessionTTL(t, a.srv, ttl.String())
+
+	req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
-}
+	respObj, ok := obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("should work")
+	}
+	if len(respObj) != 1 {
+		t.Fatalf("bad: %v", respObj)
+	}
+	if respObj[0].TTL != ttl.String() {
+		t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+	}
 
-func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
-	httpTestWithConfig(t, func(srv *HTTPServer) {
-		TTL := ttl.String()
+	time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
 
-		id := makeTestSessionTTL(t, srv, TTL)
-
-		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-		if respObj[0].TTL != TTL {
-			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
-		}
-
-		time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
-
-		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok = obj.(structs.Sessions)
-		if len(respObj) != 0 {
-			t.Fatalf("session '%s' should have been destroyed", id)
-		}
-	}, cb)
+	req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.SessionGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok = obj.(structs.Sessions)
+	if len(respObj) != 0 {
+		t.Fatalf("session '%s' should have been destroyed", id)
+	}
 }
 
 func TestSessionTTLRenew(t *testing.T) {
 	t.Parallel()
 	ttl := 250 * time.Millisecond
-	TTL := ttl.String()
-	httpTestWithConfig(t, func(srv *HTTPServer) {
-		id := makeTestSessionTTL(t, srv, TTL)
+	config := TestConfig()
+	config.SessionTTLMin = ttl
+	config.SessionTTLMinRaw = ttl.String()
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
-		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-		if respObj[0].TTL != TTL {
-			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
-		}
+	id := makeTestSessionTTL(t, a.srv, ttl.String())
 
-		// Sleep to consume some time before renew
-		time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
+	req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok := obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("should work")
+	}
+	if len(respObj) != 1 {
+		t.Fatalf("bad: %v", respObj)
+	}
+	if respObj[0].TTL != ttl.String() {
+		t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+	}
 
-		req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionRenew(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
+	// Sleep to consume some time before renew
+	time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
 
-		// Sleep for ttl * TTL Multiplier
-		time.Sleep(ttl * structs.SessionTTLMultiplier)
+	req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.SessionRenew(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok = obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("should work")
+	}
+	if len(respObj) != 1 {
+		t.Fatalf("bad: %v", respObj)
+	}
 
-		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("session '%s' should have renewed", id)
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("session '%s' should have renewed", id)
-		}
+	// Sleep for ttl * TTL Multiplier
+	time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-		// now wait for timeout and expect session to get destroyed
-		time.Sleep(ttl * structs.SessionTTLMultiplier)
+	req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.SessionGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok = obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("session '%s' should have renewed", id)
+	}
+	if len(respObj) != 1 {
+		t.Fatalf("session '%s' should have renewed", id)
+	}
 
-		req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("session '%s' should have destroyed", id)
-		}
-		if len(respObj) != 0 {
-			t.Fatalf("session '%s' should have destroyed", id)
-		}
-	}, customTTL(ttl))
+	// now wait for timeout and expect session to get destroyed
+	time.Sleep(ttl * structs.SessionTTLMultiplier)
+
+	req, _ = http.NewRequest("GET", "/v1/session/info/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.SessionGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok = obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("session '%s' should have destroyed", id)
+	}
+	if len(respObj) != 0 {
+		t.Fatalf("session '%s' should have destroyed", id)
+	}
 }
 
 func TestSessionGet(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		obj, err := a.srv.SessionGet(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -350,12 +350,15 @@ func TestSessionGet(t *testing.T) {
 		}
 	})
 
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestSession(t, srv)
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
+		id := makeTestSession(t, a.srv)
 
 		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
+		obj, err := a.srv.SessionGet(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -371,10 +374,13 @@ func TestSessionGet(t *testing.T) {
 
 func TestSessionList(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionList(resp, req)
+		obj, err := a.srv.SessionList(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -387,15 +393,18 @@ func TestSessionList(t *testing.T) {
 		}
 	})
 
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		var ids []string
 		for i := 0; i < 10; i++ {
-			ids = append(ids, makeTestSession(t, srv))
+			ids = append(ids, makeTestSession(t, a.srv))
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionList(resp, req)
+		obj, err := a.srv.SessionList(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -411,10 +420,13 @@ func TestSessionList(t *testing.T) {
 
 func TestSessionsForNode(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		req, _ := http.NewRequest("GET", "/v1/session/node/"+srv.agent.config.NodeName, nil)
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
+		req, _ := http.NewRequest("GET", "/v1/session/node/"+a.Config.NodeName, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionsForNode(resp, req)
+		obj, err := a.srv.SessionsForNode(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -427,15 +439,18 @@ func TestSessionsForNode(t *testing.T) {
 		}
 	})
 
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		var ids []string
 		for i := 0; i < 10; i++ {
-			ids = append(ids, makeTestSession(t, srv))
+			ids = append(ids, makeTestSession(t, a.srv))
 		}
 
-		req, _ := http.NewRequest("GET", "/v1/session/node/"+srv.agent.config.NodeName, nil)
+		req, _ := http.NewRequest("GET", "/v1/session/node/"+a.Config.NodeName, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.SessionsForNode(resp, req)
+		obj, err := a.srv.SessionsForNode(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -451,40 +466,41 @@ func TestSessionsForNode(t *testing.T) {
 
 func TestSessionDeleteDestroy(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestSessionDelete(t, srv)
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		// now create a new key for the session and acquire it
-		buf := bytes.NewBuffer([]byte("test"))
-		req, _ := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
-		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	id := makeTestSessionDelete(t, a.srv)
 
-		if res := obj.(bool); !res {
-			t.Fatalf("should work")
-		}
+	// now create a new key for the session and acquire it
+	buf := bytes.NewBuffer([]byte("test"))
+	req, _ := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		// now destroy the session, this should delete the key created above
-		req, _ = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.SessionDestroy(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp := obj.(bool); !resp {
-			t.Fatalf("should work")
-		}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
 
-		// Verify that the key is gone
-		req, _ = http.NewRequest("GET", "/v1/kv/ephemeral", nil)
-		resp = httptest.NewRecorder()
-		obj, _ = srv.KVSEndpoint(resp, req)
-		res, found := obj.(structs.DirEntries)
-		if found || len(res) != 0 {
-			t.Fatalf("bad: %v found, should be nothing", res)
-		}
-	})
+	// now destroy the session, this should delete the key created above
+	req, _ = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.SessionDestroy(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp := obj.(bool); !resp {
+		t.Fatalf("should work")
+	}
+
+	// Verify that the key is gone
+	req, _ = http.NewRequest("GET", "/v1/kv/ephemeral", nil)
+	resp = httptest.NewRecorder()
+	obj, _ = a.srv.KVSEndpoint(resp, req)
+	res, found := obj.(structs.DirEntries)
+	if found || len(res) != 0 {
+		t.Fatalf("bad: %v found, should be nothing", res)
+	}
 }

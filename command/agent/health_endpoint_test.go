@@ -15,11 +15,14 @@ import (
 
 func TestHealthChecksInState(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		req, _ := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
-			obj, err := srv.HealthChecksInState(resp, req)
+			obj, err := a.srv.HealthChecksInState(resp, req)
 			if err != nil {
 				r.Fatal(err)
 			}
@@ -35,11 +38,14 @@ func TestHealthChecksInState(t *testing.T) {
 		})
 	})
 
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		req, _ := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
-			obj, err := srv.HealthChecksInState(resp, req)
+			obj, err := a.srv.HealthChecksInState(resp, req)
 			if err != nil {
 				r.Fatal(err)
 			}
@@ -58,40 +64,41 @@ func TestHealthChecksInState(t *testing.T) {
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "bar",
-			Address:    "127.0.0.1",
-			NodeMeta:   map[string]string{"somekey": "somevalue"},
-			Check: &structs.HealthCheck{
-				Node:   "bar",
-				Name:   "node check",
-				Status: api.HealthCritical,
-			},
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:   "bar",
+			Name:   "node check",
+			Status: api.HealthCritical,
+		},
+	}
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, _ := http.NewRequest("GET", "/v1/health/state/critical?node-meta=somekey:somevalue", nil)
+	retry.Run(t, func(r *retry.R) {
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthChecksInState(resp, req)
+		if err != nil {
+			r.Fatal(err)
 		}
-		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+		if err := checkIndex(resp); err != nil {
+			r.Fatal(err)
 		}
 
-		req, _ := http.NewRequest("GET", "/v1/health/state/critical?node-meta=somekey:somevalue", nil)
-		retry.Run(t, func(r *retry.R) {
-			resp := httptest.NewRecorder()
-			obj, err := srv.HealthChecksInState(resp, req)
-			if err != nil {
-				r.Fatal(err)
-			}
-			if err := checkIndex(resp); err != nil {
-				r.Fatal(err)
-			}
-
-			// Should be 1 health check for the server
-			nodes := obj.(structs.HealthChecks)
-			if len(nodes) != 1 {
-				r.Fatalf("bad: %v", obj)
-			}
-		})
+		// Should be 1 health check for the server
+		nodes := obj.(structs.HealthChecks)
+		if len(nodes) != 1 {
+			r.Fatalf("bad: %v", obj)
+		}
 	})
 }
 

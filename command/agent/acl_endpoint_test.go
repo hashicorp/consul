@@ -32,129 +32,136 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 
 func TestACLUpdate(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestACL(t, srv)
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
-			"ID":    id,
-			"Name":  "User Token 2",
-			"Type":  "client",
-			"Rules": "",
-		}
-		enc.Encode(raw)
+	id := makeTestACL(t, a.srv)
 
-		req, _ := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLUpdate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		if aclResp.ID != id {
-			t.Fatalf("bad: %v", aclResp)
-		}
-	})
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"ID":    id,
+		"Name":  "User Token 2",
+		"Type":  "client",
+		"Rules": "",
+	}
+	enc.Encode(raw)
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLUpdate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	aclResp := obj.(aclCreateResponse)
+	if aclResp.ID != id {
+		t.Fatalf("bad: %v", aclResp)
+	}
 }
 
 func TestACLUpdate_Upsert(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
-			"ID":    "my-old-id",
-			"Name":  "User Token 2",
-			"Type":  "client",
-			"Rules": "",
-		}
-		enc.Encode(raw)
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLUpdate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		if aclResp.ID != "my-old-id" {
-			t.Fatalf("bad: %v", aclResp)
-		}
-	})
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"ID":    "my-old-id",
+		"Name":  "User Token 2",
+		"Type":  "client",
+		"Rules": "",
+	}
+	enc.Encode(raw)
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLUpdate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	aclResp := obj.(aclCreateResponse)
+	if aclResp.ID != "my-old-id" {
+		t.Fatalf("bad: %v", aclResp)
+	}
 }
 
 func TestACLDestroy(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestACL(t, srv)
-		req, _ := http.NewRequest("PUT", "/v1/acl/destroy/"+id+"?token=root", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLDestroy(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp, ok := obj.(bool); !ok || !resp {
-			t.Fatalf("should work")
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ = http.NewRequest("GET", "/v1/acl/info/"+id, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.ACLGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.ACLs)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
+	id := makeTestACL(t, a.srv)
+	req, _ := http.NewRequest("PUT", "/v1/acl/destroy/"+id+"?token=root", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLDestroy(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp, ok := obj.(bool); !ok || !resp {
+		t.Fatalf("should work")
+	}
+
+	req, _ = http.NewRequest("GET", "/v1/acl/info/"+id, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.ACLGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok := obj.(structs.ACLs)
+	if !ok {
+		t.Fatalf("should work")
+	}
+	if len(respObj) != 0 {
+		t.Fatalf("bad: %v", respObj)
+	}
 }
 
 func TestACLClone(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestACL(t, srv)
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLClone(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp, ok := obj.(aclCreateResponse)
-		if !ok {
-			t.Fatalf("should work: %#v %#v", obj, resp)
-		}
-		if aclResp.ID == id {
-			t.Fatalf("bad id")
-		}
+	id := makeTestACL(t, a.srv)
 
-		req, _ = http.NewRequest("GET", "/v1/acl/info/"+aclResp.ID, nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.ACLGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.ACLs)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
+	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLClone(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	aclResp, ok := obj.(aclCreateResponse)
+	if !ok {
+		t.Fatalf("should work: %#v %#v", obj, resp)
+	}
+	if aclResp.ID == id {
+		t.Fatalf("bad id")
+	}
+
+	req, _ = http.NewRequest("GET", "/v1/acl/info/"+aclResp.ID, nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.ACLGet(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok := obj.(structs.ACLs)
+	if !ok {
+		t.Fatalf("should work")
+	}
+	if len(respObj) != 1 {
+		t.Fatalf("bad: %v", respObj)
+	}
 }
 
 func TestACLGet(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
 		req, _ := http.NewRequest("GET", "/v1/acl/info/nope", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.ACLGet(resp, req)
+		obj, err := a.srv.ACLGet(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -167,12 +174,15 @@ func TestACLGet(t *testing.T) {
 		}
 	})
 
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestACL(t, srv)
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), nil)
+		defer a.Shutdown()
+
+		id := makeTestACL(t, a.srv)
 
 		req, _ := http.NewRequest("GET", "/v1/acl/info/"+id, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.ACLGet(resp, req)
+		obj, err := a.srv.ACLGet(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -188,42 +198,44 @@ func TestACLGet(t *testing.T) {
 
 func TestACLList(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		var ids []string
-		for i := 0; i < 10; i++ {
-			ids = append(ids, makeTestACL(t, srv))
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ := http.NewRequest("GET", "/v1/acl/list?token=root", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLList(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.ACLs)
-		if !ok {
-			t.Fatalf("should work")
-		}
+	var ids []string
+	for i := 0; i < 10; i++ {
+		ids = append(ids, makeTestACL(t, a.srv))
+	}
 
-		// 10 + anonymous + master
-		if len(respObj) != 12 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
+	req, _ := http.NewRequest("GET", "/v1/acl/list?token=root", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLList(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	respObj, ok := obj.(structs.ACLs)
+	if !ok {
+		t.Fatalf("should work")
+	}
+
+	// 10 + anonymous + master
+	if len(respObj) != 12 {
+		t.Fatalf("bad: %v", respObj)
+	}
 }
 
 func TestACLReplicationStatus(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.ACLReplicationStatus(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		_, ok := obj.(structs.ACLReplicationStatus)
-		if !ok {
-			t.Fatalf("should work")
-		}
-	})
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLReplicationStatus(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, ok := obj.(structs.ACLReplicationStatus)
+	if !ok {
+		t.Fatalf("should work")
+	}
 }

@@ -481,53 +481,55 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
-	httpTest(t, func(srv *HTTPServer) {
-		// Check when no token is set
-		srv.agent.config.ACLToken = ""
-		srv.parseToken(req, &token)
-		if token != "" {
-			t.Fatalf("bad: %s", token)
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		// Check when ACLToken set
-		srv.agent.config.ACLToken = "agent"
-		srv.parseToken(req, &token)
-		if token != "agent" {
-			t.Fatalf("bad: %s", token)
-		}
+	// Check when no token is set
+	a.config.ACLToken = ""
+	a.srv.parseToken(req, &token)
+	if token != "" {
+		t.Fatalf("bad: %s", token)
+	}
 
-		// Explicit token has highest precedence
-		srv.parseToken(reqToken, &token)
-		if token != "foo" {
-			t.Fatalf("bad: %s", token)
-		}
+	// Check when ACLToken set
+	a.config.ACLToken = "agent"
+	a.srv.parseToken(req, &token)
+	if token != "agent" {
+		t.Fatalf("bad: %s", token)
+	}
 
-		// Header token has precedence over agent token
-		srv.parseToken(reqHeaderToken, &token)
-		if token != "bar" {
-			t.Fatalf("bad: %s", token)
-		}
+	// Explicit token has highest precedence
+	a.srv.parseToken(reqToken, &token)
+	if token != "foo" {
+		t.Fatalf("bad: %s", token)
+	}
 
-		// Querystring token has precedence over header and agent tokens
-		srv.parseToken(reqBothTokens, &token)
-		if token != "baz" {
-			t.Fatalf("bad: %s", token)
-		}
-	})
+	// Header token has precedence over agent token
+	a.srv.parseToken(reqHeaderToken, &token)
+	if token != "bar" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Querystring token has precedence over header and agent tokens
+	a.srv.parseToken(reqBothTokens, &token)
+	if token != "baz" {
+		t.Fatalf("bad: %s", token)
+	}
 }
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	httpTestWithConfig(t, func(s *HTTPServer) {
-		req, _ := http.NewRequest("GET", "/ui/", nil)
-		resp := httptest.NewRecorder()
-		s.Handler.ServeHTTP(resp, req)
-		if resp.Code != 200 {
-			t.Fatalf("should handle ui")
-		}
-	}, func(c *Config) {
-		c.EnableUI = true
-	})
+	conf := TestConfig()
+	conf.EnableUI = true
+	a := NewTestAgent(t.Name(), conf)
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/ui/", nil)
+	resp := httptest.NewRecorder()
+	a.srv.Handler.ServeHTTP(resp, req)
+	if resp.Code != 200 {
+		t.Fatalf("should handle ui")
+	}
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
@@ -558,20 +560,6 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 		t.Fatalf("Bad: %v", header)
 	}
 	return uint64(val)
-}
-
-func httpTest(t *testing.T, f func(srv *HTTPServer)) {
-	httpTestWithConfig(t, f, nil)
-}
-
-func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
-	c := TestConfig()
-	if cb != nil {
-		cb(c)
-	}
-	a := NewTestAgent(t.Name(), c)
-	defer a.Shutdown()
-	f(a.srv)
 }
 
 func isPermissionDenied(err error) bool {

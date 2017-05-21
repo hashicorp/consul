@@ -339,121 +339,125 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		// Acquire the lock
-		id := makeTestSession(t, srv)
-		req, _ := http.NewRequest("PUT", "/v1/kv/test?acquire="+id, bytes.NewReader(nil))
-		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if res := obj.(bool); !res {
-			t.Fatalf("should work")
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		// Verify we have the lock
-		req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		d := obj.(structs.DirEntries)[0]
+	// Acquire the lock
+	id := makeTestSession(t, a.srv)
+	req, _ := http.NewRequest("PUT", "/v1/kv/test?acquire="+id, bytes.NewReader(nil))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
 
-		// Check the flags
-		if d.Session != id {
-			t.Fatalf("bad: %v", d)
-		}
+	// Verify we have the lock
+	req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d := obj.(structs.DirEntries)[0]
 
-		// Release the lock
-		req, _ = http.NewRequest("PUT", "/v1/kv/test?release="+id, bytes.NewReader(nil))
-		resp = httptest.NewRecorder()
-		obj, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if res := obj.(bool); !res {
-			t.Fatalf("should work")
-		}
+	// Check the flags
+	if d.Session != id {
+		t.Fatalf("bad: %v", d)
+	}
 
-		// Verify we do not have the lock
-		req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		d = obj.(structs.DirEntries)[0]
+	// Release the lock
+	req, _ = http.NewRequest("PUT", "/v1/kv/test?release="+id, bytes.NewReader(nil))
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
 
-		// Check the flags
-		if d.Session != "" {
-			t.Fatalf("bad: %v", d)
-		}
-	})
+	// Verify we do not have the lock
+	req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = obj.(structs.DirEntries)[0]
+
+	// Check the flags
+	if d.Session != "" {
+		t.Fatalf("bad: %v", d)
+	}
 }
 
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		buf := bytes.NewBuffer([]byte("test"))
-		req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
-		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if res := obj.(bool); !res {
-			t.Fatalf("should work")
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		req, _ = http.NewRequest("GET", "/v1/kv/test?raw", nil)
-		resp = httptest.NewRecorder()
-		obj, err = srv.KVSEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		assertIndex(t, resp)
+	buf := bytes.NewBuffer([]byte("test"))
+	req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
 
-		// Check the body
-		if !bytes.Equal(resp.Body.Bytes(), []byte("test")) {
-			t.Fatalf("bad: %s", resp.Body.Bytes())
-		}
-	})
+	req, _ = http.NewRequest("GET", "/v1/kv/test?raw", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Check the body
+	if !bytes.Equal(resp.Body.Bytes(), []byte("test")) {
+		t.Fatalf("bad: %s", resp.Body.Bytes())
+	}
 }
 
 func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		req, _ := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
-		resp := httptest.NewRecorder()
-		if _, err := srv.KVSEndpoint(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		if resp.Code != 400 {
-			t.Fatalf("expected 400, got %d", resp.Code)
-		}
-		if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
-			t.Fatalf("expected conflicting args error")
-		}
-	})
+	req, _ := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
+	resp := httptest.NewRecorder()
+	if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if resp.Code != 400 {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+	if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
+		t.Fatalf("expected conflicting args error")
+	}
 }
 
 func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 	t.Parallel()
-	httpTest(t, func(srv *HTTPServer) {
-		req, _ := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
-		resp := httptest.NewRecorder()
-		if _, err := srv.KVSEndpoint(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-		if resp.Code != 400 {
-			t.Fatalf("expected 400, got %d", resp.Code)
-		}
-		if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
-			t.Fatalf("expected conflicting args error")
-		}
-	})
+	req, _ := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
+	resp := httptest.NewRecorder()
+	if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if resp.Code != 400 {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+	if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
+		t.Fatalf("expected conflicting args error")
+	}
 }
