@@ -7,6 +7,7 @@ import (
 )
 
 func TestVerifyWatchHandler(t *testing.T) {
+	t.Parallel()
 	if err := verifyWatchHandler(nil); err == nil {
 		t.Fatalf("should err")
 	}
@@ -22,6 +23,7 @@ func TestVerifyWatchHandler(t *testing.T) {
 }
 
 func TestMakeWatchHandler(t *testing.T) {
+	t.Parallel()
 	defer os.Remove("handler_out")
 	defer os.Remove("handler_index_out")
 	script := "echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out"

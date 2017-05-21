@@ -25,10 +25,12 @@ func baseCommand(ui *cli.MockUi) base.Command {
 }
 
 func TestCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = new(Command)
 }
 
 func TestValidDatacenter(t *testing.T) {
+	t.Parallel()
 	shouldMatch := []string{
 		"dc1",
 		"east-aws-001",
@@ -53,6 +55,7 @@ func TestValidDatacenter(t *testing.T) {
 
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		args []string
 		out  string
@@ -98,6 +101,7 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -158,6 +162,7 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
+	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -286,6 +291,7 @@ func TestReadCliConfig(t *testing.T) {
 }
 
 func TestRetryJoinFail(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
@@ -314,6 +320,7 @@ func TestRetryJoinFail(t *testing.T) {
 }
 
 func TestRetryJoinWanFail(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
@@ -343,6 +350,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 }
 
 func TestDiscoverEC2Hosts(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("AWS_REGION") == "" {
 		t.Skip("AWS_REGION not set, skipping")
 	}
@@ -373,6 +381,7 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 }
 
 func TestDiscoverGCEHosts(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("GCE_PROJECT") == "" {
 		t.Skip("GCE_PROJECT not set, skipping")
 	}
@@ -436,6 +445,7 @@ func TestDiscoverAzureHosts(t *testing.T) {
 }
 
 func TestProtectDataDir(t *testing.T) {
+	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 
@@ -466,6 +476,7 @@ func TestProtectDataDir(t *testing.T) {
 }
 
 func TestBadDataDirPermissions(t *testing.T) {
+	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 

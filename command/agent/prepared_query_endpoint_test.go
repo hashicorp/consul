@@ -69,6 +69,7 @@ func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 }
 
 func TestPreparedQuery_Create(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -151,6 +152,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 }
 
 func TestPreparedQuery_List(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -227,6 +229,7 @@ func TestPreparedQuery_List(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -445,6 +448,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 }
 
 func TestPreparedQuery_Explain(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -511,6 +515,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 }
 
 func TestPreparedQuery_Get(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -570,6 +575,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 }
 
 func TestPreparedQuery_Update(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -646,6 +652,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 }
 
 func TestPreparedQuery_Delete(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
@@ -692,6 +699,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 }
 
 func TestPreparedQuery_BadMethods(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("DELETE", "/v1/query", body)
@@ -718,6 +726,7 @@ func TestPreparedQuery_BadMethods(t *testing.T) {
 }
 
 func TestPreparedQuery_parseLimit(t *testing.T) {
+	t.Parallel()
 	body := bytes.NewBuffer(nil)
 	req, _ := http.NewRequest("GET", "/v1/query", body)
 	limit := 99
@@ -746,6 +755,7 @@ func TestPreparedQuery_parseLimit(t *testing.T) {
 // this is just a basic end-to-end sanity check to make sure things are wired
 // correctly when calling through to the real endpoints.
 func TestPreparedQuery_Integration(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Register a node and a service.
 		{

@@ -15,6 +15,7 @@ import (
 )
 
 func TestSessionCreate(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Create a health check
 		args := &structs.RegisterRequest{
@@ -59,6 +60,7 @@ func TestSessionCreate(t *testing.T) {
 }
 
 func TestSessionCreateDelete(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		// Create a health check
 		args := &structs.RegisterRequest{
@@ -104,6 +106,7 @@ func TestSessionCreateDelete(t *testing.T) {
 }
 
 func TestFixupLockDelay(t *testing.T) {
+	t.Parallel()
 	inp := map[string]interface{}{
 		"lockdelay": float64(15),
 	}
@@ -185,6 +188,7 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 }
 
 func TestSessionDestroy(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
 
@@ -201,6 +205,7 @@ func TestSessionDestroy(t *testing.T) {
 }
 
 func TestSessionCustomTTL(t *testing.T) {
+	t.Parallel()
 	ttl := 250 * time.Millisecond
 	testSessionTTL(t, ttl, customTTL(ttl))
 }
@@ -251,6 +256,7 @@ func testSessionTTL(t *testing.T, ttl time.Duration, cb func(c *Config)) {
 }
 
 func TestSessionTTLRenew(t *testing.T) {
+	t.Parallel()
 	ttl := 250 * time.Millisecond
 	TTL := ttl.String()
 	httpTestWithConfig(t, func(srv *HTTPServer) {
@@ -327,6 +333,7 @@ func TestSessionTTLRenew(t *testing.T) {
 }
 
 func TestSessionGet(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
 		resp := httptest.NewRecorder()
@@ -363,6 +370,7 @@ func TestSessionGet(t *testing.T) {
 }
 
 func TestSessionList(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
 		resp := httptest.NewRecorder()
@@ -402,6 +410,7 @@ func TestSessionList(t *testing.T) {
 }
 
 func TestSessionsForNode(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, _ := http.NewRequest("GET", "/v1/session/node/"+srv.agent.config.NodeName, nil)
 		resp := httptest.NewRecorder()
@@ -441,6 +450,7 @@ func TestSessionsForNode(t *testing.T) {
 }
 
 func TestSessionDeleteDestroy(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSessionDelete(t, srv)
 

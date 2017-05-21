@@ -13,6 +13,7 @@ import (
 )
 
 func TestCatalogRegister(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -45,6 +46,7 @@ func TestCatalogRegister(t *testing.T) {
 }
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -69,6 +71,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 }
 
 func TestCatalogDeregister(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -87,6 +90,7 @@ func TestCatalogDeregister(t *testing.T) {
 }
 
 func TestCatalogDatacenters(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -104,6 +108,7 @@ func TestCatalogDatacenters(t *testing.T) {
 }
 
 func TestCatalogNodes(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -136,6 +141,7 @@ func TestCatalogNodes(t *testing.T) {
 }
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -175,6 +181,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
+	t.Parallel()
 	c1 := TestConfig()
 	c1.Datacenter = "dc1"
 	c1.TranslateWanAddrs = true
@@ -268,6 +275,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogNodes_Blocking(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -320,6 +328,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 }
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -403,6 +412,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalogServices(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -437,6 +447,7 @@ func TestCatalogServices(t *testing.T) {
 }
 
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -477,6 +488,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -529,6 +541,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -583,6 +596,7 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
+	t.Parallel()
 	c1 := TestConfig()
 	c1.Datacenter = "dc1"
 	c1.TranslateWanAddrs = true
@@ -667,6 +681,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -753,6 +768,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalogNodeServices(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -787,6 +803,7 @@ func TestCatalogNodeServices(t *testing.T) {
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
+	t.Parallel()
 	c1 := TestConfig()
 	c1.Datacenter = "dc1"
 	c1.TranslateWanAddrs = true

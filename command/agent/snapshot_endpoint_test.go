@@ -10,6 +10,7 @@ import (
 )
 
 func TestSnapshot(t *testing.T) {
+	t.Parallel()
 	var snap io.Reader
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
@@ -44,6 +45,7 @@ func TestSnapshot(t *testing.T) {
 }
 
 func TestSnapshot_Options(t *testing.T) {
+	t.Parallel()
 	for _, method := range []string{"GET", "PUT"} {
 		httpTest(t, func(srv *HTTPServer) {
 			body := bytes.NewBuffer(nil)
@@ -84,6 +86,7 @@ func TestSnapshot_Options(t *testing.T) {
 }
 
 func TestSnapshot_BadMethods(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("POST", "/v1/snapshot", body)

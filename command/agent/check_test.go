@@ -89,22 +89,27 @@ func expectStatus(t *testing.T, script, status string) {
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
+	t.Parallel()
 	expectStatus(t, "exit 0", api.HealthPassing)
 }
 
 func TestCheckMonitor_Warning(t *testing.T) {
+	t.Parallel()
 	expectStatus(t, "exit 1", api.HealthWarning)
 }
 
 func TestCheckMonitor_Critical(t *testing.T) {
+	t.Parallel()
 	expectStatus(t, "exit 2", api.HealthCritical)
 }
 
 func TestCheckMonitor_BadCmd(t *testing.T) {
+	t.Parallel()
 	expectStatus(t, "foobarbaz", api.HealthCritical)
 }
 
 func TestCheckMonitor_Timeout(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),
@@ -134,6 +139,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 }
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),
@@ -162,6 +168,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 }
 
 func TestCheckMonitor_LimitOutput(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),
@@ -186,6 +193,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 }
 
 func TestCheckTTL(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),
@@ -289,6 +297,7 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 }
 
 func TestCheckHTTPCritical(t *testing.T) {
+	t.Parallel()
 	// var server *httptest.Server
 
 	server := mockHTTPServer(150)
@@ -316,6 +325,7 @@ func TestCheckHTTPCritical(t *testing.T) {
 }
 
 func TestCheckHTTPPassing(t *testing.T) {
+	t.Parallel()
 	var server *httptest.Server
 
 	server = mockHTTPServer(200)
@@ -336,6 +346,7 @@ func TestCheckHTTPPassing(t *testing.T) {
 }
 
 func TestCheckHTTPWarning(t *testing.T) {
+	t.Parallel()
 	server := mockHTTPServer(429)
 	expectHTTPStatus(t, server.URL, api.HealthWarning)
 	server.Close()
@@ -353,6 +364,7 @@ func mockSlowHTTPServer(responseCode int, sleep time.Duration) *httptest.Server 
 }
 
 func TestCheckHTTPTimeout(t *testing.T) {
+	t.Parallel()
 	server := mockSlowHTTPServer(200, 10*time.Millisecond)
 	defer server.Close()
 
@@ -384,6 +396,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
+	t.Parallel()
 	check := &CheckHTTP{
 		CheckID:  types.CheckID("foo"),
 		HTTP:     "http://foo.bar/baz",
@@ -400,6 +413,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 }
 
 func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
+	t.Parallel()
 	check := &CheckHTTP{
 		CheckID:  "foo",
 		HTTP:     "https://foo.bar/baz",
@@ -416,6 +430,7 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
+	t.Parallel()
 	server := mockTLSHTTPServer(200)
 	defer server.Close()
 
@@ -448,6 +463,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
+	t.Parallel()
 	server := mockTLSHTTPServer(500)
 	defer server.Close()
 
@@ -479,6 +495,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 }
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
+	t.Parallel()
 	server := mockTLSHTTPServer(200)
 	defer server.Close()
 
@@ -559,6 +576,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 }
 
 func TestCheckTCPCritical(t *testing.T) {
+	t.Parallel()
 	var (
 		tcpServer net.Listener
 	)
@@ -569,6 +587,7 @@ func TestCheckTCPCritical(t *testing.T) {
 }
 
 func TestCheckTCPPassing(t *testing.T) {
+	t.Parallel()
 	var (
 		tcpServer net.Listener
 	)
@@ -746,30 +765,37 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 }
 
 func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, api.HealthPassing, "output")
 }
 
 func TestDockerCheckWhenExecCreationFails(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, api.HealthCritical, "Unable to create Exec, error: Exec Creation Failed")
 }
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, api.HealthCritical, "")
 }
 
 func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, api.HealthWarning, "output")
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, api.HealthCritical, "Unable to start Exec: Couldn't Start Exec")
 }
 
 func TestDockerCheckWhenExecInfoFails(t *testing.T) {
+	t.Parallel()
 	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, api.HealthCritical, "Unable to inspect Exec: Unable to query exec info")
 }
 
 func TestDockerCheckDefaultToSh(t *testing.T) {
+	t.Parallel()
 	os.Setenv("SHELL", "")
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
@@ -795,6 +821,7 @@ func TestDockerCheckDefaultToSh(t *testing.T) {
 }
 
 func TestDockerCheckUseShellFromEnv(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),
@@ -821,6 +848,7 @@ func TestDockerCheckUseShellFromEnv(t *testing.T) {
 }
 
 func TestDockerCheckTruncateOutput(t *testing.T) {
+	t.Parallel()
 	mock := &MockNotify{
 		state:   make(map[types.CheckID]string),
 		updates: make(map[types.CheckID]int),

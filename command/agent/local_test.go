@@ -12,6 +12,7 @@ import (
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -235,6 +236,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -329,6 +331,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -459,6 +462,7 @@ service "consul" {
 `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
@@ -617,6 +621,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -827,6 +832,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
@@ -1062,6 +1068,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	conf.CheckUpdateInterval = 500 * time.Millisecond
 	a := NewTestAgent(t.Name(), conf)
@@ -1234,6 +1241,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	conf.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	conf.Meta["somekey"] = "somevalue"
@@ -1302,6 +1310,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
+	t.Parallel()
 	l := new(localState)
 	if err := l.deleteService(""); err == nil {
 		t.Fatalf("should have failed")
@@ -1309,6 +1318,7 @@ func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
+	t.Parallel()
 	l := new(localState)
 	if err := l.deleteCheck(""); err == nil {
 		t.Fatalf("should have errored")
@@ -1316,6 +1326,7 @@ func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
 }
 
 func TestAgent_serviceTokens(t *testing.T) {
+	t.Parallel()
 	config := TestConfig()
 	config.ACLToken = "default"
 	l := new(localState)
@@ -1344,6 +1355,7 @@ func TestAgent_serviceTokens(t *testing.T) {
 }
 
 func TestAgent_checkTokens(t *testing.T) {
+	t.Parallel()
 	config := TestConfig()
 	config.ACLToken = "default"
 	l := new(localState)
@@ -1368,6 +1380,7 @@ func TestAgent_checkTokens(t *testing.T) {
 }
 
 func TestAgent_checkCriticalTime(t *testing.T) {
+	t.Parallel()
 	config := TestConfig()
 	l := new(localState)
 	l.Init(config, nil)
@@ -1428,6 +1441,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 }
 
 func TestAgent_nestedPauseResume(t *testing.T) {
+	t.Parallel()
 	l := new(localState)
 	if l.isPaused() != false {
 		t.Fatal("localState should be unPaused after init")
@@ -1459,6 +1473,7 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 }
 
 func TestAgent_sendCoordinate(t *testing.T) {
+	t.Parallel()
 	conf := TestConfig()
 	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
 	conf.SyncCoordinateIntervalMin = 1 * time.Millisecond

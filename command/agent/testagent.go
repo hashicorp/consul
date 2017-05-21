@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/consul"
@@ -21,6 +20,10 @@ import (
 	"github.com/hashicorp/consul/version"
 	uuid "github.com/hashicorp/go-uuid"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano()) // seed random number generator
+}
 
 var TempDir = "/tmp"
 
@@ -126,9 +129,21 @@ func (a *TestAgent) Start() *TestAgent {
 	a.Agent = agent
 	a.Agent.LogOutput = a.LogOutput
 	a.Agent.LogWriter = a.LogWriter
-	if err := a.Agent.Start(); err != nil {
+	retry.Run(&panicFailer{}, func(r *retry.R) {
+		err := a.Agent.Start()
+		if err == nil {
+			return
+		}
+
+		// retry with different ports on port conflict
+		if strings.Contains(err.Error(), "bind: address already in use") {
+			pickRandomPorts(a.Config)
+			r.Fatal("port conflict")
+		}
+
+		// do not retry on other failures
 		panic(fmt.Sprintf("Error starting agent: %s", err))
-	}
+	})
 
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {
@@ -180,11 +195,22 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
-// nextPort is the next available set of ports for the various
-// endpoints. Using a random value between 1024 and 63000 does not
-// eliminate the chance for a port conflict for concurrent tests but
-// great reduces it close to zero with almost no overhead.
-var nextPort uint64 = uint64(rand.Int63n(63000)) + uint64(1024)
+// pickRandomPorts selects random ports from fixed size random blocks of
+// ports. This does not eliminate the chance for port conflict but
+// reduces it significanltly with little overhead. Furthermore, asking
+// the kernel for a random port by binding to port 0 prolongs the test
+// execution (in our case +20sec) while also not fully eliminating the
+// chance of port conflicts for concurrently executed test binaries.
+// Instead of relying on one set of ports to be sufficient we retry
+// starting the agent with different ports on port conflict.
+func pickRandomPorts(c *Config) {
+	port := 1030 + int(rand.Int31n(64400))
+	c.Ports.DNS = port + 1
+	c.Ports.HTTP = port + 2
+	c.Ports.SerfLan = port + 3
+	c.Ports.SerfWan = port + 4
+	c.Ports.Server = port + 5
+}
 
 // BoolTrue and BoolFalse exist to create a *bool value.
 var BoolTrue = true
@@ -198,25 +224,21 @@ func TestConfig() *Config {
 		panic(err)
 	}
 
-	port := int(atomic.AddUint64(&nextPort, 10))
-
 	conf := DefaultConfig()
+	pickRandomPorts(conf)
+
 	conf.Version = version.Version
 	conf.VersionPrerelease = "c.d"
-	conf.AdvertiseAddr = "127.0.0.1"
-	conf.Bootstrap = true
-	conf.Datacenter = "dc1"
-	conf.NodeName = fmt.Sprintf("Node %d", port)
+
 	conf.NodeID = types.NodeID(nodeID)
+	conf.NodeName = "Node " + nodeID
 	conf.BindAddr = "127.0.0.1"
-	conf.Ports.DNS = port + 1
-	conf.Ports.HTTP = port + 2
-	conf.Ports.SerfLan = port + 3
-	conf.Ports.SerfWan = port + 4
-	conf.Ports.Server = port + 5
+	conf.AdvertiseAddr = "127.0.0.1"
+	conf.Datacenter = "dc1"
+	conf.Bootstrap = true
 	conf.Server = true
 	conf.ACLEnforceVersion8 = &BoolFalse
-	conf.ACLDatacenter = "dc1"
+	conf.ACLDatacenter = conf.Datacenter
 	conf.ACLMasterToken = "root"
 
 	cons := consul.DefaultConfig()

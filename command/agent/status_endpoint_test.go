@@ -5,6 +5,7 @@ import (
 )
 
 func TestStatusLeader(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -19,6 +20,7 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

@@ -31,6 +31,7 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 }
 
 func TestACLUpdate(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
 
@@ -58,6 +59,7 @@ func TestACLUpdate(t *testing.T) {
 }
 
 func TestACLUpdate_Upsert(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
@@ -83,6 +85,7 @@ func TestACLUpdate_Upsert(t *testing.T) {
 }
 
 func TestACLDestroy(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
 		req, _ := http.NewRequest("PUT", "/v1/acl/destroy/"+id+"?token=root", nil)
@@ -112,6 +115,7 @@ func TestACLDestroy(t *testing.T) {
 }
 
 func TestACLClone(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
 
@@ -146,6 +150,7 @@ func TestACLClone(t *testing.T) {
 }
 
 func TestACLGet(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, _ := http.NewRequest("GET", "/v1/acl/info/nope", nil)
 		resp := httptest.NewRecorder()
@@ -182,6 +187,7 @@ func TestACLGet(t *testing.T) {
 }
 
 func TestACLList(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		var ids []string
 		for i := 0; i < 10; i++ {
@@ -207,6 +213,7 @@ func TestACLList(t *testing.T) {
 }
 
 func TestACLReplicationStatus(t *testing.T) {
+	t.Parallel()
 	httpTest(t, func(srv *HTTPServer) {
 		req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)
 		resp := httptest.NewRecorder()

@@ -19,6 +19,7 @@ import (
 )
 
 func TestUiIndex(t *testing.T) {
+	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(uiDir)
@@ -61,6 +62,7 @@ func TestUiIndex(t *testing.T) {
 }
 
 func TestUiNodes(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -97,6 +99,7 @@ func TestUiNodes(t *testing.T) {
 }
 
 func TestUiNodeInfo(t *testing.T) {
+	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -145,6 +148,7 @@ func TestUiNodeInfo(t *testing.T) {
 }
 
 func TestSummarizeServices(t *testing.T) {
+	t.Parallel()
 	dump := structs.NodeDump{
 		&structs.NodeInfo{
 			Node:    "foo",
