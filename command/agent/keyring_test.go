@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 )
 
@@ -16,63 +15,60 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	key := "tbLJg26ZJyJ9pK3qhc9jig=="
 
 	// Should be no configured keyring file by default
-	conf1 := nextConfig()
-	dir1, agent1 := makeAgent(t, conf1)
-	defer os.RemoveAll(dir1)
-	defer agent1.Shutdown()
+	a1 := NewTestAgent(t.Name(), nil)
+	defer a1.Shutdown()
 
-	c := agent1.config.ConsulConfig
-	if c.SerfLANConfig.KeyringFile != "" {
-		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+	c1 := a1.Config.ConsulConfig
+	if c1.SerfLANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
 	}
-	if c.SerfLANConfig.MemberlistConfig.Keyring != nil {
+	if c1.SerfLANConfig.MemberlistConfig.Keyring != nil {
 		t.Fatalf("keyring should not be loaded")
 	}
-	if c.SerfWANConfig.KeyringFile != "" {
-		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+	if c1.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
 	}
-	if c.SerfWANConfig.MemberlistConfig.Keyring != nil {
+	if c1.SerfWANConfig.MemberlistConfig.Keyring != nil {
 		t.Fatalf("keyring should not be loaded")
 	}
 
 	// Server should auto-load LAN and WAN keyring files
-	conf2 := nextConfig()
-	dir2, agent2 := makeAgentKeyring(t, conf2, key)
-	defer os.RemoveAll(dir2)
-	defer agent2.Shutdown()
+	a2 := &TestAgent{Name: t.Name(), Key: key}
+	a2.Start()
+	defer a2.Shutdown()
 
-	c = agent2.config.ConsulConfig
-	if c.SerfLANConfig.KeyringFile == "" {
+	c2 := a2.Config.ConsulConfig
+	if c2.SerfLANConfig.KeyringFile == "" {
 		t.Fatalf("should have keyring file")
 	}
-	if c.SerfLANConfig.MemberlistConfig.Keyring == nil {
+	if c2.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
 	}
-	if c.SerfWANConfig.KeyringFile == "" {
+	if c2.SerfWANConfig.KeyringFile == "" {
 		t.Fatalf("should have keyring file")
 	}
-	if c.SerfWANConfig.MemberlistConfig.Keyring == nil {
+	if c2.SerfWANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
 	}
 
 	// Client should auto-load only the LAN keyring file
-	conf3 := nextConfig()
+	conf3 := TestConfig()
 	conf3.Server = false
-	dir3, agent3 := makeAgentKeyring(t, conf3, key)
-	defer os.RemoveAll(dir3)
-	defer agent3.Shutdown()
+	a3 := &TestAgent{Name: t.Name(), Config: conf3, Key: key}
+	a3.Start()
+	defer a3.Shutdown()
 
-	c = agent3.config.ConsulConfig
-	if c.SerfLANConfig.KeyringFile == "" {
+	c3 := a3.Config.ConsulConfig
+	if c3.SerfLANConfig.KeyringFile == "" {
 		t.Fatalf("should have keyring file")
 	}
-	if c.SerfLANConfig.MemberlistConfig.Keyring == nil {
+	if c3.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
 	}
-	if c.SerfWANConfig.KeyringFile != "" {
-		t.Fatalf("bad: %#v", c.SerfWANConfig.KeyringFile)
+	if c3.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c3.SerfWANConfig.KeyringFile)
 	}
-	if c.SerfWANConfig.MemberlistConfig.Keyring != nil {
+	if c3.SerfWANConfig.MemberlistConfig.Keyring != nil {
 		t.Fatalf("keyring should not be loaded")
 	}
 }
@@ -119,60 +115,58 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	conf := nextConfig()
+	conf := TestACLConfig()
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
 	conf.ACLDefaultPolicy = "deny"
-	dir, agent := makeAgentKeyring(t, conf, key1)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := &TestAgent{Name: t.Name(), Config: conf, Key: key1}
+	a.Start()
+	defer a.Shutdown()
 
 	// List keys without access fails
-	_, err := agent.ListKeys("", 0)
+	_, err := a.ListKeys("", 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// List keys with access works
-	_, err = agent.ListKeys("root", 0)
+	_, err = a.ListKeys("root", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Install without access fails
-	_, err = agent.InstallKey(key2, "", 0)
+	_, err = a.InstallKey(key2, "", 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// Install with access works
-	_, err = agent.InstallKey(key2, "root", 0)
+	_, err = a.InstallKey(key2, "root", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Use without access fails
-	_, err = agent.UseKey(key2, "", 0)
+	_, err = a.UseKey(key2, "", 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// Use with access works
-	_, err = agent.UseKey(key2, "root", 0)
+	_, err = a.UseKey(key2, "root", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Remove without access fails
-	_, err = agent.RemoveKey(key1, "", 0)
+	_, err = a.RemoveKey(key1, "", 0)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("expected denied error, got: %#v", err)
 	}
 
 	// Remove with access works
-	_, err = agent.RemoveKey(key1, "root", 0)
+	_, err = a.RemoveKey(key1, "root", 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

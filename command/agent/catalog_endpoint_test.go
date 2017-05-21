@@ -4,22 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestCatalogRegister(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -27,7 +22,7 @@ func TestCatalogRegister(t *testing.T) {
 		Address: "127.0.0.1",
 	}
 	req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
-	obj, err := srv.CatalogRegister(nil, req)
+	obj, err := a.srv.CatalogRegister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -38,23 +33,20 @@ func TestCatalogRegister(t *testing.T) {
 	}
 
 	// Service should be in sync
-	if err := srv.agent.state.syncService("foo"); err != nil {
+	if err := a.state.syncService("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, ok := srv.agent.state.serviceStatus["foo"]; !ok {
-		t.Fatalf("bad: %#v", srv.agent.state.serviceStatus)
+	if _, ok := a.state.serviceStatus["foo"]; !ok {
+		t.Fatalf("bad: %#v", a.state.serviceStatus)
 	}
-	if !srv.agent.state.serviceStatus["foo"].inSync {
+	if !a.state.serviceStatus["foo"].inSync {
 		t.Fatalf("should be in sync")
 	}
 }
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
@@ -68,7 +60,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 				},
 			}
 			req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
-			_, err := srv.CatalogRegister(nil, req)
+			_, err := a.srv.CatalogRegister(nil, req)
 			if err == nil || err.Error() != "Invalid service address" {
 				t.Fatalf("err: %v", err)
 			}
@@ -77,16 +69,13 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 }
 
 func TestCatalogDeregister(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.DeregisterRequest{Node: "foo"}
 	req, _ := http.NewRequest("GET", "/v1/catalog/deregister", jsonReader(args))
-	obj, err := srv.CatalogDeregister(nil, req)
+	obj, err := a.srv.CatalogDeregister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -98,12 +87,11 @@ func TestCatalogDeregister(t *testing.T) {
 }
 
 func TestCatalogDatacenters(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		obj, err := srv.CatalogDatacenters(nil, nil)
+		obj, err := a.srv.CatalogDatacenters(nil, nil)
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -116,11 +104,8 @@ func TestCatalogDatacenters(t *testing.T) {
 }
 
 func TestCatalogNodes(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -130,13 +115,13 @@ func TestCatalogNodes(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogNodes(resp, req)
+	obj, err := a.srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -151,11 +136,8 @@ func TestCatalogNodes(t *testing.T) {
 }
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register a node with a meta field
 	args := &structs.RegisterRequest{
@@ -168,13 +150,13 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogNodes(resp, req)
+	obj, err := a.srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -193,33 +175,27 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
-	dir1, srv1 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc1"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir1)
-	defer srv1.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	c1 := TestConfig()
+	c1.Datacenter = "dc1"
+	c1.TranslateWanAddrs = true
+	c1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), c1)
+	defer a1.Shutdown()
 
-	dir2, srv2 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc2"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir2)
-	defer srv2.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
+	c2 := TestConfig()
+	c2.Datacenter = "dc2"
+	c2.TranslateWanAddrs = true
+	c2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), c2)
+	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d", srv1.agent.config.Ports.SerfWan)
-	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	if _, err := a2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+		if got, want := len(a1.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}
 	})
@@ -239,7 +215,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -247,7 +223,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	// Query nodes in DC2 from DC1.
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
-	obj1, err1 := srv1.CatalogNodes(resp1, req)
+	obj1, err1 := a1.srv.CatalogNodes(resp1, req)
 	if err1 != nil {
 		t.Fatalf("err: %v", err1)
 	}
@@ -270,7 +246,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
-	obj2, err2 := srv2.CatalogNodes(resp2, req)
+	obj2, err2 := a2.srv.CatalogNodes(resp2, req)
 	if err2 != nil {
 		t.Fatalf("err: %v", err2)
 	}
@@ -292,11 +268,8 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogNodes_Blocking(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.DCSpecificRequest{
@@ -304,7 +277,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	}
 
 	var out structs.IndexedNodes
-	if err := srv.agent.RPC("Catalog.ListNodes", *args, &out); err != nil {
+	if err := a.RPC("Catalog.ListNodes", *args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -318,7 +291,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 			Address:    "127.0.0.1",
 		}
 		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -326,7 +299,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// Do a blocking read
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=60s&index=%d", out.Index), nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogNodes(resp, req)
+	obj, err := a.srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -347,11 +320,8 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 }
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register nodes.
 	args := &structs.RegisterRequest{
@@ -360,7 +330,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -369,7 +339,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Node:       "bar",
 		Address:    "127.0.0.2",
 	}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -377,7 +347,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	// order they are indexed.
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogNodes(resp, req)
+	obj, err := a.srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -393,7 +363,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	if nodes[1].Node != "foo" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if nodes[2].Node != srv.agent.config.NodeName {
+	if nodes[2].Node != a.Config.NodeName {
 		t.Fatalf("bad: %v", nodes)
 	}
 
@@ -403,7 +373,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(300 * time.Millisecond)
@@ -411,7 +381,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	// Query again and now foo should have moved to the front of the line.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
 	resp = httptest.NewRecorder()
-	obj, err = srv.CatalogNodes(resp, req)
+	obj, err = a.srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -427,17 +397,14 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	if nodes[1].Node != "bar" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if nodes[2].Node != srv.agent.config.NodeName {
+	if nodes[2].Node != a.Config.NodeName {
 		t.Fatalf("bad: %v", nodes)
 	}
 }
 
 func TestCatalogServices(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -450,13 +417,13 @@ func TestCatalogServices(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/services?dc=dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogServices(resp, req)
+	obj, err := a.srv.CatalogServices(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -470,11 +437,8 @@ func TestCatalogServices(t *testing.T) {
 }
 
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -490,13 +454,13 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/services?node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogServices(resp, req)
+	obj, err := a.srv.CatalogServices(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -513,17 +477,14 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Make sure an empty list is returned, not a nil
 	{
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.CatalogServiceNodes(resp, req)
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -548,13 +509,13 @@ func TestCatalogServiceNodes(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogServiceNodes(resp, req)
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -568,17 +529,14 @@ func TestCatalogServiceNodes(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Make sure an empty list is returned, not a nil
 	{
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?node-meta=somekey:somevalue", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.CatalogServiceNodes(resp, req)
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -605,13 +563,13 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/service/api?node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogServiceNodes(resp, req)
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -625,34 +583,27 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
-	dir1, srv1 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc1"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir1)
-	defer srv1.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	c1 := TestConfig()
+	c1.Datacenter = "dc1"
+	c1.TranslateWanAddrs = true
+	c1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), c1)
+	defer a1.Shutdown()
 
-	dir2, srv2 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc2"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir2)
-	defer srv2.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
+	c2 := TestConfig()
+	c2.Datacenter = "dc2"
+	c2.TranslateWanAddrs = true
+	c2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), c2)
+	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		srv1.agent.config.Ports.SerfWan)
-	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+		if got, want := len(a1.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}
 	})
@@ -672,7 +623,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -680,7 +631,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	// Query for the node in DC2 from DC1.
 	req, _ := http.NewRequest("GET", "/v1/catalog/service/http_wan_translation_test?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
-	obj1, err1 := srv1.CatalogServiceNodes(resp1, req)
+	obj1, err1 := a1.srv.CatalogServiceNodes(resp1, req)
 	if err1 != nil {
 		t.Fatalf("err: %v", err1)
 	}
@@ -698,7 +649,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
-	obj2, err2 := srv2.CatalogServiceNodes(resp2, req)
+	obj2, err2 := a2.srv.CatalogServiceNodes(resp2, req)
 	if err2 != nil {
 		t.Fatalf("err: %v", err2)
 	}
@@ -716,11 +667,8 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register nodes.
 	args := &structs.RegisterRequest{
@@ -733,7 +681,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -747,7 +695,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 			Tags:    []string{"a"},
 		},
 	}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -755,7 +703,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	// order they are indexed.
 	req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogServiceNodes(resp, req)
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -778,7 +726,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 		Node:       "foo",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(300 * time.Millisecond)
@@ -786,7 +734,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	// Query again and now foo should have moved to the front of the line.
 	req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
 	resp = httptest.NewRecorder()
-	obj, err = srv.CatalogServiceNodes(resp, req)
+	obj, err = a.srv.CatalogServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -805,11 +753,8 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalogNodeServices(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -823,13 +768,13 @@ func TestCatalogNodeServices(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CatalogNodeServices(resp, req)
+	obj, err := a.srv.CatalogNodeServices(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -842,34 +787,27 @@ func TestCatalogNodeServices(t *testing.T) {
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
-	dir1, srv1 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc1"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir1)
-	defer srv1.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	c1 := TestConfig()
+	c1.Datacenter = "dc1"
+	c1.TranslateWanAddrs = true
+	c1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), c1)
+	defer a1.Shutdown()
 
-	dir2, srv2 := makeHTTPServerWithConfig(t,
-		func(c *Config) {
-			c.Datacenter = "dc2"
-			c.TranslateWanAddrs = true
-			c.ACLDatacenter = ""
-		})
-	defer os.RemoveAll(dir2)
-	defer srv2.agent.Shutdown()
-	testrpc.WaitForLeader(t, srv2.agent.RPC, "dc2")
+	c2 := TestConfig()
+	c2.Datacenter = "dc2"
+	c2.TranslateWanAddrs = true
+	c2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), c2)
+	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		srv1.agent.config.Ports.SerfWan)
-	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(srv1.agent.WANMembers()), 2; got < want {
+		if got, want := len(a1.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
 		}
 	})
@@ -889,7 +827,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		}
 
 		var out struct{}
-		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -897,7 +835,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	// Query for the node in DC2 from DC1.
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
-	obj1, err1 := srv1.CatalogNodeServices(resp1, req)
+	obj1, err1 := a1.srv.CatalogNodeServices(resp1, req)
 	if err1 != nil {
 		t.Fatalf("err: %v", err1)
 	}
@@ -915,7 +853,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
-	obj2, err2 := srv2.CatalogNodeServices(resp2, req)
+	obj2, err2 := a2.srv.CatalogNodeServices(resp2, req)
 	if err2 != nil {
 		t.Fatalf("err: %v", err2)
 	}

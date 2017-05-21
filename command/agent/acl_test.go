@@ -3,21 +3,19 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	rawacl "github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 )
 
 func TestACL_Bad_Config(t *testing.T) {
-	c := nextConfig()
+	c := TestConfig()
 	c.ACLDownPolicy = "nope"
 	c.DataDir = testutil.TempDir(t, "agent")
 
@@ -39,17 +37,13 @@ func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.AC
 }
 
 func TestACL_Version8(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(false)
-
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolFalse
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -58,24 +52,20 @@ func TestACL_Version8(t *testing.T) {
 		t.Fatalf("should not have called to server")
 		return nil
 	}
-	if token, err := agent.resolveToken("nope"); token != nil || err != nil {
+	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
 }
 
 func TestACL_Disabled(t *testing.T) {
-	config := nextConfig()
+	config := TestConfig()
 	config.ACLDisabledTTL = 10 * time.Millisecond
-	config.ACLEnforceVersion8 = Bool(true)
-
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	config.ACLEnforceVersion8 = &BoolTrue
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -83,13 +73,13 @@ func TestACL_Disabled(t *testing.T) {
 	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
 		return errors.New(aclDisabled)
 	}
-	if agent.acls.isDisabled() {
+	if a.acls.isDisabled() {
 		t.Fatalf("should not be disabled yet")
 	}
-	if token, err := agent.resolveToken("nope"); token != nil || err != nil {
+	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
-	if !agent.acls.isDisabled() {
+	if !a.acls.isDisabled() {
 		t.Fatalf("should be disabled")
 	}
 
@@ -98,10 +88,10 @@ func TestACL_Disabled(t *testing.T) {
 	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
 		return errors.New(aclNotFound)
 	}
-	if token, err := agent.resolveToken("nope"); token != nil || err != nil {
+	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
-	if !agent.acls.isDisabled() {
+	if !a.acls.isDisabled() {
 		t.Fatalf("should be disabled")
 	}
 
@@ -109,29 +99,26 @@ func TestACL_Disabled(t *testing.T) {
 	// to make sure we don't think it's disabled.
 	time.Sleep(2 * config.ACLDisabledTTL)
 	for i := 0; i < 10; i++ {
-		_, err := agent.resolveToken("nope")
+		_, err := a.resolveToken("nope")
 		if err == nil || !strings.Contains(err.Error(), aclNotFound) {
 			t.Fatalf("err: %v", err)
 		}
-		if agent.acls.isDisabled() {
+		if a.acls.isDisabled() {
 			t.Fatalf("should not be disabled")
 		}
 	}
 }
 
 func TestACL_Special_IDs(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 	config.ACLAgentMasterToken = "towel"
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -142,7 +129,7 @@ func TestACL_Special_IDs(t *testing.T) {
 		}
 		return errors.New(aclNotFound)
 	}
-	_, err := agent.resolveToken("")
+	_, err := a.resolveToken("")
 	if err == nil || !strings.Contains(err.Error(), aclNotFound) {
 		t.Fatalf("err: %v", err)
 	}
@@ -152,14 +139,14 @@ func TestACL_Special_IDs(t *testing.T) {
 		t.Fatalf("should not have called to server")
 		return nil
 	}
-	_, err = agent.resolveToken("deny")
+	_, err = a.resolveToken("deny")
 	if err == nil || !strings.Contains(err.Error(), rootDenied) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// The ACL master token should also not call the server, but should give
-	// us a working agent token.
-	acl, err := agent.resolveToken("towel")
+	// us a working a token.
+	acl, err := a.resolveToken("towel")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -175,18 +162,15 @@ func TestACL_Special_IDs(t *testing.T) {
 }
 
 func TestACL_Down_Deny(t *testing.T) {
-	config := nextConfig()
+	config := TestConfig()
 	config.ACLDownPolicy = "deny"
-	config.ACLEnforceVersion8 = Bool(true)
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -194,7 +178,7 @@ func TestACL_Down_Deny(t *testing.T) {
 	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
 		return fmt.Errorf("ACLs are broken")
 	}
-	acl, err := agent.resolveToken("nope")
+	acl, err := a.resolveToken("nope")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -207,18 +191,15 @@ func TestACL_Down_Deny(t *testing.T) {
 }
 
 func TestACL_Down_Allow(t *testing.T) {
-	config := nextConfig()
+	config := TestConfig()
 	config.ACLDownPolicy = "allow"
-	config.ACLEnforceVersion8 = Bool(true)
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -226,7 +207,7 @@ func TestACL_Down_Allow(t *testing.T) {
 	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
 		return fmt.Errorf("ACLs are broken")
 	}
-	acl, err := agent.resolveToken("nope")
+	acl, err := a.resolveToken("nope")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -239,18 +220,15 @@ func TestACL_Down_Allow(t *testing.T) {
 }
 
 func TestACL_Down_Extend(t *testing.T) {
-	config := nextConfig()
+	config := TestConfig()
 	config.ACLDownPolicy = "extend-cache"
-	config.ACLEnforceVersion8 = Bool(true)
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -269,7 +247,7 @@ func TestACL_Down_Extend(t *testing.T) {
 		}
 		return nil
 	}
-	acl, err := agent.resolveToken("yep")
+	acl, err := a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -287,7 +265,7 @@ func TestACL_Down_Extend(t *testing.T) {
 	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
 		return fmt.Errorf("ACLs are broken")
 	}
-	acl, err = agent.resolveToken("nope")
+	acl, err = a.resolveToken("nope")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -303,7 +281,7 @@ func TestACL_Down_Extend(t *testing.T) {
 
 	// Read the token from the cache while ACLs are broken, which should
 	// extend.
-	acl, err = agent.resolveToken("yep")
+	acl, err = a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -319,17 +297,14 @@ func TestACL_Down_Extend(t *testing.T) {
 }
 
 func TestACL_Cache(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -350,7 +325,7 @@ func TestACL_Cache(t *testing.T) {
 		}
 		return nil
 	}
-	acl, err := agent.resolveToken("yep")
+	acl, err := a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -372,7 +347,7 @@ func TestACL_Cache(t *testing.T) {
 		t.Fatalf("should not have called to server")
 		return nil
 	}
-	acl, err = agent.resolveToken("yep")
+	acl, err = a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -395,7 +370,7 @@ func TestACL_Cache(t *testing.T) {
 	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
 		return errors.New(aclNotFound)
 	}
-	_, err = agent.resolveToken("yep")
+	_, err = a.resolveToken("yep")
 	if err == nil || !strings.Contains(err.Error(), aclNotFound) {
 		t.Fatalf("err: %v", err)
 	}
@@ -417,7 +392,7 @@ func TestACL_Cache(t *testing.T) {
 		}
 		return nil
 	}
-	acl, err = agent.resolveToken("yep")
+	acl, err = a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -447,7 +422,7 @@ func TestACL_Cache(t *testing.T) {
 		didRefresh = true
 		return nil
 	}
-	acl, err = agent.resolveToken("yep")
+	acl, err = a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -503,22 +478,19 @@ func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) erro
 }
 
 func TestACL_vetServiceRegister(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Register a new service, with permission.
-	err := agent.vetServiceRegister("service-rw", &structs.NodeService{
+	err := a.vetServiceRegister("service-rw", &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
@@ -527,7 +499,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	}
 
 	// Register a new service without write privs.
-	err = agent.vetServiceRegister("service-ro", &structs.NodeService{
+	err = a.vetServiceRegister("service-ro", &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
@@ -537,11 +509,11 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 	// Try to register over a service without write privs to the existing
 	// service.
-	agent.state.AddService(&structs.NodeService{
+	a.state.AddService(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
 	}, "")
-	err = agent.vetServiceRegister("service-rw", &structs.NodeService{
+	err = a.vetServiceRegister("service-rw", &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
@@ -551,60 +523,54 @@ func TestACL_vetServiceRegister(t *testing.T) {
 }
 
 func TestACL_vetServiceUpdate(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update a service that doesn't exist.
-	err := agent.vetServiceUpdate("service-rw", "my-service")
+	err := a.vetServiceUpdate("service-rw", "my-service")
 	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update with write privs.
-	agent.state.AddService(&structs.NodeService{
+	a.state.AddService(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	err = agent.vetServiceUpdate("service-rw", "my-service")
+	err = a.vetServiceUpdate("service-rw", "my-service")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update without write privs.
-	err = agent.vetServiceUpdate("service-ro", "my-service")
+	err = a.vetServiceUpdate("service-ro", "my-service")
 	if !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 func TestACL_vetCheckRegister(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Register a new service check with write privs.
-	err := agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err := a.vetCheckRegister("service-rw", &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -614,7 +580,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	}
 
 	// Register a new service check without write privs.
-	err = agent.vetCheckRegister("service-ro", &structs.HealthCheck{
+	err = a.vetCheckRegister("service-ro", &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -624,7 +590,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	}
 
 	// Register a new node check with write privs.
-	err = agent.vetCheckRegister("node-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister("node-rw", &structs.HealthCheck{
 		CheckID: types.CheckID("my-check"),
 	})
 	if err != nil {
@@ -632,7 +598,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	}
 
 	// Register a new node check without write privs.
-	err = agent.vetCheckRegister("node-ro", &structs.HealthCheck{
+	err = a.vetCheckRegister("node-ro", &structs.HealthCheck{
 		CheckID: types.CheckID("my-check"),
 	})
 	if !isPermissionDenied(err) {
@@ -641,16 +607,16 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 	// Try to register over a service check without write privs to the
 	// existing service.
-	agent.state.AddService(&structs.NodeService{
+	a.state.AddService(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	agent.state.AddCheck(&structs.HealthCheck{
+	a.state.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "other",
 	}, "")
-	err = agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister("service-rw", &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -660,10 +626,10 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	}
 
 	// Try to register over a node check without write privs to the node.
-	agent.state.AddCheck(&structs.HealthCheck{
+	a.state.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = agent.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister("service-rw", &structs.HealthCheck{
 		CheckID:     types.CheckID("my-node-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -674,80 +640,74 @@ func TestACL_vetCheckRegister(t *testing.T) {
 }
 
 func TestACL_vetCheckUpdate(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update a check that doesn't exist.
-	err := agent.vetCheckUpdate("node-rw", "my-check")
+	err := a.vetCheckUpdate("node-rw", "my-check")
 	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update service check with write privs.
-	agent.state.AddService(&structs.NodeService{
+	a.state.AddService(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	agent.state.AddCheck(&structs.HealthCheck{
+	a.state.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
 	}, "")
-	err = agent.vetCheckUpdate("service-rw", "my-service-check")
+	err = a.vetCheckUpdate("service-rw", "my-service-check")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update service check without write privs.
-	err = agent.vetCheckUpdate("service-ro", "my-service-check")
+	err = a.vetCheckUpdate("service-ro", "my-service-check")
 	if !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update node check with write privs.
-	agent.state.AddCheck(&structs.HealthCheck{
+	a.state.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = agent.vetCheckUpdate("node-rw", "my-node-check")
+	err = a.vetCheckUpdate("node-rw", "my-node-check")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Update without write privs.
-	err = agent.vetCheckUpdate("node-ro", "my-node-check")
+	err = a.vetCheckUpdate("node-ro", "my-node-check")
 	if !isPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 func TestACL_filterMembers(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	var members []serf.Member
-	if err := agent.filterMembers("node-ro", &members); err != nil {
+	if err := a.filterMembers("node-ro", &members); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(members) != 0 {
@@ -759,7 +719,7 @@ func TestACL_filterMembers(t *testing.T) {
 		serf.Member{Name: "Nope"},
 		serf.Member{Name: "Node 2"},
 	}
-	if err := agent.filterMembers("node-ro", &members); err != nil {
+	if err := a.filterMembers("node-ro", &members); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(members) != 2 ||
@@ -770,28 +730,25 @@ func TestACL_filterMembers(t *testing.T) {
 }
 
 func TestACL_filterServices(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	services := make(map[string]*structs.NodeService)
-	if err := agent.filterServices("node-ro", &services); err != nil {
+	if err := a.filterServices("node-ro", &services); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	services["my-service"] = &structs.NodeService{ID: "my-service", Service: "service"}
 	services["my-other"] = &structs.NodeService{ID: "my-other", Service: "other"}
-	if err := agent.filterServices("service-ro", &services); err != nil {
+	if err := a.filterServices("service-ro", &services); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, ok := services["my-service"]; !ok {
@@ -803,29 +760,26 @@ func TestACL_filterServices(t *testing.T) {
 }
 
 func TestACL_filterChecks(t *testing.T) {
-	config := nextConfig()
-	config.ACLEnforceVersion8 = Bool(true)
+	config := TestConfig()
+	config.ACLEnforceVersion8 = &BoolTrue
 
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	testrpc.WaitForLeader(t, agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), config)
+	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
-	if err := agent.InjectEndpoint("ACL", &m); err != nil {
+	if err := a.InjectEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	checks := make(map[types.CheckID]*structs.HealthCheck)
-	if err := agent.filterChecks("node-ro", &checks); err != nil {
+	if err := a.filterChecks("node-ro", &checks); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	checks["my-node"] = &structs.HealthCheck{}
 	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
 	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
-	if err := agent.filterChecks("service-ro", &checks); err != nil {
+	if err := a.filterChecks("service-ro", &checks); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, ok := checks["my-node"]; ok {
@@ -841,7 +795,7 @@ func TestACL_filterChecks(t *testing.T) {
 	checks["my-node"] = &structs.HealthCheck{}
 	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
 	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
-	if err := agent.filterChecks("node-ro", &checks); err != nil {
+	if err := a.filterChecks("node-ro", &checks); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, ok := checks["my-node"]; !ok {

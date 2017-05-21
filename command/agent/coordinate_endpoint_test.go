@@ -3,25 +3,20 @@ package agent
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestCoordinate_Datacenters(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/coordinate/datacenters", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CoordinateDatacenters(resp, req)
+	obj, err := a.srv.CoordinateDatacenters(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -30,22 +25,19 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	if len(maps) != 1 ||
 		maps[0].Datacenter != "dc1" ||
 		len(maps[0].Coordinates) != 1 ||
-		maps[0].Coordinates[0].Node != srv.agent.config.NodeName {
+		maps[0].Coordinates[0].Node != a.Config.NodeName {
 		t.Fatalf("bad: %v", maps)
 	}
 }
 
 func TestCoordinate_Nodes(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.CoordinateNodes(resp, req)
+	obj, err := a.srv.CoordinateNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -64,7 +56,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 			Address:    "127.0.0.1",
 		}
 		var reply struct{}
-		if err := srv.agent.RPC("Catalog.Register", &req, &reply); err != nil {
+		if err := a.RPC("Catalog.Register", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -77,7 +69,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
 	var out struct{}
-	if err := srv.agent.RPC("Coordinate.Update", &arg1, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -86,7 +78,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		Node:       "bar",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
-	if err := srv.agent.RPC("Coordinate.Update", &arg2, &out); err != nil {
+	if err := a.RPC("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(300 * time.Millisecond)
@@ -94,7 +86,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	// Query back and check the nodes are present and sorted correctly.
 	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
 	resp = httptest.NewRecorder()
-	obj, err = srv.CoordinateNodes(resp, req)
+	obj, err = a.srv.CoordinateNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

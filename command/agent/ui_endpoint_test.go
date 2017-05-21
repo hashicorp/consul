@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 )
@@ -25,14 +24,13 @@ func TestUiIndex(t *testing.T) {
 	defer os.RemoveAll(uiDir)
 
 	// Make the server
-	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
-		c.UIDir = uiDir
-	})
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	c := TestConfig()
+	c.UIDir = uiDir
+	a := NewTestAgent(t.Name(), c)
+	defer a.Shutdown()
 
 	// Create file
-	path := filepath.Join(srv.agent.config.UIDir, "my-file")
+	path := filepath.Join(a.Config.UIDir, "my-file")
 	if err := ioutil.WriteFile(path, []byte("test"), 777); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -40,7 +38,7 @@ func TestUiIndex(t *testing.T) {
 	// Register node
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
-	req.URL.Host = srv.Addr
+	req.URL.Host = a.srv.Addr
 
 	// Make the request
 	client := cleanhttp.DefaultClient()
@@ -63,11 +61,8 @@ func TestUiIndex(t *testing.T) {
 }
 
 func TestUiNodes(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -76,13 +71,13 @@ func TestUiNodes(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.UINodes(resp, req)
+	obj, err := a.srv.UINodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -91,7 +86,7 @@ func TestUiNodes(t *testing.T) {
 	// Should be 2 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
 	if len(nodes) != 2 ||
-		nodes[0].Node != srv.agent.config.NodeName ||
+		nodes[0].Node != a.Config.NodeName ||
 		nodes[0].Services == nil || len(nodes[0].Services) != 1 ||
 		nodes[0].Checks == nil || len(nodes[0].Checks) != 1 ||
 		nodes[1].Node != "test" ||
@@ -102,15 +97,12 @@ func TestUiNodes(t *testing.T) {
 }
 
 func TestUiNodeInfo(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
-
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", srv.agent.config.NodeName), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", a.Config.NodeName), nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.UINodeInfo(resp, req)
+	obj, err := a.srv.UINodeInfo(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -119,7 +111,7 @@ func TestUiNodeInfo(t *testing.T) {
 
 	// Should be 1 node for the server
 	node := obj.(*structs.NodeInfo)
-	if node.Node != srv.agent.config.NodeName {
+	if node.Node != a.Config.NodeName {
 		t.Fatalf("bad: %v", node)
 	}
 
@@ -130,13 +122,13 @@ func TestUiNodeInfo(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	req, _ = http.NewRequest("GET", "/v1/internal/ui/node/test", nil)
 	resp = httptest.NewRecorder()
-	obj, err = srv.UINodeInfo(resp, req)
+	obj, err = a.srv.UINodeInfo(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

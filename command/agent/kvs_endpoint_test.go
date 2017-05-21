@@ -5,20 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	keys := []string{
 		"baz",
@@ -32,7 +27,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -45,7 +40,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	for _, key := range keys {
 		req, _ := http.NewRequest("GET", "/v1/kv/"+key, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -68,18 +63,15 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	for _, key := range keys {
 		req, _ := http.NewRequest("DELETE", "/v1/kv/"+key, nil)
 		resp := httptest.NewRecorder()
-		if _, err := srv.KVSEndpoint(resp, req); err != nil {
+		if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 }
 
 func TestKVSEndpoint_Recurse(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	keys := []string{
 		"bar",
@@ -93,7 +85,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -107,7 +99,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 		// Get all the keys
 		req, _ := http.NewRequest("GET", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -132,7 +124,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 	{
 		req, _ := http.NewRequest("DELETE", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
-		if _, err := srv.KVSEndpoint(resp, req); err != nil {
+		if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -141,7 +133,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 		// Get all the keys
 		req, _ := http.NewRequest("GET", "/v1/kv/?recurse", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -153,17 +145,14 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 }
 
 func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -175,7 +164,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/v1/kv/test", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.KVSEndpoint(resp, req)
+	obj, err := a.srv.KVSEndpoint(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -186,7 +175,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("zip"))
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex-1), buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -201,7 +190,7 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("zip"))
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/kv/test?cas=%d", d.ModifyIndex), buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -214,24 +203,21 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 	// Verify the delete
 	req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
 	resp = httptest.NewRecorder()
-	obj, _ = srv.KVSEndpoint(resp, req)
+	obj, _ = a.srv.KVSEndpoint(resp, req)
 	if obj != nil {
 		t.Fatalf("should be destroyed")
 	}
 }
 
 func TestKVSEndpoint_CAS(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/test?flags=50", buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -243,7 +229,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/v1/kv/test", nil)
 	resp := httptest.NewRecorder()
-	obj, err := srv.KVSEndpoint(resp, req)
+	obj, err := a.srv.KVSEndpoint(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -259,7 +245,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("zip"))
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex-1), buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -274,7 +260,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("zip"))
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/kv/test?flags=42&cas=%d", d.ModifyIndex), buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -287,7 +273,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	// Verify the update
 	req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
 	resp = httptest.NewRecorder()
-	obj, _ = srv.KVSEndpoint(resp, req)
+	obj, _ = a.srv.KVSEndpoint(resp, req)
 	d = obj.(structs.DirEntries)[0]
 
 	if d.Flags != 42 {
@@ -299,11 +285,8 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	keys := []string{
 		"bar",
@@ -317,7 +300,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -331,7 +314,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 		// Get all the keys
 		req, _ := http.NewRequest("GET", "/v1/kv/?keys&seperator=/", nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.KVSEndpoint(resp, req)
+		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

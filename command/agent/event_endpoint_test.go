@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -176,13 +175,12 @@ func TestEventList_Filter(t *testing.T) {
 }
 
 func TestEventList_ACLFilter(t *testing.T) {
-	dir, srv := makeHTTPServerWithACLs(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
 
 	// Fire an event.
 	p := &UserEvent{Name: "foo"}
-	if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
+	if err := a.UserEvent("dc1", "root", p); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -190,7 +188,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("GET", "/v1/event/list", nil)
 			resp := httptest.NewRecorder()
-			obj, err := srv.EventList(resp, req)
+			obj, err := a.srv.EventList(resp, req)
 			if err != nil {
 				r.Fatal(err)
 			}
@@ -209,7 +207,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("GET", "/v1/event/list?token=root", nil)
 			resp := httptest.NewRecorder()
-			obj, err := srv.EventList(resp, req)
+			obj, err := a.srv.EventList(resp, req)
 			if err != nil {
 				r.Fatal(err)
 			}

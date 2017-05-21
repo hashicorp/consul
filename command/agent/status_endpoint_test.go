@@ -1,20 +1,14 @@
 package agent
 
 import (
-	"os"
 	"testing"
-
-	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestStatusLeader(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, srv.agent.RPC, "dc1")
-
-	obj, err := srv.StatusLeader(nil, nil)
+	obj, err := a.srv.StatusLeader(nil, nil)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -25,11 +19,10 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	obj, err := srv.StatusPeers(nil, nil)
+	obj, err := a.srv.StatusPeers(nil, nil)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}

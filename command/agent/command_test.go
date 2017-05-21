@@ -98,11 +98,10 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	conf2 := nextConfig()
+	conf2 := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -122,20 +121,20 @@ func TestRetryJoin(t *testing.T) {
 
 	serfAddr := fmt.Sprintf(
 		"%s:%d",
-		agent.config.BindAddr,
-		agent.config.Ports.SerfLan)
+		a.Config.BindAddr,
+		a.Config.Ports.SerfLan)
 
 	serfWanAddr := fmt.Sprintf(
 		"%s:%d",
-		agent.config.BindAddr,
-		agent.config.Ports.SerfWan)
+		a.Config.BindAddr,
+		a.Config.Ports.SerfWan)
 
 	args := []string{
 		"-server",
-		"-bind", agent.config.BindAddr,
+		"-bind", a.Config.BindAddr,
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
-		"-advertise", agent.config.BindAddr,
+		"-advertise", a.Config.BindAddr,
 		"-retry-join", serfAddr,
 		"-retry-interval", "1s",
 		"-retry-join-wan", serfWanAddr,
@@ -149,10 +148,10 @@ func TestRetryJoin(t *testing.T) {
 		close(doneCh)
 	}()
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(agent.LANMembers()), 2; got != want {
+		if got, want := len(a.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
-		if got, want := len(agent.WANMembers()), 2; got != want {
+		if got, want := len(a.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
@@ -287,7 +286,7 @@ func TestReadCliConfig(t *testing.T) {
 }
 
 func TestRetryJoinFail(t *testing.T) {
-	conf := nextConfig()
+	conf := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -315,7 +314,7 @@ func TestRetryJoinFail(t *testing.T) {
 }
 
 func TestRetryJoinWanFail(t *testing.T) {
-	conf := nextConfig()
+	conf := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
