@@ -1011,8 +1011,11 @@ func (a *Agent) Shutdown() error {
 		chk.Stop()
 	}
 
-	err := a.delegate.Shutdown()
-	a.logger.Print("[DEBUG] agent: delegate down")
+	var err error
+	if a.delegate != nil {
+		err = a.delegate.Shutdown()
+		a.logger.Print("[DEBUG] agent: delegate down")
+	}
 
 	pidErr := a.deletePid()
 	if pidErr != nil {
