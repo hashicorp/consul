@@ -42,6 +42,7 @@ func verifyCoordinatesEqual(t *testing.T, a, b *coordinate.Coordinate) {
 }
 
 func TestCoordinate_Update(t *testing.T) {
+	t.Parallel()
 	name := fmt.Sprintf("Node %d", getPort())
 	dir1, config1 := testServerConfig(t, name)
 	defer os.RemoveAll(dir1)
@@ -198,6 +199,7 @@ func TestCoordinate_Update(t *testing.T) {
 }
 
 func TestCoordinate_Update_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -279,6 +281,7 @@ node "node1" {
 }
 
 func TestCoordinate_ListDatacenters(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -309,6 +312,7 @@ func TestCoordinate_ListDatacenters(t *testing.T) {
 }
 
 func TestCoordinate_ListNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -381,6 +385,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 }
 
 func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

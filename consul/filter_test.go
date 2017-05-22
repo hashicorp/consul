@@ -9,6 +9,7 @@ import (
 )
 
 func TestFilter_DirEnt(t *testing.T) {
+	t.Parallel()
 	policy, _ := acl.Parse(testFilterRules)
 	aclR, _ := acl.New(acl.DenyAll(), policy)
 
@@ -50,6 +51,7 @@ func TestFilter_DirEnt(t *testing.T) {
 }
 
 func TestFilter_Keys(t *testing.T) {
+	t.Parallel()
 	policy, _ := acl.Parse(testFilterRules)
 	aclR, _ := acl.New(acl.DenyAll(), policy)
 
@@ -81,6 +83,7 @@ func TestFilter_Keys(t *testing.T) {
 }
 
 func TestFilter_TxnResults(t *testing.T) {
+	t.Parallel()
 	policy, _ := acl.Parse(testFilterRules)
 	aclR, _ := acl.New(acl.DenyAll(), policy)
 

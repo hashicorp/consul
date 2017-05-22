@@ -5,6 +5,7 @@ import (
 )
 
 func TestConfig_GetTokenForAgent(t *testing.T) {
+	t.Parallel()
 	config := DefaultConfig()
 	if token := config.GetTokenForAgent(); token != "" {
 		t.Fatalf("bad: %s", token)

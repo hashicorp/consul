@@ -23,6 +23,7 @@ key "foo/" {
 `
 
 func TestACL_Disabled(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -41,6 +42,7 @@ func TestACL_Disabled(t *testing.T) {
 }
 
 func TestACL_ResolveRootACL(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -65,6 +67,7 @@ func TestACL_ResolveRootACL(t *testing.T) {
 }
 
 func TestACL_Authority_NotFound(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -85,6 +88,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 }
 
 func TestACL_Authority_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "root"
@@ -131,6 +135,7 @@ func TestACL_Authority_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Anonymous_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -157,6 +162,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Master_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -184,6 +190,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Management(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -212,6 +219,7 @@ func TestACL_Authority_Management(t *testing.T) {
 }
 
 func TestACL_NonAuthority_NotFound(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 	})
@@ -251,6 +259,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 }
 
 func TestACL_NonAuthority_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -316,6 +325,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 }
 
 func TestACL_NonAuthority_Management(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -364,6 +374,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 }
 
 func TestACL_DownPolicy_Deny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "deny"
@@ -429,6 +440,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 }
 
 func TestACL_DownPolicy_Allow(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "allow"
@@ -494,6 +506,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 }
 
 func TestACL_DownPolicy_ExtendCache(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLTTL = 0
@@ -570,6 +583,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 }
 
 func TestACL_Replication(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -682,6 +696,7 @@ func TestACL_Replication(t *testing.T) {
 }
 
 func TestACL_MultiDC_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -739,6 +754,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 }
 
 func TestACL_filterHealthChecks(t *testing.T) {
+	t.Parallel()
 	// Create some health checks.
 	fill := func() structs.HealthChecks {
 		return structs.HealthChecks{
@@ -830,6 +846,7 @@ node "node1" {
 }
 
 func TestACL_filterServices(t *testing.T) {
+	t.Parallel()
 	// Create some services
 	services := structs.Services{
 		"service1": []string{},
@@ -863,6 +880,7 @@ func TestACL_filterServices(t *testing.T) {
 }
 
 func TestACL_filterServiceNodes(t *testing.T) {
+	t.Parallel()
 	// Create some service nodes.
 	fill := func() structs.ServiceNodes {
 		return structs.ServiceNodes{
@@ -953,6 +971,7 @@ node "node1" {
 }
 
 func TestACL_filterNodeServices(t *testing.T) {
+	t.Parallel()
 	// Create some node services.
 	fill := func() *structs.NodeServices {
 		return &structs.NodeServices{
@@ -1058,6 +1077,7 @@ node "node1" {
 }
 
 func TestACL_filterCheckServiceNodes(t *testing.T) {
+	t.Parallel()
 	// Create some nodes.
 	fill := func() structs.CheckServiceNodes {
 		return structs.CheckServiceNodes{
@@ -1169,6 +1189,7 @@ node "node1" {
 }
 
 func TestACL_filterCoordinates(t *testing.T) {
+	t.Parallel()
 	// Create some coordinates.
 	coords := structs.Coordinates{
 		&structs.Coordinate{
@@ -1204,6 +1225,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 }
 
 func TestACL_filterSessions(t *testing.T) {
+	t.Parallel()
 	// Create a session list.
 	sessions := structs.Sessions{
 		&structs.Session{
@@ -1237,6 +1259,7 @@ func TestACL_filterSessions(t *testing.T) {
 }
 
 func TestACL_filterNodeDump(t *testing.T) {
+	t.Parallel()
 	// Create a node dump.
 	fill := func() structs.NodeDump {
 		return structs.NodeDump{
@@ -1363,6 +1386,7 @@ node "node1" {
 }
 
 func TestACL_filterNodes(t *testing.T) {
+	t.Parallel()
 	// Create a nodes list.
 	nodes := structs.Nodes{
 		&structs.Node{
@@ -1396,6 +1420,7 @@ func TestACL_filterNodes(t *testing.T) {
 }
 
 func TestACL_redactPreparedQueryTokens(t *testing.T) {
+	t.Parallel()
 	query := &structs.PreparedQuery{
 		ID:    "f004177f-2c28-83b7-4229-eacc25fe55d1",
 		Token: "root",
@@ -1434,6 +1459,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 }
 
 func TestACL_filterPreparedQueries(t *testing.T) {
+	t.Parallel()
 	queries := structs.PreparedQueries{
 		&structs.PreparedQuery{
 			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
@@ -1501,6 +1527,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 }
 
 func TestACL_unhandledFilterType(t *testing.T) {
+	t.Parallel()
 	defer func(t *testing.T) {
 		if recover() == nil {
 			t.Fatalf("should panic")
@@ -1518,6 +1545,7 @@ func TestACL_unhandledFilterType(t *testing.T) {
 }
 
 func TestACL_vetRegisterWithACL(t *testing.T) {
+	t.Parallel()
 	args := &structs.RegisterRequest{
 		Node:    "nope",
 		Address: "127.0.0.1",
@@ -1744,6 +1772,7 @@ node "node" {
 }
 
 func TestACL_vetDeregisterWithACL(t *testing.T) {
+	t.Parallel()
 	args := &structs.DeregisterRequest{
 		Node: "nope",
 	}

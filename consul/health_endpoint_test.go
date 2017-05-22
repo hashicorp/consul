@@ -13,6 +13,7 @@ import (
 )
 
 func TestHealth_ChecksInState(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -59,6 +60,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -154,6 +156,7 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -231,6 +234,7 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_NodeChecks(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -272,6 +276,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -318,6 +323,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -423,6 +429,7 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -511,6 +518,7 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -594,6 +602,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -724,6 +733,7 @@ func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -812,6 +822,7 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -847,6 +858,7 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -889,6 +901,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -924,6 +937,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

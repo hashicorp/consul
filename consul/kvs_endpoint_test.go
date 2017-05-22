@@ -13,6 +13,7 @@ import (
 )
 
 func TestKVS_Apply(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -69,6 +70,7 @@ func TestKVS_Apply(t *testing.T) {
 }
 
 func TestKVS_Apply_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -131,6 +133,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestKVS_Get(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -178,6 +181,7 @@ func TestKVS_Get(t *testing.T) {
 }
 
 func TestKVS_Get_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -223,6 +227,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 }
 
 func TestKVSEndpoint_List(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -294,6 +299,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 }
 
 func TestKVSEndpoint_List_Blocking(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -389,6 +395,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 }
 
 func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -473,6 +480,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -542,6 +550,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -620,6 +629,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 }
 
 func TestKVS_Apply_LockDelay(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -689,6 +699,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 }
 
 func TestKVS_Issue_1626(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

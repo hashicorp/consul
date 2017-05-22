@@ -11,6 +11,7 @@ import (
 
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
+	t.Parallel()
 	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)

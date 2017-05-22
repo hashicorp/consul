@@ -12,6 +12,7 @@ import (
 )
 
 func TestGetPrivateIP(t *testing.T) {
+	t.Parallel()
 	ip, _, err := net.ParseCIDR("10.1.2.3/32")
 	if err != nil {
 		t.Fatalf("failed to parse private cidr: %v", err)
@@ -80,6 +81,7 @@ func TestGetPrivateIP(t *testing.T) {
 }
 
 func TestIsPrivateIP(t *testing.T) {
+	t.Parallel()
 	if !isPrivateIP("192.168.1.1") {
 		t.Fatalf("bad")
 	}
@@ -101,6 +103,7 @@ func TestIsPrivateIP(t *testing.T) {
 }
 
 func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
+	t.Parallel()
 	var members []serf.Member
 
 	// All empty list cases should return false.
@@ -198,6 +201,7 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 }
 
 func TestIsConsulNode(t *testing.T) {
+	t.Parallel()
 	m := serf.Member{
 		Tags: map[string]string{
 			"role": "node",
@@ -211,6 +215,7 @@ func TestIsConsulNode(t *testing.T) {
 }
 
 func TestByteConversion(t *testing.T) {
+	t.Parallel()
 	var val uint64 = 2 << 50
 	raw := uint64ToBytes(val)
 	if bytesToUint64(raw) != val {
@@ -219,6 +224,7 @@ func TestByteConversion(t *testing.T) {
 }
 
 func TestGenerateUUID(t *testing.T) {
+	t.Parallel()
 	prev := generateUUID()
 	for i := 0; i < 100; i++ {
 		id := generateUUID()
@@ -235,6 +241,7 @@ func TestGenerateUUID(t *testing.T) {
 }
 
 func TestGetPublicIPv6(t *testing.T) {
+	t.Parallel()
 	ip, _, err := net.ParseCIDR("fe80::1/128")
 	if err != nil {
 		t.Fatalf("failed to parse link-local cidr: %v", err)
@@ -328,6 +335,7 @@ func TestGetPublicIPv6(t *testing.T) {
 }
 
 func TestServersMeetMinimumVersion(t *testing.T) {
+	t.Parallel()
 	makeMember := func(version string) serf.Member {
 		return serf.Member{
 			Name: "foo",

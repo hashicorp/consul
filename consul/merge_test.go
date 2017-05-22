@@ -32,6 +32,7 @@ func makeNode(dc, name, id string, server bool) *serf.Member {
 }
 
 func TestMerge_LAN(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		members []*serf.Member
 		expect  string
@@ -115,6 +116,7 @@ func TestMerge_LAN(t *testing.T) {
 }
 
 func TestMerge_WAN(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		members []*serf.Member
 		expect  string

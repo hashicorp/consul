@@ -5,6 +5,7 @@ import (
 )
 
 func TestUserEventNames(t *testing.T) {
+	t.Parallel()
 	out := userEventName("foo")
 	if out != "consul:event:foo" {
 		t.Fatalf("bad: %v", out)
