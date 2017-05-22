@@ -11,66 +11,20 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent/mock"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 )
 
-type MockNotify struct {
-	state   map[types.CheckID]string
-	updates map[types.CheckID]int
-	output  map[types.CheckID]string
-
-	// A guard to protect an access to the internal attributes
-	// of the notification mock in order to prevent panics
-	// raised by the race conditions detector.
-	mu sync.RWMutex
-}
-
-func (m *MockNotify) UpdateCheck(id types.CheckID, status, output string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.state[id] = status
-	old := m.updates[id]
-	m.updates[id] = old + 1
-	m.output[id] = output
-}
-
-// State returns the state of the specified health-check.
-func (m *MockNotify) State(id types.CheckID) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.state[id]
-}
-
-// Updates returns the count of updates of the specified health-check.
-func (m *MockNotify) Updates(id types.CheckID) int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.updates[id]
-}
-
-// Output returns an output string of the specified health-check.
-func (m *MockNotify) Output(id types.CheckID) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.output[id]
-}
-
 func expectStatus(t *testing.T, script, status string) {
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		Script:   script,
 		Interval: 10 * time.Millisecond,
@@ -79,10 +33,10 @@ func expectStatus(t *testing.T, script, status string) {
 	check.Start()
 	defer check.Stop()
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.Updates("foo"), 2; got < want {
+		if got, want := notif.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := mock.State("foo"), status; got != want {
+		if got, want := notif.State("foo"), status; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -110,13 +64,9 @@ func TestCheckMonitor_BadCmd(t *testing.T) {
 
 func TestCheckMonitor_Timeout(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		Script:   "sleep 1 && exit 0",
 		Interval: 10 * time.Millisecond,
@@ -129,24 +79,19 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.Updates("foo") < 2 {
-		t.Fatalf("should have at least 2 updates %v", mock.updates)
+	if notif.Updates("foo") < 2 {
+		t.Fatalf("should have at least 2 updates %v", notif.UpdatesMap())
 	}
-
-	if mock.State("foo") != "critical" {
-		t.Fatalf("should be critical %v", mock.state)
+	if notif.State("foo") != "critical" {
+		t.Fatalf("should be critical %v", notif.StateMap())
 	}
 }
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
@@ -158,24 +103,20 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 1 update
-	if mock.Updates("foo") < 1 {
-		t.Fatalf("should have 1 or more updates %v", mock.updates)
+	if notif.Updates("foo") < 1 {
+		t.Fatalf("should have 1 or more updates %v", notif.UpdatesMap())
 	}
 
-	if mock.State("foo") != api.HealthPassing {
-		t.Fatalf("should be %v %v", api.HealthPassing, mock.state)
+	if notif.State("foo") != api.HealthPassing {
+		t.Fatalf("should be %v %v", api.HealthPassing, notif.StateMap())
 	}
 }
 
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
@@ -187,20 +128,16 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.Output("foo")) > CheckBufSize+100 {
+	if len(notif.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 }
 
 func TestCheckTTL(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckTTL{
-		Notify:  mock,
+		Notify:  notif,
 		CheckID: types.CheckID("foo"),
 		TTL:     100 * time.Millisecond,
 		Logger:  log.New(os.Stderr, "", log.LstdFlags),
@@ -211,33 +148,33 @@ func TestCheckTTL(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	check.SetStatus(api.HealthPassing, "test-output")
 
-	if mock.Updates("foo") != 1 {
-		t.Fatalf("should have 1 updates %v", mock.updates)
+	if notif.Updates("foo") != 1 {
+		t.Fatalf("should have 1 updates %v", notif.UpdatesMap())
 	}
 
-	if mock.State("foo") != api.HealthPassing {
-		t.Fatalf("should be passing %v", mock.state)
+	if notif.State("foo") != api.HealthPassing {
+		t.Fatalf("should be passing %v", notif.StateMap())
 	}
 
 	// Ensure we don't fail early
 	time.Sleep(75 * time.Millisecond)
-	if mock.Updates("foo") != 1 {
-		t.Fatalf("should have 1 updates %v", mock.updates)
+	if notif.Updates("foo") != 1 {
+		t.Fatalf("should have 1 updates %v", notif.UpdatesMap())
 	}
 
 	// Wait for the TTL to expire
 	time.Sleep(75 * time.Millisecond)
 
-	if mock.Updates("foo") != 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
+	if notif.Updates("foo") != 2 {
+		t.Fatalf("should have 2 updates %v", notif.UpdatesMap())
 	}
 
-	if mock.State("foo") != api.HealthCritical {
-		t.Fatalf("should be critical %v", mock.state)
+	if notif.State("foo") != api.HealthCritical {
+		t.Fatalf("should be critical %v", notif.StateMap())
 	}
 
-	if !strings.Contains(mock.Output("foo"), "test-output") {
-		t.Fatalf("should have retained output %v", mock.output)
+	if !strings.Contains(notif.Output("foo"), "test-output") {
+		t.Fatalf("should have retained output %v", notif.OutputMap())
 	}
 }
 
@@ -268,13 +205,9 @@ func mockTLSHTTPServer(responseCode int) *httptest.Server {
 }
 
 func expectHTTPStatus(t *testing.T, url string, status string) {
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckHTTP{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		HTTP:     url,
 		Interval: 10 * time.Millisecond,
@@ -283,14 +216,14 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 	check.Start()
 	defer check.Stop()
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.Updates("foo"), 2; got < want {
+		if got, want := notif.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := mock.State("foo"), status; got != want {
+		if got, want := notif.State("foo"), status; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 		// Allow slightly more data than CheckBufSize, for the header
-		if n := len(mock.Output("foo")); n > (CheckBufSize + 256) {
+		if n := len(notif.Output("foo")); n > (CheckBufSize + 256) {
 			r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
 		}
 	})
@@ -368,14 +301,9 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	server := mockSlowHTTPServer(200, 10*time.Millisecond)
 	defer server.Close()
 
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
-
+	notif := mock.NewNotify()
 	check := &CheckHTTP{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("bar"),
 		HTTP:     server.URL,
 		Timeout:  5 * time.Millisecond,
@@ -386,10 +314,10 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.Updates("bar"), 2; got < want {
+		if got, want := notif.Updates("bar"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := mock.State("bar"), api.HealthCritical; got != want {
+		if got, want := notif.State("bar"), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -434,14 +362,10 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	server := mockTLSHTTPServer(200)
 	defer server.Close()
 
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 
 	check := &CheckHTTP{
-		Notify:        mock,
+		Notify:        notif,
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
@@ -456,7 +380,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.state["skipverify_true"], api.HealthPassing; got != want {
+		if got, want := notif.State("skipverify_true"), api.HealthPassing; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -467,14 +391,10 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	server := mockTLSHTTPServer(500)
 	defer server.Close()
 
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 
 	check := &CheckHTTP{
-		Notify:        mock,
+		Notify:        notif,
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
@@ -488,7 +408,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.state["skipverify_true"], api.HealthCritical; got != want {
+		if got, want := notif.State("skipverify_true"), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -499,14 +419,10 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	server := mockTLSHTTPServer(200)
 	defer server.Close()
 
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 
 	check := &CheckHTTP{
-		Notify:        mock,
+		Notify:        notif,
 		CheckID:       types.CheckID("skipverify_false"),
 		HTTP:          server.URL,
 		Interval:      100 * time.Millisecond,
@@ -522,11 +438,11 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		// This should fail due to an invalid SSL cert
-		if got, want := mock.state["skipverify_false"], api.HealthCritical; got != want {
+		if got, want := notif.State("skipverify_false"), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
-		if !strings.Contains(mock.output["skipverify_false"], "certificate signed by unknown authority") {
-			r.Fatalf("should fail with certificate error %v", mock.output)
+		if !strings.Contains(notif.Output("skipverify_false"), "certificate signed by unknown authority") {
+			r.Fatalf("should fail with certificate error %v", notif.OutputMap())
 		}
 	})
 }
@@ -551,13 +467,9 @@ func mockTCPServer(network string) net.Listener {
 }
 
 func expectTCPStatus(t *testing.T, tcp string, status string) {
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckTCP{
-		Notify:   mock,
+		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		TCP:      tcp,
 		Interval: 10 * time.Millisecond,
@@ -566,10 +478,10 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 	check.Start()
 	defer check.Stop()
 	retry.Run(t, func(r *retry.R) {
-		if got, want := mock.Updates("foo"), 2; got < want {
+		if got, want := notif.Updates("foo"), 2; got < want {
 			r.Fatalf("got %d updates want at least %d", got, want)
 		}
-		if got, want := mock.State("foo"), status; got != want {
+		if got, want := notif.State("foo"), status; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
@@ -730,13 +642,9 @@ func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.Exe
 }
 
 func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, output string) {
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckDocker{
-		Notify:            mock,
+		Notify:            notif,
 		CheckID:           types.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
@@ -751,16 +659,16 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 2 updates
-	if mock.Updates("foo") < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
+	if notif.Updates("foo") < 2 {
+		t.Fatalf("should have 2 updates %v", notif.UpdatesMap())
 	}
 
-	if mock.State("foo") != status {
-		t.Fatalf("should be %v %v", status, mock.state)
+	if notif.State("foo") != status {
+		t.Fatalf("should be %v %v", status, notif.StateMap())
 	}
 
-	if mock.Output("foo") != output {
-		t.Fatalf("should be %v %v", output, mock.output)
+	if notif.Output("foo") != output {
+		t.Fatalf("should be %v %v", output, notif.OutputMap())
 	}
 }
 
@@ -797,13 +705,9 @@ func TestDockerCheckWhenExecInfoFails(t *testing.T) {
 func TestDockerCheckDefaultToSh(t *testing.T) {
 	t.Parallel()
 	os.Setenv("SHELL", "")
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckDocker{
-		Notify:            mock,
+		Notify:            notif,
 		CheckID:           types.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
@@ -822,14 +726,10 @@ func TestDockerCheckDefaultToSh(t *testing.T) {
 
 func TestDockerCheckUseShellFromEnv(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	os.Setenv("SHELL", "/bin/bash")
 	check := &CheckDocker{
-		Notify:            mock,
+		Notify:            notif,
 		CheckID:           types.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
@@ -849,13 +749,9 @@ func TestDockerCheckUseShellFromEnv(t *testing.T) {
 
 func TestDockerCheckTruncateOutput(t *testing.T) {
 	t.Parallel()
-	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
-	}
+	notif := mock.NewNotify()
 	check := &CheckDocker{
-		Notify:            mock,
+		Notify:            notif,
 		CheckID:           types.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
@@ -870,7 +766,7 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(mock.Output("foo")) > CheckBufSize+100 {
+	if len(notif.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 
