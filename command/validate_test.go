@@ -124,7 +124,7 @@ func TestValidateCommandQuiet(t *testing.T) {
 	if code := cmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d, %s", code, ui.ErrorWriter.String())
 	}
-	if ui.OutputWriter.String() != "<nil>" {
+	if ui.OutputWriter.String() != "" {
 		t.Fatalf("bad: %v", ui.OutputWriter.String())
 	}
 }
