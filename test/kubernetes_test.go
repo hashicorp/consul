@@ -233,6 +233,13 @@ var dnsTestCases = []test.Case{
 			test.A("next-in-chain.              0       IN      A       192.0.2.53"),
 		},
 	},
+	{
+		Qname: "cluster.local.", Qtype: dns.TypeNS,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.NS("cluster.local.          0       IN      NS      kubernetes.default.svc.cluster.local."),
+		},
+	},
 }
 
 var dnsTestCasesPodsInsecure = []test.Case{

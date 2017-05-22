@@ -35,7 +35,15 @@ func (s *storeToNamespaceLister) List() (ns api.NamespaceList, err error) {
 	return ns, nil
 }
 
-type dnsController struct {
+type dnsController interface {
+	ServiceList() []*api.Service
+	PodIndex(string) []interface{}
+	EndpointsList() api.EndpointsList
+	Run()
+	Stop() error
+}
+
+type dnsControl struct {
 	client *kubernetes.Clientset
 
 	selector *labels.Selector
@@ -59,8 +67,8 @@ type dnsController struct {
 }
 
 // newDNSController creates a controller for CoreDNS.
-func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Duration, lselector *labels.Selector, initPodCache bool) *dnsController {
-	dns := dnsController{
+func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Duration, lselector *labels.Selector, initPodCache bool) *dnsControl {
+	dns := dnsControl{
 		client:   kubeClient,
 		selector: lselector,
 		stopCh:   make(chan struct{}),
@@ -286,12 +294,12 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) 
 	}
 }
 
-func (dns *dnsController) controllersInSync() bool {
+func (dns *dnsControl) controllersInSync() bool {
 	return dns.svcController.HasSynced()
 }
 
 // Stop stops the  controller.
-func (dns *dnsController) Stop() error {
+func (dns *dnsControl) Stop() error {
 	dns.stopLock.Lock()
 	defer dns.stopLock.Unlock()
 
@@ -307,7 +315,7 @@ func (dns *dnsController) Stop() error {
 }
 
 // Run starts the controller.
-func (dns *dnsController) Run() {
+func (dns *dnsControl) Run() {
 	go dns.svcController.Run(dns.stopCh)
 	go dns.nsController.Run(dns.stopCh)
 	go dns.epController.Run(dns.stopCh)
@@ -317,7 +325,7 @@ func (dns *dnsController) Run() {
 	<-dns.stopCh
 }
 
-func (dns *dnsController) NamespaceList() *api.NamespaceList {
+func (dns *dnsControl) NamespaceList() *api.NamespaceList {
 	nsList, err := dns.nsLister.List()
 	if err != nil {
 		return &api.NamespaceList{}
@@ -326,7 +334,7 @@ func (dns *dnsController) NamespaceList() *api.NamespaceList {
 	return &nsList
 }
 
-func (dns *dnsController) ServiceList() []*api.Service {
+func (dns *dnsControl) ServiceList() []*api.Service {
 	svcs, err := dns.svcLister.List(labels.Everything())
 	if err != nil {
 		return []*api.Service{}
@@ -335,10 +343,28 @@ func (dns *dnsController) ServiceList() []*api.Service {
 	return svcs
 }
 
+func (dns *dnsControl) PodIndex(ip string) []interface{} {
+	pods, err := dns.podLister.Indexer.ByIndex(podIPIndex, ip)
+	if err != nil {
+		return nil
+	}
+
+	return pods
+}
+
+func (dns *dnsControl) EndpointsList() api.EndpointsList {
+	epl, err := dns.epLister.List()
+	if err != nil {
+		return api.EndpointsList{}
+	}
+
+	return epl
+}
+
 // ServicesByNamespace returns a map of:
 //
 // namespacename :: [ kubernetesService ]
-func (dns *dnsController) ServicesByNamespace() map[string][]api.Service {
+func (dns *dnsControl) ServicesByNamespace() map[string][]api.Service {
 	k8sServiceList := dns.ServiceList()
 	items := make(map[string][]api.Service, len(k8sServiceList))
 	for _, i := range k8sServiceList {
@@ -350,7 +376,7 @@ func (dns *dnsController) ServicesByNamespace() map[string][]api.Service {
 }
 
 // ServiceInNamespace returns the Service that matches servicename in the namespace
-func (dns *dnsController) ServiceInNamespace(namespace, servicename string) *api.Service {
+func (dns *dnsControl) ServiceInNamespace(namespace, servicename string) *api.Service {
 	svcObj, err := dns.svcLister.Services(namespace).Get(servicename)
 	if err != nil {
 		// TODO(...): should return err here

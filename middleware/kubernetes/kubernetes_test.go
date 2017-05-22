@@ -1,22 +1,95 @@
 package kubernetes
 
-import "testing"
-import "reflect"
+import (
+	"errors"
+	"net"
+	"reflect"
+	"testing"
 
-// Test data for TestSymbolContainsWildcard cases.
-var testdataSymbolContainsWildcard = []struct {
-	Symbol         string
-	ExpectedResult bool
-}{
-	{"mynamespace", false},
-	{"*", true},
-	{"any", true},
-	{"my*space", false},
-	{"*space", false},
-	{"myname*", false},
+	"github.com/miekg/dns"
+	"k8s.io/client-go/1.5/pkg/api"
+
+	"github.com/coredns/coredns/middleware/etcd/msg"
+)
+
+func TestRecordForTXT(t *testing.T) {
+	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+	r, _ := k.parseRequest("dns-version.inter.webs.test", dns.TypeTXT)
+	expected := DNSSchemaVersion
+
+	var svcs []msg.Service
+	k.recordsForTXT(r, &svcs)
+	if svcs[0].Text != expected {
+		t.Errorf("Expected result '%v'. Instead got result '%v'.", expected, svcs[0].Text)
+	}
+}
+
+func TestPrimaryZone(t *testing.T) {
+	k := Kubernetes{Zones: []string{"inter.webs.test", "inter.nets.test"}}
+	expected := "inter.webs.test"
+	result := k.PrimaryZone()
+	if result != expected {
+		t.Errorf("Expected result '%v'. Instead got result '%v'.", expected, result)
+	}
+}
+
+func TestIsRequestInReverseRange(t *testing.T) {
+
+	tests := []struct {
+		cidr     string
+		name     string
+		expected bool
+	}{
+		{"1.2.3.0/24", "4.3.2.1.in-addr.arpa.", true},
+		{"1.2.3.0/24", "5.3.2.1.in-addr.arpa.", true},
+		{"1.2.3.0/24", "5.4.2.1.in-addr.arpa.", false},
+		{"5.6.0.0/16", "5.4.2.1.in-addr.arpa.", false},
+		{"5.6.0.0/16", "5.4.6.5.in-addr.arpa.", true},
+		{"5.6.0.0/16", "5.6.0.1.in-addr.arpa.", false},
+	}
+
+	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+
+	for _, test := range tests {
+		_, cidr, _ := net.ParseCIDR(test.cidr)
+		k.ReverseCidrs = []net.IPNet{*cidr}
+		result := k.isRequestInReverseRange(test.name)
+		if result != test.expected {
+			t.Errorf("Expected '%v' for '%v' in %v.", test.expected, test.name, test.cidr)
+		}
+	}
+}
+
+func TestIsNameError(t *testing.T) {
+	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+	if !k.IsNameError(errNoItems) {
+		t.Errorf("Expected 'true' for '%v'", errNoItems)
+	}
+	if !k.IsNameError(errNsNotExposed) {
+		t.Errorf("Expected 'true' for '%v'", errNsNotExposed)
+	}
+	if !k.IsNameError(errInvalidRequest) {
+		t.Errorf("Expected 'true' for '%v'", errInvalidRequest)
+	}
+	otherErr := errors.New("Some other error occured")
+	if k.IsNameError(otherErr) {
+		t.Errorf("Expected 'true' for '%v'", otherErr)
+	}
 }
 
 func TestSymbolContainsWildcard(t *testing.T) {
+	var testdataSymbolContainsWildcard = []struct {
+		Symbol         string
+		ExpectedResult bool
+	}{
+		{"mynamespace", false},
+		{"*", true},
+		{"any", true},
+		{"my*space", false},
+		{"*space", false},
+		{"myname*", false},
+	}
+
 	for _, example := range testdataSymbolContainsWildcard {
 		actualResult := symbolContainsWildcard(example.Symbol)
 		if actualResult != example.ExpectedResult {
@@ -44,7 +117,7 @@ func TestParseRequest(t *testing.T) {
 	// Test a valid SRV request
 	//
 	query := "_http._tcp.webs.mynamespace.svc.inter.webs.test."
-	r, e := k.parseRequest(query, "SRV")
+	r, e := k.parseRequest(query, dns.TypeSRV)
 	if e != nil {
 		t.Errorf("Expected no error from parseRequest(%v, \"SRV\"). Instead got '%v'.", query, e)
 	}
@@ -65,7 +138,7 @@ func TestParseRequest(t *testing.T) {
 	// Test wildcard acceptance
 	//
 	query = "*.any.*.any.svc.inter.webs.test."
-	r, e = k.parseRequest(query, "SRV")
+	r, e = k.parseRequest(query, dns.TypeSRV)
 	if e != nil {
 		t.Errorf("Expected no error from parseRequest(\"%v\", \"SRV\"). Instead got '%v'.", query, e)
 	}
@@ -85,7 +158,7 @@ func TestParseRequest(t *testing.T) {
 
 	// Test A request of endpoint
 	query = "1-2-3-4.webs.mynamespace.svc.inter.webs.test."
-	r, e = k.parseRequest(query, "A")
+	r, e = k.parseRequest(query, dns.TypeA)
 	if e != nil {
 		t.Errorf("Expected no error from parseRequest(\"%v\", \"A\"). Instead got '%v'.", query, e)
 	}
@@ -102,6 +175,44 @@ func TestParseRequest(t *testing.T) {
 		expectString(t, f, "A", query, &r, field, expected)
 	}
 
+	// Test NS request
+	query = "inter.webs.test."
+	r, e = k.parseRequest(query, dns.TypeNS)
+	if e != nil {
+		t.Errorf("Expected no error from parseRequest(\"%v\", \"NS\"). Instead got '%v'.", query, e)
+	}
+	tcs = map[string]string{
+		"port":      "",
+		"protocol":  "",
+		"endpoint":  "",
+		"service":   "",
+		"namespace": "",
+		"typeName":  "",
+		"zone":      "inter.webs.test",
+	}
+	for field, expected := range tcs {
+		expectString(t, f, "NS", query, &r, field, expected)
+	}
+
+	// Test TXT request
+	query = "dns-version.inter.webs.test."
+	r, e = k.parseRequest(query, dns.TypeTXT)
+	if e != nil {
+		t.Errorf("Expected no error from parseRequest(\"%v\", \"TXT\"). Instead got '%v'.", query, e)
+	}
+	tcs = map[string]string{
+		"port":      "",
+		"protocol":  "",
+		"endpoint":  "",
+		"service":   "",
+		"namespace": "",
+		"typeName":  "dns-version",
+		"zone":      "inter.webs.test",
+	}
+	for field, expected := range tcs {
+		expectString(t, f, "TXT", query, &r, field, expected)
+	}
+
 	// Invalid query tests
 	invalidAQueries := []string{
 		"_http._tcp.webs.mynamespace.svc.inter.webs.test.", // A requests cannot have port or protocol
@@ -109,7 +220,7 @@ func TestParseRequest(t *testing.T) {
 
 	}
 	for _, q := range invalidAQueries {
-		_, e = k.parseRequest(q, "A")
+		_, e = k.parseRequest(q, dns.TypeA)
 		if e == nil {
 			t.Errorf("Expected error from %v(\"%v\", \"A\").", f, q)
 		}
@@ -126,9 +237,43 @@ func TestParseRequest(t *testing.T) {
 	}
 
 	for _, q := range invalidSRVQueries {
-		_, e = k.parseRequest(q, "SRV")
+		_, e = k.parseRequest(q, dns.TypeSRV)
 		if e == nil {
 			t.Errorf("Expected error from %v(\"%v\", \"SRV\").", f, q)
+		}
+	}
+}
+
+func TestEndpointHostname(t *testing.T) {
+	var tests = []struct {
+		ip       string
+		hostname string
+		expected string
+	}{
+		{"10.11.12.13", "", "10-11-12-13"},
+		{"10.11.12.13", "epname", "epname"},
+	}
+	for _, test := range tests {
+		result := endpointHostname(api.EndpointAddress{IP: test.ip, Hostname: test.hostname})
+		if result != test.expected {
+			t.Errorf("Expected endpoint name for (ip:%v hostname:%v) to be '%v', but got '%v'", test.ip, test.hostname, test.expected, result)
+		}
+	}
+}
+
+func TestIpFromPodName(t *testing.T) {
+	var tests = []struct {
+		ip       string
+		expected string
+	}{
+		{"10-11-12-13", "10.11.12.13"},
+		{"1-2-3-4", "1.2.3.4"},
+		{"1-2-3--A-B-C", "1:2:3::A:B:C"},
+	}
+	for _, test := range tests {
+		result := ipFromPodName(test.ip)
+		if result != test.expected {
+			t.Errorf("Expected ip for podname '%v' to be '%v', but got '%v'", test.ip, test.expected, result)
 		}
 	}
 }

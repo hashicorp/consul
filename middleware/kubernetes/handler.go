@@ -32,7 +32,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		// If this is a PTR request, and the request is in a defined
 		// pod/service cidr range, process the request in this middleware,
 		// otherwise pass to next middleware.
-		if !k.isRequestInReverseRange(state) {
+		if !k.isRequestInReverseRange(state.Name()) {
 			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
 		// Set the zone to this specific request.
