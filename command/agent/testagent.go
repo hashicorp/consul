@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
@@ -189,6 +190,23 @@ func (a *TestAgent) Shutdown() error {
 	return a.Agent.Shutdown()
 }
 
+func (a *TestAgent) HTTPAddr() string {
+	if a.srv == nil {
+		return ""
+	}
+	return a.srv.Addr
+}
+
+func (a *TestAgent) Client() *api.Client {
+	conf := api.DefaultConfig()
+	conf.Address = a.HTTPAddr()
+	c, err := api.NewClient(conf)
+	if err != nil {
+		panic(fmt.Sprintf("Error creating consul API client: %s", err))
+	}
+	return c
+}
+
 func (a *TestAgent) consulConfig() *consul.Config {
 	c, err := a.Agent.consulConfig()
 	if err != nil {
@@ -209,9 +227,10 @@ func pickRandomPorts(c *Config) {
 	port := 1030 + int(rand.Int31n(64400))
 	c.Ports.DNS = port + 1
 	c.Ports.HTTP = port + 2
-	c.Ports.SerfLan = port + 3
-	c.Ports.SerfWan = port + 4
-	c.Ports.Server = port + 5
+	c.Ports.HTTPS = port + 3
+	c.Ports.SerfLan = port + 4
+	c.Ports.SerfWan = port + 5
+	c.Ports.Server = port + 6
 }
 
 // BoolTrue and BoolFalse exist to create a *bool value.

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -79,9 +80,9 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Run(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
 	ui, c := testKVDeleteCommand(t)
 
@@ -95,7 +96,7 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 	}
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"foo",
 	}
 
@@ -114,9 +115,9 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
 	ui, c := testKVDeleteCommand(t)
 
@@ -134,7 +135,7 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 	}
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-recurse",
 		"foo",
 	}
@@ -156,9 +157,9 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 }
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
 	ui, c := testKVDeleteCommand(t)
 
@@ -172,7 +173,7 @@ func TestKVDeleteCommand_CAS(t *testing.T) {
 	}
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-cas",
 		"-modify-index", "1",
 		"foo",
@@ -193,7 +194,7 @@ func TestKVDeleteCommand_CAS(t *testing.T) {
 	ui.ErrorWriter.Reset()
 
 	args = []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-cas",
 		"-modify-index", strconv.FormatUint(data.ModifyIndex, 10),
 		"foo",

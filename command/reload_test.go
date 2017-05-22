@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -13,12 +14,12 @@ func TestReloadCommand_implements(t *testing.T) {
 }
 
 func TestReloadCommandRun(t *testing.T) {
-	a1 := testAgentWithConfig(t, nil)
-	defer a1.Shutdown()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Setup a dummy response to errCh to simulate a successful reload
 	go func() {
-		errCh := <-a1.agent.ReloadCh()
+		errCh := <-a.ReloadCh()
 		errCh <- nil
 	}()
 
@@ -29,7 +30,7 @@ func TestReloadCommandRun(t *testing.T) {
 			Flags: base.FlagSetClientHTTP,
 		},
 	}
-	args := []string{"-http-addr=" + a1.httpAddr}
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {

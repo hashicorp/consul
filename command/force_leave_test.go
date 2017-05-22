@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
@@ -26,13 +27,13 @@ func TestForceLeaveCommand_implements(t *testing.T) {
 }
 
 func TestForceLeaveCommandRun(t *testing.T) {
-	a1 := testAgent(t)
-	a2 := testAgent(t)
+	a1 := agent.NewTestAgent(t.Name(), nil)
+	a2 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan)
-	_, err := a1.agent.JoinLAN([]string{addr})
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	_, err := a1.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -42,8 +43,8 @@ func TestForceLeaveCommandRun(t *testing.T) {
 
 	ui, c := testForceLeaveCommand(t)
 	args := []string{
-		"-http-addr=" + a1.httpAddr,
-		a2.config.NodeName,
+		"-http-addr=" + a1.HTTPAddr(),
+		a2.Config.NodeName,
 	}
 
 	code := c.Run(args)
@@ -51,12 +52,12 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	m := a1.agent.LANMembers()
+	m := a1.LANMembers()
 	if len(m) != 2 {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m = a1.agent.LANMembers()
+		m = a1.LANMembers()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}

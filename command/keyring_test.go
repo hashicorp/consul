@@ -28,13 +28,13 @@ func TestKeyringCommandRun(t *testing.T) {
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
 	// Begin with a single key
-	a1 := testAgentWithConfig(t, func(cfg *agent.Config) {
-		cfg.EncryptKey = key1
-	})
+	cfg := agent.TestConfig()
+	cfg.EncryptKey = key1
+	a1 := agent.NewTestAgent(t.Name(), cfg)
 	defer a1.Shutdown()
 
 	// The LAN and WAN keyrings were initialized with key1
-	out := listKeys(t, a1.httpAddr)
+	out := listKeys(t, a1.HTTPAddr())
 	if !strings.Contains(out, "dc1 (LAN):\n  "+key1) {
 		t.Fatalf("bad: %#v", out)
 	}
@@ -46,10 +46,10 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 
 	// Install the second key onto the keyring
-	installKey(t, a1.httpAddr, key2)
+	installKey(t, a1.HTTPAddr(), key2)
 
 	// Both keys should be present
-	out = listKeys(t, a1.httpAddr)
+	out = listKeys(t, a1.HTTPAddr())
 	for _, key := range []string{key1, key2} {
 		if !strings.Contains(out, key) {
 			t.Fatalf("bad: %#v", out)
@@ -57,11 +57,11 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 
 	// Rotate to key2, remove key1
-	useKey(t, a1.httpAddr, key2)
-	removeKey(t, a1.httpAddr, key1)
+	useKey(t, a1.HTTPAddr(), key2)
+	removeKey(t, a1.HTTPAddr(), key1)
 
 	// Only key2 is present now
-	out = listKeys(t, a1.httpAddr)
+	out = listKeys(t, a1.HTTPAddr())
 	if !strings.Contains(out, "dc1 (LAN):\n  "+key2) {
 		t.Fatalf("bad: %#v", out)
 	}

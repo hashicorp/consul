@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -14,17 +15,16 @@ func TestOperator_Raft_ListPeers_Implements(t *testing.T) {
 }
 
 func TestOperator_Raft_ListPeers(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	expected := fmt.Sprintf("%s  127.0.0.1:%d  127.0.0.1:%d  leader  true   2",
-		a1.config.NodeName, a1.config.Ports.Server, a1.config.Ports.Server)
+		a.Config.NodeName, a.Config.Ports.Server, a.Config.Ports.Server)
 
 	// Test the legacy mode with 'consul operator raft -list-peers'
 	{
 		ui, c := testOperatorRaftCommand(t)
-		args := []string{"-http-addr=" + a1.httpAddr, "-list-peers"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "-list-peers"}
 
 		code := c.Run(args)
 		if code != 0 {
@@ -45,7 +45,7 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 				Flags: base.FlagSetHTTP,
 			},
 		}
-		args := []string{"-http-addr=" + a1.httpAddr}
+		args := []string{"-http-addr=" + a.HTTPAddr()}
 
 		code := c.Run(args)
 		if code != 0 {

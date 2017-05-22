@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -13,14 +14,13 @@ func TestOperator_Raft_RemovePeer_Implements(t *testing.T) {
 }
 
 func TestOperator_Raft_RemovePeer(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	// Test the legacy mode with 'consul operator raft -remove-peer'
 	{
 		ui, c := testOperatorRaftCommand(t)
-		args := []string{"-http-addr=" + a1.httpAddr, "-remove-peer", "-address=nope"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "-remove-peer", "-address=nope"}
 
 		code := c.Run(args)
 		if code != 1 {
@@ -43,7 +43,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 				Flags: base.FlagSetHTTP,
 			},
 		}
-		args := []string{"-http-addr=" + a1.httpAddr, "-address=nope"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "-address=nope"}
 
 		code := c.Run(args)
 		if code != 1 {
@@ -66,7 +66,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 				Flags: base.FlagSetHTTP,
 			},
 		}
-		args := []string{"-http-addr=" + a1.httpAddr, "-id=nope"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "-id=nope"}
 
 		code := c.Run(args)
 		if code != 1 {

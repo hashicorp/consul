@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -13,9 +14,8 @@ func TestOperator_Autopilot_Get_Implements(t *testing.T) {
 }
 
 func TestOperator_Autopilot_Get(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui := new(cli.MockUi)
 	c := OperatorAutopilotGetCommand{
@@ -24,7 +24,7 @@ func TestOperator_Autopilot_Get(t *testing.T) {
 			Flags: base.FlagSetHTTP,
 		},
 	}
-	args := []string{"-http-addr=" + a1.httpAddr}
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {

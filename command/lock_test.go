@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -45,14 +46,13 @@ func TestLockCommand_BadArgs(t *testing.T) {
 }
 
 func TestLockCommand_Run(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", touchCmd}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -67,14 +67,13 @@ func TestLockCommand_Run(t *testing.T) {
 }
 
 func TestLockCommand_Try_Lock(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "-try=10s", "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-try=10s", "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock
@@ -98,14 +97,13 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 }
 
 func TestLockCommand_Try_Semaphore(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-try=10s", "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-try=10s", "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock
@@ -129,14 +127,13 @@ func TestLockCommand_Try_Semaphore(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock
@@ -161,14 +158,13 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock
@@ -193,14 +189,13 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "-monitor-retry=9", "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-monitor-retry=9", "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock
@@ -225,14 +220,13 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
-	waitForLeader(t, a1.httpAddr)
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
-	filePath := filepath.Join(a1.dir, "test_touch")
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	touchCmd := fmt.Sprintf("touch '%s'", filePath)
-	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-monitor-retry=9", "test/prefix", touchCmd}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-monitor-retry=9", "test/prefix", touchCmd}
 
 	// Run the command.
 	var lu *LockUnlock

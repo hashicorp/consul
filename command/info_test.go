@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
@@ -13,7 +14,7 @@ func TestInfoCommand_implements(t *testing.T) {
 }
 
 func TestInfoCommandRun(t *testing.T) {
-	a1 := testAgent(t)
+	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 
 	ui := new(cli.MockUi)
@@ -23,7 +24,7 @@ func TestInfoCommandRun(t *testing.T) {
 			Flags: base.FlagSetClientHTTP,
 		},
 	}
-	args := []string{"-http-addr=" + a1.httpAddr}
+	args := []string{"-http-addr=" + a1.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {
