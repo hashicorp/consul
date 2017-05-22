@@ -312,6 +312,9 @@ OUTER:
 				c.UI.Info(fmt.Sprintf("Completed in %0.2f seconds",
 					float64(time.Now().Sub(start))/float64(time.Second)))
 			}
+			if exitCount < ackCount {
+				badExit++
+			}
 			break OUTER
 
 		case <-errCh:

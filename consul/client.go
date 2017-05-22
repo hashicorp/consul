@@ -407,8 +407,8 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetCoordinate returns the network coordinate of the current node, as
+// GetLANCoordinate returns the network coordinate of the current node, as
 // maintained by Serf.
-func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
+func (c *Client) GetLANCoordinate() (*coordinate.Coordinate, error) {
 	return c.serf.GetCoordinate()
 }

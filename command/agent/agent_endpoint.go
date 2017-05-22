@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/logutils"
@@ -28,7 +29,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	var c *coordinate.Coordinate
 	if !s.agent.config.DisableCoordinates {
 		var err error
-		if c, err = s.agent.GetCoordinate(); err != nil {
+		if c, err = s.agent.GetLANCoordinate(); err != nil {
 			return nil, err
 		}
 	}
@@ -257,7 +258,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	health := args.HealthCheck(s.agent.config.NodeName)
 
 	// Verify the check type.
-	chkType := &args.CheckType
+	chkType := args.CheckType()
 	if !chkType.Valid() {
 		resp.WriteHeader(400)
 		fmt.Fprint(resp, invalidCheckMessage)
@@ -454,7 +455,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 	// Check the service address here and in the catalog RPC endpoint
 	// since service registration isn't sychronous.
-	if args.Address == "0.0.0.0" || args.Address == "::" || args.Address == "[::]" {
+	if ipaddr.IsAny(args.Address) {
 		resp.WriteHeader(400)
 		fmt.Fprintf(resp, "Invalid service address")
 		return nil, nil

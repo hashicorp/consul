@@ -16,7 +16,9 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
@@ -371,12 +373,12 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
-	if isAddrANY(config.AdvertiseAddr) {
+	if ipaddr.IsAny(config.AdvertiseAddr) {
 		c.UI.Error("Advertise address cannot be " + config.AdvertiseAddr)
 		return nil
 	}
 
-	if isAddrANY(config.AdvertiseAddrWan) {
+	if ipaddr.IsAny(config.AdvertiseAddrWan) {
 		c.UI.Error("Advertise WAN address cannot be " + config.AdvertiseAddrWan)
 		return nil
 	}
@@ -665,13 +667,15 @@ func (c *Command) gossipEncrypted() bool {
 		return true
 	}
 
-	server := c.agent.server
-	if server != nil {
+	server, ok := c.agent.delegate.(*consul.Server)
+	if ok {
 		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
 	}
-
-	client := c.agent.client
-	return client != nil && client.KeyManagerLAN() != nil
+	client, ok := c.agent.delegate.(*consul.Client)
+	if ok {
+		return client != nil && client.KeyManagerLAN() != nil
+	}
+	panic(fmt.Sprintf("delegate is neither server nor client: %T", c.agent.delegate))
 }
 
 func (c *Command) Run(args []string) int {
@@ -854,12 +858,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Figure out if gossip is encrypted
-	var gossipEncrypted bool
-	if config.Server {
-		gossipEncrypted = c.agent.server.Encrypted()
-	} else {
-		gossipEncrypted = c.agent.client.Encrypted()
-	}
+	gossipEncrypted := c.agent.delegate.Encrypted()
 
 	// Let the agent know we've finished registration
 	c.agent.StartSync()

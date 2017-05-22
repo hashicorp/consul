@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -54,7 +55,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 		// Check the service address here and in the agent endpoint
 		// since service registration isn't sychronous.
-		if args.Service.Address == "0.0.0.0" || args.Service.Address == "::" || args.Service.Address == "[::]" {
+		if ipaddr.IsAny(args.Service.Address) {
 			return fmt.Errorf("Invalid service address")
 		}
 
