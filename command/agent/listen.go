@@ -26,10 +26,6 @@ func ListenTLS(addr string, cfg *tls.Config) (net.Listener, error) {
 }
 
 func ListenUnix(addr string, perm FilePermissions) (net.Listener, error) {
-	// todo(fs): move this somewhere else
-	//	if _, err := os.Stat(addr); !os.IsNotExist(err) {
-	//		s.agent.logger.Printf("[WARN] agent: Replacing socket %q", addr)
-	//	}
 	if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("error removing socket file: %s", err)
 	}

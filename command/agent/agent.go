@@ -1012,7 +1012,7 @@ func (a *Agent) Shutdown() error {
 	}
 
 	err := a.delegate.Shutdown()
-	a.logger.Print("[INFO] agent: delegate down")
+	a.logger.Print("[DEBUG] agent: delegate down")
 
 	pidErr := a.deletePid()
 	if pidErr != nil {

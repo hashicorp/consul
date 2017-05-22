@@ -2332,9 +2332,6 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 		}
 
 		// Only 1 is passing, so we should only get 1 answer
-		for _, a := range in.Answer {
-			fmt.Println(question, a)
-		}
 		if len(in.Answer) != 1 {
 			t.Fatalf("Bad: %#v", in)
 		}

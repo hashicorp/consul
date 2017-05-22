@@ -277,7 +277,7 @@ func TestAgent_Reload(t *testing.T) {
 	}()
 
 	retry.Run(t, func(r *retry.R) {
-		if cmd == nil || cmd.agent == nil {
+		if cmd.agent == nil {
 			r.Fatal("waiting for agent")
 		}
 		if got, want := len(cmd.agent.httpServers), 1; got != want {
