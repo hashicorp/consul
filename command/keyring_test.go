@@ -20,10 +20,12 @@ func testKeyringCommand(t *testing.T) (*cli.MockUi, *KeyringCommand) {
 }
 
 func TestKeyringCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KeyringCommand{}
 }
 
 func TestKeyringCommandRun(t *testing.T) {
+	t.Parallel()
 	key1 := "HS5lJ+XuTlYKWaeGYyG+/A=="
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
@@ -74,6 +76,7 @@ func TestKeyringCommandRun(t *testing.T) {
 }
 
 func TestKeyringCommandRun_help(t *testing.T) {
+	t.Parallel()
 	ui, c := testKeyringCommand(t)
 	code := c.Run(nil)
 	if code != 1 {
@@ -87,6 +90,7 @@ func TestKeyringCommandRun_help(t *testing.T) {
 }
 
 func TestKeyringCommandRun_failedConnection(t *testing.T) {
+	t.Parallel()
 	ui, c := testKeyringCommand(t)
 	args := []string{"-list", "-http-addr=127.0.0.1:0"}
 	code := c.Run(args)
@@ -99,6 +103,7 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 }
 
 func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
+	t.Parallel()
 	ui, c := testKeyringCommand(t)
 
 	args := []string{"-list", "-relay-factor=6"}

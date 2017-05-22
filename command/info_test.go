@@ -10,10 +10,12 @@ import (
 )
 
 func TestInfoCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &InfoCommand{}
 }
 
 func TestInfoCommandRun(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 

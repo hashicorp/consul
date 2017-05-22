@@ -10,10 +10,12 @@ import (
 )
 
 func TestEventCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &EventCommand{}
 }
 
 func TestEventCommandRun(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 

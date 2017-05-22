@@ -11,10 +11,12 @@ import (
 )
 
 func TestOperator_Raft_ListPeers_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &OperatorRaftListCommand{}
 }
 
 func TestOperator_Raft_ListPeers(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

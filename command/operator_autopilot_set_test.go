@@ -12,10 +12,12 @@ import (
 )
 
 func TestOperator_Autopilot_Set_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &OperatorAutopilotSetCommand{}
 }
 
 func TestOperator_Autopilot_Set(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

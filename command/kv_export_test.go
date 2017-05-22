@@ -12,6 +12,7 @@ import (
 )
 
 func TestKVExportCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

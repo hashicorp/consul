@@ -21,10 +21,12 @@ func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
 }
 
 func TestJoinCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &JoinCommand{}
 }
 
 func TestJoinCommandRun(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	a2 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
@@ -47,6 +49,7 @@ func TestJoinCommandRun(t *testing.T) {
 }
 
 func TestJoinCommandRun_wan(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	a2 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
@@ -70,6 +73,7 @@ func TestJoinCommandRun_wan(t *testing.T) {
 }
 
 func TestJoinCommandRun_noAddrs(t *testing.T) {
+	t.Parallel()
 	ui, c := testJoinCommand(t)
 	args := []string{"-http-addr=foo"}
 

@@ -10,10 +10,12 @@ import (
 )
 
 func TestWatchCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &WatchCommand{}
 }
 
 func TestWatchCommandRun(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

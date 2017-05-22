@@ -24,10 +24,12 @@ func testExecCommand(t *testing.T) (*cli.MockUi, *ExecCommand) {
 }
 
 func TestExecCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &ExecCommand{}
 }
 
 func TestExecCommandRun(t *testing.T) {
+	t.Parallel()
 	cfg := agent.TestConfig()
 	cfg.DisableRemoteExec = agent.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
@@ -47,6 +49,7 @@ func TestExecCommandRun(t *testing.T) {
 }
 
 func TestExecCommandRun_CrossDC(t *testing.T) {
+	t.Parallel()
 	cfg1 := agent.TestConfig()
 	cfg1.DisableRemoteExec = agent.Bool(false)
 	a1 := agent.NewTestAgent(t.Name(), cfg1)
@@ -82,6 +85,7 @@ func TestExecCommandRun_CrossDC(t *testing.T) {
 }
 
 func TestExecCommand_Validate(t *testing.T) {
+	t.Parallel()
 	conf := &rExecConf{}
 	err := conf.validate()
 	if err != nil {
@@ -117,6 +121,7 @@ func TestExecCommand_Validate(t *testing.T) {
 }
 
 func TestExecCommand_Sessions(t *testing.T) {
+	t.Parallel()
 	cfg := agent.TestConfig()
 	cfg.DisableRemoteExec = agent.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
@@ -155,6 +160,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 }
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
+	t.Parallel()
 	cfg := agent.TestConfig()
 	cfg.DisableRemoteExec = agent.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
@@ -204,6 +210,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 }
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
+	t.Parallel()
 	cfg := agent.TestConfig()
 	cfg.DisableRemoteExec = agent.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
@@ -258,6 +265,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 }
 
 func TestExecCommand_StreamResults(t *testing.T) {
+	t.Parallel()
 	cfg := agent.TestConfig()
 	cfg.DisableRemoteExec = agent.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)

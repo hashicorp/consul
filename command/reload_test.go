@@ -10,10 +10,12 @@ import (
 )
 
 func TestReloadCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &ReloadCommand{}
 }
 
 func TestReloadCommandRun(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

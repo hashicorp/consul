@@ -22,14 +22,17 @@ func testKVGetCommand(t *testing.T) (*cli.MockUi, *KVGetCommand) {
 }
 
 func TestKVGetCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KVGetCommand{}
 }
 
 func TestKVGetCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(KVGetCommand))
 }
 
 func TestKVGetCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testKVGetCommand(t)
 
 	cases := map[string]struct {
@@ -68,6 +71,7 @@ func TestKVGetCommand_Validation(t *testing.T) {
 }
 
 func TestKVGetCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -100,6 +104,7 @@ func TestKVGetCommand_Run(t *testing.T) {
 }
 
 func TestKVGetCommand_Missing(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -117,6 +122,7 @@ func TestKVGetCommand_Missing(t *testing.T) {
 }
 
 func TestKVGetCommand_Empty(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -144,6 +150,7 @@ func TestKVGetCommand_Empty(t *testing.T) {
 }
 
 func TestKVGetCommand_Detailed(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -186,6 +193,7 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 }
 
 func TestKVGetCommand_Keys(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -219,6 +227,7 @@ func TestKVGetCommand_Keys(t *testing.T) {
 }
 
 func TestKVGetCommand_Recurse(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -257,6 +266,7 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 }
 
 func TestKVGetCommand_RecurseBase64(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -296,6 +306,7 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 }
 
 func TestKVGetCommand_DetailedBase64(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

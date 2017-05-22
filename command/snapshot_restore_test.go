@@ -24,14 +24,17 @@ func testSnapshotRestoreCommand(t *testing.T) (*cli.MockUi, *SnapshotRestoreComm
 }
 
 func TestSnapshotRestoreCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &SnapshotRestoreCommand{}
 }
 
 func TestSnapshotRestoreCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(SnapshotRestoreCommand))
 }
 
 func TestSnapshotRestoreCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testSnapshotRestoreCommand(t)
 
 	cases := map[string]struct {
@@ -70,6 +73,7 @@ func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotRestoreCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

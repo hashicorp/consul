@@ -24,14 +24,17 @@ func testSnapshotInspectCommand(t *testing.T) (*cli.MockUi, *SnapshotInspectComm
 }
 
 func TestSnapshotInspectCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &SnapshotInspectCommand{}
 }
 
 func TestSnapshotInspectCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(SnapshotInspectCommand))
 }
 
 func TestSnapshotInspectCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testSnapshotInspectCommand(t)
 
 	cases := map[string]struct {
@@ -70,6 +73,7 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotInspectCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

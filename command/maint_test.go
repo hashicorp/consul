@@ -21,10 +21,12 @@ func testMaintCommand(t *testing.T) (*cli.MockUi, *MaintCommand) {
 }
 
 func TestMaintCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &MaintCommand{}
 }
 
 func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
+	t.Parallel()
 	_, c := testMaintCommand(t)
 
 	if code := c.Run([]string{"-enable", "-disable"}); code != 1 {
@@ -45,6 +47,7 @@ func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 }
 
 func TestMaintCommandRun_NoArgs(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -91,6 +94,7 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 }
 
 func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -112,6 +116,7 @@ func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -132,6 +137,7 @@ func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -163,6 +169,7 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -193,6 +200,7 @@ func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommandRun_ServiceMaintenance_NoService(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

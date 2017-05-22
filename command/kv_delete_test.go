@@ -22,14 +22,17 @@ func testKVDeleteCommand(t *testing.T) (*cli.MockUi, *KVDeleteCommand) {
 }
 
 func TestKVDeleteCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KVDeleteCommand{}
 }
 
 func TestKVDeleteCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(KVDeleteCommand))
 }
 
 func TestKVDeleteCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testKVDeleteCommand(t)
 
 	cases := map[string]struct {
@@ -80,6 +83,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -115,6 +119,7 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -157,6 +162,7 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 }
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

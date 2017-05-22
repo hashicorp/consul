@@ -23,10 +23,12 @@ func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
 }
 
 func TestForceLeaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &ForceLeaveCommand{}
 }
 
 func TestForceLeaveCommandRun(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	a2 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
@@ -65,6 +67,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 }
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
+	t.Parallel()
 	ui := new(cli.MockUi)
 	ui, c := testForceLeaveCommand(t)
 	args := []string{"-http-addr=foo"}

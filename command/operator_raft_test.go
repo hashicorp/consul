@@ -18,5 +18,6 @@ func testOperatorRaftCommand(t *testing.T) (*cli.MockUi, *OperatorRaftCommand) {
 }
 
 func TestOperator_Raft_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &OperatorRaftCommand{}
 }

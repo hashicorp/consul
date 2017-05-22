@@ -10,10 +10,12 @@ import (
 )
 
 func TestOperator_Raft_RemovePeer_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &OperatorRaftRemoveCommand{}
 }
 
 func TestOperator_Raft_RemovePeer(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

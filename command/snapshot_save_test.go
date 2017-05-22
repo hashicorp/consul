@@ -23,14 +23,17 @@ func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
 }
 
 func TestSnapshotSaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &SnapshotSaveCommand{}
 }
 
 func TestSnapshotSaveCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(SnapshotSaveCommand))
 }
 
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testSnapshotSaveCommand(t)
 
 	cases := map[string]struct {
@@ -69,6 +72,7 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

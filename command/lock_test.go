@@ -25,6 +25,7 @@ func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
 }
 
 func TestLockCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &LockCommand{}
 }
 
@@ -40,12 +41,14 @@ func argFail(t *testing.T, args []string, expected string) {
 }
 
 func TestLockCommand_BadArgs(t *testing.T) {
+	t.Parallel()
 	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
 	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "Timeout must be positive")
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 
 func TestLockCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -67,6 +70,7 @@ func TestLockCommand_Run(t *testing.T) {
 }
 
 func TestLockCommand_Try_Lock(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -97,6 +101,7 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 }
 
 func TestLockCommand_Try_Semaphore(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -127,6 +132,7 @@ func TestLockCommand_Try_Semaphore(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -158,6 +164,7 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -189,6 +196,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -220,6 +228,7 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

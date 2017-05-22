@@ -20,10 +20,12 @@ func testLeaveCommand(t *testing.T) (*cli.MockUi, *LeaveCommand) {
 }
 
 func TestLeaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &LeaveCommand{}
 }
 
 func TestLeaveCommandRun(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
@@ -41,6 +43,7 @@ func TestLeaveCommandRun(t *testing.T) {
 }
 
 func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

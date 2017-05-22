@@ -27,14 +27,17 @@ func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
 }
 
 func TestKVPutCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KVPutCommand{}
 }
 
 func TestKVPutCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(KVDeleteCommand))
 }
 
 func TestKVPutCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui, c := testKVPutCommand(t)
 
 	cases := map[string]struct {
@@ -85,6 +88,7 @@ func TestKVPutCommand_Validation(t *testing.T) {
 }
 
 func TestKVPutCommand_Run(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -112,6 +116,7 @@ func TestKVPutCommand_Run(t *testing.T) {
 }
 
 func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -139,6 +144,7 @@ func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
 }
 
 func TestKVPutCommand_RunBase64(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -174,6 +180,7 @@ func TestKVPutCommand_RunBase64(t *testing.T) {
 }
 
 func TestKVPutCommand_File(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -207,6 +214,7 @@ func TestKVPutCommand_File(t *testing.T) {
 }
 
 func TestKVPutCommand_FileNoExist(t *testing.T) {
+	t.Parallel()
 	ui, c := testKVPutCommand(t)
 
 	args := []string{
@@ -225,6 +233,7 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 }
 
 func TestKVPutCommand_Stdin(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -260,6 +269,7 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 }
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -287,6 +297,7 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 }
 
 func TestKVPutCommand_Flags(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()
@@ -315,6 +326,7 @@ func TestKVPutCommand_Flags(t *testing.T) {
 }
 
 func TestKVPutCommand_CAS(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 	client := a.Client()

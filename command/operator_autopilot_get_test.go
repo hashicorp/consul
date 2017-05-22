@@ -10,10 +10,12 @@ import (
 )
 
 func TestOperator_Autopilot_Get_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &OperatorAutopilotGetCommand{}
 }
 
 func TestOperator_Autopilot_Get(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 

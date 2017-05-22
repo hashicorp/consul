@@ -25,10 +25,12 @@ func testRTTCommand(t *testing.T) (*cli.MockUi, *RTTCommand) {
 }
 
 func TestRTTCommand_Implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &RTTCommand{}
 }
 
 func TestRTTCommand_Run_BadArgs(t *testing.T) {
+	t.Parallel()
 	_, c := testRTTCommand(t)
 
 	if code := c.Run([]string{}); code != 1 {
@@ -53,6 +55,7 @@ func TestRTTCommand_Run_BadArgs(t *testing.T) {
 }
 
 func TestRTTCommand_Run_LAN(t *testing.T) {
+	t.Parallel()
 	updatePeriod := 10 * time.Millisecond
 	cfg := agent.TestConfig()
 	cfg.ConsulConfig.CoordinateUpdatePeriod = updatePeriod
@@ -154,6 +157,7 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 }
 
 func TestRTTCommand_Run_WAN(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
