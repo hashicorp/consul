@@ -53,7 +53,7 @@ type Command struct {
 
 // readConfig is responsible for setup of our configuration using
 // the command line and any file configs
-func (c *Command) readConfig() *Config {
+func (cmd *Command) readConfig() *Config {
 	var cmdConfig Config
 	var configFiles []string
 	var retryInterval string
@@ -62,7 +62,7 @@ func (c *Command) readConfig() *Config {
 	var dev bool
 	var nodeMeta []string
 
-	f := c.Command.NewFlagSet(c)
+	f := cmd.Command.NewFlagSet(cmd)
 
 	f.Var((*AppendSliceValue)(&configFiles), "config-file",
 		"Path to a JSON file to read configuration from. This can be specified multiple times.")
@@ -172,32 +172,32 @@ func (c *Command) readConfig() *Config {
 	f.StringVar(&atlasEndpoint, "atlas-endpoint", "",
 		"(deprecated) The address of the endpoint for Atlas integration.")
 
-	if err := c.Command.Parse(c.args); err != nil {
+	if err := cmd.Command.Parse(cmd.args); err != nil {
 		return nil
 	}
 
 	// check deprecated flags
 	if atlasInfrastructure != "" {
-		c.UI.Warn("WARNING: 'atlas' is deprecated")
+		cmd.UI.Warn("WARNING: 'atlas' is deprecated")
 	}
 	if atlasToken != "" {
-		c.UI.Warn("WARNING: 'atlas-token' is deprecated")
+		cmd.UI.Warn("WARNING: 'atlas-token' is deprecated")
 	}
 	if atlasJoin {
-		c.UI.Warn("WARNING: 'atlas-join' is deprecated")
+		cmd.UI.Warn("WARNING: 'atlas-join' is deprecated")
 	}
 	if atlasEndpoint != "" {
-		c.UI.Warn("WARNING: 'atlas-endpoint' is deprecated")
+		cmd.UI.Warn("WARNING: 'atlas-endpoint' is deprecated")
 	}
 	if dcDeprecated != "" && cmdConfig.Datacenter == "" {
-		c.UI.Warn("WARNING: 'dc' is deprecated. Use 'datacenter' instead")
+		cmd.UI.Warn("WARNING: 'dc' is deprecated. Use 'datacenter' instead")
 		cmdConfig.Datacenter = dcDeprecated
 	}
 
 	if retryInterval != "" {
 		dur, err := time.ParseDuration(retryInterval)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
 			return nil
 		}
 		cmdConfig.RetryInterval = dur
@@ -206,7 +206,7 @@ func (c *Command) readConfig() *Config {
 	if retryIntervalWan != "" {
 		dur, err := time.ParseDuration(retryIntervalWan)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
 			return nil
 		}
 		cmdConfig.RetryIntervalWan = dur
@@ -230,7 +230,7 @@ func (c *Command) readConfig() *Config {
 	if len(configFiles) > 0 {
 		fileConfig, err := ReadConfigPaths(configFiles)
 		if err != nil {
-			c.UI.Error(err.Error())
+			cmd.UI.Error(err.Error())
 			return nil
 		}
 
@@ -244,14 +244,14 @@ func (c *Command) readConfig() *Config {
 	if config.NodeName == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error determining node name: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Error determining node name: %s", err))
 			return nil
 		}
 		config.NodeName = hostname
 	}
 	config.NodeName = strings.TrimSpace(config.NodeName)
 	if config.NodeName == "" {
-		c.UI.Error("Node name can not be empty")
+		cmd.UI.Error("Node name can not be empty")
 		return nil
 	}
 
@@ -267,24 +267,24 @@ func (c *Command) readConfig() *Config {
 	// Ensure we have a data directory if we are not in dev mode.
 	if !dev {
 		if config.DataDir == "" {
-			c.UI.Error("Must specify data directory using -data-dir")
+			cmd.UI.Error("Must specify data directory using -data-dir")
 			return nil
 		}
 
 		if finfo, err := os.Stat(config.DataDir); err != nil {
 			if !os.IsNotExist(err) {
-				c.UI.Error(fmt.Sprintf("Error getting data-dir: %s", err))
+				cmd.UI.Error(fmt.Sprintf("Error getting data-dir: %s", err))
 				return nil
 			}
 		} else if !finfo.IsDir() {
-			c.UI.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
+			cmd.UI.Error(fmt.Sprintf("The data-dir specified at %q is not a directory", config.DataDir))
 			return nil
 		}
 	}
 
 	// Ensure all endpoints are unique
 	if err := config.verifyUniqueListeners(); err != nil {
-		c.UI.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
+		cmd.UI.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
 		return nil
 	}
 
@@ -295,36 +295,36 @@ func (c *Command) readConfig() *Config {
 		mdbPath := filepath.Join(config.DataDir, "mdb")
 		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
 			if os.IsPermission(err) {
-				c.UI.Error(fmt.Sprintf("CRITICAL: Permission denied for data folder at %q!", mdbPath))
-				c.UI.Error("Consul will refuse to boot without access to this directory.")
-				c.UI.Error("Please correct permissions and try starting again.")
+				cmd.UI.Error(fmt.Sprintf("CRITICAL: Permission denied for data folder at %q!", mdbPath))
+				cmd.UI.Error("Consul will refuse to boot without access to this directory.")
+				cmd.UI.Error("Please correct permissions and try starting again.")
 				return nil
 			}
-			c.UI.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
-			c.UI.Error("Consul will refuse to boot with this directory present.")
-			c.UI.Error("See https://www.consul.io/docs/upgrade-specific.html for more information.")
+			cmd.UI.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
+			cmd.UI.Error("Consul will refuse to boot with this directory present.")
+			cmd.UI.Error("See https://www.consul.io/docs/upgrade-specific.html for more information.")
 			return nil
 		}
 	}
 
 	// Verify DNS settings
 	if config.DNSConfig.UDPAnswerLimit < 1 {
-		c.UI.Error(fmt.Sprintf("dns_config.udp_answer_limit %d too low, must always be greater than zero", config.DNSConfig.UDPAnswerLimit))
+		cmd.UI.Error(fmt.Sprintf("dns_config.udp_answer_limit %d too low, must always be greater than zero", config.DNSConfig.UDPAnswerLimit))
 	}
 
 	if config.EncryptKey != "" {
 		if _, err := config.EncryptBytes(); err != nil {
-			c.UI.Error(fmt.Sprintf("Invalid encryption key: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Invalid encryption key: %s", err))
 			return nil
 		}
 		keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
 		if _, err := os.Stat(keyfileLAN); err == nil {
-			c.UI.Error("WARNING: LAN keyring exists but -encrypt given, using keyring")
+			cmd.UI.Error("WARNING: LAN keyring exists but -encrypt given, using keyring")
 		}
 		if config.Server {
 			keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
 			if _, err := os.Stat(keyfileWAN); err == nil {
-				c.UI.Error("WARNING: WAN keyring exists but -encrypt given, using keyring")
+				cmd.UI.Error("WARNING: WAN keyring exists but -encrypt given, using keyring")
 			}
 		}
 	}
@@ -335,7 +335,7 @@ func (c *Command) readConfig() *Config {
 
 	// Verify datacenter is valid
 	if !validDatacenter.MatchString(config.Datacenter) {
-		c.UI.Error("Datacenter must be alpha-numeric with underscores and hypens only")
+		cmd.UI.Error("Datacenter must be alpha-numeric with underscores and hypens only")
 		return nil
 	}
 
@@ -345,42 +345,42 @@ func (c *Command) readConfig() *Config {
 
 		// Verify 'acl_datacenter' is valid
 		if !validDatacenter.MatchString(config.ACLDatacenter) {
-			c.UI.Error("ACL datacenter must be alpha-numeric with underscores and hypens only")
+			cmd.UI.Error("ACL datacenter must be alpha-numeric with underscores and hypens only")
 			return nil
 		}
 	}
 
 	// Only allow bootstrap mode when acting as a server
 	if config.Bootstrap && !config.Server {
-		c.UI.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
+		cmd.UI.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
 		return nil
 	}
 
 	// Expect can only work when acting as a server
 	if config.BootstrapExpect != 0 && !config.Server {
-		c.UI.Error("Expect mode cannot be enabled when server mode is not enabled")
+		cmd.UI.Error("Expect mode cannot be enabled when server mode is not enabled")
 		return nil
 	}
 
 	// Expect can only work when dev mode is off
 	if config.BootstrapExpect > 0 && config.DevMode {
-		c.UI.Error("Expect mode cannot be enabled when dev mode is enabled")
+		cmd.UI.Error("Expect mode cannot be enabled when dev mode is enabled")
 		return nil
 	}
 
 	// Expect & Bootstrap are mutually exclusive
 	if config.BootstrapExpect != 0 && config.Bootstrap {
-		c.UI.Error("Bootstrap cannot be provided with an expected server count")
+		cmd.UI.Error("Bootstrap cannot be provided with an expected server count")
 		return nil
 	}
 
 	if ipaddr.IsAny(config.AdvertiseAddr) {
-		c.UI.Error("Advertise address cannot be " + config.AdvertiseAddr)
+		cmd.UI.Error("Advertise address cannot be " + config.AdvertiseAddr)
 		return nil
 	}
 
 	if ipaddr.IsAny(config.AdvertiseAddrWan) {
-		c.UI.Error("Advertise WAN address cannot be " + config.AdvertiseAddrWan)
+		cmd.UI.Error("Advertise WAN address cannot be " + config.AdvertiseAddrWan)
 		return nil
 	}
 
@@ -389,13 +389,13 @@ func (c *Command) readConfig() *Config {
 		// Parse the watches, excluding the handler
 		wp, err := watch.ParseExempt(params, []string{"handler"})
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to parse watch (%#v): %v", params, err))
+			cmd.UI.Error(fmt.Sprintf("Failed to parse watch (%#v): %v", params, err))
 			return nil
 		}
 
 		// Get the handler
 		if err := verifyWatchHandler(wp.Exempt["handler"]); err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to setup watch handler (%#v): %v", params, err))
+			cmd.UI.Error(fmt.Sprintf("Failed to setup watch handler (%#v): %v", params, err))
 			return nil
 		}
 
@@ -405,107 +405,107 @@ func (c *Command) readConfig() *Config {
 
 	// Warn if we are in expect mode
 	if config.BootstrapExpect == 1 {
-		c.UI.Error("WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.")
+		cmd.UI.Error("WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.")
 		config.BootstrapExpect = 0
 		config.Bootstrap = true
 	} else if config.BootstrapExpect > 0 {
-		c.UI.Error(fmt.Sprintf("WARNING: Expect Mode enabled, expecting %d servers", config.BootstrapExpect))
+		cmd.UI.Error(fmt.Sprintf("WARNING: Expect Mode enabled, expecting %d servers", config.BootstrapExpect))
 	}
 
 	// Warn if we are in bootstrap mode
 	if config.Bootstrap {
-		c.UI.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
+		cmd.UI.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
 	}
 
 	// Need both tag key and value for EC2 discovery
 	if config.RetryJoinEC2.TagKey != "" || config.RetryJoinEC2.TagValue != "" {
 		if config.RetryJoinEC2.TagKey == "" || config.RetryJoinEC2.TagValue == "" {
-			c.UI.Error("tag key and value are both required for EC2 retry-join")
+			cmd.UI.Error("tag key and value are both required for EC2 retry-join")
 			return nil
 		}
 	}
 
 	// EC2 and GCE discovery are mutually exclusive
 	if config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != "" && config.RetryJoinGCE.TagValue != "" {
-		c.UI.Error("EC2 and GCE discovery are mutually exclusive. Please provide one or the other.")
+		cmd.UI.Error("EC2 and GCE discovery are mutually exclusive. Please provide one or the other.")
 		return nil
 	}
 
 	// Verify the node metadata entries are valid
 	if err := structs.ValidateMetadata(config.Meta); err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
+		cmd.UI.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
 	}
 
 	// It doesn't make sense to include both UI options.
 	if config.EnableUI == true && config.UIDir != "" {
-		c.UI.Error("Both the ui and ui-dir flags were specified, please provide only one")
-		c.UI.Error("If trying to use your own web UI resources, use the ui-dir flag")
-		c.UI.Error("If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
+		cmd.UI.Error("Both the ui and ui-dir flags were specified, please provide only one")
+		cmd.UI.Error("If trying to use your own web UI resources, use the ui-dir flag")
+		cmd.UI.Error("If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
 		return nil
 	}
 
 	// Set the version info
-	config.Revision = c.Revision
-	config.Version = c.Version
-	config.VersionPrerelease = c.VersionPrerelease
+	config.Revision = cmd.Revision
+	config.Version = cmd.Version
+	config.VersionPrerelease = cmd.VersionPrerelease
 
 	return config
 }
 
 // checkpointResults is used to handler periodic results from our update checker
-func (c *Command) checkpointResults(results *checkpoint.CheckResponse, err error) {
+func (cmd *Command) checkpointResults(results *checkpoint.CheckResponse, err error) {
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to check for updates: %v", err))
+		cmd.UI.Error(fmt.Sprintf("Failed to check for updates: %v", err))
 		return
 	}
 	if results.Outdated {
-		c.UI.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, c.Version))
+		cmd.UI.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, cmd.Version))
 	}
 	for _, alert := range results.Alerts {
 		switch alert.Level {
 		case "info":
-			c.UI.Info(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+			cmd.UI.Info(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
 		default:
-			c.UI.Error(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+			cmd.UI.Error(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
 		}
 	}
 }
 
 // startupJoin is invoked to handle any joins specified to take place at start time
-func (c *Command) startupJoin(config *Config) error {
+func (cmd *Command) startupJoin(config *Config) error {
 	if len(config.StartJoin) == 0 {
 		return nil
 	}
 
-	c.UI.Output("Joining cluster...")
-	n, err := c.agent.JoinLAN(config.StartJoin)
+	cmd.UI.Output("Joining cluster...")
+	n, err := cmd.agent.JoinLAN(config.StartJoin)
 	if err != nil {
 		return err
 	}
 
-	c.UI.Info(fmt.Sprintf("Join completed. Synced with %d initial agents", n))
+	cmd.UI.Info(fmt.Sprintf("Join completed. Synced with %d initial agents", n))
 	return nil
 }
 
 // startupJoinWan is invoked to handle any joins -wan specified to take place at start time
-func (c *Command) startupJoinWan(config *Config) error {
+func (cmd *Command) startupJoinWan(config *Config) error {
 	if len(config.StartJoinWan) == 0 {
 		return nil
 	}
 
-	c.UI.Output("Joining -wan cluster...")
-	n, err := c.agent.JoinWAN(config.StartJoinWan)
+	cmd.UI.Output("Joining -wan cluster...")
+	n, err := cmd.agent.JoinWAN(config.StartJoinWan)
 	if err != nil {
 		return err
 	}
 
-	c.UI.Info(fmt.Sprintf("Join -wan completed. Synced with %d initial agents", n))
+	cmd.UI.Info(fmt.Sprintf("Join -wan completed. Synced with %d initial agents", n))
 	return nil
 }
 
 // retryJoin is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
-func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
+func (cmd *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 	ec2Enabled := config.RetryJoinEC2.TagKey != "" && config.RetryJoinEC2.TagValue != ""
 	gceEnabled := config.RetryJoinGCE.TagValue != ""
 	azureEnabled := config.RetryJoinAzure.TagName != "" && config.RetryJoinAzure.TagValue != ""
@@ -514,7 +514,7 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 		return
 	}
 
-	logger := c.agent.logger
+	logger := cmd.agent.logger
 	logger.Printf("[INFO] agent: Joining cluster...")
 
 	attempt := 0
@@ -546,7 +546,7 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 		if len(servers) == 0 {
 			err = fmt.Errorf("No servers to join")
 		} else {
-			n, err := c.agent.JoinLAN(servers)
+			n, err := cmd.agent.JoinLAN(servers)
 			if err == nil {
 				logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
 				return
@@ -568,17 +568,17 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 
 // retryJoinWan is used to handle retrying a join -wan until it succeeds or all
 // retries are exhausted.
-func (c *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
+func (cmd *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
 	if len(config.RetryJoinWan) == 0 {
 		return
 	}
 
-	logger := c.agent.logger
+	logger := cmd.agent.logger
 	logger.Printf("[INFO] agent: Joining WAN cluster...")
 
 	attempt := 0
 	for {
-		n, err := c.agent.JoinWAN(config.RetryJoinWan)
+		n, err := cmd.agent.JoinWAN(config.RetryJoinWan)
 		if err == nil {
 			logger.Printf("[INFO] agent: Join -wan completed. Synced with %d initial agents", n)
 			return
@@ -599,33 +599,33 @@ func (c *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
 
 // gossipEncrypted determines if the consul instance is using symmetric
 // encryption keys to protect gossip protocol messages.
-func (c *Command) gossipEncrypted() bool {
-	if c.agent.config.EncryptKey != "" {
+func (cmd *Command) gossipEncrypted() bool {
+	if cmd.agent.config.EncryptKey != "" {
 		return true
 	}
 
-	server, ok := c.agent.delegate.(*consul.Server)
+	server, ok := cmd.agent.delegate.(*consul.Server)
 	if ok {
 		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
 	}
-	client, ok := c.agent.delegate.(*consul.Client)
+	client, ok := cmd.agent.delegate.(*consul.Client)
 	if ok {
 		return client != nil && client.KeyManagerLAN() != nil
 	}
-	panic(fmt.Sprintf("delegate is neither server nor client: %T", c.agent.delegate))
+	panic(fmt.Sprintf("delegate is neither server nor client: %T", cmd.agent.delegate))
 }
 
-func (c *Command) Run(args []string) int {
-	c.UI = &cli.PrefixedUi{
+func (cmd *Command) Run(args []string) int {
+	cmd.UI = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
 		ErrorPrefix:  "==> ",
-		Ui:           c.UI,
+		Ui:           cmd.UI,
 	}
 
 	// Parse our configs
-	c.args = args
-	config := c.readConfig()
+	cmd.args = args
+	config := cmd.readConfig()
 	if config == nil {
 		return 1
 	}
@@ -636,12 +636,12 @@ func (c *Command) Run(args []string) int {
 		EnableSyslog:   config.EnableSyslog,
 		SyslogFacility: config.SyslogFacility,
 	}
-	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
+	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, cmd.UI)
 	if !ok {
 		return 1
 	}
-	c.logFilter = logFilter
-	c.logOutput = logOutput
+	cmd.logFilter = logFilter
+	cmd.logOutput = logOutput
 
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
@@ -656,7 +656,7 @@ func (c *Command) Run(args []string) int {
 	if config.Telemetry.StatsiteAddr != "" {
 		sink, err := metrics.NewStatsiteSink(config.Telemetry.StatsiteAddr)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to start statsite sink. Got: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Failed to start statsite sink. Got: %s", err))
 			return 1
 		}
 		fanout = append(fanout, sink)
@@ -666,7 +666,7 @@ func (c *Command) Run(args []string) int {
 	if config.Telemetry.StatsdAddr != "" {
 		sink, err := metrics.NewStatsdSink(config.Telemetry.StatsdAddr)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to start statsd sink. Got: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Failed to start statsd sink. Got: %s", err))
 			return 1
 		}
 		fanout = append(fanout, sink)
@@ -682,7 +682,7 @@ func (c *Command) Run(args []string) int {
 
 		sink, err := datadog.NewDogStatsdSink(config.Telemetry.DogStatsdAddr, metricsConf.HostName)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to start DogStatsd sink. Got: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Failed to start DogStatsd sink. Got: %s", err))
 			return 1
 		}
 		sink.SetTags(tags)
@@ -719,7 +719,7 @@ func (c *Command) Run(args []string) int {
 
 		sink, err := circonus.NewCirconusSink(cfg)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to start Circonus sink. Got: %s", err))
+			cmd.UI.Error(fmt.Sprintf("Failed to start Circonus sink. Got: %s", err))
 			return 1
 		}
 		sink.Start()
@@ -736,19 +736,19 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Create the agent
-	c.UI.Output("Starting Consul agent...")
+	cmd.UI.Output("Starting Consul agent...")
 	agent, err := NewAgent(config)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
+		cmd.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
 		return 1
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = logWriter
 	if err := agent.Start(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
+		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
-	c.agent = agent
+	cmd.agent = agent
 
 	// Setup update checking
 	if !config.DisableUpdateCheck {
@@ -765,26 +765,26 @@ func (c *Command) Run(args []string) int {
 		}
 
 		// Schedule a periodic check with expected interval of 24 hours
-		checkpoint.CheckInterval(updateParams, 24*time.Hour, c.checkpointResults)
+		checkpoint.CheckInterval(updateParams, 24*time.Hour, cmd.checkpointResults)
 
 		// Do an immediate check within the next 30 seconds
 		go func() {
 			time.Sleep(lib.RandomStagger(30 * time.Second))
-			c.checkpointResults(checkpoint.Check(updateParams))
+			cmd.checkpointResults(checkpoint.Check(updateParams))
 		}()
 	}
 
-	defer c.agent.Shutdown()
+	defer cmd.agent.Shutdown()
 
 	// Join startup nodes if specified
-	if err := c.startupJoin(config); err != nil {
-		c.UI.Error(err.Error())
+	if err := cmd.startupJoin(config); err != nil {
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
 	// Join startup nodes if specified
-	if err := c.startupJoinWan(config); err != nil {
-		c.UI.Error(err.Error())
+	if err := cmd.startupJoinWan(config); err != nil {
+		cmd.UI.Error(err.Error())
 		return 1
 	}
 
@@ -795,67 +795,67 @@ func (c *Command) Run(args []string) int {
 	} else if config.Ports.HTTPS != -1 {
 		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
 	} else if len(config.WatchPlans) > 0 {
-		c.UI.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
+		cmd.UI.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
 		return 1
 	}
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
 
 	// Register the watches
 	for _, wp := range config.WatchPlans {
 		go func(wp *watch.Plan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
-			wp.LogOutput = c.logOutput
+			wp.LogOutput = cmd.logOutput
 			addr := httpAddr.String()
 			// If it's a unix socket, prefix with unix:// so the client initializes correctly
 			if httpAddr.Network() == "unix" {
 				addr = "unix://" + addr
 			}
 			if err := wp.Run(addr); err != nil {
-				c.UI.Error(fmt.Sprintf("Error running watch: %v", err))
+				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)
 	}
 
 	// Figure out if gossip is encrypted
-	gossipEncrypted := c.agent.delegate.Encrypted()
+	gossipEncrypted := cmd.agent.delegate.Encrypted()
 
 	// Let the agent know we've finished registration
-	c.agent.StartSync()
+	cmd.agent.StartSync()
 
-	c.UI.Output("Consul agent running!")
-	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.HumanVersion))
-	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	c.UI.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
-	c.UI.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddr,
+	cmd.UI.Output("Consul agent running!")
+	cmd.UI.Info(fmt.Sprintf("       Version: '%s'", cmd.HumanVersion))
+	cmd.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	cmd.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	cmd.UI.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
+	cmd.UI.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
+	cmd.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddr,
 		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS))
-	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
+	cmd.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
-	c.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
+	cmd.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
-	c.UI.Info("")
-	c.UI.Output("Log data will now stream in as it occurs:\n")
+	cmd.UI.Info("")
+	cmd.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
 	// Start retry join process
 	errCh := make(chan struct{})
-	go c.retryJoin(config, errCh)
+	go cmd.retryJoin(config, errCh)
 
 	// Start retry -wan join process
 	errWanCh := make(chan struct{})
-	go c.retryJoinWan(config, errWanCh)
+	go cmd.retryJoinWan(config, errWanCh)
 
 	// Wait for exit
-	return c.handleSignals(config, errCh, errWanCh)
+	return cmd.handleSignals(config, errCh, errWanCh)
 }
 
 // handleSignals blocks until we get an exit-causing signal
-func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
+func (cmd *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
@@ -867,16 +867,16 @@ WAIT:
 	select {
 	case s := <-signalCh:
 		sig = s
-	case ch := <-c.agent.reloadCh:
+	case ch := <-cmd.agent.reloadCh:
 		sig = syscall.SIGHUP
 		reloadErrCh = ch
-	case <-c.ShutdownCh:
+	case <-cmd.ShutdownCh:
 		sig = os.Interrupt
 	case <-retryJoin:
 		return 1
 	case <-retryJoinWan:
 		return 1
-	case <-c.agent.ShutdownCh():
+	case <-cmd.agent.ShutdownCh():
 		// Agent is already shutdown!
 		return 0
 	}
@@ -886,16 +886,16 @@ WAIT:
 		goto WAIT
 	}
 
-	c.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+	cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
-		conf, err := c.handleReload(config)
+		conf, err := cmd.handleReload(config)
 		if conf != nil {
 			config = conf
 		}
 		if err != nil {
-			c.UI.Error(err.Error())
+			cmd.UI.Error(err.Error())
 		}
 		// Send result back if reload was called via HTTP
 		if reloadErrCh != nil {
@@ -919,10 +919,10 @@ WAIT:
 
 	// Attempt a graceful leave
 	gracefulCh := make(chan struct{})
-	c.UI.Output("Gracefully shutting down agent...")
+	cmd.UI.Output("Gracefully shutting down agent...")
 	go func() {
-		if err := c.agent.Leave(); err != nil {
-			c.UI.Error(fmt.Sprintf("Error: %s", err))
+		if err := cmd.agent.Leave(); err != nil {
+			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
 			return
 		}
 		close(gracefulCh)
@@ -940,10 +940,10 @@ WAIT:
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (c *Command) handleReload(config *Config) (*Config, error) {
-	c.UI.Output("Reloading configuration...")
+func (cmd *Command) handleReload(config *Config) (*Config, error) {
+	cmd.UI.Output("Reloading configuration...")
 	var errs error
-	newConf := c.readConfig()
+	newConf := cmd.readConfig()
 	if newConf == nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed to reload configs"))
 		return config, errs
@@ -951,47 +951,47 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 
 	// Change the log level
 	minLevel := logutils.LogLevel(strings.ToUpper(newConf.LogLevel))
-	if logger.ValidateLevelFilter(minLevel, c.logFilter) {
-		c.logFilter.SetMinLevel(minLevel)
+	if logger.ValidateLevelFilter(minLevel, cmd.logFilter) {
+		cmd.logFilter.SetMinLevel(minLevel)
 	} else {
 		errs = multierror.Append(fmt.Errorf(
 			"Invalid log level: %s. Valid log levels are: %v",
-			minLevel, c.logFilter.Levels))
+			minLevel, cmd.logFilter.Levels))
 
 		// Keep the current log level
 		newConf.LogLevel = config.LogLevel
 	}
 
 	// Bulk update the services and checks
-	c.agent.PauseSync()
-	defer c.agent.ResumeSync()
+	cmd.agent.PauseSync()
+	defer cmd.agent.ResumeSync()
 
 	// Snapshot the current state, and restore it afterwards
-	snap := c.agent.snapshotCheckState()
-	defer c.agent.restoreCheckState(snap)
+	snap := cmd.agent.snapshotCheckState()
+	defer cmd.agent.restoreCheckState(snap)
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
-	if err := c.agent.unloadServices(); err != nil {
+	if err := cmd.agent.unloadServices(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
 		return nil, errs
 	}
-	if err := c.agent.unloadChecks(); err != nil {
+	if err := cmd.agent.unloadChecks(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
-	c.agent.unloadMetadata()
+	cmd.agent.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
-	if err := c.agent.loadServices(newConf); err != nil {
+	if err := cmd.agent.loadServices(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
 		return nil, errs
 	}
-	if err := c.agent.loadChecks(newConf); err != nil {
+	if err := cmd.agent.loadChecks(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
 		return nil, errs
 	}
-	if err := c.agent.loadMetadata(newConf); err != nil {
+	if err := cmd.agent.loadMetadata(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
 		return nil, errs
 	}
@@ -1010,8 +1010,8 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 	// Register the new watches
 	for _, wp := range newConf.WatchPlans {
 		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
-			wp.LogOutput = c.logOutput
+			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
+			wp.LogOutput = cmd.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
 			}
@@ -1021,18 +1021,18 @@ func (c *Command) handleReload(config *Config) (*Config, error) {
 	return newConf, errs
 }
 
-func (c *Command) Synopsis() string {
+func (cmd *Command) Synopsis() string {
 	return "Runs a Consul agent"
 }
 
-func (c *Command) Help() string {
+func (cmd *Command) Help() string {
 	helpText := `
 Usage: consul agent [options]
 
   Starts the Consul agent and runs until an interrupt is received. The
   agent represents a single node in a cluster.
 
- ` + c.Command.Help()
+ ` + cmd.Command.Help()
 
 	return strings.TrimSpace(helpText)
 }
