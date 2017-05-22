@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,11 +26,10 @@ type Metrics struct {
 }
 
 // Shared global metrics instance
-var globalMetrics *Metrics
+var global atomic.Value
 
 func init() {
-	// Initialize to a blackhole sink to avoid errors
-	globalMetrics = &Metrics{sink: &BlackholeSink{}}
+	global.Store(&Metrics{sink: &BlackholeSink{}})
 }
 
 // DefaultConfig provides a sane default configuration
@@ -68,28 +68,28 @@ func New(conf *Config, sink MetricSink) (*Metrics, error) {
 func NewGlobal(conf *Config, sink MetricSink) (*Metrics, error) {
 	metrics, err := New(conf, sink)
 	if err == nil {
-		globalMetrics = metrics
+		global.Store(metrics)
 	}
 	return metrics, err
 }
 
 // Proxy all the methods to the globalMetrics instance
 func SetGauge(key []string, val float32) {
-	globalMetrics.SetGauge(key, val)
+	global.Load().(*Metrics).SetGauge(key, val)
 }
 
 func EmitKey(key []string, val float32) {
-	globalMetrics.EmitKey(key, val)
+	global.Load().(*Metrics).EmitKey(key, val)
 }
 
 func IncrCounter(key []string, val float32) {
-	globalMetrics.IncrCounter(key, val)
+	global.Load().(*Metrics).IncrCounter(key, val)
 }
 
 func AddSample(key []string, val float32) {
-	globalMetrics.AddSample(key, val)
+	global.Load().(*Metrics).AddSample(key, val)
 }
 
 func MeasureSince(key []string, start time.Time) {
-	globalMetrics.MeasureSince(key, start)
+	global.Load().(*Metrics).MeasureSince(key, start)
 }
