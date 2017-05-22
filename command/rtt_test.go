@@ -54,8 +54,8 @@ func TestRTTCommand_Run_BadArgs(t *testing.T) {
 
 func TestRTTCommand_Run_LAN(t *testing.T) {
 	updatePeriod := 10 * time.Millisecond
-	a := testAgentWithConfig(t, func(c *agent.Config) {
-		c.ConsulConfig.CoordinateUpdatePeriod = updatePeriod
+	a := testAgentWithConfig(t, func(cfg *agent.Config) {
+		cfg.ConsulConfig.CoordinateUpdatePeriod = updatePeriod
 	})
 	defer a.Shutdown()
 	waitForLeader(t, a.httpAddr)

@@ -79,9 +79,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	config := TestConfig()
-	config.EncryptKey = oldKey
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.EncryptKey = oldKey
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
@@ -114,9 +114,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 func TestOperator_KeyringList(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	config := TestConfig()
-	config.EncryptKey = key
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.EncryptKey = key
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/operator/keyring", nil)
@@ -163,9 +163,9 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
-	config := TestConfig()
-	config.EncryptKey = key
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.EncryptKey = key
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	_, err := a.InstallKey(tempKey, "", 0)
@@ -221,9 +221,9 @@ func TestOperator_KeyringUse(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	config := TestConfig()
-	config.EncryptKey = oldKey
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.EncryptKey = oldKey
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	if _, err := a.InstallKey(newKey, "", 0); err != nil {
@@ -264,9 +264,9 @@ func TestOperator_KeyringUse(t *testing.T) {
 func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	config := TestConfig()
-	config.EncryptKey = key
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.EncryptKey = key
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	cases := map[string]string{
@@ -408,9 +408,9 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 
 func TestOperator_ServerHealth(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.RaftProtocol = 3
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.RaftProtocol = 3
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -440,11 +440,11 @@ func TestOperator_ServerHealth(t *testing.T) {
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.RaftProtocol = 3
+	cfg := TestConfig()
+	cfg.RaftProtocol = 3
 	threshold := time.Duration(-1)
-	config.Autopilot.LastContactThreshold = &threshold
-	a := NewTestAgent(t.Name(), config)
+	cfg.Autopilot.LastContactThreshold = &threshold
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)

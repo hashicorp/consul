@@ -95,17 +95,16 @@ func TestRexecWriter(t *testing.T) {
 
 func TestRemoteExecGetSpec(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	testRemoteExecGetSpec(t, config)
+	testRemoteExecGetSpec(t, nil)
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDatacenter = "dc1"
-	config.ACLToken = "root"
-	config.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, config)
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	testRemoteExecGetSpec(t, cfg)
 }
 
 func testRemoteExecGetSpec(t *testing.T, c *Config) {
@@ -141,17 +140,16 @@ func testRemoteExecGetSpec(t *testing.T, c *Config) {
 
 func TestRemoteExecWrites(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	testRemoteExecWrites(t, config)
+	testRemoteExecWrites(t, nil)
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDatacenter = "dc1"
-	config.ACLToken = "root"
-	config.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, config)
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	testRemoteExecWrites(t, cfg)
 }
 
 func testRemoteExecWrites(t *testing.T, c *Config) {

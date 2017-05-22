@@ -164,9 +164,9 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 
 func TestAgent_Self(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.Meta = map[string]string{"somekey": "somevalue"}
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.Meta = map[string]string{"somekey": "somevalue"}
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
@@ -191,8 +191,8 @@ func TestAgent_Self(t *testing.T) {
 	if !reflect.DeepEqual(c, val.Coord) {
 		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
 	}
-	if !reflect.DeepEqual(conf.Meta, val.Meta) {
-		t.Fatalf("meta fields are not equal: %v != %v", conf.Meta, val.Meta)
+	if !reflect.DeepEqual(cfg.Meta, val.Meta) {
+		t.Fatalf("meta fields are not equal: %v != %v", cfg.Meta, val.Meta)
 	}
 
 	// Make sure there's nothing called "token" that's leaked.
@@ -235,7 +235,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 
 func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
+	cfg := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -267,7 +267,7 @@ func TestAgent_Reload(t *testing.T) {
 		"-server",
 		"-bind", "127.0.0.1",
 		"-data-dir", tmpDir,
-		"-http-port", fmt.Sprintf("%d", conf.Ports.HTTP),
+		"-http-port", fmt.Sprintf("%d", cfg.Ports.HTTP),
 		"-config-file", tmpFile.Name(),
 	}
 
@@ -495,10 +495,10 @@ func TestAgent_Leave(t *testing.T) {
 	a1 := NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 
-	conf2 := TestConfig()
-	conf2.Server = false
-	conf2.Bootstrap = false
-	a2 := NewTestAgent(t.Name(), conf2)
+	cfg2 := TestConfig()
+	cfg2.Server = false
+	cfg2.Bootstrap = false
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Join first

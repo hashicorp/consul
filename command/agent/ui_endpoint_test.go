@@ -25,9 +25,9 @@ func TestUiIndex(t *testing.T) {
 	defer os.RemoveAll(uiDir)
 
 	// Make the server
-	c := TestConfig()
-	c.UIDir = uiDir
-	a := NewTestAgent(t.Name(), c)
+	cfg := TestConfig()
+	cfg.UIDir = uiDir
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Create file

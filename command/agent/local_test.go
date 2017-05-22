@@ -463,12 +463,12 @@ service "consul" {
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.ACLDatacenter = "dc1"
-	conf.ACLMasterToken = "root"
-	conf.ACLDefaultPolicy = "deny"
-	conf.ACLEnforceVersion8 = &BoolTrue
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	cfg.ACLEnforceVersion8 = &BoolTrue
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Create the ACL
@@ -833,12 +833,12 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.ACLDatacenter = "dc1"
-	conf.ACLMasterToken = "root"
-	conf.ACLDefaultPolicy = "deny"
-	conf.ACLEnforceVersion8 = &BoolTrue
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	cfg.ACLEnforceVersion8 = &BoolTrue
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Create the ACL
@@ -1069,9 +1069,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.CheckUpdateInterval = 500 * time.Millisecond
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.CheckUpdateInterval = 500 * time.Millisecond
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Create a check
@@ -1242,10 +1242,10 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
-	conf.Meta["somekey"] = "somevalue"
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
+	cfg.Meta["somekey"] = "somevalue"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Register info
@@ -1278,9 +1278,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != conf.NodeID ||
-			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, conf.Meta) {
+		if id != cfg.NodeID ||
+			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, cfg.Meta) {
 			r.Fatalf("bad: %v", services.NodeServices.Node)
 		}
 	})
@@ -1301,9 +1301,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != conf.NodeID ||
-			!reflect.DeepEqual(addrs, conf.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, conf.Meta) {
+		if id != cfg.NodeID ||
+			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, cfg.Meta) {
 			r.Fatalf("bad: %v", services.NodeServices.Node)
 		}
 	})
@@ -1327,10 +1327,10 @@ func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
 
 func TestAgent_serviceTokens(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLToken = "default"
+	cfg := TestConfig()
+	cfg.ACLToken = "default"
 	l := new(localState)
-	l.Init(config, nil)
+	l.Init(cfg, nil)
 
 	l.AddService(&structs.NodeService{
 		ID: "redis",
@@ -1356,10 +1356,10 @@ func TestAgent_serviceTokens(t *testing.T) {
 
 func TestAgent_checkTokens(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLToken = "default"
+	cfg := TestConfig()
+	cfg.ACLToken = "default"
 	l := new(localState)
-	l.Init(config, nil)
+	l.Init(cfg, nil)
 
 	// Returns default when no token is set
 	if token := l.CheckToken("mem"); token != "default" {
@@ -1381,9 +1381,9 @@ func TestAgent_checkTokens(t *testing.T) {
 
 func TestAgent_checkCriticalTime(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
+	cfg := TestConfig()
 	l := new(localState)
-	l.Init(config, nil)
+	l.Init(cfg, nil)
 
 	// Add a passing check and make sure it's not critical.
 	checkID := types.CheckID("redis:1")
@@ -1474,13 +1474,13 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
-	conf.SyncCoordinateIntervalMin = 1 * time.Millisecond
-	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
-	conf.ConsulConfig.CoordinateUpdateBatchSize = 10
-	conf.ConsulConfig.CoordinateUpdateMaxBatches = 1
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.SyncCoordinateRateTarget = 10.0 // updates/sec
+	cfg.SyncCoordinateIntervalMin = 1 * time.Millisecond
+	cfg.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
+	cfg.ConsulConfig.CoordinateUpdateBatchSize = 10
+	cfg.ConsulConfig.CoordinateUpdateMaxBatches = 1
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Make sure the coordinate is present.

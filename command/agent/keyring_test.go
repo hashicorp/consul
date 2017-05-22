@@ -53,9 +53,9 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	}
 
 	// Client should auto-load only the LAN keyring file
-	conf3 := TestConfig()
-	conf3.Server = false
-	a3 := &TestAgent{Name: t.Name(), Config: conf3, Key: key}
+	cfg3 := TestConfig()
+	cfg3.Server = false
+	a3 := &TestAgent{Name: t.Name(), Config: cfg3, Key: key}
 	a3.Start()
 	defer a3.Shutdown()
 
@@ -118,11 +118,11 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	conf := TestACLConfig()
-	conf.ACLDatacenter = "dc1"
-	conf.ACLMasterToken = "root"
-	conf.ACLDefaultPolicy = "deny"
-	a := &TestAgent{Name: t.Name(), Config: conf, Key: key1}
+	cfg := TestACLConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	a := &TestAgent{Name: t.Name(), Config: cfg, Key: key1}
 	a.Start()
 	defer a.Shutdown()
 

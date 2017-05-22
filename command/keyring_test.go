@@ -28,8 +28,8 @@ func TestKeyringCommandRun(t *testing.T) {
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
 	// Begin with a single key
-	a1 := testAgentWithConfig(t, func(c *agent.Config) {
-		c.EncryptKey = key1
+	a1 := testAgentWithConfig(t, func(cfg *agent.Config) {
+		cfg.EncryptKey = key1
 	})
 	defer a1.Shutdown()
 

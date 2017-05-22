@@ -44,7 +44,7 @@ func testAgent(t *testing.T) *server {
 }
 
 func testAgentWithAPIClient(t *testing.T) (*server, *api.Client) {
-	agent := testAgentWithConfig(t, func(c *agent.Config) {})
+	agent := testAgentWithConfig(t, func(cfg *agent.Config) {})
 	client, err := api.NewClient(&api.Config{Address: agent.httpAddr})
 	if err != nil {
 		t.Fatalf("consul client: %#v", err)
@@ -52,7 +52,7 @@ func testAgentWithAPIClient(t *testing.T) (*server, *api.Client) {
 	return agent, client
 }
 
-func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *server {
+func testAgentWithConfig(t *testing.T, cb func(cfg *agent.Config)) *server {
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)

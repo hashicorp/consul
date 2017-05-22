@@ -33,14 +33,14 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
-	c := TestConfig()
-	c.Addresses.HTTP = "unix://" + socket
+	cfg := TestConfig()
+	cfg.Addresses.HTTP = "unix://" + socket
 
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	c.UnixSockets = UnixSocketConfig{}
-	c.UnixSockets.Perms = "0777"
-	a := NewTestAgent(t.Name(), c)
+	cfg.UnixSockets = UnixSocketConfig{}
+	cfg.UnixSockets.Perms = "0777"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Ensure the socket was created
@@ -103,9 +103,9 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Fatalf("not a regular file: %s", socket)
 	}
 
-	conf := TestConfig()
-	conf.Addresses.HTTP = "unix://" + socket
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.Addresses.HTTP = "unix://" + socket
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Ensure the file was replaced by the socket
@@ -204,9 +204,9 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 	// Header should be set to true if it's turned on.
 	{
-		c := TestConfig()
-		c.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), c)
+		cfg := TestConfig()
+		cfg.TranslateWanAddrs = true
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -226,12 +226,12 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
-	c := TestConfig()
-	c.HTTPAPIResponseHeaders = map[string]string{
+	cfg := TestConfig()
+	cfg.HTTPAPIResponseHeaders = map[string]string{
 		"Access-Control-Allow-Origin": "*",
 		"X-XSS-Protection":            "1; mode=block",
 	}
-	a := NewTestAgent(t.Name(), c)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -519,9 +519,9 @@ func TestACLResolution(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
-	conf.EnableUI = true
-	a := NewTestAgent(t.Name(), conf)
+	cfg := TestConfig()
+	cfg.EnableUI = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)

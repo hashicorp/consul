@@ -182,18 +182,18 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	c1 := TestConfig()
-	c1.Datacenter = "dc1"
-	c1.TranslateWanAddrs = true
-	c1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), c1)
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
-	c2 := TestConfig()
-	c2.Datacenter = "dc2"
-	c2.TranslateWanAddrs = true
-	c2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), c2)
+	cfg2 := TestConfig()
+	cfg2.Datacenter = "dc2"
+	cfg2.TranslateWanAddrs = true
+	cfg2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
@@ -597,18 +597,18 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	c1 := TestConfig()
-	c1.Datacenter = "dc1"
-	c1.TranslateWanAddrs = true
-	c1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), c1)
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
-	c2 := TestConfig()
-	c2.Datacenter = "dc2"
-	c2.TranslateWanAddrs = true
-	c2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), c2)
+	cfg2 := TestConfig()
+	cfg2.Datacenter = "dc2"
+	cfg2.TranslateWanAddrs = true
+	cfg2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
@@ -804,18 +804,18 @@ func TestCatalogNodeServices(t *testing.T) {
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	t.Parallel()
-	c1 := TestConfig()
-	c1.Datacenter = "dc1"
-	c1.TranslateWanAddrs = true
-	c1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), c1)
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
-	c2 := TestConfig()
-	c2.Datacenter = "dc2"
-	c2.TranslateWanAddrs = true
-	c2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), c2)
+	cfg2 := TestConfig()
+	cfg2.Datacenter = "dc2"
+	cfg2.TranslateWanAddrs = true
+	cfg2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.

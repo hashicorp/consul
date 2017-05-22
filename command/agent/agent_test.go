@@ -80,14 +80,14 @@ func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
 		t.Skip("skip test on macOS to avoid firewall warning dialog")
 	}
 
-	c := TestConfig()
+	cfg := TestConfig()
 	ip, err := externalIP()
 	if err != nil {
 		t.Fatalf("Unable to get a non-loopback IP: %v", err)
 	}
-	c.SerfLanBindAddr = ip
-	c.SerfWanBindAddr = ip
-	a := NewTestAgent(t.Name(), c)
+	cfg.SerfLanBindAddr = ip
+	cfg.SerfWanBindAddr = ip
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	serfWanBind := a.consulConfig().SerfWANConfig.MemberlistConfig.BindAddr
@@ -102,11 +102,11 @@ func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
 }
 func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	t.Parallel()
-	c := TestConfig()
-	c.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
-	c.AdvertiseAddrs.SerfWan, _ = net.ResolveTCPAddr("tcp", "127.0.0.43:1234")
-	c.AdvertiseAddrs.RPC, _ = net.ResolveTCPAddr("tcp", "127.0.0.44:1235")
-	a := NewTestAgent(t.Name(), c)
+	cfg := TestConfig()
+	cfg.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
+	cfg.AdvertiseAddrs.SerfWan, _ = net.ResolveTCPAddr("tcp", "127.0.0.43:1234")
+	cfg.AdvertiseAddrs.RPC, _ = net.ResolveTCPAddr("tcp", "127.0.0.44:1235")
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	serfLanAddr := a.consulConfig().SerfLANConfig.MemberlistConfig.AdvertiseAddr
@@ -126,8 +126,8 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 		t.Fatalf("SerfWan is not properly set to '1234': %d", serfWanPort)
 	}
 	rpc := a.consulConfig().RPCAdvertise
-	if rpc != c.AdvertiseAddrs.RPC {
-		t.Fatalf("RPC is not properly set to %v: %s", c.AdvertiseAddrs.RPC, rpc)
+	if rpc != cfg.AdvertiseAddrs.RPC {
+		t.Fatalf("RPC is not properly set to %v: %s", cfg.AdvertiseAddrs.RPC, rpc)
 	}
 	expected := map[string]string{
 		"lan": a.Config.AdvertiseAddr,
@@ -142,10 +142,10 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 	t.Parallel()
 	// Try a default config.
 	{
-		c := TestConfig()
-		c.Bootstrap = false
-		c.ConsulConfig = nil
-		a := NewTestAgent(t.Name(), c)
+		cfg := TestConfig()
+		cfg.Bootstrap = false
+		cfg.ConsulConfig = nil
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		raftMult := time.Duration(consul.DefaultRaftMultiplier)
@@ -160,10 +160,10 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 
 	// Try a multiplier.
 	{
-		c := TestConfig()
-		c.Bootstrap = false
-		c.Performance.RaftMultiplier = 99
-		a := NewTestAgent(t.Name(), c)
+		cfg := TestConfig()
+		cfg.Bootstrap = false
+		cfg.Performance.RaftMultiplier = 99
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		const raftMult time.Duration = 99
@@ -195,10 +195,10 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 
 	func() {
-		c := TestConfig()
-		c.ReconnectTimeoutLan = 24 * time.Hour
-		c.ReconnectTimeoutWan = 36 * time.Hour
-		a := NewTestAgent(t.Name(), c)
+		cfg := TestConfig()
+		cfg.ReconnectTimeoutLan = 24 * time.Hour
+		cfg.ReconnectTimeoutWan = 36 * time.Hour
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		lan := a.consulConfig().SerfLANConfig.ReconnectTimeout
@@ -215,9 +215,9 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 
 func TestAgent_setupNodeID(t *testing.T) {
 	t.Parallel()
-	c := TestConfig()
-	c.NodeID = ""
-	a := NewTestAgent(t.Name(), c)
+	cfg := TestConfig()
+	cfg.NodeID = ""
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// The auto-assigned ID should be valid.
@@ -227,8 +227,8 @@ func TestAgent_setupNodeID(t *testing.T) {
 	}
 
 	// Running again should get the same ID (persisted in the file).
-	c.NodeID = ""
-	if err := a.setupNodeID(c); err != nil {
+	cfg.NodeID = ""
+	if err := a.setupNodeID(cfg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if newID := a.consulConfig().NodeID; id != newID {
@@ -236,8 +236,8 @@ func TestAgent_setupNodeID(t *testing.T) {
 	}
 
 	// Set an invalid ID via.Config.
-	c.NodeID = types.NodeID("nope")
-	err := a.setupNodeID(c)
+	cfg.NodeID = types.NodeID("nope")
+	err := a.setupNodeID(cfg)
 	if err == nil || !strings.Contains(err.Error(), "uuid string is wrong length") {
 		t.Fatalf("err: %v", err)
 	}
@@ -247,8 +247,8 @@ func TestAgent_setupNodeID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	c.NodeID = types.NodeID(strings.ToUpper(newID))
-	if err := a.setupNodeID(c); err != nil {
+	cfg.NodeID = types.NodeID(strings.ToUpper(newID))
+	if err := a.setupNodeID(cfg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if id := a.consulConfig().NodeID; string(id) != newID {
@@ -256,12 +256,12 @@ func TestAgent_setupNodeID(t *testing.T) {
 	}
 
 	// Set an invalid ID via the file.
-	fileID := filepath.Join(c.DataDir, "node-id")
+	fileID := filepath.Join(cfg.DataDir, "node-id")
 	if err := ioutil.WriteFile(fileID, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	c.NodeID = ""
-	err = a.setupNodeID(c)
+	cfg.NodeID = ""
+	err = a.setupNodeID(cfg)
 	if err == nil || !strings.Contains(err.Error(), "uuid is improperly formatted") {
 		t.Fatalf("err: %v", err)
 	}
@@ -270,8 +270,8 @@ func TestAgent_setupNodeID(t *testing.T) {
 	if err := ioutil.WriteFile(fileID, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	c.NodeID = ""
-	if err := a.setupNodeID(c); err != nil {
+	cfg.NodeID = ""
+	if err := a.setupNodeID(cfg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if id := a.consulConfig().NodeID; string(id) != "adf4238a-882b-9ddc-4a9d-5b6758e4159e" {
@@ -281,9 +281,9 @@ func TestAgent_setupNodeID(t *testing.T) {
 
 func TestAgent_makeNodeID(t *testing.T) {
 	t.Parallel()
-	c := TestConfig()
-	c.NodeID = ""
-	a := NewTestAgent(t.Name(), c)
+	cfg := TestConfig()
+	cfg.NodeID = ""
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// We should get a valid host-based ID initially.
@@ -885,11 +885,11 @@ func TestAgent_ConsulService(t *testing.T) {
 
 func TestAgent_PersistService(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Server = false
-	config.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), config)
-	defer os.RemoveAll(config.DataDir)
+	cfg := TestConfig()
+	cfg.Server = false
+	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
+	a := NewTestAgent(t.Name(), cfg)
+	defer os.RemoveAll(cfg.DataDir)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -953,7 +953,7 @@ func TestAgent_PersistService(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := NewAgent(config)
+	agent2, err := NewAgent(cfg)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1060,9 +1060,9 @@ func TestAgent_PurgeService(t *testing.T) {
 
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Server = false
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.Server = false
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	svc1 := &structs.NodeService{
@@ -1087,8 +1087,8 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 		Port: 9000,
 	}
 
-	config.Services = []*ServiceDefinition{svc2}
-	agent2, err := NewAgent(config)
+	cfg.Services = []*ServiceDefinition{svc2}
+	agent2, err := NewAgent(cfg)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1112,15 +1112,15 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Server = false
-	config.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), config)
-	defer os.RemoveAll(config.DataDir)
+	cfg := TestConfig()
+	cfg.Server = false
+	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
+	a := NewTestAgent(t.Name(), cfg)
+	defer os.RemoveAll(cfg.DataDir)
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
-		Node:    config.NodeName,
+		Node:    cfg.NodeName,
 		CheckID: "mem",
 		Name:    "memory check",
 		Status:  api.HealthPassing,
@@ -1186,7 +1186,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := NewAgent(config)
+	agent2, err := NewAgent(cfg)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1251,15 +1251,15 @@ func TestAgent_PurgeCheck(t *testing.T) {
 
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Server = false
-	config.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), config)
-	defer os.RemoveAll(config.DataDir)
+	cfg := TestConfig()
+	cfg.Server = false
+	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
+	a := NewTestAgent(t.Name(), cfg)
+	defer os.RemoveAll(cfg.DataDir)
 	defer a.Shutdown()
 
 	check1 := &structs.HealthCheck{
-		Node:    config.NodeName,
+		Node:    cfg.NodeName,
 		CheckID: "mem",
 		Name:    "memory check",
 		Status:  api.HealthPassing,
@@ -1280,8 +1280,8 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Interval: 30 * time.Second,
 	}
 
-	config.Checks = []*CheckDefinition{check2}
-	agent2, err := NewAgent(config)
+	cfg.Checks = []*CheckDefinition{check2}
+	agent2, err := NewAgent(cfg)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1298,7 +1298,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing check registration")
 	}
-	expected := check2.HealthCheck(config.NodeName)
+	expected := check2.HealthCheck(cfg.NodeName)
 	if !reflect.DeepEqual(expected, result) {
 		t.Fatalf("bad: %#v", result)
 	}
@@ -1306,14 +1306,14 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Checks = append(config.Checks, &CheckDefinition{
+	cfg := TestConfig()
+	cfg.Checks = append(cfg.Checks, &CheckDefinition{
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Token: "abc123",
 		TTL:   10 * time.Second,
 	})
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	checks := a.state.Checks()
@@ -1379,14 +1379,14 @@ func TestAgent_unloadChecks(t *testing.T) {
 
 func TestAgent_loadServices_token(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.Services = append(config.Services, &ServiceDefinition{
+	cfg := TestConfig()
+	cfg.Services = append(cfg.Services, &ServiceDefinition{
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Port:  5672,
 		Token: "abc123",
 	})
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	services := a.state.Services()
@@ -1511,10 +1511,10 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 
 func TestAgent_Service_Reap(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.CheckReapInterval = time.Millisecond
-	config.CheckDeregisterIntervalMin = 0
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.CheckReapInterval = time.Millisecond
+	cfg.CheckDeregisterIntervalMin = 0
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1585,10 +1585,10 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 func TestAgent_Service_NoReap(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.CheckReapInterval = time.Millisecond
-	config.CheckDeregisterIntervalMin = 0
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.CheckReapInterval = time.Millisecond
+	cfg.CheckDeregisterIntervalMin = 0
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1959,9 +1959,9 @@ func TestAgent_purgeCheckState(t *testing.T) {
 func TestAgent_GetCoordinate(t *testing.T) {
 	t.Parallel()
 	check := func(server bool) {
-		config := TestConfig()
-		config.Server = server
-		a := NewTestAgent(t.Name(), config)
+		cfg := TestConfig()
+		cfg.Server = server
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		// This doesn't verify the returned coordinate, but it makes

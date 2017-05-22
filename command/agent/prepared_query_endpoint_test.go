@@ -358,10 +358,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Ensure WAN translation occurs for a response outside of the local DC.
 	t.Run("", func(t *testing.T) {
-		config := TestConfig()
-		config.Datacenter = "dc1"
-		config.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), config)
+		cfg := TestConfig()
+		cfg.Datacenter = "dc1"
+		cfg.TranslateWanAddrs = true
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{}
@@ -408,10 +408,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Ensure WAN translation doesn't occur for the local DC.
 	t.Run("", func(t *testing.T) {
-		config := TestConfig()
-		config.Datacenter = "dc1"
-		config.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), config)
+		cfg := TestConfig()
+		cfg.Datacenter = "dc1"
+		cfg.TranslateWanAddrs = true
+		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{}

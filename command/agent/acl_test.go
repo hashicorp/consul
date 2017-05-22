@@ -16,11 +16,11 @@ import (
 
 func TestACL_Bad_Config(t *testing.T) {
 	t.Parallel()
-	c := TestConfig()
-	c.ACLDownPolicy = "nope"
-	c.DataDir = testutil.TempDir(t, "agent")
+	cfg := TestConfig()
+	cfg.ACLDownPolicy = "nope"
+	cfg.DataDir = testutil.TempDir(t, "agent")
 
-	_, err := NewAgent(c)
+	_, err := NewAgent(cfg)
 	if err == nil || !strings.Contains(err.Error(), "invalid ACL down policy") {
 		t.Fatalf("err: %v", err)
 	}
@@ -39,9 +39,9 @@ func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.AC
 
 func TestACL_Version8(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolFalse
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolFalse
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -61,10 +61,10 @@ func TestACL_Version8(t *testing.T) {
 
 func TestACL_Disabled(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDisabledTTL = 10 * time.Millisecond
-	config.ACLEnforceVersion8 = &BoolTrue
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.ACLDisabledTTL = 10 * time.Millisecond
+	cfg.ACLEnforceVersion8 = &BoolTrue
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -100,7 +100,7 @@ func TestACL_Disabled(t *testing.T) {
 
 	// Wait the waiting period and make sure it checks again. Do a few tries
 	// to make sure we don't think it's disabled.
-	time.Sleep(2 * config.ACLDisabledTTL)
+	time.Sleep(2 * cfg.ACLDisabledTTL)
 	for i := 0; i < 10; i++ {
 		_, err := a.resolveToken("nope")
 		if err == nil || !strings.Contains(err.Error(), aclNotFound) {
@@ -114,11 +114,10 @@ func TestACL_Disabled(t *testing.T) {
 
 func TestACL_Special_IDs(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
-	config.ACLAgentMasterToken = "towel"
-
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
+	cfg.ACLAgentMasterToken = "towel"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -157,21 +156,21 @@ func TestACL_Special_IDs(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should be able to read agent")
 	}
-	if !acl.AgentWrite(config.NodeName) {
+	if !acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should be able to write agent")
 	}
 }
 
 func TestACL_Down_Deny(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDownPolicy = "deny"
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLDownPolicy = "deny"
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -190,18 +189,18 @@ func TestACL_Down_Deny(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if acl.AgentRead(config.NodeName) {
+	if acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 }
 
 func TestACL_Down_Allow(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDownPolicy = "allow"
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLDownPolicy = "allow"
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -220,18 +219,18 @@ func TestACL_Down_Allow(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
 }
 
 func TestACL_Down_Extend(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLDownPolicy = "extend-cache"
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLDownPolicy = "extend-cache"
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -246,7 +245,7 @@ func TestACL_Down_Extend(t *testing.T) {
 			Policy: &rawacl.Policy{
 				Agents: []*rawacl.AgentPolicy{
 					&rawacl.AgentPolicy{
-						Node:   config.NodeName,
+						Node:   cfg.NodeName,
 						Policy: "read",
 					},
 				},
@@ -261,10 +260,10 @@ func TestACL_Down_Extend(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if acl.AgentWrite(config.NodeName) {
+	if acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 
@@ -279,10 +278,10 @@ func TestACL_Down_Extend(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if acl.AgentRead(config.NodeName) {
+	if acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
-	if acl.AgentWrite(config.NodeName) {
+	if acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 
@@ -295,20 +294,20 @@ func TestACL_Down_Extend(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if acl.AgentWrite(config.NodeName) {
+	if acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 }
 
 func TestACL_Cache(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{}
@@ -324,7 +323,7 @@ func TestACL_Cache(t *testing.T) {
 			Policy: &rawacl.Policy{
 				Agents: []*rawacl.AgentPolicy{
 					&rawacl.AgentPolicy{
-						Node:   config.NodeName,
+						Node:   cfg.NodeName,
 						Policy: "read",
 					},
 				},
@@ -340,10 +339,10 @@ func TestACL_Cache(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if acl.AgentWrite(config.NodeName) {
+	if acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 	if acl.NodeRead("nope") {
@@ -362,10 +361,10 @@ func TestACL_Cache(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if acl.AgentWrite(config.NodeName) {
+	if acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should deny")
 	}
 	if acl.NodeRead("nope") {
@@ -391,7 +390,7 @@ func TestACL_Cache(t *testing.T) {
 			Policy: &rawacl.Policy{
 				Agents: []*rawacl.AgentPolicy{
 					&rawacl.AgentPolicy{
-						Node:   config.NodeName,
+						Node:   cfg.NodeName,
 						Policy: "write",
 					},
 				},
@@ -407,10 +406,10 @@ func TestACL_Cache(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if !acl.AgentWrite(config.NodeName) {
+	if !acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
 	if acl.NodeRead("nope") {
@@ -437,10 +436,10 @@ func TestACL_Cache(t *testing.T) {
 	if acl == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl.AgentRead(config.NodeName) {
+	if !acl.AgentRead(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
-	if !acl.AgentWrite(config.NodeName) {
+	if !acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should allow")
 	}
 	if acl.NodeRead("nope") {
@@ -487,10 +486,10 @@ func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) erro
 
 func TestACL_vetServiceRegister(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -533,10 +532,10 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 func TestACL_vetServiceUpdate(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -569,10 +568,10 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 
 func TestACL_vetCheckRegister(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -652,10 +651,10 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 func TestACL_vetCheckUpdate(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -708,10 +707,10 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 
 func TestACL_filterMembers(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -744,10 +743,10 @@ func TestACL_filterMembers(t *testing.T) {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}
@@ -775,10 +774,10 @@ func TestACL_filterServices(t *testing.T) {
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
-	config := TestConfig()
-	config.ACLEnforceVersion8 = &BoolTrue
+	cfg := TestConfig()
+	cfg.ACLEnforceVersion8 = &BoolTrue
 
-	a := NewTestAgent(t.Name(), config)
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	m := MockServer{catalogPolicy}

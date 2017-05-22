@@ -210,10 +210,10 @@ func TestSessionDestroy(t *testing.T) {
 func TestSessionCustomTTL(t *testing.T) {
 	t.Parallel()
 	ttl := 250 * time.Millisecond
-	config := TestConfig()
-	config.SessionTTLMin = ttl
-	config.SessionTTLMinRaw = ttl.String()
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.SessionTTLMin = ttl
+	cfg.SessionTTLMinRaw = ttl.String()
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	id := makeTestSessionTTL(t, a.srv, ttl.String())
@@ -252,10 +252,10 @@ func TestSessionCustomTTL(t *testing.T) {
 func TestSessionTTLRenew(t *testing.T) {
 	t.Parallel()
 	ttl := 250 * time.Millisecond
-	config := TestConfig()
-	config.SessionTTLMin = ttl
-	config.SessionTTLMinRaw = ttl.String()
-	a := NewTestAgent(t.Name(), config)
+	cfg := TestConfig()
+	cfg.SessionTTLMin = ttl
+	cfg.SessionTTLMinRaw = ttl.String()
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	id := makeTestSessionTTL(t, a.srv, ttl.String())

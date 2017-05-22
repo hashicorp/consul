@@ -32,8 +32,8 @@ const (
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
 func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
-	dnsConf := TestConfig()
-	dnsAddr := fmt.Sprintf("%s:%d", dnsConf.Addresses.DNS, dnsConf.Ports.DNS)
+	cfg := TestConfig()
+	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, cfg.Ports.DNS)
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
 		ans := &dns.Msg{Answer: answer[:]}
@@ -52,8 +52,8 @@ func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
 }
 
 func makeRecursorWithMessage(t *testing.T, answer dns.Msg) *dns.Server {
-	dnsConf := TestConfig()
-	dnsAddr := fmt.Sprintf("%s:%d", dnsConf.Addresses.DNS, dnsConf.Ports.DNS)
+	cfg := TestConfig()
+	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, cfg.Ports.DNS)
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
 		answer.SetReply(msg)
@@ -1211,18 +1211,18 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 
 func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 	t.Parallel()
-	c1 := TestConfig()
-	c1.Datacenter = "dc1"
-	c1.TranslateWanAddrs = true
-	c1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), c1)
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
-	c2 := TestConfig()
-	c2.Datacenter = "dc2"
-	c2.TranslateWanAddrs = true
-	c2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), c2)
+	cfg2 := TestConfig()
+	cfg2.Datacenter = "dc2"
+	cfg2.TranslateWanAddrs = true
+	cfg2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Join WAN cluster
@@ -3255,18 +3255,18 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 
 func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	t.Parallel()
-	c1 := TestConfig()
-	c1.Datacenter = "dc1"
-	c1.TranslateWanAddrs = true
-	c1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), c1)
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	a1 := NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
-	c2 := TestConfig()
-	c2.Datacenter = "dc2"
-	c2.TranslateWanAddrs = true
-	c2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), c2)
+	cfg2 := TestConfig()
+	cfg2.Datacenter = "dc2"
+	cfg2.TranslateWanAddrs = true
+	cfg2.ACLDatacenter = ""
+	a2 := NewTestAgent(t.Name(), cfg2)
 	defer a2.Shutdown()
 
 	// Join WAN cluster.

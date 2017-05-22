@@ -225,54 +225,54 @@ func TestConfig() *Config {
 		panic(err)
 	}
 
-	conf := DefaultConfig()
-	pickRandomPorts(conf)
+	cfg := DefaultConfig()
+	pickRandomPorts(cfg)
 
-	conf.Version = version.Version
-	conf.VersionPrerelease = "c.d"
+	cfg.Version = version.Version
+	cfg.VersionPrerelease = "c.d"
 
-	conf.NodeID = types.NodeID(nodeID)
-	conf.NodeName = "Node " + nodeID
-	conf.BindAddr = "127.0.0.1"
-	conf.AdvertiseAddr = "127.0.0.1"
-	conf.Datacenter = "dc1"
-	conf.Bootstrap = true
-	conf.Server = true
-	conf.ACLEnforceVersion8 = &BoolFalse
-	conf.ACLDatacenter = conf.Datacenter
-	conf.ACLMasterToken = "root"
+	cfg.NodeID = types.NodeID(nodeID)
+	cfg.NodeName = "Node " + nodeID
+	cfg.BindAddr = "127.0.0.1"
+	cfg.AdvertiseAddr = "127.0.0.1"
+	cfg.Datacenter = "dc1"
+	cfg.Bootstrap = true
+	cfg.Server = true
+	cfg.ACLEnforceVersion8 = &BoolFalse
+	cfg.ACLDatacenter = cfg.Datacenter
+	cfg.ACLMasterToken = "root"
 
-	cons := consul.DefaultConfig()
-	conf.ConsulConfig = cons
+	ccfg := consul.DefaultConfig()
+	cfg.ConsulConfig = ccfg
 
-	cons.SerfLANConfig.MemberlistConfig.SuspicionMult = 3
-	cons.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
-	cons.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
-	cons.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	ccfg.SerfLANConfig.MemberlistConfig.SuspicionMult = 3
+	ccfg.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
+	ccfg.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	ccfg.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
-	cons.SerfWANConfig.MemberlistConfig.SuspicionMult = 3
-	cons.SerfWANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
-	cons.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
-	cons.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	ccfg.SerfWANConfig.MemberlistConfig.SuspicionMult = 3
+	ccfg.SerfWANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
+	ccfg.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	ccfg.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
-	cons.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
-	cons.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
-	cons.RaftConfig.ElectionTimeout = 40 * time.Millisecond
+	ccfg.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
+	ccfg.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
+	ccfg.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
-	cons.CoordinateUpdatePeriod = 100 * time.Millisecond
-	cons.ServerHealthInterval = 10 * time.Millisecond
-	return conf
+	ccfg.CoordinateUpdatePeriod = 100 * time.Millisecond
+	ccfg.ServerHealthInterval = 10 * time.Millisecond
+	return cfg
 }
 
 // TestACLConfig returns a default configuration for testing an agent
 // with ACLs.
 func TestACLConfig() *Config {
-	c := TestConfig()
-	c.ACLDatacenter = c.Datacenter
-	c.ACLDefaultPolicy = "deny"
-	c.ACLMasterToken = "root"
-	c.ACLAgentToken = "root"
-	c.ACLAgentMasterToken = "towel"
-	c.ACLEnforceVersion8 = &BoolTrue
-	return c
+	cfg := TestConfig()
+	cfg.ACLDatacenter = cfg.Datacenter
+	cfg.ACLDefaultPolicy = "deny"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLAgentToken = "root"
+	cfg.ACLAgentMasterToken = "towel"
+	cfg.ACLEnforceVersion8 = &BoolTrue
+	return cfg
 }

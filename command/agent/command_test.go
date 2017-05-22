@@ -105,7 +105,7 @@ func TestRetryJoin(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	conf2 := TestConfig()
+	cfg2 := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -137,7 +137,7 @@ func TestRetryJoin(t *testing.T) {
 		"-server",
 		"-bind", a.Config.BindAddr,
 		"-data-dir", tmpDir,
-		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
+		"-node", fmt.Sprintf(`"%s"`, cfg2.NodeName),
 		"-advertise", a.Config.BindAddr,
 		"-retry-join", serfAddr,
 		"-retry-interval", "1s",
@@ -292,7 +292,7 @@ func TestReadCliConfig(t *testing.T) {
 
 func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
+	cfg := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -304,10 +304,10 @@ func TestRetryJoinFail(t *testing.T) {
 		Command:    baseCommand(new(cli.MockUi)),
 	}
 
-	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfLan)
+	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfLan)
 
 	args := []string{
-		"-bind", conf.BindAddr,
+		"-bind", cfg.BindAddr,
 		"-data-dir", tmpDir,
 		"-retry-join", serfAddr,
 		"-retry-max", "1",
@@ -321,7 +321,7 @@ func TestRetryJoinFail(t *testing.T) {
 
 func TestRetryJoinWanFail(t *testing.T) {
 	t.Parallel()
-	conf := TestConfig()
+	cfg := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
@@ -333,11 +333,11 @@ func TestRetryJoinWanFail(t *testing.T) {
 		Command:    baseCommand(new(cli.MockUi)),
 	}
 
-	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfWan)
+	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfWan)
 
 	args := []string{
 		"-server",
-		"-bind", conf.BindAddr,
+		"-bind", cfg.BindAddr,
 		"-data-dir", tmpDir,
 		"-retry-join-wan", serfAddr,
 		"-retry-max-wan", "1",
