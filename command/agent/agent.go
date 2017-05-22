@@ -142,7 +142,8 @@ type Agent struct {
 	// endpoints lets you override RPC endpoints for testing. Not all
 	// agent methods use this, so use with care and never override
 	// outside of a unit test.
-	endpoints map[string]string
+	endpoints     map[string]string
+	endpointsLock sync.RWMutex
 
 	// dnsAddr is the address the DNS server binds to
 	dnsAddr net.Addr
@@ -2124,7 +2125,9 @@ func (a *Agent) InjectEndpoint(endpoint string, handler interface{}) error {
 		return err
 	}
 	name := reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
+	a.endpointsLock.Lock()
 	a.endpoints[endpoint] = name
+	a.endpointsLock.Unlock()
 
 	a.logger.Printf("[WARN] agent: endpoint injected; this should only be used for testing")
 	return nil
@@ -2133,6 +2136,8 @@ func (a *Agent) InjectEndpoint(endpoint string, handler interface{}) error {
 // getEndpoint returns the endpoint name to use for the given endpoint,
 // which may be overridden.
 func (a *Agent) getEndpoint(endpoint string) string {
+	a.endpointsLock.RLock()
+	defer a.endpointsLock.RUnlock()
 	if override, ok := a.endpoints[endpoint]; ok {
 		return override
 	}
