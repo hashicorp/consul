@@ -1564,7 +1564,7 @@ func TestAgent_Monitor(t *testing.T) {
 	a := &TestAgent{
 		Name:      t.Name(),
 		LogWriter: logWriter,
-		LogOutput: io.MultiWriter(os.Stdout, logWriter),
+		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 	}
 	a.Start()
 	defer a.Shutdown()

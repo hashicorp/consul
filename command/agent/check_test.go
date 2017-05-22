@@ -234,7 +234,6 @@ func TestCheckHTTPCritical(t *testing.T) {
 	// var server *httptest.Server
 
 	server := mockHTTPServer(150)
-	fmt.Println(server.URL)
 	expectHTTPStatus(t, server.URL, api.HealthCritical)
 	server.Close()
 
