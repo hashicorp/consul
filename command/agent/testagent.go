@@ -227,7 +227,9 @@ func pickRandomPorts(c *Config) {
 	port := 1030 + int(rand.Int31n(6440))*10
 	c.Ports.DNS = port + 1
 	c.Ports.HTTP = port + 2
-	c.Ports.HTTPS = port + 3
+	// when we enable HTTPS then we need to fix finding the
+	// "first" HTTP server since that might be HTTPS server
+	// c.Ports.HTTPS = port + 3
 	c.Ports.SerfLan = port + 4
 	c.Ports.SerfWan = port + 5
 	c.Ports.Server = port + 6
@@ -258,9 +260,6 @@ func TestConfig() *Config {
 	cfg.Datacenter = "dc1"
 	cfg.Bootstrap = true
 	cfg.Server = true
-	cfg.ACLEnforceVersion8 = &BoolFalse
-	cfg.ACLDatacenter = cfg.Datacenter
-	cfg.ACLMasterToken = "root"
 
 	ccfg := consul.DefaultConfig()
 	cfg.ConsulConfig = ccfg

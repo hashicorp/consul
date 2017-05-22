@@ -30,9 +30,9 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 	return aclResp.ID
 }
 
-func TestACLUpdate(t *testing.T) {
+func TestACL_Update(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	id := makeTestACL(t, a.srv)
@@ -59,9 +59,9 @@ func TestACLUpdate(t *testing.T) {
 	}
 }
 
-func TestACLUpdate_Upsert(t *testing.T) {
+func TestACL_UpdateUpsert(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -86,9 +86,9 @@ func TestACLUpdate_Upsert(t *testing.T) {
 	}
 }
 
-func TestACLDestroy(t *testing.T) {
+func TestACL_Destroy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	id := makeTestACL(t, a.srv)
@@ -117,9 +117,9 @@ func TestACLDestroy(t *testing.T) {
 	}
 }
 
-func TestACLClone(t *testing.T) {
+func TestACL_Clone(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	id := makeTestACL(t, a.srv)
@@ -153,10 +153,10 @@ func TestACLClone(t *testing.T) {
 	}
 }
 
-func TestACLGet(t *testing.T) {
+func TestACL_Get(t *testing.T) {
 	t.Parallel()
-	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+	t.Run("wrong id", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), TestACLConfig())
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/acl/info/nope", nil)
@@ -174,8 +174,8 @@ func TestACLGet(t *testing.T) {
 		}
 	})
 
-	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+	t.Run("right id", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), TestACLConfig())
 		defer a.Shutdown()
 
 		id := makeTestACL(t, a.srv)
@@ -196,9 +196,9 @@ func TestACLGet(t *testing.T) {
 	})
 }
 
-func TestACLList(t *testing.T) {
+func TestACL_List(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	var ids []string

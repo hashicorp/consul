@@ -183,7 +183,7 @@ func TestFireReceiveEvent(t *testing.T) {
 
 func TestUserEventToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDefaultPolicy = "deny" // Set the default policies to deny
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()

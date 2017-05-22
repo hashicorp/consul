@@ -54,7 +54,7 @@ func TestEventFire(t *testing.T) {
 
 func TestEventFire_token(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDefaultPolicy = "deny"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()

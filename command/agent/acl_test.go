@@ -61,7 +61,7 @@ func TestACL_Version8(t *testing.T) {
 
 func TestACL_Disabled(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDisabledTTL = 10 * time.Millisecond
 	cfg.ACLEnforceVersion8 = &BoolTrue
 	a := NewTestAgent(t.Name(), cfg)
@@ -114,7 +114,7 @@ func TestACL_Disabled(t *testing.T) {
 
 func TestACL_Special_IDs(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 	cfg.ACLAgentMasterToken = "towel"
 	a := NewTestAgent(t.Name(), cfg)
@@ -166,7 +166,7 @@ func TestACL_Special_IDs(t *testing.T) {
 
 func TestACL_Down_Deny(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDownPolicy = "deny"
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
@@ -196,7 +196,7 @@ func TestACL_Down_Deny(t *testing.T) {
 
 func TestACL_Down_Allow(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDownPolicy = "allow"
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
@@ -226,7 +226,7 @@ func TestACL_Down_Allow(t *testing.T) {
 
 func TestACL_Down_Extend(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLDownPolicy = "extend-cache"
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
@@ -304,7 +304,7 @@ func TestACL_Down_Extend(t *testing.T) {
 
 func TestACL_Cache(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -486,7 +486,7 @@ func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) erro
 
 func TestACL_vetServiceRegister(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -532,7 +532,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 func TestACL_vetServiceUpdate(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -568,7 +568,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 
 func TestACL_vetCheckRegister(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -651,7 +651,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 func TestACL_vetCheckUpdate(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -707,7 +707,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 
 func TestACL_filterMembers(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -743,7 +743,7 @@ func TestACL_filterMembers(t *testing.T) {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
@@ -774,7 +774,7 @@ func TestACL_filterServices(t *testing.T) {
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
+	cfg := TestACLConfig()
 	cfg.ACLEnforceVersion8 = &BoolTrue
 
 	a := NewTestAgent(t.Name(), cfg)
