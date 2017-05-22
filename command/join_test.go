@@ -11,7 +11,7 @@ import (
 )
 
 func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &JoinCommand{
 		Command: base.Command{
 			UI:    ui,

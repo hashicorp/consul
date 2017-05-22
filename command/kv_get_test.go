@@ -12,7 +12,7 @@ import (
 )
 
 func testKVGetCommand(t *testing.T) (*cli.MockUi, *KVGetCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &KVGetCommand{
 		Command: base.Command{
 			UI:    ui,

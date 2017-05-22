@@ -12,7 +12,7 @@ import (
 )
 
 func testKVDeleteCommand(t *testing.T) (*cli.MockUi, *KVDeleteCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &KVDeleteCommand{
 		Command: base.Command{
 			UI:    ui,

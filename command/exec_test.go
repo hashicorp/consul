@@ -14,7 +14,7 @@ import (
 )
 
 func testExecCommand(t *testing.T) (*cli.MockUi, *ExecCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &ExecCommand{
 		Command: base.Command{
 			UI:    ui,

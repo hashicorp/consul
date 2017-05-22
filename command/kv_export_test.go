@@ -17,7 +17,7 @@ func TestKVExportCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := KVExportCommand{
 		Command: base.Command{
 			UI:    ui,

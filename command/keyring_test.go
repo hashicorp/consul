@@ -10,7 +10,7 @@ import (
 )
 
 func testKeyringCommand(t *testing.T) (*cli.MockUi, *KeyringCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &KeyringCommand{
 		Command: base.Command{
 			UI:    ui,

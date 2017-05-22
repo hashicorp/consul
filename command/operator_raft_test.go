@@ -8,7 +8,7 @@ import (
 )
 
 func testOperatorRaftCommand(t *testing.T) (*cli.MockUi, *OperatorRaftCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &OperatorRaftCommand{
 		Command: base.Command{
 			UI:    ui,

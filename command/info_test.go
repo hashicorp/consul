@@ -19,7 +19,7 @@ func TestInfoCommandRun(t *testing.T) {
 	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &InfoCommand{
 		Command: base.Command{
 			UI:    ui,

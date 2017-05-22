@@ -38,7 +38,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 
 	// Test the remove-peer subcommand directly
 	{
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		c := OperatorRaftRemoveCommand{
 			Command: base.Command{
 				UI:    ui,
@@ -61,7 +61,7 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 
 	// Test the remove-peer subcommand with -id
 	{
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		c := OperatorRaftRemoveCommand{
 			Command: base.Command{
 				UI:    ui,

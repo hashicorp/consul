@@ -12,7 +12,7 @@ import (
 )
 
 func testConfigTestCommand(t *testing.T) (*cli.MockUi, *ConfigTestCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &ConfigTestCommand{
 		Command: base.Command{
 			UI:    ui,

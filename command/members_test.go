@@ -11,7 +11,7 @@ import (
 )
 
 func testMembersCommand(t *testing.T) (*cli.MockUi, *MembersCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &MembersCommand{
 		Command: base.Command{
 			UI:    ui,

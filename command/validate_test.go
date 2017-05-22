@@ -12,7 +12,7 @@ import (
 )
 
 func testValidateCommand(t *testing.T) (*cli.MockUi, *ValidateCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &ValidateCommand{
 		Command: base.Command{
 			UI:    ui,

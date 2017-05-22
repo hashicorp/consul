@@ -28,7 +28,7 @@ func TestKVImportCommand_Run(t *testing.T) {
 		}
 	]`
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &KVImportCommand{
 		Command: base.Command{
 			UI:    ui,

@@ -21,7 +21,7 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := OperatorAutopilotSetCommand{
 		Command: base.Command{
 			UI:    ui,

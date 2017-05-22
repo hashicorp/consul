@@ -11,7 +11,7 @@ import (
 )
 
 func testMaintCommand(t *testing.T) (*cli.MockUi, *MaintCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &MaintCommand{
 		Command: base.Command{
 			UI:    ui,

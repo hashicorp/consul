@@ -14,7 +14,7 @@ import (
 )
 
 func testSnapshotInspectCommand(t *testing.T) (*cli.MockUi, *SnapshotInspectCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &SnapshotInspectCommand{
 		Command: base.Command{
 			UI:    ui,

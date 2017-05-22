@@ -10,7 +10,7 @@ import (
 )
 
 func testLeaveCommand(t *testing.T) (*cli.MockUi, *LeaveCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &LeaveCommand{
 		Command: base.Command{
 			UI:    ui,

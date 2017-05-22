@@ -15,7 +15,7 @@ func TestKeygenCommand_implements(t *testing.T) {
 
 func TestKeygenCommand(t *testing.T) {
 	t.Parallel()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &KeygenCommand{
 		Command: base.Command{
 			UI:    ui,

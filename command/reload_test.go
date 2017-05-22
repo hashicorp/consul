@@ -25,7 +25,7 @@ func TestReloadCommandRun(t *testing.T) {
 		errCh <- nil
 	}()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &ReloadCommand{
 		Command: base.Command{
 			UI:    ui,

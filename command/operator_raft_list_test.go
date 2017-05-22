@@ -40,7 +40,7 @@ func TestOperator_Raft_ListPeers(t *testing.T) {
 
 	// Test the list-peers subcommand directly
 	{
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		c := OperatorRaftListCommand{
 			Command: base.Command{
 				UI:    ui,

@@ -17,7 +17,7 @@ import (
 )
 
 func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &KVPutCommand{
 		Command: base.Command{
 			UI:    ui,

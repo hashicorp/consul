@@ -14,7 +14,7 @@ import (
 )
 
 func testSnapshotRestoreCommand(t *testing.T) (*cli.MockUi, *SnapshotRestoreCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &SnapshotRestoreCommand{
 		Command: base.Command{
 			UI:    ui,

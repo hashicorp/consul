@@ -13,7 +13,7 @@ import (
 )
 
 func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &SnapshotSaveCommand{
 		Command: base.Command{
 			UI:    ui,

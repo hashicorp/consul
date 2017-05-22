@@ -15,7 +15,7 @@ import (
 )
 
 func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &LockCommand{
 		Command: base.Command{
 			UI:    ui,

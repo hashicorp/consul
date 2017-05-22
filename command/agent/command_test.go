@@ -120,7 +120,7 @@ func TestRetryJoin(t *testing.T) {
 	cmd := &Command{
 		Version:    version.Version,
 		ShutdownCh: shutdownCh,
-		Command:    baseCommand(new(cli.MockUi)),
+		Command:    baseCommand(cli.NewMockUi()),
 	}
 
 	serfAddr := fmt.Sprintf(
@@ -181,7 +181,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-node-meta", "somekey:somevalue",
 			},
 			ShutdownCh: shutdownCh,
-			Command:    baseCommand(new(cli.MockUi)),
+			Command:    baseCommand(cli.NewMockUi()),
 		}
 
 		config := cmd.readConfig()
@@ -208,7 +208,7 @@ func TestReadCliConfig(t *testing.T) {
 				"-node-meta", "otherkey:othervalue",
 			},
 			ShutdownCh: shutdownCh,
-			Command:    baseCommand(new(cli.MockUi)),
+			Command:    baseCommand(cli.NewMockUi()),
 		}
 		expected := map[string]string{
 			"somekey":  "somevalue",
@@ -222,7 +222,7 @@ func TestReadCliConfig(t *testing.T) {
 
 	// Test LeaveOnTerm and SkipLeaveOnInt defaults for server mode
 	{
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		cmd := &Command{
 			args: []string{
 				"-node", `"server1"`,
@@ -250,7 +250,7 @@ func TestReadCliConfig(t *testing.T) {
 
 	// Test LeaveOnTerm and SkipLeaveOnInt defaults for client mode
 	{
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		cmd := &Command{
 			args: []string{
 				"-data-dir", tmpDir,
@@ -280,7 +280,7 @@ func TestReadCliConfig(t *testing.T) {
 		cmd := &Command{
 			args:       []string{"-node", `""`},
 			ShutdownCh: shutdownCh,
-			Command:    baseCommand(new(cli.MockUi)),
+			Command:    baseCommand(cli.NewMockUi()),
 		}
 
 		config := cmd.readConfig()
@@ -301,7 +301,7 @@ func TestRetryJoinFail(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Command:    baseCommand(new(cli.MockUi)),
+		Command:    baseCommand(cli.NewMockUi()),
 	}
 
 	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfLan)
@@ -330,7 +330,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	cmd := &Command{
 		ShutdownCh: shutdownCh,
-		Command:    baseCommand(new(cli.MockUi)),
+		Command:    baseCommand(cli.NewMockUi()),
 	}
 
 	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfWan)
@@ -462,7 +462,7 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	cmd := &Command{
 		Command: baseCommand(ui),
 		args:    []string{"-config-file=" + cfgFile.Name()},
@@ -486,7 +486,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 	}
 	defer os.RemoveAll(dataDir)
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	cmd := &Command{
 		Command: baseCommand(ui),
 		args:    []string{"-data-dir=" + dataDir, "-server=true"},

@@ -15,7 +15,7 @@ import (
 )
 
 func testRTTCommand(t *testing.T) (*cli.MockUi, *RTTCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &RTTCommand{
 		Command: base.Command{
 			UI:    ui,

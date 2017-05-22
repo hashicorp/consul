@@ -13,7 +13,7 @@ import (
 )
 
 func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	return ui, &ForceLeaveCommand{
 		Command: base.Command{
 			UI:    ui,
@@ -68,7 +68,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
 	t.Parallel()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	ui, c := testForceLeaveCommand(t)
 	args := []string{"-http-addr=foo"}
 
