@@ -486,10 +486,10 @@
 			"revisionTime": "2016-05-03T14:34:40Z"
 		},
 		{
-			"checksumSHA1": "BGODc7juQbdG3vNXHZG07kt+lKI=",
+			"checksumSHA1": "wzYP3Wl6YQpNnibnl3kNWSN2lcg=",
 			"path": "github.com/hashicorp/go-sockaddr",
-			"revision": "f910dd83c2052566cad78352c33af714358d1372",
-			"revisionTime": "2017-02-08T07:30:35Z"
+			"revision": "dd2f3a465ed5eb0a401073b6b595898a3bb62284",
+			"revisionTime": "2017-04-20T00:41:28Z"
 		},
 		{
 			"checksumSHA1": "lPzwetgfMBtpHqdTPolgejMctVQ=",

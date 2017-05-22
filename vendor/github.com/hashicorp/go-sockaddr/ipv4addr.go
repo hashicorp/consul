@@ -499,6 +499,7 @@ func ipv4AddrInit() {
 		"size", // Same position as in IPv6 for output consistency
 		"broadcast",
 		"uint32",
+		"aws_dns",
 	}
 
 	ipv4AddrAttrMap = map[AttrName]func(ipv4 IPv4Addr) string{
@@ -510,6 +511,15 @@ func ipv4AddrInit() {
 		},
 		"uint32": func(ipv4 IPv4Addr) string {
 			return fmt.Sprintf("%d", uint32(ipv4.Address))
+		},
+		"aws_dns": func(ipv4 IPv4Addr) string {
+			addr := ipv4.NetworkAddress()
+			if ipv4.Maskbits() < 31 {
+				addr += 2
+			}
+			x := make(net.IP, IPv4len)
+			binary.BigEndian.PutUint32(x, uint32(addr))
+			return x.String()
 		},
 	}
 }
