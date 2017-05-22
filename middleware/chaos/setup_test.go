@@ -1,7 +1,6 @@
 package chaos
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -18,18 +17,10 @@ func TestSetupChaos(t *testing.T) {
 	}{
 		// positive
 		{
-			`chaos`, false, defaultVersion, "", "",
-		},
-		{
 			`chaos v2`, false, "v2", "", "",
 		},
 		{
 			`chaos v3 "Miek Gieben"`, false, "v3", "Miek Gieben", "",
-		},
-		{
-			fmt.Sprintf(`chaos {
-				%s
-			}`, defaultVersion), false, defaultVersion, "", "",
 		},
 	}
 

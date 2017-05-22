@@ -50,15 +50,15 @@ func init() {
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
+
+	caddy.AppName = coreName
+	caddy.AppVersion = coreVersion
 }
 
 // Run is CoreDNS's main() function.
 func Run() {
 
 	flag.Parse()
-
-	caddy.AppName = coreName
-	caddy.AppVersion = coreVersion
 
 	// Set up process log before anything bad happens
 	switch logfile {
