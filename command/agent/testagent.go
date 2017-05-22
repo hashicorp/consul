@@ -130,7 +130,8 @@ func (a *TestAgent) Start() *TestAgent {
 	a.Agent = agent
 	a.Agent.LogOutput = a.LogOutput
 	a.Agent.LogWriter = a.LogWriter
-	retry.RunWith(retry.ThreeTimes(), &panicFailer{}, func(r *retry.R) {
+	tenTimes := &retry.Counter{Count: 10, Wait: 100 * time.Millisecond}
+	retry.RunWith(tenTimes, &panicFailer{}, func(r *retry.R) {
 		err := a.Agent.Start()
 		if err == nil {
 			return
