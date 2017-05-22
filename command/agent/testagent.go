@@ -140,6 +140,7 @@ func (a *TestAgent) Start() *TestAgent {
 
 		// retry with different ports on port conflict
 		if strings.Contains(err.Error(), "bind: address already in use") {
+			a.Agent.Shutdown()
 			pickRandomPorts(a.Config)
 			r.Fatal("port conflict")
 		}
