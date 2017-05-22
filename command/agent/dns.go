@@ -112,7 +112,7 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	wg.Add(2)
 
 	// Async start the DNS Servers, handle a potential error
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
@@ -120,11 +120,10 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		}
 	}()
 
-	errChTCP := make(chan error, 1)
 	go func() {
 		if err := serverTCP.ListenAndServe(); err != nil {
 			srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
-			errChTCP <- fmt.Errorf("dns tcp setup failed: %v", err)
+			errCh <- fmt.Errorf("dns tcp setup failed: %v", err)
 		}
 	}()
 
@@ -137,14 +136,16 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 
 	// Wait for either the check, listen error, or timeout
 	select {
-	case e := <-errCh:
-		return srv, e
-	case e := <-errChTCP:
-		return srv, e
 	case <-startCh:
 		return srv, nil
+	case e := <-errCh:
+		server.Shutdown()
+		serverTCP.Shutdown()
+		return nil, e
 	case <-time.After(time.Second):
-		return srv, fmt.Errorf("timeout setting up DNS server")
+		server.Shutdown()
+		serverTCP.Shutdown()
+		return nil, fmt.Errorf("timeout setting up DNS server")
 	}
 }
 
