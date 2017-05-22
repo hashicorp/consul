@@ -224,7 +224,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func pickRandomPorts(c *Config) {
-	port := 1030 + int(rand.Int31n(64400))
+	port := 1030 + int(rand.Int31n(6440))*10
 	c.Ports.DNS = port + 1
 	c.Ports.HTTP = port + 2
 	c.Ports.HTTPS = port + 3
