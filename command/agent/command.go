@@ -146,6 +146,10 @@ func (c *Command) readConfig() *Config {
 		"Google Compute Engine region or zone to discover servers in (regex pattern).")
 	f.StringVar(&cmdConfig.RetryJoinGCE.TagValue, "retry-join-gce-tag-value", "",
 		"Google Compute Engine tag value to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinAzure.TagName, "retry-join-azure-tag-name", "",
+		"Azure tag name to filter on for server discovery.")
+	f.StringVar(&cmdConfig.RetryJoinAzure.TagValue, "retry-join-azure-tag-value", "",
+		"Azure tag value to filter on for server discovery.")
 	f.StringVar(&cmdConfig.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
 		"Path to credentials JSON file to use with Google Compute Engine.")
 	f.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
