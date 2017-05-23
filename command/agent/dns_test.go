@@ -2728,20 +2728,30 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 		{"30", 30, 8, 8, 6, 8, 8, 5, 8, -5, -5},
 	}
 	for _, test := range tests {
-		ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
-		if !ok {
-			t.Errorf("Expected service A lookup %s to pass: %v", test.name, err)
-		}
+		test := test // capture loop var
+		t.Run("A lookup", func(t *testing.T) {
+			t.Parallel()
+			ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
+			if !ok {
+				t.Errorf("Expected service A lookup %s to pass: %v", test.name, err)
+			}
+		})
 
-		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
-		if !ok {
-			t.Errorf("Expected service AAAA lookup %s to pass: %v", test.name, err)
-		}
+		t.Run("AAAA lookup", func(t *testing.T) {
+			t.Parallel()
+			ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
+			if !ok {
+				t.Errorf("Expected service AAAA lookup %s to pass: %v", test.name, err)
+			}
+		})
 
-		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
-		if !ok {
-			t.Errorf("Expected service ANY lookup %s to pass: %v", test.name, err)
-		}
+		t.Run("ANY lookup", func(t *testing.T) {
+			t.Parallel()
+			ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
+			if !ok {
+				t.Errorf("Expected service ANY lookup %s to pass: %v", test.name, err)
+			}
+		})
 	}
 }
 
