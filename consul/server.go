@@ -210,9 +210,13 @@ type endpoints struct {
 	Txn           *Txn
 }
 
+func NewServer(config *Config) (*Server, error) {
+	return NewServerLogger(config, nil)
+}
+
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServer(config *Config) (*Server, error) {
+func NewServerLogger(config *Config, l *log.Logger) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -232,7 +236,10 @@ func NewServer(config *Config) (*Server, error) {
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
-	logger := log.New(config.LogOutput, "", log.LstdFlags)
+	logger := l
+	if logger == nil {
+		logger = log.New(config.LogOutput, "", log.LstdFlags)
+	}
 
 	// Check if TLS is enabled
 	if config.CAFile != "" || config.CAPath != "" {
@@ -403,6 +410,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
+	conf.Logger = s.logger
 	conf.EventCh = ch
 	if !s.config.DevMode {
 		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
@@ -454,6 +462,7 @@ func (s *Server) setupRaft() error {
 
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
+	s.config.RaftConfig.Logger = s.logger
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network
 	// address of the transport.

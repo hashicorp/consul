@@ -77,6 +77,10 @@ type clientServer interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
+	// id is an optional log prefix.
+	id string
+
+	// config is the agent configuration.
 	config *Config
 
 	// Used for writing our logs
@@ -207,10 +211,13 @@ func NewAgent(c *Config) (*Agent, error) {
 func (a *Agent) Start() error {
 	c := a.config
 
-	if a.LogOutput == nil {
-		a.LogOutput = os.Stderr
+	logOutput := a.LogOutput
+	if a.logger == nil {
+		if logOutput == nil {
+			logOutput = os.Stderr
+		}
+		a.logger = log.New(logOutput, a.id, log.LstdFlags)
 	}
-	a.logger = log.New(a.LogOutput, "", log.LstdFlags)
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
@@ -280,7 +287,7 @@ func (a *Agent) Start() error {
 
 	// start dns server
 	if c.Ports.DNS > 0 {
-		srv, err := NewDNSServer(a, &c.DNSConfig, a.LogOutput, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
+		srv, err := NewDNSServer(a, &c.DNSConfig, logOutput, a.logger, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
 		if err != nil {
 			return fmt.Errorf("error starting DNS server: %s", err)
 		}
@@ -765,7 +772,7 @@ func (a *Agent) makeServer() (*consul.Server, error) {
 	if err := a.setupKeyrings(config); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
-	server, err := consul.NewServer(config)
+	server, err := consul.NewServerLogger(config, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start Consul server: %v", err)
 	}
@@ -1615,7 +1622,7 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 			return err
 		}
 	}
-	log.Printf("[DEBUG] agent: removed check %q", checkID)
+	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
 }
 

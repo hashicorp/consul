@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -53,7 +54,13 @@ func (d *DNSServer) Shutdown() {
 }
 
 // NewDNSServer starts a new DNS server to provide an agent interface
-func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
+func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, logger *log.Logger, domain string, bind string, recursors []string) (*DNSServer, error) {
+	if logger == nil {
+		if logOutput == nil {
+			logOutput = os.Stderr
+		}
+		logger = log.New(logOutput, "", log.LstdFlags)
+	}
 	// Make sure domain is FQDN, make it case insensitive for ServeMux
 	domain = dns.Fqdn(strings.ToLower(domain))
 
@@ -86,7 +93,7 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		dnsServerTCP: serverTCP,
 		domain:       domain,
 		recursors:    recursors,
-		logger:       log.New(logOutput, "", log.LstdFlags),
+		logger:       logger,
 	}
 
 	// Register mux handler, for reverse lookup
