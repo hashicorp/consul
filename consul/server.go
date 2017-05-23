@@ -277,7 +277,7 @@ func NewServer(config *Config) (*Server, error) {
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
 		tombstoneGC:           gc,
-		shutdownCh:            make(chan struct{}),
+		shutdownCh:            shutdownCh,
 	}
 
 	// Set up the autopilot policy
