@@ -289,41 +289,56 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Do an update in a little while
-	start := time.Now()
+	// t.Fatal must be called from the main go routine
+	// of the test. Because of this we cannot call
+	// t.Fatal from within the go routines and use
+	// an error channel instead.
+	errch := make(chan error, 2)
 	go func() {
-		time.Sleep(50 * time.Millisecond)
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
+		start := time.Now()
+
+		// register a service after the blocking call
+		// in order to unblock it.
+		time.AfterFunc(100*time.Millisecond, func() {
+			args := &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+			}
+			var out struct{}
+			errch <- a.RPC("Catalog.Register", args, &out)
+		})
+
+		// now block
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=3s&index=%d", out.Index+1), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogNodes(resp, req)
+		if err != nil {
+			errch <- err
 		}
-		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+
+		// Should block for a while
+		if d := time.Now().Sub(start); d < 50*time.Millisecond {
+			errch <- fmt.Errorf("too fast: %v", d)
 		}
+
+		if idx := getIndex(t, resp); idx <= out.Index {
+			errch <- fmt.Errorf("bad: %v", idx)
+		}
+
+		nodes := obj.(structs.Nodes)
+		if len(nodes) != 2 {
+			errch <- fmt.Errorf("bad: %v", obj)
+		}
+		errch <- nil
 	}()
 
-	// Do a blocking read
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=60s&index=%d", out.Index), nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.CatalogNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	// wait for both go routines to return
+	if err := <-errch; err != nil {
+		t.Fatal(err)
 	}
-
-	// Should block for a while
-	if time.Now().Sub(start) < 50*time.Millisecond {
-		t.Fatalf("too fast")
-	}
-
-	if idx := getIndex(t, resp); idx <= out.Index {
-		t.Fatalf("bad: %v", idx)
-	}
-
-	nodes := obj.(structs.Nodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
+	if err := <-errch; err != nil {
+		t.Fatal(err)
 	}
 }
 
