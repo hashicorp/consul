@@ -156,7 +156,13 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		if a.Config.Bootstrap && a.Config.Server {
 			// Ensure we have a leader and a node registration.
-			args := &structs.DCSpecificRequest{Datacenter: a.Config.Datacenter}
+			args := &structs.DCSpecificRequest{
+				Datacenter: a.Config.Datacenter,
+				QueryOptions: structs.QueryOptions{
+					MinQueryIndex: out.Index,
+					MaxQueryTime:  25 * time.Millisecond,
+				},
+			}
 			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
 				r.Fatalf("Catalog.ListNodes failed: %v", err)
 			}
