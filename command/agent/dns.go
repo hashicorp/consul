@@ -114,14 +114,14 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	// Async start the DNS Servers, handle a potential error
 	errCh := make(chan error, 2)
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil && !strings.Contains(err.Error(), "accept") {
 			srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
 			errCh <- fmt.Errorf("dns udp setup failed: %v", err)
 		}
 	}()
 
 	go func() {
-		if err := serverTCP.ListenAndServe(); err != nil {
+		if err := serverTCP.ListenAndServe(); err != nil && !strings.Contains(err.Error(), "accept") {
 			srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
 			errCh <- fmt.Errorf("dns tcp setup failed: %v", err)
 		}
