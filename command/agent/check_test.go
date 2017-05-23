@@ -76,7 +76,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 
 	// Should have at least 2 updates
 	if notif.Updates("foo") < 2 {
