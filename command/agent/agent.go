@@ -1015,7 +1015,11 @@ func (a *Agent) Shutdown() error {
 	var err error
 	if a.delegate != nil {
 		err = a.delegate.Shutdown()
-		a.logger.Print("[DEBUG] agent: delegate down")
+		if _, ok := a.delegate.(*consul.Server); ok {
+			a.logger.Print("[INFO] agent: consul server down")
+		} else {
+			a.logger.Print("[INFO] agent: consul client down")
+		}
 	}
 
 	pidErr := a.deletePid()
