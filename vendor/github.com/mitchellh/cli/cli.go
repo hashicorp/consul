@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -24,7 +25,7 @@ import (
 //
 //   * We use longest prefix matching to find a matching subcommand. This
 //     means if you register "foo bar" and the user executes "cli foo qux",
-//     the "foo" commmand will be executed with the arg "qux". It is up to
+//     the "foo" command will be executed with the arg "qux". It is up to
 //     you to handle these args. One option is to just return the special
 //     help return code `RunResultHelp` to display help and exit.
 //
@@ -119,7 +120,13 @@ func (c *CLI) Run() (int, error) {
 	// Just show the version and exit if instructed.
 	if c.IsVersion() && c.Version != "" {
 		c.HelpWriter.Write([]byte(c.Version + "\n"))
-		return 1, nil
+		return 0, nil
+	}
+
+	// Just print the help when only '-h' or '--help' is passed.
+	if c.IsHelp() && c.Subcommand() == "" {
+		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
+		return 0, nil
 	}
 
 	// Attempt to get the factory function for creating the command
@@ -132,13 +139,13 @@ func (c *CLI) Run() (int, error) {
 
 	command, err := raw.(CommandFactory)()
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 
 	// If we've been instructed to just print the help, then print it
 	if c.IsHelp() {
 		c.commandHelp(command)
-		return 1, nil
+		return 0, nil
 	}
 
 	// If there is an invalid flag, then error
@@ -249,7 +256,7 @@ func (c *CLI) init() {
 		c.commandTree.Walk(walkFn)
 
 		// Insert any that we're missing
-		for k, _ := range toInsert {
+		for k := range toInsert {
 			var f CommandFactory = func() (Command, error) {
 				return &MockCommand{
 					HelpText:  "This command is accessed by using one of the subcommands below.",
@@ -387,14 +394,20 @@ func (c *CLI) helpCommands(prefix string) map[string]CommandFactory {
 
 func (c *CLI) processArgs() {
 	for i, arg := range c.Args {
+		if arg == "--" {
+			break
+		}
+
+		// Check for help flags.
+		if arg == "-h" || arg == "-help" || arg == "--help" {
+			c.isHelp = true
+			continue
+		}
+
 		if c.subcommand == "" {
-			// Check for version and help flags if not in a subcommand
+			// Check for version flags if not in a subcommand.
 			if arg == "-v" || arg == "-version" || arg == "--version" {
 				c.isVersion = true
-				continue
-			}
-			if arg == "-h" || arg == "-help" || arg == "--help" {
-				c.isHelp = true
 				continue
 			}
 
@@ -405,16 +418,24 @@ func (c *CLI) processArgs() {
 		}
 
 		// If we didn't find a subcommand yet and this is the first non-flag
-		// argument, then this is our subcommand. j
+		// argument, then this is our subcommand.
 		if c.subcommand == "" && arg != "" && arg[0] != '-' {
 			c.subcommand = arg
 			if c.commandNested {
 				// Nested CLI, the subcommand is actually the entire
 				// arg list up to a flag that is still a valid subcommand.
-				k, _, ok := c.commandTree.LongestPrefix(strings.Join(c.Args[i:], " "))
+				searchKey := strings.Join(c.Args[i:], " ")
+				k, _, ok := c.commandTree.LongestPrefix(searchKey)
 				if ok {
-					c.subcommand = k
-					i += strings.Count(k, " ")
+					// k could be a prefix that doesn't contain the full
+					// command such as "foo" instead of "foobar", so we
+					// need to verify that we have an entire key. To do that,
+					// we look for an ending in a space or an end of string.
+					reVerify := regexp.MustCompile(regexp.QuoteMeta(k) + `( |$)`)
+					if reVerify.MatchString(searchKey) {
+						c.subcommand = k
+						i += strings.Count(k, " ")
+					}
 				}
 			}
 
@@ -439,7 +460,7 @@ const defaultHelpTemplate = `
 {{.Help}}{{if gt (len .Subcommands) 0}}
 
 Subcommands:
-{{ range $value := .Subcommands }}
+{{- range $value := .Subcommands }}
     {{ $value.NameAligned }}    {{ $value.Synopsis }}{{ end }}
-{{ end }}
+{{- end }}
 `
