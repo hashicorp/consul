@@ -32,8 +32,9 @@ const (
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
 func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
+	randomPort := TenPorts()
 	cfg := TestConfig()
-	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, cfg.Ports.DNS)
+	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, randomPort)
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
 		ans := &dns.Msg{Answer: answer[:]}

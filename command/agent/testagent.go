@@ -242,6 +242,12 @@ func UniqueID() string {
 	return id
 }
 
+// TenPorts returns the first port number of a block of
+// ten random ports.
+func TenPorts() int {
+	return 1030 + int(rand.Int31n(6440))*10
+}
+
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significanltly with little overhead. Furthermore, asking
@@ -251,7 +257,7 @@ func UniqueID() string {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func pickRandomPorts(c *Config) {
-	port := 1030 + int(rand.Int31n(6440))*10
+	port := TenPorts()
 	c.Ports.DNS = port + 1
 	c.Ports.HTTP = port + 2
 	// when we enable HTTPS then we need to fix finding the
@@ -260,7 +266,6 @@ func pickRandomPorts(c *Config) {
 	c.Ports.SerfLan = port + 4
 	c.Ports.SerfWan = port + 5
 	c.Ports.Server = port + 6
-	//c.ConsulConfig.Memberlist.
 }
 
 // BoolTrue and BoolFalse exist to create a *bool value.
