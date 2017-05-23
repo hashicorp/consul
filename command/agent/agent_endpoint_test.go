@@ -234,6 +234,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_Reload(t *testing.T) {
+	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	t.Parallel()
 	cfg := TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
