@@ -152,7 +152,7 @@ func (a *TestAgent) Start() *TestAgent {
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {
 		if len(a.httpServers) == 0 {
-			r.Fatal("waiting for server")
+			r.Fatal(a.Name, "waiting for server")
 		}
 		if a.Config.Bootstrap && a.Config.Server {
 			// Ensure we have a leader and a node registration.
@@ -164,20 +164,20 @@ func (a *TestAgent) Start() *TestAgent {
 				},
 			}
 			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
-				r.Fatalf("Catalog.ListNodes failed: %v", err)
+				r.Fatal(a.Name, "Catalog.ListNodes failed:", err)
 			}
 			if !out.QueryMeta.KnownLeader {
-				r.Fatalf("No leader")
+				r.Fatal(a.Name, "No leader")
 			}
 			if out.Index == 0 {
-				r.Fatalf("Consul index is 0")
+				r.Fatal(a.Name, "Consul index is 0")
 			}
 		} else {
 			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
 			_, err := a.httpServers[0].AgentSelf(resp, req)
 			if err != nil || resp.Code != 200 {
-				r.Fatal("failed OK respose", err)
+				r.Fatal(a.Name, "failed OK respose", err)
 			}
 		}
 	})
