@@ -63,6 +63,10 @@ type TestAgent struct {
 	// Key is the optional encryption key for the LAN and WAN keyring.
 	Key string
 
+	// NoInitialSync determines whether an anti-entropy run
+	// will be scheduled after the agent started.
+	NoInitialSync bool
+
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
 	dns *DNSServer
@@ -159,7 +163,9 @@ func (a *TestAgent) Start() *TestAgent {
 			fmt.Println(id, a.Name, "retrying")
 		}
 	}
-	a.Agent.StartSync()
+	if !a.NoInitialSync {
+		a.Agent.StartSync()
+	}
 
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {

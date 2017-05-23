@@ -13,7 +13,8 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Register info
@@ -237,7 +238,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -293,6 +295,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	var services structs.IndexedNodeServices
 
 	retry.Run(t, func(r *retry.R) {
+		//	runtime.Gosched()
 		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -468,7 +471,8 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
 	cfg.ACLEnforceVersion8 = &BoolTrue
-	a := NewTestAgent(t.Name(), cfg)
+	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Create the ACL
@@ -622,7 +626,8 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Register info
@@ -838,7 +843,8 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
 	cfg.ACLEnforceVersion8 = &BoolTrue
-	a := NewTestAgent(t.Name(), cfg)
+	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Create the ACL
@@ -1071,7 +1077,8 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	cfg.CheckUpdateInterval = 500 * time.Millisecond
-	a := NewTestAgent(t.Name(), cfg)
+	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Create a check
@@ -1245,7 +1252,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	cfg := TestConfig()
 	cfg.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	cfg.Meta["somekey"] = "somevalue"
-	a := NewTestAgent(t.Name(), cfg)
+	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a.Start()
 	defer a.Shutdown()
 
 	// Register info
