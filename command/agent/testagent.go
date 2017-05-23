@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -97,6 +99,9 @@ func (a *TestAgent) Start() *TestAgent {
 	if a.Config == nil {
 		a.Config = TestConfig()
 	}
+	if a.Config.DNSRecursor != "" {
+		a.Config.DNSRecursors = append(a.Config.DNSRecursors, a.Config.DNSRecursor)
+	}
 	if a.Config.DataDir == "" {
 		name := "agent"
 		if a.Name != "" {
@@ -110,46 +115,52 @@ func (a *TestAgent) Start() *TestAgent {
 		a.DataDir = d
 		a.Config.DataDir = d
 	}
-	if a.Config.DNSRecursor != "" {
-		a.Config.DNSRecursors = append(a.Config.DNSRecursors, a.Config.DNSRecursor)
-	}
-	if a.Key != "" {
-		writeKey := func(key, filename string) {
-			path := filepath.Join(a.Config.DataDir, filename)
-			if err := initKeyring(path, key); err != nil {
-				panic(fmt.Sprintf("Error creating keyring %s: %s", path, err))
+	id := UniqueID()
+	for i := 10; i >= 0; i-- {
+		pickRandomPorts(a.Config)
+
+		// ports are baked into the data files so we need to clear out the
+		// data dir on every retry
+		os.RemoveAll(a.Config.DataDir)
+		if err := os.MkdirAll(a.Config.DataDir, 0755); err != nil {
+			panic(fmt.Sprintf("Error creating dir %s: %s", a.Config.DataDir, err))
+		}
+
+		// write the keyring
+		if a.Key != "" {
+			writeKey := func(key, filename string) {
+				path := filepath.Join(a.Config.DataDir, filename)
+				if err := initKeyring(path, key); err != nil {
+					panic(fmt.Sprintf("Error creating keyring %s: %s", path, err))
+				}
 			}
+			writeKey(a.Key, serfLANKeyring)
+			writeKey(a.Key, serfWANKeyring)
 		}
-		writeKey(a.Key, serfLANKeyring)
-		writeKey(a.Key, serfWANKeyring)
+
+		agent, err := NewAgent(a.Config)
+		if err != nil {
+			panic(fmt.Sprintf("Error creating agent: %s", err))
+		}
+
+		agent.id = id
+		agent.LogOutput = a.LogOutput
+		agent.LogWriter = a.LogWriter
+
+		// we need the err var in the next exit condition
+		if err := agent.Start(); err == nil {
+			a.Agent = agent
+			break
+		} else if i == 0 {
+			fmt.Println(id, a.Name, "Error starting agent:", err)
+			runtime.Goexit()
+		} else {
+			agent.Shutdown()
+			fmt.Println(id, a.Name, "retrying")
+		}
 	}
-
-	agent, err := NewAgent(a.Config)
-	if err != nil {
-		panic(fmt.Sprintf("Error creating agent: %s", err))
-	}
-	a.Agent = agent
-	a.Agent.LogOutput = a.LogOutput
-	a.Agent.LogWriter = a.LogWriter
-	tenTimes := &retry.Counter{Count: 10, Wait: 100 * time.Millisecond}
-	retry.RunWith(tenTimes, &panicFailer{}, func(r *retry.R) {
-		err := a.Agent.Start()
-		if err == nil {
-			return
-		}
-
-		// retry with different ports on port conflict
-		if strings.Contains(err.Error(), "bind: address already in use") {
-			a.Agent.Shutdown()
-			pickRandomPorts(a.Config)
-			r.Fatal("port conflict")
-		}
-
-		// do not retry on other failures
-		panic(fmt.Sprintf("Error starting agent: %s", err))
-	})
-
 	a.Agent.StartSync()
+
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {
 		if len(a.httpServers) == 0 {
@@ -223,6 +234,14 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
+func UniqueID() string {
+	id := strconv.FormatUint(rand.Uint64(), 36)
+	for len(id) < 16 {
+		id += " "
+	}
+	return id
+}
+
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significanltly with little overhead. Furthermore, asking
@@ -241,6 +260,7 @@ func pickRandomPorts(c *Config) {
 	c.Ports.SerfLan = port + 4
 	c.Ports.SerfWan = port + 5
 	c.Ports.Server = port + 6
+	//c.ConsulConfig.Memberlist.
 }
 
 // BoolTrue and BoolFalse exist to create a *bool value.
@@ -256,7 +276,6 @@ func TestConfig() *Config {
 	}
 
 	cfg := DefaultConfig()
-	pickRandomPorts(cfg)
 
 	cfg.Version = version.Version
 	cfg.VersionPrerelease = "c.d"
