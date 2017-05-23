@@ -149,6 +149,7 @@ func (a *TestAgent) Start() *TestAgent {
 		panic(fmt.Sprintf("Error starting agent: %s", err))
 	})
 
+	a.Agent.StartSync()
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {
 		if len(a.httpServers) == 0 {
