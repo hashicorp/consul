@@ -44,6 +44,17 @@ func externalIP() (string, error) {
 	return "", fmt.Errorf("Unable to find a non-loopback interface")
 }
 
+func TestAgent_MultiStartStop(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		t.Run("", func(t *testing.T) {
+					t.Parallel()
+			a := NewTestAgent(t.Name(), nil)
+			time.Sleep(250 * time.Millisecond)
+			a.Shutdown()
+		})
+	}
+}
+
 func TestAgent_StartStop(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
