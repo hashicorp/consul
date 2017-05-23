@@ -2,6 +2,8 @@ TOOLS= golang.org/x/tools/cover
 GOCOVER_TMPFILE?=	$(GOCOVER_FILE).tmp
 GOCOVER_FILE?=	.cover.out
 GOCOVERHTML?=	coverage.html
+FIND=`/usr/bin/which 2> /dev/null gfind find | /usr/bin/grep -v ^no | /usr/bin/head -n 1`
+XARGS=`/usr/bin/which 2> /dev/null gxargs xargs | /usr/bin/grep -v ^no | /usr/bin/head -n 1`
 
 test:: $(GOCOVER_FILE)
 	@$(MAKE) -C cmd/sockaddr test
@@ -9,10 +11,10 @@ test:: $(GOCOVER_FILE)
 cover:: coverage_report
 
 $(GOCOVER_FILE)::
-	@find . -type d ! -path '*cmd*' ! -path '*.git*' -print0 | xargs -0 -I % sh -ec "cd % && rm -f $(GOCOVER_TMPFILE) && go test -coverprofile=$(GOCOVER_TMPFILE)"
+	@${FIND} . -type d ! -path '*cmd*' ! -path '*.git*' -print0 | ${XARGS} -0 -I % sh -ec "cd % && rm -f $(GOCOVER_TMPFILE) && go test -coverprofile=$(GOCOVER_TMPFILE)"
 
 	@echo 'mode: set' > $(GOCOVER_FILE)
-	@find . -type f ! -path '*cmd*' ! -path '*.git*' -name "$(GOCOVER_TMPFILE)" -print0 | xargs -0 -n1 cat $(GOCOVER_TMPFILE) | grep -v '^mode: ' >> ${PWD}/$(GOCOVER_FILE)
+	@${FIND} . -type f ! -path '*cmd*' ! -path '*.git*' -name "$(GOCOVER_TMPFILE)" -print0 | ${XARGS} -0 -n1 cat $(GOCOVER_TMPFILE) | grep -v '^mode: ' >> ${PWD}/$(GOCOVER_FILE)
 
 $(GOCOVERHTML): $(GOCOVER_FILE)
 	go tool cover -html=$(GOCOVER_FILE) -o $(GOCOVERHTML)
@@ -41,15 +43,15 @@ clean::
 
 dev::
 	@go build
-	@make -B -C cmd/sockaddr sockaddr
+	@$(MAKE) -B -C cmd/sockaddr sockaddr
 
 install::
 	@go install
-	@make -C cmd/sockaddr install
+	@$(MAKE) -C cmd/sockaddr install
 
 doc::
-	echo Visit: http://127.0.0.1:6060/pkg/github.com/hashicorp/go-sockaddr/
-	godoc -http=:6060 -goroot $GOROOT
+	@echo Visit: http://127.0.0.1:6161/pkg/github.com/hashicorp/go-sockaddr/
+	godoc -http=:6161 -goroot $GOROOT
 
 world::
 	@set -e; \
@@ -60,4 +62,4 @@ world::
 		done; \
 	done
 
-	make -C cmd/sockaddr world
+	$(MAKE) -C cmd/sockaddr world
