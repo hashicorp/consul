@@ -815,7 +815,7 @@ func (c *Config) HTTPAddrs() ([]ProtoAddr, error) {
 		}
 		addrs = append(addrs, ProtoAddr{"http", a.Network(), a.String()})
 	}
-	if c.Ports.HTTPS > 0 {
+	if c.Ports.HTTPS > 0 && c.CertFile != "" && c.KeyFile != "" {
 		a, err := c.ClientListener(c.Addresses.HTTPS, c.Ports.HTTPS)
 		if err != nil {
 			return nil, err
