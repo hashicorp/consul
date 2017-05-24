@@ -29,7 +29,9 @@ For users on AWS the [-retry-join-ec2 configuration options](/docs/agent/options
 
 For users on GCE the [-retry-join-gce configuration options](/docs/agent/options.html#_retry_join_gce_tag_value) allow bootstrapping by automatically discovering instances on Google Compute Engine by tag value at startup.
 
-For users not on AWS or GCE the native [-join and retry-join functionality](/docs/agent/options.html#_join) can be used.
+For users on Azure the [-retry-join-azure configuration options](/docs/agent/options.html#_retry_join_azure_tag_name) allow bootstrapping by automatically discovering Azure instances with a given tag name/value at startup.
+
+For users not on AWS, GCE or Azure the native [-join and retry-join functionality](/docs/agent/options.html#_join) can be used.
 
 Other features of Consul Enterprise, such as the UI and Alerts also have suitable open source alternatives.
 

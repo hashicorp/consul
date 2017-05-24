@@ -49,6 +49,7 @@ To trigger leader election, we must join these machines together and create a cl
 - Manually specified list of machines with [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
 - Automatic AWS EC2 instance joining with the [-retry-join-ec2-*](https://www.consul.io/docs/agent/options.html#_retry_join_ec2_tag_key) options
 - Automatic GCE instance joining with the [-retry-join-gce-*](https://www.consul.io/docs/agent/options.html#_retry_join_gce_tag_value) options
+- Automatic Azure instance joining with the [-retry-join-azure-*](https://www.consul.io/docs/agent/options.html#_retry_join_azure_tag_name) options
 
 Choose the method which best suits your environment and specific use case.
 
