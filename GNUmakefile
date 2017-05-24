@@ -48,7 +48,10 @@ cov:
 
 test: dev
 	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
-	( set -o pipefail ; go test -tags "$(GOTAGS)" -v ./... 2>&1 | tee test.log )
+	go test -tags "$(GOTAGS)" -v $$(go list ./... | egrep -v '(consul/consul|vendor)') > test.log 2>&1 || true
+	go test -tags "$(GOTAGS)" -v github.com/hashicorp/consul/consul >> test.log 2>&1 || true
+	@if [ "$$TRAVIS" == "true" ] ; then cat test.log ; fi
+	@if grep -q 'FAIL:' test.log ; then grep 'FAIL:' test.log ; exit 1 ; else echo 'PASS' ; fi
 
 test-race: dev
 	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
