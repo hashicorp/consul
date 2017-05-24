@@ -33,6 +33,13 @@
 			"revisionTime": "2017-04-20T22:41:48Z"
 		},
 		{
+			"checksumSHA1": "QapQRLZlewQkaHFgQ3ktePbyh6k=",
+			"path": "github.com/Azure/go-autorest/autorest/date",
+			"revision": "c2571aa487482a987546c123fef9334582786335",
+			"revisionTime": "2017-04-20T22:41:48Z"
+		},
+		{
+			"checksumSHA1": "Ev8qCsbFjDlMlX0N2tYAhYQFpUc=",
 			"checksumSHA1": "JhyS/zIicgtrSasHSZ6WtXGWJVk=",
 			"path": "github.com/DataDog/datadog-go/statsd",
 			"revision": "cc2f4770f4d61871e19bfee967bc767fe730b0d9",
