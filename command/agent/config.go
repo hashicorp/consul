@@ -165,6 +165,19 @@ type RetryJoinGCE struct {
 	CredentialsFile string `mapstructure:"credentials_file"`
 }
 
+// RetryJoinAzure is used to configure discovery of instances via AzureRM API
+type RetryJoinAzure struct {
+	// The tag name and value to use when filtering instances
+	TagName  string `mapstructure:"tag_name"`
+	TagValue string `mapstructure:"tag_value"`
+
+	// The Azure credentials to use for making requests to AzureRM
+	SubscriptionID  string `mapstructure:"subscription_id" json:"-"`
+	TenantID        string `mapstructure:"tenant_id" json:"-"`
+	ClientID        string `mapstructure:"client_id" json:"-"`
+	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -536,6 +549,8 @@ type Config struct {
 
 	// The config struct for the GCE tag server discovery feature.
 	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
+
+	RetryJoinAzure RetryJoinAzure `mapstructure:"retry_join_azure"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -1727,6 +1742,24 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryJoinGCE.CredentialsFile != "" {
 		result.RetryJoinGCE.CredentialsFile = b.RetryJoinGCE.CredentialsFile
+	}
+	if b.RetryJoinAzure.TagName != "" {
+		result.RetryJoinAzure.TagName = b.RetryJoinAzure.TagName
+	}
+	if b.RetryJoinAzure.TagValue != "" {
+		result.RetryJoinAzure.TagValue = b.RetryJoinAzure.TagValue
+	}
+	if b.RetryJoinAzure.SubscriptionID != "" {
+		result.RetryJoinAzure.SubscriptionID = b.RetryJoinAzure.SubscriptionID
+	}
+	if b.RetryJoinAzure.TenantID != "" {
+		result.RetryJoinAzure.TenantID = b.RetryJoinAzure.TenantID
+	}
+	if b.RetryJoinAzure.ClientID != "" {
+		result.RetryJoinAzure.ClientID = b.RetryJoinAzure.ClientID
+	}
+	if b.RetryJoinAzure.SecretAccessKey != "" {
+		result.RetryJoinAzure.SecretAccessKey = b.RetryJoinAzure.SecretAccessKey
 	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan

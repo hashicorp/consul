@@ -1124,6 +1124,47 @@ func TestRetryJoinGCE(t *testing.T) {
 	}
 }
 
+func TestRetryJoinAzure(t *testing.T) {
+	input := `{
+	"retry_join_azure": {
+		"tag_name": "type",
+		"tag_value": "Foundation",
+		"subscription_id": "klm-no",
+		"tenant_id": "fgh-ij",
+		"client_id": "abc-de",
+		"secret_access_key": "qwerty"
+	}}`
+
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryJoinAzure.TagName != "type" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.RetryJoinAzure.TagValue != "Foundation" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.RetryJoinAzure.SubscriptionID != "klm-no" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.RetryJoinAzure.TenantID != "fgh-ij" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.RetryJoinAzure.ClientID != "abc-de" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.RetryJoinAzure.SecretAccessKey != "qwerty" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Performance(t *testing.T) {
 	input := `{"performance": { "raft_multiplier": 3 }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
