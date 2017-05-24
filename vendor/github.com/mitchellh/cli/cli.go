@@ -398,16 +398,16 @@ func (c *CLI) processArgs() {
 			break
 		}
 
-		// Check for help flags.
-		if arg == "-h" || arg == "-help" || arg == "--help" {
-			c.isHelp = true
-			continue
-		}
-
 		if c.subcommand == "" {
 			// Check for version flags if not in a subcommand.
 			if arg == "-v" || arg == "-version" || arg == "--version" {
 				c.isVersion = true
+				continue
+			}
+
+			// Check for help flags.
+			if arg == "-h" || arg == "-help" || arg == "--help" {
+				c.isHelp = true
 				continue
 			}
 
