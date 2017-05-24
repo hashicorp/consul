@@ -27,6 +27,12 @@
 			"revisionTime": "2017-01-06T22:37:36Z"
 		},
 		{
+			"checksumSHA1": "ZT+e2iMSXAsKCuJ3BNYpOzDaSmk=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/network",
+			"revision": "8dd1f3ff407c300cff0a4bfedd969111ca5a7903",
+			"revisionTime": "2017-04-21T22:08:59Z"
+		},
+		{
 			"checksumSHA1": "U2+FgaMOPEFg/yHLD5RbiXI1cq4=",
 			"path": "github.com/Azure/go-autorest/autorest",
 			"revision": "c2571aa487482a987546c123fef9334582786335",
