@@ -430,15 +430,18 @@ func NewClient(config *Config) (*Client, error) {
 // NewHttpClient returns an http client configured with the given Transport and TLS
 // config.
 func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, error) {
-	tlsClientConfig, err := SetupTLSConfig(&tlsConf)
-
-	if err != nil {
-		return nil, err
-	}
-
-	transport.TLSClientConfig = tlsClientConfig
 	client := &http.Client{
 		Transport: transport,
+	}
+
+	if transport.TLSClientConfig == nil {
+		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
+
+		if err != nil {
+			return nil, err
+		}
+
+		transport.TLSClientConfig = tlsClientConfig
 	}
 
 	return client, nil
