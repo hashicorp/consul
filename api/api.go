@@ -369,10 +369,6 @@ func NewClient(config *Config) (*Client, error) {
 		config.Transport = defConfig.Transport
 	}
 
-	if config.HttpClient == nil {
-		config.HttpClient = defConfig.HttpClient
-	}
-
 	if config.TLSConfig.Address == "" {
 		config.TLSConfig.Address = defConfig.TLSConfig.Address
 	}
