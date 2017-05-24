@@ -33,6 +33,12 @@
 			"revisionTime": "2017-04-20T22:41:48Z"
 		},
 		{
+			"checksumSHA1": "ghrnc4vZv6q8zzeakZnrS8CGFhE=",
+			"path": "github.com/Azure/go-autorest/autorest/azure",
+			"revision": "c2571aa487482a987546c123fef9334582786335",
+			"revisionTime": "2017-04-20T22:41:48Z"
+		},
+		{
 			"checksumSHA1": "QapQRLZlewQkaHFgQ3ktePbyh6k=",
 			"path": "github.com/Azure/go-autorest/autorest/date",
 			"revision": "c2571aa487482a987546c123fef9334582786335",
