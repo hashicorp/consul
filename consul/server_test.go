@@ -605,6 +605,9 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 		}
 	}
 	s2.localLock.RUnlock()
+	if leader == nil {
+		t.Fatal("no leader")
+	}
 	return s2.connPool.PingConsulServer(leader)
 }
 
