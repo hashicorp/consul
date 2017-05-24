@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * agent: Removed SCADA-related code for Atlas and deprecated all Atlas-related configuration options. [GH-3032]
 * agent: Added support for custom check id and name when registering checks along with a service. [GH-3047]
 * agent: Updated [go-sockaddr](https://github.com/hashicorp/go-sockaddr) library to add support for new helper functions in bind address templates (`GetPrivateIPs`, `GetPublicIPs`), new math functions, and to pick up fixes for issues with detecting addresses on multi-homed hosts. [GH-3068]
+* agent: Added support for RetryJoin on Azure [GH-2978]
 * build: Added support for linux/arm64 binaries. [GH-3042]
 * ui: Added a sticky scroll to the KV side panel so the KV edit box always stays in place. [GH-2812]
 
