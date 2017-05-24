@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"crypto/sha512"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,13 +151,13 @@ type Agent struct {
 	endpointsLock sync.RWMutex
 
 	// dnsAddr is the address the DNS server binds to
-	dnsAddr net.Addr
+	dnsAddrs []ProtoAddr
 
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
 
 	// httpAddrs are the addresses per protocol the HTTP server binds to
-	httpAddrs map[string][]net.Addr
+	httpAddrs []ProtoAddr
 
 	// httpServers provides the HTTP API on various endpoints
 	httpServers []*HTTPServer
@@ -172,7 +173,7 @@ func NewAgent(c *Config) (*Agent, error) {
 	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
-	dnsAddr, err := c.ClientListener(c.Addresses.DNS, c.Ports.DNS)
+	dnsAddrs, err := c.DNSAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("Invalid DNS bind address: %s", err)
 	}
@@ -199,7 +200,7 @@ func NewAgent(c *Config) (*Agent, error) {
 		reloadCh:       make(chan chan error),
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
-		dnsAddr:        dnsAddr,
+		dnsAddrs:       dnsAddrs,
 		httpAddrs:      httpAddrs,
 	}
 	if err := a.resolveTmplAddrs(); err != nil {
@@ -285,120 +286,167 @@ func (a *Agent) Start() error {
 		return err
 	}
 
-	// start dns server
-	if c.Ports.DNS > 0 {
-		srv, err := NewDNSServer(a, &c.DNSConfig, logOutput, a.logger, c.Domain, a.dnsAddr.String(), c.DNSRecursors)
-		if err != nil {
-			return fmt.Errorf("error starting DNS server: %s", err)
-		}
-		a.dnsServers = []*DNSServer{srv}
+	// start DNS servers
+	if err := a.listenAndServeDNS(); err != nil {
+		return err
+	}
+
+	// create listeners and unstarted servers
+	// see comment on listenHTTP why we are doing this
+	httpln, err := a.listenHTTP(a.httpAddrs)
+	if err != nil {
+		return err
 	}
 
 	// start HTTP servers
-	return a.startHTTP(a.httpAddrs)
+	for _, l := range httpln {
+		srv := NewHTTPServer(l.Addr().String(), a)
+		if err := a.serveHTTP(l, srv); err != nil {
+			return err
+		}
+		a.httpServers = append(a.httpServers, srv)
+	}
+	return nil
 }
 
-func (a *Agent) startHTTP(httpAddrs map[string][]net.Addr) error {
-	// ln contains the list of pending listeners until the
-	// actual server is created and the listeners are used.
-	var ln []net.Listener
+func (a *Agent) listenAndServeDNS() error {
+	notif := make(chan ProtoAddr, len(a.dnsAddrs))
+	for _, p := range a.dnsAddrs {
+		p := p // capture loop var
 
-	// cleanup the listeners on error. ln should be empty on success.
-	defer func() {
-		for _, l := range ln {
-			l.Close()
+		// create server
+		s, err := NewDNSServer(a)
+		if err != nil {
+			return err
 		}
-	}()
+		a.dnsServers = append(a.dnsServers, s)
 
-	// bind to the listeners for all addresses and protocols
-	// before we start the servers so that we can fail early
-	// if we can't bind to one of the addresses.
-	for proto, addrs := range httpAddrs {
-		for _, addr := range addrs {
-			switch addr.(type) {
-			case *net.UnixAddr:
-				switch proto {
-				case "http":
-					if _, err := os.Stat(addr.String()); !os.IsNotExist(err) {
-						a.logger.Printf("[WARN] agent: Replacing socket %q", addr.String())
-					}
-					l, err := ListenUnix(addr.String(), a.config.UnixSockets)
-					if err != nil {
-						return err
-					}
-					ln = append(ln, l)
-
-				default:
-					return fmt.Errorf("invalid protocol: %q", proto)
-				}
-
-			case *net.TCPAddr:
-				switch proto {
-				case "http":
-					l, err := ListenTCP(addr.String())
-					if err != nil {
-						return err
-					}
-					ln = append(ln, l)
-
-				case "https":
-					tlscfg, err := a.config.IncomingTLSConfig()
-					if err != nil {
-						return fmt.Errorf("invalid TLS configuration: %s", err)
-					}
-					l, err := ListenTLS(addr.String(), tlscfg)
-					if err != nil {
-						return err
-					}
-					ln = append(ln, l)
-
-				default:
-					return fmt.Errorf("invalid protocol: %q", proto)
-				}
-
-			default:
-				return fmt.Errorf("invalid address type: %T", addr)
-			}
-		}
-	}
-
-	// https://github.com/golang/go/issues/20239
-	//
-	// In go1.8.1 there is a race between Serve and Shutdown. If
-	// Shutdown is called before the Serve go routine was scheduled then
-	// the Serve go routine never returns. This deadlocks the agent
-	// shutdown for some tests since it will wait forever.
-	//
-	// We solve this with another WaitGroup which checks that the Serve
-	// go routine was called and after that it should be safe to call
-	// Shutdown on that server.
-	var up sync.WaitGroup
-	for _, l := range ln {
-		l := l // capture loop var
-
-		// create a server per listener instead of a single
-		// server with multiple listeners to take advantage
-		// of the Addr field for logging. Since the server
-		// does not keep state and they all share the same
-		// agent there is no overhead.
-		addr := l.Addr().String()
-		srv := NewHTTPServer(addr, a)
-		a.httpServers = append(a.httpServers, srv)
-
-		up.Add(1)
+		// start server
 		a.wgServers.Add(1)
 		go func() {
 			defer a.wgServers.Done()
-			up.Done()
-			a.logger.Printf("[INFO] agent: Starting HTTP server on %s", addr)
-			if err := srv.Serve(l); err != nil && err != http.ErrServerClosed {
-				a.logger.Print(err)
+
+			err := s.ListenAndServe(p.Net, p.Addr, func() { notif <- p })
+			if err != nil && !strings.Contains(err.Error(), "accept") {
+				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): ", p.Addr, p.Net, err)
 			}
 		}()
 	}
-	up.Wait()
-	ln = nil
+
+	// wait for servers to be up
+	// todo(fs): not sure whether this is the right approach.
+	// todo(fs): maybe a failing server should trigger an agent shutdown.
+	timeout := time.After(time.Second)
+	for range a.dnsAddrs {
+		select {
+		case p := <-notif:
+			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", p.Addr, p.Net)
+			continue
+		case <-timeout:
+			return fmt.Errorf("agent: timeout starting DNS servers")
+		}
+	}
 	return nil
+}
+
+// listenHTTP binds listeners to the provided addresses and also returns
+// pre-configured HTTP servers which are not yet started. The motivation is
+// that in the current startup/shutdown setup we de-couple the listener
+// creation from the server startup assuming that if any of the listeners
+// cannot be bound we fail immediately and later failures do not occur.
+// Therefore, starting a server with a running listener is assumed to not
+// produce an error.
+//
+// The second motivation is that an HTTPS server needs to use the same TLSConfig
+// on both the listener and the HTTP server. When listeners and servers are
+// created at different times this becomes difficult to handle without keeping
+// the TLS configuration somewhere or recreating it.
+//
+// This approach should ultimately be refactored to the point where we just
+// start the server and any error should trigger a proper shutdown of the agent.
+func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
+	var ln []net.Listener
+	for _, p := range addrs {
+		var l net.Listener
+		var err error
+
+		switch {
+		case p.Net == "unix":
+			l, err = a.listenSocket(p.Addr, a.config.UnixSockets)
+
+		case p.Net == "tcp" && p.Proto == "http":
+			l, err = net.Listen("tcp", p.Addr)
+
+		case p.Net == "tcp" && p.Proto == "https":
+			var tlscfg *tls.Config
+			tlscfg, err = a.config.IncomingTLSConfig()
+			if err != nil {
+				break
+			}
+			l, err = tls.Listen("tcp", p.Addr, tlscfg)
+		}
+
+		if err != nil {
+			for _, l := range ln {
+				l.Close()
+			}
+			return nil, err
+		}
+
+		ln = append(ln, l)
+	}
+	return ln, nil
+}
+
+func (a *Agent) listenSocket(path string, perm FilePermissions) (net.Listener, error) {
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		a.logger.Printf("[WARN] agent: Replacing socket %q", path)
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error removing socket file: %s", err)
+	}
+	l, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+	if err := setFilePermissions(path, perm); err != nil {
+		return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
+	}
+	return l, nil
+}
+
+func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
+	// https://github.com/golang/go/issues/20239
+	//
+	// In go.8.1 there is a race between Serve and Shutdown. If
+	// Shutdown is called before the Serve go routine was scheduled then
+	// the Serve go routine never returns. This deadlocks the agent
+	// shutdown for some tests since it will wait forever.
+	if strings.Contains("*tls.listener", fmt.Sprintf("%T", l)) {
+		srv.proto = "https"
+	}
+	notif := make(chan string)
+	a.wgServers.Add(1)
+	go func() {
+		defer a.wgServers.Done()
+		notif <- srv.Addr
+		err := srv.Serve(l)
+		if err != nil && err != http.ErrServerClosed {
+			a.logger.Print(err)
+		}
+	}()
+
+	select {
+	case addr := <-notif:
+		if srv.proto == "https" {
+			a.logger.Printf("[INFO] agent: Started HTTPS server on %s", addr)
+		} else {
+			a.logger.Printf("[INFO] agent: Started HTTP server on %s", addr)
+		}
+		return nil
+	case <-time.After(time.Second):
+		return fmt.Errorf("agent: timeout starting HTTP servers")
+	}
 }
 
 // consulConfig is used to return a consul configuration
@@ -982,12 +1030,19 @@ func (a *Agent) Shutdown() error {
 	a.logger.Println("[INFO] agent: Requesting shutdown")
 
 	// Stop all API endpoints
-	a.logger.Println("[INFO] agent: Stopping DNS endpoints")
 	for _, srv := range a.dnsServers {
+		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
 		srv.Shutdown()
 	}
 	for _, srv := range a.httpServers {
-		a.logger.Println("[INFO] agent: Stopping HTTP endpoint", srv.Addr)
+		// http server is HTTPS if TLSConfig is not nil and NextProtos does not only contain "h2"
+		// the latter seems to be a side effect of HTTP/2 support in go 1.8. TLSConfig != nil is
+		// no longer sufficient to check for an HTTPS server.
+		if srv.proto == "https" {
+			a.logger.Println("[INFO] agent: Stopping HTTPS server", srv.Addr)
+		} else {
+			a.logger.Println("[INFO] agent: Stopping HTTP server", srv.Addr)
+		}
 
 		// old behavior: just die
 		// srv.Close()

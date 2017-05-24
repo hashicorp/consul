@@ -408,9 +408,10 @@ func TestDNS_ReverseLookup(t *testing.T) {
 
 func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.Domain = "custom"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
-	a.dns.domain = dns.Fqdn("custom")
 
 	// Register node
 	args := &structs.RegisterRequest{

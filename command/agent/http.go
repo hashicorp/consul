@@ -19,10 +19,11 @@ import (
 type HTTPServer struct {
 	*http.Server
 	agent *Agent
+	proto string
 }
 
 func NewHTTPServer(addr string, a *Agent) *HTTPServer {
-	s := &HTTPServer{&http.Server{Addr: addr}, a}
+	s := &HTTPServer{Server: &http.Server{Addr: addr}, agent: a}
 	s.Server.Handler = s.handler(s.agent.config.EnableDebug)
 	return s
 }

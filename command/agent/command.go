@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -1033,4 +1034,14 @@ Usage: consul agent [options]
  ` + cmd.Command.Help()
 
 	return strings.TrimSpace(helpText)
+}
+
+func printJSON(name string, v interface{}) {
+	fmt.Println(name)
+	b, err := json.MarshalIndent(v, "", "   ")
+	if err != nil {
+		fmt.Printf("%#v\n", v)
+		return
+	}
+	fmt.Println(string(b))
 }

@@ -780,26 +780,49 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	return tc.IncomingTLSConfig()
 }
 
+type ProtoAddr struct {
+	Proto, Net, Addr string
+}
+
+func (p ProtoAddr) String() string {
+	return p.Proto + "+" + p.Net + "://" + p.Addr
+}
+
+func (c *Config) DNSAddrs() ([]ProtoAddr, error) {
+	if c.Ports.DNS == 0 {
+		return nil, nil
+	}
+	a, err := c.ClientListener(c.Addresses.DNS, c.Ports.DNS)
+	if err != nil {
+		return nil, err
+	}
+	addrs := []ProtoAddr{
+		{"dns", "tcp", a.String()},
+		{"dns", "udp", a.String()},
+	}
+	return addrs, nil
+}
+
 // HTTPAddrs returns the bind addresses for the HTTP server and
 // the application protocol which should be served, e.g. 'http'
 // or 'https'.
-func (c *Config) HTTPAddrs() (map[string][]net.Addr, error) {
-	m := map[string][]net.Addr{}
+func (c *Config) HTTPAddrs() ([]ProtoAddr, error) {
+	var addrs []ProtoAddr
 	if c.Ports.HTTP > 0 {
 		a, err := c.ClientListener(c.Addresses.HTTP, c.Ports.HTTP)
 		if err != nil {
 			return nil, err
 		}
-		m["http"] = []net.Addr{a}
+		addrs = append(addrs, ProtoAddr{"http", a.Network(), a.String()})
 	}
 	if c.Ports.HTTPS > 0 {
 		a, err := c.ClientListener(c.Addresses.HTTPS, c.Ports.HTTPS)
 		if err != nil {
 			return nil, err
 		}
-		m["https"] = []net.Addr{a}
+		addrs = append(addrs, ProtoAddr{"https", a.Network(), a.String()})
 	}
-	return m, nil
+	return addrs, nil
 }
 
 // Bool is used to initialize bool pointers in struct literals.
