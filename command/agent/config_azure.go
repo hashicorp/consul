@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"

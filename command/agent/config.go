@@ -544,12 +544,13 @@ type Config struct {
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
 
-	// RetryJoinEC2 configuration
+	// RetryJoinEC2 specifies the configuration for auto-join on EC2.
 	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
 
-	// The config struct for the GCE tag server discovery feature.
+	// RetryJoinGCE specifies the configuration for auto-join on GCE.
 	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
 
+	// RetryJoinAzure specifies the configuration for auto-join on Azure.
 	RetryJoinAzure RetryJoinAzure `mapstructure:"retry_join_azure"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
