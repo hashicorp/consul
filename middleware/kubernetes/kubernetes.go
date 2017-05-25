@@ -85,7 +85,7 @@ var errNoItems = errors.New("no items found")
 var errNsNotExposed = errors.New("namespace is not exposed")
 var errInvalidRequest = errors.New("invalid query name")
 var errZoneNotFound = errors.New("zone not found")
-var errApiBadPodType = errors.New("expected type *api.Pod")
+var errAPIBadPodType = errors.New("expected type *api.Pod")
 var errPodsDisabled = errors.New("pod records disabled")
 
 // Services implements the ServiceBackend interface.
@@ -201,7 +201,6 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 }
 
 // InitKubeCache initializes a new Kubernetes cache.
-
 func (k *Kubernetes) InitKubeCache() (err error) {
 
 	config, err := k.getClientConfig()
@@ -420,7 +419,7 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error)
 	for _, o := range objList {
 		p, ok := o.(*api.Pod)
 		if !ok {
-			return nil, errApiBadPodType
+			return nil, errAPIBadPodType
 		}
 		// If namespace has a wildcard, filter results against Corefile namespace list.
 		if nsWildcard && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(p.Namespace, k.Namespaces)) {

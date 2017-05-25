@@ -14,7 +14,7 @@ type serverTLS struct {
 	*Server
 }
 
-// NewTLSServer returns a new CoreDNS TLS server and compiles all middleware in to it.
+// NewServerTLS returns a new CoreDNS TLS server and compiles all middleware in to it.
 func NewServerTLS(addr string, group []*Config) (*serverTLS, error) {
 
 	s, err := NewServer(addr, group)

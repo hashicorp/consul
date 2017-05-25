@@ -24,7 +24,7 @@ type servergRPC struct {
 	listenAddr net.Addr
 }
 
-// NewGRPCServer returns a new CoreDNS GRPC server and compiles all middleware in to it.
+// NewServergRPC returns a new CoreDNS GRPC server and compiles all middleware in to it.
 func NewServergRPC(addr string, group []*Config) (*servergRPC, error) {
 
 	s, err := NewServer(addr, group)
@@ -144,9 +144,9 @@ func (s *servergRPC) Query(ctx context.Context, in *pb.DnsPacket) (*pb.DnsPacket
 	return &pb.DnsPacket{Msg: packed}, nil
 }
 
-func (g *servergRPC) Shutdown() error {
-	if g.grpcServer != nil {
-		g.grpcServer.Stop()
+func (s *servergRPC) Shutdown() error {
+	if s.grpcServer != nil {
+		s.grpcServer.Stop()
 	}
 	return nil
 }

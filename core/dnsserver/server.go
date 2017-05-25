@@ -252,6 +252,7 @@ func (s *Server) OnStartupComplete() {
 	}
 }
 
+// Tracer ... TODO: Add comment
 func (s *Server) Tracer() ot.Tracer {
 	if s.trace == nil {
 		return nil
