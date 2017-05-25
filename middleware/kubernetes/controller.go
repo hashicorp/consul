@@ -295,7 +295,15 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) 
 }
 
 func (dns *dnsControl) controllersInSync() bool {
-	return dns.svcController.HasSynced()
+	hs := dns.svcController.HasSynced() &&
+		dns.nsController.HasSynced() &&
+		dns.epController.HasSynced()
+
+	if dns.podController != nil {
+		hs = hs && dns.podController.HasSynced()
+	}
+
+	return hs
 }
 
 // Stop stops the  controller.
