@@ -62,28 +62,29 @@ func (p *pingDelegate) NotifyPingComplete(other *memberlist.Node, rtt time.Durat
 	var coord coordinate.Coordinate
 	if err := dec.Decode(&coord); err != nil {
 		log.Printf("[ERR] serf: Failed to decode coordinate from ping: %v", err)
+		return
 	}
 
-	// Apply the update. Since this is a coordinate coming from some place
-	// else we harden this and look for dimensionality problems proactively.
+	// Apply the update.
 	before := p.serf.coordClient.GetCoordinate()
-	if before.IsCompatibleWith(&coord) {
-		after := p.serf.coordClient.Update(other.Name, &coord, rtt)
-
-		// Publish some metrics to give us an idea of how much we are
-		// adjusting each time we update.
-		d := float32(before.DistanceTo(after).Seconds() * 1.0e3)
-		metrics.AddSample([]string{"serf", "coordinate", "adjustment-ms"}, d)
-
-		// Cache the coordinate for the other node, and add our own
-		// to the cache as well since it just got updated. This lets
-		// users call GetCachedCoordinate with our node name, which is
-		// more friendly.
-		p.serf.coordCacheLock.Lock()
-		p.serf.coordCache[other.Name] = &coord
-		p.serf.coordCache[p.serf.config.NodeName] = p.serf.coordClient.GetCoordinate()
-		p.serf.coordCacheLock.Unlock()
-	} else {
-		log.Printf("[ERR] serf: Rejected bad coordinate: %v\n", coord)
+	after, err := p.serf.coordClient.Update(other.Name, &coord, rtt)
+	if err != nil {
+		log.Printf("[ERR] serf: Rejected coordinate from %s: %v\n",
+			other.Name, err)
+		return
 	}
+
+	// Publish some metrics to give us an idea of how much we are
+	// adjusting each time we update.
+	d := float32(before.DistanceTo(after).Seconds() * 1.0e3)
+	metrics.AddSample([]string{"serf", "coordinate", "adjustment-ms"}, d)
+
+	// Cache the coordinate for the other node, and add our own
+	// to the cache as well since it just got updated. This lets
+	// users call GetCachedCoordinate with our node name, which is
+	// more friendly.
+	p.serf.coordCacheLock.Lock()
+	p.serf.coordCache[other.Name] = &coord
+	p.serf.coordCache[p.serf.config.NodeName] = p.serf.coordClient.GetCoordinate()
+	p.serf.coordCacheLock.Unlock()
 }
