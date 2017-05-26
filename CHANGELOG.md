@@ -17,7 +17,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* agent: Added defensive code to prevent agents from infecting the network coordinates with NaN or Inf values, and added code to clean up in environments where this has happened. [GH-3023]
+* agent: Added defensive code to prevent agents from infecting the network coordinates with `NaN` or `Inf` values, and added code to clean up in environments where this has happened. [GH-3023]
 * build: Added a vendor fix to allow compilation on Illumos. [GH-3024]
 * cli: Fixed an issue where `consul exec` would return a 0 exit code, even when there were nodes that didn't respond. [GH-2757]
 
