@@ -110,6 +110,13 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 
+	// Older clients can send coordinates with invalid numeric values like
+	// NaN and Inf. We guard against these coming in, though newer clients
+	// should never send these.
+	if !args.Coord.IsValid() {
+		return fmt.Errorf("invalid coordinate")
+	}
+
 	// Since this is a coordinate coming from some place else we harden this
 	// and look for dimensionality problems proactively.
 	coord, err := c.srv.serfLAN.GetCoordinate()
@@ -117,7 +124,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 	if !coord.IsCompatibleWith(args.Coord) {
-		return fmt.Errorf("rejected bad coordinate: %v", args.Coord)
+		return fmt.Errorf("incompatible coordinate")
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.

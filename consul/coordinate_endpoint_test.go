@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"reflect"
@@ -179,11 +180,19 @@ func TestCoordinate_Update(t *testing.T) {
 		t.Fatalf("wrong number of coordinates dropped, %d != 1", numDropped)
 	}
 
+	// Send a coordinate with a NaN to make sure that we don't absorb that
+	// into the database.
+	arg2.Coord.Vec[0] = math.NaN()
+	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out)
+	if err == nil || !strings.Contains(err.Error(), "invalid coordinate") {
+		t.Fatalf("should have failed with an error, got %v", err)
+	}
+
 	// Finally, send a coordinate with the wrong dimensionality to make sure
 	// there are no panics, and that it gets rejected.
 	arg2.Coord.Vec = make([]float64, 2*len(arg2.Coord.Vec))
 	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out)
-	if err == nil || !strings.Contains(err.Error(), "rejected bad coordinate") {
+	if err == nil || !strings.Contains(err.Error(), "incompatible coordinate") {
 		t.Fatalf("should have failed with an error, got %v", err)
 	}
 }
