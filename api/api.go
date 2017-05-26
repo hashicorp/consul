@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -649,6 +650,8 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 		if err := decodeBody(resp, &out); err != nil {
 			return nil, err
 		}
+	} else if _, err := ioutil.ReadAll(resp.Body); err != nil {
+		return nil, err
 	}
 	return wm, nil
 }
