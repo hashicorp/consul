@@ -1,6 +1,7 @@
 package serf
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -148,6 +149,8 @@ func (r *QueryResponse) Deadline() time.Time {
 
 // Finished returns if the query is finished running
 func (r *QueryResponse) Finished() bool {
+	r.closeLock.Lock()
+	defer r.closeLock.Unlock()
 	return r.closed || time.Now().After(r.deadline)
 }
 
@@ -162,6 +165,22 @@ func (r *QueryResponse) AckCh() <-chan string {
 // Channel will be closed when the query is finished.
 func (r *QueryResponse) ResponseCh() <-chan NodeResponse {
 	return r.respCh
+}
+
+// sendResponse sends a response on the response channel ensuring the channel is not closed.
+func (r *QueryResponse) sendResponse(nr NodeResponse) error {
+	r.closeLock.Lock()
+	defer r.closeLock.Unlock()
+	if r.closed {
+		return nil
+	}
+	select {
+	case r.respCh <- nr:
+		r.responses[nr.From] = struct{}{}
+	default:
+		return errors.New("serf: Failed to deliver query response, dropping")
+	}
+	return nil
 }
 
 // NodeResponse is used to represent a single response from a node

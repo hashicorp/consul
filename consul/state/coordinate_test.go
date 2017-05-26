@@ -1,6 +1,7 @@
 package state
 
 import (
+	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -147,6 +148,30 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 			t.Fatalf("bad: %#v", coord)
 		}
 	}
+
+	// Apply an invalid update and make sure it gets ignored.
+	badUpdates := structs.Coordinates{
+		&structs.Coordinate{
+			Node:  "node1",
+			Coord: &coordinate.Coordinate{Height: math.NaN()},
+		},
+	}
+	if err := s.CoordinateBatchUpdate(5, badUpdates); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify we are at the previous state, though the empty batch does bump
+	// the table index.
+	idx, coords, err = s.Coordinates(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(coords, updates) {
+		t.Fatalf("bad: %#v", coords)
+	}
 }
 
 func TestStateStore_Coordinate_Cleanup(t *testing.T) {
@@ -220,6 +245,18 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Manually put a bad coordinate in for node3.
+	testRegisterNode(t, s, 4, "node3")
+	badUpdate := &structs.Coordinate{
+		Node:  "node3",
+		Coord: &coordinate.Coordinate{Height: math.NaN()},
+	}
+	tx := s.db.Txn(true)
+	if err := tx.Insert("coordinates", badUpdate); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	tx.Commit()
+
 	// Snapshot the coordinates.
 	snap := s.Snapshot()
 	defer snap.Close()
@@ -235,12 +272,12 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 			Coord: generateRandomCoordinate(),
 		},
 	}
-	if err := s.CoordinateBatchUpdate(4, trash); err != nil {
+	if err := s.CoordinateBatchUpdate(5, trash); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 3 {
+	if idx := snap.LastIndex(); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	iter, err := snap.Coordinates()
@@ -251,7 +288,10 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	for coord := iter.Next(); coord != nil; coord = iter.Next() {
 		dump = append(dump, coord.(*structs.Coordinate))
 	}
-	if !reflect.DeepEqual(dump, updates) {
+
+	// The snapshot will have the bad update in it, since we don't filter on
+	// the read side.
+	if !reflect.DeepEqual(dump, append(updates, badUpdate)) {
 		t.Fatalf("bad: %#v", dump)
 	}
 
@@ -259,7 +299,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
-		if err := restore.Coordinates(5, dump); err != nil {
+		if err := restore.Coordinates(6, dump); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		restore.Commit()
@@ -269,7 +309,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if idx != 5 {
+		if idx != 6 {
 			t.Fatalf("bad index: %d", idx)
 		}
 		if !reflect.DeepEqual(res, updates) {
@@ -278,7 +318,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 
 		// Check that the index was updated (note that it got passed
 		// in during the restore).
-		if idx := s.maxIndex("coordinates"); idx != 5 {
+		if idx := s.maxIndex("coordinates"); idx != 6 {
 			t.Fatalf("bad index: %d", idx)
 		}
 	}()

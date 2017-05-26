@@ -532,7 +532,10 @@ func (s *Snapshotter) replay() error {
 				s.logger.Printf("[WARN] serf: Failed to decode coordinate: %v", err)
 				continue
 			}
-			s.coordClient.SetCoordinate(&coord)
+			if err := s.coordClient.SetCoordinate(&coord); err != nil {
+				s.logger.Printf("[WARN] serf: Failed to set coordinate: %v", err)
+				continue
+			}
 		} else if line == "leave" {
 			// Ignore a leave if we plan on re-joining
 			if s.rejoinAfterLeave {

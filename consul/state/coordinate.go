@@ -22,6 +22,12 @@ func (s *Snapshot) Coordinates() (memdb.ResultIterator, error) {
 // already got checked on the way in during a batch update.
 func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 	for _, update := range updates {
+		// Skip any bad data that may have gotten into the database from
+		// a bad client in the past.
+		if !update.Coord.IsValid() {
+			continue
+		}
+
 		if err := s.tx.Insert("coordinates", update); err != nil {
 			return fmt.Errorf("failed restoring coordinate: %s", err)
 		}
@@ -86,6 +92,12 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 
 	// Upsert the coordinates.
 	for _, update := range updates {
+		// Skip any bad data that may have gotten into the database from
+		// a bad client in the past.
+		if !update.Coord.IsValid() {
+			continue
+		}
+
 		// Since the cleanup of coordinates is tied to deletion of
 		// nodes, we silently drop any updates for nodes that we don't
 		// know about. This might be possible during normal operation
