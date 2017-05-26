@@ -63,7 +63,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	//   use the wildcard.
 	//
 	// Main for-loop handles delegation and finding or not finding the qname.
-	// If found we check if it is a CNAME and do CNAME processing (DNAME should be added as well)
+	// If found we check if it is a CNAME/DNAME and do CNAME processing
 	// We also check if we have type and do a nodata resposne.
 	//
 	// If not found, we check the potential wildcard, and use that for further processing.
@@ -95,6 +95,24 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 			continue
 		}
 
+		// If we see DNAME records, we should return those.
+		if dnamerrs := elem.Types(dns.TypeDNAME); dnamerrs != nil {
+			// Only one DNAME is allowed per name. We just pick the first one.
+			dname := dnamerrs[0]
+			if cname := synthesizeCNAME(state.Name(), dname.(*dns.DNAME)); cname != nil {
+				answer, ns, extra, rcode := z.searchCNAME(state, elem, []dns.RR{cname})
+
+				// The relevant DNAME RR should be included in the answer section,
+				// if the DNAME is being employed as a substitution instruction.
+				answer = append([]dns.RR{dname}, answer...)
+
+				return answer, ns, extra, rcode
+			}
+			// The domain name that owns a DNAME record is allowed to have other RR types
+			// at that domain name, except those have restrictions on what they can coexist
+			// with (e.g. another DNAME). So there is nothing special left here.
+		}
+
 		// If we see NS records, it means the name as been delegated, and we should return the delegation.
 		if nsrrs := elem.Types(dns.TypeNS); nsrrs != nil {
 			glue := z.Glue(nsrrs, do)
@@ -122,7 +140,6 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	// Found entire name.
 	if found && shot {
 
-		// DNAME...?
 		if rrs := elem.Types(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
 			return z.searchCNAME(state, elem, rrs)
 		}
