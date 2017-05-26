@@ -2,7 +2,6 @@ package serf
 
 import (
 	"bytes"
-	"log"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -37,7 +36,7 @@ func (p *pingDelegate) AckPayload() []byte {
 	// The rest of the message is the serialized coordinate.
 	enc := codec.NewEncoder(&buf, &codec.MsgpackHandle{})
 	if err := enc.Encode(p.serf.coordClient.GetCoordinate()); err != nil {
-		log.Printf("[ERR] serf: Failed to encode coordinate: %v\n", err)
+		p.serf.logger.Printf("[ERR] serf: Failed to encode coordinate: %v\n", err)
 	}
 	return buf.Bytes()
 }
@@ -52,7 +51,7 @@ func (p *pingDelegate) NotifyPingComplete(other *memberlist.Node, rtt time.Durat
 	// Verify ping version in the header.
 	version := payload[0]
 	if version != PingVersion {
-		log.Printf("[ERR] serf: Unsupported ping version: %v", version)
+		p.serf.logger.Printf("[ERR] serf: Unsupported ping version: %v", version)
 		return
 	}
 
@@ -61,7 +60,7 @@ func (p *pingDelegate) NotifyPingComplete(other *memberlist.Node, rtt time.Durat
 	dec := codec.NewDecoder(r, &codec.MsgpackHandle{})
 	var coord coordinate.Coordinate
 	if err := dec.Decode(&coord); err != nil {
-		log.Printf("[ERR] serf: Failed to decode coordinate from ping: %v", err)
+		p.serf.logger.Printf("[ERR] serf: Failed to decode coordinate from ping: %v", err)
 		return
 	}
 
@@ -69,7 +68,7 @@ func (p *pingDelegate) NotifyPingComplete(other *memberlist.Node, rtt time.Durat
 	before := p.serf.coordClient.GetCoordinate()
 	after, err := p.serf.coordClient.Update(other.Name, &coord, rtt)
 	if err != nil {
-		log.Printf("[ERR] serf: Rejected coordinate from %s: %v\n",
+		p.serf.logger.Printf("[ERR] serf: Rejected coordinate from %s: %v\n",
 			other.Name, err)
 		return
 	}
