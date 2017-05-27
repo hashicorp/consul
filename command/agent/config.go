@@ -365,6 +365,12 @@ type Config struct {
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt" json:"-"`
 
+	// EncryptVerifyIncoming and EncryptVerifyOutgoing are used to enforce
+	// incoming/outgoing gossip encryption and can be used to upshift to
+	// encrypted gossip on a running cluster.
+	EncryptVerifyIncoming *bool `mapstructure:"encrypt_verify_incoming"`
+	EncryptVerifyOutgoing *bool `mapstructure:"encrypt_verify_outgoing"`
+
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
 
@@ -864,6 +870,9 @@ func DefaultConfig() *Config {
 		RetryIntervalWan:   30 * time.Second,
 
 		TLSMinVersion: "tls10",
+
+		EncryptVerifyIncoming: Bool(true),
+		EncryptVerifyOutgoing: Bool(true),
 	}
 }
 
@@ -1476,6 +1485,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
+	}
+	if b.EncryptVerifyIncoming != nil {
+		result.EncryptVerifyIncoming = b.EncryptVerifyIncoming
+	}
+	if b.EncryptVerifyOutgoing != nil {
+		result.EncryptVerifyOutgoing = b.EncryptVerifyOutgoing
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel

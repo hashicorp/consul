@@ -708,6 +708,18 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="encrypt"></a><a href="#encrypt">`encrypt`</a> Equivalent to the
   [`-encrypt` command-line flag](#_encrypt).
 
+* <a name="encrypt_verify_incoming"></a><a href="#encrypt_verify_incoming">`encrypt_verify_incoming`</a> -
+  This is an optional parameter that can be used to disable enforcing encryption for incoming gossip in order
+  to upshift from unencrypted to encrypted gossip on a running cluster. See [this section]
+  (/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster) for more information.
+  Defaults to true.
+
+* <a name="encrypt_verify_outgoing"></a><a href="#encrypt_verify_outgoing">`encrypt_verify_outgoing`</a> -
+  This is an optional parameter that can be used to disable enforcing encryption for outgoing gossip in order
+  to upshift from unencrypted to encrypted gossip on a running cluster. See [this section]
+  (/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster) for more information.
+  Defaults to true.
+
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).

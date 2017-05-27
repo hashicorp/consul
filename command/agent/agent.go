@@ -376,6 +376,14 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ReconnectTimeoutWan != 0 {
 		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWan
 	}
+	if a.config.EncryptVerifyIncoming != nil {
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = *a.config.EncryptVerifyIncoming
+		base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = *a.config.EncryptVerifyIncoming
+	}
+	if a.config.EncryptVerifyOutgoing != nil {
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = *a.config.EncryptVerifyOutgoing
+		base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = *a.config.EncryptVerifyOutgoing
+	}
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
 	}

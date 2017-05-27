@@ -52,6 +52,24 @@ $ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
 All nodes within a Consul cluster must share the same encryption key in
 order to send and receive cluster information.
 
+## Configuring Gossip Encryption on an existing cluster
+
+As of version 0.8.4, Consul supports upshifting to encrypted gossip on a running cluster
+through the following process.
+
+1. Generate an encryption key using [`consul keygen`](/docs/commands/keygen.html)
+2. Set the [`encrypt`](/docs/agent/options.html#_encrypt) key in the agent configuration and set
+[`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) and
+[`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) to `false`, doing a
+rolling update of the cluster with these new values. After this step, the agents will be able to
+decrypt gossip but will not yet be sending encrypted traffic.
+3. Remove the [`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) setting
+to change it back to false (the default) and perform another rolling update of the cluster. The
+agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
+4. Remove the [`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) setting
+to change it back to false (the default) and perform a final rolling update of the cluster. All the
+agents will now be strictly enforcing encrypted gossip.
+
 ## RPC Encryption with TLS
 
 Consul supports using TLS to verify the authenticity of servers and clients. To enable this,
