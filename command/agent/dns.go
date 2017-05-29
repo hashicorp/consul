@@ -767,6 +767,12 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 			addr = node.Service.Address
 		}
 
+		// If the service address is a CNAME for the service we are looking
+		// for then use the node address.
+		if qName == strings.TrimSuffix(addr, ".")+"." {
+			addr = node.Node.Address
+		}
+
 		// Avoid duplicate entries, possible if a node has
 		// the same service on multiple ports, etc.
 		if _, ok := handled[addr]; ok {

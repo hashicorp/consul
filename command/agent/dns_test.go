@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/miekg/dns"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 const (
@@ -607,6 +608,66 @@ func TestDNS_ServiceLookup(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 	}
+}
+
+func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	// The service is using the consul DNS name as service address
+	// which triggers a lookup loop and a subsequent stack overflow
+	// crash.
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Address: "db.service.consul",
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Looking up the service should not trigger a loop
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAnswer := []dns.RR{
+		&dns.SRV{
+			Hdr:      dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x21, Class: 0x1, Rdlength: 0x15},
+			Priority: 0x1,
+			Weight:   0x1,
+			Port:     12345,
+			Target:   "foo.node.dc1.consul.",
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+
+	wantExtra := []dns.RR{
+		&dns.CNAME{
+			Hdr:    dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x5, Class: 0x1, Rdlength: 0x2},
+			Target: "db.service.consul.",
+		},
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+	}
+	verify.Values(t, "extra", in.Extra, wantExtra)
 }
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
