@@ -25,7 +25,7 @@ func A(b ServiceBackend, zone string, state request.Request, previousRecords []d
 		what, ip := serv.HostType()
 
 		switch what {
-		case dns.TypeANY:
+		case dns.TypeCNAME:
 			if Name(state.Name()).Matches(dns.Fqdn(serv.Host)) {
 				// x CNAME x is a direct loop, don't add those
 				continue
@@ -92,7 +92,7 @@ func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords 
 		what, ip := serv.HostType()
 
 		switch what {
-		case dns.TypeANY:
+		case dns.TypeCNAME:
 			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
 			if Name(state.Name()).Matches(dns.Fqdn(serv.Host)) {
 				// x CNAME x is a direct loop, don't add those
@@ -182,7 +182,7 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 		what, ip := serv.HostType()
 
 		switch what {
-		case dns.TypeANY:
+		case dns.TypeCNAME:
 			srv := serv.NewSRV(state.QName(), weight)
 			records = append(records, srv)
 
@@ -250,7 +250,7 @@ func MX(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 		}
 		what, ip := serv.HostType()
 		switch what {
-		case dns.TypeANY:
+		case dns.TypeCNAME:
 			mx := serv.NewMX(state.QName())
 			records = append(records, mx)
 			if _, ok := lookup[mx.Mx]; ok {
@@ -364,7 +364,7 @@ func NS(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 	for _, serv := range services {
 		what, ip := serv.HostType()
 		switch what {
-		case dns.TypeANY:
+		case dns.TypeCNAME:
 			return nil, nil, debug, fmt.Errorf("NS record must be an IP address: %s", serv.Host)
 
 		case dns.TypeA, dns.TypeAAAA:

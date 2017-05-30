@@ -11,11 +11,11 @@ func TestType(t *testing.T) {
 		serv         Service
 		expectedType uint16
 	}{
-		{Service{Host: "example.org"}, dns.TypeANY},
+		{Service{Host: "example.org"}, dns.TypeCNAME},
 		{Service{Host: "127.0.0.1"}, dns.TypeA},
 		{Service{Host: "2000::3"}, dns.TypeAAAA},
-		{Service{Host: "2000..3"}, dns.TypeANY},
-		{Service{Host: "127.0.0.257"}, dns.TypeANY},
+		{Service{Host: "2000..3"}, dns.TypeCNAME},
+		{Service{Host: "127.0.0.257"}, dns.TypeCNAME},
 		{Service{Host: "127.0.0.252", Mail: true}, dns.TypeA},
 		{Service{Host: "127.0.0.252", Mail: true, Text: "a"}, dns.TypeA},
 		{Service{Host: "127.0.0.254", Mail: false, Text: "a"}, dns.TypeA},

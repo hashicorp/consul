@@ -9,6 +9,8 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/proxy"
 
 	"github.com/mholt/caddy"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
@@ -165,6 +167,16 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						continue
 					}
 					return nil, c.ArgErr()
+				case "upstream":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return nil, c.ArgErr()
+					}
+					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					if err != nil {
+						return nil, err
+					}
+					k8s.Proxy = proxy.NewLookup(ups)
 				}
 			}
 			return k8s, nil

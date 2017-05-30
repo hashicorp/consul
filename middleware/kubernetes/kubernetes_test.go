@@ -9,7 +9,9 @@ import (
 	"github.com/miekg/dns"
 	"k8s.io/client-go/1.5/pkg/api"
 
+	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/request"
 )
 
 func TestRecordForTXT(t *testing.T) {
@@ -276,4 +278,84 @@ func TestIpFromPodName(t *testing.T) {
 			t.Errorf("Expected ip for podname '%v' to be '%v', but got '%v'", test.ip, test.expected, result)
 		}
 	}
+}
+
+type APIConnServiceTest struct{}
+
+func (APIConnServiceTest) Run() {
+	return
+}
+
+func (APIConnServiceTest) Stop() error {
+	return nil
+}
+
+func (APIConnServiceTest) ServiceList() []*api.Service {
+	svcs := []*api.Service{
+		{
+			ObjectMeta: api.ObjectMeta{
+				Name:      "external",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ExternalName: "coredns.io",
+				Ports: []api.ServicePort{{
+					Name:     "http",
+					Protocol: "tcp",
+					Port:     80,
+				}},
+			},
+		},
+	}
+	return svcs
+
+}
+
+func (APIConnServiceTest) PodIndex(string) []interface{} {
+	return nil
+}
+
+func (APIConnServiceTest) EndpointsList() api.EndpointsList {
+	return api.EndpointsList{}
+}
+
+func TestServices(t *testing.T) {
+
+	k := Kubernetes{Zones: []string{"interwebs.test"}}
+	k.APIConn = &APIConnServiceTest{}
+
+	type svcAns struct {
+		host string
+		key  string
+	}
+	type svcTest struct {
+		qname  string
+		qtype  uint16
+		answer svcAns
+	}
+	tests := []svcTest{
+		// External Services
+		{qname: "external.testns.svc.interwebs.test.", qtype: dns.TypeCNAME, answer: svcAns{host: "coredns.io", key: "/coredns/test/interwebs/svc/testns/external"}},
+	}
+
+	for _, test := range tests {
+		state := request.Request{
+			Req: &dns.Msg{Question: []dns.Question{{Name: test.qname, Qtype: test.qtype}}},
+		}
+		svcs, _, e := k.Services(state, false, middleware.Options{})
+		if e != nil {
+			t.Errorf("Query '%v' got error '%v'", test.qname, e)
+		}
+		if len(svcs) != 1 {
+			t.Errorf("Query %v %v: expected expected 1 answer, got %v", test.qname, dns.TypeToString[test.qtype], len(svcs))
+		} else {
+			if test.answer.host != svcs[0].Host {
+				t.Errorf("Query %v %v: expected host '%v', got '%v'", test.qname, dns.TypeToString[test.qtype], test.answer.host, svcs[0].Host)
+			}
+			if test.answer.key != svcs[0].Key {
+				t.Errorf("Query %v %v: expected key '%v', got '%v'", test.qname, dns.TypeToString[test.qtype], test.answer.key, svcs[0].Key)
+			}
+		}
+	}
+
 }

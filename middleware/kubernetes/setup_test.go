@@ -28,6 +28,7 @@ func TestKubernetesParse(t *testing.T) {
 		expectedPodMode       string
 		expectedCidrs         []net.IPNet
 		expectedFallthrough   bool
+		expectedUpstreams     []string
 	}{
 		// positive
 		{
@@ -42,6 +43,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -55,6 +57,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -69,6 +72,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"endpoint keyword with url",
@@ -84,6 +88,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -99,6 +104,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"namespaces keyword with multiple namespaces",
@@ -114,6 +120,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"resync period in seconds",
@@ -129,6 +136,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"resync period in minutes",
@@ -144,6 +152,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"basic label selector",
@@ -159,6 +168,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"multi-label selector",
@@ -174,6 +184,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"fully specified valid config",
@@ -193,6 +204,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			true,
+			nil,
 		},
 		// negative
 		{
@@ -207,6 +219,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -220,6 +233,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -235,6 +249,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -250,6 +265,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"resyncperiod keyword without a duration value",
@@ -265,6 +281,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"resync period no units",
@@ -280,6 +297,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"resync period invalid",
@@ -295,6 +313,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"labels with no selector value",
@@ -310,6 +329,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		{
 			"labels with invalid selector value",
@@ -325,6 +345,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		// pods disabled
 		{
@@ -341,6 +362,7 @@ func TestKubernetesParse(t *testing.T) {
 			PodModeDisabled,
 			nil,
 			false,
+			nil,
 		},
 		// pods insecure
 		{
@@ -357,6 +379,7 @@ func TestKubernetesParse(t *testing.T) {
 			PodModeInsecure,
 			nil,
 			false,
+			nil,
 		},
 		// pods verified
 		{
@@ -373,6 +396,7 @@ func TestKubernetesParse(t *testing.T) {
 			PodModeVerified,
 			nil,
 			false,
+			nil,
 		},
 		// pods invalid
 		{
@@ -389,6 +413,7 @@ func TestKubernetesParse(t *testing.T) {
 			PodModeVerified,
 			nil,
 			false,
+			nil,
 		},
 		// cidrs ok
 		{
@@ -405,6 +430,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			[]net.IPNet{parseCidr("10.0.0.0/24"), parseCidr("10.0.1.0/24")},
 			false,
+			nil,
 		},
 		// cidrs ok
 		{
@@ -421,6 +447,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 		},
 		// fallthrough invalid
 		{
@@ -437,6 +464,41 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
+		},
+		// Valid upstream
+		{
+			"valid upstream",
+			`kubernetes coredns.local {
+	upstream 13.14.15.16:53
+}`,
+			false,
+			"",
+			1,
+			0,
+			defaultResyncPeriod,
+			"",
+			defaultPodMode,
+			nil,
+			false,
+			[]string{"13.14.15.16:53"},
+		},
+		// Invalid upstream
+		{
+			"valid upstream",
+			`kubernetes coredns.local {
+	upstream 13.14.15.16orange
+}`,
+			true,
+			"not an IP address or file: \"13.14.15.16orange\"",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			defaultPodMode,
+			nil,
+			false,
+			nil,
 		},
 	}
 
@@ -514,6 +576,28 @@ func TestKubernetesParse(t *testing.T) {
 		foundFallthrough := k8sController.Fallthrough
 		if foundFallthrough != test.expectedFallthrough {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, foundFallthrough, test.input)
+		}
+		// upstream
+		foundUpstreams := k8sController.Proxy.Upstreams
+		if test.expectedUpstreams == nil {
+			if foundUpstreams != nil {
+				t.Errorf("Test %d: Expected kubernetes controller to not be initialized with upstreams for input '%s'", i, test.input)
+			}
+		} else {
+			if foundUpstreams == nil {
+				t.Errorf("Test %d: Expected kubernetes controller to be initialized with upstreams for input '%s'", i, test.input)
+			} else {
+				if len(*foundUpstreams) != len(test.expectedUpstreams) {
+					t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d upstreams. Instead found %d upstreams for input '%s'", i, len(test.expectedUpstreams), len(*foundUpstreams), test.input)
+				}
+				for j, want := range test.expectedUpstreams {
+					got := (*foundUpstreams)[j].Select().Name
+					if got != want {
+						t.Errorf("Test %d: Expected kubernetes controller to be initialized with upstream '%s'. Instead found upstream '%s' for input '%s'", i, want, got, test.input)
+					}
+				}
+
+			}
 		}
 
 	}

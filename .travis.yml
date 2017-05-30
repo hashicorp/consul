@@ -12,7 +12,7 @@ go:
 go_import_path: github.com/coredns/coredns
 
 env:
-  - ETCD_VERSION=2.3.1 K8S_VERSION=1.3.7 KUBECTL="docker exec hyperkube /hyperkube kubectl" DNS_ARGUMENTS=""
+  - ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl" DNS_ARGUMENTS=""
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.

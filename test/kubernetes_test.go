@@ -62,6 +62,8 @@ var dnsTestCases = []test.Case{
 			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.5"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.6"),
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.A("example.net.		68974	IN	A	13.14.15.16"),
 		},
 	},
 	{
@@ -73,6 +75,8 @@ var dnsTestCases = []test.Case{
 			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.5"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.6"),
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.A("example.net.		68974	IN	A	13.14.15.16"),
 		},
 	},
 	{
@@ -94,6 +98,8 @@ var dnsTestCases = []test.Case{
 			test.A("svc-c.test-1.svc.cluster.local.        303    IN      A       10.0.0.115"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.5"),
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.6"),
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.A("example.net.		68974	IN	A	13.14.15.16"),
 		},
 	},
 	{
@@ -104,7 +110,6 @@ var dnsTestCases = []test.Case{
 			test.A("headless-svc.test-1.svc.cluster.local.      303    IN      A       172.17.0.6"),
 		},
 	},
-	//TODO: Fix below to all use test.SRV not test.A!
 	{
 		Qname: "*._TcP.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
@@ -238,6 +243,21 @@ var dnsTestCases = []test.Case{
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.NS("cluster.local.          0       IN      NS      kubernetes.default.svc.cluster.local."),
+		},
+	},
+	{
+		Qname: "ext-svc.test-1.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.A("example.net.		72031	IN	A	13.14.15.16"),
+		},
+	},
+	{
+		Qname: "ext-svc.test-1.svc.cluster.local.", Qtype: dns.TypeCNAME,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
 		},
 	},
 }
@@ -444,13 +464,34 @@ func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
 	}
 }
 
+func createUpstreamServer(t *testing.T) (func(), *caddy.Instance, string) {
+	upfile, rmfile, err := TempFile(os.TempDir(), exampleNet)
+	if err != nil {
+		t.Fatalf("Could not create file for CNAME upstream lookups: %s", err)
+	}
+	upstreamServerCorefile := `.:0 {
+    file ` + upfile + ` example.net
+	erratic . {
+		drop 0
+	}
+	`
+	server, udp := createTestServer(t, upstreamServerCorefile)
+	return rmfile, server, udp
+}
+
 func TestKubernetesIntegration(t *testing.T) {
+
+	removeUpstreamConfig, upstreamServer, udp := createUpstreamServer(t)
+	defer upstreamServer.Stop()
+	defer removeUpstreamConfig()
+
 	corefile :=
 		`.:0 {
     kubernetes cluster.local 0.0.10.in-addr.arpa {
                 endpoint http://localhost:8080
 		namespaces test-1
 		pods disabled
+		upstream ` + udp + `
     }
 	erratic . {
 		drop 0
@@ -530,6 +571,11 @@ func TestKubernetesIntegrationFallthrough(t *testing.T) {
 		t.Fatalf("Could not create TempFile for fallthrough: %s", err)
 	}
 	defer rmFunc()
+
+	removeUpstreamConfig, upstreamServer, udp := createUpstreamServer(t)
+	defer upstreamServer.Stop()
+	defer removeUpstreamConfig()
+
 	corefile :=
 		`.:0 {
     file ` + dbfile + ` cluster.local
@@ -537,6 +583,7 @@ func TestKubernetesIntegrationFallthrough(t *testing.T) {
                 endpoint http://localhost:8080
 		cidrs 10.0.0.0/24
 		namespaces test-1
+		upstream ` + udp + `
 		fallthrough
     }
     erratic {
@@ -560,4 +607,8 @@ a.b.svc.cluster.local.  IN      TXT     "Not a wildcard"
 cname.cluster.local.    IN      CNAME   www.example.net.
 
 service.namespace.svc.cluster.local.    IN      SRV     8080 10 10 cluster.local.
+`
+
+const exampleNet = `; example.net. test file for cname tests
+example.net. IN A 13.14.15.16
 `
