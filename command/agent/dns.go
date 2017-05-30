@@ -343,6 +343,7 @@ PARSE:
 
 			// Support "." in the label, re-join all the parts
 			tag := ""
+			svc := ""
 			if n >= 3 {
 				tag = strings.Join(labels[:n-2], ".")
 				svc = labels[n-2]
