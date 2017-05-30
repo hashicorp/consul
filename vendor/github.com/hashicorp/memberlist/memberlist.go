@@ -334,7 +334,7 @@ func (m *Memberlist) setAlive() error {
 	addr, port, err := m.transport.FinalAdvertiseAddr(
 		m.config.AdvertiseAddr, m.config.AdvertisePort)
 	if err != nil {
-		return fmt.Errorf("Failed to get final advertise address: %v")
+		return fmt.Errorf("Failed to get final advertise address: %v", err)
 	}
 
 	// Check if this is a public address without encryption

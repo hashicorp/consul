@@ -123,6 +123,18 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	input = `{"encrypt_verify_incoming":true, "encrypt_verify_outgoing":true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.EncryptVerifyIncoming == nil || !*config.EncryptVerifyIncoming {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.EncryptVerifyOutgoing == nil || !*config.EncryptVerifyOutgoing {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// DNS setup
 	input = `{"ports": {"dns": 8500}, "recursors": ["8.8.8.8","8.8.4.4"], "recursor":"127.0.0.1", "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
