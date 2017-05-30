@@ -31,7 +31,7 @@ func TestExecCommand_implements(t *testing.T) {
 func TestExecCommandRun(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = &agent.BoolFalse
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 

@@ -148,7 +148,7 @@ func TestACL_Special_IDs(t *testing.T) {
 	}
 
 	// The ACL master token should also not call the server, but should give
-	// us a working a token.
+	// us a working agent token.
 	acl, err := a.resolveToken("towel")
 	if err != nil {
 		t.Fatalf("err: %v", err)

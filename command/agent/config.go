@@ -761,9 +761,9 @@ type Config struct {
 	DeprecatedAtlasEndpoint       string `mapstructure:"atlas_endpoint" json:"-"`
 }
 
-// IncomingTLSConfig returns the TLS configuration for TLS
+// IncomingHTTPSConfig returns the TLS configuration for HTTPS
 // connections to consul.
-func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
+func (c *Config) IncomingHTTPSConfig() (*tls.Config, error) {
 	tc := &tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,
