@@ -347,7 +347,7 @@ PARSE:
 			if n >= 3 {
 				tag = strings.Join(labels[:n-2], ".")
 				svc = labels[n-2]
-				for i, s := range strings {
+				for i, s := range labels {
 					if "tags" == s {
 						// [tag.[tag.[...]]].tags.com.acme.orders.service.consul
 						tag = strings.Join(labels[:i-1], ".")
