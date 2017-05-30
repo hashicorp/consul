@@ -2,6 +2,8 @@
 
 FEATURES:
 
+* agent: Added `encrypt_verify_incoming` and `encrypt_verify_outgoing` options to use for upshifting to encrypted gossip on an existing cluster.
+
 IMPROVEMENTS:
 
 * agent: Added a check which prevents advertising or setting a service to a zero address (`0.0.0.0`, `[::]`, `::`). [GH-2961]
