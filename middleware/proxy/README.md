@@ -163,7 +163,7 @@ another stanza that uses plain DNS to resolve names under `example.org`.
 ~~~
 . {
     proxy . 1.2.3.4:53 {
-        execpt example.org
+        except example.org
         protocol https_google
     }
 }

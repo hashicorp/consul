@@ -109,7 +109,7 @@ And then just query on that port (53). The query should be forwarded to 8.8.8.8 
 will be returned. Each query should also show up in the log.
 
 Serve the (NSEC) DNSSEC-signed `example.org` on port 1053, with errors and logging sent to stdout.
-Allow zone transfers to everybody, but specically mention 1 IP address so that CoreDNS can send
+Allow zone transfers to everybody, but specifically mention 1 IP address so that CoreDNS can send
 notifies to it.
 
 ~~~ txt
