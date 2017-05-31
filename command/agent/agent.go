@@ -448,6 +448,7 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	// we cannot just perform a type check since the compiler won't let
 	// us. We might be able to use reflection but the fmt.Sprintf() hack
 	// works just as well.
+	srv.proto = "http"
 	if strings.Contains("*tls.listener", fmt.Sprintf("%T", l)) {
 		srv.proto = "https"
 	}
