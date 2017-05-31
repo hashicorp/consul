@@ -161,7 +161,9 @@ func (a *TestAgent) Start() *TestAgent {
 			runtime.Goexit()
 		} else {
 			agent.Shutdown()
-			fmt.Println(id, a.Name, "retrying")
+			wait := time.Duration(rand.Int31n(2000)) * time.Millisecond
+			fmt.Println(id, a.Name, "retrying in", wait)
+			time.Sleep(wait)
 		}
 	}
 	if !a.NoInitialSync {
