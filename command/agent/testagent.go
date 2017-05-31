@@ -279,10 +279,6 @@ func pickRandomPorts(c *Config) {
 	c.Ports.Server = port + 6
 }
 
-// BoolTrue and BoolFalse exist to create a *bool value.
-var BoolTrue = true
-var BoolFalse = false
-
 // TestConfig returns a unique default configuration for testing an
 // agent.
 func TestConfig() *Config {
@@ -335,6 +331,6 @@ func TestACLConfig() *Config {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLAgentToken = "root"
 	cfg.ACLAgentMasterToken = "towel"
-	cfg.ACLEnforceVersion8 = &BoolTrue
+	cfg.ACLEnforceVersion8 = Bool(true)
 	return cfg
 }

@@ -470,7 +470,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	cfg.ACLDatacenter = "dc1"
 	cfg.ACLMasterToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	cfg.ACLEnforceVersion8 = &BoolTrue
+	cfg.ACLEnforceVersion8 = Bool(true)
 	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
@@ -842,7 +842,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	cfg.ACLDatacenter = "dc1"
 	cfg.ACLMasterToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	cfg.ACLEnforceVersion8 = &BoolTrue
+	cfg.ACLEnforceVersion8 = Bool(true)
 	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()

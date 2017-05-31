@@ -2863,7 +2863,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	cfg := TestConfig()
 	cfg.DNSRecursor = recursor.Addr
 	cfg.DNSConfig.NodeTTL = 10 * time.Second
-	cfg.DNSConfig.AllowStale = &BoolTrue
+	cfg.DNSConfig.AllowStale = Bool(true)
 	cfg.DNSConfig.MaxStale = time.Second
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -2981,7 +2981,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 		"db": 10 * time.Second,
 		"*":  5 * time.Second,
 	}
-	cfg.DNSConfig.AllowStale = &BoolTrue
+	cfg.DNSConfig.AllowStale = Bool(true)
 	cfg.DNSConfig.MaxStale = time.Second
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -3081,7 +3081,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 		"db": 10 * time.Second,
 		"*":  5 * time.Second,
 	}
-	cfg.DNSConfig.AllowStale = &BoolTrue
+	cfg.DNSConfig.AllowStale = Bool(true)
 	cfg.DNSConfig.MaxStale = time.Second
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -3825,7 +3825,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.DNSConfig.AllowStale = &BoolTrue
+	cfg.DNSConfig.AllowStale = Bool(true)
 	cfg.DNSConfig.MaxStale = time.Second
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
