@@ -47,7 +47,7 @@ func externalIP() (string, error) {
 func TestAgent_MultiStartStop(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		t.Run("", func(t *testing.T) {
-					t.Parallel()
+			t.Parallel()
 			a := NewTestAgent(t.Name(), nil)
 			time.Sleep(250 * time.Millisecond)
 			a.Shutdown()
@@ -964,21 +964,15 @@ func TestAgent_PersistService(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := NewAgent(cfg)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := agent2.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer agent2.Shutdown()
+	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	defer a2.Shutdown()
 
-	restored, ok := agent2.state.services[svc.ID]
+	restored, ok := a2.state.services[svc.ID]
 	if !ok {
-		t.Fatalf("bad: %#v", agent2.state.services)
+		t.Fatalf("bad: %#v", a2.state.services)
 	}
-	if agent2.state.serviceTokens[svc.ID] != "mytoken" {
-		t.Fatalf("bad: %#v", agent2.state.services[svc.ID])
+	if a2.state.serviceTokens[svc.ID] != "mytoken" {
+		t.Fatalf("bad: %#v", a2.state.services[svc.ID])
 	}
 	if restored.Port != 8001 {
 		t.Fatalf("bad: %#v", restored)
@@ -1099,20 +1093,14 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 
 	cfg.Services = []*ServiceDefinition{svc2}
-	agent2, err := NewAgent(cfg)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := agent2.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer agent2.Shutdown()
+	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	defer a2.Shutdown()
 
 	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc1.ID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted service")
 	}
-	result, ok := agent2.state.services[svc2.ID]
+	result, ok := a2.state.services[svc2.ID]
 	if !ok {
 		t.Fatalf("missing service registration")
 	}
@@ -1197,18 +1185,12 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	agent2, err := NewAgent(cfg)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := agent2.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer agent2.Shutdown()
+	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	defer a2.Shutdown()
 
-	result, ok := agent2.state.checks[check.CheckID]
+	result, ok := a2.state.checks[check.CheckID]
 	if !ok {
-		t.Fatalf("bad: %#v", agent2.state.checks)
+		t.Fatalf("bad: %#v", a2.state.checks)
 	}
 	if result.Status != api.HealthCritical {
 		t.Fatalf("bad: %#v", result)
@@ -1218,11 +1200,11 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should have restored the monitor
-	if _, ok := agent2.checkMonitors[check.CheckID]; !ok {
-		t.Fatalf("bad: %#v", agent2.checkMonitors)
+	if _, ok := a2.checkMonitors[check.CheckID]; !ok {
+		t.Fatalf("bad: %#v", a2.checkMonitors)
 	}
-	if agent2.state.checkTokens[check.CheckID] != "mytoken" {
-		t.Fatalf("bad: %s", agent2.state.checkTokens[check.CheckID])
+	if a2.state.checkTokens[check.CheckID] != "mytoken" {
+		t.Fatalf("bad: %s", a2.state.checkTokens[check.CheckID])
 	}
 }
 
@@ -1292,20 +1274,14 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 
 	cfg.Checks = []*CheckDefinition{check2}
-	agent2, err := NewAgent(cfg)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := agent2.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer agent2.Shutdown()
+	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	defer a2.Shutdown()
 
 	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check1.CheckID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
-	result, ok := agent2.state.checks[check2.ID]
+	result, ok := a2.state.checks[check2.ID]
 	if !ok {
 		t.Fatalf("missing check registration")
 	}

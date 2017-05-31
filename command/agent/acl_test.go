@@ -20,6 +20,8 @@ func TestACL_Bad_Config(t *testing.T) {
 	cfg.ACLDownPolicy = "nope"
 	cfg.DataDir = testutil.TempDir(t, "agent")
 
+	// do not use TestAgent here since we want
+	// the agent to fail during startup.
 	_, err := NewAgent(cfg)
 	if err == nil || !strings.Contains(err.Error(), "invalid ACL down policy") {
 		t.Fatalf("err: %v", err)
