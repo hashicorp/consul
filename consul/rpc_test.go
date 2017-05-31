@@ -33,7 +33,7 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 	// Make sure we eventually fail with a no leader error, which we should
 	// see given the short timeout.
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
-	if err.Error() != structs.ErrNoLeader.Error() {
+	if err == nil || err.Error() != structs.ErrNoLeader.Error() {
 		t.Fatalf("bad: %v", err)
 	}
 
