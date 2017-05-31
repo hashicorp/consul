@@ -121,16 +121,12 @@ func (a *TestAgent) Start() *TestAgent {
 		a.Config.DataDir = d
 	}
 	id := UniqueID()
+
+	// since the ports are written into the data files we pick random ports
+	// only once and try a number of times to start with them.
+	pickRandomPorts(a.Config)
+
 	for i := 10; i >= 0; i-- {
-		pickRandomPorts(a.Config)
-
-		// ports are baked into the data files so we need to clear out the
-		// data dir on every retry
-		os.RemoveAll(a.Config.DataDir)
-		if err := os.MkdirAll(a.Config.DataDir, 0755); err != nil {
-			panic(fmt.Sprintf("Error creating dir %s: %s", a.Config.DataDir, err))
-		}
-
 		// write the keyring
 		if a.Key != "" {
 			writeKey := func(key, filename string) {
