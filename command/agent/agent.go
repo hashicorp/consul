@@ -371,9 +371,6 @@ func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
 
 		case p.Net == "tcp" && p.Proto == "http":
 			l, err = net.Listen("tcp", p.Addr)
-			if err != nil {
-				l = &tcpKeepAliveListener{l.(*net.TCPListener)}
-			}
 
 		case p.Net == "tcp" && p.Proto == "https":
 			var tlscfg *tls.Config
@@ -382,9 +379,6 @@ func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
 				break
 			}
 			l, err = tls.Listen("tcp", p.Addr, tlscfg)
-			if err != nil {
-				l = &tcpKeepAliveListener{l.(*net.TCPListener)}
-			}
 
 		default:
 			return nil, fmt.Errorf("%s:%s listener not supported", p.Net, p.Proto)
@@ -395,6 +389,10 @@ func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
 				l.Close()
 			}
 			return nil, err
+		}
+
+		if tcpl, ok := l.(*net.TCPListener); ok {
+			l = &tcpKeepAliveListener{tcpl}
 		}
 
 		ln = append(ln, l)
