@@ -1065,27 +1065,19 @@ func (a *Agent) Shutdown() error {
 		// http server is HTTPS if TLSConfig is not nil and NextProtos does not only contain "h2"
 		// the latter seems to be a side effect of HTTP/2 support in go 1.8. TLSConfig != nil is
 		// no longer sufficient to check for an HTTPS server.
-		a.logger.Printf("[INFO] agent: Stopping %s server %s",
-			strings.ToUpper(srv.proto), srv.Addr)
+		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 
 		// old behavior: just die
 		// srv.Close()
 
 		// graceful shutdown
+		// todo(fs): we are timing out every time. Need to find out why.
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
-
-		done := make(chan struct{})
-		go func() {
-			srv.Shutdown(ctx)
-			close(done)
-		}()
-		select {
-		case <-done:
-			// server down within timeout
-		case <-ctx.Done():
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s",
-				strings.ToUpper(srv.proto), srv.Addr)
+		srv.Shutdown(ctx)
+		<-ctx.Done()
+		if ctx.Err() == context.DeadlineExceeded {
+			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 		}
 	}
 	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
