@@ -66,30 +66,6 @@ func TestErrors(t *testing.T) {
 	}
 }
 
-func TestVisibleErrorWithPanic(t *testing.T) {
-	const panicMsg = "I'm a panic"
-	eh := errorHandler{
-		Debug: true,
-		Next: middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-			panic(panicMsg)
-		}),
-	}
-
-	ctx := context.TODO()
-	req := new(dns.Msg)
-	req.SetQuestion("example.org.", dns.TypeA)
-
-	rec := dnsrecorder.New(&test.ResponseWriter{})
-
-	code, err := eh.ServeDNS(ctx, rec, req)
-	if code != 0 {
-		t.Errorf("Expected error handler to return 0 (it should write to response), got status %d", code)
-	}
-	if err != nil {
-		t.Errorf("Expected error handler to return nil error (it should panic!), but got '%v'", err)
-	}
-}
-
 func genErrorHandler(rcode int, err error) middleware.Handler {
 	return middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		return rcode, err

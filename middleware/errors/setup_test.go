@@ -13,18 +13,19 @@ func TestErrorsParse(t *testing.T) {
 		expectedErrorHandler errorHandler
 	}{
 		{`errors`, false, errorHandler{
+			LogFile: "stdout",
+		}},
+		{`errors stdout`, false, errorHandler{
+			LogFile: "stdout",
+		}},
+		{`errors errors.txt`, true, errorHandler{
 			LogFile: "",
 		}},
-		{`errors errors.txt`, false, errorHandler{
-			LogFile: "errors.txt",
-		}},
-		{`errors visible`, false, errorHandler{
+		{`errors visible`, true, errorHandler{
 			LogFile: "",
-			Debug:   true,
 		}},
-		{`errors { log visible }`, false, errorHandler{
-			LogFile: "",
-			Debug:   true,
+		{`errors { log visible }`, true, errorHandler{
+			LogFile: "stdout",
 		}},
 	}
 	for i, test := range tests {
@@ -39,10 +40,6 @@ func TestErrorsParse(t *testing.T) {
 		if actualErrorsRule.LogFile != test.expectedErrorHandler.LogFile {
 			t.Errorf("Test %d expected LogFile to be %s, but got %s",
 				i, test.expectedErrorHandler.LogFile, actualErrorsRule.LogFile)
-		}
-		if actualErrorsRule.Debug != test.expectedErrorHandler.Debug {
-			t.Errorf("Test %d expected Debug to be %v, but got %v",
-				i, test.expectedErrorHandler.Debug, actualErrorsRule.Debug)
 		}
 	}
 }

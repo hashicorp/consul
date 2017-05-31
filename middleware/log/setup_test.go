@@ -45,7 +45,7 @@ func TestLogParse(t *testing.T) {
 			Format:     CombinedLogFormat,
 		}}},
 		{`log example.org. log.txt
-			  log example.net accesslog.txt {combined}`, false, []Rule{{
+		log example.net accesslog.txt {combined}`, false, []Rule{{
 			NameScope:  "example.org.",
 			OutputFile: "log.txt",
 			Format:     DefaultLogFormat,

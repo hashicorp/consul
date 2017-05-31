@@ -1,6 +1,6 @@
 # log
 
-*log* enables query logging.
+*log* enables query logging to standard output.
 
 ## Syntax
 
@@ -8,20 +8,20 @@
 log
 ~~~
 
-* With no arguments, a query log entry is written to query.log in the common log format for all requests
+* With no arguments, a query log entry is written to *stdout* in the common log format for all requests
 
 ~~~ txt
 log FILE
 ~~~
 
-* **FILE** is the log file to create (or append to).
+* **FILE** is the log file to create (or append to). The *only* valid name for **FILE** is *stdout*.
 
 ~~~ txt
 log [NAME] FILE [FORMAT]
 ~~~
 
 * `NAME` is the name to match in order to be logged
-* `FILE` is the log file to create (or append to)
+* `FILE` is the log file (again only *stdout* is allowed here).
 * `FORMAT` is the log format to use (default is Common Log Format)
 
 You can further specify the class of responses that get logged:
@@ -45,9 +45,8 @@ If no class is specified, it defaults to *all*.
 
 ## Log File
 
-The log file can be any filename. It could also be *stdout* or *stderr* to write the log to the console,
-or *syslog* to write to the system log (except on Windows). If the log file does not exist beforehand,
-CoreDNS will create it before appending to it.
+The "log file" can only be *stdout*. CoreDNS expects another service to pick up this output and deal
+with it, i.e. journald when using systemd or Docker's logging capabilities.
 
 ## Log Format
 
@@ -80,22 +79,22 @@ The default Common Log Format is:
 
 ## Examples
 
-Log all requests to a file:
+Log all requests to stdout
 
 ~~~
-log /var/log/query.log
+log stdout
 ~~~
 
-Custom log format:
+Custom log format, for all zones (`.`)
 
 ~~~
-log . ../query.log "{proto} Request: {name} {type} {>id}"
+log . stdout "{proto} Request: {name} {type} {>id}"
 ~~~
 
 Only log denials for example.org (and below to a file)
 
 ~~~
-log example.org example-query-log {
+log example.org stdout {
     class denial
 }
 ~~~
