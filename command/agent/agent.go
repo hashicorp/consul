@@ -861,7 +861,7 @@ func (a *Agent) makeClient() (*consul.Client, error) {
 	if err := a.setupKeyrings(config); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
-	client, err := consul.NewClient(config)
+	client, err := consul.NewClientLogger(config, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start Consul client: %v", err)
 	}

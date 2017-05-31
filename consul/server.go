@@ -216,7 +216,7 @@ func NewServer(config *Config) (*Server, error) {
 
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, l *log.Logger) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -236,7 +236,6 @@ func NewServerLogger(config *Config, l *log.Logger) (*Server, error) {
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
-	logger := l
 	if logger == nil {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
 	}

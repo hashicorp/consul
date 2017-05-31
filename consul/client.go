@@ -83,6 +83,10 @@ type Client struct {
 // NewClient is used to construct a new Consul client from the
 // configuration, potentially returning an error
 func NewClient(config *Config) (*Client, error) {
+	return NewClientLogger(config, nil)
+}
+
+func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -110,7 +114,9 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	// Create a logger
-	logger := log.New(config.LogOutput, "", log.LstdFlags)
+	if logger == nil {
+		logger = log.New(config.LogOutput, "", log.LstdFlags)
+	}
 
 	// Create server
 	c := &Client{
@@ -152,6 +158,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.Tags["build"] = c.config.Build
 	conf.MemberlistConfig.LogOutput = c.config.LogOutput
 	conf.LogOutput = c.config.LogOutput
+	conf.Logger = c.logger
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
