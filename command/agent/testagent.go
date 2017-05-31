@@ -154,7 +154,7 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
-		agent.logger = log.New(logOutput, id, log.LstdFlags)
+		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags)
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
