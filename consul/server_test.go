@@ -2,10 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,10 +17,8 @@ import (
 	"github.com/hashicorp/go-uuid"
 )
 
-var nextPort int32 = 15000
-
 func getPort() int {
-	return int(atomic.AddInt32(&nextPort, 1))
+	return 1030 + int(rand.Int31n(64400))
 }
 
 func configureTLS(config *Config) {
