@@ -36,8 +36,6 @@ var TempDir = os.TempDir()
 // startup procedure suitable for testing. It panics if there are errors
 // during creation or startup instead of returning errors. It manages a
 // temporary data directory which is removed after shutdown.
-//
-// todo(fs): do we need the temp data dir if we run in dev mode?
 type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
