@@ -610,5 +610,6 @@ service.namespace.svc.cluster.local.    IN      SRV     8080 10 10 cluster.local
 `
 
 const exampleNet = `; example.net. test file for cname tests
+example.net.          IN      SOA     ns.example.net. admin.example.net. 2015082541 7200 3600 1209600 3600
 example.net. IN A 13.14.15.16
 `
