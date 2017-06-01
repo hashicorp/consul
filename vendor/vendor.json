@@ -450,10 +450,10 @@
 			"revisionTime": "2016-08-27T06:11:18Z"
 		},
 		{
-			"checksumSHA1": "wDZdTaY9JiqqqnF4c3pHP71nWmk=",
+			"checksumSHA1": "oyULO1B/l2OLy2xereo+2w3hYk4=",
 			"path": "github.com/go-ole/go-ole",
-			"revision": "5e9c030faf78847db7aa77e3661b9cc449de29b7",
-			"revisionTime": "2016-11-16T06:46:58Z"
+			"revision": "02d3668a0cf01f58411cc85cd37c174c257ec7c2",
+			"revisionTime": "2017-06-01T13:56:11Z"
 		},
 		{
 			"checksumSHA1": "IvdiJE1NIogRmGi3WmteEKZQJB8=",
