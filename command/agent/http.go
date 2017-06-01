@@ -311,6 +311,9 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
+	if last < 0 {
+		last = 0
+	}
 	lastMsec := uint64(last / time.Millisecond)
 	resp.Header().Set("X-Consul-LastContact", strconv.FormatUint(lastMsec, 10))
 }

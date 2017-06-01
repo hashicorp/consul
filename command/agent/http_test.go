@@ -150,11 +150,25 @@ func TestSetKnownLeader(t *testing.T) {
 
 func TestSetLastContact(t *testing.T) {
 	t.Parallel()
-	resp := httptest.NewRecorder()
-	setLastContact(resp, 123456*time.Microsecond)
-	header := resp.Header().Get("X-Consul-LastContact")
-	if header != "123" {
-		t.Fatalf("Bad: %v", header)
+	tests := []struct {
+		desc string
+		d    time.Duration
+		h    string
+	}{
+		{"neg", -1, "0"},
+		{"zero", 0, "0"},
+		{"pos", 123 * time.Millisecond, "123"},
+		{"pos ms only", 123456 * time.Microsecond, "123"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			setLastContact(resp, tt.d)
+			header := resp.Header().Get("X-Consul-LastContact")
+			if got, want := header, tt.h; got != want {
+				t.Fatalf("got X-Consul-LastContact header %q want %q", got, want)
+			}
+		})
 	}
 }
 
