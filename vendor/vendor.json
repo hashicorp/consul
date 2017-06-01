@@ -87,10 +87,10 @@
 			"revisionTime": "2015-08-27T00:49:46Z"
 		},
 		{
-			"checksumSHA1": "d6798KSc0jDg2MHNxKdgyNfMK7A=",
+			"checksumSHA1": "M+ZeYktTT2wak9ZvQ0OZBbIHAGo=",
 			"path": "github.com/armon/go-metrics",
-			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4",
-			"revisionTime": "2016-07-17T04:34:58Z"
+			"revision": "f036747b9d0e8590f175a5d654a2194a7d9df4b5",
+			"revisionTime": "2017-06-01T21:44:32Z"
 		},
 		{
 			"checksumSHA1": "OmqT9Y1mAHvlAKeJh0jBHC9SH78=",
