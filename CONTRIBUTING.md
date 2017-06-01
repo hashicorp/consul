@@ -85,3 +85,30 @@ for d in *; do
     golint "$d"/...
 done
 ~~~
+
+## Updating Dependencies
+
+We use Golang's [`dep`](https://github.com/golang/dep) as the tool to manage vendor dependencies.
+The tool could be obtained through:
+
+```sh
+$ go get -u github.com/golang/dep/cmd/dep
+```
+
+Use the following to update the locked versions of all dependencies
+```sh
+$ dep ensure -update
+```
+
+To add a dependency to the project, you might run
+```sh
+$ dep ensure github.com/pkg/errors
+```
+
+After the dependencies have been updated or added, you might run the following to
+prune vendored packages:
+```sh
+$ dep prune
+```
+
+Please refer to Golang's [`dep`](https://github.com/golang/dep) for more details.
