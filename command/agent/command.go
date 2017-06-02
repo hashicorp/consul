@@ -28,9 +28,6 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// gracefulTimeout controls how long we wait before forcefully terminating
-var gracefulTimeout = 5 * time.Second
-
 // validDatacenter is used to validate a datacenter
 var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 
@@ -732,81 +729,72 @@ func (cmd *Command) wait(agent *Agent, cfg *Config) int {
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
-	// Wait for a signal
-WAIT:
-	var sig os.Signal
-	var reloadErrCh chan error
-	select {
-	case s := <-signalCh:
-		sig = s
-	case ch := <-agent.ReloadCh():
-		sig = syscall.SIGHUP
-		reloadErrCh = ch
-	case <-cmd.ShutdownCh:
-		sig = os.Interrupt
-	case err := <-agent.RetryJoinCh():
-		cmd.UI.Error(err.Error())
-		return 1
-	case <-agent.ShutdownCh():
-		// Agent is already shutdown!
-		return 0
-	}
-
-	// Skip SIGPIPE signals and skip logging whenever such signal is received as well
-	if sig == syscall.SIGPIPE {
-		goto WAIT
-	}
-
-	cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
-
-	// Check if this is a SIGHUP
-	if sig == syscall.SIGHUP {
-		conf, err := cmd.handleReload(agent, cfg)
-		if conf != nil {
-			cfg = conf
-		}
-		if err != nil {
+	for {
+		var sig os.Signal
+		var reloadErrCh chan error
+		select {
+		case s := <-signalCh:
+			sig = s
+		case ch := <-agent.ReloadCh():
+			sig = syscall.SIGHUP
+			reloadErrCh = ch
+		case <-cmd.ShutdownCh:
+			sig = os.Interrupt
+		case err := <-agent.RetryJoinCh():
 			cmd.UI.Error(err.Error())
+			return 1
+		case <-agent.ShutdownCh():
+			// Agent is already down!
+			return 0
 		}
-		// Send result back if reload was called via HTTP
-		if reloadErrCh != nil {
-			reloadErrCh <- err
+
+		switch sig {
+		case syscall.SIGPIPE:
+			continue
+
+		case syscall.SIGHUP:
+			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+			conf, err := cmd.handleReload(agent, cfg)
+			if conf != nil {
+				cfg = conf
+			}
+			if err != nil {
+				cmd.UI.Error(err.Error())
+			}
+			// Send result back if reload was called via HTTP
+			if reloadErrCh != nil {
+				reloadErrCh <- err
+			}
+
+		default:
+			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+			graceful := (sig == os.Interrupt && !(*cfg.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*cfg.LeaveOnTerm))
+			if !graceful {
+				return 1
+			}
+
+			cmd.UI.Output("Gracefully shutting down agent...")
+			gracefulCh := make(chan struct{})
+			go func() {
+				if err := agent.Leave(); err != nil {
+					cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+					return
+				}
+				close(gracefulCh)
+			}()
+
+			gracefulTimeout := 5 * time.Second
+			select {
+			case <-signalCh:
+				return 1
+			case <-time.After(gracefulTimeout):
+				return 1
+			case <-gracefulCh:
+				return 0
+			}
 		}
-		goto WAIT
-	}
-
-	// Check if we should do a graceful leave
-	graceful := false
-	if sig == os.Interrupt && !(*cfg.SkipLeaveOnInt) {
-		graceful = true
-	} else if sig == syscall.SIGTERM && (*cfg.LeaveOnTerm) {
-		graceful = true
-	}
-
-	// Bail fast if not doing a graceful leave
-	if !graceful {
-		return 1
-	}
-
-	// Attempt a graceful leave
-	gracefulCh := make(chan struct{})
-	cmd.UI.Output("Gracefully shutting down agent...")
-	go func() {
-		if err := agent.Leave(); err != nil {
-			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
-			return
-		}
-		close(gracefulCh)
-	}()
-
-	// Wait for leave or another signal
-	select {
-	case <-signalCh:
-		return 1
-	case <-time.After(gracefulTimeout):
-		return 1
-	case <-gracefulCh:
-		return 0
 	}
 }
 
