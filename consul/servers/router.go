@@ -36,6 +36,10 @@ type Router struct {
 	// routeFn is a hook to actually do the routing.
 	routeFn func(datacenter string) (*Manager, *agent.Server, bool)
 
+	// isShutdown prevents adding new routes to a router after it is shut
+	// down.
+	isShutdown bool
+
 	// This top-level lock covers all the internal state.
 	sync.RWMutex
 }
@@ -74,9 +78,8 @@ type areaInfo struct {
 	managers map[string]*managerInfo
 }
 
-// NewRouter returns a new Router with the given configuration. This will also
-// spawn a goroutine that cleans up when the given shutdownCh is closed.
-func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter string) *Router {
+// NewRouter returns a new Router with the given configuration.
+func NewRouter(logger *log.Logger, localDatacenter string) *Router {
 	router := &Router{
 		logger:          logger,
 		localDatacenter: localDatacenter,
@@ -87,29 +90,35 @@ func NewRouter(logger *log.Logger, shutdownCh chan struct{}, localDatacenter str
 	// Hook the direct route lookup by default.
 	router.routeFn = router.findDirectRoute
 
-	// This will propagate a top-level shutdown to all the managers.
-	go func() {
-		<-shutdownCh
-		router.Lock()
-		defer router.Unlock()
+	return router
+}
 
-		for _, area := range router.areas {
-			for _, info := range area.managers {
-				close(info.shutdownCh)
-			}
+// Shutdown removes all areas from the router, which stops all their respective
+// managers. No new areas can be added after the router is shut down.
+func (r *Router) Shutdown() {
+	r.Lock()
+	defer r.Unlock()
+
+	for areaID, area := range r.areas {
+		for datacenter, info := range area.managers {
+			r.removeManagerFromIndex(datacenter, info.manager)
+			close(info.shutdownCh)
 		}
 
-		router.areas = nil
-		router.managers = nil
-	}()
+		delete(r.areas, areaID)
+	}
 
-	return router
+	r.isShutdown = true
 }
 
 // AddArea registers a new network area with the router.
 func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger) error {
 	r.Lock()
 	defer r.Unlock()
+
+	if r.isShutdown {
+		return fmt.Errorf("cannot add area, router is shut down")
+	}
 
 	if _, ok := r.areas[areaID]; ok {
 		return fmt.Errorf("area ID %q already exists", areaID)

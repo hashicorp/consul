@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,8 +96,43 @@ func testCluster(self string) *mockCluster {
 
 func testRouter(dc string) *Router {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
-	shutdownCh := make(chan struct{})
-	return NewRouter(logger, shutdownCh, dc)
+	return NewRouter(logger, dc)
+}
+
+func TestRouter_Shutdown(t *testing.T) {
+	r := testRouter("dc0")
+
+	// Create a WAN-looking area.
+	self := "node0.dc0"
+	wan := testCluster(self)
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add another area.
+	otherID := types.AreaID("other")
+	other := newMockCluster(self)
+	other.AddMember("dcY", "node1", nil)
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, _, ok := r.FindRoute("dcY")
+	if !ok {
+		t.Fatalf("bad")
+	}
+
+	// Shutdown and make sure we can't see any routes from before.
+	r.Shutdown()
+	_, _, ok = r.FindRoute("dcY")
+	if ok {
+		t.Fatalf("bad")
+	}
+
+	// You can't add areas once the router is shut down.
+	err := r.AddArea(otherID, other, &fauxConnPool{})
+	if err == nil || !strings.Contains(err.Error(), "router is shut down") {
+		t.Fatalf("err: %v", err)
+	}
 }
 
 func TestRouter_Routing(t *testing.T) {

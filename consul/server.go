@@ -278,7 +278,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
-		router:                servers.NewRouter(logger, shutdownCh, config.Datacenter),
+		router:                servers.NewRouter(logger, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
@@ -686,6 +686,7 @@ func (s *Server) Shutdown() error {
 			s.logger.Printf("[WARN] consul: error removing WAN area: %v", err)
 		}
 	}
+	s.router.Shutdown()
 
 	if s.raft != nil {
 		s.raftTransport.Close()
