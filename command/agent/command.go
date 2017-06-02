@@ -214,7 +214,7 @@ func (cmd *Command) readConfig() *Config {
 	if len(nodeMeta) > 0 {
 		cmdCfg.Meta = make(map[string]string)
 		for _, entry := range nodeMeta {
-			key, value := parseMetaPair(entry)
+			key, value := ParseMetaPair(entry)
 			cmdCfg.Meta[key] = value
 		}
 	}

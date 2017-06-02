@@ -2115,15 +2115,6 @@ func (a *Agent) loadMetadata(conf *Config) error {
 	return nil
 }
 
-// parseMetaPair parses a key/value pair of the form key:value
-func parseMetaPair(raw string) (string, string) {
-	pair := strings.SplitN(raw, ":", 2)
-	if len(pair) == 2 {
-		return pair[0], pair[1]
-	}
-	return pair[0], ""
-}
-
 // unloadMetadata resets the local metadata state
 func (a *Agent) unloadMetadata() {
 	a.state.Lock()
