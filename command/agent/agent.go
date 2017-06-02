@@ -141,6 +141,10 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// retryJoinCh transports errors from the retry join
+	// attempts.
+	retryJoinCh chan error
+
 	// endpoints lets you override RPC endpoints for testing. Not all
 	// agent methods use this, so use with care and never override
 	// outside of a unit test.
@@ -195,6 +199,7 @@ func NewAgent(c *Config) (*Agent, error) {
 		eventCh:        make(chan serf.UserEvent, 1024),
 		eventBuf:       make([]*UserEvent, 256),
 		reloadCh:       make(chan chan error),
+		retryJoinCh:    make(chan error),
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 		dnsAddrs:       dnsAddrs,
@@ -303,6 +308,11 @@ func (a *Agent) Start() error {
 		}
 		a.httpServers = append(a.httpServers, srv)
 	}
+
+	// start retry join
+	go a.retryJoin()
+	go a.retryJoinWan()
+
 	return nil
 }
 
@@ -1125,6 +1135,12 @@ func (a *Agent) Shutdown() error {
 // used for triggering reloads and returning a response.
 func (a *Agent) ReloadCh() chan chan error {
 	return a.reloadCh
+}
+
+// RetryJoinCh is a channel that transports errors
+// from the retry join process.
+func (a *Agent) RetryJoinCh() <-chan error {
+	return a.retryJoinCh
 }
 
 // ShutdownCh is used to return a channel that can be
