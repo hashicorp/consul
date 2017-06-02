@@ -111,7 +111,7 @@ kubernetes coredns.local {
 	# upstream <address> [<address>] ...
 	#
 	# Defines upstream resolvers used for resolving services that point to
-	# external hosts (External Services).  <address> can be an ip, and ip:port, or
+	# external hosts (External Services).  <address> can be an ip, an ip:port, or
 	# a path to a file structured like resolv.conf.
 	upstream 12.34.56.78:53
 	
