@@ -705,25 +705,22 @@ func (cmd *Command) Run(args []string) int {
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = logWriter
+
 	if err := agent.Start(); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
+	defer agent.Shutdown()
 
-	// Setup update checking
 	if !config.DisableUpdateCheck {
 		cmd.startupUpdateCheck(config)
 	}
 
-	defer agent.Shutdown()
-
-	// Join startup nodes if specified
 	if err := cmd.startupJoin(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	// Join startup nodes if specified
 	if err := cmd.startupJoinWan(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
@@ -755,11 +752,7 @@ func (cmd *Command) Run(args []string) int {
 	cmd.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	return cmd.wait(agent, config)
-}
-
-// wait blocks until we get an exit-causing signal
-func (cmd *Command) wait(agent *Agent, cfg *Config) int {
+	// wait for signal
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
@@ -790,9 +783,9 @@ func (cmd *Command) wait(agent *Agent, cfg *Config) int {
 		case syscall.SIGHUP:
 			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
 
-			conf, err := cmd.handleReload(agent, cfg)
+			conf, err := cmd.handleReload(agent, config)
 			if conf != nil {
-				cfg = conf
+				config = conf
 			}
 			if err != nil {
 				cmd.UI.Error(err.Error())
@@ -805,7 +798,7 @@ func (cmd *Command) wait(agent *Agent, cfg *Config) int {
 		default:
 			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
 
-			graceful := (sig == os.Interrupt && !(*cfg.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*cfg.LeaveOnTerm))
+			graceful := (sig == os.Interrupt && !(*config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*config.LeaveOnTerm))
 			if !graceful {
 				return 1
 			}
