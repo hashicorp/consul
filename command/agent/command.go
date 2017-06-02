@@ -17,7 +17,6 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -596,24 +595,6 @@ func (cmd *Command) retryJoinWan(cfg *Config, errCh chan<- struct{}) {
 	}
 }
 
-// gossipEncrypted determines if the consul instance is using symmetric
-// encryption keys to protect gossip protocol messages.
-func (cmd *Command) gossipEncrypted() bool {
-	if cmd.agent.config.EncryptKey != "" {
-		return true
-	}
-
-	server, ok := cmd.agent.delegate.(*consul.Server)
-	if ok {
-		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
-	}
-	client, ok := cmd.agent.delegate.(*consul.Client)
-	if ok {
-		return client != nil && client.KeyManagerLAN() != nil
-	}
-	panic(fmt.Sprintf("delegate is neither server nor client: %T", cmd.agent.delegate))
-}
-
 func (cmd *Command) Run(args []string) int {
 	cmd.UI = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -817,9 +798,6 @@ func (cmd *Command) Run(args []string) int {
 		}(wp)
 	}
 
-	// Figure out if gossip is encrypted
-	gossipEncrypted := cmd.agent.delegate.Encrypted()
-
 	// Let the agent know we've finished registration
 	cmd.agent.StartSync()
 
@@ -834,7 +812,7 @@ func (cmd *Command) Run(args []string) int {
 	cmd.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	cmd.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+		cmd.agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	cmd.UI.Info("")
