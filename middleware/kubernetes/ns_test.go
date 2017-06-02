@@ -104,9 +104,9 @@ func (APIConnTest) EndpointsList() api.EndpointsList {
 	}
 }
 
-type InterfaceAddrsTest struct{}
+type interfaceAddrsTest struct{}
 
-func (i InterfaceAddrsTest) InterfaceAddrs() ([]net.Addr, error) {
+func (i interfaceAddrsTest) interfaceAddrs() ([]net.Addr, error) {
 	_, ipnet, _ := net.ParseCIDR("172.0.40.10/32")
 	return []net.Addr{ipnet}, nil
 }
@@ -116,7 +116,7 @@ func TestDoCoreDNSRecord(t *testing.T) {
 	corednsRecord = dns.A{}
 	k := Kubernetes{Zones: []string{"inter.webs.test"}}
 
-	k.interfaceAddrs = &InterfaceAddrsTest{}
+	k.interfaceAddrs = &interfaceAddrsTest{}
 	k.APIConn = &APIConnTest{}
 
 	cdr := k.CoreDNSRecord()

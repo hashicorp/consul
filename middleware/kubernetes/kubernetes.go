@@ -44,7 +44,7 @@ type Kubernetes struct {
 	PodMode        string
 	ReverseCidrs   []net.IPNet
 	Fallthrough    bool
-	interfaceAddrs InterfaceAddrser
+	interfaceAddrs interfaceAddrser
 }
 
 const (

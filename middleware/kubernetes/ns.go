@@ -14,13 +14,13 @@ const DefaultNSName = "ns.dns."
 
 var corednsRecord dns.A
 
-type InterfaceAddrser interface {
-	InterfaceAddrs() ([]net.Addr, error)
+type interfaceAddrser interface {
+	interfaceAddrs() ([]net.Addr, error)
 }
 
-type InterfaceAddrs struct{}
+type interfaceAddrs struct{}
 
-func (i InterfaceAddrs) InterfaceAddrs() ([]net.Addr, error) {
+func (i interfaceAddrs) interfaceAddrs() ([]net.Addr, error) {
 	return net.InterfaceAddrs()
 }
 
@@ -57,7 +57,7 @@ func (k *Kubernetes) CoreDNSRecord() dns.A {
 
 	if len(corednsRecord.Hdr.Name) == 0 || corednsRecord.A == nil {
 		// get local Pod IP
-		addrs, _ := k.interfaceAddrs.InterfaceAddrs()
+		addrs, _ := k.interfaceAddrs.interfaceAddrs()
 
 		for _, addr := range addrs {
 			ip, _, _ := net.ParseCIDR(addr.String())
