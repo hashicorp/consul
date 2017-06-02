@@ -48,7 +48,6 @@ type Command struct {
 	args              []string
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
-	agent             *Agent
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -470,13 +469,13 @@ func (cmd *Command) checkpointResults(results *checkpoint.CheckResponse, err err
 }
 
 // startupJoin is invoked to handle any joins specified to take place at start time
-func (cmd *Command) startupJoin(cfg *Config) error {
+func (cmd *Command) startupJoin(agent *Agent, cfg *Config) error {
 	if len(cfg.StartJoin) == 0 {
 		return nil
 	}
 
 	cmd.UI.Output("Joining cluster...")
-	n, err := cmd.agent.JoinLAN(cfg.StartJoin)
+	n, err := agent.JoinLAN(cfg.StartJoin)
 	if err != nil {
 		return err
 	}
@@ -486,13 +485,13 @@ func (cmd *Command) startupJoin(cfg *Config) error {
 }
 
 // startupJoinWan is invoked to handle any joins -wan specified to take place at start time
-func (cmd *Command) startupJoinWan(cfg *Config) error {
+func (cmd *Command) startupJoinWan(agent *Agent, cfg *Config) error {
 	if len(cfg.StartJoinWan) == 0 {
 		return nil
 	}
 
 	cmd.UI.Output("Joining -wan cluster...")
-	n, err := cmd.agent.JoinWAN(cfg.StartJoinWan)
+	n, err := agent.JoinWAN(cfg.StartJoinWan)
 	if err != nil {
 		return err
 	}
@@ -634,7 +633,6 @@ func (cmd *Command) Run(args []string) int {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
-	cmd.agent = agent
 
 	// Setup update checking
 	if !config.DisableUpdateCheck {
@@ -660,16 +658,16 @@ func (cmd *Command) Run(args []string) int {
 		}()
 	}
 
-	defer cmd.agent.Shutdown()
+	defer agent.Shutdown()
 
 	// Join startup nodes if specified
-	if err := cmd.startupJoin(config); err != nil {
+	if err := cmd.startupJoin(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
 
 	// Join startup nodes if specified
-	if err := cmd.startupJoinWan(config); err != nil {
+	if err := cmd.startupJoinWan(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
@@ -705,7 +703,7 @@ func (cmd *Command) Run(args []string) int {
 	}
 
 	// Let the agent know we've finished registration
-	cmd.agent.StartSync()
+	agent.StartSync()
 
 	cmd.UI.Output("Consul agent running!")
 	cmd.UI.Info(fmt.Sprintf("       Version: '%s'", cmd.HumanVersion))
@@ -718,19 +716,18 @@ func (cmd *Command) Run(args []string) int {
 	cmd.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	cmd.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		cmd.agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
+		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	cmd.UI.Info("")
 	cmd.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	// Wait for exit
-	return cmd.handleSignals(config)
+	return cmd.wait(agent, config)
 }
 
-// handleSignals blocks until we get an exit-causing signal
-func (cmd *Command) handleSignals(cfg *Config) int {
+// wait blocks until we get an exit-causing signal
+func (cmd *Command) wait(agent *Agent, cfg *Config) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
@@ -742,15 +739,15 @@ WAIT:
 	select {
 	case s := <-signalCh:
 		sig = s
-	case ch := <-cmd.agent.ReloadCh():
+	case ch := <-agent.ReloadCh():
 		sig = syscall.SIGHUP
 		reloadErrCh = ch
 	case <-cmd.ShutdownCh:
 		sig = os.Interrupt
-	case err := <-cmd.agent.RetryJoinCh():
+	case err := <-agent.RetryJoinCh():
 		cmd.UI.Error(err.Error())
 		return 1
-	case <-cmd.agent.ShutdownCh():
+	case <-agent.ShutdownCh():
 		// Agent is already shutdown!
 		return 0
 	}
@@ -764,7 +761,7 @@ WAIT:
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
-		conf, err := cmd.handleReload(cfg)
+		conf, err := cmd.handleReload(agent, cfg)
 		if conf != nil {
 			cfg = conf
 		}
@@ -795,7 +792,7 @@ WAIT:
 	gracefulCh := make(chan struct{})
 	cmd.UI.Output("Gracefully shutting down agent...")
 	go func() {
-		if err := cmd.agent.Leave(); err != nil {
+		if err := agent.Leave(); err != nil {
 			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
 			return
 		}
@@ -814,7 +811,7 @@ WAIT:
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (cmd *Command) handleReload(cfg *Config) (*Config, error) {
+func (cmd *Command) handleReload(agent *Agent, cfg *Config) (*Config, error) {
 	cmd.UI.Output("Reloading configuration...")
 	var errs error
 	newConf := cmd.readConfig()
@@ -837,35 +834,35 @@ func (cmd *Command) handleReload(cfg *Config) (*Config, error) {
 	}
 
 	// Bulk update the services and checks
-	cmd.agent.PauseSync()
-	defer cmd.agent.ResumeSync()
+	agent.PauseSync()
+	defer agent.ResumeSync()
 
 	// Snapshot the current state, and restore it afterwards
-	snap := cmd.agent.snapshotCheckState()
-	defer cmd.agent.restoreCheckState(snap)
+	snap := agent.snapshotCheckState()
+	defer agent.restoreCheckState(snap)
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
-	if err := cmd.agent.unloadServices(); err != nil {
+	if err := agent.unloadServices(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
 		return nil, errs
 	}
-	if err := cmd.agent.unloadChecks(); err != nil {
+	if err := agent.unloadChecks(); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
 		return nil, errs
 	}
-	cmd.agent.unloadMetadata()
+	agent.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
-	if err := cmd.agent.loadServices(newConf); err != nil {
+	if err := agent.loadServices(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
 		return nil, errs
 	}
-	if err := cmd.agent.loadChecks(newConf); err != nil {
+	if err := agent.loadChecks(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
 		return nil, errs
 	}
-	if err := cmd.agent.loadMetadata(newConf); err != nil {
+	if err := agent.loadMetadata(newConf); err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
 		return nil, errs
 	}
