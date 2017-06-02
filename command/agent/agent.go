@@ -1077,15 +1077,10 @@ func (a *Agent) Shutdown() error {
 		// no longer sufficient to check for an HTTPS server.
 		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 
-		// old behavior: just die
-		// srv.Close()
-
 		// graceful shutdown
-		// todo(fs): we are timing out every time. Need to find out why.
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)
-		<-ctx.Done()
 		if ctx.Err() == context.DeadlineExceeded {
 			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 		}
