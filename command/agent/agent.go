@@ -29,6 +29,8 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/watch"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
@@ -2245,4 +2247,66 @@ func (a *Agent) getEndpoint(endpoint string) string {
 		return override
 	}
 	return endpoint
+}
+
+func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
+	var errs error
+
+	// Bulk update the services and checks
+	a.PauseSync()
+	defer a.ResumeSync()
+
+	// Snapshot the current state, and restore it afterwards
+	snap := a.snapshotCheckState()
+	defer a.restoreCheckState(snap)
+
+	// First unload all checks, services, and metadata. This lets us begin the reload
+	// with a clean slate.
+	if err := a.unloadServices(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
+		return false, errs
+	}
+	if err := a.unloadChecks(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
+		return false, errs
+	}
+	a.unloadMetadata()
+
+	// Reload service/check definitions and metadata.
+	if err := a.loadServices(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
+		return false, errs
+	}
+	if err := a.loadChecks(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return false, errs
+	}
+	if err := a.loadMetadata(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
+		return false, errs
+	}
+
+	// Get the new client listener addr
+	httpAddr, err := newCfg.ClientListener(a.config.Addresses.HTTP, a.config.Ports.HTTP)
+	if err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Deregister the old watches
+	for _, wp := range a.config.WatchPlans {
+		wp.Stop()
+	}
+
+	// Register the new watches
+	for _, wp := range newCfg.WatchPlans {
+		go func(wp *watch.Plan) {
+			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
+			wp.LogOutput = a.LogOutput
+			if err := wp.Run(httpAddr.String()); err != nil {
+				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
+			}
+		}(wp)
+	}
+
+	return true, errs
 }

@@ -814,14 +814,14 @@ WAIT:
 func (cmd *Command) handleReload(agent *Agent, cfg *Config) (*Config, error) {
 	cmd.UI.Output("Reloading configuration...")
 	var errs error
-	newConf := cmd.readConfig()
-	if newConf == nil {
+	newCfg := cmd.readConfig()
+	if newCfg == nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed to reload configs"))
 		return cfg, errs
 	}
 
 	// Change the log level
-	minLevel := logutils.LogLevel(strings.ToUpper(newConf.LogLevel))
+	minLevel := logutils.LogLevel(strings.ToUpper(newCfg.LogLevel))
 	if logger.ValidateLevelFilter(minLevel, cmd.logFilter) {
 		cmd.logFilter.SetMinLevel(minLevel)
 	} else {
@@ -830,66 +830,14 @@ func (cmd *Command) handleReload(agent *Agent, cfg *Config) (*Config, error) {
 			minLevel, cmd.logFilter.Levels))
 
 		// Keep the current log level
-		newConf.LogLevel = cfg.LogLevel
+		newCfg.LogLevel = cfg.LogLevel
 	}
 
-	// Bulk update the services and checks
-	agent.PauseSync()
-	defer agent.ResumeSync()
-
-	// Snapshot the current state, and restore it afterwards
-	snap := agent.snapshotCheckState()
-	defer agent.restoreCheckState(snap)
-
-	// First unload all checks, services, and metadata. This lets us begin the reload
-	// with a clean slate.
-	if err := agent.unloadServices(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
-		return nil, errs
+	ok, errs := agent.ReloadConfig(newCfg)
+	if ok {
+		return newCfg, errs
 	}
-	if err := agent.unloadChecks(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
-		return nil, errs
-	}
-	agent.unloadMetadata()
-
-	// Reload service/check definitions and metadata.
-	if err := agent.loadServices(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
-		return nil, errs
-	}
-	if err := agent.loadChecks(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
-		return nil, errs
-	}
-	if err := agent.loadMetadata(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
-		return nil, errs
-	}
-
-	// Get the new client listener addr
-	httpAddr, err := newConf.ClientListener(cfg.Addresses.HTTP, cfg.Ports.HTTP)
-	if err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
-	}
-
-	// Deregister the old watches
-	for _, wp := range cfg.WatchPlans {
-		wp.Stop()
-	}
-
-	// Register the new watches
-	for _, wp := range newConf.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
-			wp.LogOutput = cmd.logOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-
-	return newConf, errs
+	return cfg, errs
 }
 
 func (cmd *Command) Synopsis() string {
