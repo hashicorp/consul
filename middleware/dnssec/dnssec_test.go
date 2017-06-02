@@ -113,6 +113,20 @@ func TestZoneSigningDelegation(t *testing.T) {
 	}
 }
 
+func TestSigningDname(t *testing.T) {
+	d, rm1, rm2 := newDnssec(t, []string{"miek.nl."})
+	defer rm1()
+	defer rm2()
+
+	m := testMsgDname()
+	state := request.Request{Req: m}
+	// We sign *everything* we see, also the synthesized CNAME.
+	m = d.Sign(state, "miek.nl.", time.Now().UTC())
+	if !section(m.Answer, 3) {
+		t.Errorf("answer section should have 3 sig")
+	}
+}
+
 func section(rss []dns.RR, nrSigs int) bool {
 	i := 0
 	for _, r := range rss {
@@ -153,6 +167,16 @@ func testDelegationMsg() *dns.Msg {
 		Extra: []dns.RR{
 			test.A("omval.tednet.nl.	3600	IN	A	185.49.141.42"),
 			test.AAAA("omval.tednet.nl.	3600	IN	AAAA	2a04:b900:0:100::42"),
+		},
+	}
+}
+
+func testMsgDname() *dns.Msg {
+	return &dns.Msg{
+		Answer: []dns.RR{
+			test.CNAME("a.dname.miek.nl.	1800	IN	CNAME	a.test.miek.nl."),
+			test.A("a.test.miek.nl.	1800	IN	A	139.162.196.78"),
+			test.DNAME("dname.miek.nl.	1800	IN	DNAME	test.miek.nl."),
 		},
 	}
 }

@@ -105,14 +105,20 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 
 		// If we see DNAME records, we should return those.
 		if dnamerrs := elem.Types(dns.TypeDNAME); dnamerrs != nil {
-			// Only one DNAME is allowed per name. We just pick the first one.
+			// Only one DNAME is allowed per name. We just pick the first one to synthesize from.
 			dname := dnamerrs[0]
 			if cname := synthesizeCNAME(state.Name(), dname.(*dns.DNAME)); cname != nil {
 				answer, ns, extra, rcode := z.searchCNAME(state, elem, []dns.RR{cname})
 
+				if do {
+					sigs := elem.Types(dns.TypeRRSIG)
+					sigs = signatureForSubType(sigs, dns.TypeDNAME)
+					dnamerrs = append(dnamerrs, sigs...)
+				}
+
 				// The relevant DNAME RR should be included in the answer section,
 				// if the DNAME is being employed as a substitution instruction.
-				answer = append([]dns.RR{dname}, answer...)
+				answer = append(dnamerrs, answer...)
 
 				return answer, ns, extra, rcode
 			}

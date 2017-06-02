@@ -43,6 +43,7 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 
 	mt, _ := response.Typify(req, time.Now().UTC()) // TODO(miek): need opt record here?
 	if mt == response.Delegation {
+		// TODO(miek): uh, signing DS record?!?!
 		return req
 	}
 
