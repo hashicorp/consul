@@ -630,6 +630,39 @@ func startupTelemetry(config *Config) error {
 	return nil
 }
 
+func (cmd *Command) registerWatches(config *Config) error {
+	var err error
+
+	var httpAddr net.Addr
+	if config.Ports.HTTP != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+	} else if config.Ports.HTTPS != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+	} else if len(config.WatchPlans) > 0 {
+		return fmt.Errorf("Error: cannot use watches if both HTTP and HTTPS are disabled")
+	}
+	if err != nil {
+		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Register the watches
+	for _, wp := range config.WatchPlans {
+		go func(wp *watch.Plan) {
+			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
+			wp.LogOutput = cmd.logOutput
+			addr := httpAddr.String()
+			// If it's a unix socket, prefix with unix:// so the client initializes correctly
+			if httpAddr.Network() == "unix" {
+				addr = "unix://" + addr
+			}
+			if err := wp.Run(addr); err != nil {
+				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
+			}
+		}(wp)
+	}
+	return nil
+}
+
 func (cmd *Command) Run(args []string) int {
 	cmd.UI = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -696,34 +729,9 @@ func (cmd *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Get the new client http listener addr
-	var httpAddr net.Addr
-	if config.Ports.HTTP != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-	} else if config.Ports.HTTPS != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
-	} else if len(config.WatchPlans) > 0 {
-		cmd.UI.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
+	if err := cmd.registerWatches(config); err != nil {
+		cmd.UI.Error(err.Error())
 		return 1
-	}
-	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
-	}
-
-	// Register the watches
-	for _, wp := range config.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
-			wp.LogOutput = cmd.logOutput
-			addr := httpAddr.String()
-			// If it's a unix socket, prefix with unix:// so the client initializes correctly
-			if httpAddr.Network() == "unix" {
-				addr = "unix://" + addr
-			}
-			if err := wp.Run(addr); err != nil {
-				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
-			}
-		}(wp)
 	}
 
 	// Let the agent know we've finished registration
