@@ -58,7 +58,8 @@ fmt:
 .PHONY: lint
 lint: deps
 	## run go lint, suggestion only (not enforced)
-	@test -z "$$(golint ./... | grep -v vendor/ | grep -v ".pb.go:" | grep -vE "context\.Context should be the first parameter of a function" | tee /dev/stderr)"
+	@test -z "$$(find . -type d | grep -vE '(/vendor|^\.$$|/.git|/.travis)' | grep -vE '(^\./pb)' | xargs golint \
+		| grep -vE "context\.Context should be the first parameter of a function" | tee /dev/stderr)"
 
 .PHONY: distclean
 distclean: clean
