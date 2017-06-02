@@ -465,6 +465,29 @@ func (cmd *Command) checkpointResults(results *checkpoint.CheckResponse, err err
 	}
 }
 
+func (cmd *Command) startupUpdateCheck(config *Config) {
+	version := config.Version
+	if config.VersionPrerelease != "" {
+		version += fmt.Sprintf("-%s", config.VersionPrerelease)
+	}
+	updateParams := &checkpoint.CheckParams{
+		Product: "consul",
+		Version: version,
+	}
+	if !config.DisableAnonymousSignature {
+		updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
+	}
+
+	// Schedule a periodic check with expected interval of 24 hours
+	checkpoint.CheckInterval(updateParams, 24*time.Hour, cmd.checkpointResults)
+
+	// Do an immediate check within the next 30 seconds
+	go func() {
+		time.Sleep(lib.RandomStagger(30 * time.Second))
+		cmd.checkpointResults(checkpoint.Check(updateParams))
+	}()
+}
+
 // startupJoin is invoked to handle any joins specified to take place at start time
 func (cmd *Command) startupJoin(agent *Agent, cfg *Config) error {
 	if len(cfg.StartJoin) == 0 {
@@ -633,26 +656,7 @@ func (cmd *Command) Run(args []string) int {
 
 	// Setup update checking
 	if !config.DisableUpdateCheck {
-		version := config.Version
-		if config.VersionPrerelease != "" {
-			version += fmt.Sprintf("-%s", config.VersionPrerelease)
-		}
-		updateParams := &checkpoint.CheckParams{
-			Product: "consul",
-			Version: version,
-		}
-		if !config.DisableAnonymousSignature {
-			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
-		}
-
-		// Schedule a periodic check with expected interval of 24 hours
-		checkpoint.CheckInterval(updateParams, 24*time.Hour, cmd.checkpointResults)
-
-		// Do an immediate check within the next 30 seconds
-		go func() {
-			time.Sleep(lib.RandomStagger(30 * time.Second))
-			cmd.checkpointResults(checkpoint.Check(updateParams))
-		}()
+		cmd.startupUpdateCheck(config)
 	}
 
 	defer agent.Shutdown()
