@@ -420,7 +420,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 	if filterList, ok := req.URL.Query()["node-meta"]; ok {
 		filters := make(map[string]string)
 		for _, filter := range filterList {
-			key, value := parseMetaPair(filter)
+			key, value := ParseMetaPair(filter)
 			filters[key] = value
 		}
 		return filters
