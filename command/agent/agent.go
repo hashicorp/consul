@@ -1817,6 +1817,10 @@ func (a *Agent) purgeCheckState(checkID types.CheckID) error {
 	return err
 }
 
+func (a *Agent) GossipEncrypted() bool {
+	return a.delegate.Encrypted()
+}
+
 // Stats is used to get various debugging state from the sub-systems
 func (a *Agent) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
