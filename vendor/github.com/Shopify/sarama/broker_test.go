@@ -284,6 +284,19 @@ var brokerTestTable = []struct {
 				t.Error("DescribeGroups request got no response!")
 			}
 		}},
+
+	{"ApiVersionsRequest",
+		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		func(t *testing.T, broker *Broker) {
+			request := ApiVersionsRequest{}
+			response, err := broker.ApiVersions(&request)
+			if err != nil {
+				t.Error(err)
+			}
+			if response == nil {
+				t.Error("ApiVersions request got no response!")
+			}
+		}},
 }
 
 func validateBrokerMetrics(t *testing.T, broker *Broker, mockBrokerMetrics brokerMetrics) {

@@ -46,6 +46,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/transport"
 )
 
@@ -99,21 +100,21 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *transport.Stream) {
 			return
 		}
 		if v == "weird error" {
-			h.t.WriteStatus(s, codes.Internal, weirdError)
+			h.t.WriteStatus(s, status.New(codes.Internal, weirdError))
 			return
 		}
 		if v == "canceled" {
 			canceled++
-			h.t.WriteStatus(s, codes.Internal, "")
+			h.t.WriteStatus(s, status.New(codes.Internal, ""))
 			return
 		}
 		if v == "port" {
-			h.t.WriteStatus(s, codes.Internal, h.port)
+			h.t.WriteStatus(s, status.New(codes.Internal, h.port))
 			return
 		}
 
 		if v != expectedRequest {
-			h.t.WriteStatus(s, codes.Internal, strings.Repeat("A", sizeLargeErr))
+			h.t.WriteStatus(s, status.New(codes.Internal, strings.Repeat("A", sizeLargeErr)))
 			return
 		}
 	}
@@ -124,7 +125,7 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *transport.Stream) {
 		return
 	}
 	h.t.Write(s, reply, &transport.Options{})
-	h.t.WriteStatus(s, codes.OK, "")
+	h.t.WriteStatus(s, status.New(codes.OK, ""))
 }
 
 type server struct {
@@ -239,7 +240,7 @@ func TestInvokeLargeErr(t *testing.T) {
 	var reply string
 	req := "hello"
 	err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc)
-	if _, ok := err.(*rpcError); !ok {
+	if _, ok := status.FromError(err); !ok {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) receives non rpc error.")
 	}
 	if Code(err) != codes.Internal || len(ErrorDesc(err)) != sizeLargeErr {
@@ -255,7 +256,7 @@ func TestInvokeErrorSpecialChars(t *testing.T) {
 	var reply string
 	req := "weird error"
 	err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc)
-	if _, ok := err.(*rpcError); !ok {
+	if _, ok := status.FromError(err); !ok {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) receives non rpc error.")
 	}
 	if got, want := ErrorDesc(err), weirdError; got != want {

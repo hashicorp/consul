@@ -17,6 +17,7 @@ func TestPeerTags(t *testing.T) {
 	tracer := mocktracer.New()
 	span := tracer.StartSpan("my-trace")
 	ext.PeerService.Set(span, "my-service")
+	ext.PeerAddress.Set(span, "my-hostname:8080")
 	ext.PeerHostname.Set(span, "my-hostname")
 	ext.PeerHostIPv4.Set(span, uint32(127<<24|1))
 	ext.PeerHostIPv6.Set(span, "::")
@@ -29,6 +30,7 @@ func TestPeerTags(t *testing.T) {
 	rawSpan := tracer.FinishedSpans()[0]
 	assert.Equal(t, map[string]interface{}{
 		"peer.service":  "my-service",
+		"peer.address":  "my-hostname:8080",
 		"peer.hostname": "my-hostname",
 		"peer.ipv4":     uint32(127<<24 | 1),
 		"peer.ipv6":     "::",
@@ -54,6 +56,25 @@ func TestHTTPTags(t *testing.T) {
 		"http.method":      "GET",
 		"http.status_code": uint16(301),
 		"span.kind":        ext.SpanKindRPCServerEnum,
+	}, rawSpan.Tags())
+}
+
+func TestDBTags(t *testing.T) {
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("my-trace", ext.SpanKindRPCClient)
+	ext.DBInstance.Set(span, "127.0.0.1:3306/customers")
+	ext.DBStatement.Set(span, "SELECT * FROM user_table")
+	ext.DBType.Set(span, "sql")
+	ext.DBUser.Set(span, "customer_user")
+	span.Finish()
+
+	rawSpan := tracer.FinishedSpans()[0]
+	assert.Equal(t, map[string]interface{}{
+		"db.instance":  "127.0.0.1:3306/customers",
+		"db.statement": "SELECT * FROM user_table",
+		"db.type":      "sql",
+		"db.user":      "customer_user",
+		"span.kind":    ext.SpanKindRPCClientEnum,
 	}, rawSpan.Tags())
 }
 
@@ -98,4 +119,30 @@ func TestRPCServerOption(t *testing.T) {
 	assert.Equal(t, map[string]string{
 		"bag": "gage",
 	}, rawSpan.Context().(mocktracer.MockSpanContext).Baggage)
+}
+
+func TestMessageBusProducerTags(t *testing.T) {
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("my-trace", ext.SpanKindProducer)
+	ext.MessageBusDestination.Set(span, "topic name")
+	span.Finish()
+
+	rawSpan := tracer.FinishedSpans()[0]
+	assert.Equal(t, map[string]interface{}{
+		"message_bus.destination": "topic name",
+		"span.kind":               ext.SpanKindProducerEnum,
+	}, rawSpan.Tags())
+}
+
+func TestMessageBusConsumerTags(t *testing.T) {
+	tracer := mocktracer.New()
+	span := tracer.StartSpan("my-trace", ext.SpanKindConsumer)
+	ext.MessageBusDestination.Set(span, "topic name")
+	span.Finish()
+
+	rawSpan := tracer.FinishedSpans()[0]
+	assert.Equal(t, map[string]interface{}{
+		"message_bus.destination": "topic name",
+		"span.kind":               ext.SpanKindConsumerEnum,
+	}, rawSpan.Tags())
 }

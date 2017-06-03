@@ -11,13 +11,13 @@ func (r *SaslHandshakeResponse) encode(pe packetEncoder) error {
 }
 
 func (r *SaslHandshakeResponse) decode(pd packetDecoder, version int16) error {
-	if kerr, err := pd.getInt16(); err != nil {
+	kerr, err := pd.getInt16()
+	if err != nil {
 		return err
-	} else {
-		r.Err = KError(kerr)
 	}
 
-	var err error
+	r.Err = KError(kerr)
+
 	if r.EnabledMechanisms, err = pd.getStringArray(); err != nil {
 		return err
 	}

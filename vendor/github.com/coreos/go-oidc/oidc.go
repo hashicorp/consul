@@ -232,7 +232,8 @@ type IDToken struct {
 
 	// Initial nonce provided during the authentication redirect.
 	//
-	// If present, this package ensures this is a valid nonce.
+	// This package does NOT provided verification on the value of this field
+	// and it's the user's responsibility to ensure it contains a valid value.
 	Nonce string
 
 	// Raw payload of the id_token.
@@ -285,13 +286,6 @@ func (a *audience) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (a audience) MarshalJSON() ([]byte, error) {
-	if len(a) == 1 {
-		return json.Marshal(a[0])
-	}
-	return json.Marshal([]string(a))
-}
-
 type jsonTime time.Time
 
 func (j *jsonTime) UnmarshalJSON(b []byte) error {
@@ -312,8 +306,4 @@ func (j *jsonTime) UnmarshalJSON(b []byte) error {
 	}
 	*j = jsonTime(time.Unix(unix, 0))
 	return nil
-}
-
-func (j jsonTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(j).Unix())
 }

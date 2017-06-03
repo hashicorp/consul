@@ -17,24 +17,23 @@ import (
 // scope.
 type AsyncProducer interface {
 
-	// AsyncClose triggers a shutdown of the producer, flushing any messages it may
-	// have buffered. The shutdown has completed when both the Errors and Successes
-	// channels have been closed. When calling AsyncClose, you *must* continue to
-	// read from those channels in order to drain the results of any messages in
-	// flight.
+	// AsyncClose triggers a shutdown of the producer. The shutdown has completed
+	// when both the Errors and Successes channels have been closed. When calling
+	// AsyncClose, you *must* continue to read from those channels in order to
+	// drain the results of any messages in flight.
 	AsyncClose()
 
-	// Close shuts down the producer and flushes any messages it may have buffered.
-	// You must call this function before a producer object passes out of scope, as
-	// it may otherwise leak memory. You must call this before calling Close on the
-	// underlying client.
+	// Close shuts down the producer and waits for any buffered messages to be
+	// flushed. You must call this function before a producer object passes out of
+	// scope, as it may otherwise leak memory. You must call this before calling
+	// Close on the underlying client.
 	Close() error
 
 	// Input is the input channel for the user to write messages to that they
 	// wish to send.
 	Input() chan<- *ProducerMessage
 
-	// Successes is the success output channel back to the user when AckSuccesses is
+	// Successes is the success output channel back to the user when Return.Successes is
 	// enabled. If Return.Successes is true, you MUST read from this channel or the
 	// Producer will deadlock. It is suggested that you send and read messages
 	// together in a single select statement.
@@ -200,7 +199,7 @@ func (p *asyncProducer) Close() error {
 
 	if p.conf.Producer.Return.Successes {
 		go withRecover(func() {
-			for _ = range p.successes {
+			for range p.successes {
 			}
 		})
 	}

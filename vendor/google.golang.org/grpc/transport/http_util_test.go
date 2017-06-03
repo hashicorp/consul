@@ -35,6 +35,7 @@ package transport
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -140,6 +141,50 @@ func TestDecodeGrpcMessage(t *testing.T) {
 		actual := decodeGrpcMessage(tt.input)
 		if tt.expected != actual {
 			t.Errorf("dncodeGrpcMessage(%v) = %v, want %v", tt.input, actual, tt.expected)
+		}
+	}
+}
+
+const binaryValue = string(128)
+
+func TestEncodeMetadataHeader(t *testing.T) {
+	for _, test := range []struct {
+		// input
+		kin string
+		vin string
+		// output
+		vout string
+	}{
+		{"key", "abc", "abc"},
+		{"KEY", "abc", "abc"},
+		{"key-bin", "abc", "YWJj"},
+		{"key-bin", binaryValue, "woA"},
+	} {
+		v := encodeMetadataHeader(test.kin, test.vin)
+		if !reflect.DeepEqual(v, test.vout) {
+			t.Fatalf("encodeMetadataHeader(%q, %q) = %q, want %q", test.kin, test.vin, v, test.vout)
+		}
+	}
+}
+
+func TestDecodeMetadataHeader(t *testing.T) {
+	for _, test := range []struct {
+		// input
+		kin string
+		vin string
+		// output
+		vout string
+		err  error
+	}{
+		{"a", "abc", "abc", nil},
+		{"key-bin", "Zm9vAGJhcg==", "foo\x00bar", nil},
+		{"key-bin", "Zm9vAGJhcg", "foo\x00bar", nil},
+		{"key-bin", "woA=", binaryValue, nil},
+		{"a", "abc,efg", "abc,efg", nil},
+	} {
+		v, err := decodeMetadataHeader(test.kin, test.vin)
+		if !reflect.DeepEqual(v, test.vout) || !reflect.DeepEqual(err, test.err) {
+			t.Fatalf("decodeMetadataHeader(%q, %q) = %q, %v, want %q, %v", test.kin, test.vin, v, err, test.vout, test.err)
 		}
 	}
 }

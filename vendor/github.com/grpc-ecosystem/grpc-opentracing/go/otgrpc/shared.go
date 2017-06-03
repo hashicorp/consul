@@ -32,11 +32,7 @@ func (w metadataReaderWriter) Set(key, val string) {
 func (w metadataReaderWriter) ForeachKey(handler func(key, val string) error) error {
 	for k, vals := range w.MD {
 		for _, v := range vals {
-			if dk, dv, err := metadata.DecodeKeyValue(k, v); err == nil {
-				if err = handler(dk, dv); err != nil {
-					return err
-				}
-			} else {
+			if err := handler(k, v); err != nil {
 				return err
 			}
 		}

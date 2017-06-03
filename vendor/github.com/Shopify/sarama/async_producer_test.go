@@ -18,7 +18,7 @@ func closeProducer(t *testing.T, p AsyncProducer) {
 
 	wg.Add(2)
 	go func() {
-		for _ = range p.Successes() {
+		for range p.Successes() {
 			t.Error("Unexpected message on Successes()")
 		}
 		wg.Done()
@@ -808,7 +808,7 @@ func ExampleAsyncProducer_goroutines() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for _ = range producer.Successes() {
+		for range producer.Successes() {
 			successes++
 		}
 	}()

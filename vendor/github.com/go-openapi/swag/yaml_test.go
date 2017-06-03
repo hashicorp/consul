@@ -21,6 +21,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,34 +58,35 @@ func TestLoadHTTPBytes(t *testing.T) {
 
 func TestYAMLToJSON(t *testing.T) {
 
-	data := make(map[interface{}]interface{})
-	data[1] = "the int key value"
-	data["name"] = "a string value"
-	data["y"] = "some value"
+	sd := `---
+1: the int key value
+name: a string value
+'y': some value
+`
+	var data yaml.MapSlice
+	yaml.Unmarshal([]byte(sd), &data)
 
 	d, err := YAMLToJSON(data)
 	if assert.NoError(t, err) {
 		assert.Equal(t, `{"1":"the int key value","name":"a string value","y":"some value"}`, string(d))
 	}
 
-	data[true] = "the bool value"
+	data = append(data, yaml.MapItem{Key: true, Value: "the bool value"})
 	d, err = YAMLToJSON(data)
 	assert.Error(t, err)
 	assert.Nil(t, d)
 
-	delete(data, true)
+	data = data[:len(data)-1]
 
-	tag := make(map[interface{}]interface{})
-	tag["name"] = "tag name"
-	data["tag"] = tag
+	tag := yaml.MapSlice{{Key: "name", Value: "tag name"}}
+	data = append(data, yaml.MapItem{Key: "tag", Value: tag})
 
 	d, err = YAMLToJSON(data)
 	assert.NoError(t, err)
-	assert.Equal(t, `{"1":"the int key value","name":"a string value","tag":{"name":"tag name"},"y":"some value"}`, string(d))
+	assert.Equal(t, `{"1":"the int key value","name":"a string value","y":"some value","tag":{"name":"tag name"}}`, string(d))
 
-	tag = make(map[interface{}]interface{})
-	tag[true] = "bool tag name"
-	data["tag"] = tag
+	tag = yaml.MapSlice{{Key: true, Value: "bool tag name"}}
+	data = append(data[:len(data)-1], yaml.MapItem{Key: "tag", Value: tag})
 
 	d, err = YAMLToJSON(data)
 	assert.Error(t, err)

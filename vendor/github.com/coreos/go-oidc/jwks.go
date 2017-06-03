@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,147 +39,158 @@ type remoteKeySet struct {
 	// guard all other fields
 	mu sync.Mutex
 
-	// inflightCtx suppresses parallel execution of updateKeys and allows
+	// inflight suppresses parallel execution of updateKeys and allows
 	// multiple goroutines to wait for its result.
-	// Its Err() method returns any errors encountered during updateKeys.
-	//
-	// If nil, there is no inflight updateKeys request.
-	inflightCtx *inflight
+	inflight *inflight
 
 	// A set of cached keys and their expiry.
 	cachedKeys []jose.JSONWebKey
 	expiry     time.Time
 }
 
-// inflight is used to wait on some in-flight request from multiple goroutines
+// inflight is used to wait on some in-flight request from multiple goroutines.
 type inflight struct {
-	done chan struct{}
+	doneCh chan struct{}
+
+	keys []jose.JSONWebKey
 	err  error
 }
 
-// Done returns a channel that is closed when the inflight request finishes.
-func (i *inflight) Done() <-chan struct{} {
-	return i.done
+func newInflight() *inflight {
+	return &inflight{doneCh: make(chan struct{})}
 }
 
-// Err returns any error encountered during request execution. May be nil.
-func (i *inflight) Err() error {
-	return i.err
+// wait returns a channel that multiple goroutines can receive on. Once it returns
+// a value, the inflight request is done and result() can be inspected.
+func (i *inflight) wait() <-chan struct{} {
+	return i.doneCh
 }
 
-// Cancel signals completion of the inflight request with error err.
-// Must be called only once for particular inflight instance.
-func (i *inflight) Cancel(err error) {
+// done can only be called by a single goroutine. It records the result of the
+// inflight request and signals other goroutines that the result is safe to
+// inspect.
+func (i *inflight) done(keys []jose.JSONWebKey, err error) {
+	i.keys = keys
 	i.err = err
-	close(i.done)
+	close(i.doneCh)
 }
 
-func (r *remoteKeySet) keysWithIDFromCache(keyIDs []string) ([]jose.JSONWebKey, bool) {
-	r.mu.Lock()
-	keys, expiry := r.cachedKeys, r.expiry
-	r.mu.Unlock()
+// result cannot be called until the wait() channel has returned a value.
+func (i *inflight) result() ([]jose.JSONWebKey, error) {
+	return i.keys, i.err
+}
 
-	// Have the keys expired?
-	if expiry.Add(keysExpiryDelta).Before(r.now()) {
-		return nil, false
+func (r *remoteKeySet) verify(ctx context.Context, jws *jose.JSONWebSignature) ([]byte, error) {
+	// We don't support JWTs signed with multiple signatures.
+	keyID := ""
+	for _, sig := range jws.Signatures {
+		keyID = sig.Header.KeyID
+		break
 	}
 
-	var signingKeys []jose.JSONWebKey
+	keys, expiry := r.keysFromCache()
+
+	// Don't check expiry yet. This optimizes for when the provider is unavailable.
 	for _, key := range keys {
-		if contains(keyIDs, key.KeyID) {
-			signingKeys = append(signingKeys, key)
+		if keyID == "" || key.KeyID == keyID {
+			if payload, err := jws.Verify(&key); err == nil {
+				return payload, nil
+			}
 		}
 	}
 
-	if len(signingKeys) == 0 {
-		// Are the keys about to expire?
-		if r.now().Add(keysExpiryDelta).After(expiry) {
-			return nil, false
-		}
+	if !r.now().Add(keysExpiryDelta).After(expiry) {
+		// Keys haven't expired, don't refresh.
+		return nil, errors.New("failed to verify id token signature")
 	}
 
-	return signingKeys, true
+	keys, err := r.keysFromRemote(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetching keys %v", err)
+	}
+
+	for _, key := range keys {
+		if keyID == "" || key.KeyID == keyID {
+			if payload, err := jws.Verify(&key); err == nil {
+				return payload, nil
+			}
+		}
+	}
+	return nil, errors.New("failed to verify id token signature")
 }
-func (r *remoteKeySet) keysWithID(ctx context.Context, keyIDs []string) ([]jose.JSONWebKey, error) {
-	keys, ok := r.keysWithIDFromCache(keyIDs)
-	if ok {
-		return keys, nil
+
+func (r *remoteKeySet) keysFromCache() (keys []jose.JSONWebKey, expiry time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.cachedKeys, r.expiry
+}
+
+// keysFromRemote syncs the key set from the remote set, records the values in the
+// cache, and returns the key set.
+func (r *remoteKeySet) keysFromRemote(ctx context.Context) ([]jose.JSONWebKey, error) {
+	// Need to lock to inspect the inflight request field.
+	r.mu.Lock()
+	// If there's not a current inflight request, create one.
+	if r.inflight == nil {
+		r.inflight = newInflight()
+
+		// This goroutine has exclusive ownership over the current inflight
+		// request. It releases the resource by nil'ing the inflight field
+		// once the goroutine is done.
+		go func() {
+			// Sync keys and finish inflight when that's done.
+			keys, expiry, err := r.updateKeys()
+
+			r.inflight.done(keys, err)
+
+			// Lock to update the keys and indicate that there is no longer an
+			// inflight request.
+			r.mu.Lock()
+			defer r.mu.Unlock()
+
+			if err == nil {
+				r.cachedKeys = keys
+				r.expiry = expiry
+			}
+
+			// Free inflight so a different request can run.
+			r.inflight = nil
+		}()
 	}
-
-	var inflightCtx *inflight
-	func() {
-		r.mu.Lock()
-		defer r.mu.Unlock()
-
-		// If there's not a current inflight request, create one.
-		if r.inflightCtx == nil {
-			inflightCtx := &inflight{make(chan struct{}), nil}
-			r.inflightCtx = inflightCtx
-
-			go func() {
-				// TODO(ericchiang): Upstream Kubernetes request that we recover every time
-				// we spawn a goroutine, because panics in a goroutine will bring down the
-				// entire program. There's no way to recover from another goroutine's panic.
-				//
-				// Most users actually want to let the panic propagate and bring down the
-				// program because it implies some unrecoverable state.
-				//
-				// Add a context key to allow the recover behavior.
-				//
-				// See: https://github.com/coreos/go-oidc/issues/89
-
-				// Sync keys and close inflightCtx when that's done.
-				// Use the remoteKeySet's context instead of the requests context
-				// because a re-sync is unique to the keys set and will span multiple
-				// requests.
-				inflightCtx.Cancel(r.updateKeys(r.ctx))
-
-				r.mu.Lock()
-				defer r.mu.Unlock()
-				r.inflightCtx = nil
-			}()
-		}
-
-		inflightCtx = r.inflightCtx
-	}()
+	inflight := r.inflight
+	r.mu.Unlock()
 
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-inflightCtx.Done():
-		if err := inflightCtx.Err(); err != nil {
-			return nil, err
-		}
+	case <-inflight.wait():
+		return inflight.result()
 	}
-
-	// Since we've just updated keys, we don't care about the cache miss.
-	keys, _ = r.keysWithIDFromCache(keyIDs)
-	return keys, nil
 }
 
-func (r *remoteKeySet) updateKeys(ctx context.Context) error {
+func (r *remoteKeySet) updateKeys() ([]jose.JSONWebKey, time.Time, error) {
 	req, err := http.NewRequest("GET", r.jwksURL, nil)
 	if err != nil {
-		return fmt.Errorf("oidc: can't create request: %v", err)
+		return nil, time.Time{}, fmt.Errorf("oidc: can't create request: %v", err)
 	}
 
-	resp, err := doRequest(ctx, req)
+	resp, err := doRequest(r.ctx, req)
 	if err != nil {
-		return fmt.Errorf("oidc: get keys failed %v", err)
+		return nil, time.Time{}, fmt.Errorf("oidc: get keys failed %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("oidc: read response body: %v", err)
+		return nil, time.Time{}, fmt.Errorf("oidc: read response body: %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("oidc: get keys failed: %s %s", resp.Status, body)
+		return nil, time.Time{}, fmt.Errorf("oidc: get keys failed: %s %s", resp.Status, body)
 	}
 
 	var keySet jose.JSONWebKeySet
 	if err := json.Unmarshal(body, &keySet); err != nil {
-		return fmt.Errorf("oidc: failed to decode keys: %v %s", err, body)
+		return nil, time.Time{}, fmt.Errorf("oidc: failed to decode keys: %v %s", err, body)
 	}
 
 	// If the server doesn't provide cache control headers, assume the
@@ -189,11 +201,5 @@ func (r *remoteKeySet) updateKeys(ctx context.Context) error {
 	if err == nil && e.After(expiry) {
 		expiry = e
 	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.cachedKeys = keySet.Keys
-	r.expiry = expiry
-
-	return nil
+	return keySet.Keys, expiry, nil
 }

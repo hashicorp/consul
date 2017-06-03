@@ -10,7 +10,7 @@
 ## "ignored" lists a set of packages (not projects) that are ignored when
 ## dep statically analyzes source code. Ignored packages can be in this project,
 ## or in a dependency.
-# ignored = ["github.com/user/project/badpkg"]
+ignored = ["github.com/mholt/caddy", "github.com/mholt/caddy/caddyfile", "github.com/mholt/caddy/startupshutdown"]
 
 ## Dependencies define constraints on dependent projects. They are respected by
 ## dep whether coming from the Gopkg.toml of the current project or a dependency.

@@ -76,17 +76,17 @@ func TestSyncProducerBatch(t *testing.T) {
 	}
 
 	err = producer.SendMessages([]*ProducerMessage{
-		&ProducerMessage{
+		{
 			Topic:    "my_topic",
 			Value:    StringEncoder(TestMessage),
 			Metadata: "test",
 		},
-		&ProducerMessage{
+		{
 			Topic:    "my_topic",
 			Value:    StringEncoder(TestMessage),
 			Metadata: "test",
 		},
-		&ProducerMessage{
+		{
 			Topic:    "my_topic",
 			Value:    StringEncoder(TestMessage),
 			Metadata: "test",

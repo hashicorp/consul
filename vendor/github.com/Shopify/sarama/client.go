@@ -17,6 +17,9 @@ type Client interface {
 	// altered after it has been created.
 	Config() *Config
 
+	// Brokers returns the current set of active brokers as retrieved from cluster metadata.
+	Brokers() []*Broker
+
 	// Topics returns the set of available topics as retrieved from cluster metadata.
 	Topics() ([]string, error)
 
@@ -34,6 +37,11 @@ type Client interface {
 
 	// Replicas returns the set of all replica IDs for the given partition.
 	Replicas(topic string, partitionID int32) ([]int32, error)
+
+	// InSyncReplicas returns the set of all in-sync replica IDs for the given
+	// partition. In-sync replicas are replicas which are fully caught up with
+	// the partition leader.
+	InSyncReplicas(topic string, partitionID int32) ([]int32, error)
 
 	// RefreshMetadata takes a list of topics and queries the cluster to refresh the
 	// available metadata for those topics. If no topics are provided, it will refresh
@@ -133,7 +141,7 @@ func NewClient(addrs []string, conf *Config) (Client, error) {
 		client.seedBrokers = append(client.seedBrokers, NewBroker(addrs[index]))
 	}
 
-	// do an initial fetch of all cluster metadata by specifing an empty list of topics
+	// do an initial fetch of all cluster metadata by specifying an empty list of topics
 	err := client.RefreshMetadata()
 	switch err {
 	case nil:
@@ -155,6 +163,16 @@ func NewClient(addrs []string, conf *Config) (Client, error) {
 
 func (client *client) Config() *Config {
 	return client.conf
+}
+
+func (client *client) Brokers() []*Broker {
+	client.lock.RLock()
+	defer client.lock.RUnlock()
+	brokers := make([]*Broker, 0)
+	for _, broker := range client.brokers {
+		brokers = append(brokers, broker)
+	}
+	return brokers
 }
 
 func (client *client) Close() error {
@@ -280,6 +298,31 @@ func (client *client) Replicas(topic string, partitionID int32) ([]int32, error)
 		return nil, metadata.Err
 	}
 	return dupeAndSort(metadata.Replicas), nil
+}
+
+func (client *client) InSyncReplicas(topic string, partitionID int32) ([]int32, error) {
+	if client.Closed() {
+		return nil, ErrClosedClient
+	}
+
+	metadata := client.cachedMetadata(topic, partitionID)
+
+	if metadata == nil {
+		err := client.RefreshMetadata(topic)
+		if err != nil {
+			return nil, err
+		}
+		metadata = client.cachedMetadata(topic, partitionID)
+	}
+
+	if metadata == nil {
+		return nil, ErrUnknownTopicOrPartition
+	}
+
+	if metadata.Err == ErrReplicaNotAvailable {
+		return nil, metadata.Err
+	}
+	return dupeAndSort(metadata.Isr), nil
 }
 
 func (client *client) Leader(topic string, partitionID int32) (*Broker, error) {
@@ -592,12 +635,12 @@ func (client *client) tryRefreshMetadata(topics []string, attemptsRemaining int)
 		switch err.(type) {
 		case nil:
 			// valid response, use it
-			if shouldRetry, err := client.updateMetadata(response); shouldRetry {
+			shouldRetry, err := client.updateMetadata(response)
+			if shouldRetry {
 				Logger.Println("client/metadata found some partitions to be leaderless")
 				return retry(err) // note: err can be nil
-			} else {
-				return err
 			}
+			return err
 
 		case PacketEncodingError:
 			// didn't even send, return the error

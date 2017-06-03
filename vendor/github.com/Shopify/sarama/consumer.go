@@ -289,10 +289,11 @@ type PartitionConsumer interface {
 }
 
 type partitionConsumer struct {
-	consumer  *consumer
-	conf      *Config
-	topic     string
-	partition int32
+	highWaterMarkOffset int64 // must be at the top of the struct because https://golang.org/pkg/sync/atomic/#pkg-note-BUG
+	consumer            *consumer
+	conf                *Config
+	topic               string
+	partition           int32
 
 	broker   *brokerConsumer
 	messages chan *ConsumerMessage
@@ -302,9 +303,8 @@ type partitionConsumer struct {
 	trigger, dying chan none
 	responseResult error
 
-	fetchSize           int32
-	offset              int64
-	highWaterMarkOffset int64
+	fetchSize int32
+	offset    int64
 }
 
 var errTimedOut = errors.New("timed out feeding messages to the user") // not user-facing
@@ -324,7 +324,7 @@ func (child *partitionConsumer) sendError(err error) {
 }
 
 func (child *partitionConsumer) dispatcher() {
-	for _ = range child.trigger {
+	for range child.trigger {
 		select {
 		case <-child.dying:
 			close(child.trigger)
@@ -411,7 +411,7 @@ func (child *partitionConsumer) Close() error {
 	child.AsyncClose()
 
 	go withRecover(func() {
-		for _ = range child.messages {
+		for range child.messages {
 			// drain
 		}
 	})

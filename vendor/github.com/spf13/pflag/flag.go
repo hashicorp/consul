@@ -319,6 +319,22 @@ func (f *FlagSet) Lookup(name string) *Flag {
 	return f.lookup(f.normalizeFlagName(name))
 }
 
+// ShorthandLookup returns the Flag structure of the short handed flag,
+// returning nil if none exists.
+// It panics, if len(name) > 1.
+func (f *FlagSet) ShorthandLookup(name string) *Flag {
+	if name == "" {
+		return nil
+	}
+	if len(name) > 1 {
+		msg := fmt.Sprintf("can not look up shorthand which is more than one ASCII character: %q", name)
+		fmt.Fprintf(f.out(), msg)
+		panic(msg)
+	}
+	c := name[0]
+	return f.shorthands[c]
+}
+
 // lookup returns the Flag structure of the named flag, returning nil if none exists.
 func (f *FlagSet) lookup(name NormalizedName) *Flag {
 	return f.formal[name]
@@ -397,6 +413,12 @@ func (f *FlagSet) MarkHidden(name string) error {
 // returning nil if none exists.
 func Lookup(name string) *Flag {
 	return CommandLine.Lookup(name)
+}
+
+// ShorthandLookup returns the Flag structure of the short handed flag,
+// returning nil if none exists.
+func ShorthandLookup(name string) *Flag {
+	return CommandLine.ShorthandLookup(name)
 }
 
 // Set sets the value of the named flag.
@@ -766,7 +788,6 @@ func (f *FlagSet) VarP(value Value, name, shorthand, usage string) {
 
 // AddFlag will add the flag to the FlagSet
 func (f *FlagSet) AddFlag(flag *Flag) {
-	// Call normalizeFlagName function only once
 	normalizedFlagName := f.normalizeFlagName(flag.Name)
 
 	_, alreadyThere := f.formal[normalizedFlagName]

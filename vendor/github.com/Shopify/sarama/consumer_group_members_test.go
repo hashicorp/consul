@@ -51,7 +51,7 @@ func TestConsumerGroupMemberAssignment(t *testing.T) {
 	amt := &ConsumerGroupMemberAssignment{
 		Version: 1,
 		Topics: map[string][]int32{
-			"one": []int32{0, 2, 4},
+			"one": {0, 2, 4},
 		},
 		UserData: []byte{0x01, 0x02, 0x03},
 	}

@@ -39,6 +39,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,6 +51,7 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 )
 
 type server struct {
@@ -100,7 +102,7 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
 	// send a response back to the client.
 	h.t.Write(s, resp, &Options{})
 	// send the trailer to end the stream.
-	h.t.WriteStatus(s, codes.OK, "")
+	h.t.WriteStatus(s, status.New(codes.OK, ""))
 }
 
 // handleStreamSuspension blocks until s.ctx is canceled.
@@ -142,7 +144,7 @@ func (h *testStreamHandler) handleStreamMisbehave(t *testing.T, s *Stream) {
 
 func (h *testStreamHandler) handleStreamEncodingRequiredStatus(t *testing.T, s *Stream) {
 	// raw newline is not accepted by http2 framer so it must be encoded.
-	h.t.WriteStatus(s, encodingTestStatusCode, encodingTestStatusDesc)
+	h.t.WriteStatus(s, encodingTestStatus)
 }
 
 func (h *testStreamHandler) handleStreamInvalidHeaderField(t *testing.T, s *Stream) {
@@ -156,7 +158,7 @@ func (h *testStreamHandler) handleStreamInvalidHeaderField(t *testing.T, s *Stre
 }
 
 // start starts server. Other goroutines should block on s.readyChan for further operations.
-func (s *server) start(t *testing.T, port int, maxStreams uint32, ht hType) {
+func (s *server) start(t *testing.T, port int, serverConfig *ServerConfig, ht hType) {
 	var err error
 	if port == 0 {
 		s.lis, err = net.Listen("tcp", "localhost:0")
@@ -180,10 +182,7 @@ func (s *server) start(t *testing.T, port int, maxStreams uint32, ht hType) {
 		if err != nil {
 			return
 		}
-		config := &ServerConfig{
-			MaxStreams: maxStreams,
-		}
-		transport, err := NewServerTransport("http2", conn, config)
+		transport, err := NewServerTransport("http2", conn, serverConfig)
 		if err != nil {
 			return
 		}
@@ -252,12 +251,12 @@ func (s *server) stop() {
 }
 
 func setUp(t *testing.T, port int, maxStreams uint32, ht hType) (*server, ClientTransport) {
-	return setUpWithOptions(t, port, maxStreams, ht, ConnectOptions{})
+	return setUpWithOptions(t, port, &ServerConfig{MaxStreams: maxStreams}, ht, ConnectOptions{})
 }
 
-func setUpWithOptions(t *testing.T, port int, maxStreams uint32, ht hType, copts ConnectOptions) (*server, ClientTransport) {
+func setUpWithOptions(t *testing.T, port int, serverConfig *ServerConfig, ht hType, copts ConnectOptions) (*server, ClientTransport) {
 	server := &server{startedErr: make(chan error, 1)}
-	go server.start(t, port, maxStreams, ht)
+	go server.start(t, port, serverConfig, ht)
 	server.wait(t, 2*time.Second)
 	addr := "localhost:" + server.port
 	var (
@@ -300,6 +299,145 @@ func setUpWithNoPingServer(t *testing.T, copts ConnectOptions, done chan net.Con
 		t.Fatalf("Failed to dial: %v", err)
 	}
 	return tr
+}
+
+// TestMaxConnectionIdle tests that a server will send GoAway to a idle client.
+// An idle client is one who doesn't make any RPC calls for a duration of
+// MaxConnectionIdle time.
+func TestMaxConnectionIdle(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepaliveParams: keepalive.ServerParameters{
+			MaxConnectionIdle: 2 * time.Second,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+	stream, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Client failed to create RPC request: %v", err)
+	}
+	stream.mu.Lock()
+	stream.rstStream = true
+	stream.mu.Unlock()
+	client.CloseStream(stream, nil)
+	// wait for server to see that closed stream and max-age logic to send goaway after no new RPCs are mode
+	timeout := time.NewTimer(time.Second * 4)
+	select {
+	case <-client.GoAway():
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	case <-timeout.C:
+		t.Fatalf("Test timed out, expected a GoAway from the server.")
+	}
+}
+
+// TestMaxConenctionIdleNegative tests that a server will not send GoAway to a non-idle(busy) client.
+func TestMaxConnectionIdleNegative(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepaliveParams: keepalive.ServerParameters{
+			MaxConnectionIdle: 2 * time.Second,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+	_, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Client failed to create RPC request: %v", err)
+	}
+	timeout := time.NewTimer(time.Second * 4)
+	select {
+	case <-client.GoAway():
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+		t.Fatalf("A non-idle client received a GoAway.")
+	case <-timeout.C:
+	}
+
+}
+
+// TestMaxConnectionAge tests that a server will send GoAway after a duration of MaxConnectionAge.
+func TestMaxConnectionAge(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepaliveParams: keepalive.ServerParameters{
+			MaxConnectionAge: 2 * time.Second,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+	_, err := client.NewStream(context.Background(), &CallHdr{})
+	if err != nil {
+		t.Fatalf("Client failed to create stream: %v", err)
+	}
+	// Wait for max-age logic to send GoAway.
+	timeout := time.NewTimer(4 * time.Second)
+	select {
+	case <-client.GoAway():
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	case <-timeout.C:
+		t.Fatalf("Test timer out, expected a GoAway from the server.")
+	}
+}
+
+// TestKeepaliveServer tests that a server closes conneciton with a client that doesn't respond to keepalive pings.
+func TestKeepaliveServer(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepaliveParams: keepalive.ServerParameters{
+			Time:    2 * time.Second,
+			Timeout: 1 * time.Second,
+		},
+	}
+	server, c := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer c.Close()
+	client, err := net.Dial("tcp", server.lis.Addr().String())
+	if err != nil {
+		t.Fatalf("Failed to dial: %v", err)
+	}
+	defer client.Close()
+	// Set read deadline on client conn so that it doesn't block forever in errorsome cases.
+	client.SetReadDeadline(time.Now().Add(10 * time.Second))
+	// Wait for keepalive logic to close the connection.
+	time.Sleep(4 * time.Second)
+	b := make([]byte, 24)
+	for {
+		_, err = client.Read(b)
+		if err == nil {
+			continue
+		}
+		if err != io.EOF {
+			t.Fatalf("client.Read(_) = _,%v, want io.EOF", err)
+		}
+		break
+	}
+}
+
+// TestKeepaliveServerNegative tests that a server doesn't close connection with a client that responds to keepalive pings.
+func TestKeepaliveServerNegative(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepaliveParams: keepalive.ServerParameters{
+			Time:    2 * time.Second,
+			Timeout: 1 * time.Second,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+	// Give keepalive logic some time by sleeping.
+	time.Sleep(4 * time.Second)
+	// Assert that client is still active.
+	clientTr := client.(*http2Client)
+	clientTr.mu.Lock()
+	defer clientTr.mu.Unlock()
+	if clientTr.state != reachable {
+		t.Fatalf("Test failed: Expected server-client connection to be healthy.")
+	}
 }
 
 func TestKeepaliveClientClosesIdleTransport(t *testing.T) {
@@ -362,7 +500,7 @@ func TestKeepaliveClientClosesWithActiveStreams(t *testing.T) {
 	}
 	defer conn.Close()
 	// Create a stream.
-	_, err := tr.NewStream(context.Background(), &CallHdr{})
+	_, err := tr.NewStream(context.Background(), &CallHdr{Flush: true})
 	if err != nil {
 		t.Fatalf("Failed to create a new stream: %v", err)
 	}
@@ -378,7 +516,7 @@ func TestKeepaliveClientClosesWithActiveStreams(t *testing.T) {
 }
 
 func TestKeepaliveClientStaysHealthyWithResponsiveServer(t *testing.T) {
-	s, tr := setUpWithOptions(t, 0, math.MaxUint32, normal, ConnectOptions{KeepaliveParams: keepalive.ClientParameters{
+	s, tr := setUpWithOptions(t, 0, &ServerConfig{MaxStreams: math.MaxUint32}, normal, ConnectOptions{KeepaliveParams: keepalive.ClientParameters{
 		Time:                2 * time.Second, // Keepalive time = 2 sec.
 		Timeout:             1 * time.Second, // Keepalive timeout = 1 sec.
 		PermitWithoutStream: true,            // Run keepalive even with no RPCs.
@@ -393,6 +531,138 @@ func TestKeepaliveClientStaysHealthyWithResponsiveServer(t *testing.T) {
 	defer ct.mu.Unlock()
 	if ct.state != reachable {
 		t.Fatalf("Test failed: Expected client transport to be healthy.")
+	}
+}
+
+func TestKeepaliveServerEnforcementWithAbusiveClientNoRPC(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepalivePolicy: keepalive.EnforcementPolicy{
+			MinTime: 2 * time.Second,
+		},
+	}
+	clientOptions := ConnectOptions{
+		KeepaliveParams: keepalive.ClientParameters{
+			Time:                50 * time.Millisecond,
+			Timeout:             50 * time.Millisecond,
+			PermitWithoutStream: true,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, normal, clientOptions)
+	defer server.stop()
+	defer client.Close()
+
+	timeout := time.NewTimer(2 * time.Second)
+	select {
+	case <-client.GoAway():
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	case <-timeout.C:
+		t.Fatalf("Test failed: Expected a GoAway from server.")
+	}
+	time.Sleep(500 * time.Millisecond)
+	ct := client.(*http2Client)
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+	if ct.state == reachable {
+		t.Fatalf("Test failed: Expected the connection to be closed.")
+	}
+}
+
+func TestKeepaliveServerEnforcementWithAbusiveClientWithRPC(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepalivePolicy: keepalive.EnforcementPolicy{
+			MinTime: 2 * time.Second,
+		},
+	}
+	clientOptions := ConnectOptions{
+		KeepaliveParams: keepalive.ClientParameters{
+			Time:    50 * time.Millisecond,
+			Timeout: 50 * time.Millisecond,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, clientOptions)
+	defer server.stop()
+	defer client.Close()
+
+	if _, err := client.NewStream(context.Background(), &CallHdr{Flush: true}); err != nil {
+		t.Fatalf("Client failed to create stream.")
+	}
+	timeout := time.NewTimer(2 * time.Second)
+	select {
+	case <-client.GoAway():
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	case <-timeout.C:
+		t.Fatalf("Test failed: Expected a GoAway from server.")
+	}
+	time.Sleep(500 * time.Millisecond)
+	ct := client.(*http2Client)
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+	if ct.state == reachable {
+		t.Fatalf("Test failed: Expected the connection to be closed.")
+	}
+}
+
+func TestKeepaliveServerEnforcementWithObeyingClientNoRPC(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepalivePolicy: keepalive.EnforcementPolicy{
+			MinTime:             100 * time.Millisecond,
+			PermitWithoutStream: true,
+		},
+	}
+	clientOptions := ConnectOptions{
+		KeepaliveParams: keepalive.ClientParameters{
+			Time:                101 * time.Millisecond,
+			Timeout:             50 * time.Millisecond,
+			PermitWithoutStream: true,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, normal, clientOptions)
+	defer server.stop()
+	defer client.Close()
+
+	// Give keepalive enough time.
+	time.Sleep(2 * time.Second)
+	// Assert that connection is healthy.
+	ct := client.(*http2Client)
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+	if ct.state != reachable {
+		t.Fatalf("Test failed: Expected connection to be healthy.")
+	}
+}
+
+func TestKeepaliveServerEnforcementWithObeyingClientWithRPC(t *testing.T) {
+	serverConfig := &ServerConfig{
+		KeepalivePolicy: keepalive.EnforcementPolicy{
+			MinTime: 100 * time.Millisecond,
+		},
+	}
+	clientOptions := ConnectOptions{
+		KeepaliveParams: keepalive.ClientParameters{
+			Time:    101 * time.Millisecond,
+			Timeout: 50 * time.Millisecond,
+		},
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, clientOptions)
+	defer server.stop()
+	defer client.Close()
+
+	if _, err := client.NewStream(context.Background(), &CallHdr{Flush: true}); err != nil {
+		t.Fatalf("Client failed to create stream.")
+	}
+
+	// Give keepalive enough time.
+	time.Sleep(2 * time.Second)
+	// Assert that connection is healthy.
+	ct := client.(*http2Client)
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+	if ct.state != reachable {
+		t.Fatalf("Test failed: Expected connection to be healthy.")
 	}
 }
 
@@ -626,9 +896,9 @@ func TestMaxStreams(t *testing.T) {
 			t.Fatalf("Client has not received the max stream setting in 5 seconds.")
 		}
 		cc.mu.Lock()
-		// cc.streamsQuota should be initialized once receiving the 1st setting frame from
-		// the server.
-		if cc.streamsQuota != nil {
+		// cc.maxStreams should be equal to 1 after having received settings frame from
+		// server.
+		if cc.maxStreams == 1 {
 			cc.mu.Unlock()
 			select {
 			case <-cc.streamsQuota.acquire():
@@ -802,8 +1072,11 @@ func TestServerWithMisbehavedClient(t *testing.T) {
 	}
 	// Server sent a resetStream for s already.
 	code := http2ErrConvTab[http2.ErrCodeFlowControl]
-	if _, err := io.ReadFull(s, make([]byte, 1)); err != io.EOF || s.statusCode != code {
-		t.Fatalf("%v got err %v with statusCode %d, want err <EOF> with statusCode %d", s, err, s.statusCode, code)
+	if _, err := io.ReadFull(s, make([]byte, 1)); err != io.EOF {
+		t.Fatalf("%v got err %v want <EOF>", s, err)
+	}
+	if s.status.Code() != code {
+		t.Fatalf("%v got status %v; want Code=%v", s, s.status, code)
 	}
 
 	if ss.fc.pendingData != 0 || ss.fc.pendingUpdate != 0 || sc.fc.pendingData != 0 || sc.fc.pendingUpdate <= initialWindowSize {
@@ -857,9 +1130,14 @@ func TestClientWithMisbehavedServer(t *testing.T) {
 	if s.fc.pendingData <= initialWindowSize || s.fc.pendingUpdate != 0 || conn.fc.pendingData <= initialWindowSize || conn.fc.pendingUpdate != 0 {
 		t.Fatalf("Client mistakenly updates inbound flow control params: got %d, %d, %d, %d; want >%d, %d, >%d, %d", s.fc.pendingData, s.fc.pendingUpdate, conn.fc.pendingData, conn.fc.pendingUpdate, initialWindowSize, 0, initialWindowSize, 0)
 	}
-	if err != io.EOF || s.statusCode != codes.Internal {
-		t.Fatalf("Got err %v and the status code %d, want <EOF> and the code %d", err, s.statusCode, codes.Internal)
+
+	if err != io.EOF {
+		t.Fatalf("Got err %v, want <EOF>", err)
 	}
+	if s.status.Code() != codes.Internal {
+		t.Fatalf("Got s.status %v, want s.status.Code()=Internal", s.status)
+	}
+
 	conn.CloseStream(s, err)
 	if s.fc.pendingData != 0 || s.fc.pendingUpdate != 0 || conn.fc.pendingData != 0 || conn.fc.pendingUpdate <= initialWindowSize {
 		t.Fatalf("Client mistakenly resets inbound flow control params: got %d, %d, %d, %d; want 0, 0, 0, >%d", s.fc.pendingData, s.fc.pendingUpdate, conn.fc.pendingData, conn.fc.pendingUpdate, initialWindowSize)
@@ -884,10 +1162,7 @@ func TestClientWithMisbehavedServer(t *testing.T) {
 	server.stop()
 }
 
-var (
-	encodingTestStatusCode = codes.Internal
-	encodingTestStatusDesc = "\n"
-)
+var encodingTestStatus = status.New(codes.Internal, "\n")
 
 func TestEncodingRequiredStatus(t *testing.T) {
 	server, ct := setUp(t, 0, math.MaxUint32, encodingRequiredStatus)
@@ -910,8 +1185,8 @@ func TestEncodingRequiredStatus(t *testing.T) {
 	if _, err := s.dec.Read(p); err != io.EOF {
 		t.Fatalf("Read got error %v, want %v", err, io.EOF)
 	}
-	if s.StatusCode() != encodingTestStatusCode || s.StatusDesc() != encodingTestStatusDesc {
-		t.Fatalf("stream with status code %d, status desc %v, want %d, %v", s.StatusCode(), s.StatusDesc(), encodingTestStatusCode, encodingTestStatusDesc)
+	if !reflect.DeepEqual(s.Status(), encodingTestStatus) {
+		t.Fatalf("stream with status %v, want %v", s.Status(), encodingTestStatus)
 	}
 	ct.Close()
 	server.stop()
@@ -971,6 +1246,23 @@ func TestIsReservedHeader(t *testing.T) {
 		got := isReservedHeader(tt.h)
 		if got != tt.want {
 			t.Errorf("isReservedHeader(%q) = %v; want %v", tt.h, got, tt.want)
+		}
+	}
+}
+
+func TestContextErr(t *testing.T) {
+	for _, test := range []struct {
+		// input
+		errIn error
+		// outputs
+		errOut StreamError
+	}{
+		{context.DeadlineExceeded, StreamError{codes.DeadlineExceeded, context.DeadlineExceeded.Error()}},
+		{context.Canceled, StreamError{codes.Canceled, context.Canceled.Error()}},
+	} {
+		err := ContextErr(test.errIn)
+		if err != test.errOut {
+			t.Fatalf("ContextErr{%v} = %v \nwant %v", test.errIn, err, test.errOut)
 		}
 	}
 }

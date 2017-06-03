@@ -22,8 +22,8 @@
 [[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "0fb560e5f7fbcaee2f75e3c34174320709f69944"
-  version = "v1.11.0"
+  revision = "c01858abb625b73a3af51d0798e4ad42c8147093"
+  version = "v1.12.0"
 
 [[projects]]
   name = "github.com/apache/thrift"
@@ -46,14 +46,14 @@
 [[projects]]
   name = "github.com/coreos/etcd"
   packages = ["client","pkg/pathutil","pkg/types"]
-  revision = "e5b7ee2d03627ca33201da428b8110ef7c3e95f1"
-  version = "v3.1.6"
+  revision = "d267ca9c184e953554257d0acdd1dc9c47d38229"
+  version = "v3.1.8"
 
 [[projects]]
   branch = "master"
   name = "github.com/coreos/go-oidc"
   packages = ["http","jose","key","oauth2","oidc"]
-  revision = "5157aa730c25a7531d4b99483e6a440d4ab735a0"
+  revision = "c797a55f1c1001ec3169f1d0fbb4c5523563bec6"
 
 [[projects]]
   name = "github.com/coreos/pkg"
@@ -98,12 +98,6 @@
   version = "v1.2"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/flynn/go-shlex"
-  packages = ["."]
-  revision = "3f9db97f856818214da2e1057f8ad84803971cff"
-
-[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -143,7 +137,7 @@
   branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "24ebf76d720bab64f62824d76bced3184a65490d"
+  revision = "e43299b4afa7bc7f22e5e82e3d48607230e4c177"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -160,8 +154,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto"]
-  revision = "2bba0603135d7d7f5cb73b2125beeda19c09f4ef"
+  packages = ["proto","ptypes/any"]
+  revision = "5a0f697c9ed9d68fef0116532c6e05cfeae00e55"
 
 [[projects]]
   branch = "master"
@@ -185,7 +179,7 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "ef7d6c8df7564c20c0a19ed9737f6d67990c61fa"
+  revision = "6c130eed1e297e1aa4d415a50c90d0c81c52677e"
 
 [[projects]]
   branch = "master"
@@ -215,13 +209,7 @@
   branch = "master"
   name = "github.com/juju/ratelimit"
   packages = ["."]
-  revision = "acf38b000a03e4ab89e40f20f1e548f4e6ac7f72"
-
-[[projects]]
-  name = "github.com/klauspost/crc32"
-  packages = ["."]
-  revision = "cb6bfca970f6908083f26f39a79009d608efd5cd"
-  version = "v1.1"
+  revision = "5b9ff866471762aa2ab2dced63c9fb6f53921342"
 
 [[projects]]
   branch = "master"
@@ -233,7 +221,7 @@
   branch = "master"
   name = "github.com/mailru/easyjson"
   packages = ["buffer","jlexer","jwriter"]
-  revision = "3f09c2282fc5ad74b3d04a485311f3173c2431d3"
+  revision = "44c0351a5bc860bcb2608d54aa03ea686c4e7b25"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -242,22 +230,16 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/mholt/caddy"
-  packages = [".","caddyfile","startupshutdown"]
-  revision = "27785f7993319b615acae4ff2a33cdb36fb68376"
-  version = "v0.10.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/miekg/dns"
   packages = ["."]
-  revision = "113c7538ea6d8f429071f901bd26af59cc9676fe"
+  revision = "fb6fbed0f5ec4e418de4f156c18d2e4f9bc854e7"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
   packages = [".","ext","log"]
-  revision = "6edb48674bd9467b8e91fda004f2bd7202d60ce4"
-  version = "v1.0.1"
+  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/openzipkin/zipkin-go-opentracing"
@@ -272,10 +254,10 @@
   version = "v1.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/pierrec/lz4"
   packages = ["."]
-  revision = "f5b77fd73d83122495309c0f459b810f83cc291f"
+  revision = "5c9560bfa9ace2bf86080bf40d46b34ae44604df"
+  version = "v1.0"
 
 [[projects]]
   name = "github.com/pierrec/xxHash"
@@ -305,7 +287,7 @@
   branch = "master"
   name = "github.com/prometheus/procfs"
   packages = [".","xfs"]
-  revision = "6ac8c5d890d415025dd5aae7595bcb2a6e7e2fad"
+  revision = "65c1f6f8f0fc1e2185eb9863a3bc751496404259"
 
 [[projects]]
   branch = "master"
@@ -317,7 +299,7 @@
   branch = "master"
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "f1d95a35e132e8a1868023a08932b14f0b8b8fcb"
+  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
 
 [[projects]]
   branch = "master"
@@ -329,31 +311,31 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "c7af5bf2638a1164f2eb5467c39c6cffbd13a02e"
+  revision = "e1a4589e7d3ea14a3352255d04b6f1a418845e5e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "da118f7b8e5954f39d0d2130ab35d4bf0e3cb344"
+  revision = "3da985ce5951d99de868be4385f21ea6c2b22f24"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","google","internal","jws","jwt"]
-  revision = "a6bd8cefa1811bd24b86f8902872e4e8225f74c4"
+  revision = "f047394b6d14284165300fd82dad67edb3a4d7f6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "9ccfe848b9db8435a24c424abbc07a921adf1df5"
+  revision = "b90f89a1e7a9c1f6b918820b3daa7f08488c8594"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
-  revision = "470f45bf29f4147d6fbd7dfd0a02a848e49f5bf4"
+  revision = "4ee4af566555f5fbe026368b75596286a312663a"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -362,10 +344,16 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "aa2eb687b4d3e17154372564ad8d6bf11c3cf21f"
+
+[[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","codes","credentials","grpclog","internal","keepalive","metadata","naming","peer","stats","tap","transport"]
-  revision = "8050b9cbc271307e5a716a9d782803d09b0d6f2d"
-  version = "v1.2.1"
+  packages = [".","codes","credentials","grpclb/grpc_lb_v1","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
+  revision = "d2e1b51f33ff8c5e4a15560ff049d200e83726c5"
+  version = "v1.3.0"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
@@ -388,6 +376,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9c7d469cf5543db6f5df55c0e72b1223fc15df4ef1242861e6981d2527eed2c9"
+  inputs-digest = "a59be89c7a92b81f951b47efd072c2af04fb66b4f2b7a780cadb7466559d0d6b"
   solver-name = "gps-cdcl"
   solver-version = 1

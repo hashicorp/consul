@@ -50,11 +50,12 @@ func (r *ApiVersionsResponse) encode(pe packetEncoder) error {
 }
 
 func (r *ApiVersionsResponse) decode(pd packetDecoder, version int16) error {
-	if kerr, err := pd.getInt16(); err != nil {
+	kerr, err := pd.getInt16()
+	if err != nil {
 		return err
-	} else {
-		r.Err = KError(kerr)
 	}
+
+	r.Err = KError(kerr)
 
 	numBlocks, err := pd.getArrayLength()
 	if err != nil {

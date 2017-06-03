@@ -17,11 +17,12 @@ func (r *SyncGroupResponse) encode(pe packetEncoder) error {
 }
 
 func (r *SyncGroupResponse) decode(pd packetDecoder, version int16) (err error) {
-	if kerr, err := pd.getInt16(); err != nil {
+	kerr, err := pd.getInt16()
+	if err != nil {
 		return err
-	} else {
-		r.Err = KError(kerr)
 	}
+
+	r.Err = KError(kerr)
 
 	r.MemberAssignment, err = pd.getBytes()
 	return

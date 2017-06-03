@@ -92,7 +92,7 @@ func (r *FetchRequest) decode(pd packetDecoder, version int16) (err error) {
 			}
 			fetchBlock := &fetchRequestBlock{}
 			if err = fetchBlock.decode(pd); err != nil {
-				return nil
+				return err
 			}
 			r.blocks[topic][partition] = fetchBlock
 		}

@@ -65,7 +65,8 @@ type fakeTLSConn struct {
 
 func (c *fakeTLSConn) ConnectionState() tls.ConnectionState {
 	return tls.ConnectionState{
-		Version: tls.VersionTLS12,
+		Version:     tls.VersionTLS12,
+		CipherSuite: cipher_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	}
 }
 
@@ -2912,5 +2913,59 @@ func TestAuthorityAddr(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("authorityAddr(%q, %q) = %q; want %q", tt.scheme, tt.authority, got, tt.want)
 		}
+	}
+}
+
+// Issue 20448: stop allocating for DATA frames' payload after
+// Response.Body.Close is called.
+func TestTransportAllocationsAfterResponseBodyClose(t *testing.T) {
+	megabyteZero := make([]byte, 1<<20)
+
+	writeErr := make(chan error, 1)
+
+	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
+		w.(http.Flusher).Flush()
+		var sum int64
+		for i := 0; i < 100; i++ {
+			n, err := w.Write(megabyteZero)
+			sum += int64(n)
+			if err != nil {
+				writeErr <- err
+				return
+			}
+		}
+		t.Logf("wrote all %d bytes", sum)
+		writeErr <- nil
+	}, optOnlyServer)
+	defer st.Close()
+
+	tr := &Transport{TLSClientConfig: tlsConfigInsecure}
+	defer tr.CloseIdleConnections()
+	c := &http.Client{Transport: tr}
+	res, err := c.Get(st.ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf [1]byte
+	if _, err := res.Body.Read(buf[:]); err != nil {
+		t.Error(err)
+	}
+	if err := res.Body.Close(); err != nil {
+		t.Error(err)
+	}
+
+	trb, ok := res.Body.(transportResponseBody)
+	if !ok {
+		t.Fatalf("res.Body = %T; want transportResponseBody", res.Body)
+	}
+	if trb.cs.bufPipe.b != nil {
+		t.Errorf("response body pipe is still open")
+	}
+
+	gotErr := <-writeErr
+	if gotErr == nil {
+		t.Errorf("Handler unexpectedly managed to write its entire response without getting an error")
+	} else if gotErr != errStreamClosed {
+		t.Errorf("Handler Write err = %v; want errStreamClosed", gotErr)
 	}
 }

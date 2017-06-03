@@ -53,11 +53,12 @@ func (r *JoinGroupResponse) encode(pe packetEncoder) error {
 }
 
 func (r *JoinGroupResponse) decode(pd packetDecoder, version int16) (err error) {
-	if kerr, err := pd.getInt16(); err != nil {
+	kerr, err := pd.getInt16()
+	if err != nil {
 		return err
-	} else {
-		r.Err = KError(kerr)
 	}
+
+	r.Err = KError(kerr)
 
 	if r.GenerationId, err = pd.getInt32(); err != nil {
 		return

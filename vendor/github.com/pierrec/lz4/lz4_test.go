@@ -261,25 +261,6 @@ func TestBlock(t *testing.T) {
 	}
 }
 
-func TestBlockCompression(t *testing.T) {
-	input := make([]byte, 64*1024)
-
-	for i := 0; i < 64*1024; i += 1 {
-		input[i] = byte(i & 0x1)
-	}
-	output := make([]byte, 64*1024)
-
-	c, err := lz4.CompressBlock(input, output, 0)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if c == 0 {
-		t.Fatal("cannot compress compressible data")
-	}
-}
-
 func BenchmarkUncompressBlock(b *testing.B) {
 	d := make([]byte, len(lorem))
 	z := make([]byte, len(lorem))
