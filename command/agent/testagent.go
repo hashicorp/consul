@@ -120,11 +120,9 @@ func (a *TestAgent) Start() *TestAgent {
 	}
 	id := UniqueID()
 
-	// since the ports are written into the data files we pick random ports
-	// only once and try a number of times to start with them.
-	pickRandomPorts(a.Config)
-
 	for i := 10; i >= 0; i-- {
+		pickRandomPorts(a.Config)
+
 		// write the keyring
 		if a.Key != "" {
 			writeKey := func(key, filename string) {
@@ -162,6 +160,16 @@ func (a *TestAgent) Start() *TestAgent {
 			wait := time.Duration(rand.Int31n(2000)) * time.Millisecond
 			fmt.Println(id, a.Name, "retrying in", wait)
 			time.Sleep(wait)
+		}
+
+		// Clean out the data dir if we are responsible for it before we
+		// try again, since the old ports may have gotten written to
+		// the data dir, such as in the Raft configuration.
+		if a.DataDir != "" {
+			if err := os.RemoveAll(a.DataDir); err != nil {
+				fmt.Println(id, a.Name, "Error resetting data dir:", err)
+				runtime.Goexit()
+			}
 		}
 	}
 	if !a.NoInitialSync {
