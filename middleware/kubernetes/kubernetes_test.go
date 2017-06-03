@@ -294,6 +294,29 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 	svcs := []*api.Service{
 		{
 			ObjectMeta: api.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: "10.0.0.1",
+				Ports: []api.ServicePort{{
+					Name:     "http",
+					Protocol: "tcp",
+					Port:     80,
+				}},
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: api.ClusterIPNone,
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
 				Name:      "external",
 				Namespace: "testns",
 			},
@@ -316,7 +339,76 @@ func (APIConnServiceTest) PodIndex(string) []interface{} {
 }
 
 func (APIConnServiceTest) EndpointsList() api.EndpointsList {
-	return api.EndpointsList{}
+	return api.EndpointsList{
+		Items: []api.Endpoints{
+			{
+				Subsets: []api.EndpointSubset{
+					{
+						Addresses: []api.EndpointAddress{
+							{
+								IP: "172.0.0.1",
+							},
+						},
+						Ports: []api.EndpointPort{
+							{
+								Port:     80,
+								Protocol: "tcp",
+								Name:     "http",
+							},
+						},
+					},
+				},
+				ObjectMeta: api.ObjectMeta{
+					Name:      "svc1",
+					Namespace: "testns",
+				},
+			},
+			{
+				Subsets: []api.EndpointSubset{
+					{
+						Addresses: []api.EndpointAddress{
+							{
+								IP: "172.0.0.2",
+							},
+						},
+						Ports: []api.EndpointPort{
+							{
+								Port:     80,
+								Protocol: "tcp",
+								Name:     "http",
+							},
+						},
+					},
+				},
+				ObjectMeta: api.ObjectMeta{
+					Name:      "hdls1",
+					Namespace: "testns",
+				},
+			},
+			{
+				Subsets: []api.EndpointSubset{
+					{
+						Addresses: []api.EndpointAddress{
+							{
+								IP: "172.0.0.3",
+							},
+						},
+						Ports: []api.EndpointPort{
+							{
+								Port:     80,
+								Protocol: "tcp",
+								Name:     "http",
+							},
+						},
+					},
+				},
+				ObjectMeta: api.ObjectMeta{
+					Name:      "hdls1",
+					Namespace: "testns",
+				},
+			},
+		},
+	}
 }
 
 func TestServices(t *testing.T) {
@@ -334,6 +426,10 @@ func TestServices(t *testing.T) {
 		answer svcAns
 	}
 	tests := []svcTest{
+		// Cluster IP Services
+		{qname: "svc1.testns.svc.interwebs.test.", qtype: dns.TypeA, answer: svcAns{host: "10.0.0.1", key: "/coredns/test/interwebs/svc/testns/svc1"}},
+		{qname: "_http._tcp.svc1.testns.svc.interwebs.test.", qtype: dns.TypeSRV, answer: svcAns{host: "10.0.0.1", key: "/coredns/test/interwebs/svc/testns/svc1"}},
+
 		// External Services
 		{qname: "external.testns.svc.interwebs.test.", qtype: dns.TypeCNAME, answer: svcAns{host: "coredns.io", key: "/coredns/test/interwebs/svc/testns/external"}},
 	}
