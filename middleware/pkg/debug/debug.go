@@ -7,7 +7,7 @@ const Name = "o-o.debug."
 
 // IsDebug checks if name is a debugging name, i.e. starts with o-o.debug.
 // it returns the empty string if it is not a debug message, otherwise it will return the
-// name with o-o.debug. stripped off. Must be called with name lowercased.
+// name with o-o.debug. stripped off. Name will be lowercased before comparing.
 func IsDebug(name string) string {
 	if len(name) == len(Name) {
 		return ""
