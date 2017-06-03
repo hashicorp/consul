@@ -14,14 +14,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
-	"github.com/mitchellh/cli"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
@@ -234,74 +231,33 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_Reload(t *testing.T) {
-	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	t.Parallel()
 	cfg := TestConfig()
-	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
-
-	// Write initial config, to be reloaded later
-	tmpFile := testutil.TempFile(t, "config")
-	_, err := tmpFile.WriteString(`{"acl_enforce_version_8": false, "service":{"name":"redis"}}`)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	cfg.ACLEnforceVersion8 = Bool(false)
+	cfg.Services = []*ServiceDefinition{
+		&ServiceDefinition{Name: "redis"},
 	}
-	tmpFile.Close()
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
 
-	doneCh := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
-	defer func() {
-		close(shutdownCh)
-		<-doneCh
-	}()
-
-	cmd := &Command{
-		ShutdownCh: shutdownCh,
-		Command: base.Command{
-			Flags: base.FlagSetNone,
-			UI:    cli.NewMockUi(),
-		},
-	}
-
-	args := []string{
-		"-server",
-		"-bind", "127.0.0.1",
-		"-data-dir", tmpDir,
-		"-http-port", fmt.Sprintf("%d", cfg.Ports.HTTP),
-		"-config-file", tmpFile.Name(),
-	}
-
-	go func() {
-		cmd.Run(args)
-		close(doneCh)
-	}()
-
-	retry.Run(t, func(r *retry.R) {
-		if cmd.agent == nil {
-			r.Fatal("waiting for agent")
-		}
-		if got, want := len(cmd.agent.httpServers), 1; got != want {
-			r.Fatalf("got %d servers want %d", got, want)
-		}
-	})
-
-	if _, ok := cmd.agent.state.services["redis"]; !ok {
+	if _, ok := a.state.services["redis"]; !ok {
 		t.Fatalf("missing redis service")
 	}
 
-	data := []byte(`{"acl_enforce_version_8": false, "service":{"name":"redis-reloaded"}}`)
-	if err := ioutil.WriteFile(tmpFile.Name(), data, 0644); err != nil {
-		t.Fatalf("err: %v", err)
+	cfg2 := TestConfig()
+	cfg2.ACLEnforceVersion8 = Bool(false)
+	cfg2.Services = []*ServiceDefinition{
+		&ServiceDefinition{Name: "redis-reloaded"},
 	}
 
-	srv := cmd.agent.httpServers[0]
-	req, _ := http.NewRequest("PUT", "/v1/agent/reload", nil)
-	if _, err := srv.AgentReload(nil, req); err != nil {
-		t.Fatalf("Err: %v", err)
+	ok, err := a.ReloadConfig(cfg2)
+	if err != nil {
+		t.Fatalf("got error %v want nil", err)
 	}
-
-	if _, ok := cmd.agent.state.services["redis-reloaded"]; !ok {
+	if !ok {
+		t.Fatalf("got ok %v want true")
+	}
+	if _, ok := a.state.services["redis-reloaded"]; !ok {
 		t.Fatalf("missing redis-reloaded service")
 	}
 }
