@@ -119,7 +119,7 @@ func TestDoCoreDNSRecord(t *testing.T) {
 	k.interfaceAddrs = &interfaceAddrsTest{}
 	k.APIConn = &APIConnTest{}
 
-	cdr := k.CoreDNSRecord()
+	cdr := k.coreDNSRecord()
 
 	expected := "10.0.0.111"
 
