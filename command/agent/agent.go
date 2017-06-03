@@ -337,7 +337,7 @@ func (a *Agent) listenAndServeDNS() error {
 
 			err := s.ListenAndServe(p.Net, p.Addr, func() { notif <- p })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
-				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): ", p.Addr, p.Net, err)
+				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", p.Addr, p.Net, err)
 			}
 		}()
 	}
