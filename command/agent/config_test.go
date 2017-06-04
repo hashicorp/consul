@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"net"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/pascaldekloe/goe/verify"
 )
@@ -48,1609 +48,1154 @@ func TestConfigEncryptBytes(t *testing.T) {
 }
 
 func TestDecodeConfig(t *testing.T) {
-	t.Parallel()
-	// Basics
-	input := `{"data_dir": "/tmp/", "log_level": "debug"}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.DataDir != "/tmp/" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.LogLevel != "debug" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Node info
-	input = `{"node_id": "bar", "disable_host_node_id": true, "node_name": "foo", "datacenter": "dc2"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.NodeName != "foo" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.NodeID != "bar" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.DisableHostNodeID != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Datacenter != "dc2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.SkipLeaveOnInt != nil {
-		t.Fatalf("bad: expected nil SkipLeaveOnInt")
-	}
-
-	if config.LeaveOnTerm != nil {
-		t.Fatalf("bad: expected nil LeaveOnTerm")
-	}
-
-	// Server bootstrap
-	input = `{"server": true, "bootstrap": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.Server {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if !config.Bootstrap {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Expect bootstrap
-	input = `{"server": true, "bootstrap_expect": 3}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.Server {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.BootstrapExpect != 3 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	input = `{"encrypt_verify_incoming":true, "encrypt_verify_outgoing":true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.EncryptVerifyIncoming == nil || !*config.EncryptVerifyIncoming {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.EncryptVerifyOutgoing == nil || !*config.EncryptVerifyOutgoing {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS setup
-	input = `{"ports": {"dns": 8500}, "recursors": ["8.8.8.8","8.8.4.4"], "recursor":"127.0.0.1", "domain": "foobar"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Ports.DNS != 8500 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if len(config.DNSRecursors) != 3 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSRecursors[0] != "8.8.8.8" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSRecursors[1] != "8.8.4.4" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSRecursors[2] != "127.0.0.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Domain != "foobar" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// RPC configs
-	input = `{"ports": {"http": 1234, "https": 1243}, "client_addr": "0.0.0.0"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.ClientAddr != "0.0.0.0" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Ports.HTTP != 1234 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Ports.HTTPS != 1243 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Deprecated RPC configs - TODO: remove this in a future release
-	input = `{"ports": {"rpc": 1234}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Ports.RPC != 1234 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Serf configs
-	input = `{"ports": {"serf_lan": 1000, "serf_wan": 2000}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Ports.SerfLan != 1000 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Ports.SerfWan != 2000 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Server addrs
-	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3", "serf_lan_bind": "127.0.0.4", "serf_wan_bind": "52.54.55.56"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.BindAddr != "127.0.0.2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.SerfWanBindAddr != "52.54.55.56" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.SerfLanBindAddr != "127.0.0.4" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.AdvertiseAddr != "127.0.0.3" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.AdvertiseAddrWan != "" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Ports.Server != 8000 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Advertise address for wan
-	input = `{"advertise_addr_wan": "127.0.0.5"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.AdvertiseAddr != "" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.AdvertiseAddrWan != "127.0.0.5" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Advertise addresses for serflan
-	input = `{"advertise_addrs": {"serf_lan": "127.0.0.5:1234"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.AdvertiseAddrs.SerfLanRaw != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.AdvertiseAddrs.SerfLan.String() != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Advertise addresses for serfwan
-	input = `{"advertise_addrs": {"serf_wan": "127.0.0.5:1234"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.AdvertiseAddrs.SerfWanRaw != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.AdvertiseAddrs.SerfWan.String() != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Advertise addresses for rpc
-	input = `{"advertise_addrs": {"rpc": "127.0.0.5:1234"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.AdvertiseAddrs.RPCRaw != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.AdvertiseAddrs.RPC.String() != "127.0.0.5:1234" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// WAN address translation disabled by default
-	config, err = DecodeConfig(bytes.NewReader([]byte(`{}`)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.TranslateWanAddrs != false {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// WAN address translation
-	input = `{"translate_wan_addrs": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.TranslateWanAddrs != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// raft protocol
-	input = `{"raft_protocol": 3}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RaftProtocol != 3 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Node metadata fields
-	input = `{"node_meta": {"thing1": "1", "thing2": "2"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if v, ok := config.Meta["thing1"]; !ok || v != "1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if v, ok := config.Meta["thing2"]; !ok || v != "2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// leave_on_terminate
-	input = `{"leave_on_terminate": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if *config.LeaveOnTerm != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// skip_leave_on_interrupt
-	input = `{"skip_leave_on_interrupt": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if *config.SkipLeaveOnInt != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// enable_debug
-	input = `{"enable_debug": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.EnableDebug != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// TLS
-	input = `{"verify_incoming": true, "verify_incoming_rpc": true, "verify_incoming_https": true,
-	"verify_outgoing": true, "verify_server_hostname": true, "tls_min_version": "tls12",
-	"tls_cipher_suites": "TLS_RSA_WITH_AES_256_CBC_SHA", "tls_prefer_server_cipher_suites": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.VerifyIncoming != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.VerifyIncomingRPC != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.VerifyIncomingHTTPS != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.VerifyOutgoing != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.VerifyServerHostname != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.TLSMinVersion != "tls12" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if len(config.TLSCipherSuites) != 1 || config.TLSCipherSuites[0] != tls.TLS_RSA_WITH_AES_256_CBC_SHA {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if !config.TLSPreferServerCipherSuites {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// TLS keys
-	input = `{"ca_file": "my/ca/file", "ca_path":"my/ca/path", "cert_file": "my.cert", "key_file": "key.pem", "server_name": "example.com"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.CAFile != "my/ca/file" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.CAPath != "my/ca/path" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.CertFile != "my.cert" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.KeyFile != "key.pem" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ServerName != "example.com" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Start join
-	input = `{"start_join": ["1.1.1.1", "2.2.2.2"]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.StartJoin) != 2 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.StartJoin[0] != "1.1.1.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.StartJoin[1] != "2.2.2.2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Start Join wan
-	input = `{"start_join_wan": ["1.1.1.1", "2.2.2.2"]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.StartJoinWan) != 2 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.StartJoinWan[0] != "1.1.1.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.StartJoinWan[1] != "2.2.2.2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry join
-	input = `{"retry_join": ["1.1.1.1", "2.2.2.2"]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.RetryJoin) != 2 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoin[0] != "1.1.1.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoin[1] != "2.2.2.2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry interval
-	input = `{"retry_interval": "10s"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryIntervalRaw != "10s" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryInterval.String() != "10s" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry Max
-	input = `{"retry_max": 3}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryMaxAttempts != 3 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry Join wan
-	input = `{"retry_join_wan": ["1.1.1.1", "2.2.2.2"]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.RetryJoinWan) != 2 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinWan[0] != "1.1.1.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinWan[1] != "2.2.2.2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry Interval wan
-	input = `{"retry_interval_wan": "10s"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryIntervalWanRaw != "10s" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryIntervalWan.String() != "10s" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Retry Max wan
-	input = `{"retry_max_wan": 3}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryMaxAttemptsWan != 3 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Reconnect timeout LAN and WAN
-	input = `{"reconnect_timeout": "8h", "reconnect_timeout_wan": "10h"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.ReconnectTimeoutLanRaw != "8h" ||
-		config.ReconnectTimeoutLan.String() != "8h0m0s" ||
-		config.ReconnectTimeoutWanRaw != "10h" ||
-		config.ReconnectTimeoutWan.String() != "10h0m0s" {
-		t.Fatalf("bad: %#v", config)
-	}
-	input = `{"reconnect_timeout": "7h"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err == nil {
-		t.Fatalf("decode should have failed")
-	}
-	input = `{"reconnect_timeout_wan": "7h"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err == nil {
-		t.Fatalf("decode should have failed")
-	}
-
-	// Static UI server
-	input = `{"ui": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.EnableUI {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// UI Dir
-	input = `{"ui_dir": "/opt/consul-ui"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.UIDir != "/opt/consul-ui" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Pid File
-	input = `{"pid_file": "/tmp/consul/pid"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.PidFile != "/tmp/consul/pid" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Syslog
-	input = `{"enable_syslog": true, "syslog_facility": "LOCAL4"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.EnableSyslog {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.SyslogFacility != "LOCAL4" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Rejoin
-	input = `{"rejoin_after_leave": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.RejoinAfterLeave {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS node ttl, max stale
-	input = `{"dns_config": {"allow_stale": false, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6, "recursor_timeout": "7s"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if *config.DNSConfig.AllowStale {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.EnableTruncate {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.MaxStale != 15*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.NodeTTL != 5*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if !config.DNSConfig.OnlyPassing {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.UDPAnswerLimit != 6 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.RecursorTimeout != 7*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS service ttl
-	input = `{"dns_config": {"service_ttl": {"*": "1s", "api": "10s", "web": "30s"}}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.DNSConfig.ServiceTTL["*"] != time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.ServiceTTL["api"] != 10*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.DNSConfig.ServiceTTL["web"] != 30*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS enable truncate
-	input = `{"dns_config": {"enable_truncate": true}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.DNSConfig.EnableTruncate {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS only passing
-	input = `{"dns_config": {"only_passing": true}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.DNSConfig.OnlyPassing {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// DNS disable compression
-	input = `{"dns_config": {"disable_compression": true}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.DNSConfig.DisableCompression {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// CheckUpdateInterval
-	input = `{"check_update_interval": "10m"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.CheckUpdateInterval != 10*time.Minute {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// ACLs
-	input = `{"acl_token": "1111", "acl_agent_master_token": "2222",
-	"acl_agent_token": "3333", "acl_datacenter": "dc2",
-	"acl_ttl": "60s", "acl_down_policy": "deny",
-	"acl_default_policy": "deny", "acl_master_token": "2345",
-	"acl_replication_token": "8675309"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.ACLToken != "1111" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLAgentMasterToken != "2222" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLAgentToken != "3333" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLMasterToken != "2345" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLDatacenter != "dc2" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLTTL != 60*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLDownPolicy != "deny" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLDefaultPolicy != "deny" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.ACLReplicationToken != "8675309" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// ACL token precedence.
-	input = `{}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if token := config.GetTokenForAgent(); token != "" {
-		t.Fatalf("bad: %s", token)
-	}
-	input = `{"acl_token": "hello"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if token := config.GetTokenForAgent(); token != "hello" {
-		t.Fatalf("bad: %s", token)
-	}
-	input = `{"acl_agent_token": "world", "acl_token": "hello"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if token := config.GetTokenForAgent(); token != "world" {
-		t.Fatalf("bad: %s", token)
-	}
-
-	// ACL flag for Consul version 0.8 features (broken out since we will
-	// eventually remove this).
-	config = DefaultConfig()
-	if *config.ACLEnforceVersion8 != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	input = `{"acl_enforce_version_8": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if *config.ACLEnforceVersion8 != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Watches
-	input = `{"watches": [{"type":"keyprefix", "prefix":"foo/", "handler":"foobar"}]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.Watches) != 1 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	out := config.Watches[0]
-	exp := map[string]interface{}{
-		"type":    "keyprefix",
-		"prefix":  "foo/",
-		"handler": "foobar",
-	}
-	if !reflect.DeepEqual(out, exp) {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Remote exec is disabled by default.
-	config = DefaultConfig()
-	if *config.DisableRemoteExec != true {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Test re-enabling remote exec.
-	input = `{"disable_remote_exec": false}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if *config.DisableRemoteExec != false {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// stats(d|ite) exec
-	input = `{"statsite_addr": "127.0.0.1:7250", "statsd_addr": "127.0.0.1:7251"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Telemetry.StatsiteAddr != "127.0.0.1:7250" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.StatsdAddr != "127.0.0.1:7251" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// dogstatsd
-	input = `{"dogstatsd_addr": "127.0.0.1:7254", "dogstatsd_tags":["tag_1:val_1", "tag_2:val_2"]}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Telemetry.DogStatsdAddr != "127.0.0.1:7254" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if len(config.Telemetry.DogStatsdTags) != 2 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Telemetry.DogStatsdTags[0] != "tag_1:val_1" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.Telemetry.DogStatsdTags[1] != "tag_2:val_2" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Statsite prefix
-	input = `{"statsite_prefix": "my_prefix"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Telemetry.StatsitePrefix != "my_prefix" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Circonus settings
-	input = `{"telemetry": {"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
-    "circonus_api_url": "https://api.host.foo/v2", "circonus_submission_interval": "15s",
-    "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
-	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
-    "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
-    "circonus_check_display_name": "node1:consul", "circonus_check_tags": "cat1:tag1,cat2:tag2",
-    "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"} }`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Telemetry.CirconusAPIToken != "12345678-1234-1234-12345678" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusAPIApp != "testApp" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusAPIURL != "https://api.host.foo/v2" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusSubmissionInterval != "15s" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckSubmissionURL != "https://submit.host.bar:123/one/two/three" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckID != "12345" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckForceMetricActivation != "true" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckInstanceID != "a:b" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckSearchTag != "c:d" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckDisplayName != "node1:consul" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusCheckTags != "cat1:tag1,cat2:tag2" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusBrokerID != "6789" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.CirconusBrokerSelectTag != "e:f" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// New telemetry
-	input = `{"telemetry": { "statsite_prefix": "my_prefix", "statsite_address": "127.0.0.1:7250", "statsd_address":"127.0.0.1:7251", "disable_hostname": true, "dogstatsd_addr": "1.1.1.1:111", "dogstatsd_tags": [ "tag_1:val_1" ] } }`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Telemetry.StatsitePrefix != "my_prefix" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.StatsiteAddr != "127.0.0.1:7250" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.StatsdAddr != "127.0.0.1:7251" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.DisableHostname != true {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.DogStatsdAddr != "1.1.1.1:111" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Telemetry.DogStatsdTags[0] != "tag_1:val_1" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Address overrides
-	input = `{"addresses": {"dns": "0.0.0.0", "http": "127.0.0.1", "https": "127.0.0.1"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Addresses.DNS != "0.0.0.0" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Addresses.HTTP != "127.0.0.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Addresses.HTTPS != "127.0.0.1" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// RPC Addresses - TODO: remove in a future release
-	input = `{"addresses": {"rpc": "1.2.3.4"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.Addresses.RPC != "1.2.3.4" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Domain socket permissions
-	input = `{"unix_sockets": {"user": "500", "group": "500", "mode": "0700"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.UnixSockets.Usr != "500" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.UnixSockets.Grp != "500" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.UnixSockets.Perms != "0700" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Disable updates
-	input = `{"disable_update_check": true, "disable_anonymous_signature": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !config.DisableUpdateCheck {
-		t.Fatalf("bad: %#v", config)
-	}
-	if !config.DisableAnonymousSignature {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// HTTP API response header fields
-	input = `{"http_api_response_headers": {"Access-Control-Allow-Origin": "*", "X-XSS-Protection": "1; mode=block"}}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.HTTPAPIResponseHeaders["Access-Control-Allow-Origin"] != "*" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.HTTPAPIResponseHeaders["X-XSS-Protection"] != "1; mode=block" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	// Check deprecations
-	input = `{
-		"atlas_infrastructure": "hashicorp/prod",
-		"atlas_token": "abcdefg",
-		"atlas_acl_token": "123456789",
-		"atlas_join": true,
-		"atlas_endpoint": "foo.bar:1111"
-}`
-	_, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Coordinate disable
-	input = `{"disable_coordinates": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.DisableCoordinates != true {
-		t.Fatalf("bad: coordinates not disabled: %#v", config)
-	}
-
-	// SessionTTLMin
-	input = `{"session_ttl_min": "5s"}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.SessionTTLMin != 5*time.Second {
-		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
-	}
-}
-
-func TestDecodeConfig_invalidKeys(t *testing.T) {
-	t.Parallel()
-	input := `{"bad": "no way jose"}`
-	_, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err == nil || !strings.Contains(err.Error(), "invalid keys") {
-		t.Fatalf("should have rejected invalid config keys")
-	}
-}
-
-func TestRetryJoinEC2(t *testing.T) {
-	t.Parallel()
-	input := `{"retry_join_ec2": {
-	  "region": "us-east-1",
-		"tag_key": "ConsulRole",
-		"tag_value": "Server",
-		"access_key_id": "asdf",
-		"secret_access_key": "qwerty"
-	}}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryJoinEC2.Region != "us-east-1" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinEC2.TagKey != "ConsulRole" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinEC2.TagValue != "Server" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinEC2.AccessKeyID != "asdf" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinEC2.SecretAccessKey != "qwerty" {
-		t.Fatalf("bad: %#v", config)
-	}
-}
-
-func TestRetryJoinGCE(t *testing.T) {
-	t.Parallel()
-	input := `{"retry_join_gce": {
-	  "project_name": "test-project",
-		"zone_pattern": "us-west1-a",
-		"tag_value": "consul-server",
-		"credentials_file": "/path/to/foo.json"
-	}}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryJoinGCE.ProjectName != "test-project" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinGCE.ZonePattern != "us-west1-a" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinGCE.TagValue != "consul-server" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.RetryJoinGCE.CredentialsFile != "/path/to/foo.json" {
-		t.Fatalf("bad: %#v", config)
-	}
-}
-
-func TestRetryJoinAzure(t *testing.T) {
-	input := `{
-	"retry_join_azure": {
-		"tag_name": "type",
-		"tag_value": "Foundation",
-		"subscription_id": "klm-no",
-		"tenant_id": "fgh-ij",
-		"client_id": "abc-de",
-		"secret_access_key": "qwerty"
-	}}`
-
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if config.RetryJoinAzure.TagName != "type" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.RetryJoinAzure.TagValue != "Foundation" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.RetryJoinAzure.SubscriptionID != "klm-no" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.RetryJoinAzure.TenantID != "fgh-ij" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.RetryJoinAzure.ClientID != "abc-de" {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.RetryJoinAzure.SecretAccessKey != "qwerty" {
-		t.Fatalf("bad: %#v", config)
-	}
-}
-
-func TestDecodeConfig_Performance(t *testing.T) {
-	t.Parallel()
-	input := `{"performance": { "raft_multiplier": 3 }}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Performance.RaftMultiplier != 3 {
-		t.Fatalf("bad: multiplier isn't set: %#v", config)
-	}
-
-	input = `{"performance": { "raft_multiplier": 11 }}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err == nil || !strings.Contains(err.Error(), "Performance.RaftMultiplier must be <=") {
-		t.Fatalf("bad: %v", err)
-	}
-}
-
-func TestDecodeConfig_Autopilot(t *testing.T) {
-	t.Parallel()
-	input := `{"autopilot": {
-	  "cleanup_dead_servers": true,
-	  "last_contact_threshold": "100ms",
-	  "max_trailing_logs": 10,
-	  "server_stabilization_time": "10s",
-	  "redundancy_zone_tag": "az",
-	  "disable_upgrade_migration": true
-	 }}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if config.Autopilot.CleanupDeadServers == nil || !*config.Autopilot.CleanupDeadServers {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Autopilot.LastContactThreshold == nil || *config.Autopilot.LastContactThreshold != 100*time.Millisecond {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Autopilot.MaxTrailingLogs == nil || *config.Autopilot.MaxTrailingLogs != 10 {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Autopilot.ServerStabilizationTime == nil || *config.Autopilot.ServerStabilizationTime != 10*time.Second {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Autopilot.RedundancyZoneTag != "az" {
-		t.Fatalf("bad: %#v", config)
-	}
-	if config.Autopilot.DisableUpgradeMigration == nil || !*config.Autopilot.DisableUpgradeMigration {
-		t.Fatalf("bad: %#v", config)
-	}
-}
-
-func TestDecodeConfig_Services(t *testing.T) {
-	t.Parallel()
-	input := `{
-		"services": [
-			{
-				"id": "red0",
-				"name": "redis",
-				"tags": [
-					"master"
-				],
-				"port": 6000,
-				"check": {
-					"script": "/bin/check_redis -p 6000",
-					"interval": "5s",
-					"ttl": "20s"
+	tests := []struct {
+		desc string
+		in   string
+		c    *Config
+		err  error
+	}{
+		// special flows
+		{
+			in:  `{"bad": "no way jose"}`,
+			err: errors.New("Config has invalid keys: bad"),
+		},
+
+		// happy flows in alphabeical order
+		{
+			in: `{"acl_agent_master_token":"a"}`,
+			c:  &Config{ACLAgentMasterToken: "a"},
+		},
+		{
+			in: `{"acl_agent_token":"a"}`,
+			c:  &Config{ACLAgentToken: "a"},
+		},
+		{
+			in: `{"acl_datacenter":"a"}`,
+			c:  &Config{ACLDatacenter: "a"},
+		},
+		{
+			in: `{"acl_default_policy":"a"}`,
+			c:  &Config{ACLDefaultPolicy: "a"},
+		},
+		{
+			in: `{"acl_down_policy":"a"}`,
+			c:  &Config{ACLDownPolicy: "a"},
+		},
+		{
+			in: `{"acl_enforce_version_8":true}`,
+			c:  &Config{ACLEnforceVersion8: Bool(true)},
+		},
+		{
+			in: `{"acl_master_token":"a"}`,
+			c:  &Config{ACLMasterToken: "a"},
+		},
+		{
+			in: `{"acl_replication_token":"a"}`,
+			c:  &Config{ACLReplicationToken: "a"},
+		},
+		{
+			in: `{"acl_token":"a"}`,
+			c:  &Config{ACLToken: "a"},
+		},
+		{
+			in: `{"acl_ttl":"2s"}`,
+			c:  &Config{ACLTTL: 2 * time.Second, ACLTTLRaw: "2s"},
+		},
+		{
+			in: `{"addresses":{"dns":"a"}}`,
+			c:  &Config{Addresses: AddressConfig{DNS: "a"}},
+		},
+		{
+			in: `{"addresses":{"http":"a"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTP: "a"}},
+		},
+		{
+			in: `{"addresses":{"https":"a"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTPS: "a"}},
+		},
+		{
+			in: `{"addresses":{"rpc":"a"}}`,
+			c:  &Config{Addresses: AddressConfig{RPC: "a"}},
+		},
+		{
+			in: `{"advertise_addr":"a"}`,
+			c:  &Config{AdvertiseAddr: "a"},
+		},
+		{
+			in: `{"advertise_addr_wan":"a"}`,
+			c:  &Config{AdvertiseAddrWan: "a"},
+		},
+		{
+			in: `{"advertise_addrs":{"rpc":"1.2.3.4:5678"}}`,
+			c: &Config{
+				AdvertiseAddrs: AdvertiseAddrsConfig{
+					RPC:    &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+					RPCRaw: "1.2.3.4:5678",
 				},
-				"checks": [
-					{
-						"script": "/bin/check_redis_read",
-						"interval": "1m"
+			},
+		},
+		{
+			in: `{"advertise_addrs":{"serf_lan":"1.2.3.4:5678"}}`,
+			c: &Config{
+				AdvertiseAddrs: AdvertiseAddrsConfig{
+					SerfLan:    &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+					SerfLanRaw: "1.2.3.4:5678",
+				},
+			},
+		},
+		{
+			in: `{"advertise_addrs":{"serf_wan":"1.2.3.4:5678"}}`,
+			c: &Config{
+				AdvertiseAddrs: AdvertiseAddrsConfig{
+					SerfWan:    &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+					SerfWanRaw: "1.2.3.4:5678",
+				},
+			},
+		},
+		{
+			in: `{"atlas_acl_token":"a"}`,
+			c:  &Config{DeprecatedAtlasACLToken: "a"},
+		},
+		{
+			in: `{"atlas_endpoint":"a"}`,
+			c:  &Config{DeprecatedAtlasEndpoint: "a"},
+		},
+		{
+			in: `{"atlas_infrastructure":"a"}`,
+			c:  &Config{DeprecatedAtlasInfrastructure: "a"},
+		},
+		{
+			in: `{"atlas_join":true}`,
+			c:  &Config{DeprecatedAtlasJoin: true},
+		},
+		{
+			in: `{"atlas_token":"a"}`,
+			c:  &Config{DeprecatedAtlasToken: "a"},
+		},
+		{
+			in: `{"autopilot":{"cleanup_dead_servers":true}}`,
+			c:  &Config{Autopilot: Autopilot{CleanupDeadServers: Bool(true)}},
+		},
+		{
+			in: `{"autopilot":{"disable_upgrade_migration":true}}`,
+			c:  &Config{Autopilot: Autopilot{DisableUpgradeMigration: Bool(true)}},
+		},
+		{
+			in: `{"autopilot":{"last_contact_threshold":"2s"}}`,
+			c:  &Config{Autopilot: Autopilot{LastContactThreshold: Duration(2 * time.Second), LastContactThresholdRaw: "2s"}},
+		},
+		{
+			in: `{"autopilot":{"max_trailing_logs":10}}`,
+			c:  &Config{Autopilot: Autopilot{MaxTrailingLogs: Uint64(10)}},
+		},
+		{
+			in: `{"autopilot":{"server_stabilization_time":"2s"}}`,
+			c:  &Config{Autopilot: Autopilot{ServerStabilizationTime: Duration(2 * time.Second), ServerStabilizationTimeRaw: "2s"}},
+		},
+		{
+			in: `{"autopilot":{"cleanup_dead_servers":true}}`,
+			c:  &Config{Autopilot: Autopilot{CleanupDeadServers: Bool(true)}},
+		},
+		{
+			in: `{"bind_addr":"a"}`,
+			c:  &Config{BindAddr: "a"},
+		},
+		{
+			in: `{"bootstrap":true}`,
+			c:  &Config{Bootstrap: true},
+		},
+		{
+			in: `{"bootstrap_expect":3}`,
+			c:  &Config{BootstrapExpect: 3},
+		},
+		{
+			in: `{"ca_file":"a"}`,
+			c:  &Config{CAFile: "a"},
+		},
+		{
+			in: `{"ca_path":"a"}`,
+			c:  &Config{CAPath: "a"},
+		},
+		{
+			in: `{"check_update_interval":"2s"}`,
+			c:  &Config{CheckUpdateInterval: 2 * time.Second, CheckUpdateIntervalRaw: "2s"},
+		},
+		{
+			in: `{"cert_file":"a"}`,
+			c:  &Config{CertFile: "a"},
+		},
+		{
+			in: `{"client_addr":"a"}`,
+			c:  &Config{ClientAddr: "a"},
+		},
+		{
+			in: `{"data_dir":"a"}`,
+			c:  &Config{DataDir: "a"},
+		},
+		{
+			in: `{"datacenter":"a"}`,
+			c:  &Config{Datacenter: "a"},
+		},
+		{
+			in: `{"disable_coordinates":true}`,
+			c:  &Config{DisableCoordinates: true},
+		},
+		{
+			in: `{"disable_host_node_id":true}`,
+			c:  &Config{DisableHostNodeID: true},
+		},
+		{
+			in: `{"dns_config":{"allow_stale":true}}`,
+			c:  &Config{DNSConfig: DNSConfig{AllowStale: Bool(true)}},
+		},
+		{
+			in: `{"dns_config":{"disable_compression":true}}`,
+			c:  &Config{DNSConfig: DNSConfig{DisableCompression: true}},
+		},
+		{
+			in: `{"dns_config":{"enable_truncate":true}}`,
+			c:  &Config{DNSConfig: DNSConfig{EnableTruncate: true}},
+		},
+		{
+			in: `{"dns_config":{"max_stale":"2s"}}`,
+			c:  &Config{DNSConfig: DNSConfig{MaxStale: 2 * time.Second, MaxStaleRaw: "2s"}},
+		},
+		{
+			in: `{"dns_config":{"node_ttl":"2s"}}`,
+			c:  &Config{DNSConfig: DNSConfig{NodeTTL: 2 * time.Second, NodeTTLRaw: "2s"}},
+		},
+		{
+			in: `{"dns_config":{"only_passing":true}}`,
+			c:  &Config{DNSConfig: DNSConfig{OnlyPassing: true}},
+		},
+		{
+			in: `{"dns_config":{"recursor_timeout":"2s"}}`,
+			c:  &Config{DNSConfig: DNSConfig{RecursorTimeout: 2 * time.Second, RecursorTimeoutRaw: "2s"}},
+		},
+		{
+			in: `{"dns_config":{"service_ttl":{"*":"2s","a":"456s"}}}`,
+			c: &Config{
+				DNSConfig: DNSConfig{
+					ServiceTTL:    map[string]time.Duration{"*": 2 * time.Second, "a": 456 * time.Second},
+					ServiceTTLRaw: map[string]string{"*": "2s", "a": "456s"},
+				},
+			},
+		},
+		{
+			in: `{"dns_config":{"udp_answer_limit":123}}`,
+			c:  &Config{DNSConfig: DNSConfig{UDPAnswerLimit: 123}},
+		},
+		{
+			in: `{"disable_anonymous_signature":true}`,
+			c:  &Config{DisableAnonymousSignature: true},
+		},
+		{
+			in: `{"disable_remote_exec":false}`,
+			c:  &Config{DisableRemoteExec: Bool(false)},
+		},
+		{
+			in: `{"disable_update_check":true}`,
+			c:  &Config{DisableUpdateCheck: true},
+		},
+		{
+			in: `{"dogstatsd_addr":"a"}`,
+			c:  &Config{Telemetry: Telemetry{DogStatsdAddr: "a"}},
+		},
+		{
+			in: `{"dogstatsd_tags":["a:b","c:d"]}`,
+			c:  &Config{Telemetry: Telemetry{DogStatsdTags: []string{"a:b", "c:d"}}},
+		},
+		{
+			in: `{"domain":"a"}`,
+			c:  &Config{Domain: "a"},
+		},
+		{
+			in: `{"enable_debug":true}`,
+			c:  &Config{EnableDebug: true},
+		},
+		{
+			in: `{"enable_syslog":true}`,
+			c:  &Config{EnableSyslog: true},
+		},
+		{
+			in: `{"encrypt_verify_incoming":true}`,
+			c:  &Config{EncryptVerifyIncoming: Bool(true)},
+		},
+		{
+			in: `{"encrypt_verify_outgoing":true}`,
+			c:  &Config{EncryptVerifyOutgoing: Bool(true)},
+		},
+		{
+			in: `{"http_api_response_headers":{"a":"b","c":"d"}}`,
+			c:  &Config{HTTPAPIResponseHeaders: map[string]string{"a": "b", "c": "d"}},
+		},
+		{
+			in: `{"key_file":"a"}`,
+			c:  &Config{KeyFile: "a"},
+		},
+		{
+			in: `{"leave_on_terminate":true}`,
+			c:  &Config{LeaveOnTerm: Bool(true)},
+		},
+		{
+			in: `{"log_level":"a"}`,
+			c:  &Config{LogLevel: "a"},
+		},
+		{
+			in: `{"node_id":"a"}`,
+			c:  &Config{NodeID: "a"},
+		},
+		{
+			in: `{"node_meta":{"a":"b","c":"d"}}`,
+			c:  &Config{Meta: map[string]string{"a": "b", "c": "d"}},
+		},
+		{
+			in: `{"node_name":"a"}`,
+			c:  &Config{NodeName: "a"},
+		},
+		{
+			in: `{"performance": { "raft_multiplier": 3 }}`,
+			c:  &Config{Performance: Performance{RaftMultiplier: 3}},
+		},
+		{
+			in:  `{"performance": { "raft_multiplier": 11 }}`,
+			err: errors.New("Performance.RaftMultiplier must be <= 10"),
+		},
+		{
+			in: `{"pid_file":"a"}`,
+			c:  &Config{PidFile: "a"},
+		},
+		{
+			in: `{"ports":{"dns":1234}}`,
+			c:  &Config{Ports: PortConfig{DNS: 1234}},
+		},
+		{
+			in: `{"ports":{"http":1234}}`,
+			c:  &Config{Ports: PortConfig{HTTP: 1234}},
+		},
+		{
+			in: `{"ports":{"https":1234}}`,
+			c:  &Config{Ports: PortConfig{HTTPS: 1234}},
+		},
+		{
+			in: `{"ports":{"serf_lan":1234}}`,
+			c:  &Config{Ports: PortConfig{SerfLan: 1234}},
+		},
+		{
+			in: `{"ports":{"serf_wan":1234}}`,
+			c:  &Config{Ports: PortConfig{SerfWan: 1234}},
+		},
+		{
+			in: `{"ports":{"server":1234}}`,
+			c:  &Config{Ports: PortConfig{Server: 1234}},
+		},
+		{
+			in: `{"ports":{"rpc":1234}}`,
+			c:  &Config{Ports: PortConfig{RPC: 1234}},
+		},
+		{
+			in: `{"raft_protocol":3}`,
+			c:  &Config{RaftProtocol: 3},
+		},
+		{
+			in:  `{"reconnect_timeout":"4h"}`,
+			err: errors.New("ReconnectTimeoutLan must be >= 8h0m0s"),
+		},
+		{
+			in: `{"reconnect_timeout":"8h"}`,
+			c:  &Config{ReconnectTimeoutLan: 8 * time.Hour, ReconnectTimeoutLanRaw: "8h"},
+		},
+		{
+			in:  `{"reconnect_timeout_wan":"4h"}`,
+			err: errors.New("ReconnectTimeoutWan must be >= 8h0m0s"),
+		},
+		{
+			in: `{"reconnect_timeout_wan":"8h"}`,
+			c:  &Config{ReconnectTimeoutWan: 8 * time.Hour, ReconnectTimeoutWanRaw: "8h"},
+		},
+		{
+			in: `{"recursor":"a"}`,
+			c:  &Config{DNSRecursor: "a", DNSRecursors: []string{"a"}},
+		},
+		{
+			in: `{"recursors":["a","b"]}`,
+			c:  &Config{DNSRecursors: []string{"a", "b"}},
+		},
+		{
+			in: `{"rejoin_after_leave":true}`,
+			c:  &Config{RejoinAfterLeave: true},
+		},
+		{
+			in: `{"retry_interval":"2s"}`,
+			c:  &Config{RetryInterval: 2 * time.Second, RetryIntervalRaw: "2s"},
+		},
+		{
+			in: `{"retry_interval_wan":"2s"}`,
+			c:  &Config{RetryIntervalWan: 2 * time.Second, RetryIntervalWanRaw: "2s"},
+		},
+		{
+			in: `{"retry_join":["a","b"]}`,
+			c:  &Config{RetryJoin: []string{"a", "b"}},
+		},
+		{
+			in: `{"retry_join_azure":{"client_id":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{ClientID: "a"}},
+		},
+		{
+			in: `{"retry_join_azure":{"tag_name":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{TagName: "a"}},
+		},
+		{
+			in: `{"retry_join_azure":{"tag_value":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{TagValue: "a"}},
+		},
+		{
+			in: `{"retry_join_azure":{"secret_access_key":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{SecretAccessKey: "a"}},
+		},
+		{
+			in: `{"retry_join_azure":{"subscription_id":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{SubscriptionID: "a"}},
+		},
+		{
+			in: `{"retry_join_azure":{"tenant_id":"a"}}`,
+			c:  &Config{RetryJoinAzure: RetryJoinAzure{TenantID: "a"}},
+		},
+		{
+			in: `{"retry_join_ec2":{"access_key_id":"a"}}`,
+			c:  &Config{RetryJoinEC2: RetryJoinEC2{AccessKeyID: "a"}},
+		},
+		{
+			in: `{"retry_join_ec2":{"region":"a"}}`,
+			c:  &Config{RetryJoinEC2: RetryJoinEC2{Region: "a"}},
+		},
+		{
+			in: `{"retry_join_ec2":{"tag_key":"a"}}`,
+			c:  &Config{RetryJoinEC2: RetryJoinEC2{TagKey: "a"}},
+		},
+		{
+			in: `{"retry_join_ec2":{"tag_value":"a"}}`,
+			c:  &Config{RetryJoinEC2: RetryJoinEC2{TagValue: "a"}},
+		},
+		{
+			in: `{"retry_join_ec2":{"secret_access_key":"a"}}`,
+			c:  &Config{RetryJoinEC2: RetryJoinEC2{SecretAccessKey: "a"}},
+		},
+		{
+			in: `{"retry_join_gce":{"credentials_file":"a"}}`,
+			c:  &Config{RetryJoinGCE: RetryJoinGCE{CredentialsFile: "a"}},
+		},
+		{
+			in: `{"retry_join_gce":{"project_name":"a"}}`,
+			c:  &Config{RetryJoinGCE: RetryJoinGCE{ProjectName: "a"}},
+		},
+		{
+			in: `{"retry_join_gce":{"tag_value":"a"}}`,
+			c:  &Config{RetryJoinGCE: RetryJoinGCE{TagValue: "a"}},
+		},
+		{
+			in: `{"retry_join_gce":{"zone_pattern":"a"}}`,
+			c:  &Config{RetryJoinGCE: RetryJoinGCE{ZonePattern: "a"}},
+		},
+		{
+			in: `{"retry_join_wan":["a","b"]}`,
+			c:  &Config{RetryJoinWan: []string{"a", "b"}},
+		},
+		{
+			in: `{"retry_max":123}`,
+			c:  &Config{RetryMaxAttempts: 123},
+		},
+		{
+			in: `{"retry_max_wan":123}`,
+			c:  &Config{RetryMaxAttemptsWan: 123},
+		},
+		{
+			in: `{"serf_lan_bind":"a"}`,
+			c:  &Config{SerfLanBindAddr: "a"},
+		},
+		{
+			in: `{"serf_wan_bind":"a"}`,
+			c:  &Config{SerfWanBindAddr: "a"},
+		},
+		{
+			in: `{"server":true}`,
+			c:  &Config{Server: true},
+		},
+		{
+			in: `{"server_name":"a"}`,
+			c:  &Config{ServerName: "a"},
+		},
+		{
+			in: `{"session_ttl_min":"2s"}`,
+			c:  &Config{SessionTTLMin: 2 * time.Second, SessionTTLMinRaw: "2s"},
+		},
+		{
+			in: `{"skip_leave_on_interrupt":true}`,
+			c:  &Config{SkipLeaveOnInt: Bool(true)},
+		},
+		{
+			in: `{"start_join":["a","b"]}`,
+			c:  &Config{StartJoin: []string{"a", "b"}},
+		},
+		{
+			in: `{"start_join_wan":["a","b"]}`,
+			c:  &Config{StartJoinWan: []string{"a", "b"}},
+		},
+		{
+			in: `{"statsd_addr":"a"}`,
+			c:  &Config{Telemetry: Telemetry{StatsdAddr: "a"}},
+		},
+		{
+			in: `{"statsite_addr":"a"}`,
+			c:  &Config{Telemetry: Telemetry{StatsiteAddr: "a"}},
+		},
+		{
+			in: `{"statsite_prefix":"a"}`,
+			c:  &Config{Telemetry: Telemetry{StatsitePrefix: "a"}},
+		},
+		{
+			in: `{"syslog_facility":"a"}`,
+			c:  &Config{SyslogFacility: "a"},
+		},
+		{
+			in: `{"telemetry":{"circonus_api_app":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusAPIApp: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_api_token":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusAPIToken: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_api_url":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusAPIURL: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_broker_id":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusBrokerID: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_broker_select_tag":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusBrokerSelectTag: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_display_name":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckDisplayName: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_force_metric_activation":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckForceMetricActivation: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_id":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckID: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_instance_id":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckInstanceID: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_search_tag":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckSearchTag: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_check_tags":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckTags: "a"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_submission_interval":"2s"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusSubmissionInterval: "2s"}},
+		},
+		{
+			in: `{"telemetry":{"circonus_submission_url":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{CirconusCheckSubmissionURL: "a"}},
+		},
+		{
+			in: `{"telemetry":{"disable_hostname":true}}`,
+			c:  &Config{Telemetry: Telemetry{DisableHostname: true}},
+		},
+		{
+			in: `{"telemetry":{"dogstatsd_addr":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{DogStatsdAddr: "a"}},
+		},
+		{
+			in: `{"telemetry":{"dogstatsd_tags":["a","b"]}}`,
+			c:  &Config{Telemetry: Telemetry{DogStatsdTags: []string{"a", "b"}}},
+		},
+		{
+			in: `{"telemetry":{"statsd_address":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{StatsdAddr: "a"}},
+		},
+		{
+			in: `{"telemetry":{"statsite_address":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{StatsiteAddr: "a"}},
+		},
+		{
+			in: `{"telemetry":{"statsite_prefix":"a"}}`,
+			c:  &Config{Telemetry: Telemetry{StatsitePrefix: "a"}},
+		},
+		{
+			in: `{"tls_cipher_suites":"TLS_RSA_WITH_AES_256_CBC_SHA"}`,
+			c: &Config{
+				TLSCipherSuites:    []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
+				TLSCipherSuitesRaw: "TLS_RSA_WITH_AES_256_CBC_SHA",
+			},
+		},
+		{
+			in: `{"tls_min_version":"a"}`,
+			c:  &Config{TLSMinVersion: "a"},
+		},
+		{
+			in: `{"tls_prefer_server_cipher_suites":true}`,
+			c:  &Config{TLSPreferServerCipherSuites: true},
+		},
+		{
+			in: `{"translate_wan_addrs":true}`,
+			c:  &Config{TranslateWanAddrs: true},
+		},
+		{
+			in: `{"ui":true}`,
+			c:  &Config{EnableUI: true},
+		},
+		{
+			in: `{"ui_dir":"a"}`,
+			c:  &Config{UIDir: "a"},
+		},
+		{
+			in: `{"unix_sockets":{"user":"a"}}`,
+			c:  &Config{UnixSockets: UnixSocketConfig{UnixSocketPermissions{Usr: "a"}}},
+		},
+		{
+			in: `{"unix_sockets":{"group":"a"}}`,
+			c:  &Config{UnixSockets: UnixSocketConfig{UnixSocketPermissions{Grp: "a"}}},
+		},
+		{
+			in: `{"unix_sockets":{"mode":"a"}}`,
+			c:  &Config{UnixSockets: UnixSocketConfig{UnixSocketPermissions{Perms: "a"}}},
+		},
+		{
+			in: `{"verify_incoming":true}`,
+			c:  &Config{VerifyIncoming: true},
+		},
+		{
+			in: `{"verify_incoming_https":true}`,
+			c:  &Config{VerifyIncomingHTTPS: true},
+		},
+		{
+			in: `{"verify_incoming_rpc":true}`,
+			c:  &Config{VerifyIncomingRPC: true},
+		},
+		{
+			in: `{"verify_outgoing":true}`,
+			c:  &Config{VerifyOutgoing: true},
+		},
+		{
+			in: `{"verify_server_hostname":true}`,
+			c:  &Config{VerifyServerHostname: true},
+		},
+		{
+			in: `{"watches":[{"type":"a","prefix":"b","handler":"c"}]}`,
+			c: &Config{
+				Watches: []map[string]interface{}{
+					map[string]interface{}{
+						"type":    "a",
+						"prefix":  "b",
+						"handler": "c",
 					},
-					{
-						"script": "/bin/check_redis_write",
-						"interval": "1m"
+				},
+			},
+		},
+
+		// complex flows
+		{
+			desc: "single service with check",
+			in: `{
+					"service": {
+						"ID": "a",
+						"Name": "b",
+						"Tags": ["c", "d"],
+						"Address": "e",
+						"Token": "f",
+						"Port": 123,
+						"EnableTagOverride": true,
+						"Check": {
+							"CheckID": "g",
+							"Name": "h",
+							"Status": "i",
+							"Notes": "j",
+							"Script": "k",
+							"HTTP": "l",
+							"TCP": "m",
+							"DockerContainerID": "n",
+							"Shell": "o",
+							"TLSSkipVerify": true,
+							"Interval": "2s",
+							"Timeout": "3s",
+							"TTL": "4s",
+							"DeregisterCriticalServiceAfter": "5s"
+						}
 					}
-				]
-			},
-			{
-				"id": "red1",
-				"name": "redis",
-				"tags": [
-					"delayed",
-					"slave"
-				],
-				"port": 7000,
-				"check": {
-					"script": "/bin/check_redis -p 7000",
-					"interval": "30s",
-					"ttl": "60s"
-				}
-			},
-			{
-				"id": "es0",
-				"name": "elasticsearch",
-				"port": 9200,
-				"check": {
-					"HTTP": "http://localhost:9200/_cluster_health",
-					"interval": "10s",
-					"timeout": "100ms"
-				}
-			}
-		]
-	}`
-
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	expected := &Config{
-		Services: []*ServiceDefinition{
-			&ServiceDefinition{
-				Check: CheckType{
-					Interval: 5 * time.Second,
-					Script:   "/bin/check_redis -p 6000",
-					TTL:      20 * time.Second,
-				},
-				Checks: CheckTypes{
-					&CheckType{
-						Interval: time.Minute,
-						Script:   "/bin/check_redis_read",
-					},
-					&CheckType{
-						Interval: time.Minute,
-						Script:   "/bin/check_redis_write",
+				}`,
+			c: &Config{
+				Services: []*ServiceDefinition{
+					&ServiceDefinition{
+						ID:                "a",
+						Name:              "b",
+						Tags:              []string{"c", "d"},
+						Address:           "e",
+						Port:              123,
+						Token:             "f",
+						EnableTagOverride: true,
+						Check: CheckType{
+							CheckID:           "g",
+							Name:              "h",
+							Status:            "i",
+							Notes:             "j",
+							Script:            "k",
+							HTTP:              "l",
+							TCP:               "m",
+							DockerContainerID: "n",
+							Shell:             "o",
+							TLSSkipVerify:     true,
+							Interval:          2 * time.Second,
+							Timeout:           3 * time.Second,
+							TTL:               4 * time.Second,
+							DeregisterCriticalServiceAfter: 5 * time.Second,
+						},
 					},
 				},
-				ID:   "red0",
-				Name: "redis",
-				Tags: []string{
-					"master",
-				},
-				Port: 6000,
 			},
-			&ServiceDefinition{
-				Check: CheckType{
-					Interval: 30 * time.Second,
-					Script:   "/bin/check_redis -p 7000",
-					TTL:      60 * time.Second,
+		},
+		{
+			desc: "single service with multiple checks",
+			in: `{
+					"service": {
+						"ID": "a",
+						"Name": "b",
+						"Tags": ["c", "d"],
+						"Address": "e",
+						"Token": "f",
+						"Port": 123,
+						"EnableTagOverride": true,
+						"Checks": [
+							{
+								"CheckID": "g",
+								"Name": "h",
+								"Status": "i",
+								"Notes": "j",
+								"Script": "k",
+								"HTTP": "l",
+								"TCP": "m",
+								"DockerContainerID": "n",
+								"Shell": "o",
+								"TLSSkipVerify": true,
+								"Interval": "2s",
+								"Timeout": "3s",
+								"TTL": "4s",
+								"DeregisterCriticalServiceAfter": "5s"
+							},
+							{
+								"CheckID": "gg",
+								"Name": "hh",
+								"Status": "ii",
+								"Notes": "jj",
+								"Script": "kk",
+								"HTTP": "ll",
+								"TCP": "mm",
+								"DockerContainerID": "nn",
+								"Shell": "oo",
+								"TLSSkipVerify": false,
+								"Interval": "22s",
+								"Timeout": "33s",
+								"TTL": "44s",
+								"DeregisterCriticalServiceAfter": "55s"
+							}
+						]
+					}
+				}`,
+			c: &Config{
+				Services: []*ServiceDefinition{
+					&ServiceDefinition{
+						ID:                "a",
+						Name:              "b",
+						Tags:              []string{"c", "d"},
+						Address:           "e",
+						Port:              123,
+						Token:             "f",
+						EnableTagOverride: true,
+						Checks: CheckTypes{
+							{
+								CheckID:           "g",
+								Name:              "h",
+								Status:            "i",
+								Notes:             "j",
+								Script:            "k",
+								HTTP:              "l",
+								TCP:               "m",
+								DockerContainerID: "n",
+								Shell:             "o",
+								TLSSkipVerify:     true,
+								Interval:          2 * time.Second,
+								Timeout:           3 * time.Second,
+								TTL:               4 * time.Second,
+								DeregisterCriticalServiceAfter: 5 * time.Second,
+							},
+							{
+								CheckID:           "gg",
+								Name:              "hh",
+								Status:            "ii",
+								Notes:             "jj",
+								Script:            "kk",
+								HTTP:              "ll",
+								TCP:               "mm",
+								DockerContainerID: "nn",
+								Shell:             "oo",
+								TLSSkipVerify:     false,
+								Interval:          22 * time.Second,
+								Timeout:           33 * time.Second,
+								TTL:               44 * time.Second,
+								DeregisterCriticalServiceAfter: 55 * time.Second,
+							},
+						},
+					},
 				},
-				ID:   "red1",
-				Name: "redis",
-				Tags: []string{
-					"delayed",
-					"slave",
-				},
-				Port: 7000,
 			},
-			&ServiceDefinition{
-				Check: CheckType{
-					HTTP:     "http://localhost:9200/_cluster_health",
-					Interval: 10 * time.Second,
-					Timeout:  100 * time.Millisecond,
+		},
+		{
+			desc: "multiple services with check",
+			in: `{
+					"services": [
+						{
+							"ID": "a",
+							"Name": "b",
+							"Tags": ["c", "d"],
+							"Address": "e",
+							"Token": "f",
+							"Port": 123,
+							"EnableTagOverride": true,
+							"Check": {
+								"CheckID": "g",
+								"Name": "h",
+								"Status": "i",
+								"Notes": "j",
+								"Script": "k",
+								"HTTP": "l",
+								"TCP": "m",
+								"DockerContainerID": "n",
+								"Shell": "o",
+								"TLSSkipVerify": true,
+								"Interval": "2s",
+								"Timeout": "3s",
+								"TTL": "4s",
+								"DeregisterCriticalServiceAfter": "5s"
+							}
+						},
+						{
+							"ID": "aa",
+							"Name": "bb",
+							"Tags": ["cc", "dd"],
+							"Address": "ee",
+							"Token": "ff",
+							"Port": 246,
+							"EnableTagOverride": false,
+							"Check": {
+								"CheckID": "gg",
+								"Name": "hh",
+								"Status": "ii",
+								"Notes": "jj",
+								"Script": "kk",
+								"HTTP": "ll",
+								"TCP": "mm",
+								"DockerContainerID": "nn",
+								"Shell": "oo",
+								"TLSSkipVerify": false,
+								"Interval": "22s",
+								"Timeout": "33s",
+								"TTL": "44s",
+								"DeregisterCriticalServiceAfter": "55s"
+							}
+						}
+					]
+				}`,
+			c: &Config{
+				Services: []*ServiceDefinition{
+					&ServiceDefinition{
+						ID:                "a",
+						Name:              "b",
+						Tags:              []string{"c", "d"},
+						Address:           "e",
+						Port:              123,
+						Token:             "f",
+						EnableTagOverride: true,
+						Check: CheckType{
+							CheckID:           "g",
+							Name:              "h",
+							Status:            "i",
+							Notes:             "j",
+							Script:            "k",
+							HTTP:              "l",
+							TCP:               "m",
+							DockerContainerID: "n",
+							Shell:             "o",
+							TLSSkipVerify:     true,
+							Interval:          2 * time.Second,
+							Timeout:           3 * time.Second,
+							TTL:               4 * time.Second,
+							DeregisterCriticalServiceAfter: 5 * time.Second,
+						},
+					},
+					&ServiceDefinition{
+						ID:                "aa",
+						Name:              "bb",
+						Tags:              []string{"cc", "dd"},
+						Address:           "ee",
+						Port:              246,
+						Token:             "ff",
+						EnableTagOverride: false,
+						Check: CheckType{
+							CheckID:           "gg",
+							Name:              "hh",
+							Status:            "ii",
+							Notes:             "jj",
+							Script:            "kk",
+							HTTP:              "ll",
+							TCP:               "mm",
+							DockerContainerID: "nn",
+							Shell:             "oo",
+							TLSSkipVerify:     false,
+							Interval:          22 * time.Second,
+							Timeout:           33 * time.Second,
+							TTL:               44 * time.Second,
+							DeregisterCriticalServiceAfter: 55 * time.Second,
+						},
+					},
 				},
-				ID:   "es0",
-				Name: "elasticsearch",
-				Port: 9200,
+			},
+		},
+
+		{
+			desc: "single check",
+			in: `{
+					"check": {
+						"id": "a",
+						"name": "b",
+						"notes": "c",
+						"service_id": "x",
+						"token": "y",
+						"status": "z",
+						"script": "d",
+						"shell": "e",
+						"http": "f",
+						"tcp": "g",
+						"docker_container_id": "h",
+						"tls_skip_verify": true,
+						"interval": "2s",
+						"timeout": "3s",
+						"ttl": "4s",
+						"deregister_critical_service_after": "5s"
+					}
+				}`,
+			c: &Config{
+				Checks: []*CheckDefinition{
+					&CheckDefinition{
+						ID:                "a",
+						Name:              "b",
+						Notes:             "c",
+						ServiceID:         "x",
+						Token:             "y",
+						Status:            "z",
+						Script:            "d",
+						Shell:             "e",
+						HTTP:              "f",
+						TCP:               "g",
+						DockerContainerID: "h",
+						TLSSkipVerify:     true,
+						Interval:          2 * time.Second,
+						Timeout:           3 * time.Second,
+						TTL:               4 * time.Second,
+						DeregisterCriticalServiceAfter: 5 * time.Second,
+					},
+				},
+			},
+		},
+		{
+			desc: "multiple checks",
+			in: `{
+					"checks": [
+						{
+							"id": "a",
+							"name": "b",
+							"notes": "c",
+							"service_id": "d",
+							"token": "e",
+							"status": "f",
+							"script": "g",
+							"shell": "h",
+							"http": "i",
+							"tcp": "j",
+							"docker_container_id": "k",
+							"tls_skip_verify": true,
+							"interval": "2s",
+							"timeout": "3s",
+							"ttl": "4s",
+							"deregister_critical_service_after": "5s"
+						},
+						{
+							"id": "aa",
+							"name": "bb",
+							"notes": "cc",
+							"service_id": "dd",
+							"token": "ee",
+							"status": "ff",
+							"script": "gg",
+							"shell": "hh",
+							"http": "ii",
+							"tcp": "jj",
+							"docker_container_id": "kk",
+							"tls_skip_verify": false,
+							"interval": "22s",
+							"timeout": "33s",
+							"ttl": "44s",
+							"deregister_critical_service_after": "55s"
+						}
+					]
+				}`,
+			c: &Config{
+				Checks: []*CheckDefinition{
+					&CheckDefinition{
+						ID:                "a",
+						Name:              "b",
+						Notes:             "c",
+						ServiceID:         "d",
+						Token:             "e",
+						Status:            "f",
+						Script:            "g",
+						Shell:             "h",
+						HTTP:              "i",
+						TCP:               "j",
+						DockerContainerID: "k",
+						TLSSkipVerify:     true,
+						Interval:          2 * time.Second,
+						Timeout:           3 * time.Second,
+						TTL:               4 * time.Second,
+						DeregisterCriticalServiceAfter: 5 * time.Second,
+					},
+					&CheckDefinition{
+						ID:                "aa",
+						Name:              "bb",
+						Notes:             "cc",
+						ServiceID:         "dd",
+						Token:             "ee",
+						Status:            "ff",
+						Script:            "gg",
+						Shell:             "hh",
+						HTTP:              "ii",
+						TCP:               "jj",
+						DockerContainerID: "kk",
+						TLSSkipVerify:     false,
+						Interval:          22 * time.Second,
+						Timeout:           33 * time.Second,
+						TTL:               44 * time.Second,
+						DeregisterCriticalServiceAfter: 55 * time.Second,
+					},
+				},
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("bad: %#v", config)
+	for _, tt := range tests {
+		desc := tt.desc
+		if desc == "" {
+			desc = tt.in
+		}
+		t.Run(desc, func(t *testing.T) {
+			c, err := DecodeConfig(strings.NewReader(tt.in))
+			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
+				t.Fatalf("got error %v want %v", got, want)
+			}
+			got, want := c, tt.c
+			verify.Values(t, "", got, want)
+		})
 	}
 }
 
-func TestDecodeConfig_verifyUniqueListeners(t *testing.T) {
+func TestDecodeConfig_ACLTokenPreference(t *testing.T) {
+	tests := []struct {
+		in  string
+		tok string
+	}{
+		{
+			in:  `{}`,
+			tok: "",
+		},
+		{
+			in:  `{"acl_token":"a"}`,
+			tok: "a",
+		},
+		{
+			in:  `{"acl_token":"a","acl_agent_token":"b"}`,
+			tok: "b",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			c, err := DecodeConfig(strings.NewReader(tt.in))
+			if err != nil {
+				t.Fatalf("got error %v want nil", err)
+			}
+			if got, want := c.GetTokenForAgent(), tt.tok; got != want {
+				t.Fatalf("got token for agent %q want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestDecodeConfig_VerifyUniqueListeners(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name string
-		cfg  string
-		pass bool
+		desc string
+		in   string
+		err  error
 	}{
 		{
 			"http_dns1",
 			`{"addresses": {"http": "0.0.0.0", "dns": "127.0.0.1"}, "ports": {"dns": 8000}}`,
-			true,
+			nil,
 		},
 		{
 			"http_dns IP identical",
 			`{"addresses": {"http": "0.0.0.0", "dns": "0.0.0.0"}, "ports": {"http": 8000, "dns": 8000}}`,
-			false,
+			errors.New("HTTP address already configured for DNS"),
 		},
 	}
 
-	for _, test := range tests {
-		config, err := DecodeConfig(bytes.NewReader([]byte(test.cfg)))
-		if err != nil {
-			t.Fatalf("err: %s %s", test.name, err)
-		}
-
-		err = config.verifyUniqueListeners()
-		if (err != nil && test.pass) || (err == nil && !test.pass) {
-			t.Errorf("err: %s should have %v: %v: %v", test.name, test.pass, test.cfg, err)
-		}
-	}
-}
-
-func TestDecodeConfig_Checks(t *testing.T) {
-	t.Parallel()
-	input := `{
-		"checks": [
-			{
-				"id": "chk1",
-				"name": "name1",
-				"script": "/bin/check_mem",
-				"interval": "5s"
-			},
-			{
-				"id": "chk2",
-				"name": "name2",
-				"script": "/bin/check_cpu",
-				"interval": "10s"
-			},
-			{
-				"id": "chk3",
-				"name": "service:redis:tx",
-				"script": "/bin/check_redis_tx",
-				"interval": "1m",
-				"service_id": "redis"
-			},
-			{
-				"id": "chk4",
-				"name": "service:elasticsearch:health",
-				"HTTP": "http://localhost:9200/_cluster_health",
-				"interval": "10s",
-				"timeout": "100ms",
-				"service_id": "elasticsearch"
-			},
-			{
-				"id": "chk5",
-				"name": "service:sslservice",
-				"HTTP": "https://sslservice/status",
-				"interval": "10s",
-				"timeout": "100ms",
-				"service_id": "sslservice"
-			},
-			{
-				"id": "chk6",
-				"name": "service:insecure-sslservice",
-				"HTTP": "https://insecure-sslservice/status",
-				"interval": "10s",
-				"timeout": "100ms",
-				"service_id": "insecure-sslservice",
-				"tls_skip_verify": true
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			c, err := DecodeConfig(strings.NewReader(tt.in))
+			if err != nil {
+				t.Fatalf("got error %v want nil", err)
 			}
-		]
-	}`
 
-	got, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	want := &Config{
-		Checks: []*CheckDefinition{
-			&CheckDefinition{
-				ID:       "chk1",
-				Name:     "name1",
-				Script:   "/bin/check_mem",
-				Interval: 5 * time.Second,
-			},
-			&CheckDefinition{
-				ID:       "chk2",
-				Name:     "name2",
-				Script:   "/bin/check_cpu",
-				Interval: 10 * time.Second,
-			},
-			&CheckDefinition{
-				ID:        "chk3",
-				Name:      "service:redis:tx",
-				ServiceID: "redis",
-				Script:    "/bin/check_redis_tx",
-				Interval:  time.Minute,
-			},
-			&CheckDefinition{
-				ID:        "chk4",
-				Name:      "service:elasticsearch:health",
-				ServiceID: "elasticsearch",
-				HTTP:      "http://localhost:9200/_cluster_health",
-				Interval:  10 * time.Second,
-				Timeout:   100 * time.Millisecond,
-			},
-			&CheckDefinition{
-				ID:            "chk5",
-				Name:          "service:sslservice",
-				ServiceID:     "sslservice",
-				HTTP:          "https://sslservice/status",
-				Interval:      10 * time.Second,
-				Timeout:       100 * time.Millisecond,
-				TLSSkipVerify: false,
-			},
-			&CheckDefinition{
-				ID:            "chk6",
-				Name:          "service:insecure-sslservice",
-				ServiceID:     "insecure-sslservice",
-				HTTP:          "https://insecure-sslservice/status",
-				Interval:      10 * time.Second,
-				Timeout:       100 * time.Millisecond,
-				TLSSkipVerify: true,
-			},
-		},
-	}
-	verify.Values(t, "", got, want)
-}
-
-func TestDecodeConfig_Multiples(t *testing.T) {
-	t.Parallel()
-	input := `{
-		"services": [
-			{
-				"id": "red0",
-				"name": "redis",
-				"tags": [
-					"master"
-				],
-				"port": 6000,
-				"check": {
-					"checkID": "chk1",
-					"name": "name1",
-					"script": "/bin/check_redis -p 6000",
-					"interval": "5s",
-					"ttl": "20s"
-				}
+			err = c.verifyUniqueListeners()
+			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
+				t.Fatalf("got error %v want %v", got, want)
 			}
-		],
-		"checks": [
-			{
-				"id": "chk2",
-				"name": "name2",
-				"script": "/bin/check_mem",
-				"interval": "10s"
-			}
-		]
-	}`
-
-	got, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	want := &Config{
-		Services: []*ServiceDefinition{
-			&ServiceDefinition{
-				Check: CheckType{
-					CheckID:  "chk1",
-					Name:     "name1",
-					Interval: 5 * time.Second,
-					Script:   "/bin/check_redis -p 6000",
-					TTL:      20 * time.Second,
-				},
-				ID:   "red0",
-				Name: "redis",
-				Tags: []string{
-					"master",
-				},
-				Port: 6000,
-			},
-		},
-		Checks: []*CheckDefinition{
-			&CheckDefinition{
-				ID:       "chk2",
-				Name:     "name2",
-				Script:   "/bin/check_mem",
-				Interval: 10 * time.Second,
-			},
-		},
-	}
-
-	verify.Values(t, "", got, want)
-}
-
-func TestDecodeConfig_Service(t *testing.T) {
-	t.Parallel()
-	// Basics
-	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "DeregisterCriticalServiceAfter": "90m" }}}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if len(config.Services) != 1 {
-		t.Fatalf("missing service")
-	}
-
-	serv := config.Services[0]
-	if serv.ID != "red1" {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Name != "redis" {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if !lib.StrContains(serv.Tags, "master") {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Port != 8000 {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Check.Script != "/bin/check_redis" {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Check.Interval != 10*time.Second {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Check.TTL != 15*time.Second {
-		t.Fatalf("bad: %v", serv)
-	}
-
-	if serv.Check.DeregisterCriticalServiceAfter != 90*time.Minute {
-		t.Fatalf("bad: %v", serv)
+		})
 	}
 }
 
-func TestDecodeConfig_Check(t *testing.T) {
+func TestDefaultConfig(t *testing.T) {
 	t.Parallel()
-	// Basics
-	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis", "deregister_critical_service_after": "90s" }}`
-	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
+
+	// ACL flag for Consul version 0.8 features (broken out since we will
+	// eventually remove this).
+	config := DefaultConfig()
+	if *config.ACLEnforceVersion8 != true {
+		t.Fatalf("bad: %#v", config)
 	}
 
-	if len(config.Checks) != 1 {
-		t.Fatalf("missing check")
-	}
-
-	chk := config.Checks[0]
-	if chk.ID != "chk1" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.Name != "mem" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.Notes != "foobar" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.Script != "/bin/check_redis" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.Interval != 10*time.Second {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.TTL != 15*time.Second {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.Shell != "/bin/bash" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.DockerContainerID != "redis" {
-		t.Fatalf("bad: %v", chk)
-	}
-
-	if chk.DeregisterCriticalServiceAfter != 90*time.Second {
-		t.Fatalf("bad: %v", chk)
+	// Remote exec is disabled by default.
+	if *config.DisableRemoteExec != true {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 
