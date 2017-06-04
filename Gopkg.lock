@@ -233,7 +233,7 @@
   branch = "master"
   name = "github.com/miekg/dns"
   packages = ["."]
-  revision = "fb6fbed0f5ec4e418de4f156c18d2e4f9bc854e7"
+  revision = "e78414ef75607394ad7d917824f07f381df2eafa"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
