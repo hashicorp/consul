@@ -1575,6 +1575,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Notify:        &a.state,
 				CheckID:       check.CheckID,
 				HTTP:          chkType.HTTP,
+				Header:        chkType.Header,
+				Method:        chkType.Method,
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,

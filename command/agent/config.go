@@ -1437,6 +1437,20 @@ func FixupCheckType(raw interface{}) error {
 		case "service_id":
 			rawMap["serviceid"] = v
 			delete(rawMap, k)
+		case "header":
+			vm, ok := v.(map[string]interface{})
+			if ok {
+				m := map[string][]string{}
+				for k, vv := range vm {
+					vs, ok := vv.([]interface{})
+					if ok {
+						for _, s := range vs {
+							m[k] = append(m[k], s.(string))
+						}
+					}
+				}
+				rawMap["header"] = m
+			}
 		case "docker_container_id":
 			rawMap["DockerContainerID"] = v
 			delete(rawMap, k)
