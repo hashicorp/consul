@@ -9,6 +9,95 @@ import (
 	"strings"
 )
 
+// KV is the interface that groups the methods that use to manipulate the K/V API.
+type KV interface {
+	// Acquire is used for a lock acquisition operation. The Key,
+	// Flags, Value and Session are respected. Returns true
+	// on success or false on failures.
+	Acquire(*KVPair, *WriteOptions) (bool, *WriteMeta, error)
+
+	// CAS is used for a Check-And-Set operation. The Key,
+	// ModifyIndex, Flags and Value are respected. Returns true
+	// on success or false on failures.
+	CAS(*KVPair, *WriteOptions) (bool, *WriteMeta, error)
+
+	// Delete is used to delete a single key
+	Delete(string, *WriteOptions) (*WriteMeta, error)
+
+	// DeleteCAS is used for a Delete Check-And-Set operation. The Key
+	// and ModifyIndex are respected. Returns true on success or false on failures.
+	DeleteCAS(*KVPair, *WriteOptions) (bool, *WriteMeta, error)
+
+	// DeleteTree is used to delete all keys under a prefix
+	DeleteTree(string, *WriteOptions) (*WriteMeta, error)
+
+	// Get is used to lookup a single key. The returned pointer
+	// to the KVPair will be nil if the key does not exist.
+	Get(string, *QueryOptions) (*KVPair, *QueryMeta, error)
+
+	// Keys is used to list all the keys under a prefix. Optionally,
+	// a separator can be used to limit the responses.
+	Keys(string, string, *QueryOptions) ([]string, *QueryMeta, error)
+
+	// List is used to lookup all keys under a prefix
+	List(string, *QueryOptions) (KVPairs, *QueryMeta, error)
+
+	// Put is used to write a new value. Only the
+	// Key, Flags and Value is respected.
+	Put(*KVPair, *WriteOptions) (*WriteMeta, error)
+
+	// Release is used for a lock release operation. The Key,
+	// Flags, Value and Session are respected. Returns true
+	// on success or false on failures.
+	Release(*KVPair, *WriteOptions) (bool, *WriteMeta, error)
+
+	// Txn is used to apply multiple KV operations in a single, atomic transaction.
+	//
+	// Note that Go will perform the required base64 encoding on the values
+	// automatically because the type is a byte slice. Transactions are defined as a
+	// list of operations to perform, using the KVOp constants and KVTxnOp structure
+	// to define operations. If any operation fails, none of the changes are applied
+	// to the state store. Note that this hides the internal raw transaction interface
+	// and munges the input and output types into KV-specific ones for ease of use.
+	// If there are more non-KV operations in the future we may break out a new
+	// transaction API client, but it will be easy to keep this KV-specific variant
+	// supported.
+	//
+	// Even though this is generally a write operation, we take a QueryOptions input
+	// and return a QueryMeta output. If the transaction contains only read ops, then
+	// Consul will fast-path it to a different endpoint internally which supports
+	// consistency controls, but not blocking. If there are write operations then
+	// the request will always be routed through raft and any consistency settings
+	// will be ignored.
+	//
+	// Here's an example:
+	//
+	// ops := KVTxnOps{
+	//     &KVTxnOp{
+	//         Verb:    KVLock,
+	//         Key:     "test/lock",
+	//         Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+	//         Value:   []byte("hello"),
+	//     },
+	//     &KVTxnOp{
+	//         Verb:    KVGet,
+	//         Key:     "another/key",
+	//     },
+	// }
+	// ok, response, _, err := kv.Txn(&ops, nil)
+	//
+	// If there is a problem making the transaction request then an error will be
+	// returned. Otherwise, the ok value will be true if the transaction succeeded
+	// or false if it was rolled back. The response is a structured return value which
+	// will have the outcome of the transaction. Its Results member will have entries
+	// for each operation. Deleted keys will have a nil entry in the, and to save
+	// space, the Value of each key in the Results will be nil unless the operation
+	// is a KVGet. If the transaction was rolled back, the Errors member will have
+	// entries referencing the index of the operation that failed along with an error
+	// message.
+	Txn(KVTxnOps, *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error)
+}
+
 // KVPair is used to represent a single K/V entry
 type KVPair struct {
 	// Key is the name of the key. It is also part of the URL path when accessed
@@ -84,18 +173,16 @@ type KVTxnResponse struct {
 }
 
 // KV is used to manipulate the K/V API
-type KV struct {
+type kv struct {
 	c *Client
 }
 
 // KV is used to return a handle to the K/V apis
-func (c *Client) KV() *KV {
-	return &KV{c}
+func (c *Client) KV() KV {
+	return &kv{c}
 }
 
-// Get is used to lookup a single key. The returned pointer
-// to the KVPair will be nil if the key does not exist.
-func (k *KV) Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error) {
+func (k *kv) Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error) {
 	resp, qm, err := k.getInternal(key, nil, q)
 	if err != nil {
 		return nil, nil, err
@@ -115,8 +202,7 @@ func (k *KV) Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error) {
 	return nil, qm, nil
 }
 
-// List is used to lookup all keys under a prefix
-func (k *KV) List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error) {
+func (k *kv) List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error) {
 	resp, qm, err := k.getInternal(prefix, map[string]string{"recurse": ""}, q)
 	if err != nil {
 		return nil, nil, err
@@ -133,9 +219,7 @@ func (k *KV) List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error) {
 	return entries, qm, nil
 }
 
-// Keys is used to list all the keys under a prefix. Optionally,
-// a separator can be used to limit the responses.
-func (k *KV) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMeta, error) {
+func (k *kv) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMeta, error) {
 	params := map[string]string{"keys": ""}
 	if separator != "" {
 		params["separator"] = separator
@@ -156,7 +240,7 @@ func (k *KV) Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMe
 	return entries, qm, nil
 }
 
-func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
+func (k *kv) getInternal(key string, params map[string]string, q *QueryOptions) (*http.Response, *QueryMeta, error) {
 	r := k.c.newRequest("GET", "/v1/kv/"+strings.TrimPrefix(key, "/"))
 	r.setQueryOptions(q)
 	for param, val := range params {
@@ -181,9 +265,7 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 	return resp, qm, nil
 }
 
-// Put is used to write a new value. Only the
-// Key, Flags and Value is respected.
-func (k *KV) Put(p *KVPair, q *WriteOptions) (*WriteMeta, error) {
+func (k *kv) Put(p *KVPair, q *WriteOptions) (*WriteMeta, error) {
 	params := make(map[string]string, 1)
 	if p.Flags != 0 {
 		params["flags"] = strconv.FormatUint(p.Flags, 10)
@@ -192,10 +274,7 @@ func (k *KV) Put(p *KVPair, q *WriteOptions) (*WriteMeta, error) {
 	return wm, err
 }
 
-// CAS is used for a Check-And-Set operation. The Key,
-// ModifyIndex, Flags and Value are respected. Returns true
-// on success or false on failures.
-func (k *KV) CAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) CAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	params := make(map[string]string, 2)
 	if p.Flags != 0 {
 		params["flags"] = strconv.FormatUint(p.Flags, 10)
@@ -204,10 +283,7 @@ func (k *KV) CAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	return k.put(p.Key, params, p.Value, q)
 }
 
-// Acquire is used for a lock acquisition operation. The Key,
-// Flags, Value and Session are respected. Returns true
-// on success or false on failures.
-func (k *KV) Acquire(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) Acquire(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	params := make(map[string]string, 2)
 	if p.Flags != 0 {
 		params["flags"] = strconv.FormatUint(p.Flags, 10)
@@ -216,10 +292,7 @@ func (k *KV) Acquire(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	return k.put(p.Key, params, p.Value, q)
 }
 
-// Release is used for a lock release operation. The Key,
-// Flags, Value and Session are respected. Returns true
-// on success or false on failures.
-func (k *KV) Release(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) Release(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	params := make(map[string]string, 2)
 	if p.Flags != 0 {
 		params["flags"] = strconv.FormatUint(p.Flags, 10)
@@ -228,7 +301,7 @@ func (k *KV) Release(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	return k.put(p.Key, params, p.Value, q)
 }
 
-func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) put(key string, params map[string]string, body []byte, q *WriteOptions) (bool, *WriteMeta, error) {
 	if len(key) > 0 && key[0] == '/' {
 		return false, nil, fmt.Errorf("Invalid key. Key must not begin with a '/': %s", key)
 	}
@@ -256,28 +329,24 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	return res, qm, nil
 }
 
-// Delete is used to delete a single key
-func (k *KV) Delete(key string, w *WriteOptions) (*WriteMeta, error) {
+func (k *kv) Delete(key string, w *WriteOptions) (*WriteMeta, error) {
 	_, qm, err := k.deleteInternal(key, nil, w)
 	return qm, err
 }
 
-// DeleteCAS is used for a Delete Check-And-Set operation. The Key
-// and ModifyIndex are respected. Returns true on success or false on failures.
-func (k *KV) DeleteCAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) DeleteCAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error) {
 	params := map[string]string{
 		"cas": strconv.FormatUint(p.ModifyIndex, 10),
 	}
 	return k.deleteInternal(p.Key, params, q)
 }
 
-// DeleteTree is used to delete all keys under a prefix
-func (k *KV) DeleteTree(prefix string, w *WriteOptions) (*WriteMeta, error) {
+func (k *kv) DeleteTree(prefix string, w *WriteOptions) (*WriteMeta, error) {
 	_, qm, err := k.deleteInternal(prefix, map[string]string{"recurse": ""}, w)
 	return qm, err
 }
 
-func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOptions) (bool, *WriteMeta, error) {
+func (k *kv) deleteInternal(key string, params map[string]string, q *WriteOptions) (bool, *WriteMeta, error) {
 	r := k.c.newRequest("DELETE", "/v1/kv/"+strings.TrimPrefix(key, "/"))
 	r.setWriteOptions(q)
 	for param, val := range params {
@@ -332,51 +401,7 @@ type TxnResponse struct {
 	Errors  TxnErrors
 }
 
-// Txn is used to apply multiple KV operations in a single, atomic transaction.
-//
-// Note that Go will perform the required base64 encoding on the values
-// automatically because the type is a byte slice. Transactions are defined as a
-// list of operations to perform, using the KVOp constants and KVTxnOp structure
-// to define operations. If any operation fails, none of the changes are applied
-// to the state store. Note that this hides the internal raw transaction interface
-// and munges the input and output types into KV-specific ones for ease of use.
-// If there are more non-KV operations in the future we may break out a new
-// transaction API client, but it will be easy to keep this KV-specific variant
-// supported.
-//
-// Even though this is generally a write operation, we take a QueryOptions input
-// and return a QueryMeta output. If the transaction contains only read ops, then
-// Consul will fast-path it to a different endpoint internally which supports
-// consistency controls, but not blocking. If there are write operations then
-// the request will always be routed through raft and any consistency settings
-// will be ignored.
-//
-// Here's an example:
-//
-// ops := KVTxnOps{
-//     &KVTxnOp{
-//         Verb:    KVLock,
-//         Key:     "test/lock",
-//         Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-//         Value:   []byte("hello"),
-//     },
-//     &KVTxnOp{
-//         Verb:    KVGet,
-//         Key:     "another/key",
-//     },
-// }
-// ok, response, _, err := kv.Txn(&ops, nil)
-//
-// If there is a problem making the transaction request then an error will be
-// returned. Otherwise, the ok value will be true if the transaction succeeded
-// or false if it was rolled back. The response is a structured return value which
-// will have the outcome of the transaction. Its Results member will have entries
-// for each operation. Deleted keys will have a nil entry in the, and to save
-// space, the Value of each key in the Results will be nil unless the operation
-// is a KVGet. If the transaction was rolled back, the Errors member will have
-// entries referencing the index of the operation that failed along with an error
-// message.
-func (k *KV) Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error) {
+func (k *kv) Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error) {
 	r := k.c.newRequest("PUT", "/v1/txn")
 	r.setQueryOptions(q)
 
