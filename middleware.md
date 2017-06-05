@@ -22,7 +22,7 @@ answer in case of failure.
 So CoreDNS treats:
 
 * SERVFAIL (dns.RcodeServerFailure)
-* REFUSED (dns.RecodeRefused)
+* REFUSED (dns.RcodeRefused)
 * FORMERR (dns.RcodeFormatError)
 * NOTIMP (dns.RcodeNotImplemented)
 
