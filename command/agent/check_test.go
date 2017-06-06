@@ -266,20 +266,12 @@ func TestCheckHTTP(t *testing.T) {
 	}
 }
 
-func mockSlowHTTPServer(responseCode int, sleep time.Duration) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(sleep)
-		w.WriteHeader(responseCode)
-		return
-	})
-
-	return httptest.NewServer(mux)
-}
-
 func TestCheckHTTPTimeout(t *testing.T) {
 	t.Parallel()
-	server := mockSlowHTTPServer(200, 10*time.Millisecond)
+	timeout := 5 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		time.Sleep(2 * timeout)
+	}))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -287,7 +279,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		Notify:   notif,
 		CheckID:  types.CheckID("bar"),
 		HTTP:     server.URL,
-		Timeout:  5 * time.Millisecond,
+		Timeout:  timeout,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
