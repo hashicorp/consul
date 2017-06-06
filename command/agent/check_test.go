@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +30,7 @@ func expectStatus(t *testing.T, script, status string) {
 		CheckID:  types.CheckID("foo"),
 		Script:   script,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -71,7 +73,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		Script:   "sleep 1 && exit 0",
 		Interval: 10 * time.Millisecond,
 		Timeout:  5 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -95,7 +97,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -120,7 +122,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -140,7 +142,7 @@ func TestCheckTTL(t *testing.T) {
 		Notify:  notif,
 		CheckID: types.CheckID("foo"),
 		TTL:     100 * time.Millisecond,
-		Logger:  log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:  log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -178,126 +180,98 @@ func TestCheckTTL(t *testing.T) {
 	}
 }
 
-func mockHTTPServer(responseCode int) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
-		w.WriteHeader(responseCode)
-		w.Write(body)
-		return
-	})
+func TestCheckHTTP(t *testing.T) {
+	t.Parallel()
 
-	return httptest.NewServer(mux)
-}
+	tests := []struct {
+		desc   string
+		code   int
+		method string
+		header http.Header
+		status string
+	}{
+		// passing
+		{code: 200, status: api.HealthPassing},
+		{code: 201, status: api.HealthPassing},
+		{code: 250, status: api.HealthPassing},
+		{code: 299, status: api.HealthPassing},
 
-func mockTLSHTTPServer(responseCode int) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
-		w.WriteHeader(responseCode)
-		w.Write(body)
-		return
-	})
+		// warning
+		{code: 429, status: api.HealthWarning},
 
-	return httptest.NewTLSServer(mux)
-}
+		// critical
+		{code: 150, status: api.HealthCritical},
+		{code: 199, status: api.HealthCritical},
+		{code: 300, status: api.HealthCritical},
+		{code: 400, status: api.HealthCritical},
+		{code: 500, status: api.HealthCritical},
 
-func expectHTTPStatus(t *testing.T, url string, status string) {
-	notif := mock.NewNotify()
-	check := &CheckHTTP{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		HTTP:     url,
-		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		// custom method
+		{desc: "custom method GET", code: 200, method: "GET", status: api.HealthPassing},
+		{desc: "custom method POST", code: 200, method: "POST", status: api.HealthPassing},
+		{desc: "custom method abc", code: 200, method: "abc", status: api.HealthPassing},
+
+		// custom header
+		{desc: "custom header", code: 200, header: http.Header{"A": []string{"b", "c"}}, status: api.HealthPassing},
 	}
-	check.Start()
-	defer check.Stop()
-	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.Updates("foo"), 2; got < want {
-			r.Fatalf("got %d updates want at least %d", got, want)
+
+	for _, tt := range tests {
+		desc := tt.desc
+		if desc == "" {
+			desc = fmt.Sprintf("code %d -> status %s", tt.code, tt.status)
 		}
-		if got, want := notif.State("foo"), status; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
-		// Allow slightly more data than CheckBufSize, for the header
-		if n := len(notif.Output("foo")); n > (CheckBufSize + 256) {
-			r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
-		}
-	})
-}
+		t.Run(desc, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.method != "" && tt.method != r.Method {
+					w.WriteHeader(999)
+					return
+				}
+				if len(tt.header) > 0 && !reflect.DeepEqual(tt.header, r.Header) {
+					w.WriteHeader(999)
+					return
+				}
+				// Body larger than 4k limit
+				body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+				w.WriteHeader(tt.code)
+				w.Write(body)
+			}))
+			defer server.Close()
 
-func TestCheckHTTPCritical(t *testing.T) {
-	t.Parallel()
-	// var server *httptest.Server
+			notif := mock.NewNotify()
+			check := &CheckHTTP{
+				Notify:   notif,
+				CheckID:  types.CheckID("foo"),
+				HTTP:     server.URL,
+				Method:   tt.method,
+				Header:   tt.header,
+				Interval: 10 * time.Millisecond,
+				Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+			}
+			check.Start()
+			defer check.Stop()
 
-	server := mockHTTPServer(150)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	// 2xx - 1
-	server = mockHTTPServer(199)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	// 2xx + 1
-	server = mockHTTPServer(300)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	server = mockHTTPServer(400)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	server = mockHTTPServer(500)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-}
-
-func TestCheckHTTPPassing(t *testing.T) {
-	t.Parallel()
-	var server *httptest.Server
-
-	server = mockHTTPServer(200)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(201)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(250)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(299)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-}
-
-func TestCheckHTTPWarning(t *testing.T) {
-	t.Parallel()
-	server := mockHTTPServer(429)
-	expectHTTPStatus(t, server.URL, api.HealthWarning)
-	server.Close()
-}
-
-func mockSlowHTTPServer(responseCode int, sleep time.Duration) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(sleep)
-		w.WriteHeader(responseCode)
-		return
-	})
-
-	return httptest.NewServer(mux)
+			retry.Run(t, func(r *retry.R) {
+				if got, want := notif.Updates("foo"), 2; got < want {
+					r.Fatalf("got %d updates want at least %d", got, want)
+				}
+				if got, want := notif.State("foo"), tt.status; got != want {
+					r.Fatalf("got state %q want %q", got, want)
+				}
+				// Allow slightly more data than CheckBufSize, for the header
+				if n := len(notif.Output("foo")); n > (CheckBufSize + 256) {
+					r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+				}
+			})
+		})
+	}
 }
 
 func TestCheckHTTPTimeout(t *testing.T) {
 	t.Parallel()
-	server := mockSlowHTTPServer(200, 10*time.Millisecond)
+	timeout := 5 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		time.Sleep(2 * timeout)
+	}))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -305,9 +279,9 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		Notify:   notif,
 		CheckID:  types.CheckID("bar"),
 		HTTP:     server.URL,
-		Timeout:  5 * time.Millisecond,
+		Timeout:  timeout,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -328,7 +302,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		HTTP:     "http://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -345,7 +319,7 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 		CheckID:  "foo",
 		HTTP:     "https://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -354,6 +328,15 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should default to false")
 	}
+}
+
+func mockTLSHTTPServer(code int) *httptest.Server {
+	return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Body larger than 4k limit
+		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+		w.WriteHeader(code)
+		w.Write(body)
+	}))
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
@@ -368,7 +351,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 
@@ -397,7 +380,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 	check.Start()
@@ -425,7 +408,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_false"),
 		HTTP:          server.URL,
 		Interval:      100 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: false,
 	}
 
@@ -472,7 +455,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 		CheckID:  types.CheckID("foo"),
 		TCP:      tcp,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -649,7 +632,7 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      dockerClient,
 	}
 	check.Start()
@@ -711,7 +694,7 @@ func TestDockerCheckDefaultToSh(t *testing.T) {
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithNoErrors{},
 	}
 	check.Start()
@@ -733,7 +716,7 @@ func TestDockerCheckUseShellFromEnv(t *testing.T) {
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithNoErrors{},
 	}
 	check.Start()
@@ -756,7 +739,7 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithLongOutput{},
 	}
 	check.Start()
@@ -768,5 +751,4 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 	if len(notif.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
-
 }

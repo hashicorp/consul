@@ -27,17 +27,21 @@ There are five different kinds of checks:
   `timeout` field in the check definition.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
-  every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
-  any `2xx` code is considered passing, a `429 Too Many Requests` is a warning, and anything else is a failure.
-  This type of check should be preferred over a script that uses `curl` or another external process
-  to check a simple HTTP operation. By default, HTTP checks will be configured
-  with a request timeout equal to the check interval, with a max of 10 seconds.
-  It is possible to configure a custom HTTP check timeout value by specifying
-  the `timeout` field in the check definition. The output of the check is
-  limited to roughly 4K. Responses larger than this will be truncated. HTTP checks
-  also support SSL. By default, a valid SSL certificate is expected. Certificate
-  verification can be turned off by setting the `tls_skip_verify` field to `true`
-  in the check definition.
+  every 30 seconds) to the specified URL. The status of the service depends on
+  the HTTP response code: any `2xx` code is considered passing, a `429 Too Many
+  Requests` is a warning, and anything else is a failure. This type of check
+  should be preferred over a script that uses `curl` or another external process
+  to check a simple HTTP operation. By default, HTTP checks are `GET` requests
+  unless the `method` field specifies a different method. Additional header
+  fields can be set through the `header` field which is a map of lists of
+  strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
+  configured with a request timeout equal to the check interval, with a max of
+  10 seconds. It is possible to configure a custom HTTP check timeout value by
+  specifying the `timeout` field in the check definition. The output of the
+  check is limited to roughly 4K. Responses larger than this will be truncated.
+  HTTP checks also support SSL. By default, a valid SSL certificate is expected.
+  Certificate verification can be turned off by setting the `tls_skip_verify`
+  field to `true` in the check definition.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname
@@ -104,6 +108,8 @@ A HTTP check:
     "id": "api",
     "name": "HTTP API on port 5000",
     "http": "http://localhost:5000/health",
+    "method": "POST",
+    "header": {"x-foo":["bar", "baz"]},
     "interval": "10s",
     "timeout": "1s"
   }

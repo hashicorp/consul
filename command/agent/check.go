@@ -57,6 +57,8 @@ type CheckType struct {
 
 	Script            string
 	HTTP              string
+	Header            map[string][]string
+	Method            string
 	TCP               string
 	Interval          time.Duration
 	DockerContainerID string
@@ -347,6 +349,8 @@ type CheckHTTP struct {
 	Notify        CheckNotifier
 	CheckID       types.CheckID
 	HTTP          string
+	Header        map[string][]string
+	Method        string
 	Interval      time.Duration
 	Timeout       time.Duration
 	Logger        *log.Logger
@@ -429,15 +433,31 @@ func (c *CheckHTTP) run() {
 
 // check is invoked periodically to perform the HTTP check
 func (c *CheckHTTP) check() {
-	req, err := http.NewRequest("GET", c.HTTP, nil)
+	method := c.Method
+	if method == "" {
+		method = "GET"
+	}
+
+	req, err := http.NewRequest(method, c.HTTP, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
-	req.Header.Set("User-Agent", UserAgent)
-	req.Header.Set("Accept", "text/plain, text/*, */*")
+	req.Header = http.Header(c.Header)
+
+	// this happens during testing but not in prod
+	if req.Header == nil {
+		req.Header = make(http.Header)
+	}
+
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", UserAgent)
+	}
+	if req.Header.Get("Accept") == "" {
+		req.Header.Set("Accept", "text/plain, text/*, */*")
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

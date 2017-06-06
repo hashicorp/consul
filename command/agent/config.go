@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -1413,83 +1414,97 @@ AFTER_FIX:
 	return &result, nil
 }
 
-func FixupCheckType(raw interface{}) error {
-	var ttlKey, intervalKey, timeoutKey string
-	const deregisterKey = "DeregisterCriticalServiceAfter"
+var errInvalidHeaderFormat = errors.New("agent: invalid format of 'header' field")
 
-	// Handle decoding of time durations
+func FixupCheckType(raw interface{}) error {
 	rawMap, ok := raw.(map[string]interface{})
 	if !ok {
 		return nil
 	}
 
+	parseDuration := func(v interface{}) (time.Duration, error) {
+		if v == nil {
+			return 0, nil
+		}
+		if d, ok := v.(time.Duration); ok {
+			return d, nil
+		}
+		s, ok := v.(string)
+		if !ok {
+			return 0, fmt.Errorf("invalid format")
+		}
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			return 0, err
+		}
+		return d, nil
+	}
+
+	parseHeaderMap := func(v interface{}) (map[string][]string, error) {
+		if v == nil {
+			return nil, nil
+		}
+		vm, ok := v.(map[string]interface{})
+		if !ok {
+			return nil, errInvalidHeaderFormat
+		}
+		m := map[string][]string{}
+		for k, vv := range vm {
+			vs, ok := vv.([]interface{})
+			if !ok {
+				return nil, errInvalidHeaderFormat
+			}
+			for _, vs := range vs {
+				s, ok := vs.(string)
+				if !ok {
+					return nil, errInvalidHeaderFormat
+				}
+				m[k] = append(m[k], s)
+			}
+		}
+		return m, nil
+	}
+
+	replace := func(oldKey, newKey string, val interface{}) {
+		rawMap[newKey] = val
+		if oldKey != newKey {
+			delete(rawMap, oldKey)
+		}
+	}
+
 	for k, v := range rawMap {
 		switch strings.ToLower(k) {
-		case "ttl":
-			ttlKey = k
-		case "interval":
-			intervalKey = k
-		case "timeout":
-			timeoutKey = k
-		case "deregister_critical_service_after":
-			rawMap[deregisterKey] = v
-			delete(rawMap, k)
-		case "service_id":
-			rawMap["serviceid"] = v
-			delete(rawMap, k)
+		case "header":
+			h, err := parseHeaderMap(v)
+			if err != nil {
+				return fmt.Errorf("invalid %q: %s", k, err)
+			}
+			rawMap[k] = h
+
+		case "ttl", "interval", "timeout":
+			d, err := parseDuration(v)
+			if err != nil {
+				return fmt.Errorf("invalid %q: %v", k, err)
+			}
+			rawMap[k] = d
+
+		case "deregister_critical_service_after", "deregistercriticalserviceafter":
+			d, err := parseDuration(v)
+			if err != nil {
+				return fmt.Errorf("invalid %q: %v", k, err)
+			}
+			replace(k, "DeregisterCriticalServiceAfter", d)
+
 		case "docker_container_id":
-			rawMap["DockerContainerID"] = v
-			delete(rawMap, k)
+			replace(k, "DockerContainerID", v)
+
+		case "service_id":
+			replace(k, "ServiceID", v)
+
 		case "tls_skip_verify":
-			rawMap["TLSSkipVerify"] = v
-			delete(rawMap, k)
+			replace(k, "TLSSkipVerify", v)
 		}
 	}
-
-	if ttl, ok := rawMap[ttlKey]; ok {
-		ttlS, ok := ttl.(string)
-		if ok {
-			dur, err := time.ParseDuration(ttlS)
-			if err != nil {
-				return err
-			}
-			rawMap[ttlKey] = dur
-		}
-	}
-
-	if interval, ok := rawMap[intervalKey]; ok {
-		intervalS, ok := interval.(string)
-		if ok {
-			dur, err := time.ParseDuration(intervalS)
-			if err != nil {
-				return err
-			}
-			rawMap[intervalKey] = dur
-		}
-	}
-
-	if timeout, ok := rawMap[timeoutKey]; ok {
-		timeoutS, ok := timeout.(string)
-		if ok {
-			dur, err := time.ParseDuration(timeoutS)
-			if err != nil {
-				return err
-			}
-			rawMap[timeoutKey] = dur
-		}
-	}
-
-	if deregister, ok := rawMap[deregisterKey]; ok {
-		timeoutS, ok := deregister.(string)
-		if ok {
-			dur, err := time.ParseDuration(timeoutS)
-			if err != nil {
-				return err
-			}
-			rawMap[deregisterKey] = dur
-		}
-	}
-
 	return nil
 }
 

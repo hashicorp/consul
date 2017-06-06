@@ -62,6 +62,8 @@ type CheckDefinition struct {
 	//
 	Script                         string
 	HTTP                           string
+	Header                         map[string][]string
+	Method                         string
 	TCP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
