@@ -192,19 +192,6 @@ func mockHTTPServer(responseCode int) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-func mockTLSHTTPServer(responseCode int) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
-		w.WriteHeader(responseCode)
-		w.Write(body)
-		return
-	})
-
-	return httptest.NewTLSServer(mux)
-}
-
 func expectHTTPStatus(t *testing.T, url string, status string) {
 	notif := mock.NewNotify()
 	check := &CheckHTTP{
@@ -355,6 +342,15 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should default to false")
 	}
+}
+
+func mockTLSHTTPServer(code int) *httptest.Server {
+	return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Body larger than 4k limit
+		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+		w.WriteHeader(code)
+		w.Write(body)
+	}))
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
