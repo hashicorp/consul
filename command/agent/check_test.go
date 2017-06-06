@@ -179,97 +179,74 @@ func TestCheckTTL(t *testing.T) {
 	}
 }
 
-func mockHTTPServer(responseCode int) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
-		w.WriteHeader(responseCode)
-		w.Write(body)
-		return
-	})
+func TestCheckHTTP(t *testing.T) {
+	t.Parallel()
 
-	return httptest.NewServer(mux)
-}
+	tests := []struct {
+		desc   string
+		code   int
+		method string
+		header http.Header
+		status string
+	}{
+		// passing
+		{code: 200, status: api.HealthPassing},
+		{code: 201, status: api.HealthPassing},
+		{code: 250, status: api.HealthPassing},
+		{code: 299, status: api.HealthPassing},
 
-func expectHTTPStatus(t *testing.T, url string, status string) {
-	notif := mock.NewNotify()
-	check := &CheckHTTP{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		HTTP:     url,
-		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		// warning
+		{code: 429, status: api.HealthWarning},
+
+		// critical
+		{code: 150, status: api.HealthCritical},
+		{code: 199, status: api.HealthCritical},
+		{code: 300, status: api.HealthCritical},
+		{code: 400, status: api.HealthCritical},
+		{code: 500, status: api.HealthCritical},
 	}
-	check.Start()
-	defer check.Stop()
-	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.Updates("foo"), 2; got < want {
-			r.Fatalf("got %d updates want at least %d", got, want)
+
+	for _, tt := range tests {
+		desc := tt.desc
+		if desc == "" {
+			desc = fmt.Sprintf("code %d -> status %s", tt.code, tt.status)
 		}
-		if got, want := notif.State("foo"), status; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
-		// Allow slightly more data than CheckBufSize, for the header
-		if n := len(notif.Output("foo")); n > (CheckBufSize + 256) {
-			r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
-		}
-	})
-}
+		t.Run(desc, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Body larger than 4k limit
+				body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
+				w.WriteHeader(tt.code)
+				w.Write(body)
+			}))
+			defer server.Close()
 
-func TestCheckHTTPCritical(t *testing.T) {
-	t.Parallel()
-	// var server *httptest.Server
+			notif := mock.NewNotify()
+			check := &CheckHTTP{
+				Notify:   notif,
+				CheckID:  types.CheckID("foo"),
+				HTTP:     server.URL,
+				Method:   tt.method,
+				Header:   tt.header,
+				Interval: 10 * time.Millisecond,
+				Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+			}
+			check.Start()
+			defer check.Stop()
 
-	server := mockHTTPServer(150)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	// 2xx - 1
-	server = mockHTTPServer(199)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	// 2xx + 1
-	server = mockHTTPServer(300)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	server = mockHTTPServer(400)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-
-	server = mockHTTPServer(500)
-	expectHTTPStatus(t, server.URL, api.HealthCritical)
-	server.Close()
-}
-
-func TestCheckHTTPPassing(t *testing.T) {
-	t.Parallel()
-	var server *httptest.Server
-
-	server = mockHTTPServer(200)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(201)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(250)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-
-	server = mockHTTPServer(299)
-	expectHTTPStatus(t, server.URL, api.HealthPassing)
-	server.Close()
-}
-
-func TestCheckHTTPWarning(t *testing.T) {
-	t.Parallel()
-	server := mockHTTPServer(429)
-	expectHTTPStatus(t, server.URL, api.HealthWarning)
-	server.Close()
+			retry.Run(t, func(r *retry.R) {
+				if got, want := notif.Updates("foo"), 2; got < want {
+					r.Fatalf("got %d updates want at least %d", got, want)
+				}
+				if got, want := notif.State("foo"), tt.status; got != want {
+					r.Fatalf("got state %q want %q", got, want)
+				}
+				// Allow slightly more data than CheckBufSize, for the header
+				if n := len(notif.Output("foo")); n > (CheckBufSize + 256) {
+					r.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
+				}
+			})
+		})
+	}
 }
 
 func mockSlowHTTPServer(responseCode int, sleep time.Duration) *httptest.Server {
