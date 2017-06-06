@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -28,7 +29,7 @@ func expectStatus(t *testing.T, script, status string) {
 		CheckID:  types.CheckID("foo"),
 		Script:   script,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -71,7 +72,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		Script:   "sleep 1 && exit 0",
 		Interval: 10 * time.Millisecond,
 		Timeout:  5 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -95,7 +96,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -120,7 +121,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -140,7 +141,7 @@ func TestCheckTTL(t *testing.T) {
 		Notify:  notif,
 		CheckID: types.CheckID("foo"),
 		TTL:     100 * time.Millisecond,
-		Logger:  log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:  log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -307,7 +308,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		HTTP:     server.URL,
 		Timeout:  5 * time.Millisecond,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -328,7 +329,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		HTTP:     "http://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -345,7 +346,7 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 		CheckID:  "foo",
 		HTTP:     "https://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -368,7 +369,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 
@@ -397,7 +398,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 	check.Start()
@@ -425,7 +426,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_false"),
 		HTTP:          server.URL,
 		Interval:      100 * time.Millisecond,
-		Logger:        log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: false,
 	}
 
@@ -472,7 +473,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 		CheckID:  types.CheckID("foo"),
 		TCP:      tcp,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -649,7 +650,7 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      dockerClient,
 	}
 	check.Start()
@@ -711,7 +712,7 @@ func TestDockerCheckDefaultToSh(t *testing.T) {
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithNoErrors{},
 	}
 	check.Start()
@@ -733,7 +734,7 @@ func TestDockerCheckUseShellFromEnv(t *testing.T) {
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithNoErrors{},
 	}
 	check.Start()
@@ -756,7 +757,7 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
 		Interval:          10 * time.Millisecond,
-		Logger:            log.New(os.Stderr, UniqueID(), log.LstdFlags),
+		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      &fakeDockerClientWithLongOutput{},
 	}
 	check.Start()
@@ -768,5 +769,4 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 	if len(notif.Output("foo")) > CheckBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
-
 }
