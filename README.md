@@ -55,6 +55,8 @@ $ bin/consul
 ...
 ```
 
+*Note: `make` will build all os/architecture combinations. Set the environment variable CONSUL_DEV=1 to build it just for your local machine's os/architecture.*
+
 *Note: `make` will also place a copy of the binary in the first part of your `$GOPATH`.*
 
 You can run tests by typing `make test`.
