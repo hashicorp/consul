@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -204,6 +205,14 @@ func TestCheckHTTP(t *testing.T) {
 		{code: 300, status: api.HealthCritical},
 		{code: 400, status: api.HealthCritical},
 		{code: 500, status: api.HealthCritical},
+
+		// custom method
+		{desc: "custom method GET", code: 200, method: "GET", status: api.HealthPassing},
+		{desc: "custom method POST", code: 200, method: "POST", status: api.HealthPassing},
+		{desc: "custom method abc", code: 200, method: "abc", status: api.HealthPassing},
+
+		// custom header
+		{desc: "custom header", code: 200, header: http.Header{"A": []string{"b", "c"}}, status: api.HealthPassing},
 	}
 
 	for _, tt := range tests {
@@ -213,6 +222,14 @@ func TestCheckHTTP(t *testing.T) {
 		}
 		t.Run(desc, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.method != "" && tt.method != r.Method {
+					w.WriteHeader(999)
+					return
+				}
+				if len(tt.header) > 0 && !reflect.DeepEqual(tt.header, r.Header) {
+					w.WriteHeader(999)
+					return
+				}
 				// Body larger than 4k limit
 				body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 				w.WriteHeader(tt.code)
