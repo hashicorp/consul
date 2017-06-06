@@ -29,6 +29,8 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/watch"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
@@ -141,6 +143,10 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// retryJoinCh transports errors from the retry join
+	// attempts.
+	retryJoinCh chan error
+
 	// endpoints lets you override RPC endpoints for testing. Not all
 	// agent methods use this, so use with care and never override
 	// outside of a unit test.
@@ -195,6 +201,7 @@ func NewAgent(c *Config) (*Agent, error) {
 		eventCh:        make(chan serf.UserEvent, 1024),
 		eventBuf:       make([]*UserEvent, 256),
 		reloadCh:       make(chan chan error),
+		retryJoinCh:    make(chan error),
 		shutdownCh:     make(chan struct{}),
 		endpoints:      make(map[string]string),
 		dnsAddrs:       dnsAddrs,
@@ -303,6 +310,11 @@ func (a *Agent) Start() error {
 		}
 		a.httpServers = append(a.httpServers, srv)
 	}
+
+	// start retry join
+	go a.retryJoin()
+	go a.retryJoinWan()
+
 	return nil
 }
 
@@ -325,7 +337,7 @@ func (a *Agent) listenAndServeDNS() error {
 
 			err := s.ListenAndServe(p.Net, p.Addr, func() { notif <- p })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
-				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): ", p.Addr, p.Net, err)
+				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", p.Addr, p.Net, err)
 			}
 		}()
 	}
@@ -1065,15 +1077,10 @@ func (a *Agent) Shutdown() error {
 		// no longer sufficient to check for an HTTPS server.
 		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 
-		// old behavior: just die
-		// srv.Close()
-
 		// graceful shutdown
-		// todo(fs): we are timing out every time. Need to find out why.
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)
-		<-ctx.Done()
 		if ctx.Err() == context.DeadlineExceeded {
 			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
 		}
@@ -1125,6 +1132,12 @@ func (a *Agent) Shutdown() error {
 // used for triggering reloads and returning a response.
 func (a *Agent) ReloadCh() chan chan error {
 	return a.reloadCh
+}
+
+// RetryJoinCh is a channel that transports errors
+// from the retry join process.
+func (a *Agent) RetryJoinCh() <-chan error {
+	return a.retryJoinCh
 }
 
 // ShutdownCh is used to return a channel that can be
@@ -1817,6 +1830,10 @@ func (a *Agent) purgeCheckState(checkID types.CheckID) error {
 	return err
 }
 
+func (a *Agent) GossipEncrypted() bool {
+	return a.delegate.Encrypted()
+}
+
 // Stats is used to get various debugging state from the sub-systems
 func (a *Agent) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
@@ -2095,15 +2112,6 @@ func (a *Agent) loadMetadata(conf *Config) error {
 	return nil
 }
 
-// parseMetaPair parses a key/value pair of the form key:value
-func parseMetaPair(raw string) (string, string) {
-	pair := strings.SplitN(raw, ":", 2)
-	if len(pair) == 2 {
-		return pair[0], pair[1]
-	}
-	return pair[0], ""
-}
-
 // unloadMetadata resets the local metadata state
 func (a *Agent) unloadMetadata() {
 	a.state.Lock()
@@ -2234,4 +2242,66 @@ func (a *Agent) getEndpoint(endpoint string) string {
 		return override
 	}
 	return endpoint
+}
+
+func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
+	var errs error
+
+	// Bulk update the services and checks
+	a.PauseSync()
+	defer a.ResumeSync()
+
+	// Snapshot the current state, and restore it afterwards
+	snap := a.snapshotCheckState()
+	defer a.restoreCheckState(snap)
+
+	// First unload all checks, services, and metadata. This lets us begin the reload
+	// with a clean slate.
+	if err := a.unloadServices(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
+		return false, errs
+	}
+	if err := a.unloadChecks(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
+		return false, errs
+	}
+	a.unloadMetadata()
+
+	// Reload service/check definitions and metadata.
+	if err := a.loadServices(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
+		return false, errs
+	}
+	if err := a.loadChecks(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
+		return false, errs
+	}
+	if err := a.loadMetadata(newCfg); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
+		return false, errs
+	}
+
+	// Get the new client listener addr
+	httpAddr, err := newCfg.ClientListener(a.config.Addresses.HTTP, a.config.Ports.HTTP)
+	if err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Deregister the old watches
+	for _, wp := range a.config.WatchPlans {
+		wp.Stop()
+	}
+
+	// Register the new watches
+	for _, wp := range newCfg.WatchPlans {
+		go func(wp *watch.Plan) {
+			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
+			wp.LogOutput = a.LogOutput
+			if err := wp.Run(httpAddr.String()); err != nil {
+				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
+			}
+		}(wp)
+	}
+
+	return true, errs
 }

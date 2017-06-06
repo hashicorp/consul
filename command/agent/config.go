@@ -2079,3 +2079,12 @@ func (d dirEnts) Less(i, j int) bool {
 func (d dirEnts) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
 }
+
+// ParseMetaPair parses a key/value pair of the form key:value
+func ParseMetaPair(raw string) (string, string) {
+	pair := strings.SplitN(raw, ":", 2)
+	if len(pair) == 2 {
+		return pair[0], pair[1]
+	}
+	return pair[0], ""
+}

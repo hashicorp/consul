@@ -17,7 +17,6 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -28,9 +27,6 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 )
-
-// gracefulTimeout controls how long we wait before forcefully terminating
-var gracefulTimeout = 5 * time.Second
 
 // validDatacenter is used to validate a datacenter
 var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
@@ -49,7 +45,6 @@ type Command struct {
 	args              []string
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
-	agent             *Agent
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -216,7 +211,7 @@ func (cmd *Command) readConfig() *Config {
 	if len(nodeMeta) > 0 {
 		cmdCfg.Meta = make(map[string]string)
 		for _, entry := range nodeMeta {
-			key, value := parseMetaPair(entry)
+			key, value := ParseMetaPair(entry)
 			cmdCfg.Meta[key] = value
 		}
 	}
@@ -470,14 +465,37 @@ func (cmd *Command) checkpointResults(results *checkpoint.CheckResponse, err err
 	}
 }
 
+func (cmd *Command) startupUpdateCheck(config *Config) {
+	version := config.Version
+	if config.VersionPrerelease != "" {
+		version += fmt.Sprintf("-%s", config.VersionPrerelease)
+	}
+	updateParams := &checkpoint.CheckParams{
+		Product: "consul",
+		Version: version,
+	}
+	if !config.DisableAnonymousSignature {
+		updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
+	}
+
+	// Schedule a periodic check with expected interval of 24 hours
+	checkpoint.CheckInterval(updateParams, 24*time.Hour, cmd.checkpointResults)
+
+	// Do an immediate check within the next 30 seconds
+	go func() {
+		time.Sleep(lib.RandomStagger(30 * time.Second))
+		cmd.checkpointResults(checkpoint.Check(updateParams))
+	}()
+}
+
 // startupJoin is invoked to handle any joins specified to take place at start time
-func (cmd *Command) startupJoin(cfg *Config) error {
+func (cmd *Command) startupJoin(agent *Agent, cfg *Config) error {
 	if len(cfg.StartJoin) == 0 {
 		return nil
 	}
 
 	cmd.UI.Output("Joining cluster...")
-	n, err := cmd.agent.JoinLAN(cfg.StartJoin)
+	n, err := agent.JoinLAN(cfg.StartJoin)
 	if err != nil {
 		return err
 	}
@@ -487,13 +505,13 @@ func (cmd *Command) startupJoin(cfg *Config) error {
 }
 
 // startupJoinWan is invoked to handle any joins -wan specified to take place at start time
-func (cmd *Command) startupJoinWan(cfg *Config) error {
+func (cmd *Command) startupJoinWan(agent *Agent, cfg *Config) error {
 	if len(cfg.StartJoinWan) == 0 {
 		return nil
 	}
 
 	cmd.UI.Output("Joining -wan cluster...")
-	n, err := cmd.agent.JoinWAN(cfg.StartJoinWan)
+	n, err := agent.JoinWAN(cfg.StartJoinWan)
 	if err != nil {
 		return err
 	}
@@ -502,116 +520,147 @@ func (cmd *Command) startupJoinWan(cfg *Config) error {
 	return nil
 }
 
-// retryJoin is used to handle retrying a join until it succeeds or all
-// retries are exhausted.
-func (cmd *Command) retryJoin(cfg *Config, errCh chan<- struct{}) {
-	ec2Enabled := cfg.RetryJoinEC2.TagKey != "" && cfg.RetryJoinEC2.TagValue != ""
-	gceEnabled := cfg.RetryJoinGCE.TagValue != ""
-	azureEnabled := cfg.RetryJoinAzure.TagName != "" && cfg.RetryJoinAzure.TagValue != ""
-
-	if len(cfg.RetryJoin) == 0 && !ec2Enabled && !gceEnabled && !azureEnabled {
-		return
+func statsiteSink(config *Config, hostname string) (metrics.MetricSink, error) {
+	if config.Telemetry.StatsiteAddr == "" {
+		return nil, nil
 	}
-
-	logger := cmd.agent.logger
-	logger.Printf("[INFO] agent: Joining cluster...")
-
-	attempt := 0
-	for {
-		var servers []string
-		var err error
-		switch {
-		case ec2Enabled:
-			servers, err = cfg.discoverEc2Hosts(logger)
-			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query EC2 instances: %s", err)
-			}
-			logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
-		case gceEnabled:
-			servers, err = cfg.discoverGCEHosts(logger)
-			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query GCE instances: %s", err)
-			}
-			logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
-		case azureEnabled:
-			servers, err = cfg.discoverAzureHosts(logger)
-			if err != nil {
-				logger.Printf("[ERROR] agent: Unable to query Azure instances: %s", err)
-			}
-			logger.Printf("[INFO] agent: Discovered %d servers from Azure", len(servers))
-		}
-
-		servers = append(servers, cfg.RetryJoin...)
-		if len(servers) == 0 {
-			err = fmt.Errorf("No servers to join")
-		} else {
-			n, err := cmd.agent.JoinLAN(servers)
-			if err == nil {
-				logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
-				return
-			}
-		}
-
-		attempt++
-		if cfg.RetryMaxAttempts > 0 && attempt > cfg.RetryMaxAttempts {
-			logger.Printf("[ERROR] agent: max join retry exhausted, exiting")
-			close(errCh)
-			return
-		}
-
-		logger.Printf("[WARN] agent: Join failed: %v, retrying in %v", err,
-			cfg.RetryInterval)
-		time.Sleep(cfg.RetryInterval)
-	}
+	return metrics.NewStatsiteSink(config.Telemetry.StatsiteAddr)
 }
 
-// retryJoinWan is used to handle retrying a join -wan until it succeeds or all
-// retries are exhausted.
-func (cmd *Command) retryJoinWan(cfg *Config, errCh chan<- struct{}) {
-	if len(cfg.RetryJoinWan) == 0 {
-		return
+func statsdSink(config *Config, hostname string) (metrics.MetricSink, error) {
+	if config.Telemetry.StatsdAddr == "" {
+		return nil, nil
 	}
-
-	logger := cmd.agent.logger
-	logger.Printf("[INFO] agent: Joining WAN cluster...")
-
-	attempt := 0
-	for {
-		n, err := cmd.agent.JoinWAN(cfg.RetryJoinWan)
-		if err == nil {
-			logger.Printf("[INFO] agent: Join -wan completed. Synced with %d initial agents", n)
-			return
-		}
-
-		attempt++
-		if cfg.RetryMaxAttemptsWan > 0 && attempt > cfg.RetryMaxAttemptsWan {
-			logger.Printf("[ERROR] agent: max join -wan retry exhausted, exiting")
-			close(errCh)
-			return
-		}
-
-		logger.Printf("[WARN] agent: Join -wan failed: %v, retrying in %v", err,
-			cfg.RetryIntervalWan)
-		time.Sleep(cfg.RetryIntervalWan)
-	}
+	return metrics.NewStatsdSink(config.Telemetry.StatsdAddr)
 }
 
-// gossipEncrypted determines if the consul instance is using symmetric
-// encryption keys to protect gossip protocol messages.
-func (cmd *Command) gossipEncrypted() bool {
-	if cmd.agent.config.EncryptKey != "" {
-		return true
+func dogstatdSink(config *Config, hostname string) (metrics.MetricSink, error) {
+	if config.Telemetry.DogStatsdAddr == "" {
+		return nil, nil
+	}
+	sink, err := datadog.NewDogStatsdSink(config.Telemetry.DogStatsdAddr, hostname)
+	if err != nil {
+		return nil, err
+	}
+	sink.SetTags(config.Telemetry.DogStatsdTags)
+	return sink, nil
+}
+
+func circonusSink(config *Config, hostname string) (metrics.MetricSink, error) {
+	if config.Telemetry.CirconusAPIToken == "" && config.Telemetry.CirconusCheckSubmissionURL == "" {
+		return nil, nil
 	}
 
-	server, ok := cmd.agent.delegate.(*consul.Server)
-	if ok {
-		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
+	cfg := &circonus.Config{}
+	cfg.Interval = config.Telemetry.CirconusSubmissionInterval
+	cfg.CheckManager.API.TokenKey = config.Telemetry.CirconusAPIToken
+	cfg.CheckManager.API.TokenApp = config.Telemetry.CirconusAPIApp
+	cfg.CheckManager.API.URL = config.Telemetry.CirconusAPIURL
+	cfg.CheckManager.Check.SubmissionURL = config.Telemetry.CirconusCheckSubmissionURL
+	cfg.CheckManager.Check.ID = config.Telemetry.CirconusCheckID
+	cfg.CheckManager.Check.ForceMetricActivation = config.Telemetry.CirconusCheckForceMetricActivation
+	cfg.CheckManager.Check.InstanceID = config.Telemetry.CirconusCheckInstanceID
+	cfg.CheckManager.Check.SearchTag = config.Telemetry.CirconusCheckSearchTag
+	cfg.CheckManager.Check.DisplayName = config.Telemetry.CirconusCheckDisplayName
+	cfg.CheckManager.Check.Tags = config.Telemetry.CirconusCheckTags
+	cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
+	cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
+
+	if cfg.CheckManager.Check.DisplayName == "" {
+		cfg.CheckManager.Check.DisplayName = "Consul"
 	}
-	client, ok := cmd.agent.delegate.(*consul.Client)
-	if ok {
-		return client != nil && client.KeyManagerLAN() != nil
+
+	if cfg.CheckManager.API.TokenApp == "" {
+		cfg.CheckManager.API.TokenApp = "consul"
 	}
-	panic(fmt.Sprintf("delegate is neither server nor client: %T", cmd.agent.delegate))
+
+	if cfg.CheckManager.Check.SearchTag == "" {
+		cfg.CheckManager.Check.SearchTag = "service:consul"
+	}
+
+	sink, err := circonus.NewCirconusSink(cfg)
+	if err != nil {
+		return nil, err
+	}
+	sink.Start()
+	return sink, nil
+}
+
+func startupTelemetry(config *Config) error {
+	// Setup telemetry
+	// Aggregate on 10 second intervals for 1 minute. Expose the
+	// metrics over stderr when there is a SIGUSR1 received.
+	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
+	metrics.DefaultInmemSignal(memSink)
+	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
+	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
+
+	var sinks metrics.FanoutSink
+	addSink := func(name string, fn func(*Config, string) (metrics.MetricSink, error)) error {
+		s, err := fn(config, metricsConf.HostName)
+		if err != nil {
+			return err
+		}
+		if s != nil {
+			sinks = append(sinks, s)
+		}
+		return nil
+	}
+
+	if err := addSink("statsite", statsiteSink); err != nil {
+		return err
+	}
+	if err := addSink("statsd", statsdSink); err != nil {
+		return err
+	}
+	if err := addSink("dogstatd", dogstatdSink); err != nil {
+		return err
+	}
+	if err := addSink("circonus", circonusSink); err != nil {
+		return err
+	}
+
+	if len(sinks) > 0 {
+		sinks = append(sinks, memSink)
+		metrics.NewGlobal(metricsConf, sinks)
+	} else {
+		metricsConf.EnableHostname = false
+		metrics.NewGlobal(metricsConf, memSink)
+	}
+	return nil
+}
+
+func (cmd *Command) registerWatches(config *Config) error {
+	var err error
+
+	var httpAddr net.Addr
+	if config.Ports.HTTP != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+	} else if config.Ports.HTTPS != -1 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+	} else if len(config.WatchPlans) > 0 {
+		return fmt.Errorf("Error: cannot use watches if both HTTP and HTTPS are disabled")
+	}
+	if err != nil {
+		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Register the watches
+	for _, wp := range config.WatchPlans {
+		go func(wp *watch.Plan) {
+			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
+			wp.LogOutput = cmd.logOutput
+			addr := httpAddr.String()
+			// If it's a unix socket, prefix with unix:// so the client initializes correctly
+			if httpAddr.Network() == "unix" {
+				addr = "unix://" + addr
+			}
+			if err := wp.Run(addr); err != nil {
+				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
+			}
+		}(wp)
+	}
+	return nil
 }
 
 func (cmd *Command) Run(args []string) int {
@@ -642,96 +691,9 @@ func (cmd *Command) Run(args []string) int {
 	cmd.logFilter = logFilter
 	cmd.logOutput = logOutput
 
-	// Setup telemetry
-	// Aggregate on 10 second intervals for 1 minute. Expose the
-	// metrics over stderr when there is a SIGUSR1 received.
-	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
-	metrics.DefaultInmemSignal(inm)
-	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
-	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
-
-	// Configure the statsite sink
-	var fanout metrics.FanoutSink
-	if config.Telemetry.StatsiteAddr != "" {
-		sink, err := metrics.NewStatsiteSink(config.Telemetry.StatsiteAddr)
-		if err != nil {
-			cmd.UI.Error(fmt.Sprintf("Failed to start statsite sink. Got: %s", err))
-			return 1
-		}
-		fanout = append(fanout, sink)
-	}
-
-	// Configure the statsd sink
-	if config.Telemetry.StatsdAddr != "" {
-		sink, err := metrics.NewStatsdSink(config.Telemetry.StatsdAddr)
-		if err != nil {
-			cmd.UI.Error(fmt.Sprintf("Failed to start statsd sink. Got: %s", err))
-			return 1
-		}
-		fanout = append(fanout, sink)
-	}
-
-	// Configure the DogStatsd sink
-	if config.Telemetry.DogStatsdAddr != "" {
-		var tags []string
-
-		if config.Telemetry.DogStatsdTags != nil {
-			tags = config.Telemetry.DogStatsdTags
-		}
-
-		sink, err := datadog.NewDogStatsdSink(config.Telemetry.DogStatsdAddr, metricsConf.HostName)
-		if err != nil {
-			cmd.UI.Error(fmt.Sprintf("Failed to start DogStatsd sink. Got: %s", err))
-			return 1
-		}
-		sink.SetTags(tags)
-		fanout = append(fanout, sink)
-	}
-
-	if config.Telemetry.CirconusAPIToken != "" || config.Telemetry.CirconusCheckSubmissionURL != "" {
-		cfg := &circonus.Config{}
-		cfg.Interval = config.Telemetry.CirconusSubmissionInterval
-		cfg.CheckManager.API.TokenKey = config.Telemetry.CirconusAPIToken
-		cfg.CheckManager.API.TokenApp = config.Telemetry.CirconusAPIApp
-		cfg.CheckManager.API.URL = config.Telemetry.CirconusAPIURL
-		cfg.CheckManager.Check.SubmissionURL = config.Telemetry.CirconusCheckSubmissionURL
-		cfg.CheckManager.Check.ID = config.Telemetry.CirconusCheckID
-		cfg.CheckManager.Check.ForceMetricActivation = config.Telemetry.CirconusCheckForceMetricActivation
-		cfg.CheckManager.Check.InstanceID = config.Telemetry.CirconusCheckInstanceID
-		cfg.CheckManager.Check.SearchTag = config.Telemetry.CirconusCheckSearchTag
-		cfg.CheckManager.Check.DisplayName = config.Telemetry.CirconusCheckDisplayName
-		cfg.CheckManager.Check.Tags = config.Telemetry.CirconusCheckTags
-		cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
-		cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
-
-		if cfg.CheckManager.Check.DisplayName == "" {
-			cfg.CheckManager.Check.DisplayName = "Consul"
-		}
-
-		if cfg.CheckManager.API.TokenApp == "" {
-			cfg.CheckManager.API.TokenApp = "consul"
-		}
-
-		if cfg.CheckManager.Check.SearchTag == "" {
-			cfg.CheckManager.Check.SearchTag = "service:consul"
-		}
-
-		sink, err := circonus.NewCirconusSink(cfg)
-		if err != nil {
-			cmd.UI.Error(fmt.Sprintf("Failed to start Circonus sink. Got: %s", err))
-			return 1
-		}
-		sink.Start()
-		fanout = append(fanout, sink)
-	}
-
-	// Initialize the global sink
-	if len(fanout) > 0 {
-		fanout = append(fanout, inm)
-		metrics.NewGlobal(metricsConf, fanout)
-	} else {
-		metricsConf.EnableHostname = false
-		metrics.NewGlobal(metricsConf, inm)
+	if err := startupTelemetry(config); err != nil {
+		cmd.UI.Error(err.Error())
+		return 1
 	}
 
 	// Create the agent
@@ -743,85 +705,34 @@ func (cmd *Command) Run(args []string) int {
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = logWriter
+
 	if err := agent.Start(); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
-	cmd.agent = agent
+	defer agent.Shutdown()
 
-	// Setup update checking
 	if !config.DisableUpdateCheck {
-		version := config.Version
-		if config.VersionPrerelease != "" {
-			version += fmt.Sprintf("-%s", config.VersionPrerelease)
-		}
-		updateParams := &checkpoint.CheckParams{
-			Product: "consul",
-			Version: version,
-		}
-		if !config.DisableAnonymousSignature {
-			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
-		}
-
-		// Schedule a periodic check with expected interval of 24 hours
-		checkpoint.CheckInterval(updateParams, 24*time.Hour, cmd.checkpointResults)
-
-		// Do an immediate check within the next 30 seconds
-		go func() {
-			time.Sleep(lib.RandomStagger(30 * time.Second))
-			cmd.checkpointResults(checkpoint.Check(updateParams))
-		}()
+		cmd.startupUpdateCheck(config)
 	}
 
-	defer cmd.agent.Shutdown()
-
-	// Join startup nodes if specified
-	if err := cmd.startupJoin(config); err != nil {
+	if err := cmd.startupJoin(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	// Join startup nodes if specified
-	if err := cmd.startupJoinWan(config); err != nil {
+	if err := cmd.startupJoinWan(agent, config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
 
-	// Get the new client http listener addr
-	var httpAddr net.Addr
-	if config.Ports.HTTP != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-	} else if config.Ports.HTTPS != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
-	} else if len(config.WatchPlans) > 0 {
-		cmd.UI.Error("Error: cannot use watches if both HTTP and HTTPS are disabled")
+	if err := cmd.registerWatches(config); err != nil {
+		cmd.UI.Error(err.Error())
 		return 1
 	}
-	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
-	}
-
-	// Register the watches
-	for _, wp := range config.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
-			wp.LogOutput = cmd.logOutput
-			addr := httpAddr.String()
-			// If it's a unix socket, prefix with unix:// so the client initializes correctly
-			if httpAddr.Network() == "unix" {
-				addr = "unix://" + addr
-			}
-			if err := wp.Run(addr); err != nil {
-				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-
-	// Figure out if gossip is encrypted
-	gossipEncrypted := cmd.agent.delegate.Encrypted()
 
 	// Let the agent know we've finished registration
-	cmd.agent.StartSync()
+	agent.StartSync()
 
 	cmd.UI.Output("Consul agent running!")
 	cmd.UI.Info(fmt.Sprintf("       Version: '%s'", cmd.HumanVersion))
@@ -834,122 +745,99 @@ func (cmd *Command) Run(args []string) int {
 	cmd.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	cmd.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	cmd.UI.Info("")
 	cmd.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	// Start retry join process
-	errCh := make(chan struct{})
-	go cmd.retryJoin(config, errCh)
-
-	// Start retry -wan join process
-	errWanCh := make(chan struct{})
-	go cmd.retryJoinWan(config, errWanCh)
-
-	// Wait for exit
-	return cmd.handleSignals(config, errCh, errWanCh)
-}
-
-// handleSignals blocks until we get an exit-causing signal
-func (cmd *Command) handleSignals(cfg *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
+	// wait for signal
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
-	// Wait for a signal
-WAIT:
-	var sig os.Signal
-	var reloadErrCh chan error
-	select {
-	case s := <-signalCh:
-		sig = s
-	case ch := <-cmd.agent.reloadCh:
-		sig = syscall.SIGHUP
-		reloadErrCh = ch
-	case <-cmd.ShutdownCh:
-		sig = os.Interrupt
-	case <-retryJoin:
-		return 1
-	case <-retryJoinWan:
-		return 1
-	case <-cmd.agent.ShutdownCh():
-		// Agent is already shutdown!
-		return 0
-	}
-
-	// Skip SIGPIPE signals and skip logging whenever such signal is received as well
-	if sig == syscall.SIGPIPE {
-		goto WAIT
-	}
-
-	cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
-
-	// Check if this is a SIGHUP
-	if sig == syscall.SIGHUP {
-		conf, err := cmd.handleReload(cfg)
-		if conf != nil {
-			cfg = conf
-		}
-		if err != nil {
+	for {
+		var sig os.Signal
+		var reloadErrCh chan error
+		select {
+		case s := <-signalCh:
+			sig = s
+		case ch := <-agent.ReloadCh():
+			sig = syscall.SIGHUP
+			reloadErrCh = ch
+		case <-cmd.ShutdownCh:
+			sig = os.Interrupt
+		case err := <-agent.RetryJoinCh():
 			cmd.UI.Error(err.Error())
+			return 1
+		case <-agent.ShutdownCh():
+			// Agent is already down!
+			return 0
 		}
-		// Send result back if reload was called via HTTP
-		if reloadErrCh != nil {
-			reloadErrCh <- err
+
+		switch sig {
+		case syscall.SIGPIPE:
+			continue
+
+		case syscall.SIGHUP:
+			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+			conf, err := cmd.handleReload(agent, config)
+			if conf != nil {
+				config = conf
+			}
+			if err != nil {
+				cmd.UI.Error(err.Error())
+			}
+			// Send result back if reload was called via HTTP
+			if reloadErrCh != nil {
+				reloadErrCh <- err
+			}
+
+		default:
+			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+
+			graceful := (sig == os.Interrupt && !(*config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*config.LeaveOnTerm))
+			if !graceful {
+				return 1
+			}
+
+			cmd.UI.Output("Gracefully shutting down agent...")
+			gracefulCh := make(chan struct{})
+			go func() {
+				if err := agent.Leave(); err != nil {
+					cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+					return
+				}
+				close(gracefulCh)
+			}()
+
+			gracefulTimeout := 5 * time.Second
+			select {
+			case <-signalCh:
+				return 1
+			case <-time.After(gracefulTimeout):
+				return 1
+			case <-gracefulCh:
+				return 0
+			}
 		}
-		goto WAIT
-	}
-
-	// Check if we should do a graceful leave
-	graceful := false
-	if sig == os.Interrupt && !(*cfg.SkipLeaveOnInt) {
-		graceful = true
-	} else if sig == syscall.SIGTERM && (*cfg.LeaveOnTerm) {
-		graceful = true
-	}
-
-	// Bail fast if not doing a graceful leave
-	if !graceful {
-		return 1
-	}
-
-	// Attempt a graceful leave
-	gracefulCh := make(chan struct{})
-	cmd.UI.Output("Gracefully shutting down agent...")
-	go func() {
-		if err := cmd.agent.Leave(); err != nil {
-			cmd.UI.Error(fmt.Sprintf("Error: %s", err))
-			return
-		}
-		close(gracefulCh)
-	}()
-
-	// Wait for leave or another signal
-	select {
-	case <-signalCh:
-		return 1
-	case <-time.After(gracefulTimeout):
-		return 1
-	case <-gracefulCh:
-		return 0
 	}
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (cmd *Command) handleReload(cfg *Config) (*Config, error) {
+func (cmd *Command) handleReload(agent *Agent, cfg *Config) (*Config, error) {
 	cmd.UI.Output("Reloading configuration...")
 	var errs error
-	newConf := cmd.readConfig()
-	if newConf == nil {
+	newCfg := cmd.readConfig()
+	if newCfg == nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed to reload configs"))
 		return cfg, errs
 	}
 
 	// Change the log level
-	minLevel := logutils.LogLevel(strings.ToUpper(newConf.LogLevel))
+	minLevel := logutils.LogLevel(strings.ToUpper(newCfg.LogLevel))
 	if logger.ValidateLevelFilter(minLevel, cmd.logFilter) {
 		cmd.logFilter.SetMinLevel(minLevel)
 	} else {
@@ -958,66 +846,14 @@ func (cmd *Command) handleReload(cfg *Config) (*Config, error) {
 			minLevel, cmd.logFilter.Levels))
 
 		// Keep the current log level
-		newConf.LogLevel = cfg.LogLevel
+		newCfg.LogLevel = cfg.LogLevel
 	}
 
-	// Bulk update the services and checks
-	cmd.agent.PauseSync()
-	defer cmd.agent.ResumeSync()
-
-	// Snapshot the current state, and restore it afterwards
-	snap := cmd.agent.snapshotCheckState()
-	defer cmd.agent.restoreCheckState(snap)
-
-	// First unload all checks, services, and metadata. This lets us begin the reload
-	// with a clean slate.
-	if err := cmd.agent.unloadServices(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
-		return nil, errs
+	ok, errs := agent.ReloadConfig(newCfg)
+	if ok {
+		return newCfg, errs
 	}
-	if err := cmd.agent.unloadChecks(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
-		return nil, errs
-	}
-	cmd.agent.unloadMetadata()
-
-	// Reload service/check definitions and metadata.
-	if err := cmd.agent.loadServices(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
-		return nil, errs
-	}
-	if err := cmd.agent.loadChecks(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
-		return nil, errs
-	}
-	if err := cmd.agent.loadMetadata(newConf); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
-		return nil, errs
-	}
-
-	// Get the new client listener addr
-	httpAddr, err := newConf.ClientListener(cfg.Addresses.HTTP, cfg.Ports.HTTP)
-	if err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
-	}
-
-	// Deregister the old watches
-	for _, wp := range cfg.WatchPlans {
-		wp.Stop()
-	}
-
-	// Register the new watches
-	for _, wp := range newConf.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
-			wp.LogOutput = cmd.logOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-
-	return newConf, errs
+	return cfg, errs
 }
 
 func (cmd *Command) Synopsis() string {

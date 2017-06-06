@@ -13,7 +13,6 @@ import (
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -67,7 +66,6 @@ func TestInternal_NodeInfo(t *testing.T) {
 }
 
 func TestInternal_NodeDump(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -159,7 +157,6 @@ func TestInternal_NodeDump(t *testing.T) {
 }
 
 func TestInternal_KeyringOperation(t *testing.T) {
-	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
 	if err != nil {
@@ -242,7 +239,6 @@ func TestInternal_KeyringOperation(t *testing.T) {
 }
 
 func TestInternal_NodeInfo_FilterACL(t *testing.T) {
-	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -293,7 +289,6 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 }
 
 func TestInternal_NodeDump_FilterACL(t *testing.T) {
-	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -343,7 +338,6 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 }
 
 func TestInternal_EventFire_Token(t *testing.T) {
-	t.Parallel()
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

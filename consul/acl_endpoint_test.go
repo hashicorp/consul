@@ -14,7 +14,6 @@ import (
 )
 
 func TestACLEndpoint_Apply(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -75,7 +74,6 @@ func TestACLEndpoint_Apply(t *testing.T) {
 }
 
 func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -154,7 +152,6 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 }
 
 func TestACLEndpoint_Apply_CustomID(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -202,7 +199,6 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 }
 
 func TestACLEndpoint_Apply_Denied(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 	})
@@ -229,7 +225,6 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 }
 
 func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -259,7 +254,6 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 }
 
 func TestACLEndpoint_Apply_RootChange(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -289,7 +283,6 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 }
 
 func TestACLEndpoint_Get(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -337,7 +330,6 @@ func TestACLEndpoint_Get(t *testing.T) {
 }
 
 func TestACLEndpoint_GetPolicy(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -395,7 +387,6 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 }
 
 func TestACLEndpoint_List(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -457,7 +448,6 @@ func TestACLEndpoint_List(t *testing.T) {
 }
 
 func TestACLEndpoint_List_Denied(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 	})
@@ -479,7 +469,6 @@ func TestACLEndpoint_List_Denied(t *testing.T) {
 }
 
 func TestACLEndpoint_ReplicationStatus(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
 		c.ACLReplicationToken = "secret"
