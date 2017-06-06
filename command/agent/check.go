@@ -369,6 +369,11 @@ func (c *CheckHTTP) Start() {
 		// failing checks due to the keepalive interval.
 		trans := cleanhttp.DefaultTransport()
 		trans.DisableKeepAlives = true
+		if os.Getenv("CONSUL_CHECK_HTTP_SSL_SKIP_VERIFY") != "" {
+			trans.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
 
 		// Skip SSL certificate verification if TLSSkipVerify is true
 		if trans.TLSClientConfig == nil {
