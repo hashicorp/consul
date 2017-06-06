@@ -446,6 +446,12 @@ func (c *CheckHTTP) check() {
 	}
 
 	req.Header = http.Header(c.Header)
+
+	// this happens during testing but not in prod
+	if req.Header == nil {
+		req.Header = make(http.Header)
+	}
+
 	if req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", UserAgent)
 	}
