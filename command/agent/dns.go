@@ -343,10 +343,9 @@ PARSE:
 
 			// Support "." in the label, re-join all the parts
 			tag := ""
-			svc := ""
+			svc := labels[n-2]
 			if n >= 3 {
 				tag = strings.Join(labels[:n-2], ".")
-				svc = labels[n-2]
 				for i, s := range labels {
 					if "tags" == s {
 						// [tag.[tag.[...]]].tags.com.acme.orders.service.consul
