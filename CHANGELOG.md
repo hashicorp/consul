@@ -14,6 +14,7 @@ IMPROVEMENTS:
 * agent: Added support for custom check id and name when registering checks along with a service. [GH-3047]
 * agent: Updated [go-sockaddr](https://github.com/hashicorp/go-sockaddr) library to add support for new helper functions in bind address templates (`GetPrivateIPs`, `GetPublicIPs`), new math functions, and to pick up fixes for issues with detecting addresses on multi-homed hosts. [GH-3068]
 * agent: Watches now reset their index back to zero after an error, or if the index goes backwards, which allows watches to recover after a server restart with fresh state. [GH-2621]
+* agent: Support custom method and headers for HTTP checks [GH-1184, GH-2474, GH-2657, GH-3106]
 * build: Added support for linux/arm64 binaries. [GH-3042]
 * build: Consul now builds with Go 1.8.3. [GH-3074]
 * ui: Added a sticky scroll to the KV side panel so the KV edit box always stays in place. [GH-2812]
