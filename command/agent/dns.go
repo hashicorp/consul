@@ -228,6 +228,9 @@ func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
 
 // dispatch is used to parse a request and invoke the correct handler
 func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
+	// Metric for counting global DNS queries
+	metrics.IncrCounter([]string{"consul", "dns", "total", "queries"}, 1)
+
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -625,6 +628,9 @@ RPC:
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	} else {
 		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
+		// Metric for counting DNS queries per service
+		metrics.IncrCounter([]string{"consul", "dns", "queries", service}, 1)
+
 	}
 
 	// If the network is not TCP, restrict the number of responses
