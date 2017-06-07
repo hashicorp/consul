@@ -800,6 +800,7 @@ func (cmd *Command) Run(args []string) int {
 
 			graceful := (sig == os.Interrupt && !(*config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*config.LeaveOnTerm))
 			if !graceful {
+				cmd.UI.Output("Graceful shutdown disabled. Exiting")
 				return 1
 			}
 
@@ -807,7 +808,7 @@ func (cmd *Command) Run(args []string) int {
 			gracefulCh := make(chan struct{})
 			go func() {
 				if err := agent.Leave(); err != nil {
-					cmd.UI.Error(fmt.Sprintf("Error: %s", err))
+					cmd.UI.Error(fmt.Sprintf("Error on leave: %s", err))
 					return
 				}
 				close(gracefulCh)
@@ -816,10 +817,13 @@ func (cmd *Command) Run(args []string) int {
 			gracefulTimeout := 5 * time.Second
 			select {
 			case <-signalCh:
+				cmd.UI.Output(fmt.Sprintf("Caught second signal: %v. Exiting", sig))
 				return 1
 			case <-time.After(gracefulTimeout):
+				cmd.UI.Output("Timeout on graceful leave. Exiting")
 				return 1
 			case <-gracefulCh:
+				cmd.UI.Output("Graceful exit completed")
 				return 0
 			}
 		}
