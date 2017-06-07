@@ -814,7 +814,7 @@ func (cmd *Command) Run(args []string) int {
 				close(gracefulCh)
 			}()
 
-			gracefulTimeout := 5 * time.Second
+			gracefulTimeout := 15 * time.Second
 			select {
 			case <-signalCh:
 				cmd.UI.Output(fmt.Sprintf("Caught second signal: %v. Exiting", sig))
