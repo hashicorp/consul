@@ -61,7 +61,7 @@ run() {
 	rm -rf "${path}"
 	mkdir -p "${path}"
 	config $port
-	$CONSUL agent -config-dir "${path}" 2>&1 | tee "${path}/log" &
+	( $CONSUL agent -config-dir "${path}" 2>&1 | tee "${path}/log" ; echo "Exit code: $?" >> "${path}/log" ) &
 	jobs="$jobs $!"
 }
 
