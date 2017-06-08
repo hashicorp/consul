@@ -4,7 +4,7 @@ FEATURES:
 
 * agent: Added a method for [transitioning to gossip encryption on an existing cluster](https://www.consul.io/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster). [GH-3079]
 * agent: Added a method for [transitioning to TLS on an existing cluster](https://www.consul.io/docs/agent/encryption.html#configuring-tls-on-an-existing-cluster). [GH-1705]
-* agent: Added support for RetryJoin on Azure [GH-2978]
+* agent: Added support for [RetryJoin on Azure](https://www.consul.io/docs/agent/options.html#retry_join_azure). [GH-2978]
 
 IMPROVEMENTS:
 
