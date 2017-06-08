@@ -26,6 +26,7 @@ var directives = []string{
 	"loadbalance",
 	"dnssec",
 	"reverse",
+	"hosts",
 	"kubernetes",
 	"file",
 	"auto",

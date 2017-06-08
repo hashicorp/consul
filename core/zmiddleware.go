@@ -14,6 +14,7 @@ import (
 	_ "github.com/coredns/coredns/middleware/etcd"
 	_ "github.com/coredns/coredns/middleware/file"
 	_ "github.com/coredns/coredns/middleware/health"
+	_ "github.com/coredns/coredns/middleware/hosts"
 	_ "github.com/coredns/coredns/middleware/kubernetes"
 	_ "github.com/coredns/coredns/middleware/loadbalance"
 	_ "github.com/coredns/coredns/middleware/log"
