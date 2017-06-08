@@ -5,6 +5,7 @@ FEATURES:
 * agent: Added a method for [transitioning to gossip encryption on an existing cluster](https://www.consul.io/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster). [GH-3079]
 * agent: Added a method for [transitioning to TLS on an existing cluster](https://www.consul.io/docs/agent/encryption.html#configuring-tls-on-an-existing-cluster). [GH-1705]
 * agent: Added support for [RetryJoin on Azure](https://www.consul.io/docs/agent/options.html#retry_join_azure). [GH-2978]
+* agent: (Consul Enterprise) Added [AWS server side encryption support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html) for S3 snapshots using the snapshot agent.
 
 IMPROVEMENTS:
 
@@ -17,7 +18,6 @@ IMPROVEMENTS:
 * agent: HTTP health checks now upport custom method and headers. [GH-1184, GH-2474, GH-2657, GH-3106]
 * agent: Increased the graceful leave timeout from 5 to 15 seconds. [GH-3121]
 * agent: Added additional logging when the agent handles signals and when it exits. [GH-3124]
-* agent: Added [AWS server side encryption support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html) for S3 snapshots (Consul Enterprise)
 * build: Added support for linux/arm64 binaries. [GH-3042]
 * build: Consul now builds with Go 1.8.3. [GH-3074]
 * ui: Added a sticky scroll to the KV side panel so the KV edit box always stays in place. [GH-2812]
