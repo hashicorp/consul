@@ -208,7 +208,7 @@ func TestCheckHTTP(t *testing.T) {
 
 		// custom method
 		{desc: "custom method GET", code: 200, method: "GET", status: api.HealthPassing},
-		{desc: "custom method POST", code: 200, method: "POST", status: api.HealthPassing},
+		{desc: "custom method POST", code: 200, header: http.Header{"Content-Length": []string{"0"}}, method: "POST", status: api.HealthPassing},
 		{desc: "custom method abc", code: 200, method: "abc", status: api.HealthPassing},
 
 		// custom header
@@ -226,10 +226,21 @@ func TestCheckHTTP(t *testing.T) {
 					w.WriteHeader(999)
 					return
 				}
-				if len(tt.header) > 0 && !reflect.DeepEqual(tt.header, r.Header) {
+
+				expectedHeader := http.Header{
+					"Accept":          []string{"text/plain, text/*, */*"},
+					"Accept-Encoding": []string{"gzip"},
+					"Connection":      []string{"close"},
+					"User-Agent":      []string{"Consul Health Check"},
+				}
+				for k, v := range tt.header {
+					expectedHeader[k] = v
+				}
+				if !reflect.DeepEqual(expectedHeader, r.Header) {
 					w.WriteHeader(999)
 					return
 				}
+
 				// Body larger than 4k limit
 				body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 				w.WriteHeader(tt.code)
