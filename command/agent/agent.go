@@ -1806,7 +1806,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	// Decode the state data
 	var p persistedCheckState
 	if err := json.Unmarshal(buf, &p); err != nil {
-		a.logger.Printf("[ERROR] agent: failed decoding check state: %s", err)
+		a.logger.Printf("[ERR] agent: failed decoding check state: %s", err)
 		return a.purgeCheckState(check.CheckID)
 	}
 
