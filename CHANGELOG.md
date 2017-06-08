@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * agent: HTTP health checks now upport custom method and headers. [GH-1184, GH-2474, GH-2657, GH-3106]
 * agent: Increased the graceful leave timeout from 5 to 15 seconds. [GH-3121]
 * agent: Added additional logging when the agent handles signals and when it exits. [GH-3124]
+* agent: Added [AWS server side encryption support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html) for S3 snapshots (Consul Enterprise)
 * build: Added support for linux/arm64 binaries. [GH-3042]
 * build: Consul now builds with Go 1.8.3. [GH-3074]
 * ui: Added a sticky scroll to the KV side panel so the KV edit box always stays in place. [GH-2812]
