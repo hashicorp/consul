@@ -277,12 +277,21 @@ PARSE:
 
 			// Support "." in the label, re-join all the parts
 			tag := ""
+			svc := ""
 			if n >= 3 {
 				tag = strings.Join(labels[:n-2], ".")
+				svc = labels[n-2]
+				for i, s := range labels {
+					if "tags" == s {
+						// [tag.[tag.[...]]].tags.com.acme.orders.service.consul
+						tag = strings.Join(labels[:i-1], ".")
+						svc = strings.Join(labels[i+1:n-2], ".")
+					}
+				}
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
+			d.serviceLookup(network, datacenter, svc, tag, req, resp)
 		}
 
 	case "node":
