@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/coredns/coredns/middleware/pkg/singleflight"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -13,7 +12,6 @@ import (
 
 type dnsEx struct {
 	Timeout time.Duration
-	group   *singleflight.Group
 	Options
 }
 
@@ -26,7 +24,7 @@ func newDNSEx() *dnsEx {
 }
 
 func newDNSExWithOption(opt Options) *dnsEx {
-	return &dnsEx{group: new(singleflight.Group), Timeout: defaultTimeout * time.Second, Options: opt}
+	return &dnsEx{Timeout: defaultTimeout * time.Second, Options: opt}
 }
 
 func (d *dnsEx) Protocol() string          { return "dns" }
@@ -65,30 +63,14 @@ func (d *dnsEx) Exchange(ctx context.Context, addr string, state request.Request
 }
 
 func (d *dnsEx) ExchangeConn(m *dns.Msg, co net.Conn) (*dns.Msg, time.Duration, error) {
-	t := "nop"
-	if t1, ok := dns.TypeToString[m.Question[0].Qtype]; ok {
-		t = t1
-	}
-	cl := "nop"
-	if cl1, ok := dns.ClassToString[m.Question[0].Qclass]; ok {
-		cl = cl1
-	}
-
 	start := time.Now()
-
-	// Name needs to be normalized! Bug in go dns.
-	r, err := d.group.Do(m.Question[0].Name+t+cl, func() (interface{}, error) {
-		return exchange(m, co)
-	})
-
-	r1 := r.(dns.Msg)
+	r, err := exchange(m, co)
 	rtt := time.Since(start)
-	return &r1, rtt, err
+
+	return r, rtt, err
 }
 
-// exchange does *not* return a pointer to dns.Msg because that leads to buffer reuse when
-// group.Do is used in Exchange.
-func exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
+func exchange(m *dns.Msg, co net.Conn) (*dns.Msg, error) {
 	opt := m.IsEdns0()
 
 	udpsize := uint16(dns.MinMsgSize)
@@ -109,7 +91,7 @@ func exchange(m *dns.Msg, co net.Conn) (dns.Msg, error) {
 
 	dnsco.Close()
 	if r == nil {
-		return dns.Msg{}, err
+		return nil, err
 	}
-	return *r, err
+	return r, err
 }

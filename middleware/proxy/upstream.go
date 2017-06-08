@@ -328,6 +328,9 @@ func (u *staticUpstream) Select() *UpstreamHost {
 
 	if u.Policy == nil {
 		h := (&Random{}).Select(pool)
+		if h != nil {
+			return h
+		}
 		if h == nil && u.Spray == nil {
 			return nil
 		}
