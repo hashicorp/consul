@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -45,6 +46,7 @@ type Command struct {
 	args              []string
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
+	logger            *log.Logger
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -664,6 +666,14 @@ func (cmd *Command) registerWatches(config *Config) error {
 }
 
 func (cmd *Command) Run(args []string) int {
+	code := cmd.run(args)
+	if cmd.logger != nil {
+		cmd.logger.Println("[INFO] Exit code: ", code)
+	}
+	return code
+}
+
+func (cmd *Command) run(args []string) int {
 	cmd.UI = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
@@ -690,6 +700,7 @@ func (cmd *Command) Run(args []string) int {
 	}
 	cmd.logFilter = logFilter
 	cmd.logOutput = logOutput
+	cmd.logger = log.New(logOutput, "", log.LstdFlags)
 
 	if err := startupTelemetry(config); err != nil {
 		cmd.UI.Error(err.Error())
@@ -769,7 +780,7 @@ func (cmd *Command) Run(args []string) int {
 		case <-cmd.ShutdownCh:
 			sig = os.Interrupt
 		case err := <-agent.RetryJoinCh():
-			cmd.UI.Error(err.Error())
+			cmd.logger.Println("[ERR] Retry join failed: ", err)
 			return 1
 		case <-agent.ShutdownCh():
 			// Agent is already down!
@@ -781,14 +792,14 @@ func (cmd *Command) Run(args []string) int {
 			continue
 
 		case syscall.SIGHUP:
-			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+			cmd.logger.Println("[INFO] Caught signal: ", sig)
 
 			conf, err := cmd.handleReload(agent, config)
 			if conf != nil {
 				config = conf
 			}
 			if err != nil {
-				cmd.UI.Error(err.Error())
+				cmd.logger.Println("[ERR] Reload config failed: ", err)
 			}
 			// Send result back if reload was called via HTTP
 			if reloadErrCh != nil {
@@ -796,19 +807,19 @@ func (cmd *Command) Run(args []string) int {
 			}
 
 		default:
-			cmd.UI.Output(fmt.Sprintf("Caught signal: %v", sig))
+			cmd.logger.Println("[INFO] Caught signal: ", sig)
 
 			graceful := (sig == os.Interrupt && !(*config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (*config.LeaveOnTerm))
 			if !graceful {
-				cmd.UI.Output("Graceful shutdown disabled. Exiting")
+				cmd.logger.Println("[INFO] Graceful shutdown disabled. Exiting")
 				return 1
 			}
 
-			cmd.UI.Output("Gracefully shutting down agent...")
+			cmd.logger.Println("[INFO] Gracefully shutting down agent...")
 			gracefulCh := make(chan struct{})
 			go func() {
 				if err := agent.Leave(); err != nil {
-					cmd.UI.Error(fmt.Sprintf("Error on leave: %s", err))
+					cmd.logger.Println("[ERR] Error on leave:", err)
 					return
 				}
 				close(gracefulCh)
@@ -817,13 +828,13 @@ func (cmd *Command) Run(args []string) int {
 			gracefulTimeout := 15 * time.Second
 			select {
 			case <-signalCh:
-				cmd.UI.Output(fmt.Sprintf("Caught second signal: %v. Exiting", sig))
+				cmd.logger.Printf("[INFO] Caught second signal %v. Exiting\n", sig)
 				return 1
 			case <-time.After(gracefulTimeout):
-				cmd.UI.Output("Timeout on graceful leave. Exiting")
+				cmd.logger.Println("[INFO] Timeout on graceful leave. Exiting")
 				return 1
 			case <-gracefulCh:
-				cmd.UI.Output("Graceful exit completed")
+				cmd.logger.Println("[INFO] Graceful exit completed")
 				return 0
 			}
 		}
@@ -832,7 +843,7 @@ func (cmd *Command) Run(args []string) int {
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
 func (cmd *Command) handleReload(agent *Agent, cfg *Config) (*Config, error) {
-	cmd.UI.Output("Reloading configuration...")
+	cmd.logger.Println("[INFO] Reloading configuration...")
 	var errs error
 	newCfg := cmd.readConfig()
 	if newCfg == nil {
