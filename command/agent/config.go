@@ -1426,18 +1426,16 @@ func FixupCheckType(raw interface{}) error {
 		if v == nil {
 			return 0, nil
 		}
-		if d, ok := v.(time.Duration); ok {
-			return d, nil
-		}
-		s, ok := v.(string)
-		if !ok {
+		switch x := v.(type) {
+		case time.Duration:
+			return x, nil
+		case float64:
+			return time.Duration(x), nil
+		case string:
+			return time.ParseDuration(x)
+		default:
 			return 0, fmt.Errorf("invalid format")
 		}
-		d, err := time.ParseDuration(s)
-		if err != nil {
-			return 0, err
-		}
-		return d, nil
 	}
 
 	parseHeaderMap := func(v interface{}) (map[string][]string, error) {
