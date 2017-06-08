@@ -91,7 +91,7 @@ var dnameTestCases = []test.Case{
 }
 
 func TestLookupDNAME(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNLDNAME), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNLDNAME), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}
@@ -160,7 +160,7 @@ var dnameDnssecTestCases = []test.Case{
 }
 
 func TestLookupDNAMEDNSSEC(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbExampleDNAMESigned), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbExampleDNAMESigned), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}

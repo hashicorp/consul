@@ -34,7 +34,7 @@ var atoomTestCases = []test.Case{
 }
 
 func TestLookupGlue(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbAtoomNetSigned), atoom, "stdin")
+	zone, err := Parse(strings.NewReader(dbAtoomNetSigned), atoom, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}

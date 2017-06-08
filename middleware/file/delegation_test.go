@@ -152,7 +152,7 @@ func TestLookupSecureDelegation(t *testing.T) {
 }
 
 func testDelegation(t *testing.T, z, origin string, testcases []test.Case) {
-	zone, err := Parse(strings.NewReader(z), origin, "stdin")
+	zone, err := Parse(strings.NewReader(z), origin, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}

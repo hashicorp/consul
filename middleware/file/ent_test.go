@@ -32,7 +32,7 @@ var entTestCases = []test.Case{
 }
 
 func TestLookupEnt(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekENTNL), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekENTNL), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 func TestClosestEncloser(t *testing.T) {
-	z, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
+	z, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}

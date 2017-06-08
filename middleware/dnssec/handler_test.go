@@ -81,7 +81,7 @@ var dnsTestCases = []test.Case{
 }
 
 func TestLookupZone(t *testing.T) {
-	zone, err := file.Parse(strings.NewReader(dbMiekNL), "miek.nl.", "stdin")
+	zone, err := file.Parse(strings.NewReader(dbMiekNL), "miek.nl.", "stdin", 0)
 	if err != nil {
 		return
 	}

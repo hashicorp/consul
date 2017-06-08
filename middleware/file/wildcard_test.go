@@ -79,7 +79,7 @@ var dnssexAuth = []dns.RR{
 }
 
 func TestLookupWildcard(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbDnssexNLSigned), testzone1, "stdin")
+	zone, err := Parse(strings.NewReader(dbDnssexNLSigned), testzone1, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}
@@ -156,7 +156,7 @@ var exampleAuth = []dns.RR{
 }
 
 func TestLookupDoubleWildcard(t *testing.T) {
-	zone, err := Parse(strings.NewReader(exampleOrg), "example.org.", "stdin")
+	zone, err := Parse(strings.NewReader(exampleOrg), "example.org.", "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}

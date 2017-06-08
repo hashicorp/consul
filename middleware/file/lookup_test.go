@@ -104,7 +104,7 @@ const (
 )
 
 func TestLookup(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -155,7 +155,7 @@ func TestLookupNil(t *testing.T) {
 }
 
 func BenchmarkLookup(b *testing.B) {
-	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin", 0)
 	if err != nil {
 		return
 	}

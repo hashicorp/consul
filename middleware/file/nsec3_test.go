@@ -6,14 +6,14 @@ import (
 )
 
 func TestParseNSEC3PARAM(t *testing.T) {
-	_, err := Parse(strings.NewReader(nsec3paramTest), "miek.nl", "stdin")
+	_, err := Parse(strings.NewReader(nsec3paramTest), "miek.nl", "stdin", 0)
 	if err == nil {
 		t.Fatalf("expected error when reading zone, got nothing")
 	}
 }
 
 func TestParseNSEC3(t *testing.T) {
-	_, err := Parse(strings.NewReader(nsec3Test), "miek.nl", "stdin")
+	_, err := Parse(strings.NewReader(nsec3Test), "miek.nl", "stdin", 0)
 	if err == nil {
 		t.Fatalf("expected error when reading zone, got nothing")
 	}

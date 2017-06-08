@@ -15,7 +15,7 @@ import (
 
 func TestLookupCNAMEChain(t *testing.T) {
 	name := "example.org."
-	zone, err := Parse(strings.NewReader(dbExampleCNAME), name, "stdin")
+	zone, err := Parse(strings.NewReader(dbExampleCNAME), name, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
@@ -89,7 +89,7 @@ var cnameTestCases = []test.Case{
 
 func TestLookupCNAMEExternal(t *testing.T) {
 	name := "example.org."
-	zone, err := Parse(strings.NewReader(dbExampleCNAME), name, "stdin")
+	zone, err := Parse(strings.NewReader(dbExampleCNAME), name, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}

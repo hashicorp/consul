@@ -2,8 +2,6 @@ package file
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"path"
 	"strings"
 	"sync"
@@ -12,7 +10,6 @@ import (
 	"github.com/coredns/coredns/middleware/proxy"
 	"github.com/coredns/coredns/request"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/miekg/dns"
 )
 
@@ -149,56 +146,6 @@ func (z *Zone) All() []dns.RR {
 		records = append(z.Apex.SIGSOA, records...)
 	}
 	return append([]dns.RR{z.Apex.SOA}, records...)
-}
-
-// Reload reloads a zone when it is changed on disk. If z.NoRoload is true, no reloading will be done.
-func (z *Zone) Reload() error {
-	if z.NoReload {
-		return nil
-	}
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-	err = watcher.Add(path.Dir(z.file))
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		// TODO(miek): needs to be killed on reload.
-		for {
-			select {
-			case event := <-watcher.Events:
-				if path.Clean(event.Name) == z.file {
-
-					reader, err := os.Open(z.file)
-					if err != nil {
-						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
-						continue
-					}
-					zone, err := Parse(reader, z.origin, z.file)
-					if err != nil {
-						log.Printf("[ERROR] Failed to parse `%s': %v", z.origin, err)
-						continue
-					}
-
-					// copy elements we need
-					z.reloadMu.Lock()
-					z.Apex = zone.Apex
-					z.Tree = zone.Tree
-					z.reloadMu.Unlock()
-
-					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)
-					z.Notify()
-				}
-			case <-z.ReloadShutdown:
-				watcher.Close()
-				return
-			}
-		}
-	}()
-	return nil
 }
 
 // Print prints the zone's tree to stdout.

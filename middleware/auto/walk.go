@@ -45,9 +45,10 @@ func (a Auto) Walk() error {
 		}
 		defer reader.Close()
 
-		zo, err := file.Parse(reader, origin, path)
+		// Serial for loading a zone is 0, because it is a new zone.
+		zo, err := file.Parse(reader, origin, path, 0)
 		if err != nil {
-			// Parse barfs warning by itself...
+			log.Printf("[WARNING] Parse zone `%s': %v", origin, err)
 			return nil
 		}
 

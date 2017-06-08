@@ -52,7 +52,7 @@ var dsTestCases = []test.Case{
 }
 
 func TestLookupDS(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNLDelegation), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNLDelegation), testzone, "stdin", 0)
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}

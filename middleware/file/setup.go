@@ -81,7 +81,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 			for i := range origins {
 				origins[i] = middleware.Host(origins[i]).Normalize()
-				zone, err := Parse(reader, origins[i], fileName)
+				zone, err := Parse(reader, origins[i], fileName, 0)
 				if err == nil {
 					z[origins[i]] = zone
 				} else {

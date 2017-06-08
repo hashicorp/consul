@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func TestZoneReload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open zone: %s", err)
 	}
-	z, err := Parse(reader, "miek.nl", fileName)
+	z, err := Parse(reader, "miek.nl", fileName, 0)
 	if err != nil {
 		t.Fatalf("failed to parse zone: %s", err)
 	}
@@ -60,6 +61,14 @@ func TestZoneReload(t *testing.T) {
 	}
 }
 
+func TestZoneReloadSOAChange(t *testing.T) {
+	_, err := Parse(strings.NewReader(reloadZoneTest), "miek.nl.", "stdin", 1460175181)
+	if err == nil {
+		t.Fatalf("zone should not have been re-parsed")
+	}
+
+}
+
 const reloadZoneTest = `miek.nl.		1627	IN	SOA	linode.atoom.net. miek.miek.nl. 1460175181 14400 3600 604800 14400
 miek.nl.		1627	IN	NS	ext.ns.whyscream.net.
 miek.nl.		1627	IN	NS	omval.tednet.nl.
@@ -67,7 +76,7 @@ miek.nl.		1627	IN	NS	linode.atoom.net.
 miek.nl.		1627	IN	NS	ns-ext.nlnetlabs.nl.
 `
 
-const reloadZone2Test = `miek.nl.		1627	IN	SOA	linode.atoom.net. miek.miek.nl. 1460175181 14400 3600 604800 14400
+const reloadZone2Test = `miek.nl.		1627	IN	SOA	linode.atoom.net. miek.miek.nl. 1460175182 14400 3600 604800 14400
 miek.nl.		1627	IN	NS	ext.ns.whyscream.net.
 miek.nl.		1627	IN	NS	omval.tednet.nl.
 `
