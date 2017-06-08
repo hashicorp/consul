@@ -8,7 +8,7 @@ all: put get-default get-stale get-consistent
 
 put:
 	@echo "===== PUT test ====="
-	GOMAXPROCS=${MAXPROCS} boom -m PUT -d ${DATA} -n ${REQ} -c ${CLIENTS} ${ADDR}
+	GOMAXPROCS=${MAXPROCS} boom -m PUT -D ${DATA} -n ${REQ} -c ${CLIENTS} ${ADDR}
 
 get-default:
 	@echo "===== GET default test ====="
