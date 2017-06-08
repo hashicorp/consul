@@ -125,7 +125,7 @@ func (c *consulFSM) applyRegister(buf []byte, index uint64) interface{} {
 
 	// Apply all updates in a single transaction
 	if err := c.state.EnsureRegistration(index, &req); err != nil {
-		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
+		c.logger.Printf("[WARN] consul.fsm: EnsureRegistration failed: %v", err)
 		return err
 	}
 	return nil
@@ -143,17 +143,17 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
 		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
-			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)
+			c.logger.Printf("[WARN] consul.fsm: DeleteNodeService failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
 		if err := c.state.DeleteCheck(index, req.Node, req.CheckID); err != nil {
-			c.logger.Printf("[INFO] consul.fsm: DeleteNodeCheck failed: %v", err)
+			c.logger.Printf("[WARN] consul.fsm: DeleteNodeCheck failed: %v", err)
 			return err
 		}
 	} else {
 		if err := c.state.DeleteNode(index, req.Node); err != nil {
-			c.logger.Printf("[INFO] consul.fsm: DeleteNode failed: %v", err)
+			c.logger.Printf("[WARN] consul.fsm: DeleteNode failed: %v", err)
 			return err
 		}
 	}
