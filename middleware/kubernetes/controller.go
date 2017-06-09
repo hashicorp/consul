@@ -368,27 +368,3 @@ func (dns *dnsControl) EndpointsList() api.EndpointsList {
 
 	return epl
 }
-
-// ServicesByNamespace returns a map of:
-//
-// namespacename :: [ kubernetesService ]
-func (dns *dnsControl) ServicesByNamespace() map[string][]api.Service {
-	k8sServiceList := dns.ServiceList()
-	items := make(map[string][]api.Service, len(k8sServiceList))
-	for _, i := range k8sServiceList {
-		namespace := i.Namespace
-		items[namespace] = append(items[namespace], *i)
-	}
-
-	return items
-}
-
-// ServiceInNamespace returns the Service that matches servicename in the namespace
-func (dns *dnsControl) ServiceInNamespace(namespace, servicename string) *api.Service {
-	svcObj, err := dns.svcLister.Services(namespace).Get(servicename)
-	if err != nil {
-		// TODO(...): should return err here
-		return nil
-	}
-	return svcObj
-}
