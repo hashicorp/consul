@@ -14,7 +14,6 @@ import (
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
 	})
@@ -46,7 +45,6 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 }
 
 func TestRPC_NoLeader_Retry(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 10 * time.Second
 	})
@@ -77,7 +75,6 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 }
 
 func TestRPC_blockingQuery(t *testing.T) {
-	t.Parallel()
 	dir, s := testServer(t)
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
