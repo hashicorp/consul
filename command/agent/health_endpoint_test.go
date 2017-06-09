@@ -658,7 +658,8 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 
 		assertIndex(t, resp)
 
-		// Should be 0 health check for consul
+		// Should be 1 consul, it's unhealthy, but we specifically asked for
+		// everything.
 		nodes := obj.(structs.CheckServiceNodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %v", obj)
