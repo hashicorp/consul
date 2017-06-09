@@ -10,13 +10,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 )
 
 // KVPutCommand is a Command implementation that is used to write data to the
 // key-value store.
 type KVPutCommand struct {
-	base.Command
+	BaseCommand
 
 	// testStdin is the input for testing.
 	testStdin io.Reader
@@ -56,13 +55,13 @@ Usage: consul kv put [options] KEY [DATA]
 
   Additional flags and more advanced use cases are detailed below.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *KVPutCommand) Run(args []string) int {
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 	cas := f.Bool("cas", false,
 		"Perform a Check-And-Set operation. Specifying this value also "+
 			"requires the -modify-index flag to be set. The default value "+
@@ -89,7 +88,7 @@ func (c *KVPutCommand) Run(args []string) int {
 			"-session flag to be set. The key must be held by the session in order to "+
 			"be unlocked. The default value is false.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
@@ -122,7 +121,7 @@ func (c *KVPutCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

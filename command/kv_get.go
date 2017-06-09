@@ -9,13 +9,12 @@ import (
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 )
 
 // KVGetCommand is a Command implementation that is used to fetch the value of
 // a key from the key-value store.
 type KVGetCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *KVGetCommand) Help() string {
@@ -50,13 +49,13 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *KVGetCommand) Run(args []string) int {
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 	base64encode := f.Bool("base64", false,
 		"Base64 encode the value. The default value is false.")
 	detailed := f.Bool("detailed", false,
@@ -75,7 +74,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		"String to use as a separator between keys. The default value is \"/\", "+
 			"but this option is only taken into account when paired with the -keys flag.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
@@ -108,7 +107,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -117,7 +116,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	switch {
 	case *keys:
 		keys, _, err := client.KV().Keys(key, *separator, &api.QueryOptions{
-			AllowStale: c.Command.HTTPStale(),
+			AllowStale: c.BaseCommand.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -131,7 +130,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	case *recurse:
 		pairs, _, err := client.KV().List(key, &api.QueryOptions{
-			AllowStale: c.Command.HTTPStale(),
+			AllowStale: c.BaseCommand.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -163,7 +162,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	default:
 		pair, _, err := client.KV().Get(key, &api.QueryOptions{
-			AllowStale: c.Command.HTTPStale(),
+			AllowStale: c.BaseCommand.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))

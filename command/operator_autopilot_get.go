@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 )
 
 type OperatorAutopilotGetCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *OperatorAutopilotGetCommand) Help() string {
@@ -19,7 +18,7 @@ Usage: consul operator autopilot get-config [options]
 
 Displays the current Autopilot configuration.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -29,9 +28,9 @@ func (c *OperatorAutopilotGetCommand) Synopsis() string {
 }
 
 func (c *OperatorAutopilotGetCommand) Run(args []string) int {
-	c.Command.NewFlagSet(c)
+	c.BaseCommand.NewFlagSet(c)
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -40,7 +39,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
@@ -48,7 +47,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 
 	// Fetch the current configuration.
 	opts := &api.QueryOptions{
-		AllowStale: c.Command.HTTPStale(),
+		AllowStale: c.BaseCommand.HTTPStale(),
 	}
 	config, err := client.Operator().AutopilotGetConfiguration(opts)
 	if err != nil {

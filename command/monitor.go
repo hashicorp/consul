@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/hashicorp/consul/command/base"
 )
 
 // MonitorCommand is a Command implementation that queries a running
 // Consul agent what members are part of the cluster currently.
 type MonitorCommand struct {
-	base.Command
+	BaseCommand
 
 	ShutdownCh <-chan struct{}
 
@@ -29,7 +27,7 @@ Usage: consul monitor [options]
   example your agent may only be logging at INFO level, but with the monitor
   you can see the DEBUG level logs.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -37,14 +35,14 @@ Usage: consul monitor [options]
 func (c *MonitorCommand) Run(args []string) int {
 	var logLevel string
 
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 	f.StringVar(&logLevel, "log-level", "INFO", "Log level of the agent.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

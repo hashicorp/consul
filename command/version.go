@@ -3,8 +3,8 @@ package command
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/mitchellh/cli"
 )
 

@@ -2,14 +2,13 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/base"
 	"strings"
 )
 
 // LeaveCommand is a Command implementation that instructs
 // the Consul agent to gracefully leave the cluster
 type LeaveCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *LeaveCommand) Help() string {
@@ -18,14 +17,14 @@ Usage: consul leave [options]
 
   Causes the agent to gracefully leave the Consul cluster and shutdown.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *LeaveCommand) Run(args []string) int {
-	f := c.Command.NewFlagSet(c)
-	if err := c.Command.Parse(args); err != nil {
+	f := c.BaseCommand.NewFlagSet(c)
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 	nonFlagArgs := f.Args()
@@ -35,7 +34,7 @@ func (c *LeaveCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

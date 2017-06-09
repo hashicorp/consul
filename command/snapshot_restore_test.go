@@ -7,8 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
@@ -16,9 +15,9 @@ import (
 func testSnapshotRestoreCommand(t *testing.T) (*cli.MockUi, *SnapshotRestoreCommand) {
 	ui := cli.NewMockUi()
 	return ui, &SnapshotRestoreCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetHTTP,
+			Flags: FlagSetHTTP,
 		},
 	}
 }

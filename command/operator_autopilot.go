@@ -3,12 +3,11 @@ package command
 import (
 	"strings"
 
-	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 type OperatorAutopilotCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *OperatorAutopilotCommand) Help() string {

@@ -6,9 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/mitchellh/cli"
 )
@@ -16,9 +15,9 @@ import (
 func testExecCommand(t *testing.T) (*cli.MockUi, *ExecCommand) {
 	ui := cli.NewMockUi()
 	return ui, &ExecCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetHTTP,
+			Flags: FlagSetHTTP,
 		},
 	}
 }

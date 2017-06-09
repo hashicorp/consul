@@ -4,18 +4,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
-	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/mitchellh/cli"
 )
 
 func testMaintCommand(t *testing.T) (*cli.MockUi, *MaintCommand) {
 	ui := cli.NewMockUi()
 	return ui, &MaintCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetClientHTTP,
+			Flags: FlagSetClientHTTP,
 		},
 	}
 }

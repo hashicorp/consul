@@ -3,14 +3,13 @@ package command
 import (
 	"strings"
 
-	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 // OperatorCommand is used to provide various low-level tools for Consul
 // operators.
 type OperatorCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *OperatorCommand) Help() string {

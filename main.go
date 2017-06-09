@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/cli"
 )
@@ -21,7 +22,7 @@ func main() {
 func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	// Get the command line args. We shortcut "--version" and "-v" to
+	// Get the c line args. We shortcut "--version" and "-v" to
 	// just show the version.
 	args := os.Args[1:]
 	for _, arg := range args {
@@ -37,17 +38,17 @@ func realMain() int {
 		}
 	}
 
-	// Filter out the configtest command from the help display
+	// Filter out the configtest c from the help display
 	var included []string
-	for command := range Commands {
-		if command != "configtest" {
-			included = append(included, command)
+	for c := range command.Commands {
+		if c != "configtest" {
+			included = append(included, c)
 		}
 	}
 
 	cli := &cli.CLI{
 		Args:     args,
-		Commands: Commands,
+		Commands: command.Commands,
 		HelpFunc: cli.FilteredHelpFunc(included, cli.BasicHelpFunc("consul")),
 	}
 

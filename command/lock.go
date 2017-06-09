@@ -9,9 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
 )
 
 const (
@@ -36,7 +35,7 @@ const (
 // LockCommand is a Command implementation that is used to setup
 // a "lock" which manages lock acquisition and invokes a sub-process
 type LockCommand struct {
-	base.Command
+	BaseCommand
 
 	ShutdownCh <-chan struct{}
 
@@ -65,7 +64,7 @@ Usage: consul lock [options] prefix child...
 
   The prefix provided must have write privileges.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -83,7 +82,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var passStdin bool
 	var timeout time.Duration
 
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 	f.IntVar(&limit, "n", 1,
 		"Optional limit on the number of concurrent lock holders. The underlying "+
 			"implementation switches from a lock to a semaphore when the value is "+
@@ -109,7 +108,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	f.DurationVar(&timeout, "try", 0,
 		"DEPRECATED. Use -timeout instead.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
@@ -149,7 +148,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

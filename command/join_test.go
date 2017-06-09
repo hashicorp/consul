@@ -5,17 +5,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 )
 
 func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
 	ui := cli.NewMockUi()
 	return ui, &JoinCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetClientHTTP,
+			Flags: FlagSetClientHTTP,
 		},
 	}
 }

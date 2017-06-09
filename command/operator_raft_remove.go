@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 )
 
 type OperatorRaftRemoveCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *OperatorRaftRemoveCommand) Help() string {
@@ -26,7 +25,7 @@ quorum. If the server still shows in the output of the "consul members" command,
 it is preferable to clean up by simply running "consul force-leave" instead of
 this command.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -36,7 +35,7 @@ func (c *OperatorRaftRemoveCommand) Synopsis() string {
 }
 
 func (c *OperatorRaftRemoveCommand) Run(args []string) int {
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 
 	var address, id string
 	f.StringVar(&address, "address", "",
@@ -44,7 +43,7 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	f.StringVar(&id, "id", "",
 		"The ID to remove from the Raft configuration.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -53,7 +52,7 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1

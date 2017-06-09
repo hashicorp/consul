@@ -4,8 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 )
 
@@ -27,9 +26,9 @@ func TestReloadCommandRun(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	c := &ReloadCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetClientHTTP,
+			Flags: FlagSetClientHTTP,
 		},
 	}
 	args := []string{"-http-addr=" + a.HTTPAddr()}

@@ -3,16 +3,15 @@ package command
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
 func testOperatorRaftCommand(t *testing.T) (*cli.MockUi, *OperatorRaftCommand) {
 	ui := cli.NewMockUi()
 	return ui, &OperatorRaftCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetHTTP,
+			Flags: FlagSetHTTP,
 		},
 	}
 }

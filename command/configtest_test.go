@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
@@ -14,9 +13,9 @@ import (
 func testConfigTestCommand(t *testing.T) (*cli.MockUi, *ConfigTestCommand) {
 	ui := cli.NewMockUi()
 	return ui, &ConfigTestCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetNone,
+			Flags: FlagSetNone,
 		},
 	}
 }
