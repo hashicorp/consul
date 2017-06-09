@@ -8,6 +8,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: Parse values given to `?passing` for health endpoints. Previously Consul only checked for the existence of the querystring, not the value. That means using `?passing=false` would actually still include passing values. Consul 0.9 now parses the value given to passing as a boolean. If no value is provided, the old behavior remains. **This may be a breaking change for some users**, but the old experience was incorrect and caused enough confusion to warrant changing it [GH-2212, GH-3136]
+
 
 ## 0.8.4 (June 9, 2017)
 
