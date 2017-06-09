@@ -311,6 +311,11 @@ func (a *Agent) Start() error {
 		a.httpServers = append(a.httpServers, srv)
 	}
 
+	// register watches
+	if err := a.registerWatches(); err != nil {
+		return err
+	}
+
 	// start retry join
 	go a.retryJoin()
 	go a.retryJoinWan()
@@ -484,6 +489,34 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	case <-time.After(time.Second):
 		return fmt.Errorf("agent: timeout starting HTTP servers")
 	}
+}
+
+func (a *Agent) registerWatches() error {
+	if len(a.config.WatchPlans) == 0 {
+		return nil
+	}
+	addrs, err := a.config.HTTPAddrs()
+	if err != nil {
+		return err
+	}
+	if len(addrs) == 0 {
+		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
+	}
+
+	for _, wp := range a.config.WatchPlans {
+		go func(wp *watch.Plan) {
+			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
+			wp.LogOutput = a.LogOutput
+			addr := addrs[0].String()
+			if addrs[0].Net == "unix" {
+				addr = "unix://" + addr
+			}
+			if err := wp.Run(addr); err != nil {
+				a.logger.Println("[ERR] Failed to run watch: %v", err)
+			}
+		}(wp)
+	}
+	return nil
 }
 
 // consulConfig is used to return a consul configuration

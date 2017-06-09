@@ -20,18 +20,6 @@ const (
 	WatchBufSize = 4 * 1024 // 4KB
 )
 
-// verifyWatchHandler does the pre-check for our handler configuration
-func verifyWatchHandler(params interface{}) error {
-	if params == nil {
-		return fmt.Errorf("Must provide watch handler")
-	}
-	_, ok := params.(string)
-	if !ok {
-		return fmt.Errorf("Watch handler must be a string")
-	}
-	return nil
-}
-
 // makeWatchHandler returns a handler for the given watch
 func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc {
 	script := params.(string)
