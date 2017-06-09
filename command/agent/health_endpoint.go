@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -148,7 +149,25 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 
 	// Filter to only passing if specified
 	if _, ok := params[api.HealthPassing]; ok {
-		out.Nodes = filterNonPassing(out.Nodes)
+		val := params.Get(api.HealthPassing)
+		// Backwards-compat to allow users to specify ?passing without a value. This
+		// should be removed in Consul 0.10.
+		var filter bool
+		if val == "" {
+			filter = true
+		} else {
+			var err error
+			filter, err = strconv.ParseBool(val)
+			if err != nil {
+				resp.WriteHeader(400)
+				fmt.Fprint(resp, "Invalid value for ?passing")
+				return nil, nil
+			}
+		}
+
+		if filter {
+			out.Nodes = filterNonPassing(out.Nodes)
+		}
 	}
 
 	// Translate addresses after filtering so we don't waste effort.

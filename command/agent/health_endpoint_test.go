@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -15,7 +17,7 @@ import (
 
 func TestHealthChecksInState(t *testing.T) {
 	t.Parallel()
-	t.Run("", func(t *testing.T) {
+	t.Run("warning", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
@@ -38,7 +40,7 @@ func TestHealthChecksInState(t *testing.T) {
 		})
 	})
 
-	t.Run("", func(t *testing.T) {
+	t.Run("passing", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
@@ -612,20 +614,75 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.HealthServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("bc_no_query_value", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	assertIndex(t, resp)
+		assertIndex(t, resp)
 
-	// Should be 0 health check for consul
-	nodes := obj.(structs.CheckServiceNodes)
-	if len(nodes) != 0 {
-		t.Fatalf("bad: %v", obj)
-	}
+		// Should be 0 health check for consul
+		nodes := obj.(structs.CheckServiceNodes)
+		if len(nodes) != 0 {
+			t.Fatalf("bad: %v", obj)
+		}
+	})
+
+	t.Run("passing_true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=true", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		assertIndex(t, resp)
+
+		// Should be 0 health check for consul
+		nodes := obj.(structs.CheckServiceNodes)
+		if len(nodes) != 0 {
+			t.Fatalf("bad: %v", obj)
+		}
+	})
+
+	t.Run("passing_false", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=false", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		assertIndex(t, resp)
+
+		// Should be 1 consul, it's unhealthy, but we specifically asked for
+		// everything.
+		nodes := obj.(structs.CheckServiceNodes)
+		if len(nodes) != 1 {
+			t.Fatalf("bad: %v", obj)
+		}
+	})
+
+	t.Run("passing_bad", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing=nope-nope-nope", nil)
+		resp := httptest.NewRecorder()
+		a.srv.HealthServiceNodes(resp, req)
+
+		if code := resp.Code; code != 400 {
+			t.Errorf("bad response code %d, expected %d", code, 400)
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(body, []byte("Invalid value for ?passing")) {
+			t.Errorf("bad %s", body)
+		}
+	})
 }
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
