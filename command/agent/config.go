@@ -790,7 +790,7 @@ func (p ProtoAddr) String() string {
 }
 
 func (c *Config) DNSAddrs() ([]ProtoAddr, error) {
-	if c.Ports.DNS == 0 {
+	if c.Ports.DNS <= 0 {
 		return nil, nil
 	}
 	a, err := c.ClientListener(c.Addresses.DNS, c.Ports.DNS)
