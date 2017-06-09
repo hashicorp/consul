@@ -152,18 +152,21 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		val := params.Get(api.HealthPassing)
 		// Backwards-compat to allow users to specify ?passing without a value. This
 		// should be removed in Consul 0.10.
+		var filter bool
 		if val == "" {
-			out.Nodes = filterNonPassing(out.Nodes)
+			filter = true
 		} else {
-			filter, err := strconv.ParseBool(val)
+			var err error
+			filter, err = strconv.ParseBool(val)
 			if err != nil {
 				resp.WriteHeader(400)
 				fmt.Fprint(resp, "Invalid value for ?passing")
 				return nil, nil
 			}
-			if filter {
-				out.Nodes = filterNonPassing(out.Nodes)
-			}
+		}
+
+		if filter {
+			out.Nodes = filterNonPassing(out.Nodes)
 		}
 	}
 
