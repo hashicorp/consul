@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/hashicorp/consul/command/base"
 )
 
 // InfoCommand is a Command implementation that queries a running
 // Consul agent for various debugging statistics for operators
 type InfoCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *InfoCommand) Help() string {
@@ -20,19 +18,19 @@ Usage: consul info [options]
 
 	Provides debugging information for operators
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *InfoCommand) Run(args []string) int {
-	c.Command.NewFlagSet(c)
+	c.BaseCommand.NewFlagSet(c)
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

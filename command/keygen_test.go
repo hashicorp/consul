@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/hashicorp/consul/command/base"
 	"github.com/mitchellh/cli"
 )
 
@@ -17,9 +16,9 @@ func TestKeygenCommand(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := &KeygenCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetNone,
+			Flags: FlagSetNone,
 		},
 	}
 	code := c.Run(nil)

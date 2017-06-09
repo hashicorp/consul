@@ -4,8 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 )
 
@@ -21,9 +20,9 @@ func TestOperator_Autopilot_Get(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	c := OperatorAutopilotGetCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetHTTP,
+			Flags: FlagSetHTTP,
 		},
 	}
 	args := []string{"-http-addr=" + a.HTTPAddr()}

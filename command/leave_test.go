@@ -4,17 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 )
 
 func testLeaveCommand(t *testing.T) (*cli.MockUi, *LeaveCommand) {
 	ui := cli.NewMockUi()
 	return ui, &LeaveCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetClientHTTP,
+			Flags: FlagSetClientHTTP,
 		},
 	}
 }

@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/base"
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
@@ -15,9 +14,9 @@ import (
 func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
 	ui := cli.NewMockUi()
 	return ui, &ForceLeaveCommand{
-		Command: base.Command{
+		BaseCommand: BaseCommand{
 			UI:    ui,
-			Flags: base.FlagSetClientHTTP,
+			Flags: FlagSetClientHTTP,
 		},
 	}
 }

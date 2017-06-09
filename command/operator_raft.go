@@ -4,12 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/consul/command/base"
 )
 
 type OperatorRaftCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *OperatorRaftCommand) Help() string {
@@ -44,7 +42,7 @@ func (c *OperatorRaftCommand) Run(args []string) int {
 
 // raft handles the raft subcommands.
 func (c *OperatorRaftCommand) raft(args []string) error {
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 
 	// Parse verb arguments.
 	var listPeers, removePeer bool
@@ -63,9 +61,9 @@ func (c *OperatorRaftCommand) raft(args []string) error {
 
 	// Leave these flags for backwards compatibility, but hide them
 	// TODO: remove flags/behavior from this command in Consul 0.9
-	c.Command.HideFlags("list-peers", "remove-peer", "address")
+	c.BaseCommand.HideFlags("list-peers", "remove-peer", "address")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return nil
 		}
@@ -73,14 +71,14 @@ func (c *OperatorRaftCommand) raft(args []string) error {
 	}
 
 	// Set up a client.
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		return fmt.Errorf("error connecting to Consul agent: %s", err)
 	}
 
 	// Dispatch based on the verb argument.
 	if listPeers {
-		result, err := raftListPeers(client, c.Command.HTTPStale())
+		result, err := raftListPeers(client, c.BaseCommand.HTTPStale())
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 		}

@@ -3,14 +3,12 @@ package command
 import (
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/consul/command/base"
 )
 
 // MaintCommand is a Command implementation that enables or disables
 // node or service maintenance mode.
 type MaintCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *MaintCommand) Help() string {
@@ -38,7 +36,7 @@ Usage: consul maint [options]
   If no arguments are given, the agent's maintenance status will be shown.
   This will return blank if nothing is currently under maintenance.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -49,14 +47,14 @@ func (c *MaintCommand) Run(args []string) int {
 	var reason string
 	var serviceID string
 
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 
 	f.BoolVar(&enable, "enable", false, "Enable maintenance mode.")
 	f.BoolVar(&disable, "disable", false, "Disable maintenance mode.")
 	f.StringVar(&reason, "reason", "", "Text describing the maintenance reason.")
 	f.StringVar(&serviceID, "service", "", "Control maintenance mode for a specific service ID.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
@@ -75,7 +73,7 @@ func (c *MaintCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/base"
 	"github.com/hashicorp/serf/serf"
 	"github.com/ryanuber/columnize"
 )
@@ -16,7 +15,7 @@ import (
 // MembersCommand is a Command implementation that queries a running
 // Consul agent what members are part of the cluster currently.
 type MembersCommand struct {
-	base.Command
+	BaseCommand
 }
 
 func (c *MembersCommand) Help() string {
@@ -25,7 +24,7 @@ Usage: consul members [options]
 
   Outputs the members of a running Consul agent.
 
-` + c.Command.Help()
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
@@ -35,7 +34,7 @@ func (c *MembersCommand) Run(args []string) int {
 	var wan bool
 	var statusFilter string
 
-	f := c.Command.NewFlagSet(c)
+	f := c.BaseCommand.NewFlagSet(c)
 	f.BoolVar(&detailed, "detailed", false,
 		"Provides detailed information about nodes.")
 	f.BoolVar(&wan, "wan", false,
@@ -45,7 +44,7 @@ func (c *MembersCommand) Run(args []string) int {
 		"If provided, output is filtered to only nodes matching the regular "+
 			"expression for status.")
 
-	if err := c.Command.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
@@ -56,7 +55,7 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.Command.HTTPClient()
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
