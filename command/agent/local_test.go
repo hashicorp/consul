@@ -1423,12 +1423,12 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 
 	// Wait a while, then fail it again and make sure the time keeps track
 	// of the initial failure, and doesn't reset here.
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	l.UpdateCheck(chk.CheckID, api.HealthCritical, "")
 	if crit, ok := l.CriticalChecks()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
-	} else if crit.CriticalFor < 5*time.Millisecond ||
-		crit.CriticalFor > 15*time.Millisecond {
+	} else if crit.CriticalFor < 25*time.Millisecond ||
+		crit.CriticalFor > 75*time.Millisecond {
 		t.Fatalf("bad: %#v", crit)
 	}
 

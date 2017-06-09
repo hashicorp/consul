@@ -12,7 +12,6 @@ import (
 )
 
 func TestStatsFetcher(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
