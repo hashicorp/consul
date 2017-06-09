@@ -43,10 +43,10 @@ func init() {
 	flag.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
 	flag.StringVar(&cpu, "cpu", "100%", "CPU cap")
 	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
-	flag.StringVar(&logfile, "log", "", "Process log file")
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
 	flag.BoolVar(&version, "version", false, "Show version")
 	flag.BoolVar(&dnsserver.Quiet, "quiet", false, "Quiet mode (no initialization output)")
+	flag.BoolVar(&logfile, "log", false, "Log to standard output")
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
@@ -61,12 +61,7 @@ func Run() {
 	flag.Parse()
 
 	// Set up process log before anything bad happens
-	switch logfile {
-	case "stdout":
-		log.SetOutput(os.Stdout)
-	case "stderr":
-		log.SetOutput(os.Stderr)
-	default:
+	if logfile {
 		log.SetOutput(os.Stdout)
 	}
 	log.SetFlags(log.LstdFlags)
@@ -228,7 +223,7 @@ func setCPU(cpu string) error {
 var (
 	conf    string
 	cpu     string
-	logfile string
+	logfile bool
 	version bool
 	plugins bool
 )
