@@ -291,10 +291,8 @@ func (a *Agent) Start() error {
 	}
 
 	// start DNS servers
-	if c.Ports.DNS > 0 {
-		if err := a.listenAndServeDNS(); err != nil {
-			return err
-		}
+	if err := a.listenAndServeDNS(); err != nil {
+		return err
 	}
 
 	// create listeners and unstarted servers
