@@ -224,7 +224,6 @@ func TestACLReplication_reconcileACLs(t *testing.T) {
 }
 
 func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
@@ -274,7 +273,6 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 }
 
 func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
-	t.Parallel()
 	// ACLs not enabled.
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = ""
@@ -323,7 +321,6 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 }
 
 func TestACLReplication(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
