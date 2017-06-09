@@ -6,22 +6,6 @@ import (
 	"testing"
 )
 
-func TestVerifyWatchHandler(t *testing.T) {
-	t.Parallel()
-	if err := verifyWatchHandler(nil); err == nil {
-		t.Fatalf("should err")
-	}
-	if err := verifyWatchHandler(123); err == nil {
-		t.Fatalf("should err")
-	}
-	if err := verifyWatchHandler([]string{"foo"}); err == nil {
-		t.Fatalf("should err")
-	}
-	if err := verifyWatchHandler("foo"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-}
-
 func TestMakeWatchHandler(t *testing.T) {
 	t.Parallel()
 	defer os.Remove("handler_out")

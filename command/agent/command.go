@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -390,8 +389,9 @@ func (cmd *Command) readConfig() *Config {
 		}
 
 		// Get the handler
-		if err := verifyWatchHandler(wp.Exempt["handler"]); err != nil {
-			cmd.UI.Error(fmt.Sprintf("Failed to setup watch handler (%#v): %v", params, err))
+		h := wp.Exempt["handler"]
+		if _, ok := h.(string); h == nil || !ok {
+			cmd.UI.Error("Watch handler must be a string")
 			return nil
 		}
 
@@ -632,39 +632,6 @@ func startupTelemetry(config *Config) error {
 	return nil
 }
 
-func (cmd *Command) registerWatches(config *Config) error {
-	var err error
-
-	var httpAddr net.Addr
-	if config.Ports.HTTP != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-	} else if config.Ports.HTTPS != -1 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
-	} else if len(config.WatchPlans) > 0 {
-		return fmt.Errorf("Error: cannot use watches if both HTTP and HTTPS are disabled")
-	}
-	if err != nil {
-		cmd.UI.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
-	}
-
-	// Register the watches
-	for _, wp := range config.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(cmd.logOutput, wp.Exempt["handler"])
-			wp.LogOutput = cmd.logOutput
-			addr := httpAddr.String()
-			// If it's a unix socket, prefix with unix:// so the client initializes correctly
-			if httpAddr.Network() == "unix" {
-				addr = "unix://" + addr
-			}
-			if err := wp.Run(addr); err != nil {
-				cmd.UI.Error(fmt.Sprintf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-	return nil
-}
-
 func (cmd *Command) Run(args []string) int {
 	code := cmd.run(args)
 	if cmd.logger != nil {
@@ -733,11 +700,6 @@ func (cmd *Command) run(args []string) int {
 	}
 
 	if err := cmd.startupJoinWan(agent, config); err != nil {
-		cmd.UI.Error(err.Error())
-		return 1
-	}
-
-	if err := cmd.registerWatches(config); err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
