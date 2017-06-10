@@ -208,7 +208,7 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `uuid` `(string: <required>)` - Specifies the UUID of the ACL token to
-  destroy. This is required and is specified as part of the URL path.
+  be cloned. This is required and is specified as part of the URL path.
 
 ### Sample Request
 
