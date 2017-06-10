@@ -76,6 +76,16 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 	return nil
 }
 
+// Verify if token is permitted to modify ACLs
+func (a *ACL) CanModifyACL(token string, reply *string) error {
+	if acl, err := a.srv.resolveToken(token); err != nil {
+		return err
+	} else if acl == nil || !acl.ACLModify() {
+		return permissionDeniedErr
+	}
+	return nil
+}
+
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data
 func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {

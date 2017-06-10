@@ -122,6 +122,20 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 		return nil, nil
 	}
 
+	// If token not found 403
+	if args.QueryOptions.Token == "" {
+		resp.WriteHeader(403)
+		resp.Write([]byte(fmt.Sprintf(permissionDenied)))
+		return nil, nil
+	}
+
+	// Verify token is permitted to modify ACLs before verifying for
+	// Target ACL. Why? https://github.com/hashicorp/consul/issues/1113
+	var reply string
+	if err := s.agent.RPC("ACL.CanModifyACL", args.Token, &reply); err != nil {
+		return nil, err
+	}
+
 	var out structs.IndexedACLs
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.Get", &args, &out); err != nil {
