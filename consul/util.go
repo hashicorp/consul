@@ -25,7 +25,7 @@ var privateBlocks []*net.IPNet
 
 func init() {
 	// Add each private block
-	privateBlocks = make([]*net.IPNet, 6)
+	privateBlocks = make([]*net.IPNet, 10)
 
 	_, block, err := net.ParseCIDR("10.0.0.0/8")
 	if err != nil {
@@ -62,6 +62,30 @@ func init() {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[5] = block
+
+	_, block, err = net.ParseCIDR("fc00::/7") /* RFC 4193: unique local addresses */
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[6] = block
+
+	_, block, err = net.ParseCIDR("fec0::/10") /* RFC 1884: site-local addresses */
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[7] = block
+
+	_, block, err = net.ParseCIDR("fe80::/10") /* RFC 4291: link-local addresses */
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[8] = block
+
+	_, block, err = net.ParseCIDR("::1/128") /* RFC 1884: loopback address */
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[9] = block
 }
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given
