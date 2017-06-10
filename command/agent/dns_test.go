@@ -3649,7 +3649,7 @@ func TestDNS_AddressLookup(t *testing.T) {
 	}
 	for question, answer := range cases {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+		m.SetQuestion(question, dns.TypeA)
 
 		c := new(dns.Client)
 		addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
@@ -3687,7 +3687,7 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 	}
 	for question, answer := range cases {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+		m.SetQuestion(question, dns.TypeAAAA)
 
 		c := new(dns.Client)
 		addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)

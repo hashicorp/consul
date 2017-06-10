@@ -308,9 +308,14 @@ PARSE:
 			goto INVALID
 		}
 
+		qType := req.Question[0].Qtype
+
 		switch len(labels[0]) / 2 {
 		// IPv4
 		case 4:
+			if qType != dns.TypeANY && qType != dns.TypeA {
+				return
+			}
 			ip, err := hex.DecodeString(labels[0])
 			if err != nil {
 				goto INVALID
@@ -327,6 +332,9 @@ PARSE:
 			})
 		// IPv6
 		case 16:
+			if qType != dns.TypeANY && qType != dns.TypeAAAA {
+				return
+			}
 			ip, err := hex.DecodeString(labels[0])
 			if err != nil {
 				goto INVALID
