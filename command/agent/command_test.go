@@ -289,6 +289,20 @@ func TestReadCliConfig(t *testing.T) {
 			t.Errorf(`Expected -node="" to fail`)
 		}
 	}
+
+	// Test dev mode with encryption key
+	{
+		cmd := &Command{
+			args:       []string{"-dev", "-encrypt", "OSvH5y8K4Lc9qaof5YUpwg=="},
+			ShutdownCh: shutdownCh,
+			Command:    baseCommand(new(cli.MockUi)),
+		}
+
+		config := cmd.readConfig()
+		if config != nil {
+			t.Errorf("Expected -dev -encrypt OSvH5y8K4Lc9qaof5YUpwg== to fail")
+		}
+	}
 }
 
 func TestRetryJoinFail(t *testing.T) {

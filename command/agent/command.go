@@ -278,6 +278,13 @@ func (cmd *Command) readConfig() *Config {
 		}
 	}
 
+	// Ensure that the encrypt configuration option is blank so that
+	// Serf won't write encryption keys to disk in dev mode.
+	if dev && config.EncryptKey != "" {
+		c.UI.Error("Encrypted gossip is not supported in dev mode.")
+		return nil
+	}
+
 	// Ensure all endpoints are unique
 	if err := cfg.verifyUniqueListeners(); err != nil {
 		cmd.UI.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))

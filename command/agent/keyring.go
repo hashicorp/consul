@@ -141,6 +141,11 @@ func (a *Agent) ListKeys(token string, relayFactor uint8) (*structs.KeyringRespo
 
 // InstallKey installs a new gossip encryption key
 func (a *Agent) InstallKey(key, token string, relayFactor uint8) (*structs.KeyringResponses, error) {
+	// We don't write files in dev mode so fail immediately.
+	if a.config.DevMode {
+		return nil, fmt.Errorf("InstallKey is not allowed in dev mode.")
+	}
+
 	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringInstall}
 	parseKeyringRequest(&args, token, relayFactor)
 	return a.keyringProcess(&args)

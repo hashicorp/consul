@@ -113,6 +113,29 @@ func TestAgent_InitKeyring(t *testing.T) {
 	}
 }
 
+func TestAgentKeyring_DevMode(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	expected := "InstallKey is not allowed in dev mode."
+	conf := DevConfig()
+	agent, err := Create(conf, nil, nil, nil)
+
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	defer agent.Shutdown()
+
+	_, err = agent.InstallKey(key1, "", 0)
+
+	if err == nil {
+		t.Fatalf("expected error, received nil")
+	}
+
+	if err.Error() != expected {
+		t.Fatalf("unexpected error: %#v", err)
+	}
+}
+
 func TestAgentKeyring_ACL(t *testing.T) {
 	t.Parallel()
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
