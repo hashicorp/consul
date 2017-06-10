@@ -22,34 +22,29 @@ func main() {
 func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	// Get the c line args. We shortcut "--version" and "-v" to
-	// just show the version.
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "--" {
 			break
 		}
+
 		if arg == "-v" || arg == "--version" {
-			newArgs := make([]string, len(args)+1)
-			newArgs[0] = "version"
-			copy(newArgs[1:], args)
-			args = newArgs
+			args = []string{"version"}
 			break
 		}
 	}
 
-	// Filter out the configtest c from the help display
-	var included []string
+	var cmds []string
 	for c := range command.Commands {
 		if c != "configtest" {
-			included = append(included, c)
+			cmds = append(cmds, c)
 		}
 	}
 
 	cli := &cli.CLI{
 		Args:     args,
 		Commands: command.Commands,
-		HelpFunc: cli.FilteredHelpFunc(included, cli.BasicHelpFunc("consul")),
+		HelpFunc: cli.FilteredHelpFunc(cmds, cli.BasicHelpFunc("consul")),
 	}
 
 	exitCode, err := cli.Run()
