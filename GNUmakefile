@@ -81,8 +81,8 @@ ui:
 # generates the static web ui that's compiled into the binary
 static-assets:
 	@echo "--> Generating static assets"
-	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
-	@mv bindata_assetfs.go command/agent
+	@go-bindata-assetfs -pkg agent -prefix pkg ui/...
+	@mv bindata_assetfs.go agent/
 	$(MAKE) format
 
 tools:
