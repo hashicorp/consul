@@ -20,6 +20,7 @@ var (
 	ErrNoDCPath                   = fmt.Errorf("No path to datacenter")
 	ErrNoServers                  = fmt.Errorf("No known Consul servers")
 	ErrNotReadyForConsistentReads = fmt.Errorf("Not ready to serve consistent reads")
+	ErrRPCRateExceeded            = fmt.Errorf("RPC rate limit exceeded")
 )
 
 type MessageType uint8
