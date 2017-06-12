@@ -140,6 +140,7 @@ repos work just as well. So when do we consider the inclusion of a new middlewar
 
 * First, the middleware should be useful for other people. "Useful" is a subjective term. We will
   probably need to further refine this.
+* It should be sufficiently different from other middleware to warrant inclusion.
 * Current internet standards need be supported: IPv4 and IPv6, so A and AAAA records should be
   handled (if your middleware is in the business of dealing with address records that is).
 * It must have tests.
