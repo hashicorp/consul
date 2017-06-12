@@ -593,6 +593,14 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{RetryMaxAttemptsWan: 123},
 		},
 		{
+			in: `{"rpc_rate": 100}`,
+			c:  &Config{RPCRate: 100},
+		},
+		{
+			in: `{"rpc_max_burst": 50}`,
+			c:  &Config{RPCMaxBurst: 50},
+		},
+		{
 			in: `{"serf_lan_bind":"1.2.3.4"}`,
 			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
 		},

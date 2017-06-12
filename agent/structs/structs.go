@@ -21,6 +21,7 @@ var (
 	ErrNoServers                  = fmt.Errorf("No known Consul servers")
 	ErrNotReadyForConsistentReads = fmt.Errorf("Not ready to serve consistent reads")
 	ErrSegmentsNotSupported       = fmt.Errorf("Network segments are not supported in this version of Consul")
+	ErrRPCRateExceeded            = fmt.Errorf("RPC rate limit exceeded")
 )
 
 type MessageType uint8

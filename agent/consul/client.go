@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -66,6 +68,8 @@ type Client struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+
+	rpcLimiter *rate.Limiter
 }
 
 // NewClient is used to construct a new Consul client from the
@@ -224,6 +228,14 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
+	}
+
+	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
+
+	// Check rate
+	if !c.rpcLimiter.Allow() {
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
 	}
 
 	// Forward to remote Consul

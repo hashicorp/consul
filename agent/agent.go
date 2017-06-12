@@ -722,6 +722,15 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCAdvertise = base.RPCAddr
 	}
 
+	// Rate limiting for RPC calls
+	if a.config.RPCRate > 0 {
+		base.RPCRate = a.config.RPCRate
+	}
+
+	if a.config.RPCMaxBurst > 0 {
+		base.RPCMaxBurst = a.config.RPCMaxBurst
+	}
+
 	// set the src address for outgoing rpc connections
 	// Use port 0 so that outgoing connections use a random port.
 	if !ipaddr.IsAny(base.RPCAddr.IP) {
