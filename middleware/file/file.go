@@ -126,13 +126,17 @@ func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
 				if s.Serial == uint32(serial) { // same zone
 					return nil, fmt.Errorf("no change in serial: %d", serial)
 				}
+				seenSOA = true
 			}
-			seenSOA = true
 		}
 
 		if err := z.Insert(x.RR); err != nil {
 			return nil, err
 		}
 	}
+	if !seenSOA {
+		return nil, fmt.Errorf("file %q has no SOA record", fileName)
+	}
+
 	return z, nil
 }
