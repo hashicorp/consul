@@ -3,6 +3,10 @@ package agent
 import (
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/discover/aws"
+	"github.com/hashicorp/consul/discover/azure"
+	"github.com/hashicorp/consul/discover/gce"
 )
 
 // RetryJoin is used to handle retrying a join until it succeeds or all
@@ -25,19 +29,44 @@ func (a *Agent) retryJoin() {
 		var err error
 		switch {
 		case ec2Enabled:
-			servers, err = cfg.discoverEc2Hosts(a.logger)
+			c := cfg.RetryJoinEC2
+			awscfg := &aws.Config{
+				Region:          c.Region,
+				TagKey:          c.TagKey,
+				TagValue:        c.TagValue,
+				AccessKeyID:     c.AccessKeyID,
+				SecretAccessKey: c.SecretAccessKey,
+			}
+			servers, err = aws.Discover(awscfg, a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query EC2 instances: %s", err)
 			}
 			a.logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
+
 		case gceEnabled:
-			servers, err = cfg.discoverGCEHosts(a.logger)
+			c := cfg.RetryJoinGCE
+			gcecfg := &gce.Config{
+				ProjectName:     c.ProjectName,
+				ZonePattern:     c.ZonePattern,
+				TagValue:        c.TagValue,
+				CredentialsFile: c.CredentialsFile,
+			}
+			servers, err = gce.Discover(gcecfg, a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query GCE instances: %s", err)
 			}
 			a.logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
 		case azureEnabled:
-			servers, err = cfg.discoverAzureHosts(a.logger)
+			c := cfg.RetryJoinAzure
+			azurecfg := &azure.Config{
+				TagName:         c.TagName,
+				TagValue:        c.TagValue,
+				SubscriptionID:  c.SubscriptionID,
+				TenantID:        c.TenantID,
+				ClientID:        c.ClientID,
+				SecretAccessKey: c.SecretAccessKey,
+			}
+			servers, err = azure.Discover(azurecfg, a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query Azure instances: %s", err)
 			}
