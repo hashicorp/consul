@@ -567,11 +567,12 @@ func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
 		}
 	}
 
-	// This enforces the hard limit of 512 bytes per the RFC. Note that we
-	// temporarily switch to uncompressed so that we limit to a response
-	// that will not exceed 512 bytes uncompressed, which is more
-	// conservative and will allow our responses to be compliant even if
-	// some downstream server uncompresses them.
+	// This enforces the given limit on the number bytes. The default is 512 as
+	// per the RFC, but EDNS0 allows for the user to specify larger sizes. Note
+	// that we temporarily switch to uncompressed so that we limit to a response
+	// that will not exceed 512 bytes uncompressed, which is more conservative and
+	// will allow our responses to be compliant even if some downstream server
+	// uncompresses them.
 	compress := resp.Compress
 	resp.Compress = false
 	for len(resp.Answer) > 0 && resp.Len() > maxSize {

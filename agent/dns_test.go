@@ -4190,6 +4190,85 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	}
 }
 
+func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
+	t.Parallel()
+	config := &DefaultConfig().DNSConfig
+
+	req, resp := &dns.Msg{}, &dns.Msg{}
+
+	for i := 0; i < 100; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 150+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 150+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	// Copy over to a new slice since we are trimming both.
+	reqEDNS, respEDNS := &dns.Msg{}, &dns.Msg{}
+	reqEDNS.SetEdns0(2048, true)
+	respEDNS.Answer = append(respEDNS.Answer, resp.Answer...)
+	respEDNS.Extra = append(respEDNS.Extra, resp.Extra...)
+
+	// Trim each response
+	if trimmed := trimUDPResponse(config, req, resp); !trimmed {
+		t.Errorf("expected response to be trimmed: %#v", resp)
+	}
+	if trimmed := trimUDPResponse(config, reqEDNS, respEDNS); !trimmed {
+		t.Errorf("expected edns to be trimmed: %#v", resp)
+	}
+
+	// Check answer lengths
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Errorf("bad response answer length: %#v", resp)
+	}
+	if len(respEDNS.Answer) == 0 || len(respEDNS.Answer) != len(respEDNS.Extra) {
+		t.Errorf("bad edns answer length: %#v", resp)
+	}
+
+	// Due to the compression, we can't check exact equality of sizes, but we can
+	// make two requests and ensure that the edns one returns a larger payload
+	// than the non-edns0 one.
+	if len(resp.Answer) >= len(respEDNS.Answer) {
+		t.Errorf("expected edns have larger answer: %#v\n%#v", resp, respEDNS)
+	}
+	if len(resp.Extra) >= len(respEDNS.Extra) {
+		t.Errorf("expected edns have larger extra: %#v\n%#v", resp, respEDNS)
+	}
+
+	// Verify that the things point where they should
+	for i := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Errorf("%d should be an SRV", i)
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Errorf("%d should be an A", i)
+		}
+
+		if srv.Target != a.Header().Name {
+			t.Errorf("%d: bad %#v vs. %#v", i, srv, a)
+		}
+	}
+}
+
 func TestDNS_syncExtra(t *testing.T) {
 	t.Parallel()
 	resp := &dns.Msg{
