@@ -8,6 +8,7 @@ import (
 	_ "github.com/coredns/coredns/middleware/bind"
 	_ "github.com/coredns/coredns/middleware/cache"
 	_ "github.com/coredns/coredns/middleware/chaos"
+	_ "github.com/coredns/coredns/middleware/debug"
 	_ "github.com/coredns/coredns/middleware/dnssec"
 	_ "github.com/coredns/coredns/middleware/erratic"
 	_ "github.com/coredns/coredns/middleware/errors"

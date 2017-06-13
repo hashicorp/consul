@@ -23,6 +23,9 @@ type Config struct {
 	// First consumer is the file middleware to looks for zone files in this place.
 	Root string
 
+	// Debug controls the panic/recover mechanism that is enabled by default.
+	Debug bool
+
 	// The transport we implement, normally just "dns" over TCP/UDP, but could be
 	// DNS-over-TLS or DNS-over-gRPC.
 	Transport string

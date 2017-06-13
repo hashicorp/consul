@@ -36,6 +36,7 @@ type Server struct {
 	dnsWg       sync.WaitGroup     // used to wait on outstanding connections
 	connTimeout time.Duration      // the maximum duration of a graceful shutdown
 	trace       trace.Trace        // the trace middleware for the server
+	debug       bool               // disable recover()
 }
 
 // NewServer returns a new CoreDNS server and compiles all middleware in to it.
@@ -56,6 +57,9 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 	s.dnsWg.Add(1)
 
 	for _, site := range group {
+		if site.Debug {
+			s.debug = true
+		}
 		// set the config per zone
 		s.zones[site.Zone] = site
 		// compile custom middleware for everything
@@ -166,13 +170,15 @@ func (s *Server) Address() string { return s.Addr }
 // defined in the request so that the correct zone
 // (configuration and middleware stack) will handle the request.
 func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
-	defer func() {
-		// In case the user doesn't enable error middleware, we still
-		// need to make sure that we stay alive up here
-		if rec := recover(); rec != nil {
-			DefaultErrorFunc(w, r, dns.RcodeServerFailure)
-		}
-	}()
+	if !s.debug {
+		defer func() {
+			// In case the user doesn't enable error middleware, we still
+			// need to make sure that we stay alive up here
+			if rec := recover(); rec != nil {
+				DefaultErrorFunc(w, r, dns.RcodeServerFailure)
+			}
+		}()
+	}
 
 	if m, err := edns.Version(r); err != nil { // Wrong EDNS version, return at once.
 		w.WriteMsg(m)
