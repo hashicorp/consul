@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coredns/coredns/middleware/pkg/cache"
 	"github.com/coredns/coredns/middleware/test"
 	"github.com/coredns/coredns/request"
 
-	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
 )
 
@@ -69,8 +69,8 @@ func TestSigningDifferentZone(t *testing.T) {
 
 	m := testMsgEx()
 	state := request.Request{Req: m}
-	cache, _ := lru.New(defaultCap)
-	d := New([]string{"example.org."}, []*DNSKEY{key}, nil, cache)
+	c := cache.New(defaultCap)
+	d := New([]string{"example.org."}, []*DNSKEY{key}, nil, c)
 	m = d.Sign(state, "example.org.", time.Now().UTC())
 	if !section(m.Answer, 1) {
 		t.Errorf("answer section should have 1 sig")
@@ -183,8 +183,8 @@ func testMsgDname() *dns.Msg {
 
 func newDnssec(t *testing.T, zones []string) (Dnssec, func(), func()) {
 	k, rm1, rm2 := newKey(t)
-	cache, _ := lru.New(defaultCap)
-	d := New(zones, []*DNSKEY{k}, nil, cache)
+	c := cache.New(defaultCap)
+	d := New(zones, []*DNSKEY{k}, nil, c)
 	return d, rm1, rm2
 }
 

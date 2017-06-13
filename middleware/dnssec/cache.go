@@ -2,14 +2,13 @@ package dnssec
 
 import (
 	"hash/fnv"
-	"strconv"
 
 	"github.com/miekg/dns"
 )
 
-// Key serializes the RRset and return a signature cache key.
-func key(rrs []dns.RR) string {
-	h := fnv.New64()
+// hash serializes the RRset and return a signature cache key.
+func hash(rrs []dns.RR) uint32 {
+	h := fnv.New32()
 	buf := make([]byte, 256)
 	for _, r := range rrs {
 		off, err := dns.PackRR(r, buf, 0, nil, false)
@@ -18,6 +17,6 @@ func key(rrs []dns.RR) string {
 		}
 	}
 
-	i := h.Sum64()
-	return strconv.FormatUint(i, 10)
+	i := h.Sum32()
+	return i
 }

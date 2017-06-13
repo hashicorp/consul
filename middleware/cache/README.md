@@ -10,13 +10,12 @@ cache [TTL] [ZONES...]
 
 * **TTL** max TTL in seconds. If not specified, the maximum TTL will be used which is 3600 for
     noerror responses and 1800 for denial of existence ones.
-    A set TTL of 300 *cache 300* would cache the record up to 300 seconds.
-    Smaller record provided TTLs will take precedence.
+    Setting a TTL of 300 *cache 300* would cache the record up to 300 seconds.
 * **ZONES** zones it should cache for. If empty, the zones from the configuration block are used.
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
 For the negative cache, the SOA's MinTTL value is used. A cache can contain up to 10,000 items by
-default. A TTL of zero is not allowed. No cache invalidation triggered by other middlewares is available. Therefore even reloaded items might still be cached for the duration of the TTL.
+default. A TTL of zero is not allowed.
 
 If you want more control:
 
@@ -24,16 +23,21 @@ If you want more control:
 cache [TTL] [ZONES...] {
     success CAPACITY [TTL]
     denial CAPACITY [TTL]
+    prefetch AMOUNT [[DURATION] [PERCENTAGE%]]
 }
 ~~~
 
 * **TTL**  and **ZONES** as above.
 * `success`, override the settings for caching successful responses, **CAPACITY** indicates the maximum
-  number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.
+  number of packets we cache before we start evicting (*randomly*). **TTL** overrides the cache maximum TTL.
 * `denial`, override the settings for caching denial of existence responses, **CAPACITY** indicates the maximum
   number of packets we cache before we start evicting (LRU). **TTL** overrides the cache maximum TTL.
-
-There is a third category (`error`) but those responses are never cached.
+  There is a third category (`error`) but those responses are never cached.
+* `prefetch`, will prefetch popular items when they are about to be expunged from the cache.
+  Popular means **AMOUNT** queries have been seen no gaps of **DURATION** or more between them.
+  **DURATION** defaults to 1m. Prefetching will happen when the TTL drops below **PERCENTAGE**,
+  which defaults to `10%`. Values should be in the range `[10%, 90%]`. Note the percent sign is
+  mandatory. **PERCENTAGE** is treated as an `int`.
 
 The minimum TTL allowed on resource records is 5 seconds.
 

@@ -6,8 +6,8 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/cache"
 
-	"github.com/hashicorp/golang-lru"
 	"github.com/mholt/caddy"
 )
 
@@ -24,12 +24,9 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("dnssec", err)
 	}
 
-	cache, err := lru.New(capacity)
-	if err != nil {
-		return err
-	}
+	ca := cache.New(capacity)
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
-		return New(zones, keys, next, cache)
+		return New(zones, keys, next, ca)
 	})
 
 	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.

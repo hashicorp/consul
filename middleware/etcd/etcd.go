@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/pkg/cache"
 	"github.com/coredns/coredns/middleware/pkg/singleflight"
 	"github.com/coredns/coredns/middleware/proxy"
 	"github.com/coredns/coredns/request"
@@ -90,7 +91,10 @@ func (e *Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 
 // get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
 func (e *Etcd) get(path string, recursive bool) (*etcdc.Response, error) {
-	resp, err := e.Inflight.Do(path, func() (interface{}, error) {
+
+	hash := cache.Hash([]byte(path))
+
+	resp, err := e.Inflight.Do(hash, func() (interface{}, error) {
 		ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
 		defer cancel()
 		r, e := e.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})

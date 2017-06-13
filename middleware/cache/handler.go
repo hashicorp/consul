@@ -24,36 +24,58 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 
 	do := state.Do() // TODO(): might need more from OPT record? Like the actual bufsize?
 
-	if i, ok, expired := c.get(qname, qtype, do); ok && !expired {
+	now := time.Now().UTC()
+
+	i, ttl := c.get(now, qname, qtype, do)
+	if i != nil && ttl > 0 {
 		resp := i.toMsg(r)
 		state.SizeAndDo(resp)
 		resp, _ = state.Scrub(resp)
 		w.WriteMsg(resp)
 
+		i.Freq.Update(c.duration, now)
+
+		pct := 100
+		if i.origTTL != 0 { // you'll never know
+			pct = int(float64(ttl) / float64(i.origTTL) * 100)
+		}
+
+		if c.prefetch > 0 && i.Freq.Hits() > c.prefetch && pct < c.percentage {
+			// When prefetching we loose the item i, and with it the frequency
+			// that we've gathered sofar. See we copy the frequence info back
+			// into the new item that was stored in the cache.
+			prr := &ResponseWriter{ResponseWriter: w, Cache: c, prefetch: true}
+			middleware.NextOrFailure(c.Name(), c.Next, ctx, prr, r)
+
+			if i1, _ := c.get(now, qname, qtype, do); i1 != nil {
+				i1.Freq.Reset(now, i.Freq.Hits())
+			}
+		}
+
 		return dns.RcodeSuccess, nil
 	}
 
-	crr := &ResponseWriter{w, c}
+	crr := &ResponseWriter{ResponseWriter: w, Cache: c}
 	return middleware.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
 }
 
 // Name implements the Handler interface.
 func (c *Cache) Name() string { return "cache" }
 
-func (c *Cache) get(qname string, qtype uint16, do bool) (*item, bool, bool) {
-	k := rawKey(qname, qtype, do)
+func (c *Cache) get(now time.Time, qname string, qtype uint16, do bool) (*item, int) {
+	k := hash(qname, qtype, do)
 
 	if i, ok := c.ncache.Get(k); ok {
 		cacheHits.WithLabelValues(Denial).Inc()
-		return i.(*item), ok, i.(*item).expired(time.Now())
+		return i.(*item), i.(*item).ttl(now)
 	}
 
 	if i, ok := c.pcache.Get(k); ok {
 		cacheHits.WithLabelValues(Success).Inc()
-		return i.(*item), ok, i.(*item).expired(time.Now())
+		return i.(*item), i.(*item).ttl(now)
 	}
 	cacheMisses.Inc()
-	return nil, false, false
+	return nil, 0
 }
 
 var (

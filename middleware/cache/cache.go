@@ -2,15 +2,15 @@
 package cache
 
 import (
+	"encoding/binary"
+	"hash/fnv"
 	"log"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/cache"
 	"github.com/coredns/coredns/middleware/pkg/response"
 
-	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
 )
 
@@ -20,48 +20,73 @@ type Cache struct {
 	Next  middleware.Handler
 	Zones []string
 
-	ncache *lru.Cache
+	ncache *cache.Cache
 	ncap   int
 	nttl   time.Duration
 
-	pcache *lru.Cache
+	pcache *cache.Cache
 	pcap   int
 	pttl   time.Duration
+
+	// Prefetch.
+	prefetch   int
+	duration   time.Duration
+	percentage int
 }
 
-// Return key under which we store the item. The empty string is returned
-// when we don't want to cache the message. Currently we do not cache Truncated, errors
-// zone transfers or dynamic update messages.
-func key(m *dns.Msg, t response.Type, do bool) string {
+// Return key under which we store the item, -1 will be returned if we don't store the
+// message.
+// Currently we do not cache Truncated, errors zone transfers or dynamic update messages.
+func key(m *dns.Msg, t response.Type, do bool) int {
 	// We don't store truncated responses.
 	if m.Truncated {
-		return ""
+		return -1
 	}
 	// Nor errors or Meta or Update
 	if t == response.OtherError || t == response.Meta || t == response.Update {
-		return ""
+		return -1
 	}
 
-	qtype := m.Question[0].Qtype
-	qname := strings.ToLower(m.Question[0].Name)
-	return rawKey(qname, qtype, do)
+	return int(hash(m.Question[0].Name, m.Question[0].Qtype, do))
 }
 
-func rawKey(qname string, qtype uint16, do bool) string {
+var one = []byte("1")
+var zero = []byte("0")
+
+func hash(qname string, qtype uint16, do bool) uint32 {
+	h := fnv.New32()
+
 	if do {
-		return "1" + qname + "." + strconv.Itoa(int(qtype))
+		h.Write(one)
+	} else {
+		h.Write(zero)
 	}
-	return "0" + qname + "." + strconv.Itoa(int(qtype))
+
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, qtype)
+	h.Write(b)
+
+	for i := range qname {
+		c := qname[i]
+		if c >= 'A' && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		h.Write([]byte{c})
+	}
+
+	return h.Sum32()
 }
 
 // ResponseWriter is a response writer that caches the reply message.
 type ResponseWriter struct {
 	dns.ResponseWriter
 	*Cache
+
+	prefetch bool // When true write nothing back to the client.
 }
 
 // WriteMsg implements the dns.ResponseWriter interface.
-func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
+func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
 	mt, opt := response.Typify(res, time.Now().UTC())
 	if opt != nil {
@@ -71,9 +96,9 @@ func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	// key returns empty string for anything we don't want to cache.
 	key := key(res, mt, do)
 
-	duration := c.pttl
+	duration := w.pttl
 	if mt == response.NameError || mt == response.NoData {
-		duration = c.nttl
+		duration = w.nttl
 	}
 
 	msgTTL := minMsgTTL(res, mt)
@@ -81,20 +106,23 @@ func (c *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		duration = msgTTL
 	}
 
-	if key != "" {
-		c.set(res, key, mt, duration)
+	if key != -1 {
+		w.set(res, key, mt, duration)
 
-		cacheSize.WithLabelValues(Success).Set(float64(c.pcache.Len()))
-		cacheSize.WithLabelValues(Denial).Set(float64(c.ncache.Len()))
+		cacheSize.WithLabelValues(Success).Set(float64(w.pcache.Len()))
+		cacheSize.WithLabelValues(Denial).Set(float64(w.ncache.Len()))
 	}
 
 	setMsgTTL(res, uint32(duration.Seconds()))
+	if w.prefetch {
+		return nil
+	}
 
-	return c.ResponseWriter.WriteMsg(res)
+	return w.ResponseWriter.WriteMsg(res)
 }
 
-func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration time.Duration) {
-	if key == "" {
+func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration time.Duration) {
+	if key == -1 {
 		log.Printf("[ERROR] Caching called with empty cache key")
 		return
 	}
@@ -102,11 +130,11 @@ func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration 
 	switch mt {
 	case response.NoError, response.Delegation:
 		i := newItem(m, duration)
-		c.pcache.Add(key, i)
+		w.pcache.Add(uint32(key), i)
 
 	case response.NameError, response.NoData:
 		i := newItem(m, duration)
-		c.ncache.Add(key, i)
+		w.ncache.Add(uint32(key), i)
 
 	case response.OtherError:
 		// don't cache these
@@ -116,9 +144,12 @@ func (c *ResponseWriter) set(m *dns.Msg, key string, mt response.Type, duration 
 }
 
 // Write implements the dns.ResponseWriter interface.
-func (c *ResponseWriter) Write(buf []byte) (int, error) {
+func (w *ResponseWriter) Write(buf []byte) (int, error) {
 	log.Printf("[WARNING] Caching called with Write: not caching reply")
-	n, err := c.ResponseWriter.Write(buf)
+	if w.prefetch {
+		return 0, nil
+	}
+	n, err := w.ResponseWriter.Write(buf)
 	return n, err
 }
 

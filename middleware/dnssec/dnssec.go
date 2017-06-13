@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/cache"
 	"github.com/coredns/coredns/middleware/pkg/response"
 	"github.com/coredns/coredns/middleware/pkg/singleflight"
 	"github.com/coredns/coredns/request"
 
-	"github.com/hashicorp/golang-lru"
 	"github.com/miekg/dns"
 )
 
@@ -21,15 +21,15 @@ type Dnssec struct {
 	zones    []string
 	keys     []*DNSKEY
 	inflight *singleflight.Group
-	cache    *lru.Cache
+	cache    *cache.Cache
 }
 
 // New returns a new Dnssec.
-func New(zones []string, keys []*DNSKEY, next middleware.Handler, cache *lru.Cache) Dnssec {
+func New(zones []string, keys []*DNSKEY, next middleware.Handler, c *cache.Cache) Dnssec {
 	return Dnssec{Next: next,
 		zones:    zones,
 		keys:     keys,
-		cache:    cache,
+		cache:    c,
 		inflight: new(singleflight.Group),
 	}
 }
@@ -90,7 +90,7 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 }
 
 func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32) ([]dns.RR, error) {
-	k := key(rrs)
+	k := hash(rrs)
 	sgs, ok := d.get(k)
 	if ok {
 		return sgs, nil
@@ -110,11 +110,11 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32) 
 	return sigs.([]dns.RR), err
 }
 
-func (d Dnssec) set(key string, sigs []dns.RR) {
+func (d Dnssec) set(key uint32, sigs []dns.RR) {
 	d.cache.Add(key, sigs)
 }
 
-func (d Dnssec) get(key string) ([]dns.RR, bool) {
+func (d Dnssec) get(key uint32) ([]dns.RR, bool) {
 	if s, ok := d.cache.Get(key); ok {
 		cacheHits.Inc()
 		return s.([]dns.RR), true
