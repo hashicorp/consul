@@ -25,6 +25,8 @@ const (
 
 	// Increment a counter when requests staler than this are served
 	staleCounterThreshold = 5 * time.Second
+
+	defaultMaxUDPSize = 512
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -163,6 +165,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		return
 	}
 
+	// Enable EDNS if enabled
+	if edns := req.IsEdns0(); edns != nil {
+		m.SetEdns0(edns.UDPSize(), false)
+	}
+
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
@@ -199,6 +206,11 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Dispatch the correct handler
 	d.dispatch(network, req, m)
+
+	// Handle EDNS
+	if edns := req.IsEdns0(); edns != nil {
+		m.SetEdns0(edns.UDPSize(), false)
+	}
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
@@ -401,16 +413,17 @@ RPC:
 
 	// Add the node record
 	n := out.NodeServices.Node
+	edns := req.IsEdns0() != nil
 	addr := translateAddress(d.agent.config, datacenter, n.Address, n.TaggedAddresses)
 	records := d.formatNodeRecord(out.NodeServices.Node, addr,
-		req.Question[0].Name, qType, d.config.NodeTTL)
+		req.Question[0].Name, qType, d.config.NodeTTL, edns)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -463,7 +476,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
 				records = append(records, rr)
 				extra++
-				if extra == maxRecurseRecords {
+				if extra == maxRecurseRecords && !edns {
 					break MORE_REC
 				}
 			}
@@ -525,9 +538,17 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes. Any extra
 // records will be trimmed along with answers.
-func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
+func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 	hasExtra := len(resp.Extra) > 0
+	maxSize := defaultMaxUDPSize
+
+	// Update to the maximum edns size
+	if edns := req.IsEdns0(); edns != nil {
+		if size := edns.UDPSize(); size > uint16(maxSize) {
+			maxSize = int(size)
+		}
+	}
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -539,21 +560,22 @@ func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 
 	// This cuts UDP responses to a useful but limited number of responses.
 	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
-	if numAnswers > maxAnswers {
+	if maxSize == defaultMaxUDPSize && numAnswers > maxAnswers {
 		resp.Answer = resp.Answer[:maxAnswers]
 		if hasExtra {
 			syncExtra(index, resp)
 		}
 	}
 
-	// This enforces the hard limit of 512 bytes per the RFC. Note that we
-	// temporarily switch to uncompressed so that we limit to a response
-	// that will not exceed 512 bytes uncompressed, which is more
-	// conservative and will allow our responses to be compliant even if
-	// some downstream server uncompresses them.
+	// This enforces the given limit on the number bytes. The default is 512 as
+	// per the RFC, but EDNS0 allows for the user to specify larger sizes. Note
+	// that we temporarily switch to uncompressed so that we limit to a response
+	// that will not exceed 512 bytes uncompressed, which is more conservative and
+	// will allow our responses to be compliant even if some downstream server
+	// uncompresses them.
 	compress := resp.Compress
 	resp.Compress = false
-	for len(resp.Answer) > 0 && resp.Len() > 512 {
+	for len(resp.Answer) > 0 && resp.Len() > maxSize {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
 		if hasExtra {
 			syncExtra(index, resp)
@@ -629,7 +651,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(d.config, resp)
+		wasTrimmed := trimUDPResponse(d.config, req, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -738,7 +760,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses.
 	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(d.config, resp)
+		wasTrimmed := trimUDPResponse(d.config, req, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -758,6 +780,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
+	edns := req.IsEdns0() != nil
 
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
@@ -781,7 +804,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl)
+		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -791,6 +814,8 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 // serviceARecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
+	edns := req.IsEdns0() != nil
+
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
@@ -823,7 +848,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
+		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
@@ -903,6 +928,9 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Compress = !d.config.DisableCompression
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
+	if edns := req.IsEdns0(); edns != nil {
+		m.SetEdns0(edns.UDPSize(), false)
+	}
 	resp.WriteMsg(m)
 }
 

@@ -367,6 +367,46 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	}
 }
 
+func TestDNS_EDNS0(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.2",
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetEdns0(12345, true)
+	m.SetQuestion("foo.node.dc1.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("empty lookup: %#v", in)
+	}
+	edns := in.IsEdns0()
+	if edns == nil {
+		t.Fatalf("empty edns: %#v", in)
+	}
+	if edns.UDPSize() != 12345 {
+		t.Fatalf("bad edns size: %d", edns.UDPSize())
+	}
+}
+
 func TestDNS_ReverseLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
@@ -4001,6 +4041,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 	t.Parallel()
+	req := &dns.Msg{}
 	resp := &dns.Msg{
 		Answer: []dns.RR{
 			&dns.SRV{
@@ -4025,7 +4066,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 	}
 
 	config := &DefaultConfig().DNSConfig
-	if trimmed := trimUDPResponse(config, resp); trimmed {
+	if trimmed := trimUDPResponse(config, req, resp); trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
 
@@ -4060,7 +4101,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
-	resp, expected := &dns.Msg{}, &dns.Msg{}
+	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < config.UDPAnswerLimit+1; i++ {
 		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
 		srv := &dns.SRV{
@@ -4088,7 +4129,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 		}
 	}
 
-	if trimmed := trimUDPResponse(config, resp); !trimmed {
+	if trimmed := trimUDPResponse(config, req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
 	if !reflect.DeepEqual(resp, expected) {
@@ -4100,7 +4141,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
-	resp := &dns.Msg{}
+	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 100; i++ {
 		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
 		srv := &dns.SRV{
@@ -4126,7 +4167,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 	// We don't know the exact trim, but we know the resulting answer
 	// data should match its extra data.
-	if trimmed := trimUDPResponse(config, resp); !trimmed {
+	if trimmed := trimUDPResponse(config, req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
 	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
@@ -4145,6 +4186,85 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 		if srv.Target != a.Header().Name {
 			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
+	}
+}
+
+func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
+	t.Parallel()
+	config := &DefaultConfig().DNSConfig
+
+	req, resp := &dns.Msg{}, &dns.Msg{}
+
+	for i := 0; i < 100; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 150+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 150+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	// Copy over to a new slice since we are trimming both.
+	reqEDNS, respEDNS := &dns.Msg{}, &dns.Msg{}
+	reqEDNS.SetEdns0(2048, true)
+	respEDNS.Answer = append(respEDNS.Answer, resp.Answer...)
+	respEDNS.Extra = append(respEDNS.Extra, resp.Extra...)
+
+	// Trim each response
+	if trimmed := trimUDPResponse(config, req, resp); !trimmed {
+		t.Errorf("expected response to be trimmed: %#v", resp)
+	}
+	if trimmed := trimUDPResponse(config, reqEDNS, respEDNS); !trimmed {
+		t.Errorf("expected edns to be trimmed: %#v", resp)
+	}
+
+	// Check answer lengths
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Errorf("bad response answer length: %#v", resp)
+	}
+	if len(respEDNS.Answer) == 0 || len(respEDNS.Answer) != len(respEDNS.Extra) {
+		t.Errorf("bad edns answer length: %#v", resp)
+	}
+
+	// Due to the compression, we can't check exact equality of sizes, but we can
+	// make two requests and ensure that the edns one returns a larger payload
+	// than the non-edns0 one.
+	if len(resp.Answer) >= len(respEDNS.Answer) {
+		t.Errorf("expected edns have larger answer: %#v\n%#v", resp, respEDNS)
+	}
+	if len(resp.Extra) >= len(respEDNS.Extra) {
+		t.Errorf("expected edns have larger extra: %#v\n%#v", resp, respEDNS)
+	}
+
+	// Verify that the things point where they should
+	for i := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Errorf("%d should be an SRV", i)
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Errorf("%d should be an A", i)
+		}
+
+		if srv.Target != a.Header().Name {
+			t.Errorf("%d: bad %#v vs. %#v", i, srv, a)
 		}
 	}
 }
@@ -4377,8 +4497,8 @@ func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	t.Parallel()
 	config := &DefaultConfig().DNSConfig
 
-	m := dns.Msg{}
-	trimUDPResponse(config, &m)
+	req, m := dns.Msg{}, dns.Msg{}
+	trimUDPResponse(config, &req, &m)
 	if m.Compress {
 		t.Fatalf("compression should be off")
 	}
@@ -4386,7 +4506,7 @@ func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	// The trim function temporarily turns off compression, so we need to
 	// make sure the setting gets restored properly.
 	m.Compress = true
-	trimUDPResponse(config, &m)
+	trimUDPResponse(config, &req, &m)
 	if !m.Compress {
 		t.Fatalf("compression should be on")
 	}
