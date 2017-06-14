@@ -23,7 +23,7 @@ const (
 )
 
 func operatorError(operator string) error {
-	return fmt.Errorf("Invalid operator %v", operator)
+	return fmt.Errorf("invalid operator %v", operator)
 }
 
 func newReplacer(r *dns.Msg) replacer.Replacer {

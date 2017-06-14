@@ -52,10 +52,10 @@ func TestGrpc(t *testing.T) {
 	}
 
 	if d.Rcode != dns.RcodeSuccess {
-		t.Errorf("Expected success but got %s", d.Rcode)
+		t.Errorf("Expected success but got %d", d.Rcode)
 	}
 
 	if len(d.Extra) != 2 {
-		t.Errorf("Expected 2 RRs in additional section, but got %s", len(d.Extra))
+		t.Errorf("Expected 2 RRs in additional section, but got %d", len(d.Extra))
 	}
 }

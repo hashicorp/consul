@@ -15,6 +15,7 @@ type dnsEx struct {
 	Options
 }
 
+// Options define the options understood by dns.Exchange.
 type Options struct {
 	ForceTCP bool // If true use TCP for upstream no matter what
 }

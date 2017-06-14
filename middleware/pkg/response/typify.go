@@ -108,7 +108,7 @@ func Typify(m *dns.Msg, t time.Time) (Type, *dns.OPT) {
 		return NameError, opt
 	}
 
-	if ns > 0 && ns > 0 && m.Rcode == dns.RcodeSuccess {
+	if ns > 0 && m.Rcode == dns.RcodeSuccess {
 		return Delegation, opt
 	}
 

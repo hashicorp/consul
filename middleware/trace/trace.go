@@ -7,11 +7,12 @@ import (
 	"sync/atomic"
 
 	"github.com/coredns/coredns/middleware"
+	// Plugin the trace package.
 	_ "github.com/coredns/coredns/middleware/pkg/trace"
+
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
-
 	"golang.org/x/net/context"
 )
 
@@ -40,7 +41,7 @@ func (t *trace) OnStartup() error {
 		case "zipkin":
 			err = t.setupZipkin()
 		default:
-			err = fmt.Errorf("Unknown endpoint type: %s", t.EndpointType)
+			err = fmt.Errorf("unknown endpoint type: %s", t.EndpointType)
 		}
 	})
 	return err

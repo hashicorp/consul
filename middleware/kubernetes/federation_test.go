@@ -66,8 +66,8 @@ func (apiConnFedTest) GetNodeByName(name string) (api.Node, error) {
 		ObjectMeta: api.ObjectMeta{
 			Name: "test.node.foo.bar",
 			Labels: map[string]string{
-				LabelRegion:           "fd-r",
-				LabelAvailabilityZone: "fd-az",
+				labelRegion:           "fd-r",
+				labelAvailabilityZone: "fd-az",
 			},
 		},
 	}, nil

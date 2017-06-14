@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Freq tracks the frequence of things.
 type Freq struct {
 	// Last time we saw a query for this element.
 	last time.Time
@@ -21,7 +22,7 @@ func New(t time.Time) *Freq {
 	return &Freq{last: t, hits: 0}
 }
 
-// Updates updates the number of hits. Last time seen will be set to now.
+// Update updates the number of hits. Last time seen will be set to now.
 // If the last time we've seen this entity is within now - d, we increment hits, otherwise
 // we reset hits to 1. It returns the number of hits.
 func (f *Freq) Update(d time.Duration, now time.Time) int {

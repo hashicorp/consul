@@ -43,7 +43,7 @@ func TestDebug(t *testing.T) {
 			}
 		}
 		if cfg.Debug != test.expectedDebug {
-			t.Fatalf("Test %d: Expected debug to be: %t, but got: %t, input: %s", i, test.expectedDebug, test.input)
+			t.Fatalf("Test %d: Expected debug to be: %t, but got: %t, input: %s", i, test.expectedDebug, cfg.Debug, test.input)
 		}
 	}
 }

@@ -230,7 +230,7 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Failed to create kubernetes notification controller: %v", err)
+		return fmt.Errorf("failed to create kubernetes notification controller: %v", err)
 	}
 
 	if k.LabelSelector != nil {
@@ -238,7 +238,7 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 		selector, err = unversionedapi.LabelSelectorAsSelector(k.LabelSelector)
 		k.Selector = &selector
 		if err != nil {
-			return fmt.Errorf("Unable to create Selector for LabelSelector '%s'.Error was: %s", k.LabelSelector, err)
+			return fmt.Errorf("unable to create Selector for LabelSelector '%s'.Error was: %s", k.LabelSelector, err)
 		}
 	}
 

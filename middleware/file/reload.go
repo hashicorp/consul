@@ -60,7 +60,7 @@ func (z *Zone) Reload() error {
 	return nil
 }
 
-// SOASerialIfDefind returns the SOA's serial if the zone has a SOA record in the Apex, or
+// SOASerialIfDefined returns the SOA's serial if the zone has a SOA record in the Apex, or
 // -1 otherwise.
 func (z *Zone) SOASerialIfDefined() int64 {
 	z.reloadMu.Lock()

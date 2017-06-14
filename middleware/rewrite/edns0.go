@@ -94,7 +94,7 @@ func (rule *edns0LocalRule) Rewrite(r *dns.Msg) Result {
 // newEdns0Rule creates an EDNS0 rule of the appropriate type based on the args
 func newEdns0Rule(args ...string) (Rule, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("Too few arguments for an EDNS0 rule")
+		return nil, fmt.Errorf("too few arguments for an EDNS0 rule")
 	}
 
 	ruleType := strings.ToLower(args[0])

@@ -223,7 +223,7 @@ func TestKubernetesParse(t *testing.T) {
 			"no kubernetes keyword",
 			"",
 			true,
-			"Kubernetes setup called without keyword 'kubernetes' in Corefile",
+			"kubernetes setup called without keyword 'kubernetes' in Corefile",
 			-1,
 			-1,
 			defaultResyncPeriod,
@@ -255,7 +255,7 @@ func TestKubernetesParse(t *testing.T) {
     endpoint
 }`,
 			true,
-			"Wrong argument count or unexpected line ending after 'endpoint'",
+			"rong argument count or unexpected line ending",
 			-1,
 			-1,
 			defaultResyncPeriod,
@@ -272,7 +272,7 @@ func TestKubernetesParse(t *testing.T) {
 	namespaces
 }`,
 			true,
-			"Parse error: Wrong argument count or unexpected line ending after 'namespaces'",
+			"rong argument count or unexpected line ending",
 			-1,
 			-1,
 			defaultResyncPeriod,
@@ -289,7 +289,7 @@ func TestKubernetesParse(t *testing.T) {
     resyncperiod
 }`,
 			true,
-			"Wrong argument count or unexpected line ending after 'resyncperiod'",
+			"rong argument count or unexpected line ending",
 			-1,
 			0,
 			0 * time.Minute,
@@ -306,7 +306,7 @@ func TestKubernetesParse(t *testing.T) {
     resyncperiod 15
 }`,
 			true,
-			"Unable to parse resync duration value. Value provided was ",
+			"unable to parse resync duration value",
 			-1,
 			0,
 			0 * time.Second,
@@ -323,7 +323,7 @@ func TestKubernetesParse(t *testing.T) {
     resyncperiod abc
 }`,
 			true,
-			"Unable to parse resync duration value. Value provided was ",
+			"unable to parse resync duration value",
 			-1,
 			0,
 			0 * time.Second,
@@ -340,7 +340,7 @@ func TestKubernetesParse(t *testing.T) {
     labels
 }`,
 			true,
-			"Wrong argument count or unexpected line ending after 'labels'",
+			"rong argument count or unexpected line ending",
 			-1,
 			0,
 			0 * time.Second,
@@ -357,7 +357,7 @@ func TestKubernetesParse(t *testing.T) {
     labels environment in (production, qa
 }`,
 			true,
-			"Unable to parse label selector. Value provided was",
+			"unable to parse label selector",
 			-1,
 			0,
 			0 * time.Second,
@@ -429,7 +429,7 @@ func TestKubernetesParse(t *testing.T) {
 	pods giant_seed
 }`,
 			true,
-			"Value for pods must be one of: disabled, verified, insecure",
+			"rong value for pods",
 			-1,
 			0,
 			defaultResyncPeriod,
@@ -460,12 +460,12 @@ func TestKubernetesParse(t *testing.T) {
 		},
 		// cidrs ok
 		{
-			"Invalid cidr: hard",
+			"invalid cidr: hard",
 			`kubernetes coredns.local {
 	cidrs hard dry
 }`,
 			true,
-			"Invalid cidr: hard",
+			"invalid cidr: hard",
 			-1,
 			0,
 			defaultResyncPeriod,
@@ -483,7 +483,7 @@ func TestKubernetesParse(t *testing.T) {
 	fallthrough junk
 }`,
 			true,
-			"Wrong argument count",
+			"rong argument count",
 			-1,
 			0,
 			defaultResyncPeriod,
@@ -559,7 +559,7 @@ func TestKubernetesParse(t *testing.T) {
 	federation starship
 }`,
 			true,
-			`Incorrect number of arguments for federation. Got 1, expect 2.`,
+			`incorrect number of arguments for federation`,
 			-1,
 			0,
 			defaultResyncPeriod,
