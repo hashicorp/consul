@@ -318,6 +318,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{EnableSyslog: true},
 		},
 		{
+			in: `{"disable_keyring_file":true}`,
+			c:  &Config{DisableKeyringFile: true},
+		},
+		{
 			in: `{"encrypt_verify_incoming":true}`,
 			c:  &Config{EncryptVerifyIncoming: Bool(true)},
 		},

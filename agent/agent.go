@@ -887,8 +887,10 @@ func (a *Agent) makeServer() (*consul.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := a.setupKeyrings(config); err != nil {
-		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+	if !a.config.DisableKeyringFile {
+		if err := a.setupKeyrings(config); err != nil {
+			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+		}
 	}
 	server, err := consul.NewServerLogger(config, a.logger)
 	if err != nil {
@@ -903,8 +905,10 @@ func (a *Agent) makeClient() (*consul.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := a.setupKeyrings(config); err != nil {
-		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+	if !a.config.DisableKeyringFile {
+		if err := a.setupKeyrings(config); err != nil {
+			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+		}
 	}
 	client, err := consul.NewClientLogger(config, a.logger)
 	if err != nil {

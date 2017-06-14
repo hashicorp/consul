@@ -88,6 +88,8 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	f.StringVar(&cmdCfg.UIDir, "ui-dir", "", "Path to directory containing the web UI resources.")
 	f.StringVar(&cmdCfg.PidFile, "pid-file", "", "Path to file to store agent PID.")
 	f.StringVar(&cmdCfg.EncryptKey, "encrypt", "", "Provides the gossip encryption key.")
+	f.BoolVar(&cmdCfg.DisableKeyringFile, "disable-keyring-file", false, "Disables the backing up "+
+		"of the keyring to a file.")
 
 	f.BoolVar(&cmdCfg.Server, "server", false, "Switches agent to server mode.")
 	f.BoolVar(&cmdCfg.NonVotingServer, "non-voting-server", false,

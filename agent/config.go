@@ -367,6 +367,9 @@ type Config struct {
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt" json:"-"`
 
+	// Disables writing the keyring to a file.
+	DisableKeyringFile bool `mapstructure:"disable_keyring_file"`
+
 	// EncryptVerifyIncoming and EncryptVerifyOutgoing are used to enforce
 	// incoming/outgoing gossip encryption and can be used to upshift to
 	// encrypted gossip on a running cluster.
@@ -952,6 +955,7 @@ func DevConfig() *Config {
 	conf.DisableAnonymousSignature = true
 	conf.EnableUI = true
 	conf.BindAddr = "127.0.0.1"
+	conf.DisableKeyringFile = true
 
 	conf.ConsulConfig = consul.DefaultConfig()
 	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
@@ -1560,6 +1564,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
+	}
+	if b.DisableKeyringFile {
+		result.DisableKeyringFile = true
 	}
 	if b.EncryptVerifyIncoming != nil {
 		result.EncryptVerifyIncoming = b.EncryptVerifyIncoming
