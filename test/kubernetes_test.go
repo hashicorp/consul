@@ -30,6 +30,16 @@ var dnsTestCases = []test.Case{
 		Answer: []dns.RR{},
 	},
 	{
+		Qname: "bogusendpoint.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "bogusendpoint.headless-svc.test-1.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+	},
+	{
 		Qname: "svc-1-a.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
