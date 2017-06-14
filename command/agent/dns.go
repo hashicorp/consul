@@ -345,12 +345,12 @@ PARSE:
 			tag := ""
 			svc := labels[n-2]
 			if n >= 3 {
-				tag = strings.Join(labels[:n-2], ".")
+				tag = strings.Join(labels[:n-1], ".")
 				for i, s := range labels {
 					if "tags" == s {
-						// [tag.[tag.[...]]].tags.com.acme.orders.service.consul
-						tag = strings.Join(labels[:i-1], ".")
-						svc = strings.Join(labels[i+1:n-2], ".")
+						// [tag.[tag.[...]]]tags.com.acme.orders.service.consul
+						tag = strings.Join(labels[:i], ".")
+						svc = strings.Join(labels[i+1:n-1], ".")
 					}
 				}
 			}
