@@ -6,6 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* dns: Added support for EDNS(0) size adjustments if set in the request frame. This allows DNS responses via UDP which are larger than the standard 512 bytes max if the requesting client can support it. [GH-1980, GH-3131]
+
 BUG FIXES:
 
 * agent: Parse values given to `?passing` for health endpoints. Previously Consul only checked for the existence of the querystring, not the value. That means using `?passing=false` would actually still include passing values. Consul 0.9 now parses the value given to passing as a boolean. If no value is provided, the old behavior remains. **This may be a breaking change for some users**, but the old experience was incorrect and caused enough confusion to warrant changing it. [GH-2212, GH-3136]
