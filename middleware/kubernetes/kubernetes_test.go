@@ -339,6 +339,8 @@ func (APIConnServiceTest) PodIndex(string) []interface{} {
 }
 
 func (APIConnServiceTest) EndpointsList() api.EndpointsList {
+	n := "test.node.foo.bar"
+
 	return api.EndpointsList{
 		Items: []api.Endpoints{
 			{
@@ -407,13 +409,37 @@ func (APIConnServiceTest) EndpointsList() api.EndpointsList {
 					Namespace: "testns",
 				},
 			},
+			{
+				Subsets: []api.EndpointSubset{
+					{
+						Addresses: []api.EndpointAddress{
+							{
+								IP:       "10.9.8.7",
+								NodeName: &n,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
+func (APIConnServiceTest) GetNodeByName(name string) (api.Node, error) {
+	return api.Node{
+		ObjectMeta: api.ObjectMeta{
+			Name: "test.node.foo.bar",
+			Labels: map[string]string{
+				LabelRegion:           "fd-r",
+				LabelAvailabilityZone: "fd-az",
+			},
+		},
+	}, nil
+}
 func TestServices(t *testing.T) {
 
 	k := Kubernetes{Zones: []string{"interwebs.test"}}
+	k.Federations = []Federation{{name: "fed", zone: "era.tion.com"}}
 	k.APIConn = &APIConnServiceTest{}
 
 	type svcAns struct {
@@ -432,6 +458,10 @@ func TestServices(t *testing.T) {
 
 		// External Services
 		{qname: "external.testns.svc.interwebs.test.", qtype: dns.TypeCNAME, answer: svcAns{host: "coredns.io", key: "/coredns/test/interwebs/svc/testns/external"}},
+
+		// Federated Services
+		{qname: "svc1.testns.fed.svc.interwebs.test.", qtype: dns.TypeA, answer: svcAns{host: "10.0.0.1", key: "/coredns/test/interwebs/svc/fed/testns/svc1"}},
+		{qname: "svc0.testns.fed.svc.interwebs.test.", qtype: dns.TypeA, answer: svcAns{host: "svc0.testns.fed.svc.fd-az.fd-r.era.tion.com", key: "/coredns/test/interwebs/svc/fed/testns/svc0"}},
 	}
 
 	for _, test := range tests {

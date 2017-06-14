@@ -39,6 +39,9 @@ type dnsController interface {
 	ServiceList() []*api.Service
 	PodIndex(string) []interface{}
 	EndpointsList() api.EndpointsList
+
+	GetNodeByName(string) (api.Node, error)
+
 	Run()
 	Stop() error
 }
@@ -48,10 +51,11 @@ type dnsControl struct {
 
 	selector *labels.Selector
 
-	svcController *cache.Controller
-	podController *cache.Controller
-	nsController  *cache.Controller
-	epController  *cache.Controller
+	svcController  *cache.Controller
+	podController  *cache.Controller
+	nsController   *cache.Controller
+	epController   *cache.Controller
+	nodeController *cache.Controller
 
 	svcLister cache.StoreToServiceLister
 	podLister cache.StoreToPodLister
@@ -66,8 +70,12 @@ type dnsControl struct {
 	stopCh   chan struct{}
 }
 
+type dnsControlOpts struct {
+	initPodCache bool
+}
+
 // newDNSController creates a controller for CoreDNS.
-func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Duration, lselector *labels.Selector, initPodCache bool) *dnsControl {
+func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Duration, lselector *labels.Selector, opts dnsControlOpts) *dnsControl {
 	dns := dnsControl{
 		client:   kubeClient,
 		selector: lselector,
@@ -84,7 +92,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, resyncPeriod time.Durati
 		cache.ResourceEventHandlerFuncs{},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 
-	if initPodCache {
+	if opts.initPodCache {
 		dns.podLister.Indexer, dns.podController = cache.NewIndexerInformer(
 			&cache.ListWatch{
 				ListFunc:  podListFunc(dns.client, namespace, dns.selector),
@@ -367,4 +375,17 @@ func (dns *dnsControl) EndpointsList() api.EndpointsList {
 	}
 
 	return epl
+}
+
+func (dns *dnsControl) GetNodeByName(name string) (api.Node, error) {
+	v1node, err := dns.client.Core().Nodes().Get(name)
+	if err != nil {
+		return api.Node{}, err
+	}
+	var apinode api.Node
+	err = v1.Convert_v1_Node_To_api_Node(v1node, &apinode, nil)
+	if err != nil {
+		return api.Node{}, err
+	}
+	return apinode, nil
 }

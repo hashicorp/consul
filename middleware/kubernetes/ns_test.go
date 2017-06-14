@@ -104,6 +104,8 @@ func (APIConnTest) EndpointsList() api.EndpointsList {
 	}
 }
 
+func (APIConnTest) GetNodeByName(name string) (api.Node, error) { return api.Node{}, nil }
+
 type interfaceAddrsTest struct{}
 
 func (i interfaceAddrsTest) interfaceAddrs() ([]net.Addr, error) {

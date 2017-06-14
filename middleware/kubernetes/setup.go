@@ -177,6 +177,19 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						return nil, err
 					}
 					k8s.Proxy = proxy.NewLookup(ups)
+				case "federation": // name zone
+					args := c.RemainingArgs()
+					if len(args) == 2 {
+						k8s.Federations = append(k8s.Federations, Federation{
+							name: args[0],
+							zone: args[1],
+						})
+						continue
+					} else {
+						return nil, fmt.Errorf("Incorrect number of arguments for federation. Got %v, expect 2.", len(args))
+					}
+					return nil, c.ArgErr()
+
 				}
 			}
 			return k8s, nil

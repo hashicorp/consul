@@ -29,6 +29,7 @@ func TestKubernetesParse(t *testing.T) {
 		expectedCidrs         []net.IPNet
 		expectedFallthrough   bool
 		expectedUpstreams     []string
+		expectedFederations   []Federation
 	}{
 		// positive
 		{
@@ -44,6 +45,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -58,6 +60,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -73,6 +76,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"endpoint keyword with url",
@@ -89,6 +93,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -104,6 +109,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultPodMode,
 			nil,
 			false,
+			nil,
 			nil,
 		},
 		{
@@ -121,6 +127,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"resync period in seconds",
@@ -137,6 +144,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"resync period in minutes",
@@ -153,6 +161,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"basic label selector",
@@ -169,6 +178,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"multi-label selector",
@@ -185,6 +195,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"fully specified valid config",
@@ -205,6 +216,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			true,
 			nil,
+			[]Federation{},
 		},
 		// negative
 		{
@@ -220,6 +232,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -234,6 +247,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -250,6 +264,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -266,6 +281,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"resyncperiod keyword without a duration value",
@@ -282,6 +298,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"resync period no units",
@@ -298,6 +315,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"resync period invalid",
@@ -314,6 +332,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"labels with no selector value",
@@ -330,6 +349,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		{
 			"labels with invalid selector value",
@@ -346,6 +366,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// pods disabled
 		{
@@ -363,6 +384,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// pods insecure
 		{
@@ -380,6 +402,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// pods verified
 		{
@@ -397,6 +420,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// pods invalid
 		{
@@ -414,6 +438,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// cidrs ok
 		{
@@ -431,6 +456,7 @@ func TestKubernetesParse(t *testing.T) {
 			[]net.IPNet{parseCidr("10.0.0.0/24"), parseCidr("10.0.1.0/24")},
 			false,
 			nil,
+			[]Federation{},
 		},
 		// cidrs ok
 		{
@@ -448,6 +474,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// fallthrough invalid
 		{
@@ -465,6 +492,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
 		},
 		// Valid upstream
 		{
@@ -482,6 +510,7 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			[]string{"13.14.15.16:53"},
+			[]Federation{},
 		},
 		// Invalid upstream
 		{
@@ -499,6 +528,47 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
+			[]Federation{},
+		},
+		// Valid federations
+		{
+			"valid upstream",
+			`kubernetes coredns.local {
+	federation foo bar.crawl.com
+	federation fed era.tion.com
+}`,
+			false,
+			"",
+			1,
+			0,
+			defaultResyncPeriod,
+			"",
+			defaultPodMode,
+			nil,
+			false,
+			nil,
+			[]Federation{
+				{name: "foo", zone: "bar.crawl.com"},
+				{name: "fed", zone: "era.tion.com"},
+			},
+		},
+		// Invalid federations
+		{
+			"valid upstream",
+			`kubernetes coredns.local {
+	federation starship
+}`,
+			true,
+			`Incorrect number of arguments for federation. Got 1, expect 2.`,
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			defaultPodMode,
+			nil,
+			false,
+			nil,
+			[]Federation{},
 		},
 	}
 
