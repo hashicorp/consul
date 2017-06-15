@@ -68,7 +68,7 @@ type delegate interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
 	RPC(method string, args interface{}, reply interface{}) error
-	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn consul.SnapshotReplyFn) error
+	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
 }
@@ -1080,7 +1080,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 // payload, and the response message will determine the error status, and any
 // return payload will be written to out.
 func (a *Agent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn consul.SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 	return a.delegate.SnapshotRPC(args, in, out, replyFn)
 }
 
