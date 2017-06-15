@@ -351,11 +351,6 @@ func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *struc
 	fn queryFn) error {
 	var timeout *time.Timer
 
-	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
-		goto RUN_QUERY
-	}
-
 	// Restrict the max query time, and ensure there is always one.
 	if queryOpts.MaxQueryTime > maxQueryTime {
 		queryOpts.MaxQueryTime = maxQueryTime
@@ -378,6 +373,15 @@ RUN_QUERY:
 	if queryOpts.RequireConsistent {
 		if err := s.consistentRead(); err != nil {
 			return err
+		}
+
+		if isReady, waitCh := s.IsReadyForConsistentReads(); !isReady {
+			select {
+			case <-waitCh:
+				//Ready to proceed
+			case <-timeout.C:
+				return structs.ErrNotReadyForConsistentReads
+			}
 		}
 	}
 

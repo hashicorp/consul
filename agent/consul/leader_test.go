@@ -331,6 +331,12 @@ func TestLeader_Reconcile(t *testing.T) {
 			r.Fatal("client not registered")
 		}
 	})
+
+	//verify state of initial barrier channel on reconcile
+	<-s1.pastInitialBarrierCh
+	if !s1.pastBarrier {
+		t.Fatal()
+	}
 }
 
 func TestLeader_Reconcile_Races(t *testing.T) {

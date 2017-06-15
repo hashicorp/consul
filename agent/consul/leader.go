@@ -94,6 +94,11 @@ RECONCILE:
 	reconcileCh = nil
 	interval := time.After(s.config.ReconcileInterval)
 
+	s.pastBarrierLock.Lock()
+	s.pastBarrier = false
+	s.pastInitialBarrierCh = make(chan struct{})
+	s.pastBarrierLock.Unlock()
+
 	// Apply a raft barrier to ensure our FSM is caught up
 	start := time.Now()
 	barrier := s.raft.Barrier(0)
@@ -102,6 +107,13 @@ RECONCILE:
 		goto WAIT
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
+
+	// We are past the raft barrier
+	// Signal by closing the pastInitialBarrier channel, and setting the pastBarrier flag to true
+	s.pastBarrierLock.Lock()
+	close(s.pastInitialBarrierCh)
+	s.pastBarrier = true
+	s.pastBarrierLock.Unlock()
 
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {

@@ -141,6 +141,13 @@ type Server struct {
 	// updated
 	reconcileCh chan serf.Member
 
+	// pastInitialBarrierCh is used to signal when the server is past
+	// its initial barrier write. The pastInitialBarrierCh is never written to, only closed to
+	// indicate that the leader is past its barrier
+	pastBarrier          bool
+	pastInitialBarrierCh chan struct{}
+	pastBarrierLock      sync.Mutex
+
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
 	router *servers.Router
@@ -267,6 +274,9 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
+	// Create the
+	pastInitialBarrierCh := make(chan struct{})
+
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
@@ -284,6 +294,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		reassertLeaderCh:      make(chan chan error),
 		tombstoneGC:           gc,
 		shutdownCh:            shutdownCh,
+		pastInitialBarrierCh:  pastInitialBarrierCh,
 	}
 
 	// Set up the autopilot policy
@@ -1000,6 +1011,10 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
+}
+
+func (s *Server) IsReadyForConsistentReads() (bool, chan struct{}) {
+	return s.pastBarrier, s.pastInitialBarrierCh
 }
 
 // peersInfoContent is used to help operators understand what happened to the
