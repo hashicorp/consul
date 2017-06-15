@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -49,7 +50,7 @@ type Client struct {
 	config *Config
 
 	// Connection pool to consul servers
-	connPool *ConnPool
+	connPool *pool.ConnPool
 
 	// servers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -109,10 +110,19 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
 	}
 
+	connPool := &pool.ConnPool{
+		SrcAddr:    config.RPCSrcAddr,
+		LogOutput:  config.LogOutput,
+		MaxTime:    clientRPCConnMaxIdle,
+		MaxStreams: clientMaxStreams,
+		TLSWrapper: tlsWrap,
+		ForceTLS:   config.VerifyOutgoing,
+	}
+
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.RPCSrcAddr, config.LogOutput, clientRPCConnMaxIdle, clientMaxStreams, tlsWrap, config.VerifyOutgoing),
+		connPool:   connPool,
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
