@@ -163,6 +163,10 @@ will exit with an error at startup.
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
 
+* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
+  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
+  `-encrypt` key will be available on startup. This defaults to false.
+
 * <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
   This overrides the default port 8500. This option is very useful when deploying Consul
   to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
@@ -719,6 +723,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   to upshift from unencrypted to encrypted gossip on a running cluster. See [this section]
   (/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster) for more information.
   Defaults to true.
+
+* <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
+  [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
 
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
