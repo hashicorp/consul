@@ -351,11 +351,6 @@ func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *struc
 	fn queryFn) error {
 	var timeout *time.Timer
 
-	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
-		goto RUN_QUERY
-	}
-
 	// Restrict the max query time, and ensure there is always one.
 	if queryOpts.MaxQueryTime > maxQueryTime {
 		queryOpts.MaxQueryTime = maxQueryTime
