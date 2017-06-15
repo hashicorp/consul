@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -99,7 +100,7 @@ type Server struct {
 	config *Config
 
 	// Connection pool to other consul servers
-	connPool *ConnPool
+	connPool *pool.ConnPool
 
 	// Endpoints holds our RPC endpoints
 	endpoints endpoints
@@ -271,12 +272,21 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
+	connPool := &pool.ConnPool{
+		SrcAddr:    config.RPCSrcAddr,
+		LogOutput:  config.LogOutput,
+		MaxTime:    serverRPCCache,
+		MaxStreams: serverMaxStreams,
+		TLSWrapper: tlsWrap,
+		ForceTLS:   config.VerifyOutgoing,
+	}
+
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.VerifyOutgoing),
+		connPool:              connPool,
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/go-msgpack/codec"
 )
@@ -187,10 +188,10 @@ RESPOND:
 // the streaming output (for a snapshot). If the reply contains an error, this
 // will always return an error as well, so you don't need to check the error
 // inside the filled-in reply.
-func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr, useTLS bool,
+func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
 
-	conn, hc, err := pool.DialTimeout(dc, addr, 10*time.Second, useTLS)
+	conn, hc, err := connPool.DialTimeout(dc, addr, 10*time.Second, useTLS)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func SnapshotRPC(pool *ConnPool, dc string, addr net.Addr, useTLS bool,
 
 	// Write the snapshot RPC byte to set the mode, then perform the
 	// request.
-	if _, err := conn.Write([]byte{byte(rpcSnapshot)}); err != nil {
+	if _, err := conn.Write([]byte{byte(pool.RPCSnapshot)}); err != nil {
 		return nil, fmt.Errorf("failed to write stream type: %v", err)
 	}
 

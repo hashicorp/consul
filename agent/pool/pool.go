@@ -1,4 +1,4 @@
-package consul
+package pool
 
 import (
 	"container/list"
@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -90,7 +89,7 @@ func (c *Conn) getClient() (*StreamClient, error) {
 func (c *Conn) returnClient(client *StreamClient) {
 	didSave := false
 	c.clientLock.Lock()
-	if c.clients.Len() < c.pool.maxStreams && atomic.LoadInt32(&c.shouldClose) == 0 {
+	if c.clients.Len() < c.pool.MaxStreams && atomic.LoadInt32(&c.shouldClose) == 0 {
 		c.clients.PushFront(client)
 		didSave = true
 
@@ -112,25 +111,34 @@ func (c *Conn) markForUse() {
 	atomic.AddInt32(&c.refCount, 1)
 }
 
-// ConnPool is used to maintain a connection pool to other
-// Consul servers. This is used to reduce the latency of
-// RPC requests between servers. It is only used to pool
-// connections in the rpcConsul mode. Raft connections
-// are pooled separately.
+// ConnPool is used to maintain a connection pool to other Consul
+// servers. This is used to reduce the latency of RPC requests between
+// servers. It is only used to pool connections in the rpcConsul mode.
+// Raft connections are pooled separately. Maintain at most one
+// connection per host, for up to MaxTime. When MaxTime connection
+// reaping is disabled. MaxStreams is used to control the number of idle
+// streams allowed. If TLS settings are provided outgoing connections
+// use TLS.
 type ConnPool struct {
-	sync.Mutex
-
-	// src is the source address for outgoing connections.
-	src *net.TCPAddr
+	// SrcAddr is the source address for outgoing connections.
+	SrcAddr *net.TCPAddr
 
 	// LogOutput is used to control logging
-	logOutput io.Writer
+	LogOutput io.Writer
 
 	// The maximum time to keep a connection open
-	maxTime time.Duration
+	MaxTime time.Duration
 
 	// The maximum number of open streams to keep
-	maxStreams int
+	MaxStreams int
+
+	// TLS wrapper
+	TLSWrapper tlsutil.DCWrapper
+
+	// ForceTLS is used to enforce outgoing TLS verification
+	ForceTLS bool
+
+	sync.Mutex
 
 	// pool maps an address to a open connection
 	pool map[string]*Conn
@@ -141,42 +149,30 @@ type ConnPool struct {
 	// on to close.
 	limiter map[string]chan struct{}
 
-	// TLS wrapper
-	tlsWrap tlsutil.DCWrapper
-
-	// forceTLS is used to enforce outgoing TLS verification
-	forceTLS bool
-
 	// Used to indicate the pool is shutdown
 	shutdown   bool
 	shutdownCh chan struct{}
+
+	// once initializes the internal data structures and connection
+	// reaping on first use.
+	once sync.Once
 }
 
-// NewPool is used to make a new connection pool
-// Maintain at most one connection per host, for up to maxTime.
-// Set maxTime to 0 to disable reaping. maxStreams is used to control
-// the number of idle streams allowed.
-// If TLS settings are provided outgoing connections use TLS.
-func NewPool(src *net.TCPAddr, logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper, forceTLS bool) *ConnPool {
-	pool := &ConnPool{
-		src:        src,
-		logOutput:  logOutput,
-		maxTime:    maxTime,
-		maxStreams: maxStreams,
-		pool:       make(map[string]*Conn),
-		limiter:    make(map[string]chan struct{}),
-		tlsWrap:    tlsWrap,
-		forceTLS:   forceTLS,
-		shutdownCh: make(chan struct{}),
+// init configures the initial data structures. It should be called
+// by p.once.Do(p.init) in all public methods.
+func (p *ConnPool) init() {
+	p.pool = make(map[string]*Conn)
+	p.limiter = make(map[string]chan struct{})
+	p.shutdownCh = make(chan struct{})
+	if p.MaxTime > 0 {
+		go p.reap()
 	}
-	if maxTime > 0 {
-		go pool.reap()
-	}
-	return pool
 }
 
 // Shutdown is used to close the connection pool
 func (p *ConnPool) Shutdown() error {
+	p.once.Do(p.init)
+
 	p.Lock()
 	defer p.Unlock()
 
@@ -272,8 +268,10 @@ type HalfCloser interface {
 // DialTimeout is used to establish a raw connection to the given server, with a
 // given connection timeout.
 func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
+	p.once.Do(p.init)
+
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.src, Timeout: timeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: timeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -288,15 +286,15 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 	}
 
 	// Check if TLS is enabled
-	if (useTLS || p.forceTLS) && p.tlsWrap != nil {
+	if (useTLS || p.ForceTLS) && p.TLSWrapper != nil {
 		// Switch the connection into TLS mode
-		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+		if _, err := conn.Write([]byte{byte(RPCTLS)}); err != nil {
 			conn.Close()
 			return nil, nil, err
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := p.tlsWrap(dc, conn)
+		tlsConn, err := p.TLSWrapper(dc, conn)
 		if err != nil {
 			conn.Close()
 			return nil, nil, err
@@ -323,14 +321,14 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int, useTLS bool
 	}
 
 	// Write the Consul multiplex byte to set the mode
-	if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {
+	if _, err := conn.Write([]byte{byte(RPCMultiplexV2)}); err != nil {
 		conn.Close()
 		return nil, err
 	}
 
 	// Setup the logger
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = p.logOutput
+	conf.LogOutput = p.LogOutput
 
 	// Create a multiplexed session
 	session, _ = yamux.Client(conn, conf)
@@ -403,6 +401,8 @@ START:
 
 // RPC is used to make an RPC call to a remote host
 func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+	p.once.Do(p.init)
+
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, addr, version, useTLS)
 	if err != nil {
@@ -423,28 +423,12 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, use
 	return nil
 }
 
-// PingConsulServer sends a Status.Ping message to the specified server and
+// Ping sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) PingConsulServer(s *agent.Server) (bool, error) {
-	// Get a usable client
-	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version, s.UseTLS)
-	if err != nil {
-		return false, err
-	}
-
-	// Make the RPC call
+func (p *ConnPool) Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error) {
 	var out struct{}
-	err = msgpackrpc.CallWithCodec(sc.codec, "Status.Ping", struct{}{}, &out)
-	if err != nil {
-		sc.Close()
-		p.releaseConn(conn)
-		return false, err
-	}
-
-	// Done with the connection
-	conn.returnClient(sc)
-	p.releaseConn(conn)
-	return true, nil
+	err := p.RPC(dc, addr, version, "Status.Ping", useTLS, struct{}{}, &out)
+	return err == nil, err
 }
 
 // Reap is used to close conns open over maxTime
@@ -463,7 +447,7 @@ func (p *ConnPool) reap() {
 		now := time.Now()
 		for host, conn := range p.pool {
 			// Skip recently used connections
-			if now.Sub(conn.lastUsed) < p.maxTime {
+			if now.Sub(conn.lastUsed) < p.MaxTime {
 				continue
 			}
 

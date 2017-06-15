@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -19,7 +20,7 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 	}
 
 	// Write the Consul RPC byte to set the mode
-	conn.Write([]byte{byte(rpcConsul)})
+	conn.Write([]byte{byte(pool.RPCConsul)})
 	return msgpackrpc.NewClientCodec(conn)
 }
 
