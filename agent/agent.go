@@ -230,9 +230,6 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
-	// Initialize the local state.
-	a.state.Init(c, a.logger)
-
 	// Setup either the client or the server.
 	if c.Server {
 		server, err := a.makeServer()
@@ -241,7 +238,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = server
-		a.state.SetIface(server)
+		a.state.Init(c, a.logger, server)
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
@@ -259,7 +256,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = client
-		a.state.SetIface(client)
+		a.state.Init(c, a.logger, client)
 	}
 
 	// Load checks/services/metadata.

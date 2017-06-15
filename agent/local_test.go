@@ -1338,7 +1338,7 @@ func TestAgent_serviceTokens(t *testing.T) {
 	cfg := TestConfig()
 	cfg.ACLToken = "default"
 	l := new(localState)
-	l.Init(cfg, nil)
+	l.Init(cfg, nil, nil)
 
 	l.AddService(&structs.NodeService{
 		ID: "redis",
@@ -1367,7 +1367,7 @@ func TestAgent_checkTokens(t *testing.T) {
 	cfg := TestConfig()
 	cfg.ACLToken = "default"
 	l := new(localState)
-	l.Init(cfg, nil)
+	l.Init(cfg, nil, nil)
 
 	// Returns default when no token is set
 	if token := l.CheckToken("mem"); token != "default" {
@@ -1391,7 +1391,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	l := new(localState)
-	l.Init(cfg, nil)
+	l.Init(cfg, nil, nil)
 
 	// Add a passing check and make sure it's not critical.
 	checkID := types.CheckID("redis:1")
