@@ -43,15 +43,6 @@ const (
 	serfEventBacklogWarning = 200
 )
 
-// Interface is used to provide either a Client or Server,
-// both of which can be used to perform certain common
-// Consul methods
-type Interface interface {
-	RPC(method string, args interface{}, reply interface{}) error
-	LANMembers() []serf.Member
-	LocalMember() serf.Member
-}
-
 // Client is Consul client which uses RPC to communicate with the
 // services for service discovery, health checking, and DC forwarding.
 type Client struct {
