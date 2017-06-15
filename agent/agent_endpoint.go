@@ -230,7 +230,7 @@ func (s *HTTPServer) syncChanges() {
 const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/TCP and Interval"
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args CheckDefinition
+	var args structs.CheckDefinition
 	// Fixup the type decode of TTL or Interval.
 	decodeCB := func(raw interface{}) error {
 		return FixupCheckType(raw)
@@ -412,7 +412,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 }
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args ServiceDefinition
+	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 	decodeCB := func(raw interface{}) error {
 		rawMap, ok := raw.(map[string]interface{})

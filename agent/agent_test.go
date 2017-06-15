@@ -336,7 +336,7 @@ func TestAgent_AddService(t *testing.T) {
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
-		chkTypes   CheckTypes
+		chkTypes   []*structs.CheckType
 		healthChks map[string]*structs.HealthCheck
 	}{
 		{
@@ -347,8 +347,8 @@ func TestAgent_AddService(t *testing.T) {
 				Tags:    []string{"tag1"},
 				Port:    8100,
 			},
-			CheckTypes{
-				&CheckType{
+			[]*structs.CheckType{
+				&structs.CheckType{
 					CheckID: "check1",
 					Name:    "name1",
 					TTL:     time.Minute,
@@ -375,22 +375,22 @@ func TestAgent_AddService(t *testing.T) {
 				Tags:    []string{"tag2"},
 				Port:    8200,
 			},
-			CheckTypes{
-				&CheckType{
+			[]*structs.CheckType{
+				&structs.CheckType{
 					CheckID: "check1",
 					Name:    "name1",
 					TTL:     time.Minute,
 					Notes:   "note1",
 				},
-				&CheckType{
+				&structs.CheckType{
 					CheckID: "check-noname",
 					TTL:     time.Minute,
 				},
-				&CheckType{
+				&structs.CheckType{
 					Name: "check-noid",
 					TTL:  time.Minute,
 				},
-				&CheckType{
+				&structs.CheckType{
 					TTL: time.Minute,
 				},
 			},
@@ -499,14 +499,14 @@ func TestAgent_RemoveService(t *testing.T) {
 			Service: "memcache",
 			Port:    8000,
 		}
-		chkTypes := CheckTypes{&CheckType{TTL: time.Minute}}
+		chkTypes := []*structs.CheckType{&structs.CheckType{TTL: time.Minute}}
 
 		if err := a.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		// Add a check after the fact with a specific check ID
-		check := &CheckDefinition{
+		check := &structs.CheckDefinition{
 			ID:        "check2",
 			Name:      "check2",
 			ServiceID: "memcache",
@@ -535,9 +535,9 @@ func TestAgent_RemoveService(t *testing.T) {
 			Service: "redis",
 			Port:    8000,
 		}
-		chkTypes := CheckTypes{
-			&CheckType{TTL: time.Minute},
-			&CheckType{TTL: 30 * time.Second},
+		chkTypes := []*structs.CheckType{
+			&structs.CheckType{TTL: time.Minute},
+			&structs.CheckType{TTL: 30 * time.Second},
 		}
 		if err := a.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
@@ -579,13 +579,13 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
-	chk1 := &CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
-	chk2 := &CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
+	chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
+	chk2 := &structs.CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
 	hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
 	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
 
 	// register service with chk1
-	if err := a.AddService(svc, CheckTypes{chk1}, false, ""); err != nil {
+	if err := a.AddService(svc, []*structs.CheckType{chk1}, false, ""); err != nil {
 		t.Fatal("Failed to register service", err)
 	}
 
@@ -595,7 +595,7 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// update the service with chk2
-	if err := a.AddService(svc, CheckTypes{chk2}, false, ""); err != nil {
+	if err := a.AddService(svc, []*structs.CheckType{chk2}, false, ""); err != nil {
 		t.Fatal("Failed to update service", err)
 	}
 
@@ -632,7 +632,7 @@ func TestAgent_AddCheck(t *testing.T) {
 		Name:    "memory util",
 		Status:  api.HealthCritical,
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
@@ -669,7 +669,7 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 		Name:    "memory util",
 		Status:  api.HealthPassing,
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
@@ -706,7 +706,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Name:    "memory util",
 		Status:  api.HealthCritical,
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
@@ -739,7 +739,7 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 		Name:      "baz check 1",
 		ServiceID: "baz",
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
@@ -770,7 +770,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 		CheckID: "baz",
 		Name:    "baz check 1",
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		TTL: time.Minute,
 	}
 	err = a.AddCheck(health, chk, false, "")
@@ -813,7 +813,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Name:    "memory util",
 		Status:  api.HealthCritical,
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
@@ -849,7 +849,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 		Name:    "memory util",
 		Status:  api.HealthCritical,
 	}
-	chk := &CheckType{
+	chk := &structs.CheckType{
 		TTL: 15 * time.Second,
 	}
 
@@ -1085,14 +1085,14 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 	// Try bringing the agent back up with the service already
 	// existing in the config
-	svc2 := &ServiceDefinition{
+	svc2 := &structs.ServiceDefinition{
 		ID:   "redis",
 		Name: "redis",
 		Tags: []string{"bar"},
 		Port: 9000,
 	}
 
-	cfg.Services = []*ServiceDefinition{svc2}
+	cfg.Services = []*structs.ServiceDefinition{svc2}
 	a2 := NewTestAgent(t.Name()+"-a2", cfg)
 	defer a2.Shutdown()
 
@@ -1124,7 +1124,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Name:    "memory check",
 		Status:  api.HealthPassing,
 	}
-	chkType := &CheckType{
+	chkType := &structs.CheckType{
 		Script:   "/bin/true",
 		Interval: 10 * time.Second,
 	}
@@ -1265,7 +1265,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	a.Shutdown()
 
 	// Start again with the check registered in config
-	check2 := &CheckDefinition{
+	check2 := &structs.CheckDefinition{
 		ID:       "mem",
 		Name:     "memory check",
 		Notes:    "my cool notes",
@@ -1273,7 +1273,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Interval: 30 * time.Second,
 	}
 
-	cfg.Checks = []*CheckDefinition{check2}
+	cfg.Checks = []*structs.CheckDefinition{check2}
 	a2 := NewTestAgent(t.Name()+"-a2", cfg)
 	defer a2.Shutdown()
 
@@ -1294,7 +1294,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.Checks = append(cfg.Checks, &CheckDefinition{
+	cfg.Checks = append(cfg.Checks, &structs.CheckDefinition{
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Token: "abc123",
@@ -1367,7 +1367,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 func TestAgent_loadServices_token(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.Services = append(cfg.Services, &ServiceDefinition{
+	cfg.Services = append(cfg.Services, &structs.ServiceDefinition{
 		ID:    "rabbitmq",
 		Name:  "rabbitmq",
 		Port:  5672,
@@ -1510,8 +1510,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	chkTypes := CheckTypes{
-		&CheckType{
+	chkTypes := []*structs.CheckType{
+		&structs.CheckType{
 			Status: api.HealthPassing,
 			TTL:    10 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 100 * time.Millisecond,
@@ -1584,8 +1584,8 @@ func TestAgent_Service_NoReap(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	chkTypes := CheckTypes{
-		&CheckType{
+	chkTypes := []*structs.CheckType{
+		&structs.CheckType{
 			Status: api.HealthPassing,
 			TTL:    10 * time.Millisecond,
 		},
@@ -1653,7 +1653,7 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 	}
 
 	// Re-registering the service preserves the state of the check
-	chkTypes := CheckTypes{&CheckType{TTL: 30 * time.Second}}
+	chkTypes := []*structs.CheckType{&structs.CheckType{TTL: 30 * time.Second}}
 	if err := a.AddService(svc, chkTypes, false, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}

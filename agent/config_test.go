@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/pascaldekloe/goe/verify"
 )
@@ -742,8 +743,8 @@ func TestDecodeConfig(t *testing.T) {
 					}
 				}`,
 			c: &Config{
-				Services: []*ServiceDefinition{
-					&ServiceDefinition{
+				Services: []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
 						ID:                "a",
 						Name:              "b",
 						Tags:              []string{"c", "d"},
@@ -751,7 +752,7 @@ func TestDecodeConfig(t *testing.T) {
 						Port:              123,
 						Token:             "f",
 						EnableTagOverride: true,
-						Check: CheckType{
+						Check: structs.CheckType{
 							CheckID:           "g",
 							Name:              "h",
 							Status:            "i",
@@ -825,8 +826,8 @@ func TestDecodeConfig(t *testing.T) {
 					}
 				}`,
 			c: &Config{
-				Services: []*ServiceDefinition{
-					&ServiceDefinition{
+				Services: []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
 						ID:                "a",
 						Name:              "b",
 						Tags:              []string{"c", "d"},
@@ -834,7 +835,7 @@ func TestDecodeConfig(t *testing.T) {
 						Port:              123,
 						Token:             "f",
 						EnableTagOverride: true,
-						Checks: CheckTypes{
+						Checks: []*structs.CheckType{
 							{
 								CheckID:           "g",
 								Name:              "h",
@@ -937,8 +938,8 @@ func TestDecodeConfig(t *testing.T) {
 					]
 				}`,
 			c: &Config{
-				Services: []*ServiceDefinition{
-					&ServiceDefinition{
+				Services: []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
 						ID:                "a",
 						Name:              "b",
 						Tags:              []string{"c", "d"},
@@ -946,7 +947,7 @@ func TestDecodeConfig(t *testing.T) {
 						Port:              123,
 						Token:             "f",
 						EnableTagOverride: true,
-						Check: CheckType{
+						Check: structs.CheckType{
 							CheckID:           "g",
 							Name:              "h",
 							Status:            "i",
@@ -965,7 +966,7 @@ func TestDecodeConfig(t *testing.T) {
 							DeregisterCriticalServiceAfter: 5 * time.Second,
 						},
 					},
-					&ServiceDefinition{
+					&structs.ServiceDefinition{
 						ID:                "aa",
 						Name:              "bb",
 						Tags:              []string{"cc", "dd"},
@@ -973,7 +974,7 @@ func TestDecodeConfig(t *testing.T) {
 						Port:              246,
 						Token:             "ff",
 						EnableTagOverride: false,
-						Check: CheckType{
+						Check: structs.CheckType{
 							CheckID:           "gg",
 							Name:              "hh",
 							Status:            "ii",
@@ -1021,8 +1022,8 @@ func TestDecodeConfig(t *testing.T) {
 					}
 				}`,
 			c: &Config{
-				Checks: []*CheckDefinition{
-					&CheckDefinition{
+				Checks: []*structs.CheckDefinition{
+					&structs.CheckDefinition{
 						ID:                "a",
 						Name:              "b",
 						Notes:             "c",
@@ -1092,8 +1093,8 @@ func TestDecodeConfig(t *testing.T) {
 					]
 				}`,
 			c: &Config{
-				Checks: []*CheckDefinition{
-					&CheckDefinition{
+				Checks: []*structs.CheckDefinition{
+					&structs.CheckDefinition{
 						ID:                "a",
 						Name:              "b",
 						Notes:             "c",
@@ -1113,7 +1114,7 @@ func TestDecodeConfig(t *testing.T) {
 						TTL:               4 * time.Second,
 						DeregisterCriticalServiceAfter: 5 * time.Second,
 					},
-					&CheckDefinition{
+					&structs.CheckDefinition{
 						ID:                "aa",
 						Name:              "bb",
 						Notes:             "cc",
@@ -1336,8 +1337,8 @@ func TestMergeConfig(t *testing.T) {
 		CertFile:               "test/cert.pem",
 		KeyFile:                "test/key.pem",
 		TLSMinVersion:          "tls12",
-		Checks:                 []*CheckDefinition{nil},
-		Services:               []*ServiceDefinition{nil},
+		Checks:                 []*structs.CheckDefinition{nil},
+		Services:               []*structs.ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
 		StartJoinWan:           []string{"1.1.1.1"},
 		EnableUI:               true,
@@ -1502,7 +1503,7 @@ func TestUnixSockets(t *testing.T) {
 
 func TestCheckDefinitionToCheckType(t *testing.T) {
 	t.Parallel()
-	got := &CheckDefinition{
+	got := &structs.CheckDefinition{
 		ID:     "id",
 		Name:   "name",
 		Status: "green",
@@ -1521,7 +1522,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		TTL:               3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
 	}
-	want := &CheckType{
+	want := &structs.CheckType{
 		CheckID: "id",
 		Name:    "name",
 		Status:  "green",
