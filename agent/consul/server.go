@@ -937,7 +937,7 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 // SnapshotRPC dispatches the given snapshot request, reading from the streaming
 // input and writing to the streaming output depending on the operation.
 func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 
 	// Perform the operation.
 	var reply structs.SnapshotResponse

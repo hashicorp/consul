@@ -7,6 +7,10 @@ const (
 	SnapshotRestore
 )
 
+// SnapshotReplyFn gets a peek at the reply before the snapshot streams, which
+// is useful for setting headers.
+type SnapshotReplyFn func(reply *SnapshotResponse) error
+
 // SnapshotRequest is used as a header for a snapshot RPC request. This will
 // precede any streaming data that's part of the request and is JSON-encoded on
 // the wire.

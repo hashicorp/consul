@@ -341,15 +341,11 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	return nil
 }
 
-// SnapshotReplyFn gets a peek at the reply before the snapshot streams, which
-// is useful for setting headers.
-type SnapshotReplyFn func(reply *structs.SnapshotResponse) error
-
 // SnapshotRPC sends the snapshot request to one of the servers, reading from
 // the streaming input and writing to the streaming output depending on the
 // operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 
 	// Locate a server to make the request to.
 	server := c.servers.FindServer()
