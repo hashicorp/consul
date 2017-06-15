@@ -675,11 +675,11 @@
 			"revisionTime": "2017-05-25T23:15:04Z"
 		},
 		{
-			"checksumSHA1": "ZkJRgexeNzNZzpw6YnedwoJl7pE=",
+			"checksumSHA1": "3LFg00GII0KbMRpqi38MRkMhoyM=",
 			"comment": "v0.7.0-66-g6c4672d",
 			"path": "github.com/hashicorp/serf/serf",
-			"revision": "dfab144618a063232d5753eaa4250a09865106c5",
-			"revisionTime": "2017-05-26T05:01:28Z"
+			"revision": "91fd53b1d3e624389ed9a295a3fa380e5c7b9dfc",
+			"revisionTime": "2017-06-14T22:59:51Z"
 		},
 		{
 			"checksumSHA1": "ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=",
