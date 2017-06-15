@@ -379,6 +379,15 @@ RUN_QUERY:
 		if err := s.consistentRead(); err != nil {
 			return err
 		}
+
+		if isReady, waitCh := s.IsReadyForConsistentReads(); !isReady {
+			select {
+			case <-waitCh:
+				//Ready to proceed
+			case <-timeout.C:
+				return structs.ErrNotReadyForConsistentReads
+			}
+		}
 	}
 
 	// Run the query.

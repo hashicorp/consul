@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	ErrNoLeader  = fmt.Errorf("No cluster leader")
-	ErrNoDCPath  = fmt.Errorf("No path to datacenter")
-	ErrNoServers = fmt.Errorf("No known Consul servers")
+	ErrNoLeader                   = fmt.Errorf("No cluster leader")
+	ErrNoDCPath                   = fmt.Errorf("No path to datacenter")
+	ErrNoServers                  = fmt.Errorf("No known Consul servers")
+	ErrNotReadyForConsistentReads = fmt.Errorf("Not ready to serve consistent reads")
 )
 
 type MessageType uint8

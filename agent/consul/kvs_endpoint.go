@@ -119,7 +119,6 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	if err != nil {
 		return err
 	}
-	k.srv.logger.Printf("***** fsm pending state AFTER leader forward, before blocking query ********* %v\n", k.srv.raft.Stats()["fsm_pending"])
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
