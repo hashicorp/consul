@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -729,10 +730,10 @@ type Config struct {
 	SyncCoordinateIntervalMin time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
-	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
+	Checks []*structs.CheckDefinition `mapstructure:"-" json:"-"`
 
 	// Services holds the provided service definitions
-	Services []*ServiceDefinition `mapstructure:"-" json:"-"`
+	Services []*structs.ServiceDefinition `mapstructure:"-" json:"-"`
 
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
@@ -1371,7 +1372,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 }
 
 // DecodeServiceDefinition is used to decode a service definition
-func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
+func DecodeServiceDefinition(raw interface{}) (*structs.ServiceDefinition, error) {
 	rawMap, ok := raw.(map[string]interface{})
 	if !ok {
 		goto AFTER_FIX
@@ -1404,7 +1405,7 @@ func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
 	}
 AFTER_FIX:
 	var md mapstructure.Metadata
-	var result ServiceDefinition
+	var result structs.ServiceDefinition
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
 		Result:   &result,
@@ -1511,12 +1512,12 @@ func FixupCheckType(raw interface{}) error {
 }
 
 // DecodeCheckDefinition is used to decode a check definition
-func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
+func DecodeCheckDefinition(raw interface{}) (*structs.CheckDefinition, error) {
 	if err := FixupCheckType(raw); err != nil {
 		return nil, err
 	}
 	var md mapstructure.Metadata
-	var result CheckDefinition
+	var result structs.CheckDefinition
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
 		Result:   &result,

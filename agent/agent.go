@@ -1342,6 +1342,13 @@ func (a *Agent) reapServices() {
 
 }
 
+// persistedService is used to wrap a service definition and bundle it
+// with an ACL token so we can restore both at a later agent start.
+type persistedService struct {
+	Token   string
+	Service *structs.NodeService
+}
+
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
@@ -1368,7 +1375,7 @@ func (a *Agent) purgeService(serviceID string) error {
 }
 
 // persistCheck saves a check definition to the local agent's state directory
-func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
+func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(check.CheckID))
 
 	// Create the persisted check
@@ -1426,7 +1433,7 @@ func writeFileAtomic(path string, contents []byte) error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, persist bool, token string) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -1552,7 +1559,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist bool, token string) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}

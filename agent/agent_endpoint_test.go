@@ -234,8 +234,8 @@ func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	cfg.ACLEnforceVersion8 = Bool(false)
-	cfg.Services = []*ServiceDefinition{
-		&ServiceDefinition{Name: "redis"},
+	cfg.Services = []*structs.ServiceDefinition{
+		&structs.ServiceDefinition{Name: "redis"},
 	}
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -246,8 +246,8 @@ func TestAgent_Reload(t *testing.T) {
 
 	cfg2 := TestConfig()
 	cfg2.ACLEnforceVersion8 = Bool(false)
-	cfg2.Services = []*ServiceDefinition{
-		&ServiceDefinition{Name: "redis-reloaded"},
+	cfg2.Services = []*structs.ServiceDefinition{
+		&structs.ServiceDefinition{Name: "redis-reloaded"},
 	}
 
 	ok, err := a.ReloadConfig(cfg2)
@@ -580,7 +580,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register node
-	args := &CheckDefinition{
+	args := &structs.CheckDefinition{
 		Name: "test",
 		TTL:  15 * time.Second,
 	}
@@ -621,7 +621,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register node
-	args := &CheckDefinition{
+	args := &structs.CheckDefinition{
 		Name:   "test",
 		TTL:    15 * time.Second,
 		Status: api.HealthPassing,
@@ -657,7 +657,7 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register node
-	args := &CheckDefinition{
+	args := &structs.CheckDefinition{
 		Name:   "test",
 		TTL:    15 * time.Second,
 		Status: "fluffy",
@@ -677,7 +677,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
-	args := &CheckDefinition{
+	args := &structs.CheckDefinition{
 		Name: "test",
 		TTL:  15 * time.Second,
 	}
@@ -754,7 +754,7 @@ func TestAgent_PassCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -781,7 +781,7 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -807,7 +807,7 @@ func TestAgent_WarnCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -834,7 +834,7 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -860,7 +860,7 @@ func TestAgent_FailCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -887,7 +887,7 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -913,7 +913,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1012,7 +1012,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	chkType := &CheckType{TTL: 15 * time.Second}
+	chkType := &structs.CheckType{TTL: 15 * time.Second}
 	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1039,18 +1039,18 @@ func TestAgent_RegisterService(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	args := &ServiceDefinition{
+	args := &structs.ServiceDefinition{
 		Name: "test",
 		Tags: []string{"master"},
 		Port: 8000,
-		Check: CheckType{
+		Check: structs.CheckType{
 			TTL: 15 * time.Second,
 		},
-		Checks: CheckTypes{
-			&CheckType{
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
 				TTL: 20 * time.Second,
 			},
-			&CheckType{
+			&structs.CheckType{
 				TTL: 30 * time.Second,
 			},
 		},
@@ -1091,18 +1091,18 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
-	args := &ServiceDefinition{
+	args := &structs.ServiceDefinition{
 		Name: "test",
 		Tags: []string{"master"},
 		Port: 8000,
-		Check: CheckType{
+		Check: structs.CheckType{
 			TTL: 15 * time.Second,
 		},
-		Checks: CheckTypes{
-			&CheckType{
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
 				TTL: 20 * time.Second,
 			},
-			&CheckType{
+			&structs.CheckType{
 				TTL: 30 * time.Second,
 			},
 		},
@@ -1130,7 +1130,7 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
-			args := &ServiceDefinition{
+			args := &structs.ServiceDefinition{
 				Name:    "test",
 				Address: addr,
 				Port:    8000,
@@ -1475,10 +1475,10 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	args := &ServiceDefinition{
+	args := &structs.ServiceDefinition{
 		Name: "memcache",
 		Port: 8000,
-		Check: CheckType{
+		Check: structs.CheckType{
 			TTL: 15 * time.Second,
 		},
 	}
@@ -1490,7 +1490,7 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	}
 
 	// Now register an additional check
-	checkArgs := &CheckDefinition{
+	checkArgs := &structs.CheckDefinition{
 		Name:      "memcache_check2",
 		ServiceID: "memcache",
 		TTL:       15 * time.Second,
