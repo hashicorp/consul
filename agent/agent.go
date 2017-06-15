@@ -57,9 +57,9 @@ const (
 // dnsNameRe checks if a name or tag is dns-compatible.
 var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 
-// clientServer defines the interface shared by both
+// delegate defines the interface shared by both
 // consul.Client and consul.Server.
-type clientServer interface {
+type delegate interface {
 	Encrypted() bool
 	GetLANCoordinate() (*coordinate.Coordinate, error)
 	Leave() error
@@ -94,7 +94,7 @@ type Agent struct {
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
-	delegate clientServer
+	delegate delegate
 
 	// acls is an object that helps manage local ACL enforcement.
 	acls *aclManager
