@@ -241,7 +241,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.HTTPAPIResponseHeaders = map[string]string{
+	cfg.HTTPConfig.ResponseHeaders = map[string]string{
 		"Access-Control-Allow-Origin": "*",
 		"X-XSS-Protection":            "1; mode=block",
 	}

@@ -199,7 +199,7 @@ will exit with an error at startup.
   - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
   - ECS task role metadata (container-specific).
   - EC2 instance role metadata.
-  
+
   The only required IAM permission is `ec2:DescribeInstances`, and it is recommended you make a dedicated
   key used only for auto-joining.
 
@@ -437,7 +437,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
   there is no matching rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
   prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
-  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter` 
+  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter`
   to enable ACL support.
 
 * <a name="acl_down_policy"></a><a href="#acl_down_policy">`acl_down_policy`</a> - Either
@@ -744,6 +744,30 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         }
       }
     ```
+
+  This has been deprecated in Consul 0.9.0. Setting this value will set `http_config.response_headers`
+  instead for backwards compatibility.
+
+* <a name="http_config"></a><a href="#http_config">`http_config`</a>
+  This object allows setting options for the HTTP API.
+  <br><br>
+  The following sub-keys are available:
+
+  * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
+    This object allows adding headers to the HTTP API responses.
+    For example, the following config can be used to enable
+    [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
+    the HTTP API endpoints:
+
+      ```javascript
+        {
+          "http_config": {
+            "response_headers": {
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        }
+      ```
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
   enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest
