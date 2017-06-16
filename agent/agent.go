@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -146,9 +145,9 @@ type Agent struct {
 	// attempts.
 	retryJoinCh chan error
 
-	// endpoints lets you override RPC endpoints for testing. Not all
-	// agent methods use this, so use with care and never override
-	// outside of a unit test.
+	// endpoints maps unique RPC endpoint names to common ones
+	// to allow overriding of RPC handlers since the golang
+	// net/rpc server does not allow this.
 	endpoints     map[string]string
 	endpointsLock sync.RWMutex
 
@@ -1068,9 +1067,34 @@ LOAD:
 	return nil
 }
 
+// RegisterEndpoint registers a handler for the consul RPC server
+// under a unique name while making it accessible under the provided
+// name. This allows overwriting handlers for the golang net/rpc
+// service which does not allow this.
+func (a *Agent) RegisterEndpoint(name string, handler interface{}) error {
+	srv, ok := a.delegate.(*consul.Server)
+	if !ok {
+		panic("agent must be a server")
+	}
+	realname := fmt.Sprintf("%s-%d", name, time.Now().UnixNano())
+	a.endpointsLock.Lock()
+	a.endpoints[name] = realname
+	a.endpointsLock.Unlock()
+	return srv.RegisterEndpoint(realname, handler)
+}
+
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
+	a.endpointsLock.Lock()
+	// fast path: only translate if there are overrides
+	if len(a.endpoints) > 0 {
+		p := strings.SplitN(method, ".", 2)
+		if e := a.endpoints[p[0]]; e != "" {
+			method = e + "." + p[1]
+		}
+	}
+	a.endpointsLock.Unlock()
 	return a.delegate.RPC(method, args, reply)
 }
 
@@ -2253,37 +2277,6 @@ func (a *Agent) DisableNodeMaintenance() {
 	}
 	a.RemoveCheck(structs.NodeMaint, true)
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
-}
-
-// InjectEndpoint overrides the given endpoint with a substitute one. Note
-// that not all agent methods use this mechanism, and that is should only
-// be used for testing.
-func (a *Agent) InjectEndpoint(endpoint string, handler interface{}) error {
-	srv, ok := a.delegate.(*consul.Server)
-	if !ok {
-		return fmt.Errorf("agent must be a server")
-	}
-	if err := srv.InjectEndpoint(handler); err != nil {
-		return err
-	}
-	name := reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
-	a.endpointsLock.Lock()
-	a.endpoints[endpoint] = name
-	a.endpointsLock.Unlock()
-
-	a.logger.Printf("[WARN] agent: endpoint injected; this should only be used for testing")
-	return nil
-}
-
-// getEndpoint returns the endpoint name to use for the given endpoint,
-// which may be overridden.
-func (a *Agent) getEndpoint(endpoint string) string {
-	a.endpointsLock.RLock()
-	defer a.endpointsLock.RUnlock()
-	if override, ok := a.endpoints[endpoint]; ok {
-		return override
-	}
-	return endpoint
 }
 
 func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
