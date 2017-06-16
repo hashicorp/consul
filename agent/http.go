@@ -162,7 +162,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
+		setHeaders(resp, s.agent.config.HTTPConfig.ResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
