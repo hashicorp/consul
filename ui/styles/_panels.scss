@@ -1,13 +1,18 @@
 .panel {
+    margin-right: 12px;
     border-width: 2px;
     border-color: $gray-background;
     @include transition(background-color .3s ease-in-out);
 
     .panel-heading {
-        padding: 10px 7px;
+        padding: 0px;
         background-color: transparent;
         border-width: 2px;
         border-color: $gray-background;
+
+        .panel-bar-horizontal {
+            padding-left: 20px;
+        }
     }
 
     h4.panel-title {
@@ -42,15 +47,14 @@
 
 
     h3.panel-title {
-        padding: 4px 0px 4px 0px;
+        padding: 14px 7px 14px 12px;
         font-size: 20px;
+        background-color: white;
         color: $gray-light;
         color: $gray-darker;
-        border-radius: 3px;
 
         small {
             font-size: 14px;
-            margin-left: 5px;
         }
 
         .panel-note {
@@ -97,13 +101,6 @@
                 border: 0;
             }
         }
-    }
-    .panel-bar-horizontal {
-        width: 20px;
-        float: left;
-        height: 50px;
-        margin-right: 10px;
-        display: block;
     }
 
     &.panel-short {

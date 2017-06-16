@@ -436,14 +436,15 @@
       {{#each node in model }}
 
         {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
-          <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}></div>
 
           <div class="panel-heading">
-            <h3 class="panel-title">
-              {{node.Node.Node}}
-              <small>{{node.Node.Address}}</small>
-              <span class="panel-note">{{node.checkMessage}}</span>
-            </h3>
+            <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}>
+              <h3 class="panel-title">
+                {{node.Node.Node}}
+                <small>{{node.Node.Address}}</small>
+                <span class="panel-note">{{node.checkMessage}}</span>
+              </h3>
+            </div>
           </div>
 
           <ul class="list-unstyled">
