@@ -434,5 +434,31 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
-	return future.Error()
+	err := future.Error()
+	if err != nil {
+		return err //fail fast if leader verification fails
+	}
+	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
+	if s.isReadyForConsistentReads() {
+		return nil
+	}
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	deadline := time.Now().Add(jitter)
+
+	for time.Now().After(deadline) {
+
+		select {
+		case <-time.After(jitter):
+			// Drop through and check before we loop again.
+
+		case <-s.shutdownCh:
+			return fmt.Errorf("shutdown waiting for leader")
+		}
+
+		if s.isReadyForConsistentReads() {
+			return nil
+		}
+	}
+
+	return structs.ErrNotReadyForConsistentReads
 }

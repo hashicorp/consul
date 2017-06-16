@@ -32,6 +32,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
+	if !s1.isReadyForConsistentReads() {
+		t.Fatalf("Expected server to be ready for consistent reads ")
+	}
+
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
@@ -493,6 +497,9 @@ func TestLeader_LeftLeader(t *testing.T) {
 		t.Fatalf("Should have a leader")
 	}
 	leader.Leave()
+	if leader.isReadyForConsistentReads() {
+		t.Fatalf("Expectected consistent read state to be false ")
+	}
 	leader.Shutdown()
 	time.Sleep(100 * time.Millisecond)
 
