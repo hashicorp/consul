@@ -143,13 +143,13 @@ func (m *aclManager) isDisabled() bool {
 // lookupACL attempts to locate the compiled policy associated with the given
 // token. The agent may be used to perform RPC calls to the servers to fetch
 // policies that aren't in the cache.
-func (m *aclManager) lookupACL(agent *Agent, id string) (acl.ACL, error) {
+func (m *aclManager) lookupACL(a *Agent, id string) (acl.ACL, error) {
 	// Handle some special cases for the ID.
 	if len(id) == 0 {
 		id = anonymousToken
 	} else if acl.RootACL(id) != nil {
 		return nil, errors.New(rootDenied)
-	} else if m.master != nil && id == agent.config.ACLAgentMasterToken {
+	} else if m.master != nil && id == a.config.ACLAgentMasterToken {
 		return m.master, nil
 	}
 
@@ -167,25 +167,25 @@ func (m *aclManager) lookupACL(agent *Agent, id string) (acl.ACL, error) {
 	// At this point we might have a stale cached ACL, or none at all, so
 	// try to contact the servers.
 	args := structs.ACLPolicyRequest{
-		Datacenter: agent.config.ACLDatacenter,
+		Datacenter: a.config.ACLDatacenter,
 		ACL:        id,
 	}
 	if cached != nil {
 		args.ETag = cached.ETag
 	}
 	var reply structs.ACLPolicy
-	err := agent.RPC(agent.getEndpoint("ACL")+".GetPolicy", &args, &reply)
+	err := a.RPC(a.getEndpoint("ACL")+".GetPolicy", &args, &reply)
 	if err != nil {
 		if strings.Contains(err.Error(), aclDisabled) {
-			agent.logger.Printf("[DEBUG] agent: ACLs disabled on servers, will check again after %s", agent.config.ACLDisabledTTL)
+			a.logger.Printf("[DEBUG] agent: ACLs disabled on servers, will check again after %s", a.config.ACLDisabledTTL)
 			m.disabledLock.Lock()
-			m.disabled = time.Now().Add(agent.config.ACLDisabledTTL)
+			m.disabled = time.Now().Add(a.config.ACLDisabledTTL)
 			m.disabledLock.Unlock()
 			return nil, nil
 		} else if strings.Contains(err.Error(), aclNotFound) {
 			return nil, errors.New(aclNotFound)
 		} else {
-			agent.logger.Printf("[DEBUG] agent: Failed to get policy for ACL from servers: %v", err)
+			a.logger.Printf("[DEBUG] agent: Failed to get policy for ACL from servers: %v", err)
 			if m.down != nil {
 				return m.down, nil
 			} else if cached != nil {
@@ -204,7 +204,7 @@ func (m *aclManager) lookupACL(agent *Agent, id string) (acl.ACL, error) {
 	} else {
 		parent := acl.RootACL(reply.Parent)
 		if parent == nil {
-			parent, err = m.lookupACL(agent, reply.Parent)
+			parent, err = m.lookupACL(a, reply.Parent)
 			if err != nil {
 				return nil, err
 			}
