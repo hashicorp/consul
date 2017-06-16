@@ -130,6 +130,11 @@ type DNSConfig struct {
 
 // HTTPConfig is used to fine tune the Http sub-system.
 type HTTPConfig struct {
+	// AllowStale is used to turn on stale consistency mode by default for HTTP API requests.
+	// This gives horizontal read scalability since any Consul server can service the query instead of
+	// only the leader.
+	AllowStale bool `mapstructure:"allow_stale"`
+
 	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	ResponseHeaders map[string]string `mapstructure:"response_headers"`
 }
@@ -1993,6 +1998,9 @@ func MergeConfig(a, b *Config) *Config {
 		for field, value := range b.HTTPConfig.ResponseHeaders {
 			result.HTTPConfig.ResponseHeaders[field] = value
 		}
+	}
+	if b.HTTPConfig.AllowStale {
+		result.HTTPConfig.AllowStale = true
 	}
 	if len(b.Meta) != 0 {
 		if result.Meta == nil {
