@@ -436,31 +436,36 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 func TestParseConsistency(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
-	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
-	if d := parseConsistency(resp, req, &b); d {
-		t.Fatalf("unexpected done")
-	}
-
-	if !b.AllowStale {
-		t.Fatalf("Bad: %v", b)
-	}
-	if b.RequireConsistent {
-		t.Fatalf("Bad: %v", b)
-	}
-
-	b = structs.QueryOptions{}
-	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?consistent", nil)
-	if d := parseConsistency(resp, req, &b); d {
-		t.Fatalf("unexpected done")
+	tests := []struct {
+		url                   string
+		allowStale            bool
+		wantAllowStale        bool
+		wantRequireConsistent bool
+	}{
+		{"/v1/catalog/nodes?stale", false, true, false},
+		{"/v1/catalog/nodes?stale", true, true, false},
+		{"/v1/catalog/nodes?consistent", false, false, true},
+		{"/v1/catalog/nodes?consistent", true, false, true},
+		{"/v1/catalog/nodes", false, false, false},
+		{"/v1/catalog/nodes", true, true, false},
 	}
 
-	if b.AllowStale {
-		t.Fatalf("Bad: %v", b)
-	}
-	if !b.RequireConsistent {
-		t.Fatalf("Bad: %v", b)
+	for _, tt := range tests {
+		name := fmt.Sprintf("url=%v, HTTP.AllowStale=%v", tt.url, tt.allowStale)
+		t.Run(name, func(t *testing.T) {
+			var q structs.QueryOptions
+			req, _ := http.NewRequest("GET", tt.url, nil)
+			if d := parseConsistency(resp, req, tt.allowStale, &q); d {
+				t.Fatalf("Failed to parse consistency.")
+			}
+			if got, want := q.AllowStale, tt.wantAllowStale; got != want {
+				t.Fatalf("got allowStale %v want %v", got, want)
+			}
+			if got, want := q.RequireConsistent, tt.wantRequireConsistent; got != want {
+				t.Fatalf("got requireConsistent %v want %v", got, want)
+			}
+		})
 	}
 }
 
@@ -470,7 +475,7 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
-	if d := parseConsistency(resp, req, &b); !d {
+	if d := parseConsistency(resp, req, false, &b); !d {
 		t.Fatalf("expected done")
 	}
 

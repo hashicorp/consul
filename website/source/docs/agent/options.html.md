@@ -753,6 +753,13 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <br><br>
   The following sub-keys are available:
 
+  * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
+  for DNS information. This allows any Consul server, rather than only the leader, to service
+  the request. The advantage of this is you get linear read scalability with Consul servers.
+  In versions of Consul prior to 0.7, this defaulted to false, meaning all requests are serviced
+  by the leader, providing stronger consistency but less throughput and higher latency. In Consul
+  0.7 and later, this defaults to true for better utilization of available servers.
+
   * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
     This object allows adding headers to the HTTP API responses.
     For example, the following config can be used to enable
