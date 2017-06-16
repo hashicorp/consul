@@ -163,3 +163,42 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestReadyForConsistentReads(t *testing.T) {
+	dir, s := testServerWithConfig(t, func(c *Config) {
+		c.RPCHoldTimeout = 2 * time.Millisecond
+	})
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	if !s.isReadyForConsistentReads() {
+		t.Fatal("Server should be ready for consistent reads")
+	}
+
+	s.resetConsistentReadReady()
+
+	if err := s.consistentRead(); err.Error() != "Not ready to serve consistent reads" {
+		t.Fatal("Server should NOT be ready for consistent reads")
+	}
+
+	setConsistentFunc := func() {
+		time.Sleep(2 * time.Millisecond)
+		s.setConsistentReadReady()
+	}
+
+	go setConsistentFunc()
+
+	//set some time to wait for the goroutine above to finish
+	waitUntil := time.Now().Add(time.Millisecond * 5)
+	err := s.consistentRead()
+	for time.Now().Before(waitUntil) && err != nil {
+		err = s.consistentRead()
+	}
+
+	if err != nil {
+		t.Fatal("Expected server to be ready for consistent reads ")
+	}
+
+}
