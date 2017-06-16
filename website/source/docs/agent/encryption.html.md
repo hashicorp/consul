@@ -64,10 +64,10 @@ through the following process.
 rolling update of the cluster with these new values. After this step, the agents will be able to
 decrypt gossip but will not yet be sending encrypted traffic.
 3. Remove the [`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) setting
-to change it back to false (the default) and perform another rolling update of the cluster. The
+to change it back to `true` (the default) and perform another rolling update of the cluster. The
 agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
 4. Remove the [`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) setting
-to change it back to false (the default) and perform a final rolling update of the cluster. All the
+to change it back to `true` (the default) and perform a final rolling update of the cluster. All the
 agents will now be strictly enforcing encrypted gossip.
 
 ## RPC Encryption with TLS
