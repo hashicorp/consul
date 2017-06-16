@@ -282,13 +282,9 @@ func TestIpFromPodName(t *testing.T) {
 
 type APIConnServiceTest struct{}
 
-func (APIConnServiceTest) Run() {
-	return
-}
-
-func (APIConnServiceTest) Stop() error {
-	return nil
-}
+func (APIConnServiceTest) Run()                          { return }
+func (APIConnServiceTest) Stop() error                   { return nil }
+func (APIConnServiceTest) PodIndex(string) []interface{} { return nil }
 
 func (APIConnServiceTest) ServiceList() []*api.Service {
 	svcs := []*api.Service{
@@ -332,10 +328,6 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 	}
 	return svcs
 
-}
-
-func (APIConnServiceTest) PodIndex(string) []interface{} {
-	return nil
 }
 
 func (APIConnServiceTest) EndpointsList() api.EndpointsList {
@@ -437,6 +429,7 @@ func (APIConnServiceTest) GetNodeByName(name string) (api.Node, error) {
 		},
 	}, nil
 }
+
 func TestServices(t *testing.T) {
 
 	k := Kubernetes{Zones: []string{"interwebs.test"}}

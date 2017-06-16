@@ -55,13 +55,9 @@ func TestIsDefaultNS(t *testing.T) {
 
 type APIConnTest struct{}
 
-func (APIConnTest) Run() {
-	return
-}
-
-func (APIConnTest) Stop() error {
-	return nil
-}
+func (APIConnTest) Run()                          { return }
+func (APIConnTest) Stop() error                   { return nil }
+func (APIConnTest) PodIndex(string) []interface{} { return nil }
 
 func (APIConnTest) ServiceList() []*api.Service {
 	svc := api.Service{
@@ -76,10 +72,6 @@ func (APIConnTest) ServiceList() []*api.Service {
 
 	return []*api.Service{&svc}
 
-}
-
-func (APIConnTest) PodIndex(string) []interface{} {
-	return nil
 }
 
 func (APIConnTest) EndpointsList() api.EndpointsList {
