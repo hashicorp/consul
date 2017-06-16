@@ -695,10 +695,9 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	// likely work in practice, like 10*maxUDPAnswerLimit which should help
 	// reduce bandwidth if there are thousands of nodes available.
 
-	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
 	var out structs.PreparedQueryExecuteResponse
 RPC:
-	if err := d.agent.RPC(endpoint+".Execute", &args, &out); err != nil {
+	if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
 		// If they give a bogus query name, treat that as a name error,
 		// not a full on server error. We have to use a string compare
 		// here since the RPC layer loses the type information.

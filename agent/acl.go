@@ -174,7 +174,7 @@ func (m *aclManager) lookupACL(a *Agent, id string) (acl.ACL, error) {
 		args.ETag = cached.ETag
 	}
 	var reply structs.ACLPolicy
-	err := a.RPC(a.getEndpoint("ACL")+".GetPolicy", &args, &reply)
+	err := a.RPC("ACL.GetPolicy", &args, &reply)
 	if err != nil {
 		if strings.Contains(err.Error(), aclDisabled) {
 			a.logger.Printf("[DEBUG] agent: ACLs disabled on servers, will check again after %s", a.config.ACLDisabledTTL)

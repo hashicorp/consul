@@ -977,10 +977,10 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	return nil
 }
 
-// InjectEndpoint is used to substitute an endpoint for testing.
-func (s *Server) InjectEndpoint(endpoint interface{}) error {
+// RegisterEndpoint is used to substitute an endpoint for testing.
+func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
-	return s.rpcServer.Register(endpoint)
+	return s.rpcServer.RegisterName(name, handler)
 }
 
 // Stats is used to return statistics for debugging and insight
