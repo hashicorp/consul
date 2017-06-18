@@ -169,7 +169,7 @@ func TestLookupDNSSEC(t *testing.T) {
 	}
 }
 
-func BenchmarkLookupDNSSEC(b *testing.B) {
+func BenchmarkFileLookupDNSSEC(b *testing.B) {
 	zone, err := Parse(strings.NewReader(dbMiekNLSigned), testzone, "stdin", 0)
 	if err != nil {
 		return

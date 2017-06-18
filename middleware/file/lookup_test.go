@@ -154,7 +154,7 @@ func TestLookupNil(t *testing.T) {
 	fm.ServeDNS(ctx, rec, m)
 }
 
-func BenchmarkLookup(b *testing.B) {
+func BenchmarkFileLookup(b *testing.B) {
 	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin", 0)
 	if err != nil {
 		return
