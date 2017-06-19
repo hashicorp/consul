@@ -3932,7 +3932,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	defer a.Shutdown()
 
 	m := MockPreparedQuery{}
-	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4013,7 +4013,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	defer a.Shutdown()
 
 	m := MockPreparedQuery{}
-	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

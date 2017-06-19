@@ -1067,11 +1067,11 @@ LOAD:
 	return nil
 }
 
-// RegisterEndpoint registers a handler for the consul RPC server
+// registerEndpoint registers a handler for the consul RPC server
 // under a unique name while making it accessible under the provided
 // name. This allows overwriting handlers for the golang net/rpc
 // service which does not allow this.
-func (a *Agent) RegisterEndpoint(name string, handler interface{}) error {
+func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 	srv, ok := a.delegate.(*consul.Server)
 	if !ok {
 		panic("agent must be a server")
