@@ -1095,6 +1095,18 @@ func (a *Agent) Leave() error {
 // Shutdown is used to hard stop the agent. Should be
 // preceded by a call to Leave to do it gracefully.
 func (a *Agent) Shutdown() error {
+	// Execute the shutdown in two stages since it may have been
+	// triggered through the HTTP server via 'consul leave'. In this
+	// case the HTTP server needs to be up after the agent is down in
+	// order to deliver the response. The 'consul leave' handler waits
+	// for the Shutdown() method to complete before delivering the
+	// response.
+	//
+	// This could also be implemented through multiple methods to
+	// decouple this in a different way but then this logic would have
+	// to be implemented everywhere. This way the logic remains in a
+	// single place.
+
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
@@ -1103,28 +1115,7 @@ func (a *Agent) Shutdown() error {
 	}
 	a.logger.Println("[INFO] agent: Requesting shutdown")
 
-	// Stop all API endpoints
-	for _, srv := range a.dnsServers {
-		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
-		srv.Shutdown()
-	}
-	for _, srv := range a.httpServers {
-		// http server is HTTPS if TLSConfig is not nil and NextProtos does not only contain "h2"
-		// the latter seems to be a side effect of HTTP/2 support in go 1.8. TLSConfig != nil is
-		// no longer sufficient to check for an HTTPS server.
-		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-
-		// graceful shutdown
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		srv.Shutdown(ctx)
-		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-		}
-	}
-	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
-	a.wgServers.Wait()
-	a.logger.Print("[INFO] agent: Endpoints down")
+	// stage 1: shutdown agent w/o HTTP and DNS endpoints
 
 	// Stop all the checks
 	a.checkLock.Lock()
@@ -1159,9 +1150,32 @@ func (a *Agent) Shutdown() error {
 		a.logger.Println("[WARN] agent: could not delete pid file ", pidErr)
 	}
 
-	a.logger.Println("[INFO] agent: shutdown complete")
+	// stage 2: shutdown HTTP and DNS endpoints and trigger final shutdown notification
+
+	go func() {
+		// Stop all API endpoints
+		for _, srv := range a.dnsServers {
+			a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+			srv.Shutdown()
+		}
+		for _, srv := range a.httpServers {
+			a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			srv.Shutdown(ctx)
+			if ctx.Err() == context.DeadlineExceeded {
+				a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+			}
+		}
+		a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
+		a.wgServers.Wait()
+		a.logger.Print("[INFO] agent: Endpoints down")
+
+		a.logger.Println("[INFO] agent: shutdown complete")
+		close(a.shutdownCh)
+	}()
+
 	a.shutdown = true
-	close(a.shutdownCh)
 	return err
 }
 
