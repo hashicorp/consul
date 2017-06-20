@@ -70,7 +70,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 
 				switch c.Val() {
 				case "transfer":
-					t, _, e = file.TransferParse(c, true)
+					t, f, e = file.TransferParse(c, true)
 					if e != nil {
 						return file.Zones{}, e
 					}
