@@ -199,7 +199,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	if err := s.agent.Leave(); err != nil {
 		return nil, err
 	}
-	return nil, s.agent.Shutdown()
+	return nil, s.agent.ShutdownAgent()
 }
 
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

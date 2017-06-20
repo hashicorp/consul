@@ -691,7 +691,10 @@ func (cmd *AgentCommand) run(args []string) int {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
-	defer agent.Shutdown()
+
+	// shutdown agent before endpoints
+	defer agent.ShutdownEndpoints()
+	defer agent.ShutdownAgent()
 
 	if !config.DisableUpdateCheck {
 		cmd.startupUpdateCheck(config)
