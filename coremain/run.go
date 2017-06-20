@@ -60,6 +60,10 @@ func Run() {
 
 	flag.Parse()
 
+	if len(flag.Args()) > 0 {
+		mustLogFatal(fmt.Errorf("extra command line arguments: %s", flag.Args()))
+	}
+
 	// Set up process log before anything bad happens
 	if logfile {
 		log.SetOutput(os.Stdout)
