@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/configutil"
 )
 
 type OperatorAutopilotSetCommand struct {
@@ -29,12 +30,12 @@ func (c *OperatorAutopilotSetCommand) Synopsis() string {
 }
 
 func (c *OperatorAutopilotSetCommand) Run(args []string) int {
-	var cleanupDeadServers BoolValue
-	var maxTrailingLogs UintValue
-	var lastContactThreshold DurationValue
-	var serverStabilizationTime DurationValue
-	var redundancyZoneTag StringValue
-	var disableUpgradeMigration BoolValue
+	var cleanupDeadServers configutil.BoolValue
+	var maxTrailingLogs configutil.UintValue
+	var lastContactThreshold configutil.DurationValue
+	var serverStabilizationTime configutil.DurationValue
+	var redundancyZoneTag configutil.StringValue
+	var disableUpgradeMigration configutil.BoolValue
 
 	f := c.BaseCommand.NewFlagSet(c)
 
