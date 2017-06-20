@@ -18,6 +18,7 @@ import (
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/configutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
@@ -61,15 +62,15 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 	f := cmd.BaseCommand.NewFlagSet(cmd)
 
-	f.Var((*AppendSliceValue)(&cfgFiles), "config-file",
+	f.Var((*configutil.AppendSliceValue)(&cfgFiles), "config-file",
 		"Path to a JSON file to read configuration from. This can be specified multiple times.")
-	f.Var((*AppendSliceValue)(&cfgFiles), "config-dir",
+	f.Var((*configutil.AppendSliceValue)(&cfgFiles), "config-dir",
 		"Path to a directory to read configuration files from. This will read every file ending "+
 			"in '.json' as configuration in this directory in alphabetical order. This can be "+
 			"specified multiple times.")
-	f.Var((*AppendSliceValue)(&dnsRecursors), "recursor",
+	f.Var((*configutil.AppendSliceValue)(&dnsRecursors), "recursor",
 		"Address of an upstream DNS server. Can be specified multiple times.")
-	f.Var((*AppendSliceValue)(&nodeMeta), "node-meta",
+	f.Var((*configutil.AppendSliceValue)(&nodeMeta), "node-meta",
 		"An arbitrary metadata key/value pair for this node, of the format `key:value`. Can be specified multiple times.")
 	f.BoolVar(&dev, "dev", false, "Starts the agent in development mode.")
 
@@ -120,11 +121,11 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		"Enables logging to syslog.")
 	f.BoolVar(&cmdCfg.RejoinAfterLeave, "rejoin", false,
 		"Ignores a previous leave and attempts to rejoin the cluster.")
-	f.Var((*AppendSliceValue)(&cmdCfg.StartJoin), "join",
+	f.Var((*configutil.AppendSliceValue)(&cmdCfg.StartJoin), "join",
 		"Address of an agent to join at start time. Can be specified multiple times.")
-	f.Var((*AppendSliceValue)(&cmdCfg.StartJoinWan), "join-wan",
+	f.Var((*configutil.AppendSliceValue)(&cmdCfg.StartJoinWan), "join-wan",
 		"Address of an agent to join -wan at start time. Can be specified multiple times.")
-	f.Var((*AppendSliceValue)(&cmdCfg.RetryJoin), "retry-join",
+	f.Var((*configutil.AppendSliceValue)(&cmdCfg.RetryJoin), "retry-join",
 		"Address of an agent to join at start time with retries enabled. Can be specified multiple times.")
 	f.IntVar(&cmdCfg.RetryMaxAttempts, "retry-max", 0,
 		"Maximum number of join attempts. Defaults to 0, which will retry indefinitely.")
@@ -148,7 +149,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		"Azure tag name to filter on for server discovery.")
 	f.StringVar(&cmdCfg.RetryJoinAzure.TagValue, "retry-join-azure-tag-value", "",
 		"Azure tag value to filter on for server discovery.")
-	f.Var((*AppendSliceValue)(&cmdCfg.RetryJoinWan), "retry-join-wan",
+	f.Var((*configutil.AppendSliceValue)(&cmdCfg.RetryJoinWan), "retry-join-wan",
 		"Address of an agent to join -wan at start time with retries enabled. "+
 			"Can be specified multiple times.")
 	f.IntVar(&cmdCfg.RetryMaxAttemptsWan, "retry-max-wan", 0,
