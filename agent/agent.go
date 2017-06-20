@@ -1112,9 +1112,10 @@ func (a *Agent) Leave() error {
 	return a.delegate.Leave()
 }
 
-// Shutdown is used to hard stop the agent. Should be
-// preceded by a call to Leave to do it gracefully.
-func (a *Agent) Shutdown() error {
+// ShutdownAgent is used to hard stop the agent. Should be preceded by
+// Leave to do it gracefully. Should be followed by ShutdownEndpoints to
+// terminate the HTTP and DNS servers as well.
+func (a *Agent) ShutdownAgent() error {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
@@ -1122,29 +1123,6 @@ func (a *Agent) Shutdown() error {
 		return nil
 	}
 	a.logger.Println("[INFO] agent: Requesting shutdown")
-
-	// Stop all API endpoints
-	for _, srv := range a.dnsServers {
-		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
-		srv.Shutdown()
-	}
-	for _, srv := range a.httpServers {
-		// http server is HTTPS if TLSConfig is not nil and NextProtos does not only contain "h2"
-		// the latter seems to be a side effect of HTTP/2 support in go 1.8. TLSConfig != nil is
-		// no longer sufficient to check for an HTTPS server.
-		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-
-		// graceful shutdown
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		srv.Shutdown(ctx)
-		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-		}
-	}
-	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
-	a.wgServers.Wait()
-	a.logger.Print("[INFO] agent: Endpoints down")
 
 	// Stop all the checks
 	a.checkLock.Lock()
@@ -1155,11 +1133,9 @@ func (a *Agent) Shutdown() error {
 	for _, chk := range a.checkTTLs {
 		chk.Stop()
 	}
-
 	for _, chk := range a.checkHTTPs {
 		chk.Stop()
 	}
-
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
@@ -1183,6 +1159,38 @@ func (a *Agent) Shutdown() error {
 	a.shutdown = true
 	close(a.shutdownCh)
 	return err
+}
+
+// ShutdownEndpoints terminates the HTTP and DNS servers. Should be
+// preceeded by ShutdownAgent.
+func (a *Agent) ShutdownEndpoints() {
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+
+	if len(a.dnsServers) == 0 || len(a.httpServers) == 0 {
+		return
+	}
+
+	for _, srv := range a.dnsServers {
+		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+		srv.Shutdown()
+	}
+	a.dnsServers = nil
+
+	for _, srv := range a.httpServers {
+		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		srv.Shutdown(ctx)
+		if ctx.Err() == context.DeadlineExceeded {
+			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+		}
+	}
+	a.httpServers = nil
+
+	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
+	a.wgServers.Wait()
+	a.logger.Print("[INFO] agent: Endpoints down")
 }
 
 // ReloadCh is used to return a channel that can be
