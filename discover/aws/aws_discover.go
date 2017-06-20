@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,23 +11,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-type Config struct {
-	Region          string
-	TagKey          string
-	TagValue        string
-	AccessKeyID     string
-	SecretAccessKey string
-}
-
 // Discover returns the ip addresses of all AWS instances in a region
-// where TagKey == TagValue. If no region is provided the region of the
+// where tag_key == tag_value. If no region is provided the region of the
 // instance is used.
-func Discover(c *Config, l *log.Logger) ([]string, error) {
-	if c == nil {
-		return nil, fmt.Errorf("[ERR] discover-aws: Missing configuration")
-	}
-
-	region := c.Region
+//
+// cfg supports the following fields:
+//
+//   "region":            the AWS region
+//   "tag_key":           the tag key to filter on
+//   "tag_value":         the tag value to filter on
+//   "access_key_id":     the AWS access key to use
+//   "secret_access_key": the AWS secret access key to use
+//
+func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
+	region := cfg["region"]
 	if region == "" {
 		l.Printf("[INFO] discover-aws: Looking up region")
 		ec2meta := ec2metadata.New(session.New())
@@ -40,14 +36,17 @@ func Discover(c *Config, l *log.Logger) ([]string, error) {
 	}
 	l.Printf("[INFO] discover-aws: Region is %s", region)
 
+	tagKey, tagValue := cfg["tag_key"], cfg["tag_value"]
+	accessKey, secretKey := cfg["access_key_id"], cfg["secret_access_key"]
+
 	svc := ec2.New(session.New(), &aws.Config{
 		Region: &region,
 		Credentials: credentials.NewChainCredentials(
 			[]credentials.Provider{
 				&credentials.StaticProvider{
 					Value: credentials.Value{
-						AccessKeyID:     c.AccessKeyID,
-						SecretAccessKey: c.SecretAccessKey,
+						AccessKeyID:     accessKey,
+						SecretAccessKey: secretKey,
 					},
 				},
 				&credentials.EnvProvider{},
@@ -59,17 +58,15 @@ func Discover(c *Config, l *log.Logger) ([]string, error) {
 	resp, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("tag:" + c.TagKey),
-				Values: []*string{
-					aws.String(c.TagValue),
-				},
+				Name:   aws.String("tag:" + tagKey),
+				Values: []*string{aws.String(tagValue)},
 			},
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
-	l.Printf("[INFO] discover-aws: Filter instances by %s=%s", c.TagKey, c.TagValue)
+	l.Printf("[INFO] discover-aws: Filter instances by %s=%s", tagKey, tagValue)
 
 	var addrs []string
 	for i := range resp.Reservations {

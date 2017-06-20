@@ -9,36 +9,37 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 )
 
-type Config struct {
-	TagName         string
-	TagValue        string
-	SubscriptionID  string
-	TenantID        string
-	ClientID        string
-	SecretAccessKey string
-}
-
 // Discover returns the ip addresses of all Azure instances in a
 // subscription where TagName == TagValue.
-func Discover(c *Config, l *log.Logger) ([]string, error) {
-	if c == nil {
-		return nil, fmt.Errorf("[ERR] discover-azure: Missing configuration")
-	}
+//
+// cfg supports the following fields:
+//
+//  "tenant_id"         : the id of the tenant
+//  "client_id"         : the id of the client
+//  "subscription_id"   : the id of the subscription
+//  "secret_access_key" : the authentication credential
+//  "tag_name"          : the name of the tag to filter on
+//  "tag_value"         : the value of the tag to filter on
+//
+func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 
 	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
-	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.TenantID)
+	tenantID := cfg["tenant_id"]
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the ServicePrincipalToken for use searching the NetworkInterfaces
-	sbt, err := azure.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.SecretAccessKey, azure.PublicCloud.ResourceManagerEndpoint)
+	clientID, secretKey := cfg["client_id"], cfg["secret_access_key"]
+	sbt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID, secretKey, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	// Setup the client using autorest; followed the structure from Terraform
-	vmnet := network.NewInterfacesClient(c.SubscriptionID)
+	subscriptionID := cfg["subscription_id"]
+	vmnet := network.NewInterfacesClient(subscriptionID)
 	vmnet.Client.UserAgent = fmt.Sprint("Hashicorp-Consul")
 	vmnet.Sender = autorest.CreateSender(autorest.WithLogging(l))
 	vmnet.Authorizer = sbt
@@ -51,12 +52,13 @@ func Discover(c *Config, l *log.Logger) ([]string, error) {
 	}
 
 	// For now, ignore Primary interfaces, choose any PrivateIPAddress with the matching tags
+	tagName, tagValue := cfg["tag_name"], cfg["tag_value"]
 	var addrs []string
 	for _, v := range *netres.Value {
 		if v.Tags == nil {
 			continue
 		}
-		if *(*v.Tags)[c.TagName] != c.TagValue {
+		if *(*v.Tags)[tagName] != tagValue {
 			continue
 		}
 		if v.IPConfigurations == nil {

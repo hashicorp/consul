@@ -20,14 +20,16 @@ func TestDiscover(t *testing.T) {
 		t.Skip("AWS_SECRET_ACCESS_KEY not set, skipping")
 	}
 
-	c := &Config{
-		Region:   os.Getenv("AWS_REGION"),
-		TagKey:   "ConsulRole",
-		TagValue: "Server",
+	cfg := map[string]string{
+		"region":            os.Getenv("AWS_REGION"),
+		"tag_key":           "ConsulRole",
+		"tag_value":         "Server",
+		"access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
 	}
 
 	l := log.New(os.Stderr, "", log.LstdFlags)
-	addrs, err := Discover(c, l)
+	addrs, err := Discover(cfg, l)
 	if err != nil {
 		t.Fatal(err)
 	}

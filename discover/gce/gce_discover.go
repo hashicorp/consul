@@ -11,41 +11,20 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
-type Config struct {
-	// ProjectName is the name of the project where the the instances
-	// should be discovered. It will be discovered if left empty.
-	ProjectName string
-
-	// ZonePattern is a regular expression for filtering zones.
-	// Example: us-west1-.*, or us-(?west|east).*.
-	ZonePattern string
-
-	// TagValue contains the tag that matching instances must have.
-	TagValue string
-
-	// CredentialsFile is a path to a file with service account
-	// credentials necessary to connect to GCE. If empty, the following
-	// chain is respected:
-	//
-	//  1. A JSON file whose path is specified by the
-	//     GOOGLE_APPLICATION_CREDENTIALS environment variable.
-	//  2. A JSON file in a location known to the gcloud command-line tool.
-	//     On Windows, this is %APPDATA%/gcloud/application_default_credentials.json.
-	//     On other systems, $HOME/.config/gcloud/application_default_credentials.json.
-	//  3. On Google Compute Engine, it fetches credentials from the metadata
-	//     server.  (In this final case any provided scopes are ignored.)
-	CredentialsFile string
-}
-
 // Discover returns the private ip addresses of all GCE instances in
 // some or all zones of a project which have a certain tag.
-func Discover(c *Config, l *log.Logger) ([]string, error) {
-	if c == nil {
-		return nil, fmt.Errorf("[ERR] discover-gce: Missing configuration")
-	}
-
+//
+// cfg supports the following fields:
+//
+//   "project_name"     : the name of the project. discovered if not set
+//   "zone_pattern"     : regular expression for filtering zones
+//   "tag_value"        : tag value for filtering instances
+//   "credentials_file" : path to file with credentials. If empty, the default
+//                        GCE authentication mechanisms are used.
+//
+func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	// determine the project name
-	project := c.ProjectName
+	project := cfg["project_name"]
 	if project == "" {
 		l.Println("[INFO] discover-gce: Looking up project name")
 		p, err := lookupProject()
@@ -57,10 +36,11 @@ func Discover(c *Config, l *log.Logger) ([]string, error) {
 	l.Printf("[INFO] discover-gce: Project name is %q", project)
 
 	// create an authenticated client
-	if c.CredentialsFile != "" {
-		l.Printf("[INFO] discover-gce: Loading credentials from %s", c.CredentialsFile)
+	creds := cfg["credentials_file"]
+	if creds != "" {
+		l.Printf("[INFO] discover-gce: Loading credentials from %s", creds)
 	}
-	client, err := client(c.CredentialsFile)
+	client, err := client(creds)
 	if err != nil {
 		return nil, err
 	}
@@ -70,21 +50,23 @@ func Discover(c *Config, l *log.Logger) ([]string, error) {
 	}
 
 	// lookup the project zones to look in
-	if c.ZonePattern != "" {
-		l.Printf("[INFO] discover-gce: Looking up zones matching %s", c.ZonePattern)
+	zone := cfg["zone_pattern"]
+	if zone != "" {
+		l.Printf("[INFO] discover-gce: Looking up zones matching %s", zone)
 	} else {
 		l.Printf("[INFO] discover-gce: Looking up all zones")
 	}
-	zones, err := lookupZones(svc, project, c.ZonePattern)
+	zones, err := lookupZones(svc, project, zone)
 	if err != nil {
 		return nil, err
 	}
 	l.Printf("[INFO] discover-gce: Found zones %v", zones)
 
 	// lookup the instance addresses
+	tagValue := cfg["tag_value"]
 	var addrs []string
 	for _, zone := range zones {
-		a, err := lookupAddrs(svc, project, zone, c.TagValue)
+		a, err := lookupAddrs(svc, project, zone, tagValue)
 		if err != nil {
 			return nil, err
 		}

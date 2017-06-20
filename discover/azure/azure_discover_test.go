@@ -22,17 +22,17 @@ func TestDiscover(t *testing.T) {
 		t.Log("Environments other than Public not supported at the moment")
 	}
 
-	c := &Config{
-		SubscriptionID:  subscriptionID,
-		ClientID:        clientID,
-		SecretAccessKey: clientSecret,
-		TenantID:        tenantID,
-		TagName:         "type",
-		TagValue:        "Foundation",
+	cfg := map[string]string{
+		"tenant_id":         tenantID,
+		"client_id":         clientID,
+		"subscription_id":   subscriptionID,
+		"secret_access_key": clientSecret,
+		"tag_name":          "type",
+		"tag_value":         "Foundation",
 	}
 
 	l := log.New(os.Stderr, "", log.LstdFlags)
-	addrs, err := Discover(c, l)
+	addrs, err := Discover(cfg, l)
 	if err != nil {
 		t.Fatal(err)
 	}
