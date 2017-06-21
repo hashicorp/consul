@@ -413,7 +413,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	// Warn if we are expecting an even number of servers
 	if cfg.BootstrapExpect != 0 && cfg.BootstrapExpect%2 == 0 {
 		if cfg.BootstrapExpect == 2 {
-			cmd.UI.Error("WARNING: A cluster with 2 servers will provide no failure tolerance")
+			cmd.UI.Error("WARNING: A cluster with 2 servers will provide no failure tolerance.  See https://www.consul.io/docs/internals/consensus.html#deployment-table")
 		} else {
 			cmd.UI.Error("WARNING: A cluster with an even number of servers does not achieve optimum fault tolerance.  See https://www.consul.io/docs/internals/consensus.html#deployment-table")
 		}
