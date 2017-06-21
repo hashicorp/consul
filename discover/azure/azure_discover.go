@@ -27,6 +27,10 @@ import (
 //  tag_name          : The name of the tag to filter on
 //  tag_value         : The value of the tag to filter on
 //
+// Example:
+//
+//  tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx tag_name=consul tag_value=xxx
+//
 func Discover(cfg string, l *log.Logger) ([]string, error) {
 	m, err := config.Parse(cfg)
 	if err != nil {

@@ -37,6 +37,10 @@ import (
 //  4. On Google Compute Engine, use credentials from the metadata
 //     server. In this final case any provided scopes are ignored.
 //
+// Example:
+//
+//  project_name=test zone_pattern=us-(?west|east).* tag_value=consul-server credentials_file=xxx
+//
 func Discover(cfg string, l *log.Logger) ([]string, error) {
 	m, err := config.Parse(cfg)
 	if err != nil {
