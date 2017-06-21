@@ -411,6 +411,15 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		cmd.UI.Error(fmt.Sprintf("WARNING: Expect Mode enabled, expecting %d servers", cfg.BootstrapExpect))
 	}
 
+	// Warn if we are expecting an even number of servers
+	if cfg.BootstrapExpect != 0 && cfg.BootstrapExpect%2 == 0 {
+		if cfg.BootstrapExpect == 2 {
+			cmd.UI.Error("WARNING: A cluster with 2 servers will provide no failure tolerance.  See https://www.consul.io/docs/internals/consensus.html#deployment-table")
+		} else {
+			cmd.UI.Error("WARNING: A cluster with an even number of servers does not achieve optimum fault tolerance.  See https://www.consul.io/docs/internals/consensus.html#deployment-table")
+		}
+	}
+
 	// Warn if we are in bootstrap mode
 	if cfg.Bootstrap {
 		cmd.UI.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
