@@ -6,6 +6,15 @@ import (
 	"os"
 )
 
+const (
+	// magic values for systemd
+	// from https://www.freedesktop.org/software/systemd/man/sd_notify.html#Description
+
+	Ready     = "READY=1"
+	Reloading = "RELOADING=1"
+	Stopping  = "STOPPING=1"
+)
+
 var NotifyNoSocket = errors.New("No socket")
 
 // Notifier provides a method to send a message to systemd.
