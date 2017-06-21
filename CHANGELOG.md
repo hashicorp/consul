@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Added a `-disable-keyring-file` option to prevent writing keyring data to disk. [GH-3145]
+* agent: Fix `consul leave` shutdown race. When shutting down an agent via the `consul leave` command on the command line the output would be `EOF` instead of `Graceful leave completed` [GH-2880]
 * dns: Added support for EDNS(0) size adjustments if set in the request frame. This allows DNS responses via UDP which are larger than the standard 512 bytes max if the requesting client can support it. [GH-1980, GH-3131]
 
 BUG FIXES:
