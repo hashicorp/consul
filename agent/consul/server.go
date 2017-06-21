@@ -1018,7 +1018,7 @@ func (s *Server) resetConsistentReadReady() {
 
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
-	return atomic.LoadInt32(&s.readyForConsistentReads) > 0
+	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
 }
 
 // peersInfoContent is used to help operators understand what happened to the

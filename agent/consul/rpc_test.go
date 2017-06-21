@@ -179,12 +179,8 @@ func TestReadyForConsistentReads(t *testing.T) {
 
 	s.resetConsistentReadReady()
 
-	if err := s.consistentRead(); err.Error() != "Not ready to serve consistent reads" {
-		t.Fatal("Server should NOT be ready for consistent reads")
-	}
-
 	setConsistentFunc := func() {
-		time.Sleep(2 * time.Millisecond)
+		time.Sleep(3 * time.Millisecond)
 		s.setConsistentReadReady()
 	}
 
@@ -193,12 +189,15 @@ func TestReadyForConsistentReads(t *testing.T) {
 	//set some time to wait for the goroutine above to finish
 	waitUntil := time.Now().Add(time.Millisecond * 5)
 	err := s.consistentRead()
+	if err.Error() != "Not ready to serve consistent reads" {
+		t.Fatal("Server should NOT be ready for consistent reads")
+	}
 	for time.Now().Before(waitUntil) && err != nil {
 		err = s.consistentRead()
 	}
 
 	if err != nil {
-		t.Fatal("Expected server to be ready for consistent reads ")
+		t.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
 	}
 
 }
