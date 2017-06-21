@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	preparedQueryEndpoint      = "PreparedQuery"
 	preparedQueryExecuteSuffix = "/execute"
 	preparedQueryExplainSuffix = "/explain"
 )
