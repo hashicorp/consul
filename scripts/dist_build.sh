@@ -22,13 +22,13 @@ popd
 # verify that the checked-in content is up to date without spurious diffs of the
 # file mod times.
 pushd pkg
-cat ../command/agent/bindata_assetfs.go | ../scripts/fixup_times.sh
+cat ../agent/bindata_assetfs.go | ../scripts/fixup_times.sh
 popd
 
 # Regenerate the built-in web assets. If there are any diffs after doing this
 # then we know something is up.
 make static-assets
-if ! git diff --quiet command/agent/bindata_assetfs.go; then
+if ! git diff --quiet agent/bindata_assetfs.go; then
    echo "Checked-in web assets are out of date, build aborted"
    exit 1
 fi
