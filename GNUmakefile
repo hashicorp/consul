@@ -73,15 +73,17 @@ vet:
 		exit 1; \
 	fi
 
-# build the static web ui and build static assets inside a Docker container, the
-# same way a release build works
+# Build the static web ui and build static assets inside a Docker container, the
+# same way a release build works. This implicitly does a "make static-assets" at
+# the end.
 ui:
 	@sh -c "'$(CURDIR)/scripts/ui.sh'"
 
-# generates the static web ui that's compiled into the binary
+# If you've run "make ui" manually then this will get called for you. This is
+# also run as part of the release build script when it verifies that there are no
+# changes to the UI assets that aren't checked in.
 static-assets:
-	@echo "--> Generating static assets"
-	@go-bindata-assetfs -pkg agent -prefix pkg ui/...
+	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
 	@mv bindata_assetfs.go agent/
 	$(MAKE) format
 
