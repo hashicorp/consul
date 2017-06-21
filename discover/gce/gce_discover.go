@@ -1,3 +1,4 @@
+// Package gce provides node discovery for Google Cloud.
 package gce
 
 import (
@@ -11,16 +12,25 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
-// Discover returns the private ip addresses of all GCE instances in
-// some or all zones of a project which have a certain tag.
+// Discover returns the private ip addresses of all Google Cloud
+// instances in some or all zones of a project with a certain tag value.
 //
 // cfg supports the following fields:
 //
-//   "project_name"     : the name of the project. discovered if not set
-//   "zone_pattern"     : regular expression for filtering zones
-//   "tag_value"        : tag value for filtering instances
-//   "credentials_file" : path to file with credentials. If empty, the default
-//                        GCE authentication mechanisms are used.
+//   "project_name"     : The name of the project. discovered if not set
+//   "zone_pattern"     : A RE2 regular expression for filtering zones, e.g. us-west1-.*, or us-(?west|east).*
+//   "tag_value"        : The tag value for filtering instances
+//   "credentials_file" : The path to the credentials file. See below for more details
+//
+// Authentication is handled in the following order:
+//
+//  1. Use credentials from "credentials_file", if provided.
+//  2. Use JSON file from GOOGLE_APPLICATION_CREDENTIALS environment variable.
+//  3. Use JSON file in a location known to the gcloud command-line tool.
+//     On Windows, this is %APPDATA%/gcloud/application_default_credentials.json.
+//     On other systems, $HOME/.config/gcloud/application_default_credentials.json.
+//  4. On Google Compute Engine, use credentials from the metadata
+//     server. In this final case any provided scopes are ignored.
 //
 func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	// determine the project name

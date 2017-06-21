@@ -1,3 +1,4 @@
+// Package azure provides node discovery for Microsoft Azure.
 package azure
 
 import (
@@ -9,17 +10,17 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 )
 
-// Discover returns the ip addresses of all Azure instances in a
-// subscription where TagName == TagValue.
+// Discover returns the private ip addresses of all Azure instances in a
+// subscription with a certain tag name and value.
 //
 // cfg supports the following fields:
 //
-//  "tenant_id"         : the id of the tenant
-//  "client_id"         : the id of the client
-//  "subscription_id"   : the id of the subscription
-//  "secret_access_key" : the authentication credential
-//  "tag_name"          : the name of the tag to filter on
-//  "tag_value"         : the value of the tag to filter on
+//  "tenant_id"         : The id of the tenant
+//  "client_id"         : The id of the client
+//  "subscription_id"   : The id of the subscription
+//  "secret_access_key" : The authentication credential
+//  "tag_name"          : The name of the tag to filter on
+//  "tag_value"         : The value of the tag to filter on
 //
 func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 

@@ -1,3 +1,4 @@
+// Package aws provides node discovery for Amazon AWS.
 package aws
 
 import (
@@ -11,17 +12,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-// Discover returns the ip addresses of all AWS instances in a region
-// where tag_key == tag_value. If no region is provided the region of the
-// instance is used.
+// Discover returns the private ip addresses of all AWS instances in a
+// region with a given tag key and value. If no region is provided the
+// region of the instance is used.
 //
 // cfg supports the following fields:
 //
-//   "region":            the AWS region
-//   "tag_key":           the tag key to filter on
-//   "tag_value":         the tag value to filter on
-//   "access_key_id":     the AWS access key to use
-//   "secret_access_key": the AWS secret access key to use
+//   "region":            The AWS region
+//   "tag_key":           The tag key to filter on
+//   "tag_value":         The tag value to filter on
+//   "access_key_id":     The AWS access key to use
+//   "secret_access_key": The AWS secret access key to use
 //
 func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	region := cfg["region"]
