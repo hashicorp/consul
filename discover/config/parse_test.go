@@ -1,4 +1,4 @@
-package discover
+package config
 
 import (
 	"errors"
@@ -23,28 +23,6 @@ func TestParse(t *testing.T) {
 				"tag_value":         "c c",
 				"access_key_id":     "d d",
 				"secret_access_key": "e e",
-			},
-			nil,
-		},
-		{"provider=azure tag_name=a+a tag_value=b+b client_id=c+c tenant_id=d+d subscription_id=e+e secret_access_key=f+f",
-			map[string]string{
-				"provider":          "azure",
-				"tag_name":          "a a",
-				"tag_value":         "b b",
-				"client_id":         "c c",
-				"tenant_id":         "d d",
-				"subscription_id":   "e e",
-				"secret_access_key": "f f",
-			},
-			nil,
-		},
-		{"provider=gce project_name=a+a zone_pattern=b+b tag_value=c+c credentials_file=d+d",
-			map[string]string{
-				"provider":         "gce",
-				"project_name":     "a a",
-				"zone_pattern":     "b b",
-				"tag_value":        "c c",
-				"credentials_file": "d d",
 			},
 			nil,
 		},

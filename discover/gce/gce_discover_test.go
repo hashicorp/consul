@@ -1,6 +1,7 @@
 package gce
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -16,12 +17,8 @@ func TestDiscover(t *testing.T) {
 		t.Skip("GOOGLE_APPLICATION_CREDENTIALS or GCE_CONFIG_CREDENTIALS not set, skipping")
 	}
 
-	cfg := map[string]string{
-		"project_name":     os.Getenv("GCE_PROJECT"),
-		"zone_pattern":     os.Getenv("GCE_ZONE"),
-		"tag_value":        "consulrole-server",
-		"credentials_file": os.Getenv("GCE_CONFIG_CREDENTIALS"),
-	}
+	cfg := fmt.Sprintf("project_name=%s zone_pattern=%s tag_value=%s credentials_file=%s",
+		os.Getenv("GCE_PROJECT"), os.Getenv("GCE_ZONE"), "consul-server", os.Getenv("GCE_CONFIG_CREDENTIALS"))
 
 	l := log.New(os.Stderr, "", log.LstdFlags)
 	addrs, err := Discover(cfg, l)

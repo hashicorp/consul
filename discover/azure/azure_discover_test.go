@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -22,14 +23,8 @@ func TestDiscover(t *testing.T) {
 		t.Log("Environments other than Public not supported at the moment")
 	}
 
-	cfg := map[string]string{
-		"tenant_id":         tenantID,
-		"client_id":         clientID,
-		"subscription_id":   subscriptionID,
-		"secret_access_key": clientSecret,
-		"tag_name":          "type",
-		"tag_value":         "Foundation",
-	}
+	cfg := fmt.Sprintf("tenant_id=%s client_id=%s subscription_id=%s secret_access_key=%s tag_name=%s tag_value=%s",
+		tenantID, clientID, subscriptionID, clientSecret, "type", "Foundation")
 
 	l := log.New(os.Stderr, "", log.LstdFlags)
 	addrs, err := Discover(cfg, l)

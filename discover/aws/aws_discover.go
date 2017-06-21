@@ -10,22 +10,40 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/consul/discover/config"
 )
 
 // Discover returns the private ip addresses of all AWS instances in a
 // region with a given tag key and value. If no region is provided the
 // region of the instance is used.
 //
-// cfg supports the following fields:
+// cfg contains the configuration in "key=val key=val ..." format. The
+// values are URL encoded.
 //
-//   "region":            The AWS region
-//   "tag_key":           The tag key to filter on
-//   "tag_value":         The tag value to filter on
-//   "access_key_id":     The AWS access key to use
-//   "secret_access_key": The AWS secret access key to use
+// The supported keys are:
 //
-func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
-	region := cfg["region"]
+//   region:            The AWS region
+//   tag_key:           The tag key to filter on
+//   tag_value:         The tag value to filter on
+//   access_key_id:     The AWS access key to use
+//   secret_access_key: The AWS secret access key to use
+//
+// Example:
+//
+//  region=eu-west-1 tag_key=consul tag_value=xxx access_key_id=xxx secret_access_key=xxx
+//
+func Discover(cfg string, l *log.Logger) ([]string, error) {
+	m, err := config.Parse(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	region := m["region"]
+	tagKey := m["tag_key"]
+	tagValue := m["tag_value"]
+	accessKey := m["access_key_id"]
+	secretKey := m["secret_access_key"]
+
 	if region == "" {
 		l.Printf("[INFO] discover-aws: Looking up region")
 		ec2meta := ec2metadata.New(session.New())
@@ -36,9 +54,6 @@ func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 		region = identity.Region
 	}
 	l.Printf("[INFO] discover-aws: Region is %s", region)
-
-	tagKey, tagValue := cfg["tag_key"], cfg["tag_value"]
-	accessKey, secretKey := cfg["access_key_id"], cfg["secret_access_key"]
 
 	svc := ec2.New(session.New(), &aws.Config{
 		Region: &region,

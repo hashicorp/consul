@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/hashicorp/consul/discover/config"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
@@ -15,12 +17,15 @@ import (
 // Discover returns the private ip addresses of all Google Cloud
 // instances in some or all zones of a project with a certain tag value.
 //
-// cfg supports the following fields:
+// cfg contains the configuration in "key=val key=val ..." format. The
+// values are URL encoded.
 //
-//   "project_name"     : The name of the project. discovered if not set
-//   "zone_pattern"     : A RE2 regular expression for filtering zones, e.g. us-west1-.*, or us-(?west|east).*
-//   "tag_value"        : The tag value for filtering instances
-//   "credentials_file" : The path to the credentials file. See below for more details
+// The supported keys are:
+//
+//   project_name     : The name of the project. discovered if not set
+//   zone_pattern     : A RE2 regular expression for filtering zones, e.g. us-west1-.*, or us-(?west|east).*
+//   tag_value        : The tag value for filtering instances
+//   credentials_file : The path to the credentials file. See below for more details
 //
 // Authentication is handled in the following order:
 //
@@ -32,9 +37,18 @@ import (
 //  4. On Google Compute Engine, use credentials from the metadata
 //     server. In this final case any provided scopes are ignored.
 //
-func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
+func Discover(cfg string, l *log.Logger) ([]string, error) {
+	m, err := config.Parse(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	project := m["project_name"]
+	zone := m["zone_pattern"]
+	creds := m["credentials_file"]
+	tagValue := m["tag_value"]
+
 	// determine the project name
-	project := cfg["project_name"]
 	if project == "" {
 		l.Println("[INFO] discover-gce: Looking up project name")
 		p, err := lookupProject()
@@ -46,7 +60,6 @@ func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	l.Printf("[INFO] discover-gce: Project name is %q", project)
 
 	// create an authenticated client
-	creds := cfg["credentials_file"]
 	if creds != "" {
 		l.Printf("[INFO] discover-gce: Loading credentials from %s", creds)
 	}
@@ -60,7 +73,6 @@ func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	}
 
 	// lookup the project zones to look in
-	zone := cfg["zone_pattern"]
 	if zone != "" {
 		l.Printf("[INFO] discover-gce: Looking up zones matching %s", zone)
 	} else {
@@ -73,7 +85,6 @@ func Discover(cfg map[string]string, l *log.Logger) ([]string, error) {
 	l.Printf("[INFO] discover-gce: Found zones %v", zones)
 
 	// lookup the instance addresses
-	tagValue := cfg["tag_value"]
 	var addrs []string
 	for _, zone := range zones {
 		a, err := lookupAddrs(svc, project, zone, tagValue)
