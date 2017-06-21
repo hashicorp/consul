@@ -447,6 +447,38 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	})
 }
 
+type mockNotifier struct{ s string }
+
+func (n *mockNotifier) Notify(state string) error {
+	n.s = state
+	return nil
+}
+
+func TestAgent_JoinLANNotify(t *testing.T) {
+	t.Parallel()
+	a1 := NewTestAgent(t.Name(), nil)
+	defer a1.Shutdown()
+
+	cfg2 := TestConfig()
+	cfg2.Server = false
+	cfg2.Bootstrap = false
+	a2 := NewTestAgent(t.Name(), cfg2)
+	defer a2.Shutdown()
+
+	notif := &mockNotifier{}
+	a1.joinLANNotifier = notif
+
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	_, err := a1.JoinLAN([]string{addr})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if got, want := notif.s, "READY=1"; got != want {
+		t.Fatalf("got joinLAN notification %q want %q", got, want)
+	}
+}
+
 func TestAgent_Leave(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t.Name(), nil)

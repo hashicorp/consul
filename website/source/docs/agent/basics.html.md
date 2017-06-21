@@ -74,6 +74,11 @@ There are several important messages that [`consul agent`](/docs/commands/agent.
   Consul agents in a cluster. Not all Consul agents in a cluster have to
   use the same port, but this address **MUST** be reachable by all other nodes.
 
+When running under `systemd` on Linux, Consul notifies systemd by sending
+`READY=1` to the `$NOTIFY_SOCKET` when a LAN join has completed. For
+this either the `join` or `retry_join` option has to be set and the
+service definition file has to have `Type=notify` set.
+
 ## Stopping an Agent
 
 An agent can be stopped in two ways: gracefully or forcefully. To gracefully

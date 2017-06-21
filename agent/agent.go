@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -69,6 +70,11 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+}
+
+// notifier is called after a successful JoinLAN.
+type notifier interface {
+	Notify(string) error
 }
 
 // The agent is the long running process that is run on every machine.
@@ -141,6 +147,9 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// joinLANNotifier is called after a successful JoinLAN.
+	joinLANNotifier notifier
+
 	// retryJoinCh transports errors from the retry join
 	// attempts.
 	retryJoinCh chan error
@@ -188,22 +197,23 @@ func New(c *Config) (*Agent, error) {
 	}
 
 	a := &Agent{
-		config:         c,
-		acls:           acls,
-		checkReapAfter: make(map[types.CheckID]time.Duration),
-		checkMonitors:  make(map[types.CheckID]*CheckMonitor),
-		checkTTLs:      make(map[types.CheckID]*CheckTTL),
-		checkHTTPs:     make(map[types.CheckID]*CheckHTTP),
-		checkTCPs:      make(map[types.CheckID]*CheckTCP),
-		checkDockers:   make(map[types.CheckID]*CheckDocker),
-		eventCh:        make(chan serf.UserEvent, 1024),
-		eventBuf:       make([]*UserEvent, 256),
-		reloadCh:       make(chan chan error),
-		retryJoinCh:    make(chan error),
-		shutdownCh:     make(chan struct{}),
-		endpoints:      make(map[string]string),
-		dnsAddrs:       dnsAddrs,
-		httpAddrs:      httpAddrs,
+		config:          c,
+		acls:            acls,
+		checkReapAfter:  make(map[types.CheckID]time.Duration),
+		checkMonitors:   make(map[types.CheckID]*CheckMonitor),
+		checkTTLs:       make(map[types.CheckID]*CheckTTL),
+		checkHTTPs:      make(map[types.CheckID]*CheckHTTP),
+		checkTCPs:       make(map[types.CheckID]*CheckTCP),
+		checkDockers:    make(map[types.CheckID]*CheckDocker),
+		eventCh:         make(chan serf.UserEvent, 1024),
+		eventBuf:        make([]*UserEvent, 256),
+		joinLANNotifier: &systemd.Notifier{},
+		reloadCh:        make(chan chan error),
+		retryJoinCh:     make(chan error),
+		shutdownCh:      make(chan struct{}),
+		endpoints:       make(map[string]string),
+		dnsAddrs:        dnsAddrs,
+		httpAddrs:       httpAddrs,
 	}
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
@@ -1216,6 +1226,11 @@ func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
 	n, err = a.delegate.JoinLAN(addrs)
 	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
+	if err == nil && a.joinLANNotifier != nil {
+		if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
+			a.logger.Printf("[DEBUG] agent: systemd notify failed: ", notifErr)
+		}
+	}
 	return
 }
 
