@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -140,6 +141,9 @@ type Server struct {
 	// into the leader manager, so that the strong state can be
 	// updated
 	reconcileCh chan serf.Member
+
+	// used to track when the server is ready to serve consistent reads, updated atomically
+	readyForConsistentReads int32
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -1000,6 +1004,21 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
+}
+
+// Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
+func (s *Server) setConsistentReadReady() {
+	atomic.StoreInt32(&s.readyForConsistentReads, 1)
+}
+
+// Atomically reset readiness state flag on leadership revoke
+func (s *Server) resetConsistentReadReady() {
+	atomic.StoreInt32(&s.readyForConsistentReads, 0)
+}
+
+// Returns true if this server is ready to serve consistent reads
+func (s *Server) isReadyForConsistentReads() bool {
+	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
 }
 
 // peersInfoContent is used to help operators understand what happened to the

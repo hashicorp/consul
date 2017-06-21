@@ -183,6 +183,8 @@ func (s *Server) establishLeadership() error {
 
 	s.startAutopilot()
 
+	s.setConsistentReadReady()
+
 	return nil
 }
 
@@ -198,6 +200,8 @@ func (s *Server) revokeLeadership() error {
 		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
+
+	s.resetConsistentReadReady()
 
 	s.stopAutopilot()
 

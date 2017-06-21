@@ -492,7 +492,13 @@ func TestLeader_LeftLeader(t *testing.T) {
 	if leader == nil {
 		t.Fatalf("Should have a leader")
 	}
+	if !leader.isReadyForConsistentReads() {
+		t.Fatalf("Expected leader to be ready for consistent reads ")
+	}
 	leader.Leave()
+	if leader.isReadyForConsistentReads() {
+		t.Fatalf("Expected consistent read state to be false ")
+	}
 	leader.Shutdown()
 	time.Sleep(100 * time.Millisecond)
 
