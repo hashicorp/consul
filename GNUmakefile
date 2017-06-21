@@ -47,7 +47,8 @@ cov:
 	open /tmp/coverage.html
 
 test: dev
-	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
+	go test -tags "$(GOTAGS)" -i ./...
+	go test -tags "$(GOTAGS)" -run '^$$' ./... > /dev/null
 	go test -tags "$(GOTAGS)" -v $$(go list ./... | egrep -v '(agent/consul|vendor)') > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
 	go test -tags "$(GOTAGS)" -v $$(go list ./... | egrep '(agent/consul)') >> test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
 	@if [ "$$TRAVIS" == "true" ] ; then cat test.log ; fi
