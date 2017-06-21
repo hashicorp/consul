@@ -2,10 +2,10 @@ package agent
 
 import (
 	"fmt"
-	"strings"
+	"net/url"
 	"time"
 
-	"github.com/hashicorp/consul/discover"
+	"github.com/hashicorp/go-discover"
 )
 
 // RetryJoin is used to handle retrying a join until it succeeds or all
@@ -16,44 +16,28 @@ func (a *Agent) retryJoin() {
 	azurecfg := cfg.RetryJoinAzure
 	gcecfg := cfg.RetryJoinGCE
 
+	q := url.QueryEscape
+
 	a.logger.Printf("[INFO] agent: Joining cluster...")
 	attempts := cfg.RetryMaxAttempts
 	for {
-		var args []string
+		args := ""
 		switch {
 		case awscfg.TagKey != "" && awscfg.TagValue != "":
-			args = []string{
-				"provider=aws",
-				"region=" + awscfg.Region,
-				"tag_key=" + awscfg.TagKey,
-				"tag_value=" + awscfg.TagValue,
-				"access_key_id=" + awscfg.AccessKeyID,
-				"secret_access_key=" + awscfg.SecretAccessKey,
-			}
+			args = fmt.Sprintf("provider=aws region=%s tag_key=%s tag_value=%s access_key_id=%s secret_access_key=%s",
+				q(awscfg.Region), q(awscfg.TagKey), q(awscfg.TagValue), q(awscfg.AccessKeyID), q(awscfg.SecretAccessKey))
 
 		case gcecfg.TagValue != "":
-			args = []string{
-				"provider=gce",
-				"project_name=" + gcecfg.ProjectName,
-				"zone_pattern=" + gcecfg.ZonePattern,
-				"tag_value=" + gcecfg.TagValue,
-				"credentials_file=" + gcecfg.CredentialsFile,
-			}
+			args = fmt.Sprintf("provider=gce project_name=%s zone_pattern=%s tag_value=%s credentials_file=%s",
+				q(gcecfg.ProjectName), q(gcecfg.ZonePattern), q(gcecfg.TagValue), q(gcecfg.CredentialsFile))
 
 		case azurecfg.TagName != "" && azurecfg.TagValue != "":
-			args = []string{
-				"provider=azure",
-				"tag_name=" + azurecfg.TagName,
-				"tag_value=" + azurecfg.TagValue,
-				"tenant_id=" + azurecfg.TenantID,
-				"client_id=" + azurecfg.ClientID,
-				"subscription_id=" + azurecfg.SubscriptionID,
-				"secret_access_key=" + azurecfg.SecretAccessKey,
-			}
+			args = fmt.Sprintf("provider=azure tenant_id=%s subscription_id=%s client_id=%s tag_name=%s tag_value=%s secret_access_key=%s",
+				q(azurecfg.TenantID), q(azurecfg.SubscriptionID), q(azurecfg.ClientID), q(azurecfg.TagName), q(azurecfg.TagValue), q(azurecfg.SecretAccessKey))
 		}
 
 		// do not retry join
-		if len(cfg.RetryJoin) == 0 && len(args) == 0 {
+		if len(cfg.RetryJoin) == 0 && args == "" {
 			return
 		}
 
@@ -61,7 +45,7 @@ func (a *Agent) retryJoin() {
 		var err error
 		var servers []string
 
-		discovered, err := discover.Discover(strings.Join(args, " "), a.logger)
+		discovered, err := discover.Discover(args, a.logger)
 		if err != nil {
 			goto Retry
 		}

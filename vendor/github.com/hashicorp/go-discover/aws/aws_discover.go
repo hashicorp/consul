@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/consul/discover/config"
+	"github.com/hashicorp/go-discover/config"
 )
 
 // Discover returns the private ip addresses of all AWS instances in a

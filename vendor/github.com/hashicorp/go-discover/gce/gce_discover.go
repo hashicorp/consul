@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/hashicorp/consul/discover/config"
+	"github.com/hashicorp/go-discover/config"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"

@@ -5,10 +5,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/consul/discover/aws"
-	"github.com/hashicorp/consul/discover/azure"
-	"github.com/hashicorp/consul/discover/config"
-	"github.com/hashicorp/consul/discover/gce"
+	"github.com/hashicorp/go-discover/aws"
+	"github.com/hashicorp/go-discover/azure"
+	"github.com/hashicorp/go-discover/config"
+	"github.com/hashicorp/go-discover/gce"
 )
 
 // Discoverer is the signature of the function to discover ip addresses of nodes

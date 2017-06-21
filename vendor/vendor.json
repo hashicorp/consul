@@ -246,6 +246,13 @@
 			"revisionTime": "2017-02-11T01:34:15Z"
 		},
 		{
+			"checksumSHA1": "8emlOr8dXbbAfm/JrNiHJcSpCLg=",
+			"path": "github.com/hashicorp/go-discover",
+			"revision": "403f22046550d37902eb57353ad20431377f2967",
+			"revisionTime": "2017-06-20T11:59:42Z",
+			"tree": true
+		},
+		{
 			"checksumSHA1": "zvmksNyW6g+Fd/bywd4vcn8rp+M=",
 			"path": "github.com/hashicorp/go-immutable-radix",
 			"revision": "d0852f9e7b91ec9633735052bdab00bf802b353c",
