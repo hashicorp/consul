@@ -44,7 +44,7 @@ import (
 func Discover(cfg string, l *log.Logger) ([]string, error) {
 	m, err := config.Parse(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-gce: %s", err)
 	}
 
 	project := m["project_name"]
@@ -57,7 +57,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 		l.Println("[INFO] discover-gce: Looking up project name")
 		p, err := lookupProject()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("discover-gce: %s", err)
 		}
 		project = p
 	}
@@ -69,11 +69,11 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	}
 	client, err := client(creds)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-gce: %s", err)
 	}
 	svc, err := compute.New(client)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-gce: %s", err)
 	}
 
 	// lookup the project zones to look in
@@ -84,7 +84,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	}
 	zones, err := lookupZones(svc, project, zone)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-gce: %s", err)
 	}
 	l.Printf("[INFO] discover-gce: Found zones %v", zones)
 
@@ -93,7 +93,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	for _, zone := range zones {
 		a, err := lookupAddrs(svc, project, zone, tagValue)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("discover-gce: %s", err)
 		}
 		l.Printf("[INFO] discover-gce: Zone %q has %v", zone, a)
 		addrs = append(addrs, a...)

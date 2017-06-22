@@ -2,6 +2,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,7 +36,7 @@ import (
 func Discover(cfg string, l *log.Logger) ([]string, error) {
 	m, err := config.Parse(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-aws: %s", err)
 	}
 
 	region := m["region"]
@@ -49,7 +50,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 		ec2meta := ec2metadata.New(session.New())
 		identity, err := ec2meta.GetInstanceIdentityDocument()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("discover-aws: %s", err)
 		}
 		region = identity.Region
 	}
@@ -80,7 +81,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-aws: %s", err)
 	}
 	l.Printf("[INFO] discover-aws: Filter instances by %s=%s", tagKey, tagValue)
 

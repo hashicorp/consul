@@ -19,12 +19,12 @@ func Parse(s string) (map[string]string, error) {
 	for _, v := range strings.Fields(s) {
 		p := strings.SplitN(v, "=", 2)
 		if len(p) != 2 {
-			return nil, fmt.Errorf("discover: invalid format: %s", v)
+			return nil, fmt.Errorf("invalid format: %s", v)
 		}
 		key := p[0]
 		val, err := url.QueryUnescape(p[1])
 		if err != nil {
-			return nil, fmt.Errorf("discover: invalid format: %s", v)
+			return nil, fmt.Errorf("invalid format: %s", v)
 		}
 		m[key] = val
 	}

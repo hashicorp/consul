@@ -3,7 +3,6 @@ package discover
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/go-discover/aws"
 	"github.com/hashicorp/go-discover/azure"
@@ -36,10 +35,9 @@ func init() {
 //  provider=aws region=eu-west-1 ...
 //
 func Discover(cfg string, l *log.Logger) ([]string, error) {
-	args := strings.SplitN(cfg, " ", 2)
-	m, err := config.Parse(args[0])
+	m, err := config.Parse(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover: %s", err)
 	}
 	p := m["provider"]
 	if p == "" {
@@ -49,5 +47,5 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	if d == nil {
 		return nil, fmt.Errorf("discover: unknown provider %q", p)
 	}
-	return d(args[1], l)
+	return d(cfg, l)
 }

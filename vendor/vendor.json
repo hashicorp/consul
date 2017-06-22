@@ -246,10 +246,10 @@
 			"revisionTime": "2017-02-11T01:34:15Z"
 		},
 		{
-			"checksumSHA1": "8emlOr8dXbbAfm/JrNiHJcSpCLg=",
+			"checksumSHA1": "SZ5/I9XKRS2myif+8kRgZbhVUHE=",
 			"path": "github.com/hashicorp/go-discover",
-			"revision": "403f22046550d37902eb57353ad20431377f2967",
-			"revisionTime": "2017-06-20T11:59:42Z",
+			"revision": "2c6c2771ed739d39922779b1a81e8b99c5eef6b2",
+			"revisionTime": "2017-06-22T10:42:22Z",
 			"tree": true
 		},
 		{

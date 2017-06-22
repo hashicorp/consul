@@ -34,7 +34,7 @@ import (
 func Discover(cfg string, l *log.Logger) ([]string, error) {
 	m, err := config.Parse(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	tenantID := m["tenant_id"]
@@ -47,13 +47,13 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
 	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	// Get the ServicePrincipalToken for use searching the NetworkInterfaces
 	sbt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID, secretKey, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	// Setup the client using autorest; followed the structure from Terraform
@@ -66,7 +66,7 @@ func Discover(cfg string, l *log.Logger) ([]string, error) {
 	// unless there is a compelling reason to restrict
 	netres, err := vmnet.ListAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	// For now, ignore Primary interfaces, choose any PrivateIPAddress with the matching tags
