@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
 * agent: Added a `-disable-keyring-file` option to prevent writing keyring data to disk. [GH-3145]
 * agent: Notify systemd on Linux after LAN join is complete. [GH-2121]
+* agent: Allow a `?stale` option on the HTTP API [GH-3142]
 * dns: Added support for EDNS(0) size adjustments if set in the request frame. This allows DNS responses via UDP which are larger than the standard 512 bytes max if the requesting client can support it. [GH-1980, GH-3131]
 * server: Added a startup warning for servers when expecting to bootstrap with an even number of nodes. [GH-1282]
 * agent: (Consul Enterprise) Added support for non rotating, statically named snapshots for S3 snapshots using the snapshot agent.
