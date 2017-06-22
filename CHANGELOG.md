@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * agent: Notify systemd on Linux after LAN join is complete. [GH-2121]
 * dns: Added support for EDNS(0) size adjustments if set in the request frame. This allows DNS responses via UDP which are larger than the standard 512 bytes max if the requesting client can support it. [GH-1980, GH-3131]
 * server: Added a startup warning for servers when expecting to bootstrap with an even number of nodes. [GH-1282]
+* agent: (Consul Enterprise) Added support for non rotating, statically named snapshots for S3 snapshots using the snapshot agent.
 
 BUG FIXES:
 
