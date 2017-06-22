@@ -356,7 +356,7 @@ This endpoint returns the nodes providing a service in a given datacenter.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/service/:service`  | `application/json`         |
+| `GET`  | `/catalog/service/service`  | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
