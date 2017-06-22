@@ -803,7 +803,7 @@ type ProtoAddr struct {
 }
 
 func (p ProtoAddr) String() string {
-	return p.Proto + "+" + p.Net + "://" + p.Addr
+	return p.Proto + "://" + p.Addr
 }
 
 func (c *Config) DNSAddrs() ([]ProtoAddr, error) {
