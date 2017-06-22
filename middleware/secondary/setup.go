@@ -4,6 +4,8 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/file"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/proxy"
 
 	"github.com/mholt/caddy"
 )
@@ -47,6 +49,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 	z := make(map[string]*file.Zone)
 	names := []string{}
 	origins := []string{}
+	prxy := proxy.Proxy{}
 	for c.Next() {
 
 		if c.Val() == "secondary" {
@@ -74,6 +77,16 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 					if e != nil {
 						return file.Zones{}, e
 					}
+				case "upstream":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return file.Zones{}, c.ArgErr()
+					}
+					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					if err != nil {
+						return file.Zones{}, err
+					}
+					prxy = proxy.NewLookup(ups)
 				}
 
 				for _, origin := range origins {
@@ -83,6 +96,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 					if f != nil {
 						z[origin].TransferFrom = append(z[origin].TransferFrom, f...)
 					}
+					z[origin].Proxy = prxy
 				}
 			}
 		}

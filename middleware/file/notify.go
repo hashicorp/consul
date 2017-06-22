@@ -3,8 +3,8 @@ package file
 import (
 	"fmt"
 	"log"
+	"net"
 
-	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/pkg/rcode"
 	"github.com/coredns/coredns/request"
 
@@ -21,8 +21,13 @@ func (z *Zone) isNotify(state request.Request) bool {
 	if len(z.TransferFrom) == 0 {
 		return false
 	}
-	remote := middleware.Addr(state.IP()).Normalize()
-	for _, from := range z.TransferFrom {
+	// If remote IP matches we accept.
+	remote := state.IP()
+	for _, f := range z.TransferFrom {
+		from, _, err := net.SplitHostPort(f)
+		if err != nil {
+			continue
+		}
 		if from == remote {
 			return true
 		}

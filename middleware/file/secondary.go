@@ -26,19 +26,19 @@ Transfer:
 		t := new(dns.Transfer)
 		c, err := t.In(m, tr)
 		if err != nil {
-			log.Printf("[ERROR] Failed to setup transfer `%s' with `%s': %v", z.origin, tr, err)
+			log.Printf("[ERROR] Failed to setup transfer `%s' with `%q': %v", z.origin, tr, err)
 			Err = err
 			continue Transfer
 		}
 		for env := range c {
 			if env.Error != nil {
-				log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.origin, env.Error)
+				log.Printf("[ERROR] Failed to transfer `%s' from %q: %v", z.origin, tr, env.Error)
 				Err = env.Error
 				continue Transfer
 			}
 			for _, rr := range env.RR {
 				if err := z1.Insert(rr); err != nil {
-					log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.origin, err)
+					log.Printf("[ERROR] Failed to parse transfer `%s' from: %q: %v", z.origin, tr, err)
 					Err = err
 					continue Transfer
 				}
@@ -48,7 +48,6 @@ Transfer:
 		break
 	}
 	if Err != nil {
-		log.Printf("[ERROR] Failed to transfer %s: %s", z.origin, Err)
 		return Err
 	}
 
