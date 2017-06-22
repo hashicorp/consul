@@ -332,7 +332,11 @@ func TestDecodeConfig(t *testing.T) {
 		},
 		{
 			in: `{"http_api_response_headers":{"a":"b","c":"d"}}`,
-			c:  &Config{HTTPAPIResponseHeaders: map[string]string{"a": "b", "c": "d"}},
+			c:  &Config{HTTPConfig: HTTPConfig{ResponseHeaders: map[string]string{"a": "b", "c": "d"}}},
+		},
+		{
+			in: `{"http_config":{"response_headers":{"a":"b","c":"d"}}}`,
+			c:  &Config{HTTPConfig: HTTPConfig{ResponseHeaders: map[string]string{"a": "b", "c": "d"}}},
 		},
 		{
 			in: `{"key_file":"a"}`,
@@ -1389,8 +1393,10 @@ func TestMergeConfig(t *testing.T) {
 		},
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
-		HTTPAPIResponseHeaders: map[string]string{
-			"Access-Control-Allow-Origin": "*",
+		HTTPConfig: HTTPConfig{
+			ResponseHeaders: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		},
 		UnixSockets: UnixSocketConfig{
 			UnixSocketPermissions{

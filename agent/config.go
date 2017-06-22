@@ -129,6 +129,17 @@ type DNSConfig struct {
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
+// HTTPConfig is used to fine tune the Http sub-system.
+type HTTPConfig struct {
+	// AllowStale is used to turn on stale consistency mode by default for HTTP API requests.
+	// This gives horizontal read scalability since any Consul server can service the query instead of
+	// only the leader.
+	AllowStale bool `mapstructure:"allow_stale"`
+
+	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
+	ResponseHeaders map[string]string `mapstructure:"response_headers"`
+}
+
 // RetryJoinEC2 is used to configure discovery of instances via Amazon's EC2 api
 type RetryJoinEC2 struct {
 	// The AWS region to look for instances in
@@ -364,6 +375,9 @@ type Config struct {
 
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string `mapstructure:"domain"`
+
+	// HTTP configuration
+	HTTPConfig HTTPConfig `mapstructure:"http_config"`
 
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt" json:"-"`
@@ -706,9 +720,6 @@ type Config struct {
 	// send with the update check. This is used to deduplicate messages.
 	DisableAnonymousSignature bool `mapstructure:"disable_anonymous_signature"`
 
-	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
-	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
-
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
@@ -759,11 +770,12 @@ type Config struct {
 
 	// deprecated fields
 	// keep them exported since otherwise the error messages don't show up
-	DeprecatedAtlasInfrastructure string `mapstructure:"atlas_infrastructure" json:"-"`
-	DeprecatedAtlasToken          string `mapstructure:"atlas_token" json:"-"`
-	DeprecatedAtlasACLToken       string `mapstructure:"atlas_acl_token" json:"-"`
-	DeprecatedAtlasJoin           bool   `mapstructure:"atlas_join" json:"-"`
-	DeprecatedAtlasEndpoint       string `mapstructure:"atlas_endpoint" json:"-"`
+	DeprecatedAtlasInfrastructure    string            `mapstructure:"atlas_infrastructure" json:"-"`
+	DeprecatedAtlasToken             string            `mapstructure:"atlas_token" json:"-"`
+	DeprecatedAtlasACLToken          string            `mapstructure:"atlas_acl_token" json:"-"`
+	DeprecatedAtlasJoin              bool              `mapstructure:"atlas_join" json:"-"`
+	DeprecatedAtlasEndpoint          string            `mapstructure:"atlas_endpoint" json:"-"`
+	DeprecatedHTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
@@ -1368,6 +1380,19 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.TLSCipherSuites = ciphers
 	}
 
+	// This is for backwards compatibility.
+	// HTTPAPIResponseHeaders has been replaced with HttpApiConfig.ResponseHeaders
+	if len(result.DeprecatedHTTPAPIResponseHeaders) > 0 {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: http_api_response_headers is deprecated and "+
+			"is no longer used. Please remove it from your configuration.")
+		if result.HTTPConfig.ResponseHeaders == nil {
+			result.HTTPConfig.ResponseHeaders = make(map[string]string)
+		}
+		for field, value := range result.DeprecatedHTTPAPIResponseHeaders {
+			result.HTTPConfig.ResponseHeaders[field] = value
+		}
+		result.DeprecatedHTTPAPIResponseHeaders = nil
+	}
 	return &result, nil
 }
 
@@ -1974,13 +1999,16 @@ func MergeConfig(a, b *Config) *Config {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
 	}
-	if len(b.HTTPAPIResponseHeaders) != 0 {
-		if result.HTTPAPIResponseHeaders == nil {
-			result.HTTPAPIResponseHeaders = make(map[string]string)
+	if len(b.HTTPConfig.ResponseHeaders) > 0 {
+		if result.HTTPConfig.ResponseHeaders == nil {
+			result.HTTPConfig.ResponseHeaders = make(map[string]string)
 		}
-		for field, value := range b.HTTPAPIResponseHeaders {
-			result.HTTPAPIResponseHeaders[field] = value
+		for field, value := range b.HTTPConfig.ResponseHeaders {
+			result.HTTPConfig.ResponseHeaders[field] = value
 		}
+	}
+	if b.HTTPConfig.AllowStale {
+		result.HTTPConfig.AllowStale = true
 	}
 	if len(b.Meta) != 0 {
 		if result.Meta == nil {

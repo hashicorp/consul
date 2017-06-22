@@ -162,7 +162,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
+		setHeaders(resp, s.agent.config.HTTPConfig.ResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
@@ -358,14 +358,16 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 }
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
+// allowStale forces stale consistency instead of default one if none was provided in the query.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func parseConsistency(resp http.ResponseWriter, req *http.Request, allowStale bool, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
-	if _, ok := query["stale"]; ok {
-		b.AllowStale = true
-	}
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
+	}
+	b.AllowStale = !b.RequireConsistent && allowStale
+	if _, ok := query["stale"]; ok {
+		b.AllowStale = true
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest) // 400
@@ -433,7 +435,8 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	if parseConsistency(resp, req, b) {
+	allowStale := s.agent.config.HTTPConfig.AllowStale
+	if parseConsistency(resp, req, allowStale, b) {
 		return true
 	}
 	return parseWait(resp, req, b)

@@ -700,6 +700,30 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   be increasingly uncommon to need to change this value with modern
   resolvers).
 
+* <a name="http_config"></a><a href="#http_config">`http_config`</a> This object allows a number
+  of sub-keys to be set which can tune how HTTP queries are serviced.
+  <br><br>
+  The following sub-keys are available:
+
+  * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
+  for HTTP queries. This allows any Consul server, rather than only the leader, to service
+  the request. The advantage of this is you get linear read scalability with Consul servers.
+  This defaults to false.
+  
+  * <a name="http_api_response_headers"></a><a href="#http_api_response_headers">`http_api_response_headers`</a>
+    This object allows adding headers to the HTTP API
+    responses. For example, the following config can be used to enable
+    [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
+    the HTTP API endpoints:
+  
+      ```javascript
+        {
+          "http_api_response_headers": {
+              "Access-Control-Allow-Origin": "*"
+          }
+        }
+      ```
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
@@ -730,20 +754,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).
-
-* <a name="http_api_response_headers"></a><a href="#http_api_response_headers">`http_api_response_headers`</a>
-  This object allows adding headers to the HTTP API
-  responses. For example, the following config can be used to enable
-  [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
-  the HTTP API endpoints:
-
-    ```javascript
-      {
-        "http_api_response_headers": {
-            "Access-Control-Allow-Origin": "*"
-        }
-      }
-    ```
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
   enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest
