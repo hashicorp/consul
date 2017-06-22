@@ -55,10 +55,15 @@ func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
 
 func (c *CheckDefinition) CheckType() *CheckType {
 	return &CheckType{
-		CheckID:           c.ID,
-		Name:              c.Name,
+		CheckID: c.ID,
+		Name:    c.Name,
+		Status:  c.Status,
+		Notes:   c.Notes,
+
 		Script:            c.Script,
 		HTTP:              c.HTTP,
+		Header:            c.Header,
+		Method:            c.Method,
 		TCP:               c.TCP,
 		Interval:          c.Interval,
 		DockerContainerID: c.DockerContainerID,
@@ -67,7 +72,5 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Timeout:           c.Timeout,
 		TTL:               c.TTL,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
-		Status: c.Status,
-		Notes:  c.Notes,
 	}
 }
