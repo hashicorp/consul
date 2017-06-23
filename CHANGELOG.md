@@ -19,6 +19,7 @@ BUG FIXES:
 * agent: Fixed a regression where configuring -1 for the port was no longer disabling the DNS server. [GH-3135]
 * agent: Fix `consul leave` shutdown race. When shutting down an agent via the `consul leave` command on the command line the output would be `EOF` instead of `Graceful leave completed` [GH-2880]
 * agent: Show a better error message than 'EOF' when attempting to join with the wrong gossip key. [GH-1013]
+* agent: Fixed an issue where the `Method` and `Header` features of HTTP health checks were not being applied. [GH-3178]
 * server: Fixed an issue where the leader could return stale data duing queries as it is starting up. [GH-2644]
 
 ## 0.8.4 (June 9, 2017)
