@@ -190,9 +190,7 @@ func (k *Kubernetes) IsNameError(err error) bool {
 func (k *Kubernetes) Debug() string { return "debug" }
 
 func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
-	// For a custom api server or running outside a k8s cluster
-	// set URL in env.KUBERNETES_MASTER or set endpoint in Corefile
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	overrides := &clientcmd.ConfigOverrides{}
 	clusterinfo := clientcmdapi.Cluster{}
 	authinfo := clientcmdapi.AuthInfo{}
