@@ -841,7 +841,7 @@ func (cmd *AgentCommand) handleReload(agent *agent.Agent, cfg *agent.Config) (*a
 		newCfg.LogLevel = cfg.LogLevel
 	}
 
-	ok, errs := agent.ReloadConfig(newCfg)
+	ok, errs := agent.ReloadConfig(newCfg, cfg)
 	if ok {
 		return newCfg, errs
 	}

@@ -118,3 +118,7 @@ func (p *Plan) shouldStop() bool {
 		return false
 	}
 }
+
+func (p *Plan) IsStopped() bool {
+	return p.stop
+}

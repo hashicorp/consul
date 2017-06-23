@@ -2302,7 +2302,7 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
+func (a *Agent) ReloadConfig(newCfg *Config, prevConfig *Config) (bool, error) {
 	var errs error
 
 	// Bulk update the services and checks
@@ -2340,13 +2340,13 @@ func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := newCfg.ClientListener(a.config.Addresses.HTTP, a.config.Ports.HTTP)
+	httpAddr, err := newCfg.ClientListener(prevConfig.Addresses.HTTP, prevConfig.Ports.HTTP)
 	if err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
 	}
 
 	// Deregister the old watches
-	for _, wp := range a.config.WatchPlans {
+	for _, wp := range prevConfig.WatchPlans {
 		wp.Stop()
 	}
 
