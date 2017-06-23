@@ -2340,7 +2340,7 @@ func (a *Agent) ReloadConfig(newCfg *Config, prevConfig *Config) (bool, error) {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := newCfg.ClientListener(prevConfig.Addresses.HTTP, prevConfig.Ports.HTTP)
+	httpAddr, err := newCfg.ClientListener(newCfg.Addresses.HTTP, newCfg.Ports.HTTP)
 	if err != nil {
 		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
 	}
