@@ -172,7 +172,7 @@ $ curl \
   },
   "Meta": {
     "instance_type": "i2.xlarge",
-    "os_version": "ubuntu_16.04",
+    "os_version": "ubuntu_16.04"
   }
 }
 ```
