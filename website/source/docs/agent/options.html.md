@@ -141,7 +141,11 @@ will exit with an error at startup.
 * <a name="_disable_host_node_id"></a><a href="#_disable_host_node_id">`-disable-host-node-id`</a> - Setting
   this to true will prevent Consul from using information from the host to generate a deterministic node ID,
   and will instead generate a random node ID which will be persisted in the data directory. This is useful
-  when running multiple Consul agents on the same host for testing. This defaults to false.
+  when running multiple Consul agents on the same host for testing. This defaults to false in Consul prior
+  to version 0.8.5 and in 0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
+  IDs are generated using https://github.com/shirou/gopsutil/tree/master/host, which is shared with HashiCorp's
+  [Nomad](https://www.nomadproject.io/), so if you opt-in to host-based IDs then Consul and Nomad will use
+  information on the host to automatically assign the same ID in both systems.
 
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
   This overrides the default port 8600. This is available in Consul 0.7 and later.

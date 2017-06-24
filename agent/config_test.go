@@ -242,8 +242,8 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{DisableCoordinates: true},
 		},
 		{
-			in: `{"disable_host_node_id":true}`,
-			c:  &Config{DisableHostNodeID: true},
+			in: `{"disable_host_node_id":false}`,
+			c:  &Config{DisableHostNodeID: Bool(false)},
 		},
 		{
 			in: `{"dns_config":{"allow_stale":true}}`,
@@ -1305,7 +1305,7 @@ func TestMergeConfig(t *testing.T) {
 		Domain:            "other",
 		LogLevel:          "info",
 		NodeID:            "bar",
-		DisableHostNodeID: true,
+		DisableHostNodeID: Bool(false),
 		NodeName:          "baz",
 		ClientAddr:        "127.0.0.2",
 		BindAddr:          "127.0.0.2",

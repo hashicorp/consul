@@ -79,10 +79,13 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	f.StringVar((*string)(&cmdCfg.NodeID), "node-id", "",
 		"A unique ID for this node across space and time. Defaults to a randomly-generated ID"+
 			" that persists in the data-dir.")
-	f.BoolVar(&cmdCfg.DisableHostNodeID, "disable-host-node-id", false,
+
+	var disableHostNodeID configutil.BoolValue
+	f.Var(&disableHostNodeID, "disable-host-node-id",
 		"Setting this to true will prevent Consul from using information from the"+
 			" host to generate a node ID, and will cause Consul to generate a"+
 			" random node ID instead.")
+
 	f.StringVar(&cmdCfg.Datacenter, "datacenter", "", "Datacenter of the agent.")
 	f.StringVar(&cmdCfg.DataDir, "data-dir", "", "Path to a data directory to store agent state.")
 	f.BoolVar(&cmdCfg.EnableUI, "ui", false, "Enables the built-in static web UI server.")
@@ -238,6 +241,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	cmdCfg.DNSRecursors = append(cmdCfg.DNSRecursors, dnsRecursors...)
 
 	cfg = agent.MergeConfig(cfg, &cmdCfg)
+	disableHostNodeID.Merge(cfg.DisableHostNodeID)
 
 	if cfg.NodeName == "" {
 		hostname, err := os.Hostname()
