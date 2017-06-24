@@ -517,7 +517,7 @@ func (a *Agent) registerWatches() error {
 				addr = "unix://" + addr
 			}
 			if err := wp.Run(addr); err != nil {
-				a.logger.Println("[ERR] Failed to run watch: %v", err)
+				a.logger.Printf("[ERR] Failed to run watch: %v", err)
 			}
 		}(wp)
 	}
