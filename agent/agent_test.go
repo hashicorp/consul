@@ -306,22 +306,32 @@ func TestAgent_makeNodeID(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Calling again should yield the same ID since it's host-based.
+	// Calling again should yield a random ID by default.
 	another, err := a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if id != another {
+	if id == another {
 		t.Fatalf("bad: %s vs %s", id, another)
 	}
 
-	// Turn off host-based IDs and try again. We should get a random ID.
-	a.Config.DisableHostNodeID = true
-	another, err = a.makeNodeID()
+	// Turn on host-based IDs and try again. We should get the same ID
+	// each time (and a different one from the random one above).
+	a.Config.DisableHostNodeID = Bool(false)
+	id, err = a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if id == another {
+		t.Fatalf("bad: %s vs %s", id, another)
+	}
+
+	// Calling again should yield the host-based ID.
+	another, err = a.makeNodeID()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if id != another {
 		t.Fatalf("bad: %s vs %s", id, another)
 	}
 }

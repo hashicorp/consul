@@ -940,7 +940,7 @@ func (a *Agent) makeRandomID() (string, error) {
 // gopsutil change implementations without affecting in-place upgrades of nodes.
 func (a *Agent) makeNodeID() (string, error) {
 	// If they've disabled host-based IDs then just make a random one.
-	if a.config.DisableHostNodeID {
+	if *a.config.DisableHostNodeID {
 		return a.makeRandomID()
 	}
 
