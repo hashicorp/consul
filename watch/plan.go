@@ -118,3 +118,9 @@ func (p *Plan) shouldStop() bool {
 		return false
 	}
 }
+
+func (p *Plan) IsStopped() bool {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	return p.stop
+}

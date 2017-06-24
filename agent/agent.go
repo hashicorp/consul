@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
@@ -174,6 +173,10 @@ type Agent struct {
 
 	// wgServers is the wait group for all HTTP and DNS servers
 	wgServers sync.WaitGroup
+
+	// watchPlans tracks all the currently-running watch plans for the
+	// agent.
+	watchPlans []*watch.Plan
 }
 
 func New(c *Config) (*Agent, error) {
@@ -317,7 +320,7 @@ func (a *Agent) Start() error {
 	}
 
 	// register watches
-	if err := a.registerWatches(); err != nil {
+	if err := a.reloadWatches(a.config); err != nil {
 		return err
 	}
 
@@ -496,11 +499,11 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	}
 }
 
-func (a *Agent) registerWatches() error {
-	if len(a.config.WatchPlans) == 0 {
-		return nil
-	}
-	addrs, err := a.config.HTTPAddrs()
+// reloadWatches stops any existing watch plans and attempts to load the given
+// set of watches.
+func (a *Agent) reloadWatches(cfg *Config) error {
+	// Watches use the API to talk to this agent, so that must be enabled.
+	addrs, err := cfg.HTTPAddrs()
 	if err != nil {
 		return err
 	}
@@ -508,7 +511,15 @@ func (a *Agent) registerWatches() error {
 		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
 	}
 
-	for _, wp := range a.config.WatchPlans {
+	// Stop the current watches.
+	for _, wp := range a.watchPlans {
+		wp.Stop()
+	}
+	a.watchPlans = nil
+
+	// Fire off a goroutine for each new watch plan.
+	for _, wp := range cfg.WatchPlans {
+		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
 			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
 			wp.LogOutput = a.LogOutput
@@ -517,7 +528,7 @@ func (a *Agent) registerWatches() error {
 				addr = "unix://" + addr
 			}
 			if err := wp.Run(addr); err != nil {
-				a.logger.Println("[ERR] Failed to run watch: %v", err)
+				a.logger.Printf("[ERR] Failed to run watch: %v", err)
 			}
 		}(wp)
 	}
@@ -2302,9 +2313,7 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
-	var errs error
-
+func (a *Agent) ReloadConfig(newCfg *Config) error {
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2316,50 +2325,28 @@ func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
 	if err := a.unloadServices(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed unloading services: %s", err)
 	}
 	if err := a.unloadChecks(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed unloading checks: %s", err)
 	}
 	a.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading services: %s", err)
 	}
 	if err := a.loadChecks(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading checks: %s", err)
 	}
 	if err := a.loadMetadata(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading metadata: %s", err)
 	}
 
-	// Get the new client listener addr
-	httpAddr, err := newCfg.ClientListener(a.config.Addresses.HTTP, a.config.Ports.HTTP)
-	if err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
+	// Reload the watches.
+	if err := a.reloadWatches(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
-	// Deregister the old watches
-	for _, wp := range a.config.WatchPlans {
-		wp.Stop()
-	}
-
-	// Register the new watches
-	for _, wp := range newCfg.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
-			wp.LogOutput = a.LogOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-
-	return true, errs
+	return nil
 }

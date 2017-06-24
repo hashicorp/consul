@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -237,6 +238,19 @@ func TestAgent_Reload(t *testing.T) {
 	cfg.Services = []*structs.ServiceDefinition{
 		&structs.ServiceDefinition{Name: "redis"},
 	}
+
+	params := map[string]interface{}{
+		"datacenter": "dc1",
+		"type":       "key",
+		"key":        "test",
+		"handler":    "true",
+	}
+	wp, err := watch.ParseExempt(params, []string{"handler"})
+	if err != nil {
+		t.Fatalf("Expected watch.Parse to succeed %v", err)
+	}
+	cfg.WatchPlans = append(cfg.WatchPlans, wp)
+
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -250,15 +264,18 @@ func TestAgent_Reload(t *testing.T) {
 		&structs.ServiceDefinition{Name: "redis-reloaded"},
 	}
 
-	ok, err := a.ReloadConfig(cfg2)
-	if err != nil {
+	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
-	}
-	if !ok {
-		t.Fatalf("got ok %v want true")
 	}
 	if _, ok := a.state.services["redis-reloaded"]; !ok {
 		t.Fatalf("missing redis-reloaded service")
+	}
+
+	// Verify that previous config's watch plans were stopped.
+	for _, wp := range cfg.WatchPlans {
+		if !wp.IsStopped() {
+			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
+		}
 	}
 }
 
