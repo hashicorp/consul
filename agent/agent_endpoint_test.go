@@ -239,16 +239,19 @@ func TestAgent_Reload(t *testing.T) {
 		&structs.ServiceDefinition{Name: "redis"},
 	}
 
-	a := NewTestAgent(t.Name(), cfg)
-	params := make(map[string]interface{})
-	params["datacenter"] = "dc1"
-	params["type"] = "key"
-	params["key"] = "test"
-	wp, err := watch.Parse(params)
+	params := map[string]interface{}{
+		"datacenter": "dc1",
+		"type":       "key",
+		"key":        "test",
+		"handler":    "true",
+	}
+	wp, err := watch.ParseExempt(params, []string{"handler"})
 	if err != nil {
 		t.Fatalf("Expected watch.Parse to succeed %v", err)
 	}
 	cfg.WatchPlans = append(cfg.WatchPlans, wp)
+
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	if _, ok := a.state.services["redis"]; !ok {
@@ -261,19 +264,16 @@ func TestAgent_Reload(t *testing.T) {
 		&structs.ServiceDefinition{Name: "redis-reloaded"},
 	}
 
-	ok, err := a.ReloadConfig(cfg2, cfg)
-	if err != nil {
+	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
-	}
-	if !ok {
-		t.Fatalf("got ok %v want true")
 	}
 	if _, ok := a.state.services["redis-reloaded"]; !ok {
 		t.Fatalf("missing redis-reloaded service")
 	}
-	//verify that previous config's watch plans were stopped
-	for _, w := range cfg.WatchPlans {
-		if !w.IsStopped() {
+
+	// Verify that previous config's watch plans were stopped.
+	for _, wp := range cfg.WatchPlans {
+		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
 	}

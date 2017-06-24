@@ -841,10 +841,11 @@ func (cmd *AgentCommand) handleReload(agent *agent.Agent, cfg *agent.Config) (*a
 		newCfg.LogLevel = cfg.LogLevel
 	}
 
-	ok, errs := agent.ReloadConfig(newCfg, cfg)
-	if ok {
-		return newCfg, errs
+	if err := agent.ReloadConfig(newCfg); err != nil {
+		errs = multierror.Append(fmt.Errorf(
+			"Failed to reload configs: %v", err))
 	}
+
 	return cfg, errs
 }
 
