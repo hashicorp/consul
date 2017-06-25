@@ -49,7 +49,7 @@ const (
 func (s *Server) listen() {
 	for {
 		// Accept a connection
-		conn, err := s.rpcListener.Accept()
+		conn, err := s.Listener.Accept()
 		if err != nil {
 			if s.shutdown {
 				return

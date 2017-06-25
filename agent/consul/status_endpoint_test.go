@@ -13,7 +13,7 @@ import (
 )
 
 func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
-	addr := s.config.RPCAddr
+	addr := s.config.RPCAdvertise
 	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {
 		t.Fatalf("err: %v", err)

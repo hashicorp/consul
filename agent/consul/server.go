@@ -150,9 +150,9 @@ type Server struct {
 	// Enterprise user-defined areas.
 	router *servers.Router
 
-	// rpcListener is used to listen for incoming connections
-	rpcListener net.Listener
-	rpcServer   *rpc.Server
+	// Listener is used to listen for incoming connections
+	Listener  net.Listener
+	rpcServer *rpc.Server
 
 	// rpcTLS is the TLS config for incoming TLS requests
 	rpcTLS *tls.Config
@@ -392,7 +392,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool) (*serf.Serf, error) {
-	addr := s.rpcListener.Addr().(*net.TCPAddr)
+	addr := s.Listener.Addr().(*net.TCPAddr)
 	conf.Init()
 	if wan {
 		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
@@ -645,7 +645,14 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	if err != nil {
 		return err
 	}
-	s.rpcListener = ln
+	s.Listener = ln
+	if s.config.NotifyListen != nil {
+		s.config.NotifyListen()
+	}
+	// todo(fs): we should probably guard this
+	if s.config.RPCAdvertise == nil {
+		s.config.RPCAdvertise = ln.Addr().(*net.TCPAddr)
+	}
 
 	// Verify that we have a usable advertise address
 	if s.config.RPCAdvertise.IP.IsUnspecified() {
@@ -714,8 +721,8 @@ func (s *Server) Shutdown() error {
 		}
 	}
 
-	if s.rpcListener != nil {
-		s.rpcListener.Close()
+	if s.Listener != nil {
+		s.Listener.Close()
 	}
 
 	// Close the connection pool
