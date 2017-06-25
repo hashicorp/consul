@@ -21,6 +21,7 @@ import (
 )
 
 func TestPreparedQuery_Apply(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -181,6 +182,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 }
 
 func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -462,6 +464,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 	})
@@ -529,6 +532,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 }
 
 func TestPreparedQuery_parseQuery(t *testing.T) {
+	t.Parallel()
 	query := &structs.PreparedQuery{}
 
 	err := parseQuery(query, true)
@@ -617,6 +621,7 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 }
 
 func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -830,6 +835,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 }
 
 func TestPreparedQuery_Get(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1081,6 +1087,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 }
 
 func TestPreparedQuery_List(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1287,6 +1294,7 @@ func TestPreparedQuery_List(t *testing.T) {
 }
 
 func TestPreparedQuery_Explain(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1422,6 +1430,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 // walk through the different cases once we have it up. This is broken into
 // sections so it's still pretty easy to read.
 func TestPreparedQuery_Execute(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -2443,6 +2452,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2571,6 +2581,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 }
 
 func TestPreparedQuery_tagFilter(t *testing.T) {
+	t.Parallel()
 	testNodes := func() structs.CheckServiceNodes {
 		return structs.CheckServiceNodes{
 			structs.CheckServiceNode{
@@ -2662,6 +2673,7 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 }
 
 func TestPreparedQuery_Wrapper(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -2748,6 +2760,7 @@ func (m *mockQueryServer) ForwardDC(method, dc string, args interface{}, reply i
 }
 
 func TestPreparedQuery_queryFailover(t *testing.T) {
+	t.Parallel()
 	query := &structs.PreparedQuery{
 		Name: "test",
 		Service: structs.ServiceQuery{
