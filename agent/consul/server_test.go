@@ -169,6 +169,7 @@ func newServer(c *Config) (*Server, error) {
 }
 
 func TestServer_StartStop(t *testing.T) {
+	t.Parallel()
 	// Start up a server and then stop it.
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -183,6 +184,7 @@ func TestServer_StartStop(t *testing.T) {
 }
 
 func TestServer_JoinLAN(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -204,6 +206,7 @@ func TestServer_JoinLAN(t *testing.T) {
 }
 
 func TestServer_JoinWAN(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -235,6 +238,7 @@ func TestServer_JoinWAN(t *testing.T) {
 }
 
 func TestServer_JoinWAN_Flood(t *testing.T) {
+	t.Parallel()
 	// Set up two servers in a WAN.
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
@@ -272,6 +276,7 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 }
 
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -349,6 +354,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 }
 
 func TestServer_LeaveLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -386,6 +392,7 @@ func TestServer_LeaveLeader(t *testing.T) {
 }
 
 func TestServer_Leave(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -423,6 +430,7 @@ func TestServer_Leave(t *testing.T) {
 }
 
 func TestServer_RPC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -434,6 +442,7 @@ func TestServer_RPC(t *testing.T) {
 }
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
+	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -475,6 +484,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 }
 
 func TestServer_Expect(t *testing.T) {
+	t.Parallel()
 	// All test servers should be in expect=3 mode, except for the 3rd one,
 	// but one with expect=0 can cause a bootstrap to occur from the other
 	// servers as currently implemented.
@@ -537,6 +547,7 @@ func TestServer_Expect(t *testing.T) {
 }
 
 func TestServer_BadExpect(t *testing.T) {
+	t.Parallel()
 	// this one is in expect=3 mode
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
@@ -583,6 +594,7 @@ func (r *fakeGlobalResp) New() interface{} {
 }
 
 func TestServer_globalRPCErrors(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -603,6 +615,7 @@ func TestServer_globalRPCErrors(t *testing.T) {
 }
 
 func TestServer_Encrypted(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -651,6 +664,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {
+	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -678,6 +692,7 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 }
 
 func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
+	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -703,6 +718,7 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 }
 
 func TestServer_TLSToFullVerify(t *testing.T) {
+	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.CAFile = "../../test/client_certs/rootca.crt"
