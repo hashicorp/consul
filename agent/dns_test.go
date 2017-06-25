@@ -32,30 +32,7 @@ const (
 // makeRecursor creates a generic DNS server which always returns
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
-func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
-	randomPort := TenPorts()
-	cfg := TestConfig()
-	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, randomPort)
-	mux := dns.NewServeMux()
-	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
-		ans := &dns.Msg{Answer: answer[:]}
-		ans.SetReply(msg)
-		if err := resp.WriteMsg(ans); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	})
-	server := &dns.Server{
-		Addr:    dnsAddr,
-		Net:     "udp",
-		Handler: mux,
-	}
-	go server.ListenAndServe()
-	return server
-}
-
-func makeRecursorWithMessage(t *testing.T, answer dns.Msg) *dns.Server {
-	cfg := TestConfig()
-	dnsAddr := fmt.Sprintf("%s:%d", cfg.Addresses.DNS, cfg.Ports.DNS)
+func makeRecursor(t *testing.T, answer dns.Msg) *dns.Server {
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
 		answer.SetReply(msg)
@@ -63,12 +40,16 @@ func makeRecursorWithMessage(t *testing.T, answer dns.Msg) *dns.Server {
 			t.Fatalf("err: %s", err)
 		}
 	})
+	up := make(chan struct{})
 	server := &dns.Server{
-		Addr:    dnsAddr,
-		Net:     "udp",
-		Handler: mux,
+		Addr:              "127.0.0.1:0",
+		Net:               "udp",
+		Handler:           mux,
+		NotifyStartedFunc: func() { close(up) },
 	}
 	go server.ListenAndServe()
+	<-up
+	server.Addr = server.PacketConn.LocalAddr().String()
 	return server
 }
 
@@ -317,9 +298,11 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	t.Parallel()
-	recursor := makeRecursor(t, []dns.RR{
-		dnsCNAME("www.google.com", "google.com"),
-		dnsA("google.com", "1.2.3.4"),
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{
+			dnsCNAME("www.google.com", "google.com"),
+			dnsA("google.com", "1.2.3.4"),
+		},
 	})
 	defer recursor.Shutdown()
 
@@ -1944,7 +1927,9 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 
 func TestDNS_Recurse(t *testing.T) {
 	t.Parallel()
-	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
+	})
 	defer recursor.Shutdown()
 
 	cfg := TestConfig()
@@ -1972,12 +1957,11 @@ func TestDNS_Recurse(t *testing.T) {
 
 func TestDNS_Recurse_Truncation(t *testing.T) {
 	t.Parallel()
-	answerMessage := dns.Msg{
+
+	recursor := makeRecursor(t, dns.Msg{
 		MsgHdr: dns.MsgHdr{Truncated: true},
 		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
-	}
-
-	recursor := makeRecursorWithMessage(t, answerMessage)
+	})
 	defer recursor.Shutdown()
 
 	cfg := TestConfig()
@@ -2860,9 +2844,11 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	t.Parallel()
-	recursor := makeRecursor(t, []dns.RR{
-		dnsCNAME("www.google.com", "google.com"),
-		dnsA("google.com", "1.2.3.4"),
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{
+			dnsCNAME("www.google.com", "google.com"),
+			dnsA("google.com", "1.2.3.4"),
+		},
 	})
 	defer recursor.Shutdown()
 
@@ -2955,9 +2941,11 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 
 func TestDNS_NodeLookup_TTL(t *testing.T) {
 	t.Parallel()
-	recursor := makeRecursor(t, []dns.RR{
-		dnsCNAME("www.google.com", "google.com"),
-		dnsA("google.com", "1.2.3.4"),
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{
+			dnsCNAME("www.google.com", "google.com"),
+			dnsA("google.com", "1.2.3.4"),
+		},
 	})
 	defer recursor.Shutdown()
 
@@ -4653,7 +4641,9 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 
 func TestDNS_Compression_Recurse(t *testing.T) {
 	t.Parallel()
-	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
+	})
 	defer recursor.Shutdown()
 
 	cfg := TestConfig()
