@@ -85,6 +85,11 @@ type Config struct {
 	// as a voting member of the Raft cluster.
 	NonVoter bool
 
+	// NotifyListen is called after the RPC listener has been configured.
+	// RPCAdvertise will be set to the listener address if it hasn't been
+	// configured at this point.
+	NotifyListen func()
+
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
@@ -92,7 +97,8 @@ type Config struct {
 	// RPCAdvertise is the address that is advertised to other nodes for
 	// the RPC endpoint. This can differ from the RPC address, if for example
 	// the RPCAddr is unspecified "0.0.0.0:8300", but this address must be
-	// reachable
+	// reachable. If RPCAdvertise is nil then it will be set to the Listener
+	// address after the listening socket is configured.
 	RPCAdvertise *net.TCPAddr
 
 	// RPCSrcAddr is the source address for outgoing RPC connections.
