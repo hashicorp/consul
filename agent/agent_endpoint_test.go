@@ -271,7 +271,6 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatalf("missing redis-reloaded service")
 	}
 
-	// Verify that previous config's watch plans were stopped.
 	for _, wp := range cfg.WatchPlans {
 		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")

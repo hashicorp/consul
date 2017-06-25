@@ -2343,7 +2343,6 @@ func (a *Agent) ReloadConfig(newCfg *Config) error {
 		return fmt.Errorf("Failed reloading metadata: %s", err)
 	}
 
-	// Reload the watches.
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
