@@ -14,6 +14,7 @@ import (
 )
 
 func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.AutopilotConfig.CleanupDeadServers = false
 	})
@@ -38,6 +39,7 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 }
 
 func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -95,6 +97,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.AutopilotConfig.CleanupDeadServers = false
 	})
@@ -130,6 +133,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 }
 
 func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -197,6 +201,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_ServerHealth(t *testing.T) {
+	t.Parallel()
 	conf := func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
@@ -254,6 +259,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 }
 
 func TestOperator_ServerHealth_UnsupportedRaftVersion(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
