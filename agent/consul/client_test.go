@@ -62,6 +62,7 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 }
 
 func TestClient_StartStop(t *testing.T) {
+	t.Parallel()
 	dir, client := testClient(t)
 	defer os.RemoveAll(dir)
 
@@ -71,6 +72,7 @@ func TestClient_StartStop(t *testing.T) {
 }
 
 func TestClient_JoinLAN(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -95,6 +97,7 @@ func TestClient_JoinLAN(t *testing.T) {
 }
 
 func TestClient_JoinLAN_Invalid(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -118,6 +121,7 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 }
 
 func TestClient_JoinWAN_Invalid(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -141,6 +145,7 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 }
 
 func TestClient_RPC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -176,6 +181,7 @@ func TestClient_RPC(t *testing.T) {
 }
 
 func TestClient_RPC_Pool(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -218,6 +224,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 }
 
 func TestClient_RPC_ConsulServerPing(t *testing.T) {
+	t.Parallel()
 	var servers []*Server
 	var serverDirs []string
 	const numServers = 5
@@ -281,6 +288,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
+	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -326,6 +334,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -368,6 +377,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {
+	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -423,6 +433,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 }
 
 func TestClientServer_UserEvent(t *testing.T) {
+	t.Parallel()
 	clientOut := make(chan serf.UserEvent, 2)
 	dir1, c1 := testClientWithConfig(t, func(conf *Config) {
 		conf.UserEventHandler = func(e serf.UserEvent) {
@@ -499,6 +510,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 }
 
 func TestClient_Encrypted(t *testing.T) {
+	t.Parallel()
 	dir1, c1 := testClient(t)
 	defer os.RemoveAll(dir1)
 	defer c1.Shutdown()
