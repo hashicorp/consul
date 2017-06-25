@@ -296,16 +296,12 @@ func TestAgent_HostBasedIDs(t *testing.T) {
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
-	shutdownCh := make(chan struct{})
-	defer close(shutdownCh)
-
 	// Host-based IDs are disabled by default.
 	{
 		cmd := &AgentCommand{
 			args: []string{
 				"-data-dir", tmpDir,
 			},
-			ShutdownCh:  shutdownCh,
 			BaseCommand: baseCommand(cli.NewMockUi()),
 		}
 
@@ -322,7 +318,6 @@ func TestAgent_HostBasedIDs(t *testing.T) {
 				"-data-dir", tmpDir,
 				"-disable-host-node-id=false",
 			},
-			ShutdownCh:  shutdownCh,
 			BaseCommand: baseCommand(cli.NewMockUi()),
 		}
 
