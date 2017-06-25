@@ -24,7 +24,7 @@ forward lookup back to an IP.
 #### `{ip}`
 
 The `{ip}` symbol is **required** to make reverse work.
-For IPv4 lookups the "." is replaced with a "-", e.g., 10.1.1.1 results in "10-1-1-1"
+For IPv4 lookups the IP is directly extracted
 With IPv6 lookups the ":" is removed, and any zero ranged are expanded, e.g.,
 "ffff::ffff" results in "ffff000000000000000000000000ffff"
 
@@ -42,8 +42,8 @@ arpa compute.internal {
     proxy . 8.8.8.8
 
     # answer requests for IPs in this network
-    # PTR 1.0.32.10.in-addr.arpa. 3600 ip-10-0-32-1.compute.internal.
-    # A ip-10-0-32-1.compute.internal. 3600 10.0.32.1
+    # PTR 1.0.32.10.in-addr.arpa. 3600 ip-10.0.32.1.compute.internal.
+    # A ip-10.0.32.1.compute.internal. 3600 10.0.32.1
     # v6 is also possible
     # PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.d.f.ip6.arpa. 3600 ip-fd010000000000000000000000000001.compute.internal.
     # AAAA ip-fd010000000000000000000000000001.compute.internal. 3600 fd01::1

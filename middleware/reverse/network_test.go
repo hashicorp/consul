@@ -27,7 +27,7 @@ func TestNetworkConversion(t *testing.T) {
 				Template:     "dns-{ip}.domain.internal.",
 				RegexMatchIP: regexIP4,
 			},
-			"dns-10-1-1-23.domain.internal.",
+			"dns-10.1.1.23.domain.internal.",
 			net.ParseIP("10.1.1.23"),
 		},
 		{
@@ -74,7 +74,7 @@ func TestNetworkHostnameToIP(t *testing.T) {
 				RegexMatchIP: regexIP4,
 			},
 			// domain does not match
-			"dns-10-1-1-23.domain.internals.",
+			"dns-10.1.1.23.domain.internals.",
 		},
 		{
 			network{
@@ -82,7 +82,7 @@ func TestNetworkHostnameToIP(t *testing.T) {
 				RegexMatchIP: regexIP4,
 			},
 			// IP does match / contain in subnet
-			"dns-200-1-1-23.domain.internals.",
+			"dns-200.1.1.23.domain.internals.",
 		},
 		{
 			network{
@@ -90,7 +90,7 @@ func TestNetworkHostnameToIP(t *testing.T) {
 				RegexMatchIP: regexIP4,
 			},
 			// template does not match
-			"dns-10-1-1-23-x.domain.internal.",
+			"dns-10.1.1.23-x.domain.internal.",
 		},
 		{
 			network{
@@ -98,7 +98,7 @@ func TestNetworkHostnameToIP(t *testing.T) {
 				RegexMatchIP: regexIP4,
 			},
 			// template does not match
-			"IP-dns-10-1-1-23.domain.internal.",
+			"IP-dns-10.1.1.23.domain.internal.",
 		},
 		{
 			network{

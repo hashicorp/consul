@@ -18,7 +18,7 @@ type network struct {
 // TODO: we might want to get rid of these regexes.
 const hexDigit = "0123456789abcdef"
 const templateNameIP = "{ip}"
-const regexMatchV4 = "((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\-){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))"
+const regexMatchV4 = "((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))"
 const regexMatchV6 = "([0-9a-fA-F]{32})"
 
 // hostnameToIP converts the hostname back to an ip, based on the template
@@ -32,7 +32,7 @@ func (network *network) hostnameToIP(rname string) net.IP {
 	}
 
 	if network.IPnet.IP.To4() != nil {
-		matchedIP = net.ParseIP(strings.Replace(match[1], "-", ".", 4))
+		matchedIP = net.ParseIP(match[1])
 	} else {
 		// TODO: can probably just allocate a []byte and use that.
 		var buf bytes.Buffer
@@ -58,10 +58,7 @@ func (network *network) hostnameToIP(rname string) net.IP {
 func (network *network) ipToHostname(ip net.IP) (name string) {
 	if ipv4 := ip.To4(); ipv4 != nil {
 		// replace . to -
-		name = uitoa(ipv4[0]) + "-" +
-			uitoa(ipv4[1]) + "-" +
-			uitoa(ipv4[2]) + "-" +
-			uitoa(ipv4[3])
+		name = ipv4.String()
 	} else {
 		// assume v6
 		// ensure zeros are present in string
