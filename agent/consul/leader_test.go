@@ -14,6 +14,7 @@ import (
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -82,6 +83,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 }
 
 func TestLeader_FailedMember(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -142,6 +144,7 @@ func TestLeader_FailedMember(t *testing.T) {
 }
 
 func TestLeader_LeftMember(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -187,6 +190,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	})
 }
 func TestLeader_ReapMember(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -247,6 +251,7 @@ func TestLeader_ReapMember(t *testing.T) {
 }
 
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -295,6 +300,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 }
 
 func TestLeader_Reconcile(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -334,6 +340,7 @@ func TestLeader_Reconcile(t *testing.T) {
 }
 
 func TestLeader_Reconcile_Races(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -423,6 +430,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 }
 
 func TestLeader_LeftServer(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -460,6 +468,7 @@ func TestLeader_LeftServer(t *testing.T) {
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -525,6 +534,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 }
 
 func TestLeader_MultiBootstrap(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -556,6 +566,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 }
 
 func TestLeader_TombstoneGC_Reset(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -617,6 +628,7 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 }
 
 func TestLeader_ReapTombstones(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -686,6 +698,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 }
 
 func TestLeader_RollRaftServer(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
@@ -768,6 +781,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 }
 
 func TestLeader_ChangeServerID(t *testing.T) {
+	t.Parallel()
 	conf := func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
