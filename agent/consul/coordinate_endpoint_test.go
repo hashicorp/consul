@@ -42,8 +42,7 @@ func verifyCoordinatesEqual(t *testing.T, a, b *coordinate.Coordinate) {
 }
 
 func TestCoordinate_Update(t *testing.T) {
-	name := fmt.Sprintf("Node %d", getPort())
-	dir1, config1 := testServerConfig(t, name)
+	dir1, config1 := testServerConfig(t)
 	defer os.RemoveAll(dir1)
 
 	config1.CoordinateUpdatePeriod = 500 * time.Millisecond
