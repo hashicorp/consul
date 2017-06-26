@@ -51,9 +51,7 @@ cov:
 
 test: dev
 	go test -tags "$(GOTAGS)" -i ./...
-	go test -tags "$(GOTAGS)" -run '^$$' ./... > /dev/null
-	go test -tags "$(GOTAGS)" -v $$(go list ./... | egrep -v '(agent/consul|vendor)') > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
-	go test -tags "$(GOTAGS)" -v $$(go list ./... | egrep '(agent/consul)') >> test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
+	go test -tags "$(GOTAGS)" -v ./... > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
 	@if [ "$$TRAVIS" == "true" ] ; then cat test.log ; fi
 	@if grep -q 'FAIL_TOKEN' test.log ; then grep 'FAIL:' test.log ; exit 1 ; else echo 'PASS' ; fi
 
