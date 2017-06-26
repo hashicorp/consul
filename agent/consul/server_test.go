@@ -627,8 +627,9 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Check the members
+	// make sure both servers know about each other
 	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s2, 2)) })
 
 	// Have s2 make an RPC call to s1
 	s2.localLock.RLock()
