@@ -76,36 +76,32 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 }
 
 func testServer(t *testing.T) (string, *Server) {
-	return testServerDC(t, "dc1")
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+	})
 }
 
 func testServerDC(t *testing.T, dc string) (string, *Server) {
-	return testServerDCBootstrap(t, dc, true)
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = true
+	})
 }
 
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
-	name := fmt.Sprintf("Node %d", getPort())
-	dir, config := testServerConfig(t, name)
-	config.Datacenter = dc
-	config.Bootstrap = bootstrap
-	server, err := NewServer(config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return dir, server
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = bootstrap
+	})
 }
 
 func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
-	name := fmt.Sprintf("Node %d", getPort())
-	dir, config := testServerConfig(t, name)
-	config.Datacenter = dc
-	config.Bootstrap = false
-	config.BootstrapExpect = expect
-	server, err := NewServer(config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return dir, server
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = false
+		c.BootstrapExpect = expect
+	})
 }
 
 func testServerWithConfig(t *testing.T, cb func(c *Config)) (string, *Server) {
