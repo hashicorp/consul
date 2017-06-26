@@ -107,6 +107,9 @@ func (p *Plan) Stop() {
 		return
 	}
 	p.stop = true
+	if p.cancelFunc != nil {
+		p.cancelFunc()
+	}
 	close(p.stopCh)
 }
 
