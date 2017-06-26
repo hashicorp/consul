@@ -94,7 +94,7 @@ func (s *Server) resetSessionTimerLocked(id string, ttl time.Duration) {
 		return
 	}
 
-	// Create a new timer to track expiration of thi ssession
+	// Create a new timer to track expiration of this ssession
 	timer := time.AfterFunc(ttl, func() {
 		s.invalidateSession(id)
 	})
