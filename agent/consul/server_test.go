@@ -361,19 +361,21 @@ func TestServer_LeaveLeader(t *testing.T) {
 	// Try to join
 	joinLAN(t, s2, s1)
 
-	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 2))
-		r.Check(wantPeers(s2, 2))
-	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Issue a leave to the leader
-	for _, s := range []*Server{s1, s2} {
-		if !s.IsLeader() {
-			continue
-		}
-		if err := s.Leave(); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	var err error
+	switch {
+	case s1.IsLeader():
+		err = s1.Leave()
+	case s2.IsLeader():
+		err = s2.Leave()
+	default:
+		t.Fatal("no leader")
+	}
+	if err != nil {
+		t.Fatal("leave failed: ", err)
 	}
 
 	// Should lose a peer
@@ -396,19 +398,21 @@ func TestServer_Leave(t *testing.T) {
 	// Try to join
 	joinLAN(t, s2, s1)
 
-	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 2))
-		r.Check(wantPeers(s2, 2))
-	})
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Issue a leave to the non-leader
-	for _, s := range []*Server{s1, s2} {
-		if s.IsLeader() {
-			continue
-		}
-		if err := s.Leave(); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	var err error
+	switch {
+	case s1.IsLeader():
+		err = s2.Leave()
+	case s2.IsLeader():
+		err = s1.Leave()
+	default:
+		t.Fatal("no leader")
+	}
+	if err != nil {
+		t.Fatal("leave failed: ", err)
 	}
 
 	// Should lose a peer
