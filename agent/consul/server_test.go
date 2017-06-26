@@ -29,11 +29,17 @@ func configureTLS(config *Config) {
 	config.KeyFile = "../../test/key/ourdomain.key"
 }
 
-func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
+var id int64
+
+func uniqueNodeName(name string) string {
+	return fmt.Sprintf("%s-node-%d", name, atomic.AddInt64(&id, 1))
+}
+
+func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	config.NodeName = NodeName
+	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
@@ -111,11 +117,8 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
-var id int64
-
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
-	nodeName := fmt.Sprintf("%s-node-%d", t.Name(), atomic.AddInt64(&id, 1))
-	dir, config := testServerConfig(t, nodeName)
+	dir, config := testServerConfig(t)
 	if cb != nil {
 		cb(config)
 	}
@@ -427,7 +430,7 @@ func TestServer_RPC(t *testing.T) {
 }
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t, "a.testco.internal")
+	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -438,7 +441,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testServerConfig(t, "b.testco.internal")
+	dir2, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
 	conf2.VerifyIncoming = true
 	conf2.VerifyOutgoing = true

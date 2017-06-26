@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"os"
 	"sync"
@@ -17,12 +16,12 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
+func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-	config.NodeName = NodeName
+	config.NodeName = uniqueNodeName(t.Name())
 	config.RPCAddr = &net.TCPAddr{
 		IP:   []byte{127, 0, 0, 1},
 		Port: getPort(),
@@ -37,24 +36,24 @@ func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
 }
 
 func testClient(t *testing.T) (string, *Client) {
-	return testClientDC(t, "dc1")
+	return testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+	})
 }
 
 func testClientDC(t *testing.T, dc string) (string, *Client) {
-	dir, config := testClientConfig(t, "testco.internal")
-	config.Datacenter = dc
-
-	client, err := NewClient(config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return dir, client
+	return testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.NodeName = uniqueNodeName(t.Name())
+	})
 }
 
 func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
-	name := fmt.Sprintf("Client %d", getPort())
-	dir, config := testClientConfig(t, name)
-	cb(config)
+	dir, config := testClientConfig(t)
+	if cb != nil {
+		cb(config)
+	}
 	client, err := NewClient(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -282,7 +281,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t, "a.testco.internal")
+	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -293,7 +292,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t, "b.testco.internal")
+	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
@@ -369,7 +368,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t, "a.testco.internal")
+	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -380,7 +379,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t, "b.testco.internal")
+	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
