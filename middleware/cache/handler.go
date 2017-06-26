@@ -29,6 +29,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	i, ttl := c.get(now, qname, qtype, do)
 	if i != nil && ttl > 0 {
 		resp := i.toMsg(r)
+
 		state.SizeAndDo(resp)
 		resp, _ = state.Scrub(resp)
 		w.WriteMsg(resp)

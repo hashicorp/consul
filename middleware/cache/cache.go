@@ -113,7 +113,6 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		cacheSize.WithLabelValues(Denial).Set(float64(w.ncache.Len()))
 	}
 
-	setMsgTTL(res, uint32(duration.Seconds()))
 	if w.prefetch {
 		return nil
 	}
