@@ -236,11 +236,11 @@ func TestServer_JoinWAN(t *testing.T) {
 
 func TestServer_JoinWAN_Flood(t *testing.T) {
 	// Set up two servers in a WAN.
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerDC(t, "dc2")
+	dir2, s2 := testServerDCBootstrap(t, "dc2", true)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
@@ -254,7 +254,7 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 		})
 	}
 
-	dir3, s3 := testServer(t)
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
@@ -265,7 +265,7 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 	for _, s := range []*Server{s1, s2, s3} {
 		retry.Run(t, func(r *retry.R) {
 			if got, want := len(s.WANMembers()), 3; got != want {
-				r.Fatalf("got %d WAN members want %d", got, want)
+				r.Fatalf("got %d WAN members for %s want %d", got, s.config.NodeName, want)
 			}
 		})
 	}
