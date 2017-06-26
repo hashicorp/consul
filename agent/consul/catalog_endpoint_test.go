@@ -696,7 +696,7 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
+func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
