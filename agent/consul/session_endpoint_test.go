@@ -532,7 +532,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
-	ttl := 250 * time.Millisecond
+	ttl := time.Second
 	TTL := ttl.String()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
