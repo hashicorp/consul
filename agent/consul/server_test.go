@@ -2,10 +2,12 @@ package consul
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -109,17 +111,19 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
-func testServerWithConfig(t *testing.T, cb func(c *Config)) (string, *Server) {
-	name := fmt.Sprintf("Node %d", getPort())
-	dir, config := testServerConfig(t, name)
+var id int64
+
+func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
+	nodeName := fmt.Sprintf("%s-node-%d", t.Name(), atomic.AddInt64(&id, 1))
+	dir, config := testServerConfig(t, nodeName)
 	if cb != nil {
 		cb(config)
 	}
-	server, err := newServer(config)
+	srv, err := newServer(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	return dir, server
+	return dir, srv
 }
 
 func newServer(c *Config) (*Server, error) {
@@ -134,7 +138,12 @@ func newServer(c *Config) (*Server, error) {
 	}
 
 	// start server
-	srv, err := NewServer(c)
+	w := c.LogOutput
+	if w == nil {
+		w = os.Stderr
+	}
+	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
+	srv, err := NewServerLogger(c, logger)
 	if err != nil {
 		return nil, err
 	}
