@@ -66,49 +66,28 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		return nil
 	}
 
-	// Reset the session timer
-	s.sessionTimersLock.Lock()
-	defer s.sessionTimersLock.Unlock()
-	s.resetSessionTimerLocked(id, ttl)
+	s.createSessionTimer(session.ID, ttl)
 	return nil
 }
 
-// resetSessionTimerLocked is used to reset a session timer
-// assuming the sessionTimerLock is already held
-func (s *Server) resetSessionTimerLocked(id string, ttl time.Duration) {
-	// Ensure a timer map exists
-	if s.sessionTimers == nil {
-		s.sessionTimers = make(map[string]*time.Timer)
-	}
-
+func (s *Server) createSessionTimer(id string, ttl time.Duration) {
+	// Reset the session timer
 	// Adjust the given TTL by the TTL multiplier. This is done
 	// to give a client a grace period and to compensate for network
 	// and processing delays. The contract is that a session is not expired
 	// before the TTL, but there is no explicit promise about the upper
 	// bound so this is allowable.
 	ttl = ttl * structs.SessionTTLMultiplier
-
-	// Renew the session timer if it exists
-	if timer, ok := s.sessionTimers[id]; ok {
-		timer.Reset(ttl)
-		return
-	}
-
-	// Create a new timer to track expiration of this ssession
-	timer := time.AfterFunc(ttl, func() {
-		s.invalidateSession(id)
-	})
-	s.sessionTimers[id] = timer
+	s.sessionTimers.ResetOrCreate(id, ttl, func() { s.invalidateSession(id) })
 }
 
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
 func (s *Server) invalidateSession(id string) {
 	defer metrics.MeasureSince([]string{"consul", "session_ttl", "invalidate"}, time.Now())
+
 	// Clear the session timer
-	s.sessionTimersLock.Lock()
-	delete(s.sessionTimers, id)
-	s.sessionTimersLock.Unlock()
+	s.sessionTimers.Del(id)
 
 	// Create a session destroy request
 	args := structs.SessionRequest{
@@ -137,26 +116,14 @@ func (s *Server) invalidateSession(id string) {
 // a single session. This is used when a session is destroyed
 // explicitly and no longer needed.
 func (s *Server) clearSessionTimer(id string) error {
-	s.sessionTimersLock.Lock()
-	defer s.sessionTimersLock.Unlock()
-
-	if timer, ok := s.sessionTimers[id]; ok {
-		timer.Stop()
-		delete(s.sessionTimers, id)
-	}
+	s.sessionTimers.Stop(id)
 	return nil
 }
 
 // clearAllSessionTimers is used when a leader is stepping
 // down and we no longer need to track any session timers.
 func (s *Server) clearAllSessionTimers() error {
-	s.sessionTimersLock.Lock()
-	defer s.sessionTimersLock.Unlock()
-
-	for _, t := range s.sessionTimers {
-		t.Stop()
-	}
-	s.sessionTimers = nil
+	s.sessionTimers.StopAll()
 	return nil
 }
 
@@ -166,10 +133,7 @@ func (s *Server) sessionStats() {
 	for {
 		select {
 		case <-time.After(5 * time.Second):
-			s.sessionTimersLock.Lock()
-			num := len(s.sessionTimers)
-			s.sessionTimersLock.Unlock()
-			metrics.SetGauge([]string{"consul", "session_ttl", "active"}, float32(num))
+			metrics.SetGauge([]string{"consul", "session_ttl", "active"}, float32(s.sessionTimers.Len()))
 
 		case <-s.shutdownCh:
 			return
