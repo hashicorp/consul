@@ -1,11 +1,10 @@
 package watch
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sync"
-
-	"context"
 
 	consulapi "github.com/hashicorp/consul/api"
 )

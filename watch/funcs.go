@@ -43,6 +43,7 @@ func keyWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		kv := p.client.KV()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		pair, meta, err := kv.Get(key, &opts)
 		if err != nil {
 			return 0, nil, err
@@ -72,6 +73,7 @@ func keyPrefixWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		kv := p.client.KV()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		pairs, meta, err := kv.List(prefix, &opts)
 		if err != nil {
 			return 0, nil, err
@@ -91,6 +93,7 @@ func servicesWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		services, meta, err := catalog.Services(&opts)
 		if err != nil {
 			return 0, nil, err
@@ -110,6 +113,7 @@ func nodesWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		nodes, meta, err := catalog.Nodes(&opts)
 		if err != nil {
 			return 0, nil, err
@@ -146,6 +150,7 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
 		if err != nil {
 			return 0, nil, err
@@ -179,6 +184,7 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
+		defer p.cancelFunc()
 		var checks []*consulapi.HealthCheck
 		var meta *consulapi.QueryMeta
 		var err error
@@ -207,6 +213,7 @@ func eventWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (uint64, interface{}, error) {
 		event := p.client.Event()
 		opts := makeQueryOptionsWithContext(p, false)
+		defer p.cancelFunc()
 		events, meta, err := event.List(name, &opts)
 		if err != nil {
 			return 0, nil, err
