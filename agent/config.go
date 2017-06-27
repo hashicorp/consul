@@ -131,12 +131,6 @@ type DNSConfig struct {
 
 // HTTPConfig is used to fine tune the Http sub-system.
 type HTTPConfig struct {
-	// AllowStale is used to enable lookups with stale
-	// data. This gives horizontal read scalability since
-	// any Consul server can service the query instead of
-	// only the leader.
-	AllowStale *bool `mapstructure:"allow_stale"`
-
 	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	ResponseHeaders map[string]string `mapstructure:"response_headers"`
 }
@@ -923,9 +917,6 @@ func DefaultConfig() *Config {
 			UDPAnswerLimit:  3,
 			MaxStale:        10 * 365 * 24 * time.Hour,
 			RecursorTimeout: 2 * time.Second,
-		},
-		HTTPConfig: HTTPConfig{
-			AllowStale: Bool(true),
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -2012,9 +2003,6 @@ func MergeConfig(a, b *Config) *Config {
 		for field, value := range b.HTTPConfig.ResponseHeaders {
 			result.HTTPConfig.ResponseHeaders[field] = value
 		}
-	}
-	if b.HTTPConfig.AllowStale != nil {
-		result.HTTPConfig.AllowStale = b.HTTPConfig.AllowStale
 	}
 	if len(b.Meta) != 0 {
 		if result.Meta == nil {

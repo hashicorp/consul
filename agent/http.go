@@ -358,16 +358,14 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 }
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
-// allowStale forces stale consistency instead of default one if none was provided in the query.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, allowStale bool, b *structs.QueryOptions) bool {
+func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
-	if _, ok := query["consistent"]; ok {
-		b.RequireConsistent = true
-	}
-	b.AllowStale = !b.RequireConsistent && allowStale
 	if _, ok := query["stale"]; ok {
 		b.AllowStale = true
+	}
+	if _, ok := query["consistent"]; ok {
+		b.RequireConsistent = true
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest) // 400
@@ -435,8 +433,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	allowStale := s.agent.config.HTTPConfig.AllowStale
-	if parseConsistency(resp, req, *allowStale, b) {
+	if parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)
