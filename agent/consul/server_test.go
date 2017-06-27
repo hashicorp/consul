@@ -277,23 +277,36 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = t.Name() + "-s1"
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
+	s2Name := t.Name() + "-s2"
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.NodeName = "s2"
+		c.NodeName = s2Name
 		c.Datacenter = "dc2"
+		c.Bootstrap = false
 		// This wan address will be expected to be seen on s1
 		c.SerfWANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.2"
 		// This lan address will be expected to be seen on s3
 		c.SerfLANConfig.MemberlistConfig.AdvertiseAddr = "127.0.0.3"
+		c.SerfFloodInterval = 100 * time.Millisecond
 	})
 
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDC(t, "dc2")
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.NodeName = t.Name() + "-s3"
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
@@ -333,7 +346,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	// Get and check the wan address of s2 from s1
 	var s2WanAddr string
 	for _, member := range s1.WANMembers() {
-		if member.Name == "s2.dc2" {
+		if member.Name == s2Name+".dc2" {
 			s2WanAddr = member.Addr.String()
 		}
 	}
@@ -344,7 +357,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	// Get and check the lan address of s2 from s3
 	var s2LanAddr string
 	for _, lanmember := range s3.LANMembers() {
-		if lanmember.Name == "s2" {
+		if lanmember.Name == s2Name {
 			s2LanAddr = lanmember.Addr.String()
 		}
 	}
