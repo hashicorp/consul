@@ -5,6 +5,7 @@ BREAKING CHANGES:
 FEATURES:
 
 IMPROVEMENTS:
+* agent: (Consul Enterprise) Agent snapshot rotation uses S3's pagination API, enabling retaining more than a 100 snapshots.
 
 BUG FIXES:
 
