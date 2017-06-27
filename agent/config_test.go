@@ -335,6 +335,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{HTTPConfig: HTTPConfig{ResponseHeaders: map[string]string{"a": "b", "c": "d"}}},
 		},
 		{
+			in: `{"http_config":{"allow_stale":true}}`,
+			c:  &Config{HTTPConfig: HTTPConfig{AllowStale: Bool(true)}},
+		},
+		{
 			in: `{"http_config":{"response_headers":{"a":"b","c":"d"}}}`,
 			c:  &Config{HTTPConfig: HTTPConfig{ResponseHeaders: map[string]string{"a": "b", "c": "d"}}},
 		},
@@ -1236,6 +1240,12 @@ func TestDefaultConfig(t *testing.T) {
 
 	// Remote exec is disabled by default.
 	if *config.DisableRemoteExec != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Make sure HTTP staleness is disabled by default, since this would be
+	// pretty catastrophic.
+	if *config.HTTPConfig.AllowStale != false {
 		t.Fatalf("bad: %#v", config)
 	}
 }
