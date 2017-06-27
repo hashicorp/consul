@@ -1239,7 +1239,7 @@ func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
 	if err == nil && a.joinLANNotifier != nil {
 		if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
-			a.logger.Printf("[DEBUG] agent: systemd notify failed: ", notifErr)
+			a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
 		}
 	}
 	return
