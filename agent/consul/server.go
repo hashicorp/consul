@@ -172,8 +172,7 @@ type Server struct {
 	// sessionTimers track the expiration time of each Session that has
 	// a TTL. On expiration, a SessionDestroy event will occur, and
 	// destroy the session via standard session destroy processing
-	sessionTimers     map[string]*time.Timer
-	sessionTimersLock sync.Mutex
+	sessionTimers *SessionTimers
 
 	// statsFetcher is used by autopilot to check the status of the other
 	// Consul servers.
@@ -296,6 +295,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
+		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
 		shutdownCh:            shutdownCh,
 	}
