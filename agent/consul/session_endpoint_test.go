@@ -13,6 +13,7 @@ import (
 )
 
 func TestSession_Apply(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -72,6 +73,7 @@ func TestSession_Apply(t *testing.T) {
 }
 
 func TestSession_DeleteApply(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -135,6 +137,7 @@ func TestSession_DeleteApply(t *testing.T) {
 }
 
 func TestSession_Apply_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -229,6 +232,7 @@ session "foo" {
 }
 
 func TestSession_Get(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -272,6 +276,7 @@ func TestSession_Get(t *testing.T) {
 }
 
 func TestSession_List(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -323,6 +328,7 @@ func TestSession_List(t *testing.T) {
 }
 
 func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -491,6 +497,7 @@ session "foo" {
 }
 
 func TestSession_ApplyTimers(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -532,6 +539,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
+	t.Parallel()
 	ttl := time.Second
 	TTL := ttl.String()
 
@@ -695,6 +703,7 @@ func TestSession_Renew(t *testing.T) {
 }
 
 func TestSession_Renew_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -773,6 +782,7 @@ session "foo" {
 }
 
 func TestSession_NodeSessions(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -831,6 +841,7 @@ func TestSession_NodeSessions(t *testing.T) {
 }
 
 func TestSession_Apply_BadTTL(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
