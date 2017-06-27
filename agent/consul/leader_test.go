@@ -465,6 +465,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	for _, s := range servers[1:] {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
 	}
+	s1.Shutdown()
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
