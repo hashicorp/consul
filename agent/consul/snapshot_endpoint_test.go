@@ -211,10 +211,10 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	}
 
 	// Make sure the leader has timers setup.
-	if _, ok := s1.sessionTimers[before]; !ok {
+	if s1.sessionTimers.Get(before) == nil {
 		t.Fatalf("missing session timer")
 	}
-	if _, ok := s1.sessionTimers[after]; !ok {
+	if s1.sessionTimers.Get(after) == nil {
 		t.Fatalf("missing session timer")
 	}
 
@@ -229,10 +229,10 @@ func TestSnapshot_LeaderState(t *testing.T) {
 
 	// Make sure the before time is still there, and that the after timer
 	// got reverted. This proves we fully cycled the leader state.
-	if _, ok := s1.sessionTimers[before]; !ok {
+	if s1.sessionTimers.Get(before) == nil {
 		t.Fatalf("missing session timer")
 	}
-	if _, ok := s1.sessionTimers[after]; ok {
+	if s1.sessionTimers.Get(after) != nil {
 		t.Fatalf("unexpected session timer")
 	}
 }

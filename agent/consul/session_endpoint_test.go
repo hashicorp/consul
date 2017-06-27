@@ -514,7 +514,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 	}
 
 	// Check the session map
-	if _, ok := s1.sessionTimers[out]; !ok {
+	if s1.sessionTimers.Get(out) == nil {
 		t.Fatalf("missing session timer")
 	}
 
@@ -526,7 +526,7 @@ func TestSession_ApplyTimers(t *testing.T) {
 	}
 
 	// Check the session map
-	if _, ok := s1.sessionTimers[out]; ok {
+	if s1.sessionTimers.Get(out) != nil {
 		t.Fatalf("session timer exists")
 	}
 }
@@ -564,7 +564,7 @@ func TestSession_Renew(t *testing.T) {
 	}
 
 	// Verify the timer map is setup
-	if len(s1.sessionTimers) != 5 {
+	if s1.sessionTimers.Len() != 5 {
 		t.Fatalf("missing session timers")
 	}
 

@@ -39,8 +39,7 @@ func TestInitializeSessionTimers(t *testing.T) {
 	}
 
 	// Check that we have a timer
-	_, ok := s1.sessionTimers[session.ID]
-	if !ok {
+	if s1.sessionTimers.Get(session.ID) == nil {
 		t.Fatalf("missing session timer")
 	}
 }
@@ -79,8 +78,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 	}
 
 	// Check that we have a timer
-	_, ok := s1.sessionTimers[session.ID]
-	if !ok {
+	if s1.sessionTimers.Get(session.ID) == nil {
 		t.Fatalf("missing session timer")
 	}
 }
@@ -113,8 +111,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 	}
 
 	// Check that we have a timer
-	_, ok := s1.sessionTimers[session.ID]
-	if ok {
+	if s1.sessionTimers.Get(session.ID) != nil {
 		t.Fatalf("should not have session timer")
 	}
 }
@@ -145,17 +142,13 @@ func TestResetSessionTimerLocked(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.sessionTimersLock.Lock()
-	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
-	s1.sessionTimersLock.Unlock()
-
-	if _, ok := s1.sessionTimers["foo"]; !ok {
+	s1.createSessionTimer("foo", 5*time.Millisecond)
+	if s1.sessionTimers.Get("foo") == nil {
 		t.Fatalf("missing timer")
 	}
 
 	time.Sleep(10 * time.Millisecond * structs.SessionTTLMultiplier)
-
-	if _, ok := s1.sessionTimers["foo"]; ok {
+	if s1.sessionTimers.Get("foo") != nil {
 		t.Fatalf("timer should be gone")
 	}
 }
@@ -165,39 +158,46 @@ func TestResetSessionTimerLocked_Renew(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	ttl := 100 * time.Millisecond
 
-	s1.sessionTimersLock.Lock()
-	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
-	s1.sessionTimersLock.Unlock()
-
-	if _, ok := s1.sessionTimers["foo"]; !ok {
+	// create the timer
+	s1.createSessionTimer("foo", ttl)
+	if s1.sessionTimers.Get("foo") == nil {
 		t.Fatalf("missing timer")
 	}
 
-	time.Sleep(5 * time.Millisecond)
+	// wait until it is "expired" but at this point
+	// the session still exists.
+	time.Sleep(ttl)
+	if s1.sessionTimers.Get("foo") == nil {
+		t.Fatal("missing timer")
+	}
 
-	// Renew the session
-	s1.sessionTimersLock.Lock()
-	renew := time.Now()
-	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
-	s1.sessionTimersLock.Unlock()
+	// renew the session which will reset the TTL to 2*ttl
+	// since that is the current SessionTTLMultiplier
+	s1.createSessionTimer("foo", ttl)
 
 	// Watch for invalidation
-	for time.Now().Sub(renew) < 20*time.Millisecond {
-		s1.sessionTimersLock.Lock()
-		_, ok := s1.sessionTimers["foo"]
-		s1.sessionTimersLock.Unlock()
-		if !ok {
-			end := time.Now()
-			if end.Sub(renew) < 5*time.Millisecond {
-				t.Fatalf("early invalidate")
-			}
-			return
+	renew := time.Now()
+	deadline := renew.Add(2 * structs.SessionTTLMultiplier * ttl)
+	for {
+		now := time.Now()
+		if now.After(deadline) {
+			t.Fatal("should have expired by now")
 		}
-		time.Sleep(time.Millisecond)
+
+		// timer still exists
+		if s1.sessionTimers.Get("foo") != nil {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+
+		// timer gone
+		if now.Sub(renew) < ttl {
+			t.Fatalf("early invalidate")
+		}
+		break
 	}
-	t.Fatalf("should have expired")
 }
 
 func TestInvalidateSession(t *testing.T) {
@@ -239,16 +239,14 @@ func TestClearSessionTimer(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	s1.sessionTimersLock.Lock()
-	s1.resetSessionTimerLocked("foo", 5*time.Millisecond)
-	s1.sessionTimersLock.Unlock()
+	s1.createSessionTimer("foo", 5*time.Millisecond)
 
 	err := s1.clearSessionTimer("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if _, ok := s1.sessionTimers["foo"]; ok {
+	if s1.sessionTimers.Get("foo") != nil {
 		t.Fatalf("timer should be gone")
 	}
 }
@@ -258,18 +256,17 @@ func TestClearAllSessionTimers(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	s1.sessionTimersLock.Lock()
-	s1.resetSessionTimerLocked("foo", 10*time.Millisecond)
-	s1.resetSessionTimerLocked("bar", 10*time.Millisecond)
-	s1.resetSessionTimerLocked("baz", 10*time.Millisecond)
-	s1.sessionTimersLock.Unlock()
+	s1.createSessionTimer("foo", 10*time.Millisecond)
+	s1.createSessionTimer("bar", 10*time.Millisecond)
+	s1.createSessionTimer("baz", 10*time.Millisecond)
 
 	err := s1.clearAllSessionTimers()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(s1.sessionTimers) != 0 {
+	// sessionTimers is guarded by the lock
+	if s1.sessionTimers.Len() != 0 {
 		t.Fatalf("timers should be gone")
 	}
 }
@@ -297,7 +294,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	var leader *Server
 	for _, s := range servers {
 		// Check that s.sessionTimers is empty
-		if len(s.sessionTimers) != 0 {
+		if s.sessionTimers.Len() != 0 {
 			t.Fatalf("should have no sessionTimers")
 		}
 		// Find the leader too
@@ -338,7 +335,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	// Check that sessionTimers has the session ID
-	if _, ok := leader.sessionTimers[id1]; !ok {
+	if leader.sessionTimers.Get(id1) == nil {
 		t.Fatalf("missing session timer")
 	}
 
@@ -346,12 +343,11 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	leader.Shutdown()
 
 	// sessionTimers should be cleared on leader shutdown
-	if len(leader.sessionTimers) != 0 {
+	if leader.sessionTimers.Len() != 0 {
 		t.Fatalf("session timers should be empty on the shutdown leader")
 	}
 	// Find the new leader
 	retry.Run(t, func(r *retry.R) {
-
 		leader = nil
 		for _, s := range servers {
 			if s.IsLeader() {
@@ -363,7 +359,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		}
 
 		// Ensure session timer is restored
-		if _, ok := leader.sessionTimers[id1]; !ok {
+		if leader.sessionTimers.Get(id1) == nil {
 			r.Fatal("missing session timer")
 		}
 	})
