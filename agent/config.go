@@ -925,7 +925,7 @@ func DefaultConfig() *Config {
 			RecursorTimeout: 2 * time.Second,
 		},
 		HTTPConfig: HTTPConfig{
-			AllowStale: Bool(true),
+			AllowStale: Bool(false),
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
