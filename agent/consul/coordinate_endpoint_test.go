@@ -42,16 +42,13 @@ func verifyCoordinatesEqual(t *testing.T, a, b *coordinate.Coordinate) {
 }
 
 func TestCoordinate_Update(t *testing.T) {
-	dir1, config1 := testServerConfig(t)
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CoordinateUpdatePeriod = 500 * time.Millisecond
+		c.CoordinateUpdateBatchSize = 5
+		c.CoordinateUpdateMaxBatches = 2
+	})
 	defer os.RemoveAll(dir1)
-
-	config1.CoordinateUpdatePeriod = 500 * time.Millisecond
-	config1.CoordinateUpdateBatchSize = 5
-	config1.CoordinateUpdateMaxBatches = 2
-	s1, err := NewServer(config1)
-	if err != nil {
-		t.Fatal(err)
-	}
 	defer s1.Shutdown()
 
 	codec := rpcClient(t, s1)
@@ -197,6 +194,7 @@ func TestCoordinate_Update(t *testing.T) {
 }
 
 func TestCoordinate_Update_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -278,6 +276,7 @@ node "node1" {
 }
 
 func TestCoordinate_ListDatacenters(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -308,6 +307,7 @@ func TestCoordinate_ListDatacenters(t *testing.T) {
 }
 
 func TestCoordinate_ListNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -380,6 +380,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 }
 
 func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

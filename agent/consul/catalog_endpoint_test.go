@@ -18,6 +18,7 @@ import (
 )
 
 func TestCatalog_Register(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -47,6 +48,7 @@ func TestCatalog_Register(t *testing.T) {
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -76,6 +78,7 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 }
 
 func TestCatalog_Register_NodeID(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -111,6 +114,7 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 }
 
 func TestCatalog_Register_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -212,6 +216,7 @@ service "foo" {
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -255,6 +260,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 }
 
 func TestCatalog_Register_ForwardDC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -287,6 +293,7 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 }
 
 func TestCatalog_Deregister(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -312,6 +319,7 @@ func TestCatalog_Deregister(t *testing.T) {
 }
 
 func TestCatalog_Deregister_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -523,6 +531,7 @@ service "service" {
 }
 
 func TestCatalog_ListDatacenters(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -556,6 +565,7 @@ func TestCatalog_ListDatacenters(t *testing.T) {
 }
 
 func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -594,6 +604,7 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -635,6 +646,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -697,6 +709,7 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_StaleRead(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -761,6 +774,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -807,6 +821,7 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -851,6 +866,7 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -941,6 +957,7 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1041,6 +1058,7 @@ func Benchmark_Catalog_ListNodes(t *testing.B) {
 }
 
 func TestCatalog_ListServices(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1091,6 +1109,7 @@ func TestCatalog_ListServices(t *testing.T) {
 }
 
 func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1154,6 +1173,7 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Blocking(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1212,6 +1232,7 @@ func TestCatalog_ListServices_Blocking(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Timeout(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1253,6 +1274,7 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Stale(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1290,6 +1312,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1339,6 +1362,7 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1439,6 +1463,7 @@ func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1526,6 +1551,7 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1576,6 +1602,7 @@ func TestCatalog_NodeServices(t *testing.T) {
 
 // Used to check for a regression against a known bug
 func TestCatalog_Register_FailedCase1(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1695,6 +1722,7 @@ service "foo" {
 }
 
 func TestCatalog_ListServices_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1717,6 +1745,7 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1766,6 +1795,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1841,6 +1871,7 @@ node "%s" {
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

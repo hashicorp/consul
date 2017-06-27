@@ -147,6 +147,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 }
 
 func TestSnapshot(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -156,6 +157,7 @@ func TestSnapshot(t *testing.T) {
 }
 
 func TestSnapshot_LeaderState(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -238,6 +240,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 }
 
 func TestSnapshot_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -283,6 +286,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 	})
@@ -309,6 +313,7 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Datacenter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -337,6 +342,7 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 }
 
 func TestSnapshot_AllowStale(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 	})
