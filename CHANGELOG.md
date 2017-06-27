@@ -1,4 +1,4 @@
-## 0.8.5 (UNRELEASED)
+## 0.8.5 (June 27, 2017)
 
 BREAKING CHANGES:
 
