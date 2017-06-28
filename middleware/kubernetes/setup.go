@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	"github.com/coredns/coredns/middleware/proxy"
+	"github.com/miekg/dns"
 
 	"github.com/mholt/caddy"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
@@ -187,7 +189,48 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 						continue
 					}
 					return nil, fmt.Errorf("incorrect number of arguments for federation, got %v, expected 2", len(args))
+				case "autopath": // name zone
+					args := c.RemainingArgs()
+					k8s.AutoPath = AutoPath{
+						NDots:          defautNdots,
+						HostSearchPath: []string{},
+						ResolvConfFile: defaultResolvConfFile,
+						OnNXDOMAIN:     defaultOnNXDOMAIN,
+					}
+					if len(args) > 3 {
+						return nil, fmt.Errorf("incorrect number of arguments for autopath, got %v, expected at most 3", len(args))
 
+					}
+					if len(args) > 0 {
+						ndots, err := strconv.Atoi(args[0])
+						if err != nil {
+							return nil, fmt.Errorf("invalid NDOTS argument for autopath, got '%v', expected an integer", ndots)
+						}
+						k8s.AutoPath.NDots = ndots
+					}
+					if len(args) > 1 {
+						switch args[1] {
+						case dns.RcodeToString[dns.RcodeNameError]:
+							k8s.AutoPath.OnNXDOMAIN = dns.RcodeNameError
+						case dns.RcodeToString[dns.RcodeSuccess]:
+							k8s.AutoPath.OnNXDOMAIN = dns.RcodeSuccess
+						case dns.RcodeToString[dns.RcodeServerFailure]:
+							k8s.AutoPath.OnNXDOMAIN = dns.RcodeServerFailure
+						default:
+							return nil, fmt.Errorf("invalid RESPONSE argument for autopath, got '%v', expected SERVFAIL, NOERROR, or NXDOMAIN", args[1])
+						}
+					}
+					if len(args) > 2 {
+						k8s.AutoPath.ResolvConfFile = args[2]
+					}
+					rc, err := dns.ClientConfigFromFile(k8s.AutoPath.ResolvConfFile)
+					if err != nil {
+						return nil, fmt.Errorf("error when parsing %v: %v", k8s.AutoPath.ResolvConfFile, err)
+					}
+					k8s.AutoPath.HostSearchPath = rc.Search
+					middleware.Zones(k8s.AutoPath.HostSearchPath).Normalize()
+					k8s.AutoPath.Enabled = true
+					continue
 				}
 			}
 			return k8s, nil
@@ -197,6 +240,9 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 }
 
 const (
-	defaultResyncPeriod = 5 * time.Minute
-	defaultPodMode      = PodModeDisabled
+	defaultResyncPeriod   = 5 * time.Minute
+	defaultPodMode        = PodModeDisabled
+	defautNdots           = 0
+	defaultResolvConfFile = "/etc/resolv.conf"
+	defaultOnNXDOMAIN     = dns.RcodeServerFailure
 )

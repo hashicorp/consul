@@ -121,6 +121,58 @@ kubernetes coredns.local {
 	# Each line consists of the name of the federation, and the domain.
 	federation myfed foo.example.com
 	
+	# autopath [NDOTS [RESPONSE [RESOLV-CONF]]
+	#
+	# Enables server side search path lookups for pods.  When enabled, coredns
+	# will identify search path queries from pods and perform the remaining
+	# lookups in the path on the pod's behalf.  The search path used mimics the
+	# resolv.conf search path deployed to pods. E.g.
+	#
+	#  search ns1.svc.cluster.local svc.cluster.local cluster.local foo.com
+	#
+	# If no domains in the path produce an answer, a lookup on the bare question
+	# will be attempted.	
+	#
+	# A successful response will contain a question section with the original
+	# question, and an answer section containing the record for the question that
+	# actually had an answer.  This means that the question and answer will not
+	# match. For example:
+	#
+	#    # host -v -t a google.com
+	#    Trying "google.com.default.svc.cluster.local"
+	#    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 50957
+	#    ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+	#
+	#    ;; QUESTION SECTION:
+	#    ;google.com.default.svc.cluster.local. IN A
+	#
+	#    ;; ANSWER SECTION:
+	#    google.com.		175	IN	A	216.58.194.206
+	#
+	#
+	# NDOTS (default: 0) This provides an adjustable threshold to
+	# prevent server side lookups from triggering. If the number of dots before
+	# the first search domain is less than this number, then the search path will
+	# not executed on the server side.
+	#
+	# RESPONSE (default: SERVFAIL) RESPONSE can be either NXDOMAIN, SERVFAIL or
+	# NOERROR. This option causes coredns to return the given response instead of
+	# NXDOMAIN when the all searches in the path produce no results. Setting this
+	# to SERVFAIL or NOERROR should prevent the client from fruitlessly continuing
+	# the client side searches in the path after the server already checked them.
+	#
+	# RESOLV-CONF (default: /etc/resolv.conf) If specified, coredns uses this
+	# file to get the host's search domains. CoreDNS performs a lookup on these
+	# domains if the in-cluster search domains in the path fail to produce an
+	# answer. If not specified, the values will be read from the local resolv.conf
+	# file (i.e the resolv.conf file in the pod containing coredns).
+	#
+	# Enabling autopath causes coredns to use more memory since it needs to
+	# maintain a watch on all pods. If autopath and "pods verified" mode are
+	# both enabled, they will share the same watch. I.e. enabling both options
+	# should have an equivalent memory impact of just one.
+	autopath 0 SERVFAIL /etc/resolv.conf
+
 	# fallthrough
 	#
 	# If a query for a record in the cluster zone results in NXDOMAIN,
