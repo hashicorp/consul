@@ -33,7 +33,7 @@ dev:
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
-# linux builds a linux package indpendent of the source platform
+# linux builds a linux package independent of the source platform
 linux:
 	mkdir -p pkg/linux_amd64/
 	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)' -o pkg/linux_amd64/consul
