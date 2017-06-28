@@ -386,6 +386,10 @@ func (c *CheckHTTP) check() {
 		req.Header = make(http.Header)
 	}
 
+	if host := req.Header.Get("Host"); host != "" {
+		req.Host = host
+	}
+
 	if req.Header.Get("User-Agent") == "" {
 		req.Header.Set("User-Agent", UserAgent)
 	}

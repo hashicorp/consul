@@ -213,6 +213,7 @@ func TestCheckHTTP(t *testing.T) {
 
 		// custom header
 		{desc: "custom header", code: 200, header: http.Header{"A": []string{"b", "c"}}, status: api.HealthPassing},
+		{desc: "host header", code: 200, header: http.Header{"Host": []string{"a"}}, status: api.HealthPassing},
 	}
 
 	for _, tt := range tests {
@@ -236,6 +237,15 @@ func TestCheckHTTP(t *testing.T) {
 				for k, v := range tt.header {
 					expectedHeader[k] = v
 				}
+
+				// the Host header is in r.Host and not in the headers
+				host := expectedHeader.Get("Host")
+				if host != "" && host != r.Host {
+					w.WriteHeader(999)
+					return
+				}
+				expectedHeader.Del("Host")
+
 				if !reflect.DeepEqual(expectedHeader, r.Header) {
 					w.WriteHeader(999)
 					return
