@@ -468,16 +468,16 @@
 			"revisionTime": "2016-11-17T03:31:26Z"
 		},
 		{
+			"checksumSHA1": "PFtXkXPO7pwRtykVUUXtc07wc7U=",
+			"path": "github.com/google/gofuzz",
+			"revision": "24818f796faf91cd76ec7bddd72458fbced7a6c1",
+			"revisionTime": "2017-06-12T17:47:53Z"
+		},
+		{
 			"checksumSHA1": "V/53BpqgOkSDZCX6snQCAkdO2fM=",
 			"path": "github.com/googleapis/gax-go",
 			"revision": "da06d194a00e19ce00d9011a13931c3f6f6887c7",
 			"revisionTime": "2016-11-07T00:24:06Z"
-		},
-		{
- 			"checksumSHA1": "PFtXkXPO7pwRtykVUUXtc07wc7U=",
- 			"path": "github.com/google/gofuzz",
- 			"revision": "24818f796faf91cd76ec7bddd72458fbced7a6c1",
- 			"revisionTime": "2017-06-12T17:47:53Z"
 		},
 		{
 			"checksumSHA1": "cdOCt0Yb+hdErz8NAQqayxPmRsY=",
@@ -660,10 +660,10 @@
 			"revisionTime": "2015-11-16T02:03:38Z"
 		},
 		{
-			"checksumSHA1": "8Na6qG9taUXHDunMYecGxbHbJKE=",
+			"checksumSHA1": "bYn+HDmt7YLFvEV6DagMup8mkZE=",
 			"path": "github.com/hashicorp/raft",
-			"revision": "939ebd2103731c2f38c7964d8dd24af0e1b26dc3",
-			"revisionTime": "2017-05-04T20:16:11Z",
+			"revision": "e5e581e04af7c46974b99195347cc0c380c0d841",
+			"revisionTime": "2017-06-09T23:09:26Z",
 			"version": "library-v2-stage-one",
 			"versionExact": "library-v2-stage-one"
 		},
