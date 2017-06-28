@@ -893,10 +893,16 @@ func TestAgent_ConsulService(t *testing.T) {
 		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
 	}
 
-	// Perform anti-entropy on consul service
-	if err := a.state.syncService(consul.ConsulServiceID); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// todo(fs): data race
+	func() {
+		a.state.Lock()
+		defer a.state.Unlock()
+
+		// Perform anti-entropy on consul service
+		if err := a.state.syncService(consul.ConsulServiceID); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
 
 	// Consul service should be in sync
 	if !a.state.serviceStatus[consul.ConsulServiceID].inSync {
