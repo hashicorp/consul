@@ -5,9 +5,13 @@ BREAKING CHANGES:
 FEATURES:
 
 IMPROVEMENTS:
+
 * agent: (Consul Enterprise) Agent snapshot rotation uses S3's pagination API, enabling retaining more than a 100 snapshots.
 
 BUG FIXES:
+
+* agent: Fixed an issue where watch plans would take up to 10 minutes to close their connections and give up their file descriptors after reloading Consul. [GH-3018]
+* server: Updated the Raft library to pull in a fix where servers that are very far behind in replication can get stuck in a loop trying to install snapshots. [GH-3201]
 
 ## 0.8.5 (June 27, 2017)
 
