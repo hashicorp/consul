@@ -30,6 +30,24 @@ func init() {
 			}, nil
 		},
 
+		"catalog": func() (cli.Command, error) {
+			return &CatalogCommand{
+				BaseCommand: BaseCommand{
+					UI:    ui,
+					Flags: FlagSetNone,
+				},
+			}, nil
+		},
+
+		"catalog datacenters": func() (cli.Command, error) {
+			return &CatalogDatacentersCommand{
+				BaseCommand: BaseCommand{
+					Flags: FlagSetClientHTTP,
+					UI:    ui,
+				},
+			}, nil
+		},
+
 		"configtest": func() (cli.Command, error) {
 			return &ConfigTestCommand{
 				BaseCommand: BaseCommand{
