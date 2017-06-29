@@ -7,8 +7,7 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/stringer \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html
-	
-GOTAGS ?= consul
+
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
@@ -27,37 +26,37 @@ all: bin
 
 bin: tools
 	@mkdir -p bin/
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev:
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
-	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
+	go install -ldflags '$(GOLDFLAGS)'
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
 # linux builds a linux package independent of the source platform
 linux:
 	mkdir -p pkg/linux_amd64/
-	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)' -o pkg/linux_amd64/consul
+	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -o pkg/linux_amd64/consul
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
+	@sh -c "'$(CURDIR)/scripts/dist.sh'"
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
 test: dev
-	go test -tags "$(GOTAGS)" -i ./...
-	go test -tags "$(GOTAGS)" -v ./... > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
+	go test -i ./...
+	go test -v ./... > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
 	@if [ "$$TRAVIS" == "true" ] ; then cat test.log ; fi
 	@if grep -q 'FAIL_TOKEN' test.log ; then grep 'FAIL:' test.log ; exit 1 ; else echo 'PASS' ; fi
 
 test-race: dev
-	go test -tags "$(GOTAGS)" -i -run '^$$' ./...
-	( set -o pipefail ; go test -race -tags "$(GOTAGS)" -v ./... 2>&1 | tee test-race.log )
+	go test -i -run '^$$' ./...
+	( set -o pipefail ; go test -race -v ./... 2>&1 | tee test-race.log )
 
 cover:
 	go test $(GOFILES) --cover
