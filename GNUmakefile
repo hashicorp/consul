@@ -4,7 +4,10 @@ GOTOOLS = \
 	github.com/jteeuwen/go-bindata/... \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
-	golang.org/x/tools/cmd/stringer
+	golang.org/x/tools/cmd/stringer \
+	github.com/axw/gocov/gocov \
+	gopkg.in/matm/v1/gocov-html
+	
 GOTAGS ?= consul
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
