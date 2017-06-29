@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -74,7 +75,7 @@ type Serf struct {
 
 	eventBroadcasts *memberlist.TransmitLimitedQueue
 	eventBuffer     []*userEvents
-	eventJoinIgnore bool
+	eventJoinIgnore atomic.Value
 	eventMinTime    LamportTime
 	eventLock       sync.RWMutex
 
@@ -258,6 +259,7 @@ func Create(conf *Config) (*Serf, error) {
 		shutdownCh:    make(chan struct{}),
 		state:         SerfAlive,
 	}
+	serf.eventJoinIgnore.Store(false)
 
 	// Check that the meta data length is okay
 	if len(serf.encodeTags(conf.Tags)) > memberlist.MetaMaxSize {
@@ -593,9 +595,9 @@ func (s *Serf) Join(existing []string, ignoreOld bool) (int, error) {
 	// Ignore any events from a potential join. This is safe since we hold
 	// the joinLock and nobody else can be doing a Join
 	if ignoreOld {
-		s.eventJoinIgnore = true
+		s.eventJoinIgnore.Store(true)
 		defer func() {
-			s.eventJoinIgnore = false
+			s.eventJoinIgnore.Store(false)
 		}()
 	}
 
