@@ -318,7 +318,7 @@ type aclFilter struct {
 // newACLFilter constructs a new aclFilter.
 func newACLFilter(acl acl.ACL, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
-		logger = log.New(os.Stdout, "", log.LstdFlags)
+		logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 	return &aclFilter{
 		acl:             acl,
