@@ -48,6 +48,15 @@ func init() {
 			}, nil
 		},
 
+		"catalog nodes": func() (cli.Command, error) {
+			return &CatalogNodesCommand{
+				BaseCommand: BaseCommand{
+					Flags: FlagSetClientHTTP,
+					UI:    ui,
+				},
+			}, nil
+		},
+
 		"configtest": func() (cli.Command, error) {
 			return &ConfigTestCommand{
 				BaseCommand: BaseCommand{
