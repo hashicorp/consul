@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -38,6 +39,11 @@ type DNSServer struct {
 	domain    string
 	recursors []string
 	logger    *log.Logger
+
+	// disableCompression is the config.DisableCompression flag that can
+	// be safely changed at runtime. It always contains a bool and is
+	// initialized with the value from config.DisableCompression.
+	disableCompression atomic.Value
 }
 
 func NewDNSServer(a *Agent) (*DNSServer, error) {
@@ -60,6 +66,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		logger:    a.logger,
 		recursors: recursors,
 	}
+	srv.disableCompression.Store(a.config.DNSConfig.DisableCompression)
 
 	return srv, nil
 }
@@ -120,7 +127,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
-	m.Compress = !d.config.DisableCompression
+	m.Compress = !d.disableCompression.Load().(bool)
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -195,7 +202,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
-	m.Compress = !d.config.DisableCompression
+	m.Compress = !d.disableCompression.Load().(bool)
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -907,7 +914,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.
-			r.Compress = !d.config.DisableCompression
+			r.Compress = !d.disableCompression.Load().(bool)
 
 			// Forward the response
 			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
@@ -924,7 +931,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 		q, resp.RemoteAddr().String(), resp.RemoteAddr().Network())
 	m := &dns.Msg{}
 	m.SetReply(req)
-	m.Compress = !d.config.DisableCompression
+	m.Compress = !d.disableCompression.Load().(bool)
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
 	if edns := req.IsEdns0(); edns != nil {
