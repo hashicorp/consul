@@ -74,22 +74,23 @@ type localState struct {
 	triggerCh chan struct{}
 }
 
-// Init is used to initialize the local state
-func (l *localState) Init(c *Config, lg *log.Logger, d delegate) {
-	l.config = c
-	l.delegate = d
-	l.logger = lg
-	l.services = make(map[string]*structs.NodeService)
-	l.serviceStatus = make(map[string]syncStatus)
-	l.serviceTokens = make(map[string]string)
-	l.checks = make(map[types.CheckID]*structs.HealthCheck)
-	l.checkStatus = make(map[types.CheckID]syncStatus)
-	l.checkTokens = make(map[types.CheckID]string)
-	l.checkCriticalTime = make(map[types.CheckID]time.Time)
-	l.deferCheck = make(map[types.CheckID]*time.Timer)
-	l.metadata = make(map[string]string)
-	l.consulCh = make(chan struct{}, 1)
-	l.triggerCh = make(chan struct{}, 1)
+// NewLocalState creates a  is used to initialize the local state
+func NewLocalState(c *Config, lg *log.Logger) *localState {
+	return &localState{
+		config:            c,
+		logger:            lg,
+		services:          make(map[string]*structs.NodeService),
+		serviceStatus:     make(map[string]syncStatus),
+		serviceTokens:     make(map[string]string),
+		checks:            make(map[types.CheckID]*structs.HealthCheck),
+		checkStatus:       make(map[types.CheckID]syncStatus),
+		checkTokens:       make(map[types.CheckID]string),
+		checkCriticalTime: make(map[types.CheckID]time.Time),
+		deferCheck:        make(map[types.CheckID]*time.Timer),
+		metadata:          make(map[string]string),
+		consulCh:          make(chan struct{}, 1),
+		triggerCh:         make(chan struct{}, 1),
+	}
 }
 
 // changeMade is used to trigger an anti-entropy run
