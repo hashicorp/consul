@@ -245,6 +245,13 @@ func (a *TestAgent) Client() *api.Client {
 	return c
 }
 
+// DNSDisableCompression disables compression for all started DNS servers.
+func (a *TestAgent) DNSDisableCompression(b bool) {
+	for _, srv := range a.dnsServers {
+		srv.disableCompression.Store(b)
+	}
+}
+
 func (a *TestAgent) consulConfig() *consul.Config {
 	c, err := a.Agent.consulConfig()
 	if err != nil {
