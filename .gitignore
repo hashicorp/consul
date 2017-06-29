@@ -5,10 +5,11 @@
 *.swp
 *.test
 .DS_Store
-Thumbs.db
 .vagrant/
 /pkg
+Thumbs.db
 bin/
+exit-code
 ui/.bundle
 ui/.sass-cache
 ui/dist/
