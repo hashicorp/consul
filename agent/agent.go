@@ -551,8 +551,13 @@ func (a *Agent) reloadWatches(cfg *Config) error {
 func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
+
+	// a.config.ConsulConfig, if set, is a partial configuration for the
+	// consul server or client. Therefore, clone and augment it but
+	// don't use it as base directly.
 	if a.config.ConsulConfig != nil {
-		base = a.config.ConsulConfig
+		base = new(consul.Config)
+		*base = *a.config.ConsulConfig
 	}
 
 	// This is set when the agent starts up
