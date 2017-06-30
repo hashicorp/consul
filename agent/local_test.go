@@ -312,6 +312,9 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 
+		a.state.RLock()
+		defer a.state.RUnlock()
+
 		// All the services should match
 		for id, serv := range services.NodeServices.Services {
 			serv.CreateIndex, serv.ModifyIndex = 0, 0
