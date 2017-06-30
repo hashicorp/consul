@@ -312,8 +312,8 @@ func (a *Agent) Start() error {
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
-			Service: consul.ConsulServiceName,
-			ID:      consul.ConsulServiceID,
+			Service: structs.ConsulServiceName,
+			ID:      structs.ConsulServiceID,
 			Port:    c.Ports.Server,
 			Tags:    []string{},
 		}
@@ -1562,10 +1562,10 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 // The agent will make a best effort to ensure it is deregistered
 func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	// Protect "consul" service from deletion by a user
-	if _, ok := a.delegate.(*consul.Server); ok && serviceID == consul.ConsulServiceID {
+	if _, ok := a.delegate.(*consul.Server); ok && serviceID == structs.ConsulServiceID {
 		return fmt.Errorf(
 			"Deregistering the %s service is not allowed",
-			consul.ConsulServiceID)
+			structs.ConsulServiceID)
 	}
 
 	// Validate ServiceID
@@ -2069,7 +2069,7 @@ func (a *Agent) loadServices(conf *Config) error {
 // known to the local agent.
 func (a *Agent) unloadServices() error {
 	for _, service := range a.state.Services() {
-		if service.ID == consul.ConsulServiceID {
+		if service.ID == structs.ConsulServiceID {
 			continue
 		}
 		if err := a.RemoveService(service.ID, false); err != nil {

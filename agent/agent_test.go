@@ -889,8 +889,8 @@ func TestAgent_ConsulService(t *testing.T) {
 
 	// Consul service is registered
 	services := a.state.Services()
-	if _, ok := services[consul.ConsulServiceID]; !ok {
-		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
+	if _, ok := services[structs.ConsulServiceID]; !ok {
+		t.Fatalf("%s service should be registered", structs.ConsulServiceID)
 	}
 
 	// todo(fs): data race
@@ -899,14 +899,14 @@ func TestAgent_ConsulService(t *testing.T) {
 		defer a.state.Unlock()
 
 		// Perform anti-entropy on consul service
-		if err := a.state.syncService(consul.ConsulServiceID); err != nil {
+		if err := a.state.syncService(structs.ConsulServiceID); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}()
 
 	// Consul service should be in sync
-	if !a.state.serviceStatus[consul.ConsulServiceID].inSync {
-		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
+	if !a.state.serviceStatus[structs.ConsulServiceID].inSync {
+		t.Fatalf("%s service should be in sync", structs.ConsulServiceID)
 	}
 }
 
@@ -1439,7 +1439,7 @@ func TestAgent_unloadServices(t *testing.T) {
 		if id == svc.ID {
 			t.Fatalf("should have unloaded services")
 		}
-		if id == consul.ConsulServiceID {
+		if id == structs.ConsulServiceID {
 			found = true
 		}
 	}

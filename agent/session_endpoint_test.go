@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
@@ -43,7 +42,7 @@ func TestSessionCreate(t *testing.T) {
 	raw := map[string]interface{}{
 		"Name":      "my-cool-session",
 		"Node":      a.Config.NodeName,
-		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
+		"Checks":    []types.CheckID{structs.SerfCheckID, "consul"},
 		"LockDelay": "20s",
 	}
 	enc.Encode(raw)
@@ -89,7 +88,7 @@ func TestSessionCreateDelete(t *testing.T) {
 	raw := map[string]interface{}{
 		"Name":      "my-cool-session",
 		"Node":      a.Config.NodeName,
-		"Checks":    []types.CheckID{consul.SerfCheckID, "consul"},
+		"Checks":    []types.CheckID{structs.SerfCheckID, "consul"},
 		"LockDelay": "20s",
 		"Behavior":  structs.SessionKeysDelete,
 	}
