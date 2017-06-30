@@ -27,6 +27,7 @@ func TestStartupShutdown(t *testing.T) {
 		Policy:      &Random{},
 		Spray:       nil,
 		FailTimeout: 10 * time.Second,
+		Future:      60 * time.Second,
 		MaxFails:    1,
 	}
 	g := newGrpcClient(nil, upstream)

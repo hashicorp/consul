@@ -30,6 +30,7 @@ func NewLookupWithOption(hosts []string, opts Options) Proxy {
 		Spray:       nil,
 		FailTimeout: 10 * time.Second,
 		MaxFails:    3, // TODO(miek): disable error checking for simple lookups?
+		Future:      60 * time.Second,
 		ex:          newDNSExWithOption(opts),
 	}
 
@@ -40,21 +41,29 @@ func NewLookupWithOption(hosts []string, opts Options) Proxy {
 			Fails:       0,
 			FailTimeout: upstream.FailTimeout,
 
-			Unhealthy: false,
 			CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 				return func(uh *UpstreamHost) bool {
-					if uh.Unhealthy {
-						return true
+
+					down := false
+
+					uh.checkMu.Lock()
+					until := uh.OkUntil
+					uh.checkMu.Unlock()
+
+					if !until.IsZero() && time.Now().After(until) {
+						down = true
 					}
+
 					fails := atomic.LoadInt32(&uh.Fails)
 					if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-						return true
+						down = true
 					}
-					return false
+					return down
 				}
 			}(upstream),
 			WithoutPathPrefix: upstream.WithoutPathPrefix,
 		}
+
 		upstream.Hosts[i] = uh
 	}
 	p.Upstreams = &[]Upstream{upstream}

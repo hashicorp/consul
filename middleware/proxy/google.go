@@ -206,6 +206,7 @@ func newUpstream(hosts []string, old *staticUpstream) Upstream {
 		Spray:             nil,
 		FailTimeout:       10 * time.Second,
 		MaxFails:          3,
+		Future:            60 * time.Second,
 		ex:                old.ex,
 		WithoutPathPrefix: old.WithoutPathPrefix,
 		IgnoredSubDomains: old.IgnoredSubDomains,
@@ -218,23 +219,30 @@ func newUpstream(hosts []string, old *staticUpstream) Upstream {
 			Conns:       0,
 			Fails:       0,
 			FailTimeout: upstream.FailTimeout,
-			Unhealthy:   false,
 
 			CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 				return func(uh *UpstreamHost) bool {
-					if uh.Unhealthy {
-						return true
+
+					down := false
+
+					uh.checkMu.Lock()
+					until := uh.OkUntil
+					uh.checkMu.Unlock()
+
+					if !until.IsZero() && time.Now().After(until) {
+						down = true
 					}
 
 					fails := atomic.LoadInt32(&uh.Fails)
 					if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-						return true
+						down = true
 					}
-					return false
+					return down
 				}
 			}(upstream),
 			WithoutPathPrefix: upstream.WithoutPathPrefix,
 		}
+
 		upstream.Hosts[i] = uh
 	}
 	return upstream

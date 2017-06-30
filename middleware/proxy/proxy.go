@@ -59,9 +59,11 @@ type UpstreamHost struct {
 	Name              string // IP address (and port) of this upstream host
 	Fails             int32
 	FailTimeout       time.Duration
-	Unhealthy         bool
+	OkUntil           time.Time
 	CheckDown         UpstreamHostDownFunc
+	CheckUrl          string
 	WithoutPathPrefix string
+	Checking          bool
 	checkMu           sync.Mutex
 }
 
@@ -72,7 +74,17 @@ func (uh *UpstreamHost) Down() bool {
 	if uh.CheckDown == nil {
 		// Default settings
 		fails := atomic.LoadInt32(&uh.Fails)
-		return uh.Unhealthy || fails > 0
+		after := false
+
+		uh.checkMu.Lock()
+		until := uh.OkUntil
+		uh.checkMu.Unlock()
+
+		if !until.IsZero() && time.Now().After(until) {
+			after = true
+		}
+
+		return after || fails > 0
 	}
 	return uh.CheckDown(uh)
 }

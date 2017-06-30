@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 var workableServer *httptest.Server
@@ -54,7 +55,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		t.Error("Expected second round robin host to be third host in the pool.")
 	}
 	// mark host as down
-	pool[0].Unhealthy = true
+	pool[0].OkUntil = time.Unix(0, 0)
 	h = rrPolicy.Select(pool)
 	if h != pool[1] {
 		t.Error("Expected third round robin host to be first host in the pool.")

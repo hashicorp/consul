@@ -74,8 +74,10 @@ func TestStop(t *testing.T) {
 				t.Error("Expected healthchecks to hit test server. Got no healthchecks.")
 			}
 
+			// health checks are in a go routine now, so one may well occur after we shutdown,
+			// but we only ever expect one more
 			counterValueAfterWaiting := atomic.LoadInt64(&counter)
-			if counterValueAfterWaiting != counterValueAfterShutdown {
+			if counterValueAfterWaiting > (counterValueAfterShutdown + 1) {
 				t.Errorf("Expected no more healthchecks after shutdown. Got: %d healthchecks after shutdown", counterValueAfterWaiting-counterValueAfterShutdown)
 			}
 

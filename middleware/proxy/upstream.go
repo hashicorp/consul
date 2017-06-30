@@ -36,6 +36,7 @@ type staticUpstream struct {
 
 	FailTimeout time.Duration
 	MaxFails    int32
+	Future      time.Duration
 	HealthCheck struct {
 		Path     string
 		Port     string
@@ -59,6 +60,7 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			Spray:       nil,
 			FailTimeout: 10 * time.Second,
 			MaxFails:    1,
+			Future:      60 * time.Second,
 			ex:          newDNSEx(),
 		}
 
@@ -89,21 +91,25 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 				Conns:       0,
 				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
-				Unhealthy:   false,
 
 				CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 					return func(uh *UpstreamHost) bool {
+
+						down := false
+
 						uh.checkMu.Lock()
-						defer uh.checkMu.Unlock()
-						if uh.Unhealthy {
-							return true
+						until := uh.OkUntil
+						uh.checkMu.Unlock()
+
+						if !until.IsZero() && time.Now().After(until) {
+							down = true
 						}
 
 						fails := atomic.LoadInt32(&uh.Fails)
 						if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-							return true
+							down = true
 						}
-						return false
+						return down
 					}
 				}(upstream),
 				WithoutPathPrefix: upstream.WithoutPathPrefix,
@@ -186,6 +192,12 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 				return err
 			}
 			u.HealthCheck.Interval = dur
+			u.Future = 2 * dur
+
+			// set a minimum of 3 seconds
+			if u.Future < (3 * time.Second) {
+				u.Future = 3 * time.Second
+			}
 		}
 	case "without":
 		if !c.NextArg() {
@@ -247,46 +259,93 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 	return nil
 }
 
+// This was moved into a thread so that each host could throw a health
+// check at the same time.  The reason for this is that if we are checking
+// 3 hosts, and the first one is gone, and we spend minutes timing out to
+// fail it, we would not have been doing any other health checks in that
+// time.  So we now have a per-host lock and a threaded health check.
+//
+// We use the Checking bool to avoid concurrent checks against the same
+// host; if one is taking a long time, the next one will find a check in
+// progress and simply return before trying.
+//
+// We are carefully avoiding having the mutex locked while we check,
+// otherwise checks will back up, potentially a lot of them if a host is
+// absent for a long time.  This arrangement makes checks quickly see if
+// they are the only one running and abort otherwise.
+func healthCheckUrl(nextTs time.Time, host *UpstreamHost) {
+
+	// lock for our bool check.  We don't just defer the unlock because
+	// we don't want the lock held while http.Get runs
+	host.checkMu.Lock()
+
+	// are we mid check?  Don't run another one
+	if host.Checking {
+		host.checkMu.Unlock()
+		return
+	}
+
+	host.Checking = true
+	host.checkMu.Unlock()
+
+	//log.Printf("[DEBUG] Healthchecking %s, nextTs is %s\n", url, nextTs.Local())
+
+	// fetch that url.  This has been moved into a go func because
+	// when the remote host is not merely not serving, but actually
+	// absent, then tcp syn timeouts can be very long, and so one
+	// fetch could last several check intervals
+	if r, err := http.Get(host.CheckUrl); err == nil {
+		io.Copy(ioutil.Discard, r.Body)
+		r.Body.Close()
+
+		if r.StatusCode < 200 || r.StatusCode >= 400 {
+			log.Printf("[WARNING] Host %s health check returned HTTP code %d\n",
+				host.Name, r.StatusCode)
+			nextTs = time.Unix(0, 0)
+		}
+	} else {
+		log.Printf("[WARNING] Host %s health check probe failed: %v\n", host.Name, err)
+		nextTs = time.Unix(0, 0)
+	}
+
+	host.checkMu.Lock()
+	host.Checking = false
+	host.OkUntil = nextTs
+	host.checkMu.Unlock()
+}
+
 func (u *staticUpstream) healthCheck() {
 	for _, host := range u.Hosts {
-		var hostName, checkPort string
 
-		// The DNS server might be an HTTP server.  If so, extract its name.
-		if url, err := url.Parse(host.Name); err == nil {
-			hostName = url.Host
-		} else {
-			hostName = host.Name
-		}
+		if host.CheckUrl == "" {
+			var hostName, checkPort string
 
-		// Extract the port number from the parsed server name.
-		checkHostName, checkPort, err := net.SplitHostPort(hostName)
-		if err != nil {
-			checkHostName = hostName
-		}
-
-		if u.HealthCheck.Port != "" {
-			checkPort = u.HealthCheck.Port
-		}
-
-		hostURL := "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
-
-		host.checkMu.Lock()
-		defer host.checkMu.Unlock()
-
-		if r, err := http.Get(hostURL); err == nil {
-			io.Copy(ioutil.Discard, r.Body)
-			r.Body.Close()
-			if r.StatusCode < 200 || r.StatusCode >= 400 {
-				log.Printf("[WARNING] Health check URL %s returned HTTP code %d\n",
-					hostURL, r.StatusCode)
-				host.Unhealthy = true
+			// The DNS server might be an HTTP server.  If so, extract its name.
+			ret, err := url.Parse(host.Name)
+			if err == nil && len(ret.Host) > 0 {
+				hostName = ret.Host
 			} else {
-				host.Unhealthy = false
+				hostName = host.Name
 			}
-		} else {
-			log.Printf("[WARNING] Health check probe failed: %v\n", err)
-			host.Unhealthy = true
+
+			// Extract the port number from the parsed server name.
+			checkHostName, checkPort, err := net.SplitHostPort(hostName)
+			if err != nil {
+				checkHostName = hostName
+			}
+
+			if u.HealthCheck.Port != "" {
+				checkPort = u.HealthCheck.Port
+			}
+
+			host.CheckUrl = "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
 		}
+
+		// calculate this before the get
+		nextTs := time.Now().Add(u.Future)
+
+		// locks/bools should prevent requests backing up
+		go healthCheckUrl(nextTs, host)
 	}
 }
 
