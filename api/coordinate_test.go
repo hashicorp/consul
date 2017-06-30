@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 )
 
-func TestCoordinate_Datacenters(t *testing.T) {
+func TestAPI_Coordinate_Datacenters(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -24,7 +24,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	})
 }
 
-func TestCoordinate_Nodes(t *testing.T) {
+func TestAPI_Coordinate_Nodes(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestSession_CreateDestroy(t *testing.T) {
+func TestAPI_Session_CreateDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -35,7 +35,7 @@ func TestSession_CreateDestroy(t *testing.T) {
 	}
 }
 
-func TestSession_CreateRenewDestroy(t *testing.T) {
+func TestAPI_Session_CreateRenewDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -86,7 +86,7 @@ func TestSession_CreateRenewDestroy(t *testing.T) {
 	}
 }
 
-func TestSession_CreateRenewDestroyRenew(t *testing.T) {
+func TestAPI_Session_CreateRenewDestroyRenew(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -140,7 +140,7 @@ func TestSession_CreateRenewDestroyRenew(t *testing.T) {
 	}
 }
 
-func TestSession_CreateDestroyRenewPeriodic(t *testing.T) {
+func TestAPI_Session_CreateDestroyRenewPeriodic(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -194,7 +194,7 @@ func TestSession_CreateDestroyRenewPeriodic(t *testing.T) {
 	}
 }
 
-func TestSession_Info(t *testing.T) {
+func TestAPI_Session_Info(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -248,7 +248,7 @@ func TestSession_Info(t *testing.T) {
 	}
 }
 
-func TestSession_Node(t *testing.T) {
+func TestAPI_Session_Node(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -283,7 +283,7 @@ func TestSession_Node(t *testing.T) {
 	}
 }
 
-func TestSession_List(t *testing.T) {
+func TestAPI_Session_List(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
