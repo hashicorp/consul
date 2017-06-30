@@ -3615,54 +3615,54 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 
 func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLDownPolicy = "deny"
-	cfg.ACLDefaultPolicy = "deny"
-	a := NewTestAgent(t.Name(), cfg)
-	defer a.Shutdown()
+	tests := []struct {
+		token   string
+		results int
+	}{
+		{"root", 1},
+		{"anonymous", 0},
+	}
+	for _, tt := range tests {
+		t.Run("ACLToken == "+tt.token, func(t *testing.T) {
+			cfg := TestConfig()
+			cfg.ACLToken = tt.token
+			cfg.ACLMasterToken = "root"
+			cfg.ACLDatacenter = "dc1"
+			cfg.ACLDownPolicy = "deny"
+			cfg.ACLDefaultPolicy = "deny"
+			a := NewTestAgent(t.Name(), cfg)
+			defer a.Shutdown()
 
-	// Register a service
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			Service: "foo",
-			Port:    12345,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+			// Register a service
+			args := &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					Service: "foo",
+					Port:    12345,
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+			var out struct{}
+			if err := a.RPC("Catalog.Register", args, &out); err != nil {
+				t.Fatalf("err: %v", err)
+			}
 
-	// Set up the DNS query
-	c := new(dns.Client)
-	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
-	m := new(dns.Msg)
-	m.SetQuestion("foo.service.consul.", dns.TypeA)
+			// Set up the DNS query
+			c := new(dns.Client)
+			addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+			m := new(dns.Msg)
+			m.SetQuestion("foo.service.consul.", dns.TypeA)
 
-	// Query with the root token. Should get results.
-	a.Config.ACLToken = "root"
-	in, _, err := c.Exchange(m, addr.String())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	// Query with a non-root token without access. Should get nothing.
-	a.Config.ACLToken = "anonymous"
-	in, _, err = c.Exchange(m, addr.String())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(in.Answer) != 0 {
-		t.Fatalf("Bad: %#v", in)
+			in, _, err := c.Exchange(m, addr.String())
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if len(in.Answer) != tt.results {
+				t.Fatalf("Bad: %#v", in)
+			}
+		})
 	}
 }
 
