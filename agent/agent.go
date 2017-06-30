@@ -221,6 +221,53 @@ func New(c *Config) (*Agent, error) {
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
 	}
+
+	// Try to get an advertise address
+	switch {
+	case a.config.AdvertiseAddr != "":
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
+		}
+		a.config.AdvertiseAddr = ipStr
+
+	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
+		a.config.AdvertiseAddr = a.config.BindAddr
+
+	default:
+		ip, err := consul.GetPrivateIP()
+		if ipaddr.IsAnyV6(a.config.BindAddr) {
+			ip, err = consul.GetPublicIPv6()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
+		}
+		a.config.AdvertiseAddr = ip.String()
+	}
+
+	// Try to get an advertise address for the wan
+	if a.config.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
+		}
+		a.config.AdvertiseAddrWan = ipStr
+	} else {
+		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
+	}
+
+	// Create the default set of tagged addresses.
+	a.config.TaggedAddresses = map[string]string{
+		"lan": a.config.AdvertiseAddr,
+		"wan": a.config.AdvertiseAddrWan,
+	}
+
 	return a, nil
 }
 
@@ -606,51 +653,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.SerfWanBindAddr != "" {
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfWanBindAddr
-	}
-	// Try to get an advertise address
-	switch {
-	case a.config.AdvertiseAddr != "":
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
-		}
-		a.config.AdvertiseAddr = ipStr
-
-	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
-		a.config.AdvertiseAddr = a.config.BindAddr
-
-	default:
-		ip, err := consul.GetPrivateIP()
-		if ipaddr.IsAnyV6(a.config.BindAddr) {
-			ip, err = consul.GetPublicIPv6()
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
-		}
-		a.config.AdvertiseAddr = ip.String()
-	}
-
-	// Try to get an advertise address for the wan
-	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
-		}
-		a.config.AdvertiseAddrWan = ipStr
-	} else {
-		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
-	}
-
-	// Create the default set of tagged addresses.
-	a.config.TaggedAddresses = map[string]string{
-		"lan": a.config.AdvertiseAddr,
-		"wan": a.config.AdvertiseAddrWan,
 	}
 
 	if a.config.AdvertiseAddr != "" {
