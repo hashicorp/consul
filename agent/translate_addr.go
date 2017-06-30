@@ -6,11 +6,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/structs"
 )
 
-// translateAddress is used to provide the final, translated address for a node,
+// TranslateAddress is used to provide the final, translated address for a node,
 // depending on how the agent and the other node are configured. The dc
 // parameter is the dc the datacenter this node is from.
-func translateAddress(config *Config, dc string, addr string, taggedAddresses map[string]string) string {
-	if config.TranslateWanAddrs && (config.Datacenter != dc) {
+func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[string]string) string {
+	if a.config.TranslateWanAddrs && (a.config.Datacenter != dc) {
 		wanAddr := taggedAddresses["wan"]
 		if wanAddr != "" {
 			addr = wanAddr
@@ -19,10 +19,10 @@ func translateAddress(config *Config, dc string, addr string, taggedAddresses ma
 	return addr
 }
 
-// translateAddresses translates addresses in the given structure into the
+// TranslateAddresses translates addresses in the given structure into the
 // final, translated address, depending on how the agent and the other node are
 // configured. The dc parameter is the datacenter this structure is from.
-func translateAddresses(config *Config, dc string, subj interface{}) {
+func (a *Agent) TranslateAddresses(dc string, subj interface{}) {
 	// CAUTION - SUBTLE! An agent running on a server can, in some cases,
 	// return pointers directly into the immutable state store for
 	// performance (it's via the in-memory RPC mechanism). It's never safe
@@ -34,7 +34,7 @@ func translateAddresses(config *Config, dc string, subj interface{}) {
 	// done. This also happens to skip looking at any of the incoming
 	// structure for the common case of not needing to translate, so it will
 	// skip a lot of work if no translation needs to be done.
-	if !config.TranslateWanAddrs || (config.Datacenter == dc) {
+	if !a.config.TranslateWanAddrs || (a.config.Datacenter == dc) {
 		return
 	}
 
@@ -44,24 +44,19 @@ func translateAddresses(config *Config, dc string, subj interface{}) {
 	switch v := subj.(type) {
 	case structs.CheckServiceNodes:
 		for _, entry := range v {
-			entry.Node.Address = translateAddress(config, dc,
-				entry.Node.Address, entry.Node.TaggedAddresses)
+			entry.Node.Address = a.TranslateAddress(dc, entry.Node.Address, entry.Node.TaggedAddresses)
 		}
 	case *structs.Node:
-		v.Address = translateAddress(config, dc,
-			v.Address, v.TaggedAddresses)
+		v.Address = a.TranslateAddress(dc, v.Address, v.TaggedAddresses)
 	case structs.Nodes:
 		for _, node := range v {
-			node.Address = translateAddress(config, dc,
-				node.Address, node.TaggedAddresses)
+			node.Address = a.TranslateAddress(dc, node.Address, node.TaggedAddresses)
 		}
 	case structs.ServiceNodes:
 		for _, entry := range v {
-			entry.Address = translateAddress(config, dc,
-				entry.Address, entry.TaggedAddresses)
+			entry.Address = a.TranslateAddress(dc, entry.Address, entry.TaggedAddresses)
 		}
 	default:
 		panic(fmt.Errorf("Unhandled type passed to address translator: %#v", subj))
-
 	}
 }
