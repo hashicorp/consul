@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-func TestAgent_Self(t *testing.T) {
+func TestAPI_Agent_Self(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -28,7 +28,7 @@ func TestAgent_Self(t *testing.T) {
 	}
 }
 
-func TestAgent_Reload(t *testing.T) {
+func TestAPI_Agent_Reload(t *testing.T) {
 	t.Parallel()
 
 	// Create our initial empty config file, to be overwritten later
@@ -70,7 +70,7 @@ func TestAgent_Reload(t *testing.T) {
 	}
 }
 
-func TestAgent_Members(t *testing.T) {
+func TestAPI_Agent_Members(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -87,7 +87,7 @@ func TestAgent_Members(t *testing.T) {
 	}
 }
 
-func TestAgent_Services(t *testing.T) {
+func TestAPI_Agent_Services(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -132,7 +132,7 @@ func TestAgent_Services(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_CheckPassing(t *testing.T) {
+func TestAPI_Agent_Services_CheckPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -176,7 +176,7 @@ func TestAgent_Services_CheckPassing(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_CheckBadStatus(t *testing.T) {
+func TestAPI_Agent_Services_CheckBadStatus(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -196,7 +196,7 @@ func TestAgent_Services_CheckBadStatus(t *testing.T) {
 	}
 }
 
-func TestAgent_ServiceAddress(t *testing.T) {
+func TestAPI_Agent_ServiceAddress(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -243,7 +243,7 @@ func TestAgent_ServiceAddress(t *testing.T) {
 	}
 }
 
-func TestAgent_EnableTagOverride(t *testing.T) {
+func TestAPI_Agent_EnableTagOverride(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -286,7 +286,7 @@ func TestAgent_EnableTagOverride(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_MultipleChecks(t *testing.T) {
+func TestAPI_Agent_Services_MultipleChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -330,7 +330,7 @@ func TestAgent_Services_MultipleChecks(t *testing.T) {
 	}
 }
 
-func TestAgent_SetTTLStatus(t *testing.T) {
+func TestAPI_Agent_SetTTLStatus(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -414,7 +414,7 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks(t *testing.T) {
+func TestAPI_Agent_Checks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -446,7 +446,7 @@ func TestAgent_Checks(t *testing.T) {
 	}
 }
 
-func TestAgent_CheckStartPassing(t *testing.T) {
+func TestAPI_Agent_CheckStartPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -481,7 +481,7 @@ func TestAgent_CheckStartPassing(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks_serviceBound(t *testing.T) {
+func TestAPI_Agent_Checks_serviceBound(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -527,7 +527,7 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks_Docker(t *testing.T) {
+func TestAPI_Agent_Checks_Docker(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -571,7 +571,7 @@ func TestAgent_Checks_Docker(t *testing.T) {
 	}
 }
 
-func TestAgent_Join(t *testing.T) {
+func TestAPI_Agent_Join(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -591,7 +591,7 @@ func TestAgent_Join(t *testing.T) {
 	}
 }
 
-func TestAgent_Leave(t *testing.T) {
+func TestAPI_Agent_Leave(t *testing.T) {
 	t.Parallel()
 	c1, s1 := makeClient(t)
 	defer s1.Stop()
@@ -626,7 +626,7 @@ func TestAgent_Leave(t *testing.T) {
 	}
 }
 
-func TestAgent_ForceLeave(t *testing.T) {
+func TestAPI_Agent_ForceLeave(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -640,7 +640,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 	}
 }
 
-func TestAgent_Monitor(t *testing.T) {
+func TestAPI_Agent_Monitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -663,7 +663,7 @@ func TestAgent_Monitor(t *testing.T) {
 	}
 }
 
-func TestServiceMaintenance(t *testing.T) {
+func TestAPI_ServiceMaintenance(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -718,7 +718,7 @@ func TestServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestNodeMaintenance(t *testing.T) {
+func TestAPI_NodeMaintenance(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
