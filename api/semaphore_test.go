@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestSemaphore_AcquireRelease(t *testing.T) {
+func TestAPI_Semaphore_AcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -69,7 +69,7 @@ func TestSemaphore_AcquireRelease(t *testing.T) {
 	}
 }
 
-func TestSemaphore_ForceInvalidate(t *testing.T) {
+func TestAPI_Semaphore_ForceInvalidate(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -104,7 +104,7 @@ func TestSemaphore_ForceInvalidate(t *testing.T) {
 	}
 }
 
-func TestSemaphore_DeleteKey(t *testing.T) {
+func TestAPI_Semaphore_DeleteKey(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -138,7 +138,7 @@ func TestSemaphore_DeleteKey(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Contend(t *testing.T) {
+func TestAPI_Semaphore_Contend(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -191,7 +191,7 @@ func TestSemaphore_Contend(t *testing.T) {
 	}
 }
 
-func TestSemaphore_BadLimit(t *testing.T) {
+func TestAPI_Semaphore_BadLimit(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -222,7 +222,7 @@ func TestSemaphore_BadLimit(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Destroy(t *testing.T) {
+func TestAPI_Semaphore_Destroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -278,7 +278,7 @@ func TestSemaphore_Destroy(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Conflict(t *testing.T) {
+func TestAPI_Semaphore_Conflict(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -316,7 +316,7 @@ func TestSemaphore_Conflict(t *testing.T) {
 	}
 }
 
-func TestSemaphore_MonitorRetry(t *testing.T) {
+func TestAPI_Semaphore_MonitorRetry(t *testing.T) {
 	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
@@ -433,7 +433,7 @@ func TestSemaphore_MonitorRetry(t *testing.T) {
 	}
 }
 
-func TestSemaphore_OneShot(t *testing.T) {
+func TestAPI_Semaphore_OneShot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

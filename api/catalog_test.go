@@ -8,7 +8,7 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
-func TestCatalog_Datacenters(t *testing.T) {
+func TestAPI_Catalog_Datacenters(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -25,7 +25,7 @@ func TestCatalog_Datacenters(t *testing.T) {
 	})
 }
 
-func TestCatalog_Nodes(t *testing.T) {
+func TestAPI_Catalog_Nodes(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -59,7 +59,7 @@ func TestCatalog_Nodes(t *testing.T) {
 	})
 }
 
-func TestCatalog_Nodes_MetaFilter(t *testing.T) {
+func TestAPI_Catalog_Nodes_MetaFilter(t *testing.T) {
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
@@ -112,7 +112,7 @@ func TestCatalog_Nodes_MetaFilter(t *testing.T) {
 	})
 }
 
-func TestCatalog_Services(t *testing.T) {
+func TestAPI_Catalog_Services(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -134,7 +134,7 @@ func TestCatalog_Services(t *testing.T) {
 	})
 }
 
-func TestCatalog_Services_NodeMetaFilter(t *testing.T) {
+func TestAPI_Catalog_Services_NodeMetaFilter(t *testing.T) {
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
@@ -175,7 +175,7 @@ func TestCatalog_Services_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestCatalog_Service(t *testing.T) {
+func TestAPI_Catalog_Service(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -201,7 +201,7 @@ func TestCatalog_Service(t *testing.T) {
 	})
 }
 
-func TestCatalog_Service_NodeMetaFilter(t *testing.T) {
+func TestAPI_Catalog_Service_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
@@ -230,7 +230,7 @@ func TestCatalog_Service_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestCatalog_Node(t *testing.T) {
+func TestAPI_Catalog_Node(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -261,7 +261,7 @@ func TestCatalog_Node(t *testing.T) {
 	})
 }
 
-func TestCatalog_Registration(t *testing.T) {
+func TestAPI_Catalog_Registration(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -389,7 +389,7 @@ func TestCatalog_Registration(t *testing.T) {
 	})
 }
 
-func TestCatalog_EnableTagOverride(t *testing.T) {
+func TestAPI_Catalog_EnableTagOverride(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

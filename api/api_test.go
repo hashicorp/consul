@@ -72,7 +72,7 @@ func testKey() string {
 		buf[10:16])
 }
 
-func TestDefaultConfig_env(t *testing.T) {
+func TestAPI_DefaultConfig_env(t *testing.T) {
 	t.Parallel()
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
@@ -150,7 +150,7 @@ func TestDefaultConfig_env(t *testing.T) {
 	}
 }
 
-func TestSetupTLSConfig(t *testing.T) {
+func TestAPI_SetupTLSConfig(t *testing.T) {
 	// A default config should result in a clean default client config.
 	tlsConfig := &TLSConfig{}
 	cc, err := SetupTLSConfig(tlsConfig)
@@ -253,7 +253,7 @@ func TestSetupTLSConfig(t *testing.T) {
 	}
 }
 
-func TestClientTLSOptions(t *testing.T) {
+func TestAPI_ClientTLSOptions(t *testing.T) {
 	t.Parallel()
 	// Start a server that verifies incoming HTTPS connections
 	_, srvVerify := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
@@ -362,7 +362,7 @@ func TestClientTLSOptions(t *testing.T) {
 	})
 }
 
-func TestSetQueryOptions(t *testing.T) {
+func TestAPI_SetQueryOptions(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -402,7 +402,7 @@ func TestSetQueryOptions(t *testing.T) {
 	}
 }
 
-func TestSetWriteOptions(t *testing.T) {
+func TestAPI_SetWriteOptions(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -422,7 +422,7 @@ func TestSetWriteOptions(t *testing.T) {
 	}
 }
 
-func TestRequestToHTTP(t *testing.T) {
+func TestAPI_RequestToHTTP(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -445,7 +445,7 @@ func TestRequestToHTTP(t *testing.T) {
 	}
 }
 
-func TestParseQueryMeta(t *testing.T) {
+func TestAPI_ParseQueryMeta(t *testing.T) {
 	t.Parallel()
 	resp := &http.Response{
 		Header: make(map[string][]string),
