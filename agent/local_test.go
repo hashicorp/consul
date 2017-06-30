@@ -161,7 +161,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 				if !reflect.DeepEqual(serv, srv6) {
 					r.Fatalf("bad: %v %v", serv, srv6)
 				}
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				r.Fatalf("unexpected service: %v", id)
@@ -173,10 +173,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		defer a.state.RUnlock()
 
 		// Check the local state
-		if len(a.state.services) != 6 {
+		if len(a.state.services) != 5 {
 			r.Fatalf("bad: %v", a.state.services)
 		}
-		if len(a.state.serviceStatus) != 6 {
+		if len(a.state.serviceStatus) != 5 {
 			r.Fatalf("bad: %v", a.state.serviceStatus)
 		}
 		for name, status := range a.state.serviceStatus {
@@ -222,7 +222,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 				if !reflect.DeepEqual(serv, srv6) {
 					r.Fatalf("bad: %v %v", serv, srv6)
 				}
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				r.Fatalf("unexpected service: %v", id)
@@ -234,10 +234,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		defer a.state.RUnlock()
 
 		// Check the local state
-		if len(a.state.services) != 5 {
+		if len(a.state.services) != 4 {
 			r.Fatalf("bad: %v", a.state.services)
 		}
-		if len(a.state.serviceStatus) != 5 {
+		if len(a.state.serviceStatus) != 4 {
 			r.Fatalf("bad: %v", a.state.serviceStatus)
 		}
 		for name, status := range a.state.serviceStatus {
@@ -333,7 +333,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 					!reflect.DeepEqual(serv.Tags, []string{"tag2"}) {
 					r.Fatalf("bad: %v %v", serv, srv2)
 				}
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				r.Fatalf("unexpected service: %v", id)
@@ -575,7 +575,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 				if !reflect.DeepEqual(serv, srv2) {
 					t.Fatalf("bad: %#v %#v", serv, srv2)
 				}
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				t.Fatalf("unexpected service: %v", id)
@@ -588,10 +588,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			defer a.state.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 3 {
+			if len(a.state.services) != 2 {
 				t.Fatalf("bad: %v", a.state.services)
 			}
-			if len(a.state.serviceStatus) != 3 {
+			if len(a.state.serviceStatus) != 2 {
 				t.Fatalf("bad: %v", a.state.serviceStatus)
 			}
 			for name, status := range a.state.serviceStatus {
@@ -634,7 +634,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 				t.Fatalf("should not be permitted")
 			case "api":
 				t.Fatalf("should be deleted")
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				t.Fatalf("unexpected service: %v", id)
@@ -647,10 +647,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			defer a.state.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 2 {
+			if len(a.state.services) != 1 {
 				t.Fatalf("bad: %v", a.state.services)
 			}
-			if len(a.state.serviceStatus) != 2 {
+			if len(a.state.serviceStatus) != 1 {
 				t.Fatalf("bad: %v", a.state.serviceStatus)
 			}
 			for name, status := range a.state.serviceStatus {
@@ -975,7 +975,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 				if !reflect.DeepEqual(serv, srv2) {
 					t.Fatalf("bad: %#v %#v", serv, srv2)
 				}
-			case "consul":
+			case structs.ConsulServiceID:
 				// ignore
 			default:
 				t.Fatalf("unexpected service: %v", id)
@@ -988,10 +988,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			defer a.state.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 3 {
+			if len(a.state.services) != 2 {
 				t.Fatalf("bad: %v", a.state.services)
 			}
-			if len(a.state.serviceStatus) != 3 {
+			if len(a.state.serviceStatus) != 2 {
 				t.Fatalf("bad: %v", a.state.serviceStatus)
 			}
 			for name, status := range a.state.serviceStatus {

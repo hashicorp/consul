@@ -57,7 +57,7 @@ func TestAgent_Services(t *testing.T) {
 		t.Fatalf("Err: %v", err)
 	}
 	val := obj.(map[string]*structs.NodeService)
-	if len(val) != 2 {
+	if len(val) != 1 {
 		t.Fatalf("bad services: %v", obj)
 	}
 	if val["mysql"].Port != 5000 {
@@ -69,6 +69,14 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
+
+	srv1 := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+		Tags:    []string{"master"},
+		Port:    5000,
+	}
+	a.state.AddService(srv1, "")
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
