@@ -9,7 +9,7 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
-func TestAPI_Health_Node(t *testing.T) {
+func TestAPI_HealthNode(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -169,7 +169,7 @@ func TestAPI_HealthChecks_AggregatedStatus(t *testing.T) {
 	}
 }
 
-func TestAPI_Health_Checks(t *testing.T) {
+func TestAPI_HealthChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeName = "node123"
@@ -218,7 +218,7 @@ func TestAPI_Health_Checks(t *testing.T) {
 	})
 }
 
-func TestAPI_Health_Checks_NodeMetaFilter(t *testing.T) {
+func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
@@ -255,7 +255,7 @@ func TestAPI_Health_Checks_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestAPI_Health_Service(t *testing.T) {
+func TestAPI_HealthService(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -281,7 +281,7 @@ func TestAPI_Health_Service(t *testing.T) {
 	})
 }
 
-func TestAPI_Health_Service_NodeMetaFilter(t *testing.T) {
+func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
@@ -310,7 +310,7 @@ func TestAPI_Health_Service_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestAPI_Health_State(t *testing.T) {
+func TestAPI_HealthState(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -330,7 +330,7 @@ func TestAPI_Health_State(t *testing.T) {
 	})
 }
 
-func TestAPI_Health_State_NodeMetaFilter(t *testing.T) {
+func TestAPI_HealthState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {

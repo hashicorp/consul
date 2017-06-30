@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 )
 
-func TestAPI_Operator_AutopilotGetSetConfiguration(t *testing.T) {
+func TestAPI_OperatorAutopilotGetSetConfiguration(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -36,7 +36,7 @@ func TestAPI_Operator_AutopilotGetSetConfiguration(t *testing.T) {
 	}
 }
 
-func TestAPI_Operator_AutopilotCASConfiguration(t *testing.T) {
+func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -81,7 +81,7 @@ func TestAPI_Operator_AutopilotCASConfiguration(t *testing.T) {
 	}
 }
 
-func TestAPI_Operator_AutopilotServerHealth(t *testing.T) {
+func TestAPI_OperatorAutopilotServerHealth(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		c.RaftProtocol = 3
