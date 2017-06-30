@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestAPI_Semaphore_AcquireRelease(t *testing.T) {
+func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -69,7 +69,7 @@ func TestAPI_Semaphore_AcquireRelease(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_ForceInvalidate(t *testing.T) {
+func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -104,7 +104,7 @@ func TestAPI_Semaphore_ForceInvalidate(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_DeleteKey(t *testing.T) {
+func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -138,7 +138,7 @@ func TestAPI_Semaphore_DeleteKey(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_Contend(t *testing.T) {
+func TestAPI_SemaphoreContend(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -191,7 +191,7 @@ func TestAPI_Semaphore_Contend(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_BadLimit(t *testing.T) {
+func TestAPI_SemaphoreBadLimit(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -222,7 +222,7 @@ func TestAPI_Semaphore_BadLimit(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_Destroy(t *testing.T) {
+func TestAPI_SemaphoreDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -278,7 +278,7 @@ func TestAPI_Semaphore_Destroy(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_Conflict(t *testing.T) {
+func TestAPI_SemaphoreConflict(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -316,7 +316,7 @@ func TestAPI_Semaphore_Conflict(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_MonitorRetry(t *testing.T) {
+func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
@@ -433,7 +433,7 @@ func TestAPI_Semaphore_MonitorRetry(t *testing.T) {
 	}
 }
 
-func TestAPI_Semaphore_OneShot(t *testing.T) {
+func TestAPI_SemaphoreOneShot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

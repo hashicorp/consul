@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestAPI_ACL_CreateDestroy(t *testing.T) {
+func TestAPI_ACLCreateDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()
@@ -49,7 +49,7 @@ func TestAPI_ACL_CreateDestroy(t *testing.T) {
 	}
 }
 
-func TestAPI_ACL_CloneDestroy(t *testing.T) {
+func TestAPI_ACLCloneDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()
@@ -79,7 +79,7 @@ func TestAPI_ACL_CloneDestroy(t *testing.T) {
 	}
 }
 
-func TestAPI_ACL_Info(t *testing.T) {
+func TestAPI_ACLInfo(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()
@@ -103,7 +103,7 @@ func TestAPI_ACL_Info(t *testing.T) {
 	}
 }
 
-func TestAPI_ACL_List(t *testing.T) {
+func TestAPI_ACLList(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()
@@ -127,7 +127,7 @@ func TestAPI_ACL_List(t *testing.T) {
 	}
 }
 
-func TestAPI_ACL_Replication(t *testing.T) {
+func TestAPI_ACLReplication(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()

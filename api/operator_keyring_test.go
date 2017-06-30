@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-func TestAPI_Operator_KeyringInstallListPutRemove(t *testing.T) {
+func TestAPI_OperatorKeyringInstallListPutRemove(t *testing.T) {
 	oldKey := "d8wu8CSUrqgtjVsvcBPmhQ=="
 	newKey := "qxycTi/SsePj/TZzCBmNXw=="
 	t.Parallel()
