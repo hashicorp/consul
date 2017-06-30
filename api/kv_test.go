@@ -73,7 +73,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_List_DeleteRecurse(t *testing.T) {
+func TestAPI_ClientList_DeleteRecurse(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -128,7 +128,7 @@ func TestAPI_Client_List_DeleteRecurse(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_DeleteCAS(t *testing.T) {
+func TestAPI_ClientDeleteCAS(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -174,7 +174,7 @@ func TestAPI_Client_DeleteCAS(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_CAS(t *testing.T) {
+func TestAPI_ClientCAS(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -222,7 +222,7 @@ func TestAPI_Client_CAS(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_WatchGet(t *testing.T) {
+func TestAPI_ClientWatchGet(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -279,7 +279,7 @@ func TestAPI_Client_WatchGet(t *testing.T) {
 	<-doneCh
 }
 
-func TestAPI_Client_WatchList(t *testing.T) {
+func TestAPI_ClientWatchList(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -337,7 +337,7 @@ func TestAPI_Client_WatchList(t *testing.T) {
 	<-doneCh
 }
 
-func TestAPI_Client_Keys_DeleteRecurse(t *testing.T) {
+func TestAPI_ClientKeys_DeleteRecurse(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -387,7 +387,7 @@ func TestAPI_Client_Keys_DeleteRecurse(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_AcquireRelease(t *testing.T) {
+func TestAPI_ClientAcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -456,7 +456,7 @@ func TestAPI_Client_AcquireRelease(t *testing.T) {
 	}
 }
 
-func TestAPI_Client_Txn(t *testing.T) {
+func TestAPI_ClientTxn(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

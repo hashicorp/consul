@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 )
 
-func TestAPI_Event_FireList(t *testing.T) {
+func TestAPI_EventFireList(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
