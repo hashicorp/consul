@@ -1299,17 +1299,17 @@ func (a *Agent) sendCoordinate() {
 			members := a.LANMembers()
 			grok, err := consul.CanServersUnderstandProtocol(members, 3)
 			if err != nil {
-				a.logger.Printf("[ERR] agent: failed to check servers: %s", err)
+				a.logger.Printf("[ERR] agent: Failed to check servers: %s", err)
 				continue
 			}
 			if !grok {
-				a.logger.Printf("[DEBUG] agent: skipping coordinate updates until servers are upgraded")
+				a.logger.Printf("[DEBUG] agent: Skipping coordinate updates until servers are upgraded")
 				continue
 			}
 
 			c, err := a.GetLANCoordinate()
 			if err != nil {
-				a.logger.Printf("[ERR] agent: failed to get coordinate: %s", err)
+				a.logger.Printf("[ERR] agent: Failed to get coordinate: %s", err)
 				continue
 			}
 
@@ -1321,7 +1321,11 @@ func (a *Agent) sendCoordinate() {
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				a.logger.Printf("[ERR] agent: coordinate update error: %s", err)
+				if strings.Contains(err.Error(), permissionDenied) {
+					a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+				} else {
+					a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+				}
 				continue
 			}
 		case <-a.shutdownCh:
