@@ -124,10 +124,10 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 			svcs = append(svcs, k.defaultNSMsg(r))
 			return svcs, nil, nil
 		}
-		s, e := k.Records(r)
+		s, e := k.Entries(r)
 		return s, nil, e // Haven't implemented debug queries yet.
 	case "SRV":
-		s, e := k.Records(r)
+		s, e := k.Entries(r)
 		// SRV for external services is not yet implemented, so remove those records
 		noext := []msg.Service{}
 		for _, svc := range s {
@@ -347,10 +347,15 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16) (r record
 
 }
 
-// Records looks up services in kubernetes. If exact is true, it will lookup
+// Records not implemented, see Entries().
+func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
+	return nil, fmt.Errorf("NOOP")
+}
+
+// Entries looks up services in kubernetes. If exact is true, it will lookup
 // just this name. This is used when find matches when completing SRV lookups
 // for instance.
-func (k *Kubernetes) Records(r recordRequest) ([]msg.Service, error) {
+func (k *Kubernetes) Entries(r recordRequest) ([]msg.Service, error) {
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.

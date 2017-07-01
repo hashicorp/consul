@@ -25,6 +25,10 @@ type ServiceBackend interface {
 
 	// Debug returns a string used when returning debug services.
 	Debug() string
+
+	// Returns _all_ services that matches a certain name.
+	// Note: it does not implement a specific service.
+	Records(name string, exact bool) ([]msg.Service, error)
 }
 
 // Options are extra options that can be specified for a lookup.

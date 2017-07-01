@@ -16,7 +16,7 @@ func (k Kubernetes) records(state request.Request, exact bool) ([]msg.Service, e
 	if err != nil {
 		return nil, err
 	}
-	services, err := k.Records(r)
+	services, err := k.Entries(r)
 	if err != nil {
 		return nil, err
 	}
