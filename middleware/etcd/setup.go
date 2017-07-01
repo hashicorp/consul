@@ -74,45 +74,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 			}
 
 			if c.NextBlock() {
-				// TODO(miek): 2 switches?
-				switch c.Val() {
-				case "stubzones":
-					stubzones = true
-				case "debug":
-					etc.Debugging = true
-				case "path":
-					if !c.NextArg() {
-						return &Etcd{}, false, c.ArgErr()
-					}
-					etc.PathPrefix = c.Val()
-				case "endpoint":
-					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return &Etcd{}, false, c.ArgErr()
-					}
-					endpoints = args
-				case "upstream":
-					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return &Etcd{}, false, c.ArgErr()
-					}
-					ups, err := dnsutil.ParseHostPortOrFile(args...)
-					if err != nil {
-						return &Etcd{}, false, err
-					}
-					etc.Proxy = proxy.NewLookup(ups)
-				case "tls": // cert key cacertfile
-					args := c.RemainingArgs()
-					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
-					if err != nil {
-						return &Etcd{}, false, err
-					}
-				default:
-					if c.Val() != "}" {
-						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
-					}
-				}
-				for c.Next() {
+				for {
 					switch c.Val() {
 					case "stubzones":
 						stubzones = true
@@ -136,7 +98,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 						}
 						ups, err := dnsutil.ParseHostPortOrFile(args...)
 						if err != nil {
-							return &Etcd{}, false, c.ArgErr()
+							return &Etcd{}, false, err
 						}
 						etc.Proxy = proxy.NewLookup(ups)
 					case "tls": // cert key cacertfile
@@ -146,9 +108,13 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 							return &Etcd{}, false, err
 						}
 					default:
-						if c.Val() != "}" { // TODO(miek): this feels like I'm doing it completely wrong.
+						if c.Val() != "}" {
 							return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
 						}
+					}
+
+					if !c.Next() {
+						break
 					}
 				}
 
