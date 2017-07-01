@@ -2,9 +2,6 @@ package etcd
 
 import (
 	"crypto/tls"
-	"net"
-	"net/http"
-	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
@@ -135,32 +132,13 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 func newEtcdClient(endpoints []string, cc *tls.Config) (etcdc.KeysAPI, error) {
 	etcdCfg := etcdc.Config{
 		Endpoints: endpoints,
-		Transport: newHTTPSTransport(cc),
+		Transport: mwtls.NewHTTPSTransport(cc),
 	}
 	cli, err := etcdc.New(etcdCfg)
 	if err != nil {
 		return nil, err
 	}
 	return etcdc.NewKeysAPI(cli), nil
-}
-
-func newHTTPSTransport(cc *tls.Config) etcdc.CancelableTransport {
-	// this seems like a bad idea but was here in the previous version
-	if cc != nil {
-		cc.InsecureSkipVerify = true
-	}
-
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		TLSClientConfig:     cc,
-	}
-
-	return tr
 }
 
 const defaultEndpoint = "http://localhost:2379"

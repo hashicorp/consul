@@ -5,6 +5,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
+	"time"
 )
 
 // NewTLSConfigFromArgs returns a TLS config based upon the passed
@@ -101,4 +104,24 @@ func loadRoots(caPath string) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("could not read root certs: %s", err)
 	}
 	return roots, nil
+}
+
+// NetHTTPSTransport returns an HTTP transport configured using tls.Config
+func NewHTTPSTransport(cc *tls.Config) *http.Transport {
+	// this seems like a bad idea but was here in the previous version
+	if cc != nil {
+		cc.InsecureSkipVerify = true
+	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:     cc,
+	}
+
+	return tr
 }
