@@ -92,6 +92,7 @@ func (c *MaintCommand) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error getting checks: %s", err))
 			return 1
 		}
+		status := 0
 
 		for _, check := range checks {
 			if check.CheckID == "_node_maintenance" {
@@ -99,15 +100,17 @@ func (c *MaintCommand) Run(args []string) int {
 				c.UI.Output("  Name:   " + nodeName)
 				c.UI.Output("  Reason: " + check.Notes)
 				c.UI.Output("")
+				status = 2
 			} else if strings.HasPrefix(string(check.CheckID), "_service_maintenance:") {
 				c.UI.Output("Service:")
 				c.UI.Output("  ID:     " + check.ServiceID)
 				c.UI.Output("  Reason: " + check.Notes)
 				c.UI.Output("")
+				status = 2
 			}
 		}
 
-		return 0
+		return status
 	}
 
 	if enable {
