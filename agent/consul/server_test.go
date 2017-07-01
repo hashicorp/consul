@@ -326,7 +326,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 			r.Fatalf("got %d s2 LAN members want %d", got, want)
 		}
 		if got, want := len(s3.LANMembers()), 2; got != want {
-			r.Fatalf("got %d s3 WAN members want %d", got, want)
+			r.Fatalf("got %d s3 LAN members want %d", got, want)
 		}
 	})
 
