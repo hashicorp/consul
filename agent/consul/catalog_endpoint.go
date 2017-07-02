@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	"os"
+	"regexp"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -94,6 +96,22 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 		if err := vetRegisterWithACL(acl, args, ns); err != nil {
 			return err
+		}
+	}
+
+	if c.srv.config.EnforceValidDNS {
+		dnsNameRe := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+		fmt.Fprintln(os.Stderr, "validating dns of  %s", args.Service.Service)
+		if !dnsNameRe.MatchString(args.Service.Service) {
+			return fmt.Errorf("Service name not valid for DNS: %s, blocking registration.", args.Service.Service)
+		}
+		// Warn if any tags are incompatible with DNS
+		for _, tag := range args.Service.Tags {
+			if !dnsNameRe.MatchString(tag) {
+				return fmt.Errorf("Service tag contains invalid character for dns: %s for service %s,"+
+					"Blocking registration", tag, args.Service.Service)
+
+			}
 		}
 	}
 
