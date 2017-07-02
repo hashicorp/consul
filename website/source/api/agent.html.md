@@ -320,7 +320,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/agent/join/1.2.3.4
+    https://consul.rocks/v1/agent/join/1.2.3.4
 ```
 
 ## Graceful Leave and Shutdown
