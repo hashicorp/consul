@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -2041,6 +2042,27 @@ func MergeConfig(a, b *Config) *Config {
 // we read one directory deep and read any files ending in ".json" as
 // configuration files.
 func ReadConfigPaths(paths []string) (*Config, error) {
+	fis := readPaths(paths, []string{".json"}, 1)
+
+	cfg := new(Config)
+	for _, fi := range fis {
+		if fi.err != nil {
+			return nil, fmt.Errorf("Error reading %q: %s", fi.path, fi.err)
+		}
+		rcfg, err := DecodeConfig(bytes.NewReader(fi.b))
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing %q: %s", fi.path, err)
+		}
+		cfg = MergeConfig(cfg, rcfg)
+	}
+	return cfg, nil
+}
+
+// ReadConfigPathsOld reads the paths in the given order to load configurations.
+// The paths can be to files or directories. If the path is a directory,
+// we read one directory deep and read any files ending in ".json" as
+// configuration files.
+func ReadConfigPathsOld(paths []string) (*Config, error) {
 	result := new(Config)
 	for _, path := range paths {
 		f, err := os.Open(path)

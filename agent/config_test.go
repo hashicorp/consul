@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -1439,61 +1441,121 @@ func TestReadConfigPaths_badPath(t *testing.T) {
 	}
 }
 
-func TestReadConfigPaths_file(t *testing.T) {
+func TestReadConfigPaths(t *testing.T) {
 	t.Parallel()
-	tf := testutil.TempFile(t, "consul")
-	tf.Write([]byte(`{"node_name":"bar"}`))
-	tf.Close()
-	defer os.Remove(tf.Name())
 
-	config, err := ReadConfigPaths([]string{tf.Name()})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	writeFile := func(base, fpath, data string) {
+		fullpath := filepath.Join(base, fpath)
+
+		if path.Dir(fpath) != "." {
+			if err := os.MkdirAll(path.Dir(fullpath), 0755); err != nil {
+				t.Fatal("Could not create dir: ", err)
+			}
+		}
+
+		if err := ioutil.WriteFile(fullpath, []byte(data), 0644); err != nil {
+			t.Fatal("Could not write file: ", err)
+		}
 	}
 
-	if config.NodeName != "bar" {
-		t.Fatalf("bad: %#v", config)
-	}
-}
+	type readCfgFn func([]string) (*Config, error)
 
-func TestReadConfigPaths_dir(t *testing.T) {
-	t.Parallel()
-	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
-
-	err := ioutil.WriteFile(filepath.Join(td, "a.json"),
-		[]byte(`{"node_name": "bar"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	testDC := func(fn readCfgFn, paths []string, dc string) error {
+		cfg, err := fn(paths)
+		if err != nil {
+			return err
+		}
+		if got, want := cfg.Datacenter, dc; got != want {
+			return fmt.Errorf("got %q want %q", got, want)
+		}
+		return nil
 	}
 
-	err = ioutil.WriteFile(filepath.Join(td, "b.json"),
-		[]byte(`{"node_name": "baz"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	funcs := map[string]readCfgFn{
+		"old": ReadConfigPathsOld,
+		"new": ReadConfigPaths,
 	}
 
-	// A non-json file, shouldn't be read
-	err = ioutil.WriteFile(filepath.Join(td, "c"),
-		[]byte(`{"node_name": "bad"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	for name, readCfg := range funcs {
+		t.Run("file-suffix "+name, func(t *testing.T) {
+			if name == "new" {
+				t.Skip("new ReadConfigPaths does not support files w/o suffix")
+			}
 
-	// An empty file shouldn't be read
-	err = ioutil.WriteFile(filepath.Join(td, "d.json"),
-		[]byte{}, 0664)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+			d := testutil.TempDir(t, "consul")
+			defer os.RemoveAll(d)
 
-	config, err := ReadConfigPaths([]string{td})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+			writeFile(d, "a", `{"datacenter":"a"}`)
 
-	if config.NodeName != "baz" {
-		t.Fatalf("bad: %#v", config)
+			paths := []string{
+				filepath.Join(d, "a"),
+			}
+			if err := testDC(readCfg, paths, "a"); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("file+suffix "+name, func(t *testing.T) {
+			d := testutil.TempDir(t, "consul")
+			defer os.RemoveAll(d)
+
+			writeFile(d, "a.json", `{"datacenter":"a"}`)
+
+			paths := []string{
+				filepath.Join(d, "a.json"),
+			}
+			if err := testDC(readCfg, paths, "a"); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("files+suffix "+name, func(t *testing.T) {
+			d := testutil.TempDir(t, "consul")
+			defer os.RemoveAll(d)
+
+			writeFile(d, "a.json", `{"datacenter":"a"}`)
+			writeFile(d, "b.json", `{"datacenter":"b"}`)
+
+			paths := []string{
+				filepath.Join(d, "a.json"),
+				filepath.Join(d, "b.json"),
+			}
+			if err := testDC(readCfg, paths, "b"); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("file+suffix, subdir-suffix "+name, func(t *testing.T) {
+			d := testutil.TempDir(t, "consul")
+			defer os.RemoveAll(d)
+
+			writeFile(d, "a.json", `{"datacenter":"a"}`)
+			writeFile(d, "b/b", `{"datacenter":"b"}`)
+
+			paths := []string{
+				filepath.Join(d, "a.json"),
+				filepath.Join(d, "b"),
+			}
+			if err := testDC(readCfg, paths, "a"); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("file+suffix, subdir+suffix "+name, func(t *testing.T) {
+			d := testutil.TempDir(t, "consul")
+			defer os.RemoveAll(d)
+
+			writeFile(d, "a.json", `{"datacenter":"a"}`)
+			writeFile(d, "b/b.json", `{"datacenter":"b"}`)
+
+			paths := []string{
+				filepath.Join(d, "a.json"),
+				filepath.Join(d, "b"),
+			}
+			if err := testDC(readCfg, paths, "b"); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
