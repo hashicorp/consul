@@ -78,7 +78,7 @@ type Config struct {
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string
 
-	//ForceValidDNS Enforces RFC1035 for service names
+	//EnforceValidDNS Enforces RFC1035 for service names
 	EnforceValidDNS bool
 
 	// RaftConfig is the configuration used for Raft in the local DC

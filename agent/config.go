@@ -379,7 +379,7 @@ type Config struct {
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string `mapstructure:"domain"`
 
-	//EnorceValidDNS Blocks registration of services that are valid dns.
+	//EnforceValidDNS Blocks registration of services that are valid dns.
 	EnforceValidDNS *bool `mapstructure:"enforcevaliddns"`
 
 	// HTTP configuration
