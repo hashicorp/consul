@@ -49,7 +49,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 					"wan": "127.0.0.1",
 				},
 				Meta:        map[string]string{},
-				CreateIndex: meta.LastIndex,
+				CreateIndex: meta.LastIndex - 1,
 				ModifyIndex: meta.LastIndex,
 			},
 		}
