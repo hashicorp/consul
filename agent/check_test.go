@@ -371,13 +371,16 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		Notify:        notif,
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
-		Interval:      5 * time.Millisecond,
+		Interval:      25 * time.Millisecond,
 		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 
 	check.Start()
 	defer check.Stop()
+
+	// give check some time to execute
+	time.Sleep(200 * time.Millisecond)
 
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
