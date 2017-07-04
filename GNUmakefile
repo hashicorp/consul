@@ -51,7 +51,7 @@ cov:
 test: dev
 	go test -i ./...
 	> test.log
-	for p in $$(go list ./... | grep -v vendor) ; do go test -v $$p >> test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log ; done
+	for p in $$(go list ./... | grep -v vendor) ; do go test -timeout 3m -v $$p >> test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log ; done
 	# go test -v ./... > test.log 2>&1 || echo 'FAIL_TOKEN' >> test.log
 	@if [ "$$TRAVIS" == "true" ] ; then cat test.log ; fi
 	@if grep -q 'FAIL_TOKEN' test.log ; then grep 'FAIL:' test.log ; exit 1 ; else echo 'PASS' ; fi
