@@ -404,12 +404,15 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	// Try to join.
 	joinLAN(t, c1, s1)
-	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
-		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
-	}
-
-	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			r.Fatalf("got %d server members want %d", got, want)
+		}
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			r.Fatalf("got %d client members want %d", got, want)
+		}
+
+		// Wait until we've got a healthy server.
 		if got, want := c1.servers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
