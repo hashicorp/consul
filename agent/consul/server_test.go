@@ -316,10 +316,10 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	// Join s3 to s2 on lan
 	joinLAN(t, s3, s2)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.WANMembers()), 2; got != want {
+		if got, want := len(s1.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s1 WAN members want %d", got, want)
 		}
-		if got, want := len(s2.WANMembers()), 2; got != want {
+		if got, want := len(s2.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s2 WAN members want %d", got, want)
 		}
 		if got, want := len(s2.LANMembers()), 2; got != want {
