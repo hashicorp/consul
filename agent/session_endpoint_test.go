@@ -250,7 +250,7 @@ func TestSessionCustomTTL(t *testing.T) {
 }
 
 func TestSessionTTLRenew(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	ttl := 250 * time.Millisecond
 	cfg := TestConfig()
 	cfg.SessionTTLMin = ttl

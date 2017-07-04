@@ -22,11 +22,11 @@ func generateUUID() (ret string) {
 }
 
 func TestRexecWriter(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	writer := &rexecWriter{
 		BufCh:    make(chan []byte, 16),
 		BufSize:  16,
-		BufIdle:  10 * time.Millisecond,
+		BufIdle:  100 * time.Millisecond,
 		CancelCh: make(chan struct{}),
 	}
 

@@ -1513,7 +1513,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 }
 
 func TestAgent_Service_Reap(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	cfg := TestConfig()
 	cfg.CheckReapInterval = time.Millisecond
 	cfg.CheckDeregisterIntervalMin = 0
@@ -1529,8 +1529,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
 			Status: api.HealthPassing,
-			TTL:    10 * time.Millisecond,
-			DeregisterCriticalServiceAfter: 100 * time.Millisecond,
+			TTL:    25 * time.Millisecond,
+			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
 
@@ -1547,8 +1547,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 		t.Fatalf("should not have critical checks")
 	}
 
-	// Wait for the check TTL to fail.
-	time.Sleep(30 * time.Millisecond)
+	// Wait for the check TTL to fail but before the check is reaped.
+	time.Sleep(100 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
@@ -1568,7 +1568,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 
 	// Wait for the check TTL to fail again.
-	time.Sleep(30 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
@@ -1577,7 +1577,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 
 	// Wait for the reap.
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; ok {
 		t.Fatalf("redis service should have been reaped")
 	}
@@ -1587,7 +1587,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	cfg := TestConfig()
 	cfg.CheckReapInterval = time.Millisecond
 	cfg.CheckDeregisterIntervalMin = 0
@@ -1603,7 +1603,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
 			Status: api.HealthPassing,
-			TTL:    10 * time.Millisecond,
+			TTL:    25 * time.Millisecond,
 		},
 	}
 
@@ -1621,7 +1621,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 
 	// Wait for the check TTL to fail.
-	time.Sleep(30 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
@@ -1630,7 +1630,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 
 	// Wait a while and make sure it doesn't reap.
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
