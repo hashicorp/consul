@@ -351,18 +351,18 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 	}
 }
 
-func mockTLSHTTPServer(code int) *httptest.Server {
-	return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func largeBodyHandler(code int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Body larger than 4k limit
 		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 		w.WriteHeader(code)
 		w.Write(body)
-	}))
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(200)
+	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -391,7 +391,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(500)
+	server := httptest.NewTLSServer(largeBodyHandler(500))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -419,7 +419,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(200)
+	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
 	notif := mock.NewNotify()
