@@ -119,7 +119,6 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	if err != nil {
 		return err
 	}
-
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
