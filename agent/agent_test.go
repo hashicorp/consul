@@ -1515,7 +1515,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 func TestAgent_Service_Reap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	cfg := TestConfig()
-	cfg.CheckReapInterval = time.Millisecond
+	cfg.CheckReapInterval = 50 * time.Millisecond
 	cfg.CheckDeregisterIntervalMin = 0
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -1589,7 +1589,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 func TestAgent_Service_NoReap(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	cfg := TestConfig()
-	cfg.CheckReapInterval = time.Millisecond
+	cfg.CheckReapInterval = 50 * time.Millisecond
 	cfg.CheckDeregisterIntervalMin = 0
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -1621,7 +1621,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 
 	// Wait for the check TTL to fail.
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	if _, ok := a.state.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
