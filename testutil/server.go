@@ -190,6 +190,19 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
 func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+	var server *TestServer
+	retry.Run(t, func(r *retry.R) {
+		var err error
+		server, err = newTestServerConfigT(t, cb)
+		if err != nil {
+			r.Fatalf("failed starting test server: %v", err)
+		}
+	})
+	return server, nil
+}
+
+// newTestServerConfigT is the internal helper for NewTestServerConfigT.
+func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
