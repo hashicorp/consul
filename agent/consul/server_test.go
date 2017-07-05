@@ -315,6 +315,9 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 
 	// Join s3 to s2 on lan
 	joinLAN(t, s3, s2)
+
+	// We rely on flood joining to fill across the LAN, so we expect s3 to
+	// show up on the WAN as well, even though it's not explicitly joined.
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s1 WAN members want %d", got, want)
