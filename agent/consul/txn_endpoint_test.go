@@ -162,8 +162,6 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -190,7 +188,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -302,7 +300,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		},
 	}
 	var out structs.TxnResponse
-	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
+	if err := s1.RPC("Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

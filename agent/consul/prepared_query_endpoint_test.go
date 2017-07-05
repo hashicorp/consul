@@ -2681,8 +2681,6 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
@@ -2692,19 +2690,12 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
 	joinWAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.WANMembers()), 2; got != want {
-			r.Fatalf("got %d WAN members want %d", got, want)
-		}
-	})
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}
