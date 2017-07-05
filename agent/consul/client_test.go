@@ -229,11 +229,8 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	var serverDirs []string
 	const numServers = 5
 
-	for n := numServers; n > 0; n-- {
-		var bootstrap bool
-		if n == numServers {
-			bootstrap = true
-		}
+	for n := 0; n < numServers; n++ {
+		bootstrap := n == 0
 		dir, s := testServerDCBootstrap(t, "dc1", bootstrap)
 		defer os.RemoveAll(dir)
 		defer s.Shutdown()
@@ -252,10 +249,13 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 		joinLAN(t, c, s)
 	}
 
+	for _, s := range servers {
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, numServers)) })
+	}
+
 	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
-	time.Sleep(100 * time.Millisecond)
 	c.servers.ResetRebalanceTimer()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	if len(c.LANMembers()) != numServers+numClients {
 		t.Errorf("bad len: %d", len(c.LANMembers()))
@@ -269,7 +269,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	// Ping each server in the list
 	var pingCount int
 	for range servers {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		s := c.servers.FindServer()
 		ok, err := c.connPool.Ping(s.Datacenter, s.Addr, s.Version, s.UseTLS)
 		if !ok {
