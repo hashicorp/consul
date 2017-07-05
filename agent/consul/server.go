@@ -340,30 +340,10 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	//
 	// The LAN serf cluster announces the port of the WAN serf cluster
 	// which creates a race when the WAN cluster is supposed to bind to
-	// a dynamic port (port 0).
-	//
-	// The current memberlist implementation updates the BindPort field
-	// to the actual port of the TCP listener after startup if the
-	// BindPort is zero. However, this is not guarded by a lock and
-	// since BindPort is used for both UDP and TCP the actual ports for
-	// both protocols most certainly differ.
-	//
-	// In production deployments the memberlist port should not be set
-	// to zero since the node needs to be discoverable by others and the
-	// shared port number enables this and allows for consistent
-	// firewall rules.
-	//
-	// Therefore, BindPort zero is used solely for testing where lots of
-	// separate memberlist clusters are running concurrently on the same
-	// machine and on individual ports where they can reach each other via
-	// TCP.
-	//
-	// This leaves the data race on the config.BindPort field. To
-	// mitigate (not solve) the problem without refactoring the
-	// memberlist networking code we first store the bind port value in
-	// a local variable and if zero compare it with the value of the
-	// config until it is different. This is still racy but should work
-	// in the cases we care about.
+	// a dynamic port (port 0). The current memberlist implementation will
+	// update the bind port in the configuration after the memberlist is
+	// created, so we can pull it out from there reliably, even though it's
+	// a little gross to be reading the updated config.
 
 	// Initialize the WAN Serf.
 	serfBindPortWAN := config.SerfWANConfig.MemberlistConfig.BindPort
@@ -373,16 +353,9 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
 	}
 
-	// see big comment above why we are doing this.
+	// See big comment above why we are doing this.
 	if serfBindPortWAN == 0 {
-		deadline := time.Now().Add(time.Second)
-		for time.Now().Before(deadline) {
-			serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
-			if serfBindPortWAN != 0 {
-				break
-			}
-			time.Sleep(time.Millisecond)
-		}
+		serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
 		if serfBindPortWAN == 0 {
 			return nil, fmt.Errorf("Failed to get dynamic bind port for WAN Serf")
 		}
