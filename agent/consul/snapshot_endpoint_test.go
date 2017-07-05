@@ -147,6 +147,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 }
 
 func TestSnapshot(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -156,6 +157,7 @@ func TestSnapshot(t *testing.T) {
 }
 
 func TestSnapshot_LeaderState(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -211,10 +213,10 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	}
 
 	// Make sure the leader has timers setup.
-	if _, ok := s1.sessionTimers[before]; !ok {
+	if s1.sessionTimers.Get(before) == nil {
 		t.Fatalf("missing session timer")
 	}
-	if _, ok := s1.sessionTimers[after]; !ok {
+	if s1.sessionTimers.Get(after) == nil {
 		t.Fatalf("missing session timer")
 	}
 
@@ -229,15 +231,16 @@ func TestSnapshot_LeaderState(t *testing.T) {
 
 	// Make sure the before time is still there, and that the after timer
 	// got reverted. This proves we fully cycled the leader state.
-	if _, ok := s1.sessionTimers[before]; !ok {
+	if s1.sessionTimers.Get(before) == nil {
 		t.Fatalf("missing session timer")
 	}
-	if _, ok := s1.sessionTimers[after]; ok {
+	if s1.sessionTimers.Get(after) != nil {
 		t.Fatalf("unexpected session timer")
 	}
 }
 
 func TestSnapshot_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -283,6 +286,7 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 	})
@@ -309,6 +313,7 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Datacenter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -337,6 +342,7 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 }
 
 func TestSnapshot_AllowStale(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 	})

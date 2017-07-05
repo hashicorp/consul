@@ -9,11 +9,13 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
 	})
@@ -45,6 +47,7 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 }
 
 func TestRPC_NoLeader_Retry(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 10 * time.Second
 	})
@@ -75,6 +78,7 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 }
 
 func TestRPC_blockingQuery(t *testing.T) {
+	t.Parallel()
 	dir, s := testServer(t)
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
@@ -164,7 +168,8 @@ func TestRPC_blockingQuery(t *testing.T) {
 	}
 }
 
-func TestReadyForConsistentReads(t *testing.T) {
+func TestRPC_ReadyForConsistentReads(t *testing.T) {
+	t.Parallel()
 	dir, s := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 2 * time.Millisecond
 	})
@@ -178,26 +183,19 @@ func TestReadyForConsistentReads(t *testing.T) {
 	}
 
 	s.resetConsistentReadReady()
-
-	setConsistentFunc := func() {
-		time.Sleep(3 * time.Millisecond)
-		s.setConsistentReadReady()
-	}
-
-	go setConsistentFunc()
-
-	//set some time to wait for the goroutine above to finish
-	waitUntil := time.Now().Add(time.Millisecond * 5)
 	err := s.consistentRead()
 	if err.Error() != "Not ready to serve consistent reads" {
 		t.Fatal("Server should NOT be ready for consistent reads")
 	}
-	for time.Now().Before(waitUntil) && err != nil {
-		err = s.consistentRead()
-	}
 
-	if err != nil {
-		t.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
-	}
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		s.setConsistentReadReady()
+	}()
 
+	retry.Run(t, func(r *retry.R) {
+		if err := s.consistentRead(); err != nil {
+			r.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
+		}
+	})
 }

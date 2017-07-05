@@ -104,7 +104,7 @@ type Agent struct {
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
-	state localState
+	state *localState
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -221,6 +221,53 @@ func New(c *Config) (*Agent, error) {
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
 	}
+
+	// Try to get an advertise address
+	switch {
+	case a.config.AdvertiseAddr != "":
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
+		}
+		a.config.AdvertiseAddr = ipStr
+
+	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
+		a.config.AdvertiseAddr = a.config.BindAddr
+
+	default:
+		ip, err := consul.GetPrivateIP()
+		if ipaddr.IsAnyV6(a.config.BindAddr) {
+			ip, err = consul.GetPublicIPv6()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
+		}
+		a.config.AdvertiseAddr = ip.String()
+	}
+
+	// Try to get an advertise address for the wan
+	if a.config.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		if err != nil {
+			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
+		}
+		a.config.AdvertiseAddrWan = ipStr
+	} else {
+		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
+	}
+
+	// Create the default set of tagged addresses.
+	a.config.TaggedAddresses = map[string]string{
+		"lan": a.config.AdvertiseAddr,
+		"wan": a.config.AdvertiseAddrWan,
+	}
+
 	return a, nil
 }
 
@@ -241,15 +288,27 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
+	// create the local state
+	a.state = NewLocalState(c, a.logger)
+
+	// create the config for the rpc server/client
+	consulCfg, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
+
+	// link consul client/server with the state
+	consulCfg.ServerUp = a.state.ConsulServerUp
+
 	// Setup either the client or the server.
 	if c.Server {
-		server, err := a.makeServer()
+		server, err := consul.NewServerLogger(consulCfg, a.logger)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 
 		a.delegate = server
-		a.state.Init(c, a.logger, server)
+		a.state.delegate = server
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
@@ -261,13 +320,13 @@ func (a *Agent) Start() error {
 
 		a.state.AddService(&consulService, c.GetTokenForAgent())
 	} else {
-		client, err := a.makeClient()
+		client, err := consul.NewClientLogger(consulCfg, a.logger)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
 
 		a.delegate = client
-		a.state.Init(c, a.logger, client)
+		a.state.delegate = client
 	}
 
 	// Load checks/services/metadata.
@@ -539,8 +598,13 @@ func (a *Agent) reloadWatches(cfg *Config) error {
 func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
+
+	// a.config.ConsulConfig, if set, is a partial configuration for the
+	// consul server or client. Therefore, clone and augment it but
+	// don't use it as base directly.
 	if a.config.ConsulConfig != nil {
-		base = a.config.ConsulConfig
+		base = new(consul.Config)
+		*base = *a.config.ConsulConfig
 	}
 
 	// This is set when the agent starts up
@@ -589,51 +653,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.SerfWanBindAddr != "" {
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfWanBindAddr
-	}
-	// Try to get an advertise address
-	switch {
-	case a.config.AdvertiseAddr != "":
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
-		}
-		a.config.AdvertiseAddr = ipStr
-
-	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
-		a.config.AdvertiseAddr = a.config.BindAddr
-
-	default:
-		ip, err := consul.GetPrivateIP()
-		if ipaddr.IsAnyV6(a.config.BindAddr) {
-			ip, err = consul.GetPublicIPv6()
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
-		}
-		a.config.AdvertiseAddr = ip.String()
-	}
-
-	// Try to get an advertise address for the wan
-	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
-		}
-		a.config.AdvertiseAddrWan = ipStr
-	} else {
-		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
-	}
-
-	// Create the default set of tagged addresses.
-	a.config.TaggedAddresses = map[string]string{
-		"lan": a.config.AdvertiseAddr,
-		"wan": a.config.AdvertiseAddrWan,
 	}
 
 	if a.config.AdvertiseAddr != "" {
@@ -774,9 +793,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
-	// Setup the ServerUp callback
-	base.ServerUp = a.state.ConsulServerUp
-
 	// Setup the user event callback
 	base.UserEventHandler = func(e serf.UserEvent) {
 		select {
@@ -787,6 +803,13 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	// Setup the loggers
 	base.LogOutput = a.LogOutput
+
+	if !a.config.DisableKeyringFile {
+		if err := a.setupKeyrings(base); err != nil {
+			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+		}
+	}
+
 	return base, nil
 }
 
@@ -895,42 +918,6 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	return nil
-}
-
-// makeServer creates a new consul server.
-func (a *Agent) makeServer() (*consul.Server, error) {
-	config, err := a.consulConfig()
-	if err != nil {
-		return nil, err
-	}
-	if !a.config.DisableKeyringFile {
-		if err := a.setupKeyrings(config); err != nil {
-			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
-		}
-	}
-	server, err := consul.NewServerLogger(config, a.logger)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to start Consul server: %v", err)
-	}
-	return server, nil
-}
-
-// makeClient creates a new consul client.
-func (a *Agent) makeClient() (*consul.Client, error) {
-	config, err := a.consulConfig()
-	if err != nil {
-		return nil, err
-	}
-	if !a.config.DisableKeyringFile {
-		if err := a.setupKeyrings(config); err != nil {
-			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
-		}
-	}
-	client, err := consul.NewClientLogger(config, a.logger)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to start Consul client: %v", err)
-	}
-	return client, nil
 }
 
 // makeRandomID will generate a random UUID for a node.
@@ -1644,7 +1631,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			ttl := &CheckTTL{
-				Notify:  &a.state,
+				Notify:  a.state,
 				CheckID: check.CheckID,
 				TTL:     chkType.TTL,
 				Logger:  a.logger,
@@ -1670,7 +1657,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			http := &CheckHTTP{
-				Notify:        &a.state,
+				Notify:        a.state,
 				CheckID:       check.CheckID,
 				HTTP:          chkType.HTTP,
 				Header:        chkType.Header,
@@ -1694,7 +1681,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &CheckTCP{
-				Notify:   &a.state,
+				Notify:   a.state,
 				CheckID:  check.CheckID,
 				TCP:      chkType.TCP,
 				Interval: chkType.Interval,
@@ -1715,7 +1702,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			dockerCheck := &CheckDocker{
-				Notify:            &a.state,
+				Notify:            a.state,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
@@ -1739,7 +1726,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   &a.state,
+				Notify:   a.state,
 				CheckID:  check.CheckID,
 				Script:   chkType.Script,
 				Interval: chkType.Interval,

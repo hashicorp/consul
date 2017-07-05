@@ -23,62 +23,55 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func expectStatus(t *testing.T, script, status string) {
-	notif := mock.NewNotify()
-	check := &CheckMonitor{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		Script:   script,
-		Interval: 10 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+func TestCheckMonitor(t *testing.T) {
+	tests := []struct {
+		script, status string
+	}{
+		{"exit 0", "passing"},
+		{"exit 1", "warning"},
+		{"exit 2", "critical"},
+		{"foobarbaz", "critical"},
 	}
-	check.Start()
-	defer check.Stop()
-	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.Updates("foo"), 2; got < want {
-			r.Fatalf("got %d updates want at least %d", got, want)
-		}
-		if got, want := notif.State("foo"), status; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
-	})
-}
 
-func TestCheckMonitor_Passing(t *testing.T) {
-	t.Parallel()
-	expectStatus(t, "exit 0", api.HealthPassing)
-}
-
-func TestCheckMonitor_Warning(t *testing.T) {
-	t.Parallel()
-	expectStatus(t, "exit 1", api.HealthWarning)
-}
-
-func TestCheckMonitor_Critical(t *testing.T) {
-	t.Parallel()
-	expectStatus(t, "exit 2", api.HealthCritical)
-}
-
-func TestCheckMonitor_BadCmd(t *testing.T) {
-	t.Parallel()
-	expectStatus(t, "foobarbaz", api.HealthCritical)
+	for _, tt := range tests {
+		t.Run(tt.status, func(t *testing.T) {
+			notif := mock.NewNotify()
+			check := &CheckMonitor{
+				Notify:   notif,
+				CheckID:  types.CheckID("foo"),
+				Script:   tt.script,
+				Interval: 25 * time.Millisecond,
+				Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+			}
+			check.Start()
+			defer check.Stop()
+			retry.Run(t, func(r *retry.R) {
+				if got, want := notif.Updates("foo"), 2; got < want {
+					r.Fatalf("got %d updates want at least %d", got, want)
+				}
+				if got, want := notif.State("foo"), tt.status; got != want {
+					r.Fatalf("got state %q want %q", got, want)
+				}
+			})
+		})
+	}
 }
 
 func TestCheckMonitor_Timeout(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
 		Notify:   notif,
 		CheckID:  types.CheckID("foo"),
 		Script:   "sleep 1 && exit 0",
-		Interval: 10 * time.Millisecond,
-		Timeout:  5 * time.Millisecond,
+		Interval: 50 * time.Millisecond,
+		Timeout:  25 * time.Millisecond,
 		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 
 	// Should have at least 2 updates
 	if notif.Updates("foo") < 2 {
@@ -90,7 +83,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 }
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
 		Notify:   notif,
@@ -102,7 +95,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	// Should have at least 1 update
 	if notif.Updates("foo") < 1 {
@@ -136,18 +129,18 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 }
 
 func TestCheckTTL(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckTTL{
 		Notify:  notif,
 		CheckID: types.CheckID("foo"),
-		TTL:     100 * time.Millisecond,
+		TTL:     200 * time.Millisecond,
 		Logger:  log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	check.SetStatus(api.HealthPassing, "test-output")
 
 	if notif.Updates("foo") != 1 {
@@ -159,13 +152,13 @@ func TestCheckTTL(t *testing.T) {
 	}
 
 	// Ensure we don't fail early
-	time.Sleep(75 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 	if notif.Updates("foo") != 1 {
 		t.Fatalf("should have 1 updates %v", notif.UpdatesMap())
 	}
 
 	// Wait for the TTL to expire
-	time.Sleep(75 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 
 	if notif.Updates("foo") != 2 {
 		t.Fatalf("should have 2 updates %v", notif.UpdatesMap())
@@ -351,18 +344,18 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 	}
 }
 
-func mockTLSHTTPServer(code int) *httptest.Server {
-	return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func largeBodyHandler(code int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Body larger than 4k limit
 		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 		w.WriteHeader(code)
 		w.Write(body)
-	}))
+	})
 }
 
 func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(200)
+	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -371,13 +364,16 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		Notify:        notif,
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
-		Interval:      5 * time.Millisecond,
+		Interval:      25 * time.Millisecond,
 		Logger:        log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 
 	check.Start()
 	defer check.Stop()
+
+	// give check some time to execute
+	time.Sleep(200 * time.Millisecond)
 
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
@@ -391,7 +387,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 
 func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(500)
+	server := httptest.NewTLSServer(largeBodyHandler(500))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -419,7 +415,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 
 func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 	t.Parallel()
-	server := mockTLSHTTPServer(200)
+	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
 	notif := mock.NewNotify()
@@ -652,14 +648,14 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
-		Interval:          10 * time.Millisecond,
+		Interval:          25 * time.Millisecond,
 		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 		dockerClient:      dockerClient,
 	}
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 
 	// Should have at least 2 updates
 	if notif.Updates("foo") < 2 {

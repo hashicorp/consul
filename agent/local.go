@@ -27,6 +27,21 @@ type syncStatus struct {
 	inSync bool // Is this in sync with the server
 }
 
+// localStateConfig is the configuration for the localState. It is
+// popuplated during NewLocalAgent from the agent configuration to avoid
+// race conditions with the agent configuration.
+type localStateConfig struct {
+	ACLToken            string
+	AEInterval          time.Duration
+	AdvertiseAddr       string
+	CheckUpdateInterval time.Duration
+	Datacenter          string
+	NodeID              types.NodeID
+	NodeName            string
+	TaggedAddresses     map[string]string
+	TokenForAgent       string
+}
+
 // localState is used to represent the node's services,
 // and checks. We used it to perform anti-entropy with the
 // catalog representation
@@ -39,7 +54,7 @@ type localState struct {
 	logger *log.Logger
 
 	// Config is the agent config
-	config *Config
+	config localStateConfig
 
 	// delegate is the consul interface to use for keeping in sync
 	delegate delegate
@@ -74,22 +89,38 @@ type localState struct {
 	triggerCh chan struct{}
 }
 
-// Init is used to initialize the local state
-func (l *localState) Init(c *Config, lg *log.Logger, d delegate) {
-	l.config = c
-	l.delegate = d
-	l.logger = lg
-	l.services = make(map[string]*structs.NodeService)
-	l.serviceStatus = make(map[string]syncStatus)
-	l.serviceTokens = make(map[string]string)
-	l.checks = make(map[types.CheckID]*structs.HealthCheck)
-	l.checkStatus = make(map[types.CheckID]syncStatus)
-	l.checkTokens = make(map[types.CheckID]string)
-	l.checkCriticalTime = make(map[types.CheckID]time.Time)
-	l.deferCheck = make(map[types.CheckID]*time.Timer)
-	l.metadata = make(map[string]string)
-	l.consulCh = make(chan struct{}, 1)
-	l.triggerCh = make(chan struct{}, 1)
+// NewLocalState creates a  is used to initialize the local state
+func NewLocalState(c *Config, lg *log.Logger) *localState {
+	lc := localStateConfig{
+		ACLToken:            c.ACLToken,
+		AEInterval:          c.AEInterval,
+		AdvertiseAddr:       c.AdvertiseAddr,
+		CheckUpdateInterval: c.CheckUpdateInterval,
+		Datacenter:          c.Datacenter,
+		NodeID:              c.NodeID,
+		NodeName:            c.NodeName,
+		TaggedAddresses:     map[string]string{},
+		TokenForAgent:       c.GetTokenForAgent(),
+	}
+	for k, v := range c.TaggedAddresses {
+		lc.TaggedAddresses[k] = v
+	}
+
+	return &localState{
+		config:            lc,
+		logger:            lg,
+		services:          make(map[string]*structs.NodeService),
+		serviceStatus:     make(map[string]syncStatus),
+		serviceTokens:     make(map[string]string),
+		checks:            make(map[types.CheckID]*structs.HealthCheck),
+		checkStatus:       make(map[types.CheckID]syncStatus),
+		checkTokens:       make(map[types.CheckID]string),
+		checkCriticalTime: make(map[types.CheckID]time.Time),
+		deferCheck:        make(map[types.CheckID]*time.Timer),
+		metadata:          make(map[string]string),
+		consulCh:          make(chan struct{}, 1),
+		triggerCh:         make(chan struct{}, 1),
+	}
 }
 
 // changeMade is used to trigger an anti-entropy run
@@ -412,7 +443,7 @@ func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.config.GetTokenForAgent()},
+		QueryOptions: structs.QueryOptions{Token: l.config.TokenForAgent},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -743,7 +774,7 @@ func (l *localState) syncNodeInfo() error {
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
-		WriteRequest:    structs.WriteRequest{Token: l.config.GetTokenForAgent()},
+		WriteRequest:    structs.WriteRequest{Token: l.config.TokenForAgent},
 	}
 	var out struct{}
 	err := l.delegate.RPC("Catalog.Register", &req, &out)

@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"os"
 	"sync"
@@ -17,12 +16,12 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
+func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-	config.NodeName = NodeName
+	config.NodeName = uniqueNodeName(t.Name())
 	config.RPCAddr = &net.TCPAddr{
 		IP:   []byte{127, 0, 0, 1},
 		Port: getPort(),
@@ -37,24 +36,24 @@ func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
 }
 
 func testClient(t *testing.T) (string, *Client) {
-	return testClientDC(t, "dc1")
+	return testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+	})
 }
 
 func testClientDC(t *testing.T, dc string) (string, *Client) {
-	dir, config := testClientConfig(t, "testco.internal")
-	config.Datacenter = dc
-
-	client, err := NewClient(config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return dir, client
+	return testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.NodeName = uniqueNodeName(t.Name())
+	})
 }
 
 func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
-	name := fmt.Sprintf("Client %d", getPort())
-	dir, config := testClientConfig(t, name)
-	cb(config)
+	dir, config := testClientConfig(t)
+	if cb != nil {
+		cb(config)
+	}
 	client, err := NewClient(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -63,6 +62,7 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 }
 
 func TestClient_StartStop(t *testing.T) {
+	t.Parallel()
 	dir, client := testClient(t)
 	defer os.RemoveAll(dir)
 
@@ -72,6 +72,7 @@ func TestClient_StartStop(t *testing.T) {
 }
 
 func TestClient_JoinLAN(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -96,6 +97,7 @@ func TestClient_JoinLAN(t *testing.T) {
 }
 
 func TestClient_JoinLAN_Invalid(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -119,6 +121,7 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 }
 
 func TestClient_JoinWAN_Invalid(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -142,6 +145,7 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 }
 
 func TestClient_RPC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -177,6 +181,7 @@ func TestClient_RPC(t *testing.T) {
 }
 
 func TestClient_RPC_Pool(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -219,6 +224,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 }
 
 func TestClient_RPC_ConsulServerPing(t *testing.T) {
+	t.Parallel()
 	var servers []*Server
 	var serverDirs []string
 	const numServers = 5
@@ -282,7 +288,8 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t, "a.testco.internal")
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -293,7 +300,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t, "b.testco.internal")
+	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
@@ -327,6 +334,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -369,7 +377,8 @@ func TestClient_SnapshotRPC(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t, "a.testco.internal")
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -380,7 +389,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t, "b.testco.internal")
+	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
@@ -395,12 +404,15 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	// Try to join.
 	joinLAN(t, c1, s1)
-	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
-		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
-	}
-
-	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.LANMembers()), 2; got != want {
+			r.Fatalf("got %d server members want %d", got, want)
+		}
+		if got, want := len(c1.LANMembers()), 2; got != want {
+			r.Fatalf("got %d client members want %d", got, want)
+		}
+
+		// Wait until we've got a healthy server.
 		if got, want := c1.servers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
@@ -424,6 +436,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 }
 
 func TestClientServer_UserEvent(t *testing.T) {
+	t.Parallel()
 	clientOut := make(chan serf.UserEvent, 2)
 	dir1, c1 := testClientWithConfig(t, func(conf *Config) {
 		conf.UserEventHandler = func(e serf.UserEvent) {
@@ -500,6 +513,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 }
 
 func TestClient_Encrypted(t *testing.T) {
+	t.Parallel()
 	dir1, c1 := testClient(t)
 	defer os.RemoveAll(dir1)
 	defer c1.Shutdown()

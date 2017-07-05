@@ -1,5 +1,3 @@
-// +build consul
-
 package version
 
 // NOTE we rely on other "version_*.go" files to be lexically after

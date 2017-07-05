@@ -23,6 +23,7 @@ key "foo/" {
 `
 
 func TestACL_Disabled(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -41,6 +42,7 @@ func TestACL_Disabled(t *testing.T) {
 }
 
 func TestACL_ResolveRootACL(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -65,6 +67,7 @@ func TestACL_ResolveRootACL(t *testing.T) {
 }
 
 func TestACL_Authority_NotFound(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -85,6 +88,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 }
 
 func TestACL_Authority_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "root"
@@ -131,6 +135,7 @@ func TestACL_Authority_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Anonymous_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 	})
@@ -157,6 +162,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Master_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -184,6 +190,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 }
 
 func TestACL_Authority_Management(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -212,6 +219,7 @@ func TestACL_Authority_Management(t *testing.T) {
 }
 
 func TestACL_NonAuthority_NotFound(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 	})
@@ -251,6 +259,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 }
 
 func TestACL_NonAuthority_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -316,6 +325,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 }
 
 func TestACL_NonAuthority_Management(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.ACLMasterToken = "foobar"
@@ -364,6 +374,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 }
 
 func TestACL_DownPolicy_Deny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "deny"
@@ -429,6 +440,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 }
 
 func TestACL_DownPolicy_Allow(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "allow"
@@ -494,6 +506,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 }
 
 func TestACL_DownPolicy_ExtendCache(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLTTL = 0
@@ -570,6 +583,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 }
 
 func TestACL_Replication(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -682,6 +696,7 @@ func TestACL_Replication(t *testing.T) {
 }
 
 func TestACL_MultiDC_Found(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

@@ -150,9 +150,9 @@ type Server struct {
 	// Enterprise user-defined areas.
 	router *servers.Router
 
-	// rpcListener is used to listen for incoming connections
-	rpcListener net.Listener
-	rpcServer   *rpc.Server
+	// Listener is used to listen for incoming connections
+	Listener  net.Listener
+	rpcServer *rpc.Server
 
 	// rpcTLS is the TLS config for incoming TLS requests
 	rpcTLS *tls.Config
@@ -172,8 +172,7 @@ type Server struct {
 	// sessionTimers track the expiration time of each Session that has
 	// a TTL. On expiration, a SessionDestroy event will occur, and
 	// destroy the session via standard session destroy processing
-	sessionTimers     map[string]*time.Timer
-	sessionTimersLock sync.Mutex
+	sessionTimers *SessionTimers
 
 	// statsFetcher is used by autopilot to check the status of the other
 	// Consul servers.
@@ -296,6 +295,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
+		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
 		shutdownCh:            shutdownCh,
 	}
@@ -336,22 +336,39 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
+	// Serf and dynamic bind ports
+	//
+	// The LAN serf cluster announces the port of the WAN serf cluster
+	// which creates a race when the WAN cluster is supposed to bind to
+	// a dynamic port (port 0). The current memberlist implementation will
+	// update the bind port in the configuration after the memberlist is
+	// created, so we can pull it out from there reliably, even though it's
+	// a little gross to be reading the updated config.
+
+	// Initialize the WAN Serf.
+	serfBindPortWAN := config.SerfWANConfig.MemberlistConfig.BindPort
+	s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
+	}
+
+	// See big comment above why we are doing this.
+	if serfBindPortWAN == 0 {
+		serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
+		if serfBindPortWAN == 0 {
+			return nil, fmt.Errorf("Failed to get dynamic bind port for WAN Serf")
+		}
+		s.logger.Printf("[INFO] agent: Serf WAN TCP bound to port %d", serfBindPortWAN)
+	}
+
 	// Initialize the LAN Serf.
-	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
-		s.eventChLAN, serfLANSnapshot, false)
+	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
 	go s.lanEventHandler()
-
-	// Initialize the WAN Serf.
-	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
-		s.eventChWAN, serfWANSnapshot, true)
-	if err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
-	}
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
 	if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
@@ -391,14 +408,14 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 }
 
 // setupSerf is used to setup and initialize a Serf
-func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool) (*serf.Serf, error) {
-	addr := s.rpcListener.Addr().(*net.TCPAddr)
+func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool, wanPort int) (*serf.Serf, error) {
+	addr := s.Listener.Addr().(*net.TCPAddr)
 	conf.Init()
 	if wan {
 		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
 	} else {
 		conf.NodeName = s.config.NodeName
-		conf.Tags["wan_join_port"] = fmt.Sprintf("%d", s.config.SerfWANConfig.MemberlistConfig.BindPort)
+		conf.Tags["wan_join_port"] = fmt.Sprintf("%d", wanPort)
 	}
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
@@ -645,7 +662,14 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	if err != nil {
 		return err
 	}
-	s.rpcListener = ln
+	s.Listener = ln
+	if s.config.NotifyListen != nil {
+		s.config.NotifyListen()
+	}
+	// todo(fs): we should probably guard this
+	if s.config.RPCAdvertise == nil {
+		s.config.RPCAdvertise = ln.Addr().(*net.TCPAddr)
+	}
 
 	// Verify that we have a usable advertise address
 	if s.config.RPCAdvertise.IP.IsUnspecified() {
@@ -714,8 +738,8 @@ func (s *Server) Shutdown() error {
 		}
 	}
 
-	if s.rpcListener != nil {
-		s.rpcListener.Close()
+	if s.Listener != nil {
+		s.Listener.Close()
 	}
 
 	// Close the connection pool
