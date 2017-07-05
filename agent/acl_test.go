@@ -46,16 +46,17 @@ func TestACL_Version8(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// With version 8 enforcement off, this should not get called.
+		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			t.Fatalf("should not have called to server")
+			return nil
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// With version 8 enforcement off, this should not get called.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-		t.Fatalf("should not have called to server")
-		return nil
-	}
 	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
@@ -69,15 +70,16 @@ func TestACL_Disabled(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// Fetch a token without ACLs enabled and make sure the manager sees it.
+		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			return errors.New(aclDisabled)
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Fetch a token without ACLs enabled and make sure the manager sees it.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-		return errors.New(aclDisabled)
-	}
 	if a.acls.isDisabled() {
 		t.Fatalf("should not be disabled yet")
 	}
@@ -122,17 +124,17 @@ func TestACL_Special_IDs(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// An empty ID should get mapped to the anonymous token.
+		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+			if req.ACL != "anonymous" {
+				t.Fatalf("bad: %#v", *req)
+			}
+			return errors.New(aclNotFound)
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
-	}
-
-	// An empty ID should get mapped to the anonymous token.
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-		if req.ACL != "anonymous" {
-			t.Fatalf("bad: %#v", *req)
-		}
-		return errors.New(aclNotFound)
 	}
 	_, err := a.resolveToken("")
 	if err == nil || !strings.Contains(err.Error(), aclNotFound) {
@@ -175,15 +177,16 @@ func TestACL_Down_Deny(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// Resolve with ACLs down.
+		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			return fmt.Errorf("ACLs are broken")
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Resolve with ACLs down.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-		return fmt.Errorf("ACLs are broken")
-	}
 	acl, err := a.resolveToken("nope")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -205,15 +208,16 @@ func TestACL_Down_Allow(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// Resolve with ACLs down.
+		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			return fmt.Errorf("ACLs are broken")
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Resolve with ACLs down.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-		return fmt.Errorf("ACLs are broken")
-	}
 	acl, err := a.resolveToken("nope")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -235,26 +239,27 @@ func TestACL_Down_Extend(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// Populate the cache for one of the tokens.
+		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+			*reply = structs.ACLPolicy{
+				Parent: "allow",
+				Policy: &rawacl.Policy{
+					Agents: []*rawacl.AgentPolicy{
+						&rawacl.AgentPolicy{
+							Node:   cfg.NodeName,
+							Policy: "read",
+						},
+					},
+				},
+			}
+			return nil
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Populate the cache for one of the tokens.
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-		*reply = structs.ACLPolicy{
-			Parent: "allow",
-			Policy: &rawacl.Policy{
-				Agents: []*rawacl.AgentPolicy{
-					&rawacl.AgentPolicy{
-						Node:   cfg.NodeName,
-						Policy: "read",
-					},
-				},
-			},
-		}
-		return nil
-	}
 	acl, err := a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -312,28 +317,29 @@ func TestACL_Cache(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockServer{}
+	m := MockServer{
+		// Populate the cache for one of the tokens.
+		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+			*reply = structs.ACLPolicy{
+				ETag:   "hash1",
+				Parent: "deny",
+				Policy: &rawacl.Policy{
+					Agents: []*rawacl.AgentPolicy{
+						&rawacl.AgentPolicy{
+							Node:   cfg.NodeName,
+							Policy: "read",
+						},
+					},
+				},
+				TTL: 10 * time.Millisecond,
+			}
+			return nil
+		},
+	}
 	if err := a.registerEndpoint("ACL", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Populate the cache for one of the tokens.
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-		*reply = structs.ACLPolicy{
-			ETag:   "hash1",
-			Parent: "deny",
-			Policy: &rawacl.Policy{
-				Agents: []*rawacl.AgentPolicy{
-					&rawacl.AgentPolicy{
-						Node:   cfg.NodeName,
-						Policy: "read",
-					},
-				},
-			},
-			TTL: 10 * time.Millisecond,
-		}
-		return nil
-	}
 	acl, err := a.resolveToken("yep")
 	if err != nil {
 		t.Fatalf("err: %v", err)
