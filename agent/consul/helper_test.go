@@ -3,6 +3,7 @@ package consul
 import (
 	"errors"
 	"fmt"
+	"net"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil/retry"
@@ -119,9 +120,15 @@ func seeEachOther(a, b []serf.Member, addra, addrb string) bool {
 }
 
 func serfMembersContains(members []serf.Member, addr string) bool {
+	// There are tests that manipulate the advertise address, so we just
+	// compare port numbers here, since that uniquely identifies a member
+	// as we use the loopback interface for everything.
+	_, want, err := net.SplitHostPort(addr)
+	if err != nil {
+		panic(err)
+	}
 	for _, m := range members {
-		maddr := fmt.Sprintf("%s:%d", m.Addr.String(), m.Port)
-		if maddr == addr {
+		if got := fmt.Sprintf("%d", m.Port); got == want {
 			return true
 		}
 	}
