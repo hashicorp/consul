@@ -346,7 +346,7 @@ func (s *TestServer) waitForLeader() error {
 	var index int64
 	retry.RunWith(timer, f, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
 			r.Fatal("failed http get", err)
