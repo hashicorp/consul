@@ -3919,15 +3919,16 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	m := MockPreparedQuery{}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
-		t.Fatalf("err: %v", err)
+	m := MockPreparedQuery{
+		executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			// Return a response that's perpetually too stale.
+			reply.LastContact = 2 * time.Second
+			return nil
+		},
 	}
 
-	m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-		// Return a response that's perpetually too stale.
-		reply.LastContact = 2 * time.Second
-		return nil
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Make sure that the lookup terminates and results in an SOA since
@@ -4000,19 +4001,20 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	m := MockPreparedQuery{}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
-		t.Fatalf("err: %v", err)
+	m := MockPreparedQuery{
+		executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			// Check that the agent inserted its self-name and datacenter to
+			// the RPC request body.
+			if args.Agent.Datacenter != a.Config.Datacenter ||
+				args.Agent.Node != a.Config.NodeName {
+				t.Fatalf("bad: %#v", args.Agent)
+			}
+			return nil
+		},
 	}
 
-	m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-		// Check that the agent inserted its self-name and datacenter to
-		// the RPC request body.
-		if args.Agent.Datacenter != a.Config.Datacenter ||
-			args.Agent.Node != a.Config.NodeName {
-			t.Fatalf("bad: %#v", args.Agent)
-		}
-		return nil
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	{
