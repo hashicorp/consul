@@ -1165,7 +1165,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 ## <a id="ports"></a>Ports Used
 
-Consul requires up to 5 different ports to work properly, some on
+Consul requires up to 6 different ports to work properly, some on
 TCP, UDP, or both protocols. Below we document the requirements for each
 port.
 
