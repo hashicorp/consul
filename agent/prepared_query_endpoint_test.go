@@ -3,78 +3,22 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 )
-
-// MockPreparedQuery is a fake endpoint that we inject into the Consul server
-// in order to observe the RPC calls made by these HTTP endpoints. This lets
-// us make sure that the request is being formed properly without having to
-// set up a realistic environment for prepared queries, which is a huge task and
-// already done in detail inside the prepared query endpoint's unit tests. If we
-// can prove this formats proper requests into that then we should be good to
-// go. We will do a single set of end-to-end tests in here to make sure that the
-// server is wired up to the right endpoint when not "injected".
-type MockPreparedQuery struct {
-	applyFn   func(*structs.PreparedQueryRequest, *string) error
-	getFn     func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
-	listFn    func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
-	executeFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
-	explainFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExplainResponse) error
-}
-
-func (m *MockPreparedQuery) Apply(args *structs.PreparedQueryRequest,
-	reply *string) (err error) {
-	if m.applyFn != nil {
-		return m.applyFn(args, reply)
-	}
-	return fmt.Errorf("should not have called Apply")
-}
-
-func (m *MockPreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
-	reply *structs.IndexedPreparedQueries) error {
-	if m.getFn != nil {
-		return m.getFn(args, reply)
-	}
-	return fmt.Errorf("should not have called Get")
-}
-
-func (m *MockPreparedQuery) List(args *structs.DCSpecificRequest,
-	reply *structs.IndexedPreparedQueries) error {
-	if m.listFn != nil {
-		return m.listFn(args, reply)
-	}
-	return fmt.Errorf("should not have called List")
-}
-
-func (m *MockPreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
-	reply *structs.PreparedQueryExecuteResponse) error {
-	if m.executeFn != nil {
-		return m.executeFn(args, reply)
-	}
-	return fmt.Errorf("should not have called Execute")
-}
-
-func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
-	reply *structs.PreparedQueryExplainResponse) error {
-	if m.explainFn != nil {
-		return m.explainFn(args, reply)
-	}
-	return fmt.Errorf("should not have called Explain")
-}
 
 func TestPreparedQuery_Create(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	m := MockPreparedQuery{
-		applyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
+	m := mock.PreparedQuery{
+		ApplyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
 			expected := &structs.PreparedQueryRequest{
 				Datacenter: "dc1",
 				Op:         structs.PreparedQueryCreate,
@@ -107,7 +51,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -158,13 +102,13 @@ func TestPreparedQuery_List(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			listFn: func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
+		m := mock.PreparedQuery{
+			ListFn: func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 				// Return an empty response.
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -191,8 +135,8 @@ func TestPreparedQuery_List(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			listFn: func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
+		m := mock.PreparedQuery{
+			ListFn: func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 				expected := &structs.DCSpecificRequest{
 					Datacenter: "dc1",
 					QueryOptions: structs.QueryOptions{
@@ -211,7 +155,7 @@ func TestPreparedQuery_List(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -241,13 +185,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		m := mock.PreparedQuery{
+			ExecuteFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 				// Just return an empty response.
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -274,8 +218,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		m := mock.PreparedQuery{
+			ExecuteFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 				expected := &structs.PreparedQueryExecuteRequest{
 					Datacenter:    "dc1",
 					QueryIDOrName: "my-id",
@@ -302,7 +246,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -330,8 +274,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		m := mock.PreparedQuery{
+			ExecuteFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 				if args.Source.Node != "" {
 					t.Fatalf("expect node to be empty, got %q", args.Source.Node)
 				}
@@ -345,7 +289,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -364,8 +308,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		m := mock.PreparedQuery{
+			ExecuteFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 				nodesResponse := make(structs.CheckServiceNodes, 1)
 				nodesResponse[0].Node = &structs.Node{
 					Node: "foo", Address: "127.0.0.1",
@@ -378,7 +322,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -414,8 +358,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		m := mock.PreparedQuery{
+			ExecuteFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 				nodesResponse := make(structs.CheckServiceNodes, 1)
 				nodesResponse[0].Node = &structs.Node{
 					Node: "foo", Address: "127.0.0.1",
@@ -428,7 +372,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -478,8 +422,8 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			explainFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
+		m := mock.PreparedQuery{
+			ExplainFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
 				expected := &structs.PreparedQueryExecuteRequest{
 					Datacenter:    "dc1",
 					QueryIDOrName: "my-id",
@@ -506,7 +450,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -551,8 +495,8 @@ func TestPreparedQuery_Get(t *testing.T) {
 		a := NewTestAgent(t.Name(), nil)
 		defer a.Shutdown()
 
-		m := MockPreparedQuery{
-			getFn: func(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
+		m := mock.PreparedQuery{
+			GetFn: func(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
 				expected := &structs.PreparedQuerySpecificRequest{
 					Datacenter: "dc1",
 					QueryID:    "my-id",
@@ -572,7 +516,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -616,8 +560,8 @@ func TestPreparedQuery_Update(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	m := MockPreparedQuery{
-		applyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
+	m := mock.PreparedQuery{
+		ApplyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
 			expected := &structs.PreparedQueryRequest{
 				Datacenter: "dc1",
 				Op:         structs.PreparedQueryUpdate,
@@ -651,7 +595,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -694,8 +638,8 @@ func TestPreparedQuery_Delete(t *testing.T) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	m := MockPreparedQuery{
-		applyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
+	m := mock.PreparedQuery{
+		ApplyFn: func(args *structs.PreparedQueryRequest, reply *string) error {
 			expected := &structs.PreparedQueryRequest{
 				Datacenter: "dc1",
 				Op:         structs.PreparedQueryDelete,
@@ -714,7 +658,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

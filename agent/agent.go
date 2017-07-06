@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -162,7 +163,7 @@ type Agent struct {
 	dnsAddrs []config.ProtoAddr
 
 	// dnsServer provides the DNS API
-	dnsServers []*DNSServer
+	dnsServers []*dns.DNSServer
 
 	// httpAddrs are the addresses per protocol the HTTP server binds to
 	httpAddrs []config.ProtoAddr
@@ -394,8 +395,31 @@ func (a *Agent) listenAndServeDNS() error {
 	for _, p := range a.dnsAddrs {
 		p := p // capture loop var
 
+		dnscfg := dns.Config{
+			ACLToken:        a.config.ACLToken,
+			AllowStale:      *a.config.DNSConfig.AllowStale,
+			Datacenter:      a.config.Datacenter,
+			Domain:          a.config.Domain,
+			MaxStale:        a.config.DNSConfig.MaxStale,
+			NodeName:        a.config.NodeName,
+			NodeTTL:         a.config.DNSConfig.NodeTTL,
+			OnlyPassing:     a.config.DNSConfig.OnlyPassing,
+			ServiceTTL:      a.config.DNSConfig.ServiceTTL,
+			UDPAnswerLimit:  a.config.DNSConfig.UDPAnswerLimit,
+			EnableTruncate:  a.config.DNSConfig.EnableTruncate,
+			RecursorTimeout: a.config.DNSConfig.RecursorTimeout,
+		}
+
+		for _, r := range a.config.DNSRecursors {
+			ra, err := dns.RecursorAddr(r)
+			if err != nil {
+				return fmt.Errorf("Invalid recursor address: %v", err)
+			}
+			dnscfg.Recursors = append(dnscfg.Recursors, ra)
+		}
+
 		// create server
-		s, err := NewDNSServer(a)
+		s, err := dns.NewDNSServer(a, dnscfg, a.logger)
 		if err != nil {
 			return err
 		}
@@ -1055,11 +1079,11 @@ LOAD:
 	return nil
 }
 
-// registerEndpoint registers a handler for the consul RPC server
+// RegisterEndpoint registers a handler for the consul RPC server
 // under a unique name while making it accessible under the provided
 // name. This allows overwriting handlers for the golang net/rpc
 // service which does not allow this.
-func (a *Agent) registerEndpoint(name string, handler interface{}) error {
+func (a *Agent) RegisterEndpoint(name string, handler interface{}) error {
 	srv, ok := a.delegate.(*rpc.Server)
 	if !ok {
 		panic("agent must be a server")

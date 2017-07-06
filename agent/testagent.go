@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -69,7 +70,7 @@ type TestAgent struct {
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
-	dns *DNSServer
+	dns *dns.DNSServer
 
 	// srv is a reference to the first started HTTP endpoint.
 	// It is valid after Start().
@@ -249,7 +250,7 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		srv.disableCompression.Store(b)
+		srv.DisableCompression.Store(b)
 	}
 }
 
