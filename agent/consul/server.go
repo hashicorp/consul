@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/rpc"
+	netrpc "net/rpc"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -152,7 +152,7 @@ type Server struct {
 
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
-	rpcServer *rpc.Server
+	rpcServer *netrpc.Server
 
 	// rpcTLS is the TLS config for incoming TLS requests
 	rpcTLS *tls.Config
@@ -292,7 +292,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
-		rpcServer:             rpc.NewServer(),
+		rpcServer:             netrpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
 		sessionTimers:         NewSessionTimers(),
@@ -928,7 +928,7 @@ type inmemCodec struct {
 	err    error
 }
 
-func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
+func (i *inmemCodec) ReadRequestHeader(req *netrpc.Request) error {
 	req.ServiceMethod = i.method
 	return nil
 }
@@ -940,7 +940,7 @@ func (i *inmemCodec) ReadRequestBody(args interface{}) error {
 	return nil
 }
 
-func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error {
+func (i *inmemCodec) WriteResponse(resp *netrpc.Response, reply interface{}) error {
 	if resp.Error != "" {
 		i.err = errors.New(resp.Error)
 		return nil

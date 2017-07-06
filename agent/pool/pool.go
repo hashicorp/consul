@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/rpc"
+	netrpc "net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,7 +26,7 @@ type muxSession interface {
 // streamClient is used to wrap a stream with an RPC client
 type StreamClient struct {
 	stream net.Conn
-	codec  rpc.ClientCodec
+	codec  netrpc.ClientCodec
 }
 
 func (sc *StreamClient) Close() {

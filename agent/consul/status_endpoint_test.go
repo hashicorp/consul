@@ -2,7 +2,7 @@ package consul
 
 import (
 	"net"
-	"net/rpc"
+	netrpc "net/rpc"
 	"os"
 	"testing"
 	"time"
@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
-func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
+func rpcClient(t *testing.T, s *Server) netrpc.ClientCodec {
 	addr := s.config.RPCAdvertise
 	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {

@@ -2,7 +2,7 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
+	netrpc "net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -76,7 +76,7 @@ func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, e
 //   |     |     |     |     |     |     |     |     |     |     |
 //   0     1     2     3     4     5     6     7     8     9     10  (ms)
 //
-func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
+func seedCoordinates(t *testing.T, codec netrpc.ClientCodec, server *Server) {
 	// Register some nodes.
 	for i := 0; i < 5; i++ {
 		req := structs.RegisterRequest{

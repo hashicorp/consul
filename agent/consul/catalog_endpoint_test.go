@@ -2,7 +2,7 @@ package consul
 
 import (
 	"fmt"
-	"net/rpc"
+	netrpc "net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -236,7 +236,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if !s1.IsLeader() {
 		codec = codec1
 	} else {
@@ -729,7 +729,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if !s1.IsLeader() {
 		codec = codec1
 
@@ -794,7 +794,7 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the leader as the client, kill the follower
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if s1.IsLeader() {
 		codec = codec1
 		s2.Shutdown()
@@ -841,7 +841,7 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the leader as the client, kill the follower
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if s1.IsLeader() {
 		codec = codec1
 	} else {
@@ -1648,7 +1648,7 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 	}
 }
 
-func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
+func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec netrpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

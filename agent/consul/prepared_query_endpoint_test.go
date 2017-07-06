@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"net/rpc"
+	netrpc "net/rpc"
 	"os"
 	"reflect"
 	"sort"
@@ -486,7 +486,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client.
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if !s1.IsLeader() {
 		codec = codec1
 	} else {
@@ -1509,7 +1509,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					req.NodeMeta["unique"] = "true"
 				}
 
-				var codec rpc.ClientCodec
+				var codec netrpc.ClientCodec
 				if dc == "dc1" {
 					codec = codec1
 				} else {
@@ -2472,7 +2472,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Use the follower as the client.
-	var codec rpc.ClientCodec
+	var codec netrpc.ClientCodec
 	if !s1.IsLeader() {
 		codec = codec1
 	} else {
