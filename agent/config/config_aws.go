@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"log"
@@ -11,9 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-// discoverEc2Hosts searches an AWS region, returning a list of instance ips
+// DiscoverEc2Hosts searches an AWS region, returning a list of instance ips
 // where EC2TagKey = EC2TagValue
-func (c *Config) discoverEc2Hosts(logger *log.Logger) ([]string, error) {
+func (c *Config) DiscoverEc2Hosts(logger *log.Logger) ([]string, error) {
 	config := c.RetryJoinEC2
 
 	ec2meta := ec2metadata.New(session.New())

@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
@@ -38,7 +39,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	cfg.UnixSockets = UnixSocketConfig{}
+	cfg.UnixSockets = config.UnixSocketConfig{}
 	cfg.UnixSockets.Perms = "0777"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
@@ -58,7 +59,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	// Ensure we can get a response from the socket.
-	path := socketPath(a.Config.Addresses.HTTP)
+	path := config.SocketPath(a.Config.Addresses.HTTP)
 	trans := cleanhttp.DefaultTransport()
 	trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 		return net.Dial("unix", path)

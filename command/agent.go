@@ -17,6 +17,7 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/configutil"
 	"github.com/hashicorp/consul/ipaddr"
@@ -51,8 +52,8 @@ type AgentCommand struct {
 
 // readConfig is responsible for setup of our configuration using
 // the command line and any file configs
-func (cmd *AgentCommand) readConfig() *agent.Config {
-	var cmdCfg agent.Config
+func (cmd *AgentCommand) readConfig() *config.Config {
+	var cmdCfg config.Config
 	var cfgFiles []string
 	var retryInterval string
 	var retryIntervalWan string
@@ -218,29 +219,29 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	if len(nodeMeta) > 0 {
 		cmdCfg.Meta = make(map[string]string)
 		for _, entry := range nodeMeta {
-			key, value := agent.ParseMetaPair(entry)
+			key, value := config.ParseMetaPair(entry)
 			cmdCfg.Meta[key] = value
 		}
 	}
 
-	cfg := agent.DefaultConfig()
+	cfg := config.DefaultConfig()
 	if dev {
-		cfg = agent.DevConfig()
+		cfg = config.DevConfig()
 	}
 
 	if len(cfgFiles) > 0 {
-		fileConfig, err := agent.ReadConfigPaths(cfgFiles)
+		fileConfig, err := config.ReadConfigPaths(cfgFiles)
 		if err != nil {
 			cmd.UI.Error(err.Error())
 			return nil
 		}
 
-		cfg = agent.MergeConfig(cfg, fileConfig)
+		cfg = config.MergeConfig(cfg, fileConfig)
 	}
 
 	cmdCfg.DNSRecursors = append(cmdCfg.DNSRecursors, dnsRecursors...)
 
-	cfg = agent.MergeConfig(cfg, &cmdCfg)
+	cfg = config.MergeConfig(cfg, &cmdCfg)
 	disableHostNodeID.Merge(cfg.DisableHostNodeID)
 
 	if cfg.NodeName == "" {
@@ -260,10 +261,10 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	// Make sure LeaveOnTerm and SkipLeaveOnInt are set to the right
 	// defaults based on the agent's mode (client or server).
 	if cfg.LeaveOnTerm == nil {
-		cfg.LeaveOnTerm = agent.Bool(!cfg.Server)
+		cfg.LeaveOnTerm = config.Bool(!cfg.Server)
 	}
 	if cfg.SkipLeaveOnInt == nil {
-		cfg.SkipLeaveOnInt = agent.Bool(cfg.Server)
+		cfg.SkipLeaveOnInt = config.Bool(cfg.Server)
 	}
 
 	// Ensure we have a data directory if we are not in dev mode.
@@ -483,7 +484,7 @@ func (cmd *AgentCommand) checkpointResults(results *checkpoint.CheckResponse, er
 	}
 }
 
-func (cmd *AgentCommand) startupUpdateCheck(config *agent.Config) {
+func (cmd *AgentCommand) startupUpdateCheck(config *config.Config) {
 	version := config.Version
 	if config.VersionPrerelease != "" {
 		version += fmt.Sprintf("-%s", config.VersionPrerelease)
@@ -507,7 +508,7 @@ func (cmd *AgentCommand) startupUpdateCheck(config *agent.Config) {
 }
 
 // startupJoin is invoked to handle any joins specified to take place at start time
-func (cmd *AgentCommand) startupJoin(agent *agent.Agent, cfg *agent.Config) error {
+func (cmd *AgentCommand) startupJoin(agent *agent.Agent, cfg *config.Config) error {
 	if len(cfg.StartJoin) == 0 {
 		return nil
 	}
@@ -523,7 +524,7 @@ func (cmd *AgentCommand) startupJoin(agent *agent.Agent, cfg *agent.Config) erro
 }
 
 // startupJoinWan is invoked to handle any joins -wan specified to take place at start time
-func (cmd *AgentCommand) startupJoinWan(agent *agent.Agent, cfg *agent.Config) error {
+func (cmd *AgentCommand) startupJoinWan(agent *agent.Agent, cfg *config.Config) error {
 	if len(cfg.StartJoinWan) == 0 {
 		return nil
 	}
@@ -538,21 +539,21 @@ func (cmd *AgentCommand) startupJoinWan(agent *agent.Agent, cfg *agent.Config) e
 	return nil
 }
 
-func statsiteSink(config *agent.Config, hostname string) (metrics.MetricSink, error) {
+func statsiteSink(config *config.Config, hostname string) (metrics.MetricSink, error) {
 	if config.Telemetry.StatsiteAddr == "" {
 		return nil, nil
 	}
 	return metrics.NewStatsiteSink(config.Telemetry.StatsiteAddr)
 }
 
-func statsdSink(config *agent.Config, hostname string) (metrics.MetricSink, error) {
+func statsdSink(config *config.Config, hostname string) (metrics.MetricSink, error) {
 	if config.Telemetry.StatsdAddr == "" {
 		return nil, nil
 	}
 	return metrics.NewStatsdSink(config.Telemetry.StatsdAddr)
 }
 
-func dogstatdSink(config *agent.Config, hostname string) (metrics.MetricSink, error) {
+func dogstatdSink(config *config.Config, hostname string) (metrics.MetricSink, error) {
 	if config.Telemetry.DogStatsdAddr == "" {
 		return nil, nil
 	}
@@ -564,7 +565,7 @@ func dogstatdSink(config *agent.Config, hostname string) (metrics.MetricSink, er
 	return sink, nil
 }
 
-func circonusSink(config *agent.Config, hostname string) (metrics.MetricSink, error) {
+func circonusSink(config *config.Config, hostname string) (metrics.MetricSink, error) {
 	if config.Telemetry.CirconusAPIToken == "" && config.Telemetry.CirconusCheckSubmissionURL == "" {
 		return nil, nil
 	}
@@ -604,18 +605,18 @@ func circonusSink(config *agent.Config, hostname string) (metrics.MetricSink, er
 	return sink, nil
 }
 
-func startupTelemetry(config *agent.Config) error {
+func startupTelemetry(cfg *config.Config) error {
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
-	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
-	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
+	metricsConf := metrics.DefaultConfig(cfg.Telemetry.StatsitePrefix)
+	metricsConf.EnableHostname = !cfg.Telemetry.DisableHostname
 
 	var sinks metrics.FanoutSink
-	addSink := func(name string, fn func(*agent.Config, string) (metrics.MetricSink, error)) error {
-		s, err := fn(config, metricsConf.HostName)
+	addSink := func(name string, fn func(*config.Config, string) (metrics.MetricSink, error)) error {
+		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
 			return err
 		}
@@ -823,7 +824,7 @@ func (cmd *AgentCommand) run(args []string) int {
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (cmd *AgentCommand) handleReload(agent *agent.Agent, cfg *agent.Config) (*agent.Config, error) {
+func (cmd *AgentCommand) handleReload(agent *agent.Agent, cfg *config.Config) (*config.Config, error) {
 	cmd.logger.Println("[INFO] Reloading configuration...")
 	var errs error
 	newCfg := cmd.readConfig()

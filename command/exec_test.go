@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/config"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/mitchellh/cli"
@@ -30,7 +31,7 @@ func TestExecCommand_implements(t *testing.T) {
 func TestExecCommandRun(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = config.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -50,13 +51,13 @@ func TestExecCommandRun(t *testing.T) {
 func TestExecCommandRun_CrossDC(t *testing.T) {
 	t.Parallel()
 	cfg1 := agent.TestConfig()
-	cfg1.DisableRemoteExec = agent.Bool(false)
+	cfg1.DisableRemoteExec = config.Bool(false)
 	a1 := agent.NewTestAgent(t.Name(), cfg1)
 	defer a1.Shutdown()
 
 	cfg2 := agent.TestConfig()
 	cfg2.Datacenter = "dc2"
-	cfg2.DisableRemoteExec = agent.Bool(false)
+	cfg2.DisableRemoteExec = config.Bool(false)
 	a2 := agent.NewTestAgent(t.Name(), cfg2)
 	defer a1.Shutdown()
 
@@ -128,7 +129,7 @@ func TestExecCommand_Validate(t *testing.T) {
 func TestExecCommand_Sessions(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = config.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -167,7 +168,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = config.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -217,7 +218,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 func TestExecCommand_UploadDestroy(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = config.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -272,7 +273,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 func TestExecCommand_StreamResults(t *testing.T) {
 	t.Parallel()
 	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
+	cfg.DisableRemoteExec = config.Bool(false)
 	a := agent.NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 

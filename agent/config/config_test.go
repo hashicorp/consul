@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"bytes"
@@ -1499,10 +1499,10 @@ func TestReadConfigPaths_dir(t *testing.T) {
 
 func TestUnixSockets(t *testing.T) {
 	t.Parallel()
-	if p := socketPath("unix:///path/to/socket"); p != "/path/to/socket" {
+	if p := SocketPath("unix:///path/to/socket"); p != "/path/to/socket" {
 		t.Fatalf("bad: %q", p)
 	}
-	if p := socketPath("notunix://blah"); p != "" {
+	if p := SocketPath("notunix://blah"); p != "" {
 		t.Fatalf("bad: %q", p)
 	}
 }

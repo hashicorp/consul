@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"crypto/tls"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -882,9 +883,9 @@ type UnixSocketConfig struct {
 	UnixSocketPermissions `mapstructure:",squash"`
 }
 
-// socketPath tests if a given address describes a domain socket,
+// SocketPath tests if a given address describes a domain socket,
 // and returns the relevant path part of the string if it is.
-func socketPath(addr string) string {
+func SocketPath(addr string) string {
 	if !strings.HasPrefix(addr, "unix://") {
 		return ""
 	}
@@ -998,7 +999,7 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 	if override != "" {
 		addr = override
 	}
-	if path := socketPath(addr); path != "" {
+	if path := SocketPath(addr); path != "" {
 		return &net.UnixAddr{Name: path, Net: "unix"}, nil
 	}
 	ip := net.ParseIP(addr)
@@ -1323,7 +1324,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfLanRaw != "" {
-		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfLanRaw)
+		ipStr, err := ipaddr.ParseSingleIP(result.AdvertiseAddrs.SerfLanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("Serf Advertise LAN address resolution failed: %v", err)
 		}
@@ -1337,7 +1338,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.SerfWanRaw != "" {
-		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.SerfWanRaw)
+		ipStr, err := ipaddr.ParseSingleIP(result.AdvertiseAddrs.SerfWanRaw)
 		if err != nil {
 			return nil, fmt.Errorf("Serf Advertise WAN address resolution failed: %v", err)
 		}
@@ -1351,7 +1352,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	if result.AdvertiseAddrs.RPCRaw != "" {
-		ipStr, err := parseSingleIPTemplate(result.AdvertiseAddrs.RPCRaw)
+		ipStr, err := ipaddr.ParseSingleIP(result.AdvertiseAddrs.RPCRaw)
 		if err != nil {
 			return nil, fmt.Errorf("RPC Advertise address resolution failed: %v", err)
 		}

@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"log"
@@ -28,7 +28,7 @@ func TestDiscoverEC2Hosts(t *testing.T) {
 		},
 	}
 
-	servers, err := c.discoverEc2Hosts(&log.Logger{})
+	servers, err := c.DiscoverEc2Hosts(&log.Logger{})
 	if err != nil {
 		t.Fatal(err)
 	}

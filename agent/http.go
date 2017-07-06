@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
@@ -420,7 +421,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 	if filterList, ok := req.URL.Query()["node-meta"]; ok {
 		filters := make(map[string]string)
 		for _, filter := range filterList {
-			key, value := ParseMetaPair(filter)
+			key, value := config.ParseMetaPair(filter)
 			filters[key] = value
 		}
 		return filters

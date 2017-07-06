@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/configutil"
 )
 
@@ -52,7 +52,7 @@ func (c *ConfigTestCommand) Run(args []string) int {
 		return 1
 	}
 
-	_, err := agent.ReadConfigPaths(configFiles)
+	_, err := config.ReadConfigPaths(configFiles)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -18,7 +19,7 @@ import (
 )
 
 type Self struct {
-	Config *Config
+	Config *config.Config
 	Coord  *coordinate.Coordinate
 	Member serf.Member
 	Stats  map[string]map[string]string
@@ -233,7 +234,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	var args structs.CheckDefinition
 	// Fixup the type decode of TTL or Interval.
 	decodeCB := func(raw interface{}) error {
-		return FixupCheckType(raw)
+		return config.FixupCheckType(raw)
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
@@ -423,7 +424,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
 			case "check":
-				if err := FixupCheckType(v); err != nil {
+				if err := config.FixupCheckType(v); err != nil {
 					return err
 				}
 			case "checks":
@@ -432,7 +433,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 					continue
 				}
 				for _, chkType := range chkTypes {
-					if err := FixupCheckType(chkType); err != nil {
+					if err := config.FixupCheckType(chkType); err != nil {
 						return err
 					}
 				}

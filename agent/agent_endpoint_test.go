@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
@@ -234,7 +235,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.ACLEnforceVersion8 = Bool(false)
+	cfg.ACLEnforceVersion8 = config.Bool(false)
 	cfg.Services = []*structs.ServiceDefinition{
 		&structs.ServiceDefinition{Name: "redis"},
 	}
@@ -259,7 +260,7 @@ func TestAgent_Reload(t *testing.T) {
 	}
 
 	cfg2 := TestConfig()
-	cfg2.ACLEnforceVersion8 = Bool(false)
+	cfg2.ACLEnforceVersion8 = config.Bool(false)
 	cfg2.Services = []*structs.ServiceDefinition{
 		&structs.ServiceDefinition{Name: "redis-reloaded"},
 	}

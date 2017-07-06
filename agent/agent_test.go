@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -317,7 +318,7 @@ func TestAgent_makeNodeID(t *testing.T) {
 
 	// Turn on host-based IDs and try again. We should get the same ID
 	// each time (and a different one from the random one above).
-	a.Config.DisableHostNodeID = Bool(false)
+	a.Config.DisableHostNodeID = config.Bool(false)
 	id, err = a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)

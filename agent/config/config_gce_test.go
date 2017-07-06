@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"log"
@@ -25,7 +25,7 @@ func TestDiscoverGCEHosts(t *testing.T) {
 		},
 	}
 
-	servers, err := c.discoverGCEHosts(log.New(os.Stderr, "", log.LstdFlags))
+	servers, err := c.DiscoverGCEHosts(log.New(os.Stderr, "", log.LstdFlags))
 	if err != nil {
 		t.Fatal(err)
 	}

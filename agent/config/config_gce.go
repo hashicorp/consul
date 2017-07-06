@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"context"
@@ -13,9 +13,9 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
-// discoverGCEHosts searches a Google Compute Engine region, returning a list
+// DiscoverGCEHosts searches a Google Compute Engine region, returning a list
 // of instance ips that match the tags given in GCETags.
-func (c *Config) discoverGCEHosts(logger *log.Logger) ([]string, error) {
+func (c *Config) DiscoverGCEHosts(logger *log.Logger) ([]string, error) {
 	config := c.RetryJoinGCE
 	ctx := oauth2.NoContext
 	var client *http.Client

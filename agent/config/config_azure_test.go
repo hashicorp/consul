@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"log"
@@ -33,7 +33,7 @@ func TestDiscoverAzureHosts(t *testing.T) {
 		},
 	}
 
-	servers, err := c.discoverAzureHosts(log.New(os.Stderr, "", log.LstdFlags))
+	servers, err := c.DiscoverAzureHosts(log.New(os.Stderr, "", log.LstdFlags))
 	if err != nil {
 		t.Fatal(err)
 	}

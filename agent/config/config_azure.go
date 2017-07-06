@@ -1,4 +1,4 @@
-package agent
+package config
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 )
 
-// discoverAzureHosts searches an Azure Subscription, returning a list of instance ips
+// DiscoverAzureHosts searches an Azure Subscription, returning a list of instance ips
 // where AzureTag_Name = AzureTag_Value
-func (c *Config) discoverAzureHosts(logger *log.Logger) ([]string, error) {
+func (c *Config) DiscoverAzureHosts(logger *log.Logger) ([]string, error) {
 	var servers []string
 	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
 	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.RetryJoinAzure.TenantID)

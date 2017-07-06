@@ -25,19 +25,19 @@ func (a *Agent) retryJoin() {
 		var err error
 		switch {
 		case ec2Enabled:
-			servers, err = cfg.discoverEc2Hosts(a.logger)
+			servers, err = cfg.DiscoverEc2Hosts(a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query EC2 instances: %s", err)
 			}
 			a.logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
 		case gceEnabled:
-			servers, err = cfg.discoverGCEHosts(a.logger)
+			servers, err = cfg.DiscoverGCEHosts(a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query GCE instances: %s", err)
 			}
 			a.logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
 		case azureEnabled:
-			servers, err = cfg.discoverAzureHosts(a.logger)
+			servers, err = cfg.DiscoverAzureHosts(a.logger)
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Unable to query Azure instances: %s", err)
 			}

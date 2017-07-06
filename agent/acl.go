@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/golang-lru"
@@ -85,7 +86,7 @@ type aclManager struct {
 }
 
 // newACLManager returns an ACL manager based on the given config.
-func newACLManager(config *Config) (*aclManager, error) {
+func newACLManager(cfg *config.Config) (*aclManager, error) {
 	// Set up the cache from ID to ACL (we don't cache policies like the
 	// servers; only one level).
 	acls, err := lru.New2Q(aclCacheSize)
@@ -96,11 +97,11 @@ func newACLManager(config *Config) (*aclManager, error) {
 	// If an agent master token is configured, build a policy and ACL for
 	// it, otherwise leave it nil.
 	var master acl.ACL
-	if len(config.ACLAgentMasterToken) > 0 {
+	if len(cfg.ACLAgentMasterToken) > 0 {
 		policy := &acl.Policy{
 			Agents: []*acl.AgentPolicy{
 				&acl.AgentPolicy{
-					Node:   config.NodeName,
+					Node:   cfg.NodeName,
 					Policy: acl.PolicyWrite,
 				},
 			},
@@ -113,7 +114,7 @@ func newACLManager(config *Config) (*aclManager, error) {
 	}
 
 	var down acl.ACL
-	switch config.ACLDownPolicy {
+	switch cfg.ACLDownPolicy {
 	case "allow":
 		down = acl.AllowAll()
 	case "deny":
@@ -121,7 +122,7 @@ func newACLManager(config *Config) (*aclManager, error) {
 	case "extend-cache":
 		// Leave the down policy as nil to signal this.
 	default:
-		return nil, fmt.Errorf("invalid ACL down policy %q", config.ACLDownPolicy)
+		return nil, fmt.Errorf("invalid ACL down policy %q", cfg.ACLDownPolicy)
 	}
 
 	// Give back a manager.

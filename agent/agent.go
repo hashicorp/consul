@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
@@ -84,7 +83,7 @@ type notifier interface {
 // requests to other Consul servers.
 type Agent struct {
 	// config is the agent configuration.
-	config *Config
+	config *config.Config
 
 	// Used for writing our logs
 	logger *log.Logger
@@ -160,13 +159,13 @@ type Agent struct {
 	endpointsLock sync.RWMutex
 
 	// dnsAddr is the address the DNS server binds to
-	dnsAddrs []ProtoAddr
+	dnsAddrs []config.ProtoAddr
 
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
 
 	// httpAddrs are the addresses per protocol the HTTP server binds to
-	httpAddrs []ProtoAddr
+	httpAddrs []config.ProtoAddr
 
 	// httpServers provides the HTTP API on various endpoints
 	httpServers []*HTTPServer
@@ -179,7 +178,7 @@ type Agent struct {
 	watchPlans []*watch.Plan
 }
 
-func New(c *Config) (*Agent, error) {
+func New(c *config.Config) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -225,7 +224,7 @@ func New(c *Config) (*Agent, error) {
 	// Try to get an advertise address
 	switch {
 	case a.config.AdvertiseAddr != "":
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.AdvertiseAddr)
 		if err != nil {
 			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
 		}
@@ -250,7 +249,7 @@ func New(c *Config) (*Agent, error) {
 
 	// Try to get an advertise address for the wan
 	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.AdvertiseAddrWan)
 		if err != nil {
 			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
 		}
@@ -391,7 +390,7 @@ func (a *Agent) Start() error {
 }
 
 func (a *Agent) listenAndServeDNS() error {
-	notif := make(chan ProtoAddr, len(a.dnsAddrs))
+	notif := make(chan config.ProtoAddr, len(a.dnsAddrs))
 	for _, p := range a.dnsAddrs {
 		p := p // capture loop var
 
@@ -443,7 +442,7 @@ func (a *Agent) listenAndServeDNS() error {
 //
 // This approach should ultimately be refactored to the point where we just
 // start the server and any error should trigger a proper shutdown of the agent.
-func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
+func (a *Agent) listenHTTP(addrs []config.ProtoAddr) ([]net.Listener, error) {
 	var ln []net.Listener
 	for _, p := range addrs {
 		var l net.Listener
@@ -560,7 +559,7 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 
 // reloadWatches stops any existing watch plans and attempts to load the given
 // set of watches.
-func (a *Agent) reloadWatches(cfg *Config) error {
+func (a *Agent) reloadWatches(cfg *config.Config) error {
 	// Watches use the API to talk to this agent, so that must be enabled.
 	addrs, err := cfg.HTTPAddrs()
 	if err != nil {
@@ -813,31 +812,12 @@ func (a *Agent) consulConfig() (*rpc.Config, error) {
 	return base, nil
 }
 
-// parseSingleIPTemplate is used as a helper function to parse out a single IP
-// address from a config parameter.
-func parseSingleIPTemplate(ipTmpl string) (string, error) {
-	out, err := template.Parse(ipTmpl)
-	if err != nil {
-		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
-	}
-
-	ips := strings.Split(out, " ")
-	switch len(ips) {
-	case 0:
-		return "", errors.New("No addresses found, please configure one.")
-	case 1:
-		return ips[0], nil
-	default:
-		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
-	}
-}
-
 // resolveTmplAddrs iterates over the myriad of addresses in the agent's config
 // and performs go-sockaddr/template Parse on each known address in case the
 // user specified a template config for any of their values.
 func (a *Agent) resolveTmplAddrs() error {
 	if a.config.AdvertiseAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.AdvertiseAddr)
 		if err != nil {
 			return fmt.Errorf("Advertise address resolution failed: %v", err)
 		}
@@ -845,7 +825,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.DNS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.DNS)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.Addresses.DNS)
 		if err != nil {
 			return fmt.Errorf("DNS address resolution failed: %v", err)
 		}
@@ -853,7 +833,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.HTTP != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTP)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.Addresses.HTTP)
 		if err != nil {
 			return fmt.Errorf("HTTP address resolution failed: %v", err)
 		}
@@ -861,7 +841,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.Addresses.HTTPS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTPS)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.Addresses.HTTPS)
 		if err != nil {
 			return fmt.Errorf("HTTPS address resolution failed: %v", err)
 		}
@@ -869,7 +849,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.AdvertiseAddrWan)
 		if err != nil {
 			return fmt.Errorf("Advertise WAN address resolution failed: %v", err)
 		}
@@ -877,7 +857,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.BindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.BindAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.BindAddr)
 		if err != nil {
 			return fmt.Errorf("Bind address resolution failed: %v", err)
 		}
@@ -885,7 +865,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.ClientAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.ClientAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.ClientAddr)
 		if err != nil {
 			return fmt.Errorf("Client address resolution failed: %v", err)
 		}
@@ -893,7 +873,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.SerfLanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.SerfLanBindAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.SerfLanBindAddr)
 		if err != nil {
 			return fmt.Errorf("Serf LAN Address resolution failed: %v", err)
 		}
@@ -901,7 +881,7 @@ func (a *Agent) resolveTmplAddrs() error {
 	}
 
 	if a.config.SerfWanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.SerfWanBindAddr)
+		ipStr, err := ipaddr.ParseSingleIP(a.config.SerfWanBindAddr)
 		if err != nil {
 			return fmt.Errorf("Serf WAN Address resolution failed: %v", err)
 		}
@@ -910,7 +890,7 @@ func (a *Agent) resolveTmplAddrs() error {
 
 	// Parse all tagged addresses
 	for k, v := range a.config.TaggedAddresses {
-		ipStr, err := parseSingleIPTemplate(v)
+		ipStr, err := ipaddr.ParseSingleIP(v)
 		if err != nil {
 			return fmt.Errorf("%s address resolution failed: %v", k, err)
 		}
@@ -975,12 +955,12 @@ func (a *Agent) makeNodeID() (string, error) {
 
 // setupNodeID will pull the persisted node ID, if any, or create a random one
 // and persist it.
-func (a *Agent) setupNodeID(config *Config) error {
+func (a *Agent) setupNodeID(cfg *config.Config) error {
 	// If they've configured a node ID manually then just use that, as
 	// long as it's valid.
-	if config.NodeID != "" {
-		config.NodeID = types.NodeID(strings.ToLower(string(config.NodeID)))
-		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
+	if cfg.NodeID != "" {
+		cfg.NodeID = types.NodeID(strings.ToLower(string(cfg.NodeID)))
+		if _, err := uuid.ParseUUID(string(cfg.NodeID)); err != nil {
 			return err
 		}
 
@@ -994,13 +974,13 @@ func (a *Agent) setupNodeID(config *Config) error {
 			return err
 		}
 
-		config.NodeID = types.NodeID(id)
+		cfg.NodeID = types.NodeID(id)
 		return nil
 	}
 
 	// Load saved state, if any. Since a user could edit this, we also
 	// validate it.
-	fileID := filepath.Join(config.DataDir, "node-id")
+	fileID := filepath.Join(cfg.DataDir, "node-id")
 	if _, err := os.Stat(fileID); err == nil {
 		rawID, err := ioutil.ReadFile(fileID)
 		if err != nil {
@@ -1013,11 +993,11 @@ func (a *Agent) setupNodeID(config *Config) error {
 			return err
 		}
 
-		config.NodeID = types.NodeID(nodeID)
+		cfg.NodeID = types.NodeID(nodeID)
 	}
 
 	// If we still don't have a valid node ID, make one.
-	if config.NodeID == "" {
+	if cfg.NodeID == "" {
 		id, err := a.makeNodeID()
 		if err != nil {
 			return err
@@ -1029,7 +1009,7 @@ func (a *Agent) setupNodeID(config *Config) error {
 			return err
 		}
 
-		config.NodeID = types.NodeID(id)
+		cfg.NodeID = types.NodeID(id)
 	}
 	return nil
 }
@@ -1996,9 +1976,9 @@ func (a *Agent) deletePid() error {
 
 // loadServices will load service definitions from configuration and persisted
 // definitions on disk, and load them into the local agent.
-func (a *Agent) loadServices(conf *Config) error {
+func (a *Agent) loadServices(cfg *config.Config) error {
 	// Register the services from config
-	for _, service := range conf.Services {
+	for _, service := range cfg.Services {
 		ns := service.NodeService()
 		chkTypes := service.CheckTypes()
 		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
@@ -2082,10 +2062,10 @@ func (a *Agent) unloadServices() error {
 
 // loadChecks loads check definitions and/or persisted check definitions from
 // disk and re-registers them with the local agent.
-func (a *Agent) loadChecks(conf *Config) error {
+func (a *Agent) loadChecks(cfg *config.Config) error {
 	// Register the checks from config
-	for _, check := range conf.Checks {
-		health := check.HealthCheck(conf.NodeName)
+	for _, check := range cfg.Checks {
+		health := check.HealthCheck(cfg.NodeName)
 		chkType := check.CheckType()
 		if err := a.AddCheck(health, chkType, false, check.Token); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
@@ -2186,11 +2166,11 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 
 // loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
-func (a *Agent) loadMetadata(conf *Config) error {
+func (a *Agent) loadMetadata(cfg *config.Config) error {
 	a.state.Lock()
 	defer a.state.Unlock()
 
-	for key, value := range conf.Meta {
+	for key, value := range cfg.Meta {
 		a.state.metadata[key] = value
 	}
 
@@ -2300,7 +2280,7 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-func (a *Agent) ReloadConfig(newCfg *Config) error {
+func (a *Agent) ReloadConfig(cfgnew *config.Config) error {
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2320,17 +2300,17 @@ func (a *Agent) ReloadConfig(newCfg *Config) error {
 	a.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
-	if err := a.loadServices(newCfg); err != nil {
+	if err := a.loadServices(cfgnew); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
 	}
-	if err := a.loadChecks(newCfg); err != nil {
+	if err := a.loadChecks(cfgnew); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)
 	}
-	if err := a.loadMetadata(newCfg); err != nil {
+	if err := a.loadMetadata(cfgnew); err != nil {
 		return fmt.Errorf("Failed reloading metadata: %s", err)
 	}
 
-	if err := a.reloadWatches(newCfg); err != nil {
+	if err := a.reloadWatches(cfgnew); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
