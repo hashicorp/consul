@@ -3,7 +3,7 @@
 // client's perspective (i.e. a list of servers that a client talks with for
 // RPCs).  The servers package does not provide any API guarantees and should
 // be called only by `hashicorp/consul`.
-package servers
+package router
 
 import (
 	"log"

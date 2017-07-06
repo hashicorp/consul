@@ -19,9 +19,9 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
@@ -148,7 +148,7 @@ type Server struct {
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
-	router *servers.Router
+	router *router.Router
 
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
@@ -175,7 +175,7 @@ type Server struct {
 	sessionTimers *SessionTimers
 
 	// statsFetcher is used by autopilot to check the status of the other
-	// Consul servers.
+	// Consul router.
 	statsFetcher *StatsFetcher
 
 	// reassertLeaderCh is used to signal the leader loop should re-run
@@ -291,7 +291,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
-		router:                servers.NewRouter(logger, config.Datacenter),
+		router:                router.NewRouter(logger, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
@@ -375,7 +375,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 	}
-	go servers.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+	go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 	// Fire up the LAN <-> WAN join flooder.
 	portFn := func(s *agent.Server) (int, bool) {

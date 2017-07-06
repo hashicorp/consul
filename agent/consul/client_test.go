@@ -84,7 +84,7 @@ func TestClient_JoinLAN(t *testing.T) {
 	// Try to join
 	joinLAN(t, c1, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := c1.servers.NumServers(), 1; got != want {
+		if got, want := c1.routers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
 		if got, want := len(s1.LANMembers()), 2; got != want {
@@ -254,7 +254,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	}
 
 	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
-	c.servers.ResetRebalanceTimer()
+	c.routers.ResetRebalanceTimer()
 	time.Sleep(time.Second)
 
 	if len(c.LANMembers()) != numServers+numClients {
@@ -270,7 +270,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	var pingCount int
 	for range servers {
 		time.Sleep(200 * time.Millisecond)
-		s := c.servers.FindServer()
+		s := c.routers.FindServer()
 		ok, err := c.connPool.Ping(s.Datacenter, s.Addr, s.Version, s.UseTLS)
 		if !ok {
 			t.Errorf("Unable to ping server %v: %s", s.String(), err)
@@ -279,7 +279,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 		// Artificially fail the server in order to rotate the server
 		// list
-		c.servers.NotifyFailedServer(s)
+		c.routers.NotifyFailedServer(s)
 	}
 
 	if pingCount != numServers {
@@ -354,7 +354,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 
 	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
-		if got, want := c1.servers.NumServers(), 1; got != want {
+		if got, want := c1.routers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
 	})
@@ -413,7 +413,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 		}
 
 		// Wait until we've got a healthy server.
-		if got, want := c1.servers.NumServers(), 1; got != want {
+		if got, want := c1.routers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
 		}
 	})

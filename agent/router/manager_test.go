@@ -1,4 +1,4 @@
-package servers_test
+package router_test
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/servers"
+	"github.com/hashicorp/consul/agent/router"
 )
 
 type fauxConnPool struct {
@@ -34,17 +34,17 @@ func (s *fauxSerf) NumNodes() int {
 	return 16384
 }
 
-func testManager() (m *servers.Manager) {
+func testManager() (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return m
 }
 
-func testManagerFailProb(failPct float64) (m *servers.Manager) {
+func testManagerFailProb(failPct float64) (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
@@ -169,7 +169,7 @@ func TestServers_FindServer(t *testing.T) {
 func TestServers_New(t *testing.T) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m := servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if m == nil {
 		t.Fatalf("Manager nil")
 	}
