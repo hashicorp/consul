@@ -36,7 +36,7 @@ func (s *Server) monitorLeadership() {
 	// leaderCh, which is only notified best-effort. Doing this ensures
 	// that we get all notifications in order, which is required for
 	// cleanup and to ensure we never run multiple leader loops.
-	raftNotifyCh := s.raftNotifyChanel
+	raftNotifyCh := s.raftNotifyCh
 
 	var wg sync.WaitGroup
 	var stopCh chan struct{}
