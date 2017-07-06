@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -35,7 +35,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	// Index the Consul information about the servers.
 	serverMap := make(map[raft.ServerAddress]serf.Member)
 	for _, member := range op.srv.serfLAN.Members() {
-		valid, parts := agent.IsConsulServer(member)
+		valid, parts := metadata.IsConsulServer(member)
 		if !valid {
 			continue
 		}

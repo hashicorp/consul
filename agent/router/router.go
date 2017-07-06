@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -34,7 +34,7 @@ type Router struct {
 	managers map[string][]*Manager
 
 	// routeFn is a hook to actually do the routing.
-	routeFn func(datacenter string) (*Manager, *agent.Server, bool)
+	routeFn func(datacenter string) (*Manager, *metadata.Server, bool)
 
 	// isShutdown prevents adding new routes to a router after it is shut
 	// down.
@@ -136,7 +136,7 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 	// initially, and then will quickly detect that they are failed if we
 	// can't reach them.
 	for _, m := range cluster.Members() {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
 				m.Name, areaID)
@@ -189,7 +189,7 @@ func (r *Router) RemoveArea(areaID types.AreaID) error {
 }
 
 // addServer does the work of AddServer once the write lock is held.
-func (r *Router) addServer(area *areaInfo, s *agent.Server) error {
+func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	// Make the manager on the fly if this is the first we've seen of it,
 	// and add it to the index.
 	info, ok := area.managers[s.Datacenter]
@@ -213,7 +213,7 @@ func (r *Router) addServer(area *areaInfo, s *agent.Server) error {
 
 // AddServer should be called whenever a new server joins an area. This is
 // typically hooked into the Serf event handler area for this area.
-func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
+func (r *Router) AddServer(areaID types.AreaID, s *metadata.Server) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -226,7 +226,7 @@ func (r *Router) AddServer(areaID types.AreaID, s *agent.Server) error {
 
 // RemoveServer should be called whenever a server is removed from an area. This
 // is typically hooked into the Serf event handler area for this area.
-func (r *Router) RemoveServer(areaID types.AreaID, s *agent.Server) error {
+func (r *Router) RemoveServer(areaID types.AreaID, s *metadata.Server) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -259,7 +259,7 @@ func (r *Router) RemoveServer(areaID types.AreaID, s *agent.Server) error {
 // is typically hooked into the Serf event handler area for this area. We will
 // immediately shift traffic away from this server, but it will remain in the
 // list of servers.
-func (r *Router) FailServer(areaID types.AreaID, s *agent.Server) error {
+func (r *Router) FailServer(areaID types.AreaID, s *metadata.Server) error {
 	r.RLock()
 	defer r.RUnlock()
 
@@ -286,13 +286,13 @@ func (r *Router) FailServer(areaID types.AreaID, s *agent.Server) error {
 // connection attempt. If any problem occurs with the given server, the caller
 // should feed that back to the manager associated with the server, which is
 // also returned, by calling NofifyFailedServer().
-func (r *Router) FindRoute(datacenter string) (*Manager, *agent.Server, bool) {
+func (r *Router) FindRoute(datacenter string) (*Manager, *metadata.Server, bool) {
 	return r.routeFn(datacenter)
 }
 
 // findDirectRoute looks for a route to the given datacenter if it's directly
 // adjacent to the server.
-func (r *Router) findDirectRoute(datacenter string) (*Manager, *agent.Server, bool) {
+func (r *Router) findDirectRoute(datacenter string) (*Manager, *metadata.Server, bool) {
 	r.RLock()
 	defer r.RUnlock()
 
@@ -376,7 +376,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 		}
 
 		for _, m := range info.cluster.Members() {
-			ok, parts := agent.IsConsulServer(m)
+			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
 				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
 					m.Name, areaID)
@@ -437,7 +437,7 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 	for areaID, info := range r.areas {
 		index := make(map[string]structs.Coordinates)
 		for _, m := range info.cluster.Members() {
-			ok, parts := agent.IsConsulServer(m)
+			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
 				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
 					m.Name, areaID)

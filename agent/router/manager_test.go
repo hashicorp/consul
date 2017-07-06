@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/router"
 )
 
@@ -48,7 +48,7 @@ func testManagerFailProb(failPct float64) (m *router.Manager) {
 	return m
 }
 
-// func (m *Manager) AddServer(server *agent.Server) {
+// func (m *Manager) AddServer(server *metadata.Server) {
 func TestServers_AddServer(t *testing.T) {
 	m := testManager()
 	var num int
@@ -57,7 +57,7 @@ func TestServers_AddServer(t *testing.T) {
 		t.Fatalf("Expected zero servers to start")
 	}
 
-	s1 := &agent.Server{Name: "s1"}
+	s1 := &metadata.Server{Name: "s1"}
 	m.AddServer(s1)
 	num = m.NumServers()
 	if num != 1 {
@@ -70,7 +70,7 @@ func TestServers_AddServer(t *testing.T) {
 		t.Fatalf("Expected one server (still)")
 	}
 
-	s2 := &agent.Server{Name: "s2"}
+	s2 := &metadata.Server{Name: "s2"}
 	m.AddServer(s2)
 	num = m.NumServers()
 	if num != 2 {
@@ -85,7 +85,7 @@ func TestServers_IsOffline(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	s1 := &agent.Server{Name: "s1"}
+	s1 := &metadata.Server{Name: "s1"}
 	m.AddServer(s1)
 	if m.IsOffline() {
 		t.Fatalf("bad")
@@ -117,7 +117,7 @@ func TestServers_IsOffline(t *testing.T) {
 	}
 }
 
-// func (m *Manager) FindServer() (server *agent.Server) {
+// func (m *Manager) FindServer() (server *metadata.Server) {
 func TestServers_FindServer(t *testing.T) {
 	m := testManager()
 
@@ -125,7 +125,7 @@ func TestServers_FindServer(t *testing.T) {
 		t.Fatalf("Expected nil return")
 	}
 
-	m.AddServer(&agent.Server{Name: "s1"})
+	m.AddServer(&metadata.Server{Name: "s1"})
 	if m.NumServers() != 1 {
 		t.Fatalf("Expected one server")
 	}
@@ -143,7 +143,7 @@ func TestServers_FindServer(t *testing.T) {
 		t.Fatalf("Expected s1 server (still)")
 	}
 
-	m.AddServer(&agent.Server{Name: "s2"})
+	m.AddServer(&metadata.Server{Name: "s2"})
 	if m.NumServers() != 2 {
 		t.Fatalf("Expected two servers")
 	}
@@ -175,7 +175,7 @@ func TestServers_New(t *testing.T) {
 	}
 }
 
-// func (m *Manager) NotifyFailedServer(server *agent.Server) {
+// func (m *Manager) NotifyFailedServer(server *metadata.Server) {
 func TestServers_NotifyFailedServer(t *testing.T) {
 	m := testManager()
 
@@ -183,8 +183,8 @@ func TestServers_NotifyFailedServer(t *testing.T) {
 		t.Fatalf("Expected zero servers to start")
 	}
 
-	s1 := &agent.Server{Name: "s1"}
-	s2 := &agent.Server{Name: "s2"}
+	s1 := &metadata.Server{Name: "s1"}
+	s2 := &metadata.Server{Name: "s2"}
 
 	// Try notifying for a server that is not managed by Manager
 	m.NotifyFailedServer(s1)
@@ -237,7 +237,7 @@ func TestServers_NumServers(t *testing.T) {
 		t.Fatalf("Expected zero servers to start")
 	}
 
-	s := &agent.Server{}
+	s := &metadata.Server{}
 	m.AddServer(s)
 	num = m.NumServers()
 	if num != 1 {
@@ -256,7 +256,7 @@ func TestServers_RebalanceServers(t *testing.T) {
 	// Make a huge list of nodes.
 	for i := 0; i < maxServers; i++ {
 		nodeName := fmt.Sprintf("s%02d", i)
-		m.AddServer(&agent.Server{Name: nodeName})
+		m.AddServer(&metadata.Server{Name: nodeName})
 	}
 
 	// Keep track of how many unique shuffles we get.
@@ -282,7 +282,7 @@ func TestServers_RebalanceServers(t *testing.T) {
 	}
 }
 
-// func (m *Manager) RemoveServer(server *agent.Server) {
+// func (m *Manager) RemoveServer(server *metadata.Server) {
 func TestManager_RemoveServer(t *testing.T) {
 	const nodeNameFmt = "s%02d"
 	m := testManager()
@@ -293,21 +293,21 @@ func TestManager_RemoveServer(t *testing.T) {
 
 	// Test removing server before its added
 	nodeName := fmt.Sprintf(nodeNameFmt, 1)
-	s1 := &agent.Server{Name: nodeName}
+	s1 := &metadata.Server{Name: nodeName}
 	m.RemoveServer(s1)
 	m.AddServer(s1)
 
 	nodeName = fmt.Sprintf(nodeNameFmt, 2)
-	s2 := &agent.Server{Name: nodeName}
+	s2 := &metadata.Server{Name: nodeName}
 	m.RemoveServer(s2)
 	m.AddServer(s2)
 
 	const maxServers = 19
-	servers := make([]*agent.Server, maxServers)
+	servers := make([]*metadata.Server, maxServers)
 	// Already added two servers above
 	for i := maxServers; i > 2; i-- {
 		nodeName := fmt.Sprintf(nodeNameFmt, i)
-		server := &agent.Server{Name: nodeName}
+		server := &metadata.Server{Name: nodeName}
 		servers = append(servers, server)
 		m.AddServer(server)
 	}
@@ -321,7 +321,7 @@ func TestManager_RemoveServer(t *testing.T) {
 		t.Fatalf("Expected %d servers, received %d", maxServers, m.NumServers())
 	}
 
-	findServer := func(server *agent.Server) bool {
+	findServer := func(server *metadata.Server) bool {
 		for i := m.NumServers(); i > 0; i-- {
 			s := m.FindServer()
 			if s == server {
@@ -332,7 +332,7 @@ func TestManager_RemoveServer(t *testing.T) {
 	}
 
 	expectedNumServers := maxServers
-	removedServers := make([]*agent.Server, 0, maxServers)
+	removedServers := make([]*metadata.Server, 0, maxServers)
 
 	// Remove servers from the front of the list
 	for i := 3; i > 0; i-- {

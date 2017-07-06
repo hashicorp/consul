@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -275,7 +275,7 @@ func (c *Client) lanEventHandler() {
 // nodeJoin is used to handle join events on the serf cluster
 func (c *Client) nodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -297,7 +297,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 // nodeFail is used to handle fail events on the serf cluster
 func (c *Client) nodeFail(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
