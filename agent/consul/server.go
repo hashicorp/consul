@@ -134,9 +134,9 @@ type Server struct {
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
 
-	// leaderCh set up by setupRaft() and ensures that we get reliable leader
+	// raftNotifyCh is set up by setupRaft() and ensures that we get reliable leader
 	// transition notifications from the Raft layer.
-	leaderCh <-chan bool
+	raftNotifyCh <-chan bool
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -601,9 +601,9 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Set up a channel for reliable leader notifications.
-	leaderCh := make(chan bool, 1)
-	s.config.RaftConfig.NotifyCh = leaderCh
-	s.leaderCh = leaderCh
+	raftNotifyCh := make(chan bool, 1)
+	s.config.RaftConfig.NotifyCh = raftNotifyCh
+	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable, snap, trans)

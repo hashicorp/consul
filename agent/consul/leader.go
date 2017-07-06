@@ -25,6 +25,7 @@ const (
 	ConsulServiceID                     = "consul"
 	ConsulServiceName                   = "consul"
 	newLeaderEvent                      = "consul:new-leader"
+	barrierWriteTimeout                 = 2 * time.Minute
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -35,13 +36,13 @@ func (s *Server) monitorLeadership() {
 	// leaderCh, which is only notified best-effort. Doing this ensures
 	// that we get all notifications in order, which is required for
 	// cleanup and to ensure we never run multiple leader loops.
-	leaderCh := s.leaderCh
+	raftNotifyCh := s.raftNotifyCh
 
 	var wg sync.WaitGroup
 	var stopCh chan struct{}
 	for {
 		select {
-		case isLeader := <-leaderCh:
+		case isLeader := <-raftNotifyCh:
 			if isLeader {
 				stopCh = make(chan struct{})
 				wg.Add(1)
@@ -96,10 +97,10 @@ RECONCILE:
 
 	// Apply a raft barrier to ensure our FSM is caught up
 	start := time.Now()
-	barrier := s.raft.Barrier(0)
+	barrier := s.raft.Barrier(barrierWriteTimeout)
 	if err := barrier.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
-		goto WAIT
+		return
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
 
