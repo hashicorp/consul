@@ -31,6 +31,7 @@ const flushInterval = 500 * time.Millisecond
 const clockUpdateInterval = 500 * time.Millisecond
 const coordinateUpdateInterval = 60 * time.Second
 const tmpExt = ".compact"
+const snapshotErrorRecoveryInterval = 30 * time.Second
 
 // Snapshotter is responsible for ingesting events and persisting
 // them to disk, and providing a recovery mechanism at start time.
@@ -55,6 +56,7 @@ type Snapshotter struct {
 	rejoinAfterLeave bool
 	shutdownCh       <-chan struct{}
 	waitCh           chan struct{}
+	lastAttemptedCompaction        time.Time
 }
 
 // PreviousNode is used to represent the previously known alive nodes
@@ -311,6 +313,17 @@ func (s *Snapshotter) processQuery(q *Query) {
 func (s *Snapshotter) tryAppend(l string) {
 	if err := s.appendLine(l); err != nil {
 		s.logger.Printf("[ERR] serf: Failed to update snapshot: %v", err)
+		now := time.Now()
+		if now.Sub(s.lastAttemptedCompaction) > snapshotErrorRecoveryInterval {
+			s.lastAttemptedCompaction = now
+			s.logger.Printf("[INFO] serf: Attempting compaction to recover from error...")
+			err = s.compact()
+			if err != nil {
+				s.logger.Printf("[ERR] serf: Compaction failed, will reattempt after %v: %v", snapshotErrorRecoveryInterval, err)
+			} else {
+				s.logger.Printf("[INFO] serf: Finished compaction, successfully recovered from error state")
+			}
+		}
 	}
 }
 
