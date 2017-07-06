@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 )

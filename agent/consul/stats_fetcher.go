@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the

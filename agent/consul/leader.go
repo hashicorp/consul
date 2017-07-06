@@ -10,7 +10,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-version"

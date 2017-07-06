@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // coordinateDisabled handles all the endpoints when coordinates are not enabled,

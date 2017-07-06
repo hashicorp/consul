@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
