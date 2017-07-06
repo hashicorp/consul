@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ type fauxConnPool struct {
 	failPct float64
 }
 
-func (cp *fauxConnPool) PingConsulServer(server *agent.Server) (bool, error) {
+func (cp *fauxConnPool) Ping(string, net.Addr, int, bool) (bool, error) {
 	var success bool
 	successProb := rand.Float64()
 	if successProb > cp.failPct {

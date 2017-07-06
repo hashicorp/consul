@@ -41,8 +41,8 @@ type localState struct {
 	// Config is the agent config
 	config *Config
 
-	// iface is the consul interface to use for keeping in sync
-	iface consul.Interface
+	// delegate is the consul interface to use for keeping in sync
+	delegate delegate
 
 	// nodeInfoInSync tracks whether the server has our correct top-level
 	// node information in sync
@@ -75,9 +75,10 @@ type localState struct {
 }
 
 // Init is used to initialize the local state
-func (l *localState) Init(config *Config, logger *log.Logger) {
-	l.config = config
-	l.logger = logger
+func (l *localState) Init(c *Config, lg *log.Logger, d delegate) {
+	l.config = c
+	l.delegate = d
+	l.logger = lg
 	l.services = make(map[string]*structs.NodeService)
 	l.serviceStatus = make(map[string]syncStatus)
 	l.serviceTokens = make(map[string]string)
@@ -89,12 +90,6 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.metadata = make(map[string]string)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
-}
-
-// SetIface is used to set the Consul interface. Must be set prior to
-// starting anti-entropy
-func (l *localState) SetIface(iface consul.Interface) {
-	l.iface = iface
 }
 
 // changeMade is used to trigger an anti-entropy run
@@ -374,11 +369,11 @@ SYNC:
 		case <-l.consulCh:
 			// Stagger the retry on leader election, avoid a thundering heard
 			select {
-			case <-time.After(lib.RandomStagger(aeScale(syncStaggerIntv, len(l.iface.LANMembers())))):
+			case <-time.After(lib.RandomStagger(aeScale(syncStaggerIntv, len(l.delegate.LANMembers())))):
 			case <-shutdownCh:
 				return
 			}
-		case <-time.After(syncRetryIntv + lib.RandomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
+		case <-time.After(syncRetryIntv + lib.RandomStagger(aeScale(syncRetryIntv, len(l.delegate.LANMembers())))):
 		case <-shutdownCh:
 			return
 		}
@@ -388,7 +383,7 @@ SYNC:
 	l.changeMade()
 
 	// Schedule the next full sync, with a random stagger
-	aeIntv := aeScale(l.config.AEInterval, len(l.iface.LANMembers()))
+	aeIntv := aeScale(l.config.AEInterval, len(l.delegate.LANMembers()))
 	aeIntv = aeIntv + lib.RandomStagger(aeIntv)
 	aeTimer := time.After(aeIntv)
 
@@ -421,10 +416,10 @@ func (l *localState) setSyncState() error {
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
-	if e := l.iface.RPC("Catalog.NodeServices", &req, &out1); e != nil {
+	if e := l.delegate.RPC("Catalog.NodeServices", &req, &out1); e != nil {
 		return e
 	}
-	if err := l.iface.RPC("Health.NodeChecks", &req, &out2); err != nil {
+	if err := l.delegate.RPC("Health.NodeChecks", &req, &out2); err != nil {
 		return err
 	}
 	checks := out2.HealthChecks
@@ -604,7 +599,7 @@ func (l *localState) deleteService(id string) error {
 		WriteRequest: structs.WriteRequest{Token: l.serviceToken(id)},
 	}
 	var out struct{}
-	err := l.iface.RPC("Catalog.Deregister", &req, &out)
+	err := l.delegate.RPC("Catalog.Deregister", &req, &out)
 	if err == nil || strings.Contains(err.Error(), "Unknown service") {
 		delete(l.serviceStatus, id)
 		delete(l.serviceTokens, id)
@@ -631,7 +626,7 @@ func (l *localState) deleteCheck(id types.CheckID) error {
 		WriteRequest: structs.WriteRequest{Token: l.checkToken(id)},
 	}
 	var out struct{}
-	err := l.iface.RPC("Catalog.Deregister", &req, &out)
+	err := l.delegate.RPC("Catalog.Deregister", &req, &out)
 	if err == nil || strings.Contains(err.Error(), "Unknown check") {
 		delete(l.checkStatus, id)
 		delete(l.checkTokens, id)
@@ -681,7 +676,7 @@ func (l *localState) syncService(id string) error {
 	}
 
 	var out struct{}
-	err := l.iface.RPC("Catalog.Register", &req, &out)
+	err := l.delegate.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		// Given how the register API works, this info is also updated
@@ -725,7 +720,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
 	}
 	var out struct{}
-	err := l.iface.RPC("Catalog.Register", &req, &out)
+	err := l.delegate.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		// Given how the register API works, this info is also updated
@@ -751,7 +746,7 @@ func (l *localState) syncNodeInfo() error {
 		WriteRequest:    structs.WriteRequest{Token: l.config.GetTokenForAgent()},
 	}
 	var out struct{}
-	err := l.iface.RPC("Catalog.Register", &req, &out)
+	err := l.delegate.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced node info")

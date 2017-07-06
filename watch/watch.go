@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sync"
@@ -27,9 +28,10 @@ type Plan struct {
 	lastIndex  uint64
 	lastResult interface{}
 
-	stop     bool
-	stopCh   chan struct{}
-	stopLock sync.Mutex
+	stop       bool
+	stopCh     chan struct{}
+	stopLock   sync.Mutex
+	cancelFunc context.CancelFunc
 }
 
 // WatcherFunc is used to watch for a diff

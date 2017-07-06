@@ -107,7 +107,8 @@ A HTTP check:
   "check": {
     "id": "api",
     "name": "HTTP API on port 5000",
-    "http": "http://localhost:5000/health",
+    "http": "https://localhost:5000/health",
+    "tls_skip_verify": false,
     "method": "POST",
     "header": {"x-foo":["bar", "baz"]},
     "interval": "10s",

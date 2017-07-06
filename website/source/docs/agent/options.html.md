@@ -141,7 +141,11 @@ will exit with an error at startup.
 * <a name="_disable_host_node_id"></a><a href="#_disable_host_node_id">`-disable-host-node-id`</a> - Setting
   this to true will prevent Consul from using information from the host to generate a deterministic node ID,
   and will instead generate a random node ID which will be persisted in the data directory. This is useful
-  when running multiple Consul agents on the same host for testing. This defaults to false.
+  when running multiple Consul agents on the same host for testing. This defaults to false in Consul prior
+  to version 0.8.5 and in 0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
+  IDs are generated using https://github.com/shirou/gopsutil/tree/master/host, which is shared with HashiCorp's
+  [Nomad](https://www.nomadproject.io/), so if you opt-in to host-based IDs then Consul and Nomad will use
+  information on the host to automatically assign the same ID in both systems.
 
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
   This overrides the default port 8600. This is available in Consul 0.7 and later.
@@ -162,6 +166,10 @@ will exit with an error at startup.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
+
+* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
+  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
+  `-encrypt` key will be available on startup. This defaults to false.
 
 * <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
   This overrides the default port 8500. This option is very useful when deploying Consul
@@ -195,7 +203,7 @@ will exit with an error at startup.
   - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
   - ECS task role metadata (container-specific).
   - EC2 instance role metadata.
-  
+
   The only required IAM permission is `ec2:DescribeInstances`, and it is recommended you make a dedicated
   key used only for auto-joining.
 
@@ -433,7 +441,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
   there is no matching rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
   prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
-  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter` 
+  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter`
   to enable ACL support.
 
 * <a name="acl_down_policy"></a><a href="#acl_down_policy">`acl_down_policy`</a> - Either
@@ -720,6 +728,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   (/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster) for more information.
   Defaults to true.
 
+* <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
+  [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
+
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).
@@ -737,6 +748,30 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         }
       }
     ```
+
+  This has been deprecated in Consul 0.8.5. Setting this value will set `http_config.response_headers`
+  instead for backwards compatibility.
+
+* <a name="http_config"></a><a href="#http_config">`http_config`</a>
+  This object allows setting options for the HTTP API.
+  <br><br>
+  The following sub-keys are available:
+
+  * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
+    This object allows adding headers to the HTTP API responses.
+    For example, the following config can be used to enable
+    [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
+    the HTTP API endpoints:
+
+      ```javascript
+        {
+          "http_config": {
+            "response_headers": {
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        }
+      ```
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
   enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest

@@ -12,23 +12,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
-)
-
-type RPCType byte
-
-const (
-	rpcConsul RPCType = iota
-	rpcRaft
-	rpcMultiplex // Old Muxado byte, no longer supported.
-	rpcTLS
-	rpcMultiplexV2
-	rpcSnapshot
-	rpcGossip
 )
 
 const (
@@ -92,24 +81,25 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		conn.Close()
 		return
 	}
+	typ := pool.RPCType(buf[0])
 
 	// Enforce TLS if VerifyIncoming is set
-	if s.config.VerifyIncoming && !isTLS && RPCType(buf[0]) != rpcTLS {
+	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS {
 		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
 	}
 
 	// Switch on the byte
-	switch RPCType(buf[0]) {
-	case rpcConsul:
+	switch typ {
+	case pool.RPCConsul:
 		s.handleConsulConn(conn)
 
-	case rpcRaft:
+	case pool.RPCRaft:
 		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
 		s.raftLayer.Handoff(conn)
 
-	case rpcTLS:
+	case pool.RPCTLS:
 		if s.rpcTLS == nil {
 			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
 			conn.Close()
@@ -118,14 +108,14 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		conn = tls.Server(conn, s.rpcTLS)
 		s.handleConn(conn, true)
 
-	case rpcMultiplexV2:
+	case pool.RPCMultiplexV2:
 		s.handleMultiplexV2(conn)
 
-	case rpcSnapshot:
+	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
 
 	default:
-		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
+		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
 		conn.Close()
 		return
 	}
@@ -434,5 +424,30 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
-	return future.Error()
+	if err := future.Error(); err != nil {
+		return err //fail fast if leader verification fails
+	}
+	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
+	if s.isReadyForConsistentReads() {
+		return nil
+	}
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	deadline := time.Now().Add(s.config.RPCHoldTimeout)
+
+	for time.Now().Before(deadline) {
+
+		select {
+		case <-time.After(jitter):
+			// Drop through and check before we loop again.
+
+		case <-s.shutdownCh:
+			return fmt.Errorf("shutdown waiting for leader")
+		}
+
+		if s.isReadyForConsistentReads() {
+			return nil
+		}
+	}
+
+	return structs.ErrNotReadyForConsistentReads
 }

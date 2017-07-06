@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -43,22 +44,13 @@ const (
 	serfEventBacklogWarning = 200
 )
 
-// Interface is used to provide either a Client or Server,
-// both of which can be used to perform certain common
-// Consul methods
-type Interface interface {
-	RPC(method string, args interface{}, reply interface{}) error
-	LANMembers() []serf.Member
-	LocalMember() serf.Member
-}
-
 // Client is Consul client which uses RPC to communicate with the
 // services for service discovery, health checking, and DC forwarding.
 type Client struct {
 	config *Config
 
 	// Connection pool to consul servers
-	connPool *ConnPool
+	connPool *pool.ConnPool
 
 	// servers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -118,10 +110,19 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
 	}
 
+	connPool := &pool.ConnPool{
+		SrcAddr:    config.RPCSrcAddr,
+		LogOutput:  config.LogOutput,
+		MaxTime:    clientRPCConnMaxIdle,
+		MaxStreams: clientMaxStreams,
+		TLSWrapper: tlsWrap,
+		ForceTLS:   config.VerifyOutgoing,
+	}
+
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.RPCSrcAddr, config.LogOutput, clientRPCConnMaxIdle, clientMaxStreams, tlsWrap, config.VerifyOutgoing),
+		connPool:   connPool,
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -350,15 +351,11 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	return nil
 }
 
-// SnapshotReplyFn gets a peek at the reply before the snapshot streams, which
-// is useful for setting headers.
-type SnapshotReplyFn func(reply *structs.SnapshotResponse) error
-
 // SnapshotRPC sends the snapshot request to one of the servers, reading from
 // the streaming input and writing to the streaming output depending on the
 // operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 
 	// Locate a server to make the request to.
 	server := c.servers.FindServer()

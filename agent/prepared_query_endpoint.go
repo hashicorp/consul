@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	preparedQueryEndpoint      = "PreparedQuery"
 	preparedQueryExecuteSuffix = "/execute"
 	preparedQueryExplainSuffix = "/explain"
 )
@@ -37,8 +36,7 @@ func (s *HTTPServer) preparedQueryCreate(resp http.ResponseWriter, req *http.Req
 	}
 
 	var reply string
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return preparedQueryCreateResponse{reply}, nil
@@ -52,8 +50,7 @@ func (s *HTTPServer) preparedQueryList(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var reply structs.IndexedPreparedQueries
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".List", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.List", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -110,8 +107,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExecuteResponse
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Execute", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
@@ -155,8 +151,7 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExplainResponse
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Explain", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
@@ -179,8 +174,7 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 	}
 
 	var reply structs.IndexedPreparedQueries
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Get", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
@@ -212,8 +206,7 @@ func (s *HTTPServer) preparedQueryUpdate(id string, resp http.ResponseWriter, re
 	args.Query.ID = id
 
 	var reply string
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -231,8 +224,7 @@ func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, re
 	s.parseToken(req, &args.Token)
 
 	var reply string
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return nil, nil
