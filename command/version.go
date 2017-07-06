@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,12 +23,12 @@ func (c *VersionCommand) Run(_ []string) int {
 
 	config := agent.DefaultConfig()
 	var supplement string
-	if config.Protocol < consul.ProtocolVersionMax {
+	if config.Protocol < rpc.ProtocolVersionMax {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
 			config.Protocol)
 	}
 	c.UI.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
-		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
+		config.Protocol, rpc.ProtocolVersionMin, rpc.ProtocolVersionMax, supplement))
 
 	return 0
 }

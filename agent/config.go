@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
@@ -368,7 +368,7 @@ type Config struct {
 	// DNS configuration
 	DNSConfig DNSConfig `mapstructure:"dns_config"`
 
-	// Domain is the DNS domain for the records. Defaults to "consul."
+	// Domain is the DNS domain for the records. Defaults to "rpc."
 	Domain string `mapstructure:"domain"`
 
 	// HTTP configuration
@@ -742,7 +742,7 @@ type Config struct {
 	Services []*structs.ServiceDefinition `mapstructure:"-" json:"-"`
 
 	// ConsulConfig can either be provided or a default one created
-	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
+	ConsulConfig *rpc.Config `mapstructure:"-" json:"-"`
 
 	// Revision is the GitCommit this maps to
 	Revision string `mapstructure:"-"`
@@ -774,7 +774,7 @@ type Config struct {
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
-// connections to consul.
+// connections to rpc.
 func (c *Config) IncomingHTTPSConfig() (*tls.Config, error) {
 	tc := &tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
@@ -899,7 +899,7 @@ func DefaultConfig() *Config {
 		Bootstrap:       false,
 		BootstrapExpect: 0,
 		Server:          false,
-		Datacenter:      consul.DefaultDC,
+		Datacenter:      rpc.DefaultDC,
 		Domain:          "consul.",
 		LogLevel:        "INFO",
 		ClientAddr:      "127.0.0.1",
@@ -908,8 +908,8 @@ func DefaultConfig() *Config {
 			DNS:     8600,
 			HTTP:    8500,
 			HTTPS:   -1,
-			SerfLan: consul.DefaultLANSerfPort,
-			SerfWan: consul.DefaultWANSerfPort,
+			SerfLan: rpc.DefaultLANSerfPort,
+			SerfWan: rpc.DefaultWANSerfPort,
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
@@ -923,7 +923,7 @@ func DefaultConfig() *Config {
 		},
 		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
-		Protocol:                   consul.ProtocolVersion2Compatible,
+		Protocol:                   rpc.ProtocolVersion2Compatible,
 		CheckUpdateInterval:        5 * time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
@@ -967,7 +967,7 @@ func DevConfig() *Config {
 	conf.BindAddr = "127.0.0.1"
 	conf.DisableKeyringFile = true
 
-	conf.ConsulConfig = consul.DefaultConfig()
+	conf.ConsulConfig = rpc.DefaultConfig()
 	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
 	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
@@ -1365,8 +1365,8 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	// Enforce the max Raft multiplier.
-	if result.Performance.RaftMultiplier > consul.MaxRaftMultiplier {
-		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
+	if result.Performance.RaftMultiplier > rpc.MaxRaftMultiplier {
+		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", rpc.MaxRaftMultiplier)
 	}
 
 	if raw := result.TLSCipherSuitesRaw; raw != "" {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -110,7 +110,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if err.Error() == rpc.ErrQueryNotFound.Error() {
 			resp.WriteHeader(404)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -154,7 +154,7 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if err.Error() == rpc.ErrQueryNotFound.Error() {
 			resp.WriteHeader(404)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
@@ -177,7 +177,7 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if err.Error() == rpc.ErrQueryNotFound.Error() {
 			resp.WriteHeader(404)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil

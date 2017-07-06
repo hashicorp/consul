@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
@@ -708,7 +708,7 @@ RPC:
 		// If they give a bogus query name, treat that as a name error,
 		// not a full on server error. We have to use a string compare
 		// here since the RPC layer loses the type information.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
+		if err.Error() == rpc.ErrQueryNotFound.Error() {
 			d.addSOA(d.domain, resp)
 			resp.SetRcode(req, dns.RcodeNameError)
 			return

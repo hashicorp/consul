@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -39,7 +39,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		Op: structs.SessionCreate,
 		Session: structs.Session{
 			Node:      s.agent.config.NodeName,
-			Checks:    []types.CheckID{consul.SerfCheckID},
+			Checks:    []types.CheckID{rpc.SerfCheckID},
 			LockDelay: 15 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 			TTL:       "",

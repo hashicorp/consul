@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
@@ -113,7 +113,7 @@ func loadKeyringFile(c *serf.Config) error {
 func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 	var reply structs.KeyringResponses
 
-	if _, ok := a.delegate.(*consul.Server); !ok {
+	if _, ok := a.delegate.(*rpc.Server); !ok {
 		return nil, fmt.Errorf("keyring operations must run against a server node")
 	}
 	if err := a.RPC("Internal.KeyringOperation", args, &reply); err != nil {

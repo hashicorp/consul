@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -518,7 +518,7 @@ func (l *localState) setSyncState() error {
 		if !ok {
 			// The Serf check is created automatically, and does not
 			// need to be registered
-			if id == consul.SerfCheckID {
+			if id == rpc.SerfCheckID {
 				continue
 			}
 			l.checkStatus[id] = syncStatus{inSync: false}
