@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
@@ -52,9 +52,9 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
-	// servers is responsible for the selection and maintenance of
+	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
-	servers *servers.Manager
+	routers *router.Manager
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -140,8 +140,8 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	}
 
 	// Start maintenance task for servers
-	c.servers = servers.New(c.logger, c.shutdownCh, c.serf, c.connPool)
-	go c.servers.Start()
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	go c.routers.Start()
 
 	return c, nil
 }
@@ -285,7 +285,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-		c.servers.AddServer(parts)
+		c.routers.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -302,7 +302,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-		c.servers.RemoveServer(parts)
+		c.routers.RemoveServer(parts)
 	}
 }
 
@@ -336,14 +336,14 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	server := c.servers.FindServer()
+	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
 
 	// Forward to remote Consul
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
-		c.servers.NotifyFailedServer(server)
+		c.routers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
 	}
@@ -358,7 +358,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	replyFn structs.SnapshotReplyFn) error {
 
 	// Locate a server to make the request to.
-	server := c.servers.FindServer()
+	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
@@ -395,7 +395,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	numServers := c.servers.NumServers()
+	numServers := c.routers.NumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
@@ -412,7 +412,7 @@ func (c *Client) Stats() map[string]map[string]string {
 }
 
 func (c *Client) ServerAddrs() map[string]string {
-	return c.servers.GetServerAddrs()
+	return c.routers.GetServerAddrs()
 }
 
 // GetLANCoordinate returns the network coordinate of the current node, as
