@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/lstate"
 	"github.com/hashicorp/consul/agent/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -102,9 +103,9 @@ type Agent struct {
 	// acls is an object that helps manage local ACL enforcement.
 	acls *aclManager
 
-	// state stores a local representation of the node,
+	// State stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
-	state *localState
+	State *lstate.State
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -289,7 +290,22 @@ func (a *Agent) Start() error {
 	}
 
 	// create the local state
-	a.state = NewLocalState(c, a.logger)
+	lc := lstate.Config{
+		ACLToken:            c.ACLToken,
+		AEInterval:          c.AEInterval,
+		AdvertiseAddr:       c.AdvertiseAddr,
+		CheckUpdateInterval: c.CheckUpdateInterval,
+		Datacenter:          c.Datacenter,
+		NodeID:              c.NodeID,
+		NodeName:            c.NodeName,
+		TaggedAddresses:     map[string]string{},
+		TokenForAgent:       c.GetTokenForAgent(),
+	}
+	for k, v := range c.TaggedAddresses {
+		lc.TaggedAddresses[k] = v
+	}
+	state := lstate.NewState(lc, a.logger)
+	a.State = state
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -298,7 +314,7 @@ func (a *Agent) Start() error {
 	}
 
 	// link consul client/server with the state
-	consulCfg.ServerUp = a.state.ConsulServerUp
+	consulCfg.ServerUp = state.ConsulServerUp
 
 	// Setup either the client or the server.
 	if c.Server {
@@ -308,7 +324,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = server
-		a.state.delegate = server
+		state.SetDelegate(server)
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
@@ -318,7 +334,7 @@ func (a *Agent) Start() error {
 			Tags:    []string{},
 		}
 
-		a.state.AddService(&consulService, c.GetTokenForAgent())
+		a.State.AddService(&consulService, c.GetTokenForAgent())
 	} else {
 		client, err := rpc.NewClientLogger(consulCfg, a.logger)
 		if err != nil {
@@ -326,7 +342,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = client
-		a.state.delegate = client
+		state.SetDelegate(client)
 	}
 
 	// Load checks/services/metadata.
@@ -1280,17 +1296,17 @@ func (a *Agent) WANMembers() []serf.Member {
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
 	// Start the anti entropy routine
-	go a.state.antiEntropy(a.shutdownCh)
+	go a.State.AntiEntropy(a.shutdownCh)
 }
 
 // PauseSync is used to pause anti-entropy while bulk changes are make
 func (a *Agent) PauseSync() {
-	a.state.Pause()
+	a.State.Pause()
 }
 
 // ResumeSync is used to unpause anti-entropy after bulk changes are make
 func (a *Agent) ResumeSync() {
-	a.state.Resume()
+	a.State.Resume()
 }
 
 // GetLANCoordinate returns the coordinate of this node in the local pool (assumes coordinates
@@ -1346,16 +1362,17 @@ func (a *Agent) sendCoordinate() {
 
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
+	checks, criticalFor := a.State.CriticalChecks()
 	reaped := make(map[string]struct{})
-	for checkID, check := range a.state.CriticalChecks() {
+	for checkID, check := range checks {
 		// There's nothing to do if there's no service.
-		if check.Check.ServiceID == "" {
+		if check.ServiceID == "" {
 			continue
 		}
 
 		// There might be multiple checks for one service, so
 		// we don't need to reap multiple times.
-		serviceID := check.Check.ServiceID
+		serviceID := check.ServiceID
 		if _, ok := reaped[serviceID]; ok {
 			continue
 		}
@@ -1367,7 +1384,7 @@ func (a *Agent) reapServicesInternal() {
 
 		// Reap, if necessary. We keep track of which service
 		// this is so that we won't try to remove it again.
-		if ok && check.CriticalFor > timeout {
+		if ok && criticalFor[checkID] > timeout {
 			reaped[serviceID] = struct{}{}
 			a.RemoveService(serviceID, true)
 			a.logger.Printf("[INFO] agent: Check %q for service %q has been critical for too long; deregistered service",
@@ -1403,7 +1420,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
 
 	wrapped := persistedService{
-		Token:   a.state.ServiceToken(service.ID),
+		Token:   a.State.ServiceToken(service.ID),
 		Service: service,
 	}
 	encoded, err := json.Marshal(wrapped)
@@ -1431,7 +1448,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 	wrapped := persistedCheck{
 		Check:   check,
 		ChkType: chkType,
-		Token:   a.state.CheckToken(check.CheckID),
+		Token:   a.State.CheckToken(check.CheckID),
 	}
 
 	encoded, err := json.Marshal(wrapped)
@@ -1521,7 +1538,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	defer a.restoreCheckState(snap)
 
 	// Add the service
-	a.state.AddService(service, token)
+	a.State.AddService(service, token)
 
 	// Persist the service to a file
 	if persist && !a.config.DevMode {
@@ -1578,7 +1595,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	// Remove service immediately
-	if err := a.state.RemoveService(serviceID); err != nil {
+	if err := a.State.RemoveService(serviceID); err != nil {
 		a.logger.Printf("[WARN] agent: Failed to deregister service %q: %s", serviceID, err)
 		return nil
 	}
@@ -1591,7 +1608,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	// Deregister any associated health checks
-	for checkID, health := range a.state.Checks() {
+	for checkID, health := range a.State.Checks() {
 		if health.ServiceID != serviceID {
 			continue
 		}
@@ -1617,7 +1634,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	if check.ServiceID != "" {
-		svc, ok := a.state.Services()[check.ServiceID]
+		svc, ok := a.State.Services()[check.ServiceID]
 		if !ok {
 			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
 		}
@@ -1635,7 +1652,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			ttl := &CheckTTL{
-				Notify:  a.state,
+				Notify:  a.State,
 				CheckID: check.CheckID,
 				TTL:     chkType.TTL,
 				Logger:  a.logger,
@@ -1661,7 +1678,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			http := &CheckHTTP{
-				Notify:        a.state,
+				Notify:        a.State,
 				CheckID:       check.CheckID,
 				HTTP:          chkType.HTTP,
 				Header:        chkType.Header,
@@ -1685,7 +1702,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &CheckTCP{
-				Notify:   a.state,
+				Notify:   a.State,
 				CheckID:  check.CheckID,
 				TCP:      chkType.TCP,
 				Interval: chkType.Interval,
@@ -1706,7 +1723,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			dockerCheck := &CheckDocker{
-				Notify:            a.state,
+				Notify:            a.State,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
@@ -1730,7 +1747,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   a.state,
+				Notify:   a.State,
 				CheckID:  check.CheckID,
 				Script:   chkType.Script,
 				Interval: chkType.Interval,
@@ -1757,7 +1774,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	// Add to the local state for anti-entropy
-	a.state.AddCheck(check, token)
+	a.State.AddCheck(check, token)
 
 	// Persist the check
 	if persist && !a.config.DevMode {
@@ -1776,7 +1793,7 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	}
 
 	// Add to the local state for anti-entropy
-	a.state.RemoveCheck(checkID)
+	a.State.RemoveCheck(checkID)
 
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
@@ -1934,8 +1951,10 @@ func (a *Agent) Stats() map[string]map[string]string {
 	stats["agent"] = map[string]string{
 		"check_monitors": toString(uint64(len(a.checkMonitors))),
 		"check_ttls":     toString(uint64(len(a.checkTTLs))),
-		"checks":         toString(uint64(len(a.state.checks))),
-		"services":       toString(uint64(len(a.state.services))),
+	}
+
+	for k, v := range a.State.Stats() {
+		stats["agent"][k] = v
 	}
 
 	revision := a.config.Revision
@@ -2049,7 +2068,7 @@ func (a *Agent) loadServices(cfg *config.Config) error {
 		}
 		serviceID := p.Service.ID
 
-		if _, ok := a.state.services[serviceID]; ok {
+		if a.State.Service(serviceID) != nil {
 			// Purge previously persisted service. This allows config to be
 			// preferred over services persisted from the API.
 			a.logger.Printf("[DEBUG] agent: service %q exists, not restoring from %q",
@@ -2072,7 +2091,7 @@ func (a *Agent) loadServices(cfg *config.Config) error {
 // unloadServices will deregister all services other than the 'consul' service
 // known to the local agent.
 func (a *Agent) unloadServices() error {
-	for _, service := range a.state.Services() {
+	for _, service := range a.State.Services() {
 		if service.ID == rpc.ConsulServiceID {
 			continue
 		}
@@ -2132,7 +2151,7 @@ func (a *Agent) loadChecks(cfg *config.Config) error {
 		}
 		checkID := p.Check.CheckID
 
-		if _, ok := a.state.checks[checkID]; ok {
+		if a.State.Check(checkID) != nil {
 			// Purge previously persisted check. This allows config to be
 			// preferred over persisted checks from the API.
 			a.logger.Printf("[DEBUG] agent: check %q exists, not restoring from %q",
@@ -2163,7 +2182,7 @@ func (a *Agent) loadChecks(cfg *config.Config) error {
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for _, check := range a.state.Checks() {
+	for _, check := range a.State.Checks() {
 		if err := a.RemoveCheck(check.CheckID, false); err != nil {
 			return fmt.Errorf("Failed deregistering check '%s': %s", check.CheckID, err)
 		}
@@ -2176,7 +2195,7 @@ func (a *Agent) unloadChecks() error {
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
 func (a *Agent) snapshotCheckState() map[types.CheckID]*structs.HealthCheck {
-	return a.state.Checks()
+	return a.State.Checks()
 }
 
 // restoreCheckState is used to reset the health state based on a snapshot.
@@ -2184,31 +2203,19 @@ func (a *Agent) snapshotCheckState() map[types.CheckID]*structs.HealthCheck {
 // in health state and potential session invalidations.
 func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 	for id, check := range snap {
-		a.state.UpdateCheck(id, check.Status, check.Output)
+		a.State.UpdateCheck(id, check.Status, check.Output)
 	}
 }
 
 // loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
 func (a *Agent) loadMetadata(cfg *config.Config) error {
-	a.state.Lock()
-	defer a.state.Unlock()
-
-	for key, value := range cfg.Meta {
-		a.state.metadata[key] = value
-	}
-
-	a.state.changeMade()
-
-	return nil
+	return a.State.LoadMetadata(cfg.Meta)
 }
 
 // unloadMetadata resets the local metadata state
 func (a *Agent) unloadMetadata() {
-	a.state.Lock()
-	defer a.state.Unlock()
-
-	a.state.metadata = make(map[string]string)
+	a.State.UnloadMetadata()
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
@@ -2219,14 +2226,14 @@ func serviceMaintCheckID(serviceID string) types.CheckID {
 // EnableServiceMaintenance will register a false health check against the given
 // service ID with critical status. This will exclude the service from queries.
 func (a *Agent) EnableServiceMaintenance(serviceID, reason, token string) error {
-	service, ok := a.state.Services()[serviceID]
+	service, ok := a.State.Services()[serviceID]
 	if !ok {
 		return fmt.Errorf("No service registered with ID %q", serviceID)
 	}
 
 	// Check if maintenance mode is not already enabled
 	checkID := serviceMaintCheckID(serviceID)
-	if _, ok := a.state.Checks()[checkID]; ok {
+	if _, ok := a.State.Checks()[checkID]; ok {
 		return nil
 	}
 
@@ -2254,13 +2261,13 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason, token string) error 
 // DisableServiceMaintenance will deregister the fake maintenance mode check
 // if the service has been marked as in maintenance.
 func (a *Agent) DisableServiceMaintenance(serviceID string) error {
-	if _, ok := a.state.Services()[serviceID]; !ok {
+	if _, ok := a.State.Services()[serviceID]; !ok {
 		return fmt.Errorf("No service registered with ID %q", serviceID)
 	}
 
 	// Check if maintenance mode is enabled
 	checkID := serviceMaintCheckID(serviceID)
-	if _, ok := a.state.Checks()[checkID]; !ok {
+	if _, ok := a.State.Checks()[checkID]; !ok {
 		return nil
 	}
 
@@ -2274,7 +2281,7 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 // EnableNodeMaintenance places a node into maintenance mode.
 func (a *Agent) EnableNodeMaintenance(reason, token string) {
 	// Ensure node maintenance is not already enabled
-	if _, ok := a.state.Checks()[structs.NodeMaint]; ok {
+	if _, ok := a.State.Checks()[structs.NodeMaint]; ok {
 		return
 	}
 
@@ -2297,7 +2304,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 
 // DisableNodeMaintenance removes a node from maintenance mode
 func (a *Agent) DisableNodeMaintenance() {
-	if _, ok := a.state.Checks()[structs.NodeMaint]; !ok {
+	if _, ok := a.State.Checks()[structs.NodeMaint]; !ok {
 		return
 	}
 	a.RemoveCheck(structs.NodeMaint, true)

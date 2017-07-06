@@ -255,7 +255,7 @@ func TestAgent_Reload(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	if _, ok := a.state.services["redis"]; !ok {
+	if a.state.Service("redis") == nil {
 		t.Fatalf("missing redis service")
 	}
 
@@ -268,7 +268,7 @@ func TestAgent_Reload(t *testing.T) {
 	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
-	if _, ok := a.state.services["redis-reloaded"]; !ok {
+	if a.state.Service("redis-reloaded") == nil {
 		t.Fatalf("missing redis-reloaded service")
 	}
 

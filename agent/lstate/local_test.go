@@ -1,10 +1,11 @@
-package agent
+package lstate_test
 
 import (
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -14,7 +15,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
+	a := &agent.TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -33,7 +34,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{"master"},
 		Port:    5000,
 	}
-	a.state.AddService(srv1, "")
+	a.State.AddService(srv1, "")
 	args.Service = srv1
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -46,7 +47,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{},
 		Port:    8000,
 	}
-	a.state.AddService(srv2, "")
+	a.State.AddService(srv2, "")
 
 	srv2_mod := new(structs.NodeService)
 	*srv2_mod = *srv2
@@ -63,7 +64,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{},
 		Port:    80,
 	}
-	a.state.AddService(srv3, "")
+	a.State.AddService(srv3, "")
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
@@ -85,7 +86,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Address: "127.0.0.10",
 		Port:    8000,
 	}
-	a.state.AddService(srv5, "")
+	a.State.AddService(srv5, "")
 
 	srv5_mod := new(structs.NodeService)
 	*srv5_mod = *srv5
@@ -102,12 +103,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{},
 		Port:    11211,
 	}
-	a.state.AddService(srv6, "")
+	a.State.AddService(srv6, "")
 
-	// todo(fs): data race
-	a.state.Lock()
-	a.state.serviceStatus["cache"] = syncStatus{inSync: true}
-	a.state.Unlock()
+	a.State.TestSetServiceInSync("cache", true)
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -169,18 +167,14 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			}
 		}
 
-		// todo(fs): data race
-		a.state.RLock()
-		defer a.state.RUnlock()
-
 		// Check the local state
-		if len(a.state.services) != 6 {
-			r.Fatalf("bad: %v", a.state.services)
+		if len(a.State.Services()) != 6 {
+			r.Fatalf("bad: %v", a.State.Services())
 		}
-		if len(a.state.serviceStatus) != 6 {
-			r.Fatalf("bad: %v", a.state.serviceStatus)
+		if len(a.State.serviceStatus) != 6 {
+			r.Fatalf("bad: %v", a.State.serviceStatus)
 		}
-		for name, status := range a.state.serviceStatus {
+		for name, status := range a.State.serviceStatus {
 			if !status.inSync {
 				r.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -188,7 +182,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	})
 
 	// Remove one of the services
-	a.state.RemoveService("api")
+	a.State.RemoveService("api")
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -231,17 +225,17 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 
 		// todo(fs): data race
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// Check the local state
-		if len(a.state.services) != 5 {
-			r.Fatalf("bad: %v", a.state.services)
+		if len(a.State.services) != 5 {
+			r.Fatalf("bad: %v", a.State.services)
 		}
-		if len(a.state.serviceStatus) != 5 {
-			r.Fatalf("bad: %v", a.state.serviceStatus)
+		if len(a.State.serviceStatus) != 5 {
+			r.Fatalf("bad: %v", a.State.serviceStatus)
 		}
-		for name, status := range a.state.serviceStatus {
+		for name, status := range a.State.serviceStatus {
 			if !status.inSync {
 				r.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -270,7 +264,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Port:              6100,
 		EnableTagOverride: true,
 	}
-	a.state.AddService(srv1, "")
+	a.State.AddService(srv1, "")
 	srv1_mod := new(structs.NodeService)
 	*srv1_mod = *srv1
 	srv1_mod.Port = 7100
@@ -288,7 +282,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Port:              6200,
 		EnableTagOverride: false,
 	}
-	a.state.AddService(srv2, "")
+	a.State.AddService(srv2, "")
 	srv2_mod := new(structs.NodeService)
 	*srv2_mod = *srv2
 	srv2_mod.Port = 7200
@@ -313,8 +307,8 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// All the services should match
 		for id, serv := range services.NodeServices.Services {
@@ -342,10 +336,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		}
 
 		// todo(fs): data race
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
-		for name, status := range a.state.serviceStatus {
+		for name, status := range a.State.serviceStatus {
 			if !status.inSync {
 				r.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -366,7 +360,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			Tags:    []string{"master"},
 			Port:    5000,
 		}
-		a.state.AddService(srv, "")
+		a.State.AddService(srv, "")
 
 		chk := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -375,15 +369,15 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "mysql",
 			Status:    api.HealthPassing,
 		}
-		a.state.AddCheck(chk, "")
+		a.State.AddCheck(chk, "")
 
 		// todo(fs): data race
 		func() {
-			a.state.RLock()
-			defer a.state.RUnlock()
+			a.State.RLock()
+			defer a.State.RUnlock()
 
 			// Sync the service once
-			if err := a.state.syncService("mysql"); err != nil {
+			if err := a.State.syncService("mysql"); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}()
@@ -423,7 +417,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			Tags:    []string{"master"},
 			Port:    5000,
 		}
-		a.state.AddService(srv, "")
+		a.State.AddService(srv, "")
 
 		chk1 := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -432,7 +426,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "redis",
 			Status:    api.HealthPassing,
 		}
-		a.state.AddCheck(chk1, "")
+		a.State.AddCheck(chk1, "")
 
 		chk2 := &structs.HealthCheck{
 			Node:      a.Config.NodeName,
@@ -441,15 +435,15 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 			ServiceID: "redis",
 			Status:    api.HealthPassing,
 		}
-		a.state.AddCheck(chk2, "")
+		a.State.AddCheck(chk2, "")
 
 		// todo(fs): data race
 		func() {
-			a.state.RLock()
-			defer a.state.RUnlock()
+			a.State.RLock()
+			defer a.State.RUnlock()
 
 			// Sync the service once
-			if err := a.state.syncService("redis"); err != nil {
+			if err := a.State.syncService("redis"); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}()
@@ -532,7 +526,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Tags:    []string{"master"},
 		Port:    5000,
 	}
-	a.state.AddService(srv1, token)
+	a.State.AddService(srv1, token)
 
 	// Create service (allowed)
 	srv2 := &structs.NodeService{
@@ -541,7 +535,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    5001,
 	}
-	a.state.AddService(srv2, token)
+	a.State.AddService(srv2, token)
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -585,17 +579,17 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 		// todo(fs): data race
 		func() {
-			a.state.RLock()
-			defer a.state.RUnlock()
+			a.State.RLock()
+			defer a.State.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 3 {
-				t.Fatalf("bad: %v", a.state.services)
+			if len(a.State.services) != 3 {
+				t.Fatalf("bad: %v", a.State.services)
 			}
-			if len(a.state.serviceStatus) != 3 {
-				t.Fatalf("bad: %v", a.state.serviceStatus)
+			if len(a.State.serviceStatus) != 3 {
+				t.Fatalf("bad: %v", a.State.serviceStatus)
 			}
-			for name, status := range a.state.serviceStatus {
+			for name, status := range a.State.serviceStatus {
 				if !status.inSync {
 					t.Fatalf("should be in sync: %v %v", name, status)
 				}
@@ -604,7 +598,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 
 	// Now remove the service and re-sync
-	a.state.RemoveService("api")
+	a.State.RemoveService("api")
 	a.StartSync()
 	time.Sleep(200 * time.Millisecond)
 
@@ -644,17 +638,17 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 		// todo(fs): data race
 		func() {
-			a.state.RLock()
-			defer a.state.RUnlock()
+			a.State.RLock()
+			defer a.State.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 2 {
-				t.Fatalf("bad: %v", a.state.services)
+			if len(a.State.services) != 2 {
+				t.Fatalf("bad: %v", a.State.services)
 			}
-			if len(a.state.serviceStatus) != 2 {
-				t.Fatalf("bad: %v", a.state.serviceStatus)
+			if len(a.State.serviceStatus) != 2 {
+				t.Fatalf("bad: %v", a.State.serviceStatus)
 			}
-			for name, status := range a.state.serviceStatus {
+			for name, status := range a.State.serviceStatus {
 				if !status.inSync {
 					t.Fatalf("should be in sync: %v %v", name, status)
 				}
@@ -663,7 +657,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 
 	// Make sure the token got cleaned up.
-	if token := a.state.ServiceToken("api"); token != "" {
+	if token := a.State.ServiceToken("api"); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -689,7 +683,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "mysql",
 		Status:  api.HealthPassing,
 	}
-	a.state.AddCheck(chk1, "")
+	a.State.AddCheck(chk1, "")
 	args.Check = chk1
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -702,7 +696,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "redis",
 		Status:  api.HealthPassing,
 	}
-	a.state.AddCheck(chk2, "")
+	a.State.AddCheck(chk2, "")
 
 	chk2_mod := new(structs.HealthCheck)
 	*chk2_mod = *chk2
@@ -719,7 +713,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "web",
 		Status:  api.HealthPassing,
 	}
-	a.state.AddCheck(chk3, "")
+	a.State.AddCheck(chk3, "")
 
 	// Exists remote (delete)
 	chk4 := &structs.HealthCheck{
@@ -740,12 +734,12 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "cache",
 		Status:  api.HealthPassing,
 	}
-	a.state.AddCheck(chk5, "")
+	a.State.AddCheck(chk5, "")
 
 	// todo(fs): data race
-	a.state.Lock()
-	a.state.checkStatus["cache"] = syncStatus{inSync: true}
-	a.state.Unlock()
+	a.State.Lock()
+	a.State.checkStatus["cache"] = syncStatus{inSync: true}
+	a.State.Unlock()
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -797,17 +791,17 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// todo(fs): data race
 	func() {
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// Check the local state
-		if len(a.state.checks) != 4 {
-			t.Fatalf("bad: %v", a.state.checks)
+		if len(a.State.checks) != 4 {
+			t.Fatalf("bad: %v", a.State.checks)
 		}
-		if len(a.state.checkStatus) != 4 {
-			t.Fatalf("bad: %v", a.state.checkStatus)
+		if len(a.State.checkStatus) != 4 {
+			t.Fatalf("bad: %v", a.State.checkStatus)
 		}
-		for name, status := range a.state.checkStatus {
+		for name, status := range a.State.checkStatus {
 			if !status.inSync {
 				t.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -836,7 +830,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 
 	// Remove one of the checks
-	a.state.RemoveCheck("redis")
+	a.State.RemoveCheck("redis")
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -878,17 +872,17 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// todo(fs): data race
 	func() {
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// Check the local state
-		if len(a.state.checks) != 3 {
-			t.Fatalf("bad: %v", a.state.checks)
+		if len(a.State.checks) != 3 {
+			t.Fatalf("bad: %v", a.State.checks)
 		}
-		if len(a.state.checkStatus) != 3 {
-			t.Fatalf("bad: %v", a.state.checkStatus)
+		if len(a.State.checkStatus) != 3 {
+			t.Fatalf("bad: %v", a.State.checkStatus)
 		}
-		for name, status := range a.state.checkStatus {
+		for name, status := range a.State.checkStatus {
 			if !status.inSync {
 				t.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -932,14 +926,14 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Tags:    []string{"master"},
 		Port:    5000,
 	}
-	a.state.AddService(srv1, "root")
+	a.State.AddService(srv1, "root")
 	srv2 := &structs.NodeService{
 		ID:      "api",
 		Service: "api",
 		Tags:    []string{"foo"},
 		Port:    5001,
 	}
-	a.state.AddService(srv2, "root")
+	a.State.AddService(srv2, "root")
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -985,17 +979,17 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 		// todo(fs): data race
 		func() {
-			a.state.RLock()
-			defer a.state.RUnlock()
+			a.State.RLock()
+			defer a.State.RUnlock()
 
 			// Check the local state
-			if len(a.state.services) != 3 {
-				t.Fatalf("bad: %v", a.state.services)
+			if len(a.State.services) != 3 {
+				t.Fatalf("bad: %v", a.State.services)
 			}
-			if len(a.state.serviceStatus) != 3 {
-				t.Fatalf("bad: %v", a.state.serviceStatus)
+			if len(a.State.serviceStatus) != 3 {
+				t.Fatalf("bad: %v", a.State.serviceStatus)
 			}
-			for name, status := range a.state.serviceStatus {
+			for name, status := range a.State.serviceStatus {
 				if !status.inSync {
 					t.Fatalf("should be in sync: %v %v", name, status)
 				}
@@ -1013,7 +1007,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Name:        "mysql",
 		Status:      api.HealthPassing,
 	}
-	a.state.AddCheck(chk1, token)
+	a.State.AddCheck(chk1, token)
 
 	// This one will be allowed.
 	chk2 := &structs.HealthCheck{
@@ -1025,7 +1019,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Name:        "api",
 		Status:      api.HealthPassing,
 	}
-	a.state.AddCheck(chk2, token)
+	a.State.AddCheck(chk2, token)
 
 	// Trigger anti-entropy run and wait.
 	a.StartSync()
@@ -1070,17 +1064,17 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	// todo(fs): data race
 	func() {
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// Check the local state.
-		if len(a.state.checks) != 2 {
-			t.Fatalf("bad: %v", a.state.checks)
+		if len(a.State.checks) != 2 {
+			t.Fatalf("bad: %v", a.State.checks)
 		}
-		if len(a.state.checkStatus) != 2 {
-			t.Fatalf("bad: %v", a.state.checkStatus)
+		if len(a.State.checkStatus) != 2 {
+			t.Fatalf("bad: %v", a.State.checkStatus)
 		}
-		for name, status := range a.state.checkStatus {
+		for name, status := range a.State.checkStatus {
 			if !status.inSync {
 				t.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -1088,7 +1082,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}()
 
 	// Now delete the check and wait for sync.
-	a.state.RemoveCheck("api-check")
+	a.State.RemoveCheck("api-check")
 	a.StartSync()
 	time.Sleep(200 * time.Millisecond)
 	// Verify that we are in sync
@@ -1128,17 +1122,17 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	// todo(fs): data race
 	func() {
-		a.state.RLock()
-		defer a.state.RUnlock()
+		a.State.RLock()
+		defer a.State.RUnlock()
 
 		// Check the local state.
-		if len(a.state.checks) != 1 {
-			t.Fatalf("bad: %v", a.state.checks)
+		if len(a.State.checks) != 1 {
+			t.Fatalf("bad: %v", a.State.checks)
 		}
-		if len(a.state.checkStatus) != 1 {
-			t.Fatalf("bad: %v", a.state.checkStatus)
+		if len(a.State.checkStatus) != 1 {
+			t.Fatalf("bad: %v", a.State.checkStatus)
 		}
-		for name, status := range a.state.checkStatus {
+		for name, status := range a.State.checkStatus {
 			if !status.inSync {
 				t.Fatalf("should be in sync: %v %v", name, status)
 			}
@@ -1146,7 +1140,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}()
 
 	// Make sure the token got cleaned up.
-	if token := a.state.CheckToken("api-check"); token != "" {
+	if token := a.State.CheckToken("api-check"); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -1167,7 +1161,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		Status:  api.HealthPassing,
 		Output:  "",
 	}
-	a.state.AddCheck(check, "")
+	a.State.AddCheck(check, "")
 
 	// Trigger anti-entropy run and wait
 	a.StartSync()
@@ -1188,7 +1182,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 
 	// Update the check output! Should be deferred
-	a.state.UpdateCheck("web", api.HealthPassing, "output")
+	a.State.UpdateCheck("web", api.HealthPassing, "output")
 
 	// Should not update for 500 milliseconds
 	time.Sleep(250 * time.Millisecond)
@@ -1287,7 +1281,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Now make an update that should be deferred.
-	a.state.UpdateCheck("web", api.HealthPassing, "deferred")
+	a.State.UpdateCheck("web", api.HealthPassing, "deferred")
 
 	// Trigger anti-entropy run and wait.
 	a.StartSync()
