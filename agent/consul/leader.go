@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
@@ -440,7 +440,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 	if valid, dc := isConsulNode(member); valid && dc == s.config.Datacenter {
 		return true
 	}
-	if valid, parts := agent.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
+	if valid, parts := metadata.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
 		return true
 	}
 	return false
@@ -451,7 +451,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 func (s *Server) handleAliveMember(member serf.Member) error {
 	// Register consul service if a server
 	var service *structs.NodeService
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		service = &structs.NodeService{
 			ID:      structs.ConsulServiceID,
 			Service: structs.ConsulServiceName,
@@ -595,7 +595,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Remove from Raft peers if this was a server
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
@@ -622,7 +622,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 }
 
 // joinConsulServer is used to try to join another consul server
-func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
+func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	// Do not join ourself
 	if m.Name == s.config.NodeName {
 		return nil
@@ -632,7 +632,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	if parts.Bootstrap {
 		members := s.serfLAN.Members()
 		for _, member := range members {
-			valid, p := agent.IsConsulServer(member)
+			valid, p := metadata.IsConsulServer(member)
 			if valid && member.Name != m.Name && p.Bootstrap {
 				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
 				return nil
@@ -732,7 +732,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		return err
 	}
 
-	_, parts := agent.IsConsulServer(m)
+	_, parts := metadata.IsConsulServer(m)
 
 	// Pick which remove API to use based on how the server was added.
 	for _, server := range configFuture.Configuration().Servers {

@@ -6,13 +6,13 @@ import (
 	"net"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/serf/serf"
 )
 
 // FloodPortFn gets the port to use for a given server when flood-joining. This
 // will return false if it doesn't have one.
-type FloodPortFn func(*agent.Server) (int, bool)
+type FloodPortFn func(*metadata.Server) (int, bool)
 
 // FloodJoins attempts to make sure all Consul servers in the local Serf
 // instance are joined in the global Serf instance. It assumes names in the
@@ -27,9 +27,9 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 
 	// Index the global side so we can do one pass through the local side
 	// with cheap lookups.
-	index := make(map[string]*agent.Server)
+	index := make(map[string]*metadata.Server)
 	for _, m := range globalSerf.Members() {
-		ok, server := agent.IsConsulServer(m)
+		ok, server := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -48,7 +48,7 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 			continue
 		}
 
-		ok, server := agent.IsConsulServer(m)
+		ok, server := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}

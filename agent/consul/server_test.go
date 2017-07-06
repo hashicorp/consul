@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
@@ -667,7 +667,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 
 	// Have s2 make an RPC call to s1
 	s2.localLock.RLock()
-	var leader *agent.Server
+	var leader *metadata.Server
 	for _, server := range s2.localConsuls {
 		if server.Name == s1.config.NodeName {
 			leader = server

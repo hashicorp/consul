@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,7 +28,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -125,7 +125,7 @@ type Server struct {
 
 	// localConsuls is used to track the known consuls
 	// in the local datacenter. Used to do leader forwarding.
-	localConsuls map[raft.ServerAddress]*agent.Server
+	localConsuls map[raft.ServerAddress]*metadata.Server
 	localLock    sync.RWMutex
 
 	// Logger uses the provided LogOutput
@@ -295,7 +295,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		connPool:              connPool,
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
-		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
+		localConsuls:          make(map[raft.ServerAddress]*metadata.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
@@ -385,7 +385,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 	// Fire up the LAN <-> WAN join flooder.
-	portFn := func(s *agent.Server) (int, bool) {
+	portFn := func(s *metadata.Server) (int, bool) {
 		if s.WanJoinPort > 0 {
 			return s.WanJoinPort, true
 		}

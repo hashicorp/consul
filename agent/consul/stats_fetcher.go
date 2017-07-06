@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -39,7 +39,7 @@ func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string)
 // cancel this when the context is canceled because we only want one in-flight
 // RPC to each server, so we let it finish and then clean up the in-flight
 // tracking.
-func (f *StatsFetcher) fetch(server *agent.Server, replyCh chan *structs.ServerStats) {
+func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *structs.ServerStats) {
 	var args struct{}
 	var reply structs.ServerStats
 	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", server.UseTLS, &args, &reply)
@@ -56,9 +56,9 @@ func (f *StatsFetcher) fetch(server *agent.Server, replyCh chan *structs.ServerS
 }
 
 // Fetch will attempt to query all the servers in parallel.
-func (f *StatsFetcher) Fetch(ctx context.Context, servers []*agent.Server) map[string]*structs.ServerStats {
+func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) map[string]*structs.ServerStats {
 	type workItem struct {
-		server  *agent.Server
+		server  *metadata.Server
 		replyCh chan *structs.ServerStats
 	}
 	var work []*workItem

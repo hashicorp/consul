@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
@@ -90,7 +90,7 @@ func (s *Server) pruneDeadServers(autopilotConfig *structs.AutopilotConfig) erro
 		}
 
 		for _, member := range s.serfLAN.Members() {
-			valid, parts := agent.IsConsulServer(member)
+			valid, parts := metadata.IsConsulServer(member)
 
 			if valid {
 				// Remove this server from the stale list; it has a serf entry
@@ -275,13 +275,13 @@ func (s *Server) updateClusterHealth() error {
 	}
 
 	// Get the the serf members which are Consul servers
-	serverMap := make(map[string]*agent.Server)
+	serverMap := make(map[string]*metadata.Server)
 	for _, member := range s.LANMembers() {
 		if member.Status == serf.StatusLeft {
 			continue
 		}
 
-		valid, parts := agent.IsConsulServer(member)
+		valid, parts := metadata.IsConsulServer(member)
 		if valid {
 			serverMap[parts.ID] = parts
 		}
@@ -297,7 +297,7 @@ func (s *Server) updateClusterHealth() error {
 	// consistent of a sample as possible. We capture the leader's index
 	// here as well so it roughly lines up with the same point in time.
 	targetLastIndex := s.raft.LastIndex()
-	var fetchList []*agent.Server
+	var fetchList []*metadata.Server
 	for _, server := range servers {
 		if parts, ok := serverMap[string(server.ID)]; ok {
 			fetchList = append(fetchList, parts)
@@ -377,7 +377,7 @@ func (s *Server) updateClusterHealth() error {
 // updateServerHealth computes the resulting health of the server based on its
 // fetched stats and the state of the leader.
 func (s *Server) updateServerHealth(health *structs.ServerHealth,
-	server *agent.Server, stats *structs.ServerStats,
+	server *metadata.Server, stats *structs.ServerStats,
 	autopilotConf *structs.AutopilotConfig, targetLastIndex uint64) error {
 
 	health.LastTerm = stats.LastTerm

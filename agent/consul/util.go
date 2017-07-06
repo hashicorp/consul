@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -302,7 +302,7 @@ func runtimeStats() map[string]string {
 // given Consul version
 func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Version) bool {
 	for _, member := range members {
-		if valid, parts := agent.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+		if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
 			if parts.Build.LessThan(minVersion) {
 				return false
 			}

@@ -3,13 +3,13 @@ package router
 import (
 	"log"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 )
 
 // routerFn selects one of the router operations to map to incoming Serf events.
-type routerFn func(types.AreaID, *agent.Server) error
+type routerFn func(types.AreaID, *metadata.Server) error
 
 // handleMemberEvents attempts to apply the given Serf member event to the given
 // router function.
@@ -21,7 +21,7 @@ func handleMemberEvent(logger *log.Logger, fn routerFn, areaID types.AreaID, e s
 	}
 
 	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
 				m.Name, areaID)
