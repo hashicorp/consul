@@ -24,12 +24,11 @@ func (t *SessionTimers) Get(id string) *time.Timer {
 }
 
 // Set stores the timer under given id. If tm is nil the timer
-// witht the given id is removed.
+// with the given id is removed.
 func (t *SessionTimers) Set(id string, tm *time.Timer) {
 	t.Lock()
 	defer t.Unlock()
 	if tm == nil {
-		// todo(fs): shouldn't we call Stop() here?
 		delete(t.m, id)
 	} else {
 		t.m[id] = tm
