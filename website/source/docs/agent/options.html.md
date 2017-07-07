@@ -1176,7 +1176,10 @@ port.
   Required by all agents. TCP and UDP.
 
 * Serf WAN (Default 8302). This is used by servers to gossip over the
-  WAN to other servers. TCP and UDP.
+  WAN to other servers. TCP and UDP. As of Consul 0.8, it is recommended to
+  enable connection between servers through port 8302 for both TCP and UDP on
+  the LAN interface as well for the WAN Join Flooding feature. See also:
+  [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
 
 * CLI RPC (Default 8400). This is used by all agents to handle RPC
   from the CLI, but is deprecated in Consul 0.8 and later. TCP only.
