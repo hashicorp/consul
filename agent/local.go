@@ -28,7 +28,7 @@ type syncStatus struct {
 }
 
 // localStateConfig is the configuration for the localState. It is
-// popuplated during NewLocalAgent from the agent configuration to avoid
+// populated during NewLocalAgent from the agent configuration to avoid
 // race conditions with the agent configuration.
 type localStateConfig struct {
 	ACLToken            string
