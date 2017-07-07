@@ -165,6 +165,12 @@ zone in each server's specified [`-node-meta`](/docs/agent/options.html#_node_me
 tag. For example, if `RedundancyZoneTag` is set to `zone`, and `-node-meta zone:east1a`
 is used when starting a server, that server's redundancy zone will be `east1a`.
 
+Here's an example showing how to configure this option:
+
+```
+consul operator autopilot set-config -redundancy-zone-tag=zone
+```
+
 Consul will then use these values to partition the servers by redundancy zone, and will
 aim to keep one voting server per zone. Extra servers in each zone will stay as non-voters
 on standby to be promoted if the active voter leaves or dies.
