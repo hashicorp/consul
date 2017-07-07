@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
 * agent: (Consul Enterprise) Snapshot agent rotation uses S3's pagination API, enabling retaining more than a 100 snapshots.
 * api: Added the ability to pass in a `context` as part of the `QueryOptions` during a request. This provides a way to cancel outstanding blocking queries. [GH-3195]
+* vendor: update golang.org/x/sys/unix to support s390 [GH-3240]
 
 BUG FIXES:
 
