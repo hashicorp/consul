@@ -165,10 +165,11 @@ zone in each server's specified [`-node-meta`](/docs/agent/options.html#_node_me
 tag. For example, if `RedundancyZoneTag` is set to `zone`, and `-node-meta zone:east1a`
 is used when starting a server, that server's redundancy zone will be `east1a`.
 
-Here's an example showing how to configure this option:
+Here's an example showing how to configure this:
 
 ```
-consul operator autopilot set-config -redundancy-zone-tag=zone
+$ consul operator autopilot set-config -redundancy-zone-tag=zone
+Configuration updated!
 ```
 
 Consul will then use these values to partition the servers by redundancy zone, and will
