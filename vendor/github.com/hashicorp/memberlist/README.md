@@ -23,6 +23,8 @@ Please check your installation with:
 go version
 ```
 
+Run `make deps` to fetch dependencies before building
+
 ## Usage
 
 Memberlist is surprisingly simple to use. An example is shown below:

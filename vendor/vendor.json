@@ -648,10 +648,10 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "uG7wNsy24v7bJxFmWVcL3v5Wvx0=",
+			"checksumSHA1": "ooNF6amPOxyz9OULy2hfbtNlIw4=",
 			"path": "github.com/hashicorp/memberlist",
-			"revision": "0a136466d82a7e6f1b7866dde3578ac28ed675ad",
-			"revisionTime": "2017-06-22T10:25:31Z"
+			"revision": "924edbc42f05a6f7ccd6d4184b8147f2c20ae5f3",
+			"revisionTime": "2017-07-07T07:05:14Z"
 		},
 		{
 			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
@@ -681,11 +681,11 @@
 			"revisionTime": "2017-05-25T23:15:04Z"
 		},
 		{
-			"checksumSHA1": "ZWsQL8XzWMjRc5rgyJ1QT5kTEr4=",
+			"checksumSHA1": "o1VR3OEjCXQW/vT1wpUBOYfGrPQ=",
 			"comment": "v0.7.0-66-g6c4672d",
 			"path": "github.com/hashicorp/serf/serf",
-			"revision": "ed7ee1a9945337d2ed629967c9a62bea8b508a34",
-			"revisionTime": "2017-07-06T13:52:27Z"
+			"revision": "6669b5d30985da6dd423ecf65f033cee400203fe",
+			"revisionTime": "2017-07-07T06:54:45Z"
 		},
 		{
 			"checksumSHA1": "ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=",
