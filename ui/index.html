@@ -68,13 +68,7 @@
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center vertical-center">
           <p class="bold">Access Denied</p>
-          {{#if aclToken}}
-          <p>Your ACL token, <code>{{aclToken}}</code>, does not
-          have the appropriate permissions to perform the expected action.</p>
-          {{else}}
-          <p>The default agent token does not
-          have the appropriate permissions to perform the expected action.</p>
-          {{/if}}
+          <p>Your ACL token does not have the appropriate permissions to perform the expected action.</p>
           <p>Learn more in the <a href="https://www.consul.io/docs/guides/acl.html" target="_blank">ACL documentation</a>.</p>
         </div>
       </div>
