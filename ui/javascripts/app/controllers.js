@@ -314,7 +314,7 @@ App.AclsController = Ember.ArrayController.extend({
   filterText: "Filter by name or ID",
   searchBar: true,
   newAclButton: true,
-  types: ["management", "client"],
+  types: ["client", "management"],
 
   dc: Ember.computed.alias("controllers.dc"),
   items: Ember.computed.alias("acls"),
@@ -384,7 +384,7 @@ App.AclsShowController = Ember.ObjectController.extend({
   needs: ["dc", "acls"],
   dc: Ember.computed.alias("controllers.dc"),
   isLoading: false,
-  types: ["management", "client"],
+  types: ["client", "management"],
 
   actions: {
     set: function() {
