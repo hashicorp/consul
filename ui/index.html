@@ -56,10 +56,16 @@
           {{#if controller.model.statusText }}
             <p class="bold">HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
           {{/if}}
-          <p>This is an error page for the Consul web UI. You may have visited a URL that is loading an
-          unknown resource, so you can try going back to the <a href="#">root</a>.</p>
-          <p>Otherwise, please report any unexpected
-          issues on the <a href="https://github.com/hashicorp/consul">GitHub page</a>.</p>
+          {{#if controller.model.responseText }}
+            <p class="bold">Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
+          {{/if}}
+          <p>Consul returned an error. You may have visited a URL that is loading an unknown resource, so you
+            can try going back to the root. If your ACL token was not found you can reset it, and then you
+            will be redirected to the settings page to enter a new ACL token.</p>
+          <div class="form-group">
+            <button {{ action "resetToken" }} {{ bind-attr class=":btn :btn-danger" }}>Reset ACL Token</button>
+            <button {{ action "backHome" }} {{ bind-attr class=":btn :btn-default" }}>Go Back to Root</button>
+          </div>
         </div>
       </div>
     </div>
@@ -70,13 +76,7 @@
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center vertical-center">
           <p class="bold">Access Denied</p>
-          {{#if aclToken}}
-          <p>Your ACL token, <code>{{aclToken}}</code>, does not
-          have the appropriate permissions to perform the expected action.</p>
-          {{else}}
-          <p>The default agent token does not
-          have the appropriate permissions to perform the expected action.</p>
-          {{/if}}
+          <p>Your ACL token does not have the appropriate permissions to perform the expected action.</p>
           <p>Learn more in the <a href="https://www.consul.io/docs/guides/acl.html" target="_blank">ACL documentation</a>.</p>
         </div>
       </div>
@@ -759,7 +759,7 @@
       <p>These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage,
       and should persist through visits and browser usage.</p>
       <p>Settings are automatically persisted upon modification, so no manual save is required.</p>
-      <h5>Access Token</h5>
+      <h5>ACL Token</h5>
       <div class="form-group">
         {{ input type="text" value=model.token class="form-control form-mono" placeholder="token"}}
         <span class="help-block">The token is sent with requests as the <code>?token</code> parameter. This is used to control the ACL for the
@@ -767,6 +767,7 @@
       </div>
       <div class="form-group">
         <button {{ action "reset" }} {{ bind-attr class=":btn :btn-danger" }}>Reset Defaults</button>
+        <button {{ action "close" }} {{ bind-attr class=":btn :btn-default" }}>Close</button>
       </div>
     </div>
   </script>

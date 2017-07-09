@@ -501,6 +501,23 @@ App.SettingsController = Ember.ObjectController.extend({
         notify('Settings reset', 3000);
         this.set('isLoading', false);
       }
+    },
+
+    close: function() {
+      this.transitionToRoute('index');
+    }
+  }
+});
+
+App.ErrorController = Ember.ObjectController.extend({
+  actions: {
+    resetToken: function() {
+      App.set('settings.token', '');
+      this.transitionToRoute('settings');
+    },
+
+    backHome: function() {
+      this.transitionToRoute('index');
     }
   }
 });
