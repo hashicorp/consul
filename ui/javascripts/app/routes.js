@@ -356,12 +356,6 @@ App.NodesShowRoute = App.BaseRoute.extend({
       controller.set('content', models.node);
       controller.set('sessions', models.sessions);
       controller.set('tomography', models.tomography);
-      //
-      // Since we have 2 column layout, we need to also display the
-      // list of nodes on the left. Hence setting the attribute
-      // {{nodes}} on the controller.
-      //
-      controller.set('nodes', models.nodes);
   }
 });
 

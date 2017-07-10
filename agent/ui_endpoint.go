@@ -96,7 +96,11 @@ RPC:
 			info.Checks = make([]*structs.HealthCheck, 0)
 		}
 		return info, nil
+	} else {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
 	}
+
 	return nil, nil
 }
 
