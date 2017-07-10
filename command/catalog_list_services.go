@@ -93,8 +93,8 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		}
 		if catalogNode != nil {
 			services = make(map[string][]string, len(catalogNode.Services))
-			for n, s := range catalogNode.Services {
-				services[n] = s.Tags
+			for _, s := range catalogNode.Services {
+				services[s.Service] = append(services[s.Service], s.Tags...)
 			}
 		}
 	} else {
