@@ -88,11 +88,18 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		return 0
 	}
 
+	// Order the map for consistent output
+	order := make([]string, 0, len(services))
+	for k, _ := range services {
+		order = append(order, k)
+	}
+	sort.Strings(order)
+
 	if *tags {
 		var b bytes.Buffer
 		tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
-		for k, v := range services {
-			fmt.Fprintf(tw, "%s\t%s\n", k, strings.Join(v, ","))
+		for _, s := range order {
+			fmt.Fprintf(tw, "%s\t%s\n", s, strings.Join(services[s], ","))
 		}
 		if err := tw.Flush(); err != nil {
 			c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
@@ -100,7 +107,7 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		}
 		c.UI.Output(strings.TrimSpace(b.String()))
 	} else {
-		for s, _ := range services {
+		for _, s := range order {
 			c.UI.Output(s)
 		}
 	}
