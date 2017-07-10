@@ -53,8 +53,7 @@ Usage: consul catalog list-services [options]
 func (c *CatalogListServicesCommand) Run(args []string) int {
 	f := c.BaseCommand.NewFlagSet(c)
 
-	node := f.String("node", "", "Name or ID of a node for which to list "+
-		"services.")
+	node := f.String("node", "", "Node `id or name` for which to list services.")
 
 	nodeMeta := make(map[string]string)
 	f.Var((*configutil.FlagMapValue)(&nodeMeta), "node-meta", "Metadata to "+

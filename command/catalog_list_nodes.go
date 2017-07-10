@@ -68,8 +68,8 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 		"filter nodes with the given `key=value` pairs. This flag may be "+
 		"specified multiple times to filter on multiple sources of metadata.")
 
-	service := f.String("service", "", "Service name to filter nodes. Only nodes "+
-		"which are providing the given service will be returned.")
+	service := f.String("service", "", "Service `id or name` to filter nodes. "+
+		"Only nodes which are providing the given service will be returned.")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
