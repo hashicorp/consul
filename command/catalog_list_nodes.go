@@ -177,7 +177,11 @@ func simpleNodes(nodes []*api.Node) []string {
 
 	for _, node := range nodes {
 		// Shorten the ID in non-detailed mode to just the first octet.
-		id := node.ID[0:strings.Index(node.ID, "-")]
+		id := node.ID
+		idx := strings.Index(id, "-")
+		if idx > 0 {
+			id = id[0:idx]
+		}
 		result = append(result, fmt.Sprintf("%s|%s|%s|%s",
 			node.Node, id, node.Address, node.Datacenter))
 	}
