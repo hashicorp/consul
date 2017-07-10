@@ -8,9 +8,9 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testCatalogDatacentersCommand(t *testing.T) (*cli.MockUi, *CatalogDatacentersCommand) {
+func testCatalogListDatacentersCommand(t *testing.T) (*cli.MockUi, *CatalogListDatacentersCommand) {
 	ui := cli.NewMockUi()
-	return ui, &CatalogDatacentersCommand{
+	return ui, &CatalogListDatacentersCommand{
 		BaseCommand: BaseCommand{
 			Flags: FlagSetHTTP,
 			UI:    ui,
@@ -18,14 +18,14 @@ func testCatalogDatacentersCommand(t *testing.T) (*cli.MockUi, *CatalogDatacente
 	}
 }
 
-func TestCatalogDatacentersCommand_noTabs(t *testing.T) {
+func TestCatalogListDatacentersCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(CatalogDatacentersCommand))
+	assertNoTabs(t, new(CatalogListDatacentersCommand))
 }
 
-func TestCatalogDatacentersCommand_Validation(t *testing.T) {
+func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testCatalogDatacentersCommand(t)
+	ui, c := testCatalogListDatacentersCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -58,12 +58,12 @@ func TestCatalogDatacentersCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCatalogDatacentersCommand_Run(t *testing.T) {
+func TestCatalogListDatacentersCommand_Run(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
-	ui, c := testCatalogDatacentersCommand(t)
+	ui, c := testCatalogListDatacentersCommand(t)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),

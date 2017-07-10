@@ -29,15 +29,15 @@ Usage: consul catalog <subcommand> [options] [args]
 
   List all datacenters:
 
-      $ consul catalog datacenters
+      $ consul catalog list-datacenters
 
   List all nodes:
 
-      $ consul catalog nodes
+      $ consul catalog list-nodes
 
   List all services:
 
-      $ consul catalog services
+      $ consul catalog list-services
 
   For more examples, ask for subcommand help or view the documentation.
 

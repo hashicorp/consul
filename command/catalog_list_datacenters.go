@@ -7,15 +7,15 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-var _ cli.Command = (*CatalogDatacentersCommand)(nil)
+var _ cli.Command = (*CatalogListDatacentersCommand)(nil)
 
-type CatalogDatacentersCommand struct {
+type CatalogListDatacentersCommand struct {
 	BaseCommand
 }
 
-func (c *CatalogDatacentersCommand) Help() string {
+func (c *CatalogListDatacentersCommand) Help() string {
 	helpText := `
-Usage: consul catalog datacenters [options]
+Usage: consul catalog list-datacenters [options]
 
   Retrieves the list of all known datacenters. This datacenters are sorted in
   ascending order based on the estimated median round trip time from the servers
@@ -23,7 +23,7 @@ Usage: consul catalog datacenters [options]
 
   To retrieve the list of datacenters
 
-      $ consul catalog datacenters
+      $ consul catalog list-datacenters
 
   For a full list of options and examples, please see the Consul documentation.
 
@@ -32,7 +32,7 @@ Usage: consul catalog datacenters [options]
 	return strings.TrimSpace(helpText)
 }
 
-func (c *CatalogDatacentersCommand) Run(args []string) int {
+func (c *CatalogListDatacentersCommand) Run(args []string) int {
 	f := c.BaseCommand.NewFlagSet(c)
 
 	if err := c.BaseCommand.Parse(args); err != nil {
@@ -63,6 +63,6 @@ func (c *CatalogDatacentersCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *CatalogDatacentersCommand) Synopsis() string {
+func (c *CatalogListDatacentersCommand) Synopsis() string {
 	return "Lists all known datacenters for this agent"
 }
