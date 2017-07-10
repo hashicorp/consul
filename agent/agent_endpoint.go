@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/logger"
@@ -18,7 +19,7 @@ import (
 )
 
 type Self struct {
-	Config *Config
+	Config *config.Config
 	Coord  *coordinate.Coordinate
 	Member serf.Member
 	Stats  map[string]map[string]string
@@ -50,7 +51,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		Coord:  c,
 		Member: s.agent.LocalMember(),
 		Stats:  s.agent.Stats(),
-		Meta:   s.agent.state.Metadata(),
+		Meta:   s.agent.State.Metadata(),
 	}, nil
 }
 
@@ -93,7 +94,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
-	services := s.agent.state.Services()
+	services := s.agent.State.Services()
 	if err := s.agent.filterServices(token, &services); err != nil {
 		return nil, err
 	}
@@ -113,7 +114,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	var token string
 	s.parseToken(req, &token)
 
-	checks := s.agent.state.Checks()
+	checks := s.agent.State.Checks()
 	if err := s.agent.filterChecks(token, &checks); err != nil {
 		return nil, err
 	}
@@ -222,7 +223,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 // services and checks to the server. If the operation fails, we only
 // only warn because the write did succeed and anti-entropy will sync later.
 func (s *HTTPServer) syncChanges() {
-	if err := s.agent.state.syncChanges(); err != nil {
+	if err := s.agent.State.SyncChanges(); err != nil {
 		s.agent.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
 	}
 }
@@ -233,7 +234,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	var args structs.CheckDefinition
 	// Fixup the type decode of TTL or Interval.
 	decodeCB := func(raw interface{}) error {
-		return FixupCheckType(raw)
+		return config.FixupCheckType(raw)
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
@@ -423,7 +424,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
 			case "check":
-				if err := FixupCheckType(v); err != nil {
+				if err := config.FixupCheckType(v); err != nil {
 					return err
 				}
 			case "checks":
@@ -432,7 +433,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 					continue
 				}
 				for _, chkType := range chkTypes {
-					if err := FixupCheckType(chkType); err != nil {
+					if err := config.FixupCheckType(chkType); err != nil {
 						return err
 					}
 				}

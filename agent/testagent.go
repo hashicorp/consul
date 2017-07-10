@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/rpc"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -45,7 +47,7 @@ type TestAgent struct {
 	// the callers responsibility to clean up the data directory.
 	// Otherwise, a temporary data directory is created and removed
 	// when Shutdown() is called.
-	Config *Config
+	Config *config.Config
 
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
@@ -68,7 +70,7 @@ type TestAgent struct {
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
-	dns *DNSServer
+	dns *dns.DNSServer
 
 	// srv is a reference to the first started HTTP endpoint.
 	// It is valid after Start().
@@ -83,7 +85,7 @@ type TestAgent struct {
 // configuration. It panics if the agent could not be started. The
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
-func NewTestAgent(name string, c *Config) *TestAgent {
+func NewTestAgent(name string, c *config.Config) *TestAgent {
 	a := &TestAgent{Name: name, Config: c}
 	a.Start()
 	return a
@@ -248,11 +250,11 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		srv.disableCompression.Store(b)
+		srv.DisableCompression.Store(b)
 	}
 }
 
-func (a *TestAgent) consulConfig() *consul.Config {
+func (a *TestAgent) consulConfig() *rpc.Config {
 	c, err := a.Agent.consulConfig()
 	if err != nil {
 		panic(err)
@@ -282,7 +284,7 @@ func TenPorts() int {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func pickRandomPorts(c *Config) {
+func pickRandomPorts(c *config.Config) {
 	port := TenPorts()
 	c.Ports.DNS = port + 1
 	c.Ports.HTTP = port + 2
@@ -296,13 +298,13 @@ func pickRandomPorts(c *Config) {
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig() *Config {
+func TestConfig() *config.Config {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
 	}
 
-	cfg := DefaultConfig()
+	cfg := config.DefaultConfig()
 
 	cfg.Version = version.Version
 	cfg.VersionPrerelease = "c.d"
@@ -315,7 +317,7 @@ func TestConfig() *Config {
 	cfg.Bootstrap = true
 	cfg.Server = true
 
-	ccfg := consul.DefaultConfig()
+	ccfg := rpc.DefaultConfig()
 	cfg.ConsulConfig = ccfg
 
 	ccfg.SerfLANConfig.MemberlistConfig.SuspicionMult = 3
@@ -339,13 +341,13 @@ func TestConfig() *Config {
 
 // TestACLConfig returns a default configuration for testing an agent
 // with ACLs.
-func TestACLConfig() *Config {
+func TestACLConfig() *config.Config {
 	cfg := TestConfig()
 	cfg.ACLDatacenter = cfg.Datacenter
 	cfg.ACLDefaultPolicy = "deny"
 	cfg.ACLMasterToken = "root"
 	cfg.ACLAgentToken = "root"
 	cfg.ACLAgentMasterToken = "towel"
-	cfg.ACLEnforceVersion8 = Bool(true)
+	cfg.ACLEnforceVersion8 = config.Bool(true)
 	return cfg
 }

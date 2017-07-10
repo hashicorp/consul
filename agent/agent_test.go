@@ -14,8 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/rpc"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
@@ -159,7 +160,7 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 		a := NewTestAgent(t.Name(), cfg)
 		defer a.Shutdown()
 
-		raftMult := time.Duration(consul.DefaultRaftMultiplier)
+		raftMult := time.Duration(rpc.DefaultRaftMultiplier)
 		r := a.consulConfig().RaftConfig
 		def := raft.DefaultConfig()
 		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
@@ -317,7 +318,7 @@ func TestAgent_makeNodeID(t *testing.T) {
 
 	// Turn on host-based IDs and try again. We should get the same ID
 	// each time (and a different one from the random one above).
-	a.Config.DisableHostNodeID = Bool(false)
+	a.Config.DisableHostNodeID = config.Bool(false)
 	id, err = a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -889,24 +890,18 @@ func TestAgent_ConsulService(t *testing.T) {
 
 	// Consul service is registered
 	services := a.state.Services()
-	if _, ok := services[consul.ConsulServiceID]; !ok {
-		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
+	if _, ok := services[rpc.ConsulServiceID]; !ok {
+		t.Fatalf("%s service should be registered", rpc.ConsulServiceID)
 	}
 
-	// todo(fs): data race
-	func() {
-		a.state.Lock()
-		defer a.state.Unlock()
-
-		// Perform anti-entropy on consul service
-		if err := a.state.syncService(consul.ConsulServiceID); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}()
+	// Perform anti-entropy on consul service
+	if err := a.state.SyncService(rpc.ConsulServiceID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Consul service should be in sync
-	if !a.state.serviceStatus[consul.ConsulServiceID].inSync {
-		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
+	if !a.state.serviceStatus[rpc.ConsulServiceID].inSync {
+		t.Fatalf("%s service should be in sync", rpc.ConsulServiceID)
 	}
 }
 
@@ -983,12 +978,12 @@ func TestAgent_PersistService(t *testing.T) {
 	a2 := NewTestAgent(t.Name()+"-a2", cfg)
 	defer a2.Shutdown()
 
-	restored, ok := a2.state.services[svc.ID]
-	if !ok {
-		t.Fatalf("bad: %#v", a2.state.services)
+	restored := a2.state.Service(svc.ID)
+	if restored == nil {
+		t.Fatalf("bad: %#v", a2.state.Services())
 	}
 	if a2.state.serviceTokens[svc.ID] != "mytoken" {
-		t.Fatalf("bad: %#v", a2.state.services[svc.ID])
+		t.Fatalf("bad: %#v", a2.state.Service(svc.ID))
 	}
 	if restored.Port != 8001 {
 		t.Fatalf("bad: %#v", restored)
@@ -1116,8 +1111,8 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted service")
 	}
-	result, ok := a2.state.services[svc2.ID]
-	if !ok {
+	result := a2.state.Service(svc2.ID)
+	if result == nil {
 		t.Fatalf("missing service registration")
 	}
 	if !reflect.DeepEqual(result.Tags, svc2.Tags) || result.Port != svc2.Port {
@@ -1204,9 +1199,9 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a2 := NewTestAgent(t.Name()+"-a2", cfg)
 	defer a2.Shutdown()
 
-	result, ok := a2.state.checks[check.CheckID]
-	if !ok {
-		t.Fatalf("bad: %#v", a2.state.checks)
+	result := a2.state.Check(check.CheckID)
+	if result == nil {
+		t.Fatalf("bad: %#v", a2.state.Checks())
 	}
 	if result.Status != api.HealthCritical {
 		t.Fatalf("bad: %#v", result)
@@ -1439,7 +1434,7 @@ func TestAgent_unloadServices(t *testing.T) {
 		if id == svc.ID {
 			t.Fatalf("should have unloaded services")
 		}
-		if id == consul.ConsulServiceID {
+		if id == rpc.ConsulServiceID {
 			found = true
 		}
 	}

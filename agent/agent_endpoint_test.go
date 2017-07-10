@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -234,7 +235,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	cfg.ACLEnforceVersion8 = Bool(false)
+	cfg.ACLEnforceVersion8 = config.Bool(false)
 	cfg.Services = []*structs.ServiceDefinition{
 		&structs.ServiceDefinition{Name: "redis"},
 	}
@@ -254,12 +255,12 @@ func TestAgent_Reload(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	if _, ok := a.state.services["redis"]; !ok {
+	if a.state.Service("redis") == nil {
 		t.Fatalf("missing redis service")
 	}
 
 	cfg2 := TestConfig()
-	cfg2.ACLEnforceVersion8 = Bool(false)
+	cfg2.ACLEnforceVersion8 = config.Bool(false)
 	cfg2.Services = []*structs.ServiceDefinition{
 		&structs.ServiceDefinition{Name: "redis-reloaded"},
 	}
@@ -267,7 +268,7 @@ func TestAgent_Reload(t *testing.T) {
 	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
-	if _, ok := a.state.services["redis-reloaded"]; !ok {
+	if a.state.Service("redis-reloaded") == nil {
 		t.Fatalf("missing redis-reloaded service")
 	}
 

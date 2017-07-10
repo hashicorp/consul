@@ -9,7 +9,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/serf/serf"
@@ -85,7 +86,7 @@ type aclManager struct {
 }
 
 // newACLManager returns an ACL manager based on the given config.
-func newACLManager(config *Config) (*aclManager, error) {
+func newACLManager(cfg *config.Config) (*aclManager, error) {
 	// Set up the cache from ID to ACL (we don't cache policies like the
 	// servers; only one level).
 	acls, err := lru.New2Q(aclCacheSize)
@@ -96,11 +97,11 @@ func newACLManager(config *Config) (*aclManager, error) {
 	// If an agent master token is configured, build a policy and ACL for
 	// it, otherwise leave it nil.
 	var master acl.ACL
-	if len(config.ACLAgentMasterToken) > 0 {
+	if len(cfg.ACLAgentMasterToken) > 0 {
 		policy := &acl.Policy{
 			Agents: []*acl.AgentPolicy{
 				&acl.AgentPolicy{
-					Node:   config.NodeName,
+					Node:   cfg.NodeName,
 					Policy: acl.PolicyWrite,
 				},
 			},
@@ -113,7 +114,7 @@ func newACLManager(config *Config) (*aclManager, error) {
 	}
 
 	var down acl.ACL
-	switch config.ACLDownPolicy {
+	switch cfg.ACLDownPolicy {
 	case "allow":
 		down = acl.AllowAll()
 	case "deny":
@@ -121,7 +122,7 @@ func newACLManager(config *Config) (*aclManager, error) {
 	case "extend-cache":
 		// Leave the down policy as nil to signal this.
 	default:
-		return nil, fmt.Errorf("invalid ACL down policy %q", config.ACLDownPolicy)
+		return nil, fmt.Errorf("invalid ACL down policy %q", cfg.ACLDownPolicy)
 	}
 
 	// Give back a manager.
@@ -273,7 +274,7 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 	}
 
 	// Vet any service that might be getting overwritten.
-	services := a.state.Services()
+	services := a.State.Services()
 	if existing, ok := services[service.ID]; ok {
 		if !acl.ServiceWrite(existing.Service) {
 			return errPermissionDenied
@@ -296,7 +297,7 @@ func (a *Agent) vetServiceUpdate(token string, serviceID string) error {
 	}
 
 	// Vet any changes based on the existing services's info.
-	services := a.state.Services()
+	services := a.State.Services()
 	if existing, ok := services[serviceID]; ok {
 		if !acl.ServiceWrite(existing.Service) {
 			return errPermissionDenied
@@ -332,7 +333,7 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 	}
 
 	// Vet any check that might be getting overwritten.
-	checks := a.state.Checks()
+	checks := a.State.Checks()
 	if existing, ok := checks[check.CheckID]; ok {
 		if len(existing.ServiceName) > 0 {
 			if !acl.ServiceWrite(existing.ServiceName) {
@@ -360,7 +361,7 @@ func (a *Agent) vetCheckUpdate(token string, checkID types.CheckID) error {
 	}
 
 	// Vet any changes based on the existing check's info.
-	checks := a.state.Checks()
+	checks := a.State.Checks()
 	if existing, ok := checks[checkID]; ok {
 		if len(existing.ServiceName) > 0 {
 			if !acl.ServiceWrite(existing.ServiceName) {
