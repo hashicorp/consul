@@ -1,14 +1,14 @@
 ---
 layout: "docs"
 page_title: "Commands: Catalog List Nodes"
-sidebar_current: "docs-commands-catalog-list-nodes"
+sidebar_current: "docs-commands-catalog-nodes"
 ---
 
 # Consul Catalog List Nodes
 
-Command: `consul catalog list-nodes`
+Command: `consul catalog nodes`
 
-The `catalog list-nodes` command prints all known nodes and metadata about them.
+The `catalog nodes` command prints all known nodes and metadata about them.
 It can also query for nodes that match a particular metadata or provide a
 particular service.
 
@@ -17,7 +17,7 @@ particular service.
 List all nodes:
 
 ```text
-$ consul catalog list-nodes
+$ consul catalog nodes
 Node       ID        Address    DC
 worker-01  1b662d97  10.4.5.31  dc1
 ```
@@ -25,7 +25,7 @@ worker-01  1b662d97  10.4.5.31  dc1
 Print detailed node information such as tagged addresses and node metadata:
 
 ```text
-$ consul catalog list-nodes -detailed
+$ consul catalog nodes -detailed
 Node       ID                                    Address    DC   TaggedAddresses               Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, wan=10.4.5.31
 ```
@@ -33,7 +33,7 @@ worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, 
 List nodes which provide the service name "web":
 
 ```text
-$ consul catalog list-nodes -service=web
+$ consul catalog nodes -service=web
 Node       ID                                    Address    DC   TaggedAddresses               Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, wan=10.4.5.31
 ```
@@ -41,7 +41,7 @@ worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31  dc1  lan=10.4.5.31, 
 Sort the resulting node list by estimated round trip time to worker-05:
 
 ```text
-$ consul catalog list-nodes -near=web-05
+$ consul catalog nodes -near=web-05
 Node       ID                                    Address     DC   TaggedAddresses                Meta
 worker-01  1b662d97-8b5c-3cc2-0ac0-96f55ad423b5  10.4.5.31   dc1  lan=10.4.5.31, wan=10.4.5.31
 worker-02  d407a592-e93c-4d8e-8a6d-aba853d1e067  10.4.4.158  dc1  lan=10.4.4.158, wan=10.4.4.158
@@ -49,7 +49,7 @@ worker-02  d407a592-e93c-4d8e-8a6d-aba853d1e067  10.4.4.158  dc1  lan=10.4.4.158
 
 ## Usage
 
-Usage: `consul catalog list-nodes [options]`
+Usage: `consul catalog nodes [options]`
 
 #### API Options
 

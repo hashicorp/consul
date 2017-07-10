@@ -22,26 +22,26 @@ type CatalogListServicesCommand struct {
 
 func (c *CatalogListServicesCommand) Help() string {
 	helpText := `
-Usage: consul catalog list-services [options]
+Usage: consul catalog services [options]
 
   Retrieves the list services registered in a given datacenter. By default, the
   datacenter of the local agent is queried.
 
   To retrieve the list of services:
 
-      $ consul catalog list-services
+      $ consul catalog services
 
   To include the services' tags in the output:
 
-      $ consul catalog list-services -tags
+      $ consul catalog services -tags
 
   To list services which run on a particular node:
 
-      $ consul catalog list-services -node=web
+      $ consul catalog services -node=web
 
   To filter services on node metadata:
 
-      $ consul catalog list-services -node-meta="foo=bar"
+      $ consul catalog services -node-meta="foo=bar"
 
   For a full list of options and examples, please see the Consul documentation.
 

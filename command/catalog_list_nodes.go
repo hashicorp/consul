@@ -20,31 +20,31 @@ type CatalogListNodesCommand struct {
 
 func (c *CatalogListNodesCommand) Help() string {
 	helpText := `
-Usage: consul catalog list-nodes [options]
+Usage: consul catalog nodes [options]
 
   Retrieves the list nodes registered in a given datacenter. By default, the
   datacenter of the local agent is queried.
 
   To retrieve the list of nodes:
 
-      $ consul catalog list-nodes
+      $ consul catalog nodes
 
   To print detailed information including full node IDs, tagged addresses, and
   metadata information:
 
-      $ consul catalog list-nodes -detailed
+      $ consul catalog nodes -detailed
 
   To list nodes which are running a particular service:
 
-      $ consul catalog list-nodes -service=web
+      $ consul catalog nodes -service=web
 
   To filter by node metadata:
 
-      $ consul catalog list-nodes -node-meta="foo=bar"
+      $ consul catalog nodes -node-meta="foo=bar"
 
   To sort nodes by estimated round-trip time from node-web:
 
-      $ consul catalog list-nodes -near=node-web
+      $ consul catalog nodes -near=node-web
 
   For a full list of options and examples, please see the Consul documentation.
 

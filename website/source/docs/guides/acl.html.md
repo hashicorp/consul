@@ -76,7 +76,7 @@ basic IP and port information about the servers, and does not allow modification
 of any state.
 
 2. The datacenter listing operation of the
-[Catalog API](/api/catalog.html#list-datacenters) similarly exposes the names of known
+[Catalog API](/api/catalog.html#datacenters) similarly exposes the names of known
 Consul datacenters, and does not allow modification of any state.
 
 Constructing rules from these policies is covered in detail in the

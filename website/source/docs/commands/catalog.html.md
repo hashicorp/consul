@@ -19,7 +19,7 @@ The catalog is also accessible via the [HTTP API](/api/catalog.html).
 List all datacenters:
 
 ```text
-$ consul catalog list-datacenters
+$ consul catalog datacenters
 dc1
 dc2
 dc3
@@ -28,7 +28,7 @@ dc3
 List all nodes:
 
 ```text
-$ consul catalog list-nodes
+$ consul catalog nodes
 Node       ID        Address    DC
 worker-01  1b662d97  10.4.5.31  dc1
 ```
@@ -36,7 +36,7 @@ worker-01  1b662d97  10.4.5.31  dc1
 List all nodes which provide a particular service:
 
 ```text
-$ consul catalog list-nodes -service=redis
+$ consul catalog nodes -service=redis
 Node       ID        Address     DC
 worker-01  1b662d97  10.4.5.31   dc1
 worker-02  d407a592  10.4.4.158  dc1
@@ -45,7 +45,7 @@ worker-02  d407a592  10.4.4.158  dc1
 List all services:
 
 ```text
-$ consul catalog list-services
+$ consul catalog services
 consul
 postgresql
 redis
@@ -54,7 +54,7 @@ redis
 List all services on a node:
 
 ```text
-$ consul catalog list-services -node=worker-01
+$ consul catalog services -node=worker-01
 consul
 postgres
 ```
@@ -75,14 +75,14 @@ Usage: consul kv <subcommand> [options] [args]
   # ...
 
 Subcommands:
-    list-datacenters    Lists all known datacenters for this agent
-    list-nodes          Lists all nodes in the given datacenter
-    list-services       Lists all registered services in a datacenter
+    datacenters    Lists all known datacenters for this agent
+    nodes          Lists all nodes in the given datacenter
+    services       Lists all registered services in a datacenter
 ```
 
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [`list-datacenters`](/docs/commands/catalog/list-datacenters.html)
-- [`list-nodes`](/docs/commands/catalog/list-nodes.html)
-- [`list-services`](/docs/commands/catalog/list-services.html)
+- [`datacenters`](/docs/commands/catalog/datacenters.html)
+- [`nodes`](/docs/commands/catalog/nodes.html)
+- [`services`](/docs/commands/catalog/services.html)

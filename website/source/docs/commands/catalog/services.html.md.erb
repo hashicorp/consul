@@ -1,14 +1,14 @@
 ---
 layout: "docs"
 page_title: "Commands: Catalog List Services"
-sidebar_current: "docs-commands-catalog-list-services"
+sidebar_current: "docs-commands-catalog-services"
 ---
 
 # Consul Catalog List Services
 
-Command: `consul catalog list-services`
+Command: `consul catalog services`
 
-The `catalog list-services` command prints all known services. It can also query
+The `catalog services` command prints all known services. It can also query
 for services that match particular metadata or list the services that a
 particular node provides.
 
@@ -17,7 +17,7 @@ particular node provides.
 List all services:
 
 ```text
-$ consul catalog list-services
+$ consul catalog services
 consul
 postgresql
 redis
@@ -26,7 +26,7 @@ redis
 Show all services with their tags:
 
 ```text
-$ consul catalog list-services -tags
+$ consul catalog services -tags
 consul
 postgresql  leader
 redis       primary,v1
@@ -35,7 +35,7 @@ redis       primary,v1
 List services for the node "worker-01":
 
 ```text
-$ consul catalog list-services -node=worker-01
+$ consul catalog services -node=worker-01
 consul
 redis
 ```
@@ -43,7 +43,7 @@ redis
 
 ## Usage
 
-Usage: `consul catalog list-services [options]`
+Usage: `consul catalog services [options]`
 
 #### API Options
 

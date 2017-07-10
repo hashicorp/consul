@@ -15,7 +15,7 @@ type CatalogListDatacentersCommand struct {
 
 func (c *CatalogListDatacentersCommand) Help() string {
 	helpText := `
-Usage: consul catalog list-datacenters [options]
+Usage: consul catalog datacenters [options]
 
   Retrieves the list of all known datacenters. This datacenters are sorted in
   ascending order based on the estimated median round trip time from the servers
@@ -23,7 +23,7 @@ Usage: consul catalog list-datacenters [options]
 
   To retrieve the list of datacenters
 
-      $ consul catalog list-datacenters
+      $ consul catalog datacenters
 
   For a full list of options and examples, please see the Consul documentation.
 
