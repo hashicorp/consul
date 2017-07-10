@@ -60,6 +60,15 @@ func init() {
 			}, nil
 		},
 
+		"catalog list-services": func() (cli.Command, error) {
+			return &CatalogListServicesCommand{
+				BaseCommand: BaseCommand{
+					Flags: FlagSetClientHTTP,
+					UI:    ui,
+				},
+			}, nil
+		},
+
 		"configtest": func() (cli.Command, error) {
 			return &ConfigTestCommand{
 				BaseCommand: BaseCommand{
