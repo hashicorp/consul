@@ -766,7 +766,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     endpoints that begin with `/v1/acl`. Any CLI commands that use disabled endpoints will
     no longer function as well. For more general access control, Consul's
     [ACL system](/docs/guides/acl.html) should be used, but this option is useful for removing
-    access to HTTP endpoints completely, or on specific agents.
+    access to HTTP endpoints completely, or on specific agents. This is available in Consul
+    0.9.0 and later.
 
   * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
     This object allows adding headers to the HTTP API responses.
