@@ -34,6 +34,10 @@ Usage: consul catalog list-nodes [options]
 
       $ consul catalog list-nodes -detailed
 
+  To list nodes which are running a particular service:
+
+      $ consul catalog list-nodes -service=web
+
   To filter by node metadata:
 
       $ consul catalog list-nodes -node-meta="foo=bar"
@@ -64,6 +68,9 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 		"filter nodes with the given `key=value` pairs. This flag may be "+
 		"specified multiple times to filter on multiple sources of metadata.")
 
+	service := f.String("service", "", "Service name to filter nodes. Only nodes "+
+		"which are providing the given service will be returned.")
+
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
@@ -80,13 +87,39 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 		return 1
 	}
 
-	nodes, _, err := client.Catalog().Nodes(&api.QueryOptions{
-		Near:     *near,
-		NodeMeta: nodeMeta,
-	})
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))
-		return 1
+	var nodes []*api.Node
+	if *service != "" {
+		services, _, err := client.Catalog().Service(*service, "", &api.QueryOptions{
+			Near:     *near,
+			NodeMeta: nodeMeta,
+		})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error listing nodes for service: %s", err))
+			return 1
+		}
+
+		nodes = make([]*api.Node, len(services))
+		for i, s := range services {
+			nodes[i] = &api.Node{
+				ID:              s.ID,
+				Node:            s.Node,
+				Address:         s.Address,
+				Datacenter:      s.Datacenter,
+				TaggedAddresses: s.TaggedAddresses,
+				Meta:            s.NodeMeta,
+				CreateIndex:     s.CreateIndex,
+				ModifyIndex:     s.ModifyIndex,
+			}
+		}
+	} else {
+		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
+			Near:     *near,
+			NodeMeta: nodeMeta,
+		})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))
+			return 1
+		}
 	}
 
 	// Handle the edge case where there are no nodes that match the query.
