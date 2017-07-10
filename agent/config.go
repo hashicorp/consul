@@ -131,9 +131,9 @@ type DNSConfig struct {
 
 // HTTPConfig is used to fine tune the Http sub-system.
 type HTTPConfig struct {
-	// DisableEndpoints is a list of endpoint prefixes to disable in the
+	// BlockEndpoints is a list of endpoint prefixes to block in the
 	// HTTP API. Any requests to these will get a 403 response.
-	DisableEndpoints []string `mapstructure:"disable_endpoints"`
+	BlockEndpoints []string `mapstructure:"block_endpoints"`
 
 	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	ResponseHeaders map[string]string `mapstructure:"response_headers"`
@@ -2001,8 +2001,8 @@ func MergeConfig(a, b *Config) *Config {
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
 	}
 
-	result.HTTPConfig.DisableEndpoints = append(a.HTTPConfig.DisableEndpoints,
-		b.HTTPConfig.DisableEndpoints...)
+	result.HTTPConfig.BlockEndpoints = append(a.HTTPConfig.BlockEndpoints,
+		b.HTTPConfig.BlockEndpoints...)
 	if len(b.HTTPConfig.ResponseHeaders) > 0 {
 		if result.HTTPConfig.ResponseHeaders == nil {
 			result.HTTPConfig.ResponseHeaders = make(map[string]string)

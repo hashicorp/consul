@@ -195,11 +195,11 @@ func TestSetMeta(t *testing.T) {
 	}
 }
 
-func TestHTTPAPI_DisableEndpoints(t *testing.T) {
+func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	t.Parallel()
 
 	cfg := TestConfig()
-	cfg.HTTPConfig.DisableEndpoints = []string{
+	cfg.HTTPConfig.BlockEndpoints = []string{
 		"/v1/agent/self",
 	}
 
@@ -210,7 +210,7 @@ func TestHTTPAPI_DisableEndpoints(t *testing.T) {
 		return nil, nil
 	}
 
-	// Try a banned endpoint, which should get a 403.
+	// Try a blocked endpoint, which should get a 403.
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
 		resp := httptest.NewRecorder()

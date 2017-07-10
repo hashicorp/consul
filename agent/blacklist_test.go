@@ -43,7 +43,7 @@ func TestBlacklist(t *testing.T) {
 	for _, tt := range tests {
 		blacklist := NewBlacklist(tt.prefixes)
 		for _, p := range tt.paths {
-			if got := blacklist.IsDisallowed(p.path); got != p.want {
+			if got := blacklist.Block(p.path); got != p.want {
 				t.Fatalf("case %q: %q got %v want %v",
 					tt.desc, p.path, got, p.want)
 			}

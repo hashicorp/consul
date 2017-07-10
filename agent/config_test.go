@@ -331,8 +331,8 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{EncryptVerifyOutgoing: Bool(true)},
 		},
 		{
-			in: `{"http_config":{"disable_endpoints":["a","b","c","d"]}}`,
-			c:  &Config{HTTPConfig: HTTPConfig{DisableEndpoints: []string{"a", "b", "c", "d"}}},
+			in: `{"http_config":{"block_endpoints":["a","b","c","d"]}}`,
+			c:  &Config{HTTPConfig: HTTPConfig{BlockEndpoints: []string{"a", "b", "c", "d"}}},
 		},
 		{
 			in: `{"http_api_response_headers":{"a":"b","c":"d"}}`,
@@ -1398,7 +1398,7 @@ func TestMergeConfig(t *testing.T) {
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
 		HTTPConfig: HTTPConfig{
-			DisableEndpoints: []string{
+			BlockEndpoints: []string{
 				"/v1/agent/self",
 				"/v1/acl",
 			},

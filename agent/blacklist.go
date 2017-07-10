@@ -19,9 +19,9 @@ func NewBlacklist(prefixes []string) *Blacklist {
 	return &Blacklist{tree}
 }
 
-// IsDisallowed will return true if the given path is included among any of the
-// disallowed prefixes.
-func (b *Blacklist) IsDisallowed(path string) bool {
-	_, _, disallowed := b.tree.LongestPrefix(path)
-	return disallowed
+// Block will return true if the given path is included among any of the
+// block prefixes.
+func (b *Blacklist) Block(path string) bool {
+	_, _, blocked := b.tree.LongestPrefix(path)
+	return blocked
 }

@@ -29,7 +29,7 @@ func NewHTTPServer(addr string, a *Agent) *HTTPServer {
 	s := &HTTPServer{
 		Server:    &http.Server{Addr: addr},
 		agent:     a,
-		blacklist: NewBlacklist(a.config.HTTPConfig.DisableEndpoints),
+		blacklist: NewBlacklist(a.config.HTTPConfig.BlockEndpoints),
 	}
 	s.Server.Handler = s.handler(a.config.EnableDebug)
 	return s
@@ -190,8 +190,8 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 		}
 
-		if s.blacklist.IsDisallowed(req.URL.Path) {
-			errMsg := "Endpoint is disabled by agent configuration"
+		if s.blacklist.Block(req.URL.Path) {
+			errMsg := "Endpoint is blocked by agent configuration"
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			resp.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(resp, errMsg)
