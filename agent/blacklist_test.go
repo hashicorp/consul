@@ -5,48 +5,35 @@ import (
 )
 
 func TestBlacklist(t *testing.T) {
-	type pathCase struct {
-		path string
-		want bool
+	t.Parallel()
+
+	complex := []string{
+		"/a",
+		"/b/c",
 	}
 
 	tests := []struct {
 		desc     string
 		prefixes []string
-		paths    []pathCase
+		path     string
+		block    bool
 	}{
-		{
-			"nothing disallowed",
-			nil,
-			[]pathCase{
-				{"/", false},
-				{"/v1/agent/self", false},
-			},
-		},
-		{
-			"prefix match",
-			[]string{
-				"/v1/acl",
-				"/v1/agent/self",
-			},
-			[]pathCase{
-				{"/", false},
-				{"/v1/acl/foo", true},
-				{"/v1/acl/bar", true},
-				{"/v1/agent/self", true},
-				{"/v1/agent/selfish", true},
-				{"/v1/agent/self/sub", true},
-				{"/v1/agent/other", false},
-			},
-		},
+		{"nothing blocked root", nil, "/", false},
+		{"nothing blocked path", nil, "/a", false},
+		{"exact match 1", complex, "/a", true},
+		{"exact match 2", complex, "/b/c", true},
+		{"subpath", complex, "/a/b", true},
+		{"longer prefix", complex, "/apple", true},
+		{"longer subpath", complex, "/b/c/d", true},
+		{"partial prefix", complex, "/b/d", false},
+		{"no match", complex, "/c", false},
 	}
 	for _, tt := range tests {
-		blacklist := NewBlacklist(tt.prefixes)
-		for _, p := range tt.paths {
-			if got := blacklist.Block(p.path); got != p.want {
-				t.Fatalf("case %q: %q got %v want %v",
-					tt.desc, p.path, got, p.want)
+		t.Run(tt.desc, func(t *testing.T) {
+			blacklist := NewBlacklist(tt.prefixes)
+			if got, want := blacklist.Block(tt.path), tt.block; got != want {
+				t.Fatalf("got %v want %v", got, want)
 			}
-		}
+		})
 	}
 }
