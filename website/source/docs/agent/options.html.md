@@ -757,6 +757,16 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <br><br>
   The following sub-keys are available:
 
+  * <a name="disable_endpoints"></a><a href="#disable_endpoints">`disable_endpoints`</a>
+    This object is a list of HTTP endpoint prefixes to disable on the agent, and defaults to
+    an empty list, meaning all endpoints are enabled. Any endpoint that has a common prefix
+    with one of the entries on this list will be disabled and will return a 403 response code
+    when accessed. For example, to disable all of the V1 ACL endpoints, set this to
+    `["/v1/acl"]`, which will disable `/v1/acl/create`, `/v1/acl/update`, and the other ACL
+    endpoints that begin with `/v1/acl`. For more general access control, Consul's
+    [ACLs](/docs/guides/acl.html) should be used, but this option is useful for removing
+    access to HTTP endpoints completely, or on specific agents.
+
   * <a name="response_headers"></a><a href="#response_headers">`response_headers`</a>
     This object allows adding headers to the HTTP API responses.
     For example, the following config can be used to enable

@@ -18,13 +18,20 @@ import (
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
-	agent *Agent
+	agent     *Agent
+	blacklist *Blacklist
+
+	// proto is filled by the agent to "http" or "https".
 	proto string
 }
 
 func NewHTTPServer(addr string, a *Agent) *HTTPServer {
-	s := &HTTPServer{Server: &http.Server{Addr: addr}, agent: a}
-	s.Server.Handler = s.handler(s.agent.config.EnableDebug)
+	s := &HTTPServer{
+		Server:    &http.Server{Addr: addr},
+		agent:     a,
+		blacklist: NewBlacklist(a.config.HTTPConfig.DisableEndpoints),
+	}
+	s.Server.Handler = s.handler(a.config.EnableDebug)
 	return s
 }
 
@@ -192,6 +199,12 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 			resp.WriteHeader(code)
 			fmt.Fprint(resp, errMsg)
+		}
+
+		if s.blacklist.IsDisallowed(req.URL.Path) {
+			err := fmt.Errorf("Permission denied, endpoint is disabled")
+			handleErr(err)
+			return
 		}
 
 		// TODO (slackpad) We may want to consider redacting prepared
