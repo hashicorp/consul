@@ -331,7 +331,7 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{EncryptVerifyOutgoing: Bool(true)},
 		},
 		{
-			in: `{"http_config":{"disable_endpoints":{"a","b","c","d"}}}`,
+			in: `{"http_config":{"disable_endpoints":["a","b","c","d"]}}`,
 			c:  &Config{HTTPConfig: HTTPConfig{DisableEndpoints: []string{"a", "b", "c", "d"}}},
 		},
 		{
