@@ -107,6 +107,40 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		}
 	})
 
+	t.Run("node_missing", func(t *testing.T) {
+		ui, c := testCatalogListServicesCommand(t)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-node", "not-a-real-node",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.ErrorWriter.String()
+		if expected := "No services match the given query"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
+	t.Run("node_present", func(t *testing.T) {
+		ui, c := testCatalogListServicesCommand(t)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-node", a.Config.NodeName,
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		if expected := "consul\ntesting\n"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
 	t.Run("node-meta", func(t *testing.T) {
 		ui, c := testCatalogListServicesCommand(t)
 		args := []string{

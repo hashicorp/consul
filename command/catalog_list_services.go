@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -34,6 +35,10 @@ Usage: consul catalog list-services [options]
 
       $ consul catalog list-services -tags
 
+  To list services which run on a particular node:
+
+      $ consul catalog list-services -node=web
+
   To filter services on node metadata:
 
       $ consul catalog list-services -node-meta="foo=bar"
@@ -47,6 +52,9 @@ Usage: consul catalog list-services [options]
 
 func (c *CatalogListServicesCommand) Run(args []string) int {
 	f := c.BaseCommand.NewFlagSet(c)
+
+	node := f.String("node", "", "Name or ID of a node for which to list "+
+		"services.")
 
 	nodeMeta := make(map[string]string)
 	f.Var((*configutil.FlagMapValue)(&nodeMeta), "node-meta", "Metadata to "+
@@ -74,12 +82,29 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		return 1
 	}
 
-	services, _, err := client.Catalog().Services(&api.QueryOptions{
-		NodeMeta: nodeMeta,
-	})
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error listing services: %s", err))
-		return 1
+	var services map[string][]string
+	if *node != "" {
+		catalogNode, _, err := client.Catalog().Node(*node, &api.QueryOptions{
+			NodeMeta: nodeMeta,
+		})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error listing services for node: %s", err))
+			return 1
+		}
+		if catalogNode != nil {
+			services = make(map[string][]string, len(catalogNode.Services))
+			for n, s := range catalogNode.Services {
+				services[n] = s.Tags
+			}
+		}
+	} else {
+		services, _, err = client.Catalog().Services(&api.QueryOptions{
+			NodeMeta: nodeMeta,
+		})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error listing services: %s", err))
+			return 1
+		}
 	}
 
 	// Handle the edge case where there are no services that match the query.
