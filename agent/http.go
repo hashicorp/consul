@@ -18,13 +18,20 @@ import (
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
-	agent *Agent
+	agent     *Agent
+	blacklist *Blacklist
+
+	// proto is filled by the agent to "http" or "https".
 	proto string
 }
 
 func NewHTTPServer(addr string, a *Agent) *HTTPServer {
-	s := &HTTPServer{Server: &http.Server{Addr: addr}, agent: a}
-	s.Server.Handler = s.handler(s.agent.config.EnableDebug)
+	s := &HTTPServer{
+		Server:    &http.Server{Addr: addr},
+		agent:     a,
+		blacklist: NewBlacklist(a.config.HTTPConfig.BlockEndpoints),
+	}
+	s.Server.Handler = s.handler(a.config.EnableDebug)
 	return s
 }
 
@@ -181,6 +188,14 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
+		}
+
+		if s.blacklist.Block(req.URL.Path) {
+			errMsg := "Endpoint is blocked by agent configuration"
+			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, errMsg)
+			return
 		}
 
 		handleErr := func(err error) {

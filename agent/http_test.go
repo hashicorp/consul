@@ -195,6 +195,42 @@ func TestSetMeta(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_BlockEndpoints(t *testing.T) {
+	t.Parallel()
+
+	cfg := TestConfig()
+	cfg.HTTPConfig.BlockEndpoints = []string{
+		"/v1/agent/self",
+	}
+
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+
+	// Try a blocked endpoint, which should get a 403.
+	{
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		resp := httptest.NewRecorder()
+		a.srv.wrap(handler)(resp, req)
+		if got, want := resp.Code, http.StatusForbidden; got != want {
+			t.Fatalf("bad response code got %d want %d", got, want)
+		}
+	}
+
+	// Make sure some other endpoint still works.
+	{
+		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
+		resp := httptest.NewRecorder()
+		a.srv.wrap(handler)(resp, req)
+		if got, want := resp.Code, http.StatusOK; got != want {
+			t.Fatalf("bad response code got %d want %d", got, want)
+		}
+	}
+}
+
 func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.

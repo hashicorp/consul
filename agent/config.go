@@ -131,6 +131,10 @@ type DNSConfig struct {
 
 // HTTPConfig is used to fine tune the Http sub-system.
 type HTTPConfig struct {
+	// BlockEndpoints is a list of endpoint prefixes to block in the
+	// HTTP API. Any requests to these will get a 403 response.
+	BlockEndpoints []string `mapstructure:"block_endpoints"`
+
 	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	ResponseHeaders map[string]string `mapstructure:"response_headers"`
 }
@@ -1996,6 +2000,9 @@ func MergeConfig(a, b *Config) *Config {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
 	}
+
+	result.HTTPConfig.BlockEndpoints = append(a.HTTPConfig.BlockEndpoints,
+		b.HTTPConfig.BlockEndpoints...)
 	if len(b.HTTPConfig.ResponseHeaders) > 0 {
 		if result.HTTPConfig.ResponseHeaders == nil {
 			result.HTTPConfig.ResponseHeaders = make(map[string]string)
@@ -2004,6 +2011,7 @@ func MergeConfig(a, b *Config) *Config {
 			result.HTTPConfig.ResponseHeaders[field] = value
 		}
 	}
+
 	if len(b.Meta) != 0 {
 		if result.Meta == nil {
 			result.Meta = make(map[string]string)
