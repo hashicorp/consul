@@ -5,7 +5,7 @@ import (
 )
 
 // Blacklist implements an HTTP endpoint blacklist based on a list of endpoint
-// prefixes which should be disallowed.
+// prefixes which should be blocked.
 type Blacklist struct {
 	tree *radix.Tree
 }
@@ -20,7 +20,7 @@ func NewBlacklist(prefixes []string) *Blacklist {
 }
 
 // Block will return true if the given path is included among any of the
-// block prefixes.
+// blocked prefixes.
 func (b *Blacklist) Block(path string) bool {
 	_, _, blocked := b.tree.LongestPrefix(path)
 	return blocked
