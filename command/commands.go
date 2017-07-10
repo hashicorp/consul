@@ -45,7 +45,7 @@ func init() {
 		"catalog list-datacenters": func() (cli.Command, error) {
 			return &CatalogListDatacentersCommand{
 				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
+					Flags: FlagSetHTTP,
 					UI:    ui,
 				},
 			}, nil
@@ -54,7 +54,7 @@ func init() {
 		"catalog list-nodes": func() (cli.Command, error) {
 			return &CatalogListNodesCommand{
 				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
+					Flags: FlagSetHTTP,
 					UI:    ui,
 				},
 			}, nil
@@ -63,7 +63,7 @@ func init() {
 		"catalog list-services": func() (cli.Command, error) {
 			return &CatalogListServicesCommand{
 				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
+					Flags: FlagSetHTTP,
 					UI:    ui,
 				},
 			}, nil
