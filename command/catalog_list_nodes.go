@@ -29,8 +29,8 @@ Usage: consul catalog list-nodes [options]
 
       $ consul catalog list-nodes
 
-  To print detailed information including full node IDs, TaggedAddresses, and
-  Meta information:
+  To print detailed information including full node IDs, tagged addresses, and
+  metadata information:
 
       $ consul catalog list-nodes -detailed
 
