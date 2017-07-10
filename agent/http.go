@@ -190,6 +190,14 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 		}
 
+		if s.blacklist.IsDisallowed(req.URL.Path) {
+			errMsg := "Endpoint is disabled by agent configuration"
+			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, errMsg)
+			return
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			code := http.StatusInternalServerError // 500
@@ -199,12 +207,6 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 			resp.WriteHeader(code)
 			fmt.Fprint(resp, errMsg)
-		}
-
-		if s.blacklist.IsDisallowed(req.URL.Path) {
-			err := fmt.Errorf("Permission denied, endpoint is disabled")
-			handleErr(err)
-			return
 		}
 
 		// TODO (slackpad) We may want to consider redacting prepared
