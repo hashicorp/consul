@@ -24,10 +24,10 @@ var (
 //
 // See https://goo.gl/FZA4BK for more details.
 type Volume struct {
-	Name       string            `json:"Name" yaml:"Name"`
-	Driver     string            `json:"Driver,omitempty" yaml:"Driver,omitempty"`
-	Mountpoint string            `json:"Mountpoint,omitempty" yaml:"Mountpoint,omitempty"`
-	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty"`
+	Name       string            `json:"Name" yaml:"Name" toml:"Name"`
+	Driver     string            `json:"Driver,omitempty" yaml:"Driver,omitempty" toml:"Driver,omitempty"`
+	Mountpoint string            `json:"Mountpoint,omitempty" yaml:"Mountpoint,omitempty" toml:"Mountpoint,omitempty"`
+	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty" toml:"Labels,omitempty"`
 }
 
 // ListVolumesOptions specify parameters to the ListVolumes function.
@@ -50,7 +50,7 @@ func (c *Client) ListVolumes(opts ListVolumesOptions) ([]Volume, error) {
 	}
 	defer resp.Body.Close()
 	m := make(map[string]interface{})
-	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&m); err != nil {
 		return nil, err
 	}
 	var volumes []Volume
@@ -76,6 +76,7 @@ type CreateVolumeOptions struct {
 	Driver     string
 	DriverOpts map[string]string
 	Context    context.Context `json:"-"`
+	Labels     map[string]string
 }
 
 // CreateVolume creates a volume on the server.
@@ -134,4 +135,37 @@ func (c *Client) RemoveVolume(name string) error {
 	}
 	defer resp.Body.Close()
 	return nil
+}
+
+// PruneVolumesOptions specify parameters to the PruneVolumes function.
+//
+// See https://goo.gl/pFN1Hj for more details.
+type PruneVolumesOptions struct {
+	Filters map[string][]string
+	Context context.Context
+}
+
+// PruneVolumesResults specify results from the PruneVolumes function.
+//
+// See https://goo.gl/pFN1Hj for more details.
+type PruneVolumesResults struct {
+	VolumesDeleted []string
+	SpaceReclaimed int64
+}
+
+// PruneVolumes deletes volumes which are unused.
+//
+// See https://goo.gl/pFN1Hj for more details.
+func (c *Client) PruneVolumes(opts PruneVolumesOptions) (*PruneVolumesResults, error) {
+	path := "/volumes/prune?" + queryString(opts)
+	resp, err := c.do("POST", path, doOptions{context: opts.Context})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var results PruneVolumesResults
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, err
+	}
+	return &results, nil
 }
