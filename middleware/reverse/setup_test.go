@@ -14,6 +14,7 @@ func TestSetupParse(t *testing.T) {
 	_, net4, _ := net.ParseCIDR("10.1.1.0/24")
 	_, net6, _ := net.ParseCIDR("fd01::/64")
 
+	regexIP4wildcard, _ := regexp.Compile("^.*ip-" + regexMatchV4 + "\\.domain\\.com\\.$")
 	regexIP6, _ := regexp.Compile("^ip-" + regexMatchV6 + "\\.domain\\.com\\.$")
 	regexIpv4dynamic, _ := regexp.Compile("^dynamic-" + regexMatchV4 + "-intern\\.dynamic\\.domain\\.com\\.$")
 	regexIpv6dynamic, _ := regexp.Compile("^dynamic-" + regexMatchV6 + "-intern\\.dynamic\\.domain\\.com\\.$")
@@ -155,6 +156,22 @@ func TestSetupParse(t *testing.T) {
 				Zone:         "dynamic.domain.com.",
 				TTL:          300,
 				RegexMatchIP: regexIpv6dynamic,
+			}},
+		},
+		{
+			`reverse 10.1.1.0/24 {
+				hostname ip-{ip}.{zone[1]}
+				ttl 50
+			    wildcard
+				fallthrough
+			}`,
+			false,
+			networks{network{
+				IPnet:        net4,
+				Template:     "ip-{ip}.domain.com.",
+				Zone:         "domain.com.",
+				TTL:          50,
+				RegexMatchIP: regexIP4wildcard,
 			}},
 		},
 	}

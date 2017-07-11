@@ -38,6 +38,7 @@ func reverseParse(c *caddy.Controller) (nets networks, fall bool, err error) {
 	// normalize zones, validation is almost done by dnsserver
 	// TODO(miek): need sane helpers for these.
 	zones := make([]string, len(c.ServerBlockKeys))
+	wildcard := false
 
 	for i, str := range c.ServerBlockKeys {
 		zones[i] = middleware.Host(str).Normalize()
@@ -85,6 +86,9 @@ func reverseParse(c *caddy.Controller) (nets networks, fall bool, err error) {
 						return nil, false, err
 					}
 
+				case "wildcard":
+					wildcard = true
+
 				case "fallthrough":
 					fall = true
 
@@ -117,8 +121,12 @@ func reverseParse(c *caddy.Controller) (nets networks, fall bool, err error) {
 				if ipnet.IP.To4() == nil {
 					regexIP = regexMatchV6
 				}
+				prefix := "^"
+				if wildcard {
+					prefix += ".*"
+				}
 				regex, err := regexp.Compile(
-					"^" + strings.Replace( // inject ip regex into template
+					prefix + strings.Replace( // inject ip regex into template
 						regexp.QuoteMeta(template), // escape dots
 						regexp.QuoteMeta(templateNameIP),
 						regexIP,

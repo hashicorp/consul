@@ -9,6 +9,7 @@ reverse NETWORK... {
     hostname TEMPLATE
     [ttl TTL]
     [fallthrough]
+    [wildcard]
 ~~~
 
 * **NETWORK** one or more CIDR formatted networks to respond on.
@@ -33,6 +34,12 @@ With IPv6 lookups the ":" is removed, and any zero ranged are expanded, e.g.,
 The `{zone[i]}` symbol is **optional** and can be replaced by a fixed (zone) string.
 The zone will be matched by the zones listed in *this* configuration stanza.
 `i` needs to be replaced with the index of the configured listener zones, starting with 1.
+
+### `wildcard`
+
+If `wildcard` is true :
+any.thing.ip-1.2.3.4.example.org resolves to 1.2.3.4 (ip-{ip}.{zone} is the hostname/template)
+
 
 ## Examples
 
