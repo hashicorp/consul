@@ -49,7 +49,7 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: dev
+test: dev vet
 	go test -tags '$(GOTAGS)' -i ./...
 	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m -v ./... 2>&1 >test$(GOTEST_FLAGS).log ; echo $$? > exit-code
 	@echo "Exit code: `cat exit-code`" >> test$(GOTEST_FLAGS).log
