@@ -384,6 +384,10 @@ func (s *FileSnapshotSink) Close() error {
 	// Close the open handles
 	if err := s.finalize(); err != nil {
 		s.logger.Printf("[ERR] snapshot: Failed to finalize snapshot: %v", err)
+		if delErr := os.RemoveAll(s.dir); delErr != nil {
+			s.logger.Printf("[ERR] snapshot: Failed to delete temporary snapshot directory at path %v: %v", s.dir, delErr)
+			return delErr
+		}
 		return err
 	}
 
