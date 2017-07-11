@@ -181,6 +181,8 @@ func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, d
 			s.Destroy(id, q)
 			return nil
 		case <-ctx.Done():
+			// Attempt a session destroy
+			s.Destroy(id, q)
 			return ctx.Err()
 		}
 	}
