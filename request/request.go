@@ -29,7 +29,7 @@ type Request struct {
 // section in the request.
 func (r *Request) NewWithQuestion(name string, typ uint16) Request {
 	req1 := Request{W: r.W, Req: r.Req.Copy()}
-	req1.Req.Question[0] = dns.Question{Name: dns.Fqdn(name), Qtype: dns.ClassINET, Qclass: typ}
+	req1.Req.Question[0] = dns.Question{Name: dns.Fqdn(name), Qclass: dns.ClassINET, Qtype: typ}
 	return req1
 }
 

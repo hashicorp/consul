@@ -59,6 +59,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 		ResyncPeriod:   defaultResyncPeriod,
 		interfaceAddrs: &interfaceAddrs{},
 		PodMode:        PodModeDisabled,
+		Proxy:          proxy.Proxy{},
 	}
 
 	for c.Next() {
@@ -244,5 +245,5 @@ const (
 	defaultPodMode        = PodModeDisabled
 	defautNdots           = 0
 	defaultResolvConfFile = "/etc/resolv.conf"
-	defaultOnNXDOMAIN     = dns.RcodeServerFailure
+	defaultOnNXDOMAIN     = dns.RcodeSuccess
 )

@@ -110,13 +110,14 @@ var errResolvConfReadErr = errors.New("resolv.conf read error")
 
 // Services implements the ServiceBackend interface.
 func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) (svcs []msg.Service, debug []msg.Service, err error) {
-
 	r, e := k.parseRequest(state.Name(), state.QType())
 	if e != nil {
 		return nil, nil, e
 	}
-
 	switch state.Type() {
+	case "AAAA":
+		// AAAA not implemented
+		return nil, nil, errNoItems
 	case "A", "CNAME":
 		if state.Type() == "A" && isDefaultNS(state.Name(), r) {
 			// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
@@ -362,7 +363,6 @@ func (k *Kubernetes) Entries(r recordRequest) ([]msg.Service, error) {
 	if (!symbolContainsWildcard(r.namespace)) && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(r.namespace, k.Namespaces)) {
 		return nil, errNsNotExposed
 	}
-
 	services, pods, err := k.get(r)
 	if err != nil {
 		return nil, err
@@ -464,7 +464,7 @@ func ipFromPodName(podname string) string {
 }
 
 func (k *Kubernetes) findPodWithIP(ip string) (p *api.Pod) {
-	if k.PodMode != PodModeVerified {
+	if !k.AutoPath.Enabled {
 		return nil
 	}
 	objList := k.APIConn.PodIndex(ip)
@@ -533,7 +533,6 @@ func (k *Kubernetes) get(r recordRequest) (services []service, pods []pod, err e
 
 func (k *Kubernetes) findServices(r recordRequest) ([]service, error) {
 	serviceList := k.APIConn.ServiceList()
-
 	var resultItems []service
 
 	nsWildcard := symbolContainsWildcard(r.namespace)
