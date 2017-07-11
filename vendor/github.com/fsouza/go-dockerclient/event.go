@@ -1,4 +1,4 @@
-// Copyright 2015 go-dockerclient authors. All rights reserved.
+// Copyright 2014 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -78,6 +78,10 @@ var (
 	// exists.
 	ErrListenerAlreadyExists = errors.New("listener already exists for docker events")
 
+	// ErrTLSNotSupported is the error returned when the client does not support
+	// TLS (this applies to the Windows named pipe client).
+	ErrTLSNotSupported = errors.New("tls not supported by this client")
+
 	// EOFEvent is sent when the event listener receives an EOF error.
 	EOFEvent = &APIEvents{
 		Type:   "EOF",
@@ -96,11 +100,7 @@ func (c *Client) AddEventListener(listener chan<- *APIEvents) error {
 			return err
 		}
 	}
-	err = c.eventMonitor.addListener(listener)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.eventMonitor.addListener(listener)
 }
 
 // RemoveEventListener removes a listener from the monitor.
@@ -294,7 +294,7 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 	}
 	protocol := c.endpointURL.Scheme
 	address := c.endpointURL.Path
-	if protocol != "unix" {
+	if protocol != "unix" && protocol != "npipe" {
 		protocol = "tcp"
 		address = c.endpointURL.Host
 	}
@@ -303,7 +303,11 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 	if c.TLSConfig == nil {
 		dial, err = c.Dialer.Dial(protocol, address)
 	} else {
-		dial, err = tlsDialWithDialer(c.Dialer, protocol, address, c.TLSConfig)
+		netDialer, ok := c.Dialer.(*net.Dialer)
+		if !ok {
+			return ErrTLSNotSupported
+		}
+		dial, err = tlsDialWithDialer(netDialer, protocol, address, c.TLSConfig)
 	}
 	if err != nil {
 		return err
