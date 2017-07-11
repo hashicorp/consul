@@ -105,6 +105,10 @@ type QueryOptions struct {
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
+
+	// Context (optional) is passed through to the underlying http request layer, can be used
+	// to set timeouts and deadlines as well as to cancel requests
+	Context context.Context
 }
 
 // WriteOptions are used to parameterize a write
@@ -457,6 +461,7 @@ type request struct {
 	body   io.Reader
 	header http.Header
 	obj    interface{}
+	ctx    context.Context
 }
 
 // setQueryOptions is used to annotate the request with
@@ -494,6 +499,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
+	r.ctx = q.Context
 }
 
 // durToMsec converts a duration to a millisecond specified string. If the
@@ -569,8 +575,11 @@ func (r *request) toHTTP() (*http.Request, error) {
 	if r.config.HttpAuth != nil {
 		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
 	}
-
-	return req, nil
+	if r.ctx != nil {
+		return req.WithContext(r.ctx), nil
+	} else {
+		return req, nil
+	}
 }
 
 // newRequest is used to create a new request

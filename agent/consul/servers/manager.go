@@ -8,6 +8,7 @@ package servers
 import (
 	"log"
 	"math/rand"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -59,7 +60,7 @@ type ManagerSerfCluster interface {
 // Pinger is an interface wrapping client.ConnPool to prevent a cyclic import
 // dependency.
 type Pinger interface {
-	PingConsulServer(s *agent.Server) (bool, error)
+	Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error)
 }
 
 // serverList is a local copy of the struct used to maintain the list of
@@ -306,14 +307,14 @@ func (m *Manager) RebalanceServers() {
 	for i := 0; i < len(l.servers); i++ {
 		// Always test the first server.  Failed servers are cycled
 		// while Serf detects the node has failed.
-		selectedServer := l.servers[0]
+		srv := l.servers[0]
 
-		ok, err := m.connPoolPinger.PingConsulServer(selectedServer)
+		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.Addr, srv.Version, srv.UseTLS)
 		if ok {
 			foundHealthyServer = true
 			break
 		}
-		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, selectedServer.String(), err)
+		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, srv, err)
 
 		l.cycleServer()
 	}

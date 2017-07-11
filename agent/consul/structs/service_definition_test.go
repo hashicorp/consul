@@ -1,22 +1,9 @@
-package agent
+package structs
 
 import (
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/api"
 )
-
-func TestAgentStructs_HealthCheck(t *testing.T) {
-	t.Parallel()
-	def := CheckDefinition{}
-	check := def.HealthCheck("node1")
-
-	// Health checks default to critical state
-	if check.Status != api.HealthCritical {
-		t.Fatalf("bad: %v", check.Status)
-	}
-}
 
 func TestAgentStructs_CheckTypes(t *testing.T) {
 	t.Parallel()

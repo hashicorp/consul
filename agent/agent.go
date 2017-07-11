@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,15 +21,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
@@ -57,9 +55,9 @@ const (
 // dnsNameRe checks if a name or tag is dns-compatible.
 var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 
-// clientServer defines the interface shared by both
+// delegate defines the interface shared by both
 // consul.Client and consul.Server.
-type clientServer interface {
+type delegate interface {
 	Encrypted() bool
 	GetLANCoordinate() (*coordinate.Coordinate, error)
 	Leave() error
@@ -68,9 +66,14 @@ type clientServer interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
 	RPC(method string, args interface{}, reply interface{}) error
-	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn consul.SnapshotReplyFn) error
+	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+}
+
+// notifier is called after a successful JoinLAN.
+type notifier interface {
+	Notify(string) error
 }
 
 // The agent is the long running process that is run on every machine.
@@ -94,7 +97,7 @@ type Agent struct {
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
-	delegate clientServer
+	delegate delegate
 
 	// acls is an object that helps manage local ACL enforcement.
 	acls *aclManager
@@ -135,7 +138,7 @@ type Agent struct {
 	eventBuf    []*UserEvent
 	eventIndex  int
 	eventLock   sync.RWMutex
-	eventNotify state.NotifyGroup
+	eventNotify NotifyGroup
 
 	reloadCh chan chan error
 
@@ -143,13 +146,16 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// joinLANNotifier is called after a successful JoinLAN.
+	joinLANNotifier notifier
+
 	// retryJoinCh transports errors from the retry join
 	// attempts.
 	retryJoinCh chan error
 
-	// endpoints lets you override RPC endpoints for testing. Not all
-	// agent methods use this, so use with care and never override
-	// outside of a unit test.
+	// endpoints maps unique RPC endpoint names to common ones
+	// to allow overriding of RPC handlers since the golang
+	// net/rpc server does not allow this.
 	endpoints     map[string]string
 	endpointsLock sync.RWMutex
 
@@ -167,6 +173,10 @@ type Agent struct {
 
 	// wgServers is the wait group for all HTTP and DNS servers
 	wgServers sync.WaitGroup
+
+	// watchPlans tracks all the currently-running watch plans for the
+	// agent.
+	watchPlans []*watch.Plan
 }
 
 func New(c *Config) (*Agent, error) {
@@ -190,22 +200,23 @@ func New(c *Config) (*Agent, error) {
 	}
 
 	a := &Agent{
-		config:         c,
-		acls:           acls,
-		checkReapAfter: make(map[types.CheckID]time.Duration),
-		checkMonitors:  make(map[types.CheckID]*CheckMonitor),
-		checkTTLs:      make(map[types.CheckID]*CheckTTL),
-		checkHTTPs:     make(map[types.CheckID]*CheckHTTP),
-		checkTCPs:      make(map[types.CheckID]*CheckTCP),
-		checkDockers:   make(map[types.CheckID]*CheckDocker),
-		eventCh:        make(chan serf.UserEvent, 1024),
-		eventBuf:       make([]*UserEvent, 256),
-		reloadCh:       make(chan chan error),
-		retryJoinCh:    make(chan error),
-		shutdownCh:     make(chan struct{}),
-		endpoints:      make(map[string]string),
-		dnsAddrs:       dnsAddrs,
-		httpAddrs:      httpAddrs,
+		config:          c,
+		acls:            acls,
+		checkReapAfter:  make(map[types.CheckID]time.Duration),
+		checkMonitors:   make(map[types.CheckID]*CheckMonitor),
+		checkTTLs:       make(map[types.CheckID]*CheckTTL),
+		checkHTTPs:      make(map[types.CheckID]*CheckHTTP),
+		checkTCPs:       make(map[types.CheckID]*CheckTCP),
+		checkDockers:    make(map[types.CheckID]*CheckDocker),
+		eventCh:         make(chan serf.UserEvent, 1024),
+		eventBuf:        make([]*UserEvent, 256),
+		joinLANNotifier: &systemd.Notifier{},
+		reloadCh:        make(chan chan error),
+		retryJoinCh:     make(chan error),
+		shutdownCh:      make(chan struct{}),
+		endpoints:       make(map[string]string),
+		dnsAddrs:        dnsAddrs,
+		httpAddrs:       httpAddrs,
 	}
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
@@ -230,9 +241,6 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
-	// Initialize the local state.
-	a.state.Init(c, a.logger)
-
 	// Setup either the client or the server.
 	if c.Server {
 		server, err := a.makeServer()
@@ -241,7 +249,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = server
-		a.state.SetIface(server)
+		a.state.Init(c, a.logger, server)
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
@@ -259,7 +267,7 @@ func (a *Agent) Start() error {
 		}
 
 		a.delegate = client
-		a.state.SetIface(client)
+		a.state.Init(c, a.logger, client)
 	}
 
 	// Load checks/services/metadata.
@@ -312,7 +320,7 @@ func (a *Agent) Start() error {
 	}
 
 	// register watches
-	if err := a.registerWatches(); err != nil {
+	if err := a.reloadWatches(a.config); err != nil {
 		return err
 	}
 
@@ -491,11 +499,11 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	}
 }
 
-func (a *Agent) registerWatches() error {
-	if len(a.config.WatchPlans) == 0 {
-		return nil
-	}
-	addrs, err := a.config.HTTPAddrs()
+// reloadWatches stops any existing watch plans and attempts to load the given
+// set of watches.
+func (a *Agent) reloadWatches(cfg *Config) error {
+	// Watches use the API to talk to this agent, so that must be enabled.
+	addrs, err := cfg.HTTPAddrs()
 	if err != nil {
 		return err
 	}
@@ -503,7 +511,15 @@ func (a *Agent) registerWatches() error {
 		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
 	}
 
-	for _, wp := range a.config.WatchPlans {
+	// Stop the current watches.
+	for _, wp := range a.watchPlans {
+		wp.Stop()
+	}
+	a.watchPlans = nil
+
+	// Fire off a goroutine for each new watch plan.
+	for _, wp := range cfg.WatchPlans {
+		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
 			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
 			wp.LogOutput = a.LogOutput
@@ -512,7 +528,7 @@ func (a *Agent) registerWatches() error {
 				addr = "unix://" + addr
 			}
 			if err := wp.Run(addr); err != nil {
-				a.logger.Println("[ERR] Failed to run watch: %v", err)
+				a.logger.Printf("[ERR] Failed to run watch: %v", err)
 			}
 		}(wp)
 	}
@@ -887,8 +903,10 @@ func (a *Agent) makeServer() (*consul.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := a.setupKeyrings(config); err != nil {
-		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+	if !a.config.DisableKeyringFile {
+		if err := a.setupKeyrings(config); err != nil {
+			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+		}
 	}
 	server, err := consul.NewServerLogger(config, a.logger)
 	if err != nil {
@@ -903,8 +921,10 @@ func (a *Agent) makeClient() (*consul.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := a.setupKeyrings(config); err != nil {
-		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+	if !a.config.DisableKeyringFile {
+		if err := a.setupKeyrings(config); err != nil {
+			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
+		}
 	}
 	client, err := consul.NewClientLogger(config, a.logger)
 	if err != nil {
@@ -931,7 +951,7 @@ func (a *Agent) makeRandomID() (string, error) {
 // gopsutil change implementations without affecting in-place upgrades of nodes.
 func (a *Agent) makeNodeID() (string, error) {
 	// If they've disabled host-based IDs then just make a random one.
-	if a.config.DisableHostNodeID {
+	if *a.config.DisableHostNodeID {
 		return a.makeRandomID()
 	}
 
@@ -1068,9 +1088,34 @@ LOAD:
 	return nil
 }
 
+// registerEndpoint registers a handler for the consul RPC server
+// under a unique name while making it accessible under the provided
+// name. This allows overwriting handlers for the golang net/rpc
+// service which does not allow this.
+func (a *Agent) registerEndpoint(name string, handler interface{}) error {
+	srv, ok := a.delegate.(*consul.Server)
+	if !ok {
+		panic("agent must be a server")
+	}
+	realname := fmt.Sprintf("%s-%d", name, time.Now().UnixNano())
+	a.endpointsLock.Lock()
+	a.endpoints[name] = realname
+	a.endpointsLock.Unlock()
+	return srv.RegisterEndpoint(realname, handler)
+}
+
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
+	a.endpointsLock.Lock()
+	// fast path: only translate if there are overrides
+	if len(a.endpoints) > 0 {
+		p := strings.SplitN(method, ".", 2)
+		if e := a.endpoints[p[0]]; e != "" {
+			method = e + "." + p[1]
+		}
+	}
+	a.endpointsLock.Unlock()
 	return a.delegate.RPC(method, args, reply)
 }
 
@@ -1079,7 +1124,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 // payload, and the response message will determine the error status, and any
 // return payload will be written to out.
 func (a *Agent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn consul.SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 	return a.delegate.SnapshotRPC(args, in, out, replyFn)
 }
 
@@ -1088,9 +1133,10 @@ func (a *Agent) Leave() error {
 	return a.delegate.Leave()
 }
 
-// Shutdown is used to hard stop the agent. Should be
-// preceded by a call to Leave to do it gracefully.
-func (a *Agent) Shutdown() error {
+// ShutdownAgent is used to hard stop the agent. Should be preceded by
+// Leave to do it gracefully. Should be followed by ShutdownEndpoints to
+// terminate the HTTP and DNS servers as well.
+func (a *Agent) ShutdownAgent() error {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
@@ -1098,29 +1144,6 @@ func (a *Agent) Shutdown() error {
 		return nil
 	}
 	a.logger.Println("[INFO] agent: Requesting shutdown")
-
-	// Stop all API endpoints
-	for _, srv := range a.dnsServers {
-		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
-		srv.Shutdown()
-	}
-	for _, srv := range a.httpServers {
-		// http server is HTTPS if TLSConfig is not nil and NextProtos does not only contain "h2"
-		// the latter seems to be a side effect of HTTP/2 support in go 1.8. TLSConfig != nil is
-		// no longer sufficient to check for an HTTPS server.
-		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-
-		// graceful shutdown
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		srv.Shutdown(ctx)
-		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
-		}
-	}
-	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
-	a.wgServers.Wait()
-	a.logger.Print("[INFO] agent: Endpoints down")
 
 	// Stop all the checks
 	a.checkLock.Lock()
@@ -1131,11 +1154,9 @@ func (a *Agent) Shutdown() error {
 	for _, chk := range a.checkTTLs {
 		chk.Stop()
 	}
-
 	for _, chk := range a.checkHTTPs {
 		chk.Stop()
 	}
-
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
@@ -1161,6 +1182,38 @@ func (a *Agent) Shutdown() error {
 	return err
 }
 
+// ShutdownEndpoints terminates the HTTP and DNS servers. Should be
+// preceeded by ShutdownAgent.
+func (a *Agent) ShutdownEndpoints() {
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+
+	if len(a.dnsServers) == 0 || len(a.httpServers) == 0 {
+		return
+	}
+
+	for _, srv := range a.dnsServers {
+		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+		srv.Shutdown()
+	}
+	a.dnsServers = nil
+
+	for _, srv := range a.httpServers {
+		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		srv.Shutdown(ctx)
+		if ctx.Err() == context.DeadlineExceeded {
+			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+		}
+	}
+	a.httpServers = nil
+
+	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
+	a.wgServers.Wait()
+	a.logger.Print("[INFO] agent: Endpoints down")
+}
+
 // ReloadCh is used to return a channel that can be
 // used for triggering reloads and returning a response.
 func (a *Agent) ReloadCh() chan chan error {
@@ -1184,6 +1237,11 @@ func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
 	n, err = a.delegate.JoinLAN(addrs)
 	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
+	if err == nil && a.joinLANNotifier != nil {
+		if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
+			a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+		}
+	}
 	return
 }
 
@@ -1342,6 +1400,13 @@ func (a *Agent) reapServices() {
 
 }
 
+// persistedService is used to wrap a service definition and bundle it
+// with an ACL token so we can restore both at a later agent start.
+type persistedService struct {
+	Token   string
+	Service *structs.NodeService
+}
+
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
@@ -1368,7 +1433,7 @@ func (a *Agent) purgeService(serviceID string) error {
 }
 
 // persistCheck saves a check definition to the local agent's state directory
-func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
+func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(check.CheckID))
 
 	// Create the persisted check
@@ -1426,7 +1491,7 @@ func writeFileAtomic(path string, contents []byte) error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, persist bool, token string) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -1552,7 +1617,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist bool, token string) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -2248,40 +2313,7 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-// InjectEndpoint overrides the given endpoint with a substitute one. Note
-// that not all agent methods use this mechanism, and that is should only
-// be used for testing.
-func (a *Agent) InjectEndpoint(endpoint string, handler interface{}) error {
-	srv, ok := a.delegate.(*consul.Server)
-	if !ok {
-		return fmt.Errorf("agent must be a server")
-	}
-	if err := srv.InjectEndpoint(handler); err != nil {
-		return err
-	}
-	name := reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
-	a.endpointsLock.Lock()
-	a.endpoints[endpoint] = name
-	a.endpointsLock.Unlock()
-
-	a.logger.Printf("[WARN] agent: endpoint injected; this should only be used for testing")
-	return nil
-}
-
-// getEndpoint returns the endpoint name to use for the given endpoint,
-// which may be overridden.
-func (a *Agent) getEndpoint(endpoint string) string {
-	a.endpointsLock.RLock()
-	defer a.endpointsLock.RUnlock()
-	if override, ok := a.endpoints[endpoint]; ok {
-		return override
-	}
-	return endpoint
-}
-
-func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
-	var errs error
-
+func (a *Agent) ReloadConfig(newCfg *Config) error {
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2293,50 +2325,27 @@ func (a *Agent) ReloadConfig(newCfg *Config) (bool, error) {
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
 	if err := a.unloadServices(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading services: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed unloading services: %s", err)
 	}
 	if err := a.unloadChecks(); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed unloading checks: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed unloading checks: %s", err)
 	}
 	a.unloadMetadata()
 
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading services: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading services: %s", err)
 	}
 	if err := a.loadChecks(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading checks: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading checks: %s", err)
 	}
 	if err := a.loadMetadata(newCfg); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed reloading metadata: %s", err))
-		return false, errs
+		return fmt.Errorf("Failed reloading metadata: %s", err)
 	}
 
-	// Get the new client listener addr
-	httpAddr, err := newCfg.ClientListener(a.config.Addresses.HTTP, a.config.Ports.HTTP)
-	if err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("Failed to determine HTTP address: %v", err))
+	if err := a.reloadWatches(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
-	// Deregister the old watches
-	for _, wp := range a.config.WatchPlans {
-		wp.Stop()
-	}
-
-	// Register the new watches
-	for _, wp := range newCfg.WatchPlans {
-		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
-			wp.LogOutput = a.LogOutput
-			if err := wp.Run(httpAddr.String()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("Error running watch: %v", err))
-			}
-		}(wp)
-	}
-
-	return true, errs
+	return nil
 }

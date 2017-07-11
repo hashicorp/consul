@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/servers"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -98,7 +100,7 @@ type Server struct {
 	config *Config
 
 	// Connection pool to other consul servers
-	connPool *ConnPool
+	connPool *pool.ConnPool
 
 	// Endpoints holds our RPC endpoints
 	endpoints endpoints
@@ -140,6 +142,9 @@ type Server struct {
 	// into the leader manager, so that the strong state can be
 	// updated
 	reconcileCh chan serf.Member
+
+	// used to track when the server is ready to serve consistent reads, updated atomically
+	readyForConsistentReads int32
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -267,12 +272,21 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
+	connPool := &pool.ConnPool{
+		SrcAddr:    config.RPCSrcAddr,
+		LogOutput:  config.LogOutput,
+		MaxTime:    serverRPCCache,
+		MaxStreams: serverMaxStreams,
+		TLSWrapper: tlsWrap,
+		ForceTLS:   config.VerifyOutgoing,
+	}
+
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
 		autopilotShutdownCh:   make(chan struct{}),
 		config:                config,
-		connPool:              NewPool(config.RPCSrcAddr, config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap, config.VerifyOutgoing),
+		connPool:              connPool,
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		localConsuls:          make(map[raft.ServerAddress]*agent.Server),
@@ -933,7 +947,7 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 // SnapshotRPC dispatches the given snapshot request, reading from the streaming
 // input and writing to the streaming output depending on the operation.
 func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
-	replyFn SnapshotReplyFn) error {
+	replyFn structs.SnapshotReplyFn) error {
 
 	// Perform the operation.
 	var reply structs.SnapshotResponse
@@ -963,10 +977,10 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	return nil
 }
 
-// InjectEndpoint is used to substitute an endpoint for testing.
-func (s *Server) InjectEndpoint(endpoint interface{}) error {
+// RegisterEndpoint is used to substitute an endpoint for testing.
+func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
-	return s.rpcServer.Register(endpoint)
+	return s.rpcServer.RegisterName(name, handler)
 }
 
 // Stats is used to return statistics for debugging and insight
@@ -1000,6 +1014,21 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
+}
+
+// Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
+func (s *Server) setConsistentReadReady() {
+	atomic.StoreInt32(&s.readyForConsistentReads, 1)
+}
+
+// Atomically reset readiness state flag on leadership revoke
+func (s *Server) resetConsistentReadReady() {
+	atomic.StoreInt32(&s.readyForConsistentReads, 0)
+}
+
+// Returns true if this server is ready to serve consistent reads
+func (s *Server) isReadyForConsistentReads() bool {
+	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
 }
 
 // peersInfoContent is used to help operators understand what happened to the

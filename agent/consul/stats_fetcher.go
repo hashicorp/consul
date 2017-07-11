@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/pool"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the
@@ -18,14 +19,14 @@ import (
 // as we run the health check fairly frequently.
 type StatsFetcher struct {
 	logger       *log.Logger
-	pool         *ConnPool
+	pool         *pool.ConnPool
 	datacenter   string
 	inflight     map[string]struct{}
 	inflightLock sync.Mutex
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(logger *log.Logger, pool *ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
 	return &StatsFetcher{
 		logger:     logger,
 		pool:       pool,

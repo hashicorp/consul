@@ -76,4 +76,7 @@ the community.
   <li>
     <a href="https://github.com/Drawaes/CondenserDotNet">CondenserDotNet</a> - C# an opinionated API for .NET that provides higher level functionality for services using the HTTP API
   </li>
+  <li>
+    <a href="https://github.com/cpageler93/ConsulSwift">ConsulSwift</a> - Swift client for the Consul HTTP API
+  </li>
 </ul>

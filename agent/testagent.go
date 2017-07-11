@@ -156,7 +156,8 @@ func (a *TestAgent) Start() *TestAgent {
 			fmt.Println(id, a.Name, "Error starting agent:", err)
 			runtime.Goexit()
 		} else {
-			agent.Shutdown()
+			agent.ShutdownAgent()
+			agent.ShutdownEndpoints()
 			wait := time.Duration(rand.Int31n(2000)) * time.Millisecond
 			fmt.Println(id, a.Name, "retrying in", wait)
 			time.Sleep(wait)
@@ -221,7 +222,10 @@ func (a *TestAgent) Shutdown() error {
 			os.RemoveAll(a.DataDir)
 		}
 	}()
-	return a.Agent.Shutdown()
+
+	// shutdown agent before endpoints
+	defer a.Agent.ShutdownEndpoints()
+	return a.Agent.ShutdownAgent()
 }
 
 func (a *TestAgent) HTTPAddr() string {

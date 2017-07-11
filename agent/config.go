@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -126,6 +127,12 @@ type DNSConfig struct {
 	// Default: 2s
 	RecursorTimeout    time.Duration `mapstructure:"-"`
 	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
+}
+
+// HTTPConfig is used to fine tune the Http sub-system.
+type HTTPConfig struct {
+	// ResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
+	ResponseHeaders map[string]string `mapstructure:"response_headers"`
 }
 
 // RetryJoinEC2 is used to configure discovery of instances via Amazon's EC2 api
@@ -364,8 +371,14 @@ type Config struct {
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string `mapstructure:"domain"`
 
+	// HTTP configuration
+	HTTPConfig HTTPConfig `mapstructure:"http_config"`
+
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt" json:"-"`
+
+	// Disables writing the keyring to a file.
+	DisableKeyringFile bool `mapstructure:"disable_keyring_file"`
 
 	// EncryptVerifyIncoming and EncryptVerifyOutgoing are used to enforce
 	// incoming/outgoing gossip encryption and can be used to upshift to
@@ -383,7 +396,7 @@ type Config struct {
 	// DisableHostNodeID will prevent Consul from using information from the
 	// host to generate a node ID, and will cause Consul to generate a
 	// random ID instead.
-	DisableHostNodeID bool `mapstructure:"disable_host_node_id"`
+	DisableHostNodeID *bool `mapstructure:"disable_host_node_id"`
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string `mapstructure:"node_name"`
@@ -702,9 +715,6 @@ type Config struct {
 	// send with the update check. This is used to deduplicate messages.
 	DisableAnonymousSignature bool `mapstructure:"disable_anonymous_signature"`
 
-	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
-	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
-
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
@@ -726,10 +736,10 @@ type Config struct {
 	SyncCoordinateIntervalMin time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
-	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
+	Checks []*structs.CheckDefinition `mapstructure:"-" json:"-"`
 
 	// Services holds the provided service definitions
-	Services []*ServiceDefinition `mapstructure:"-" json:"-"`
+	Services []*structs.ServiceDefinition `mapstructure:"-" json:"-"`
 
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
@@ -755,11 +765,12 @@ type Config struct {
 
 	// deprecated fields
 	// keep them exported since otherwise the error messages don't show up
-	DeprecatedAtlasInfrastructure string `mapstructure:"atlas_infrastructure" json:"-"`
-	DeprecatedAtlasToken          string `mapstructure:"atlas_token" json:"-"`
-	DeprecatedAtlasACLToken       string `mapstructure:"atlas_acl_token" json:"-"`
-	DeprecatedAtlasJoin           bool   `mapstructure:"atlas_join" json:"-"`
-	DeprecatedAtlasEndpoint       string `mapstructure:"atlas_endpoint" json:"-"`
+	DeprecatedAtlasInfrastructure    string            `mapstructure:"atlas_infrastructure" json:"-"`
+	DeprecatedAtlasToken             string            `mapstructure:"atlas_token" json:"-"`
+	DeprecatedAtlasACLToken          string            `mapstructure:"atlas_acl_token" json:"-"`
+	DeprecatedAtlasJoin              bool              `mapstructure:"atlas_join" json:"-"`
+	DeprecatedAtlasEndpoint          string            `mapstructure:"atlas_endpoint" json:"-"`
+	DeprecatedHTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
@@ -786,7 +797,7 @@ type ProtoAddr struct {
 }
 
 func (p ProtoAddr) String() string {
-	return p.Proto + "+" + p.Net + "://" + p.Addr
+	return p.Proto + "://" + p.Addr
 }
 
 func (c *Config) DNSAddrs() ([]ProtoAddr, error) {
@@ -939,6 +950,8 @@ func DefaultConfig() *Config {
 
 		EncryptVerifyIncoming: Bool(true),
 		EncryptVerifyOutgoing: Bool(true),
+
+		DisableHostNodeID: Bool(true),
 	}
 }
 
@@ -952,6 +965,7 @@ func DevConfig() *Config {
 	conf.DisableAnonymousSignature = true
 	conf.EnableUI = true
 	conf.BindAddr = "127.0.0.1"
+	conf.DisableKeyringFile = true
 
 	conf.ConsulConfig = consul.DefaultConfig()
 	conf.ConsulConfig.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
@@ -1363,11 +1377,24 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.TLSCipherSuites = ciphers
 	}
 
+	// This is for backwards compatibility.
+	// HTTPAPIResponseHeaders has been replaced with HTTPConfig.ResponseHeaders
+	if len(result.DeprecatedHTTPAPIResponseHeaders) > 0 {
+		fmt.Fprintln(os.Stderr, "==> DEPRECATION: http_api_response_headers is deprecated and "+
+			"is no longer used. Please use http_config.response_headers instead.")
+		if result.HTTPConfig.ResponseHeaders == nil {
+			result.HTTPConfig.ResponseHeaders = make(map[string]string)
+		}
+		for field, value := range result.DeprecatedHTTPAPIResponseHeaders {
+			result.HTTPConfig.ResponseHeaders[field] = value
+		}
+		result.DeprecatedHTTPAPIResponseHeaders = nil
+	}
 	return &result, nil
 }
 
 // DecodeServiceDefinition is used to decode a service definition
-func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
+func DecodeServiceDefinition(raw interface{}) (*structs.ServiceDefinition, error) {
 	rawMap, ok := raw.(map[string]interface{})
 	if !ok {
 		goto AFTER_FIX
@@ -1400,7 +1427,7 @@ func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
 	}
 AFTER_FIX:
 	var md mapstructure.Metadata
-	var result ServiceDefinition
+	var result structs.ServiceDefinition
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
 		Result:   &result,
@@ -1507,12 +1534,12 @@ func FixupCheckType(raw interface{}) error {
 }
 
 // DecodeCheckDefinition is used to decode a check definition
-func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
+func DecodeCheckDefinition(raw interface{}) (*structs.CheckDefinition, error) {
 	if err := FixupCheckType(raw); err != nil {
 		return nil, err
 	}
 	var md mapstructure.Metadata
-	var result CheckDefinition
+	var result structs.CheckDefinition
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
 		Result:   &result,
@@ -1561,6 +1588,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
 	}
+	if b.DisableKeyringFile {
+		result.DisableKeyringFile = true
+	}
 	if b.EncryptVerifyIncoming != nil {
 		result.EncryptVerifyIncoming = b.EncryptVerifyIncoming
 	}
@@ -1579,7 +1609,7 @@ func MergeConfig(a, b *Config) *Config {
 	if b.NodeID != "" {
 		result.NodeID = b.NodeID
 	}
-	if b.DisableHostNodeID == true {
+	if b.DisableHostNodeID != nil {
 		result.DisableHostNodeID = b.DisableHostNodeID
 	}
 	if b.NodeName != "" {
@@ -1966,12 +1996,12 @@ func MergeConfig(a, b *Config) *Config {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
 	}
-	if len(b.HTTPAPIResponseHeaders) != 0 {
-		if result.HTTPAPIResponseHeaders == nil {
-			result.HTTPAPIResponseHeaders = make(map[string]string)
+	if len(b.HTTPConfig.ResponseHeaders) > 0 {
+		if result.HTTPConfig.ResponseHeaders == nil {
+			result.HTTPConfig.ResponseHeaders = make(map[string]string)
 		}
-		for field, value := range b.HTTPAPIResponseHeaders {
-			result.HTTPAPIResponseHeaders[field] = value
+		for field, value := range b.HTTPConfig.ResponseHeaders {
+			result.HTTPConfig.ResponseHeaders[field] = value
 		}
 	}
 	if len(b.Meta) != 0 {

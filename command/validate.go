@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/configutil"
 )
 
 // ValidateCommand is a Command implementation that is used to
@@ -35,9 +36,9 @@ func (c *ValidateCommand) Run(args []string) int {
 	var quiet bool
 
 	f := c.BaseCommand.NewFlagSet(c)
-	f.Var((*AppendSliceValue)(&configFiles), "config-file",
+	f.Var((*configutil.AppendSliceValue)(&configFiles), "config-file",
 		"Path to a JSON file to read configuration from. This can be specified multiple times.")
-	f.Var((*AppendSliceValue)(&configFiles), "config-dir",
+	f.Var((*configutil.AppendSliceValue)(&configFiles), "config-dir",
 		"Path to a directory to read configuration files from. This will read every file ending in "+
 			".json as configuration in this directory in alphabetical order.")
 	f.BoolVar(&quiet, "quiet", false,

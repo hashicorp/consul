@@ -291,6 +291,43 @@ func TestReadCliConfig(t *testing.T) {
 	}
 }
 
+func TestAgent_HostBasedIDs(t *testing.T) {
+	t.Parallel()
+	tmpDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(tmpDir)
+
+	// Host-based IDs are disabled by default.
+	{
+		cmd := &AgentCommand{
+			args: []string{
+				"-data-dir", tmpDir,
+			},
+			BaseCommand: baseCommand(cli.NewMockUi()),
+		}
+
+		config := cmd.readConfig()
+		if *config.DisableHostNodeID != true {
+			t.Fatalf("expected host-based node IDs to be disabled")
+		}
+	}
+
+	// Try enabling host-based IDs.
+	{
+		cmd := &AgentCommand{
+			args: []string{
+				"-data-dir", tmpDir,
+				"-disable-host-node-id=false",
+			},
+			BaseCommand: baseCommand(cli.NewMockUi()),
+		}
+
+		config := cmd.readConfig()
+		if *config.DisableHostNodeID != false {
+			t.Fatalf("expected host-based node IDs to be enabled")
+		}
+	}
+}
+
 func TestRetryJoinFail(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	t.Parallel()

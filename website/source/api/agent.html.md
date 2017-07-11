@@ -172,7 +172,7 @@ $ curl \
   },
   "Meta": {
     "instance_type": "i2.xlarge",
-    "os_version": "ubuntu_16.04",
+    "os_version": "ubuntu_16.04"
   }
 }
 ```
@@ -320,7 +320,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/agent/join/1.2.3.4
+    https://consul.rocks/v1/agent/join/1.2.3.4
 ```
 
 ## Graceful Leave and Shutdown

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/configutil"
 	"github.com/mitchellh/cli"
 	text "github.com/tonnerre/golang-text"
 )
@@ -36,16 +37,16 @@ type BaseCommand struct {
 	hidden  *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
-	httpAddr      StringValue
-	token         StringValue
-	caFile        StringValue
-	caPath        StringValue
-	certFile      StringValue
-	keyFile       StringValue
-	tlsServerName StringValue
+	httpAddr      configutil.StringValue
+	token         configutil.StringValue
+	caFile        configutil.StringValue
+	caPath        configutil.StringValue
+	certFile      configutil.StringValue
+	keyFile       configutil.StringValue
+	tlsServerName configutil.StringValue
 
-	datacenter StringValue
-	stale      BoolValue
+	datacenter configutil.StringValue
+	stale      configutil.BoolValue
 }
 
 // HTTPClient returns a client with the parsed flags. It panics if the command
