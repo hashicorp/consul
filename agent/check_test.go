@@ -2,21 +2,18 @@ package agent
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"os/exec"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -512,260 +509,288 @@ func TestCheckTCPPassing(t *testing.T) {
 	tcpServer.Close()
 }
 
-// A fake docker client to test happy path scenario
-type fakeDockerClientWithNoErrors struct {
-}
-
-func (d *fakeDockerClientWithNoErrors) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithNoErrors) StartExec(id string, opts docker.StartExecOptions) error {
-	fmt.Fprint(opts.OutputStream, "output")
-	return nil
-}
-
-func (d *fakeDockerClientWithNoErrors) InspectExec(id string) (*docker.ExecInspect, error) {
-	return &docker.ExecInspect{
-		ID:       "123",
-		ExitCode: 0,
-	}, nil
-}
-
-// A fake docker client to test truncation of output
-type fakeDockerClientWithLongOutput struct {
-}
-
-func (d *fakeDockerClientWithLongOutput) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithLongOutput) StartExec(id string, opts docker.StartExecOptions) error {
-	b, _ := exec.Command("od", "-N", "81920", "/dev/urandom").Output()
-	fmt.Fprint(opts.OutputStream, string(b))
-	return nil
-}
-
-func (d *fakeDockerClientWithLongOutput) InspectExec(id string) (*docker.ExecInspect, error) {
-	return &docker.ExecInspect{
-		ID:       "123",
-		ExitCode: 0,
-	}, nil
-}
-
-// A fake docker client to test non-zero exit codes from exec invocation
-type fakeDockerClientWithExecNonZeroExitCode struct {
-}
-
-func (d *fakeDockerClientWithExecNonZeroExitCode) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithExecNonZeroExitCode) StartExec(id string, opts docker.StartExecOptions) error {
-	return nil
-}
-
-func (d *fakeDockerClientWithExecNonZeroExitCode) InspectExec(id string) (*docker.ExecInspect, error) {
-	return &docker.ExecInspect{
-		ID:       "123",
-		ExitCode: 127,
-	}, nil
-}
-
-// A fake docker client to test exit code which result into Warning
-type fakeDockerClientWithExecExitCodeOne struct {
-}
-
-func (d *fakeDockerClientWithExecExitCodeOne) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithExecExitCodeOne) StartExec(id string, opts docker.StartExecOptions) error {
-	fmt.Fprint(opts.OutputStream, "output")
-	return nil
-}
-
-func (d *fakeDockerClientWithExecExitCodeOne) InspectExec(id string) (*docker.ExecInspect, error) {
-	return &docker.ExecInspect{
-		ID:       "123",
-		ExitCode: 1,
-	}, nil
-}
-
-// A fake docker client to simulate create exec failing
-type fakeDockerClientWithCreateExecFailure struct {
-}
-
-func (d *fakeDockerClientWithCreateExecFailure) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return nil, errors.New("Exec Creation Failed")
-}
-
-func (d *fakeDockerClientWithCreateExecFailure) StartExec(id string, opts docker.StartExecOptions) error {
-	return errors.New("Exec doesn't exist")
-}
-
-func (d *fakeDockerClientWithCreateExecFailure) InspectExec(id string) (*docker.ExecInspect, error) {
-	return nil, errors.New("Exec doesn't exist")
-}
-
-// A fake docker client to simulate start exec failing
-type fakeDockerClientWithStartExecFailure struct {
-}
-
-func (d *fakeDockerClientWithStartExecFailure) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithStartExecFailure) StartExec(id string, opts docker.StartExecOptions) error {
-	return errors.New("Couldn't Start Exec")
-}
-
-func (d *fakeDockerClientWithStartExecFailure) InspectExec(id string) (*docker.ExecInspect, error) {
-	return nil, errors.New("Exec doesn't exist")
-}
-
-// A fake docker client to test exec info query failures
-type fakeDockerClientWithExecInfoErrors struct {
-}
-
-func (d *fakeDockerClientWithExecInfoErrors) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
-	return &docker.Exec{ID: "123"}, nil
-}
-
-func (d *fakeDockerClientWithExecInfoErrors) StartExec(id string, opts docker.StartExecOptions) error {
-	return nil
-}
-
-func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.ExecInspect, error) {
-	return nil, errors.New("Unable to query exec info")
-}
-
-func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, output string) {
-	notif := mock.NewNotify()
-	check := &CheckDocker{
-		Notify:            notif,
-		CheckID:           types.CheckID("foo"),
-		Script:            "/health.sh",
-		DockerContainerID: "54432bad1fc7",
-		Shell:             "/bin/sh",
-		Interval:          25 * time.Millisecond,
-		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
-		dockerClient:      dockerClient,
+func TestCheck_Docker(t *testing.T) {
+	tests := []struct {
+		desc     string
+		handlers map[string]http.HandlerFunc
+		out      *regexp.Regexp
+		state    string
+	}{
+		{
+			desc: "create exec: bad container id",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(404)
+				},
+			},
+			out:   regexp.MustCompile("^create exec failed for unknown container 123$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "create exec: paused container",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(409)
+				},
+			},
+			out:   regexp.MustCompile("^create exec failed since container 123 is paused or stopped$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "create exec: bad status code",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(999)
+					fmt.Fprint(w, "some output")
+				},
+			},
+			out:   regexp.MustCompile("^create exec failed for container 123 with status 999: some output$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "create exec: bad json",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `this is not json`)
+				},
+			},
+			out:   regexp.MustCompile("^create exec response for container 123 cannot be parsed: .*$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "start exec: bad exec id",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(404)
+				},
+			},
+			out:   regexp.MustCompile("^start exec failed for container 123: invalid exec id 456$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "start exec: paused container",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(409)
+				},
+			},
+			out:   regexp.MustCompile("^start exec failed since container 123 is paused or stopped$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "start exec: bad status code",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(999)
+					fmt.Fprint(w, "some output")
+				},
+			},
+			out:   regexp.MustCompile("^start exec failed for container 123 with status 999: some output$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "inspect exec: bad exec id",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "OK")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(404)
+				},
+			},
+			out:   regexp.MustCompile("^inspect exec failed for container 123: invalid exec id 456$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "inspect exec: bad status code",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "OK")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(999)
+					fmt.Fprint(w, "some output")
+				},
+			},
+			out:   regexp.MustCompile("^inspect exec failed for container 123 with status 999: some output$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "inspect exec: bad json",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "OK")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `this is not json`)
+				},
+			},
+			out:   regexp.MustCompile("^inspect exec response for container 123 cannot be parsed: .*$"),
+			state: api.HealthCritical,
+		},
+		{
+			desc: "inspect exec: exit code 0: passing",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "OK")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"ExitCode":0}`)
+				},
+			},
+			out:   regexp.MustCompile("^OK$"),
+			state: api.HealthPassing,
+		},
+		{
+			desc: "inspect exec: exit code 0: passing: truncated",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "01234567890123456789OK") // more than 20 bytes
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"ExitCode":0}`)
+				},
+			},
+			out:   regexp.MustCompile("^Captured 20 of 22 bytes\n...\n234567890123456789OK$"),
+			state: api.HealthPassing,
+		},
+		{
+			desc: "inspect exec: exit code 1: warning",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "WARN")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"ExitCode":1}`)
+				},
+			},
+			out:   regexp.MustCompile("^WARN$"),
+			state: api.HealthWarning,
+		},
+		{
+			desc: "inspect exec: exit code 2: critical",
+			handlers: map[string]http.HandlerFunc{
+				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(201)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"Id":"456"}`)
+				},
+				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					fmt.Fprint(w, "NOK")
+				},
+				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(200)
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, `{"ExitCode":2}`)
+				},
+			},
+			out:   regexp.MustCompile("^NOK$"),
+			state: api.HealthCritical,
+		},
 	}
-	check.Start()
-	defer check.Stop()
 
-	time.Sleep(250 * time.Millisecond)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				x := r.Method + " " + r.RequestURI
+				h := tt.handlers[x]
+				if h == nil {
+					t.Fatalf("bad url %s", x)
+				}
+				h(w, r)
+			}))
+			defer srv.Close()
 
-	// Should have at least 2 updates
-	if notif.Updates("foo") < 2 {
-		t.Fatalf("should have 2 updates %v", notif.UpdatesMap())
-	}
+			// create a docker client with a tiny output buffer
+			// to test the truncation
+			c, err := NewDockerClient(srv.URL, 20)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if notif.State("foo") != status {
-		t.Fatalf("should be %v %v", status, notif.StateMap())
-	}
+			notif, upd := mock.NewNotifyChan()
+			id := types.CheckID("chk")
+			check := &CheckDocker{
+				Notify:            notif,
+				CheckID:           id,
+				Script:            "/health.sh",
+				DockerContainerID: "123",
+				Interval:          25 * time.Millisecond,
+				client:            c,
+			}
+			check.Start()
+			defer check.Stop()
 
-	if notif.Output("foo") != output {
-		t.Fatalf("should be %v %v", output, notif.OutputMap())
-	}
-}
+			<-upd // wait for update
 
-func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, api.HealthPassing, "output")
-}
-
-func TestDockerCheckWhenExecCreationFails(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, api.HealthCritical, "Unable to create Exec, error: Exec Creation Failed")
-}
-
-func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, api.HealthCritical, "")
-}
-
-func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, api.HealthWarning, "output")
-}
-
-func TestDockerCheckWhenExecStartFails(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, api.HealthCritical, "Unable to start Exec: Couldn't Start Exec")
-}
-
-func TestDockerCheckWhenExecInfoFails(t *testing.T) {
-	t.Parallel()
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, api.HealthCritical, "Unable to inspect Exec: Unable to query exec info")
-}
-
-func TestDockerCheckDefaultToSh(t *testing.T) {
-	t.Parallel()
-	os.Setenv("SHELL", "")
-	notif := mock.NewNotify()
-	check := &CheckDocker{
-		Notify:            notif,
-		CheckID:           types.CheckID("foo"),
-		Script:            "/health.sh",
-		DockerContainerID: "54432bad1fc7",
-		Interval:          10 * time.Millisecond,
-		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
-		dockerClient:      &fakeDockerClientWithNoErrors{},
-	}
-	check.Start()
-	defer check.Stop()
-
-	time.Sleep(50 * time.Millisecond)
-	if check.Shell != "/bin/sh" {
-		t.Fatalf("Shell should be: %v , actual: %v", "/bin/sh", check.Shell)
-	}
-}
-
-func TestDockerCheckUseShellFromEnv(t *testing.T) {
-	t.Parallel()
-	notif := mock.NewNotify()
-	os.Setenv("SHELL", "/bin/bash")
-	check := &CheckDocker{
-		Notify:            notif,
-		CheckID:           types.CheckID("foo"),
-		Script:            "/health.sh",
-		DockerContainerID: "54432bad1fc7",
-		Interval:          10 * time.Millisecond,
-		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
-		dockerClient:      &fakeDockerClientWithNoErrors{},
-	}
-	check.Start()
-	defer check.Stop()
-
-	time.Sleep(50 * time.Millisecond)
-	if check.Shell != "/bin/bash" {
-		t.Fatalf("Shell should be: %v , actual: %v", "/bin/bash", check.Shell)
-	}
-	os.Setenv("SHELL", "")
-}
-
-func TestDockerCheckTruncateOutput(t *testing.T) {
-	t.Parallel()
-	notif := mock.NewNotify()
-	check := &CheckDocker{
-		Notify:            notif,
-		CheckID:           types.CheckID("foo"),
-		Script:            "/health.sh",
-		DockerContainerID: "54432bad1fc7",
-		Shell:             "/bin/sh",
-		Interval:          10 * time.Millisecond,
-		Logger:            log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
-		dockerClient:      &fakeDockerClientWithLongOutput{},
-	}
-	check.Start()
-	defer check.Stop()
-
-	time.Sleep(50 * time.Millisecond)
-
-	// Allow for extra bytes for the truncation message
-	if len(notif.Output("foo")) > CheckBufSize+100 {
-		t.Fatalf("output size is too long")
+			if got, want := notif.Output(id), tt.out; !want.MatchString(got) {
+				t.Fatalf("got %q want %q", got, want)
+			}
+			if got, want := notif.State(id), tt.state; got != want {
+				t.Fatalf("got status %q want %q", got, want)
+			}
+		})
 	}
 }
