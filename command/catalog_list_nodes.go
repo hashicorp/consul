@@ -13,7 +13,7 @@ import (
 var _ cli.Command = (*CatalogListNodesCommand)(nil)
 
 // CatalogListNodesCommand is a Command implementation that is used to fetch all the
-// datacenters the agent knows about.
+// nodes in the catalog.
 type CatalogListNodesCommand struct {
 	BaseCommand
 }
