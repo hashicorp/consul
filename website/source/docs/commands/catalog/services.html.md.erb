@@ -1,0 +1,63 @@
+---
+layout: "docs"
+page_title: "Commands: Catalog List Services"
+sidebar_current: "docs-commands-catalog-services"
+---
+
+# Consul Catalog List Services
+
+Command: `consul catalog services`
+
+The `catalog services` command prints all known services. It can also query
+for services that match particular metadata or list the services that a
+particular node provides.
+
+## Examples
+
+List all services:
+
+```text
+$ consul catalog services
+consul
+postgresql
+redis
+```
+
+Show all services with their tags:
+
+```text
+$ consul catalog services -tags
+consul
+postgresql  leader
+redis       primary,v1
+```
+
+List services for the node "worker-01":
+
+```text
+$ consul catalog services -node=worker-01
+consul
+redis
+```
+
+
+## Usage
+
+Usage: `consul catalog services [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Catalog List Nodes Options
+
+- `-node=<id or name>` - Node `id or name` for which to list services.
+
+- `-node-meta=<key=value>` - Metadata to filter nodes with the given
+  `key=value` pairs. If specified, only services running on nodes matching the
+  given metadata will be returned. This flag may be specified multiple times to
+  filter on multiple sources of metadata.
+
+- `-tags` - Display each service's tags as a comma-separated list beside each
+  service entry.
