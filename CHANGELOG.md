@@ -5,7 +5,7 @@ BREAKING CHANGES:
 FEATURES:
 
 * agent: Added a new [`block_endpoints`](https://www.consul.io/docs/agent/options.html#block_endpoints) configuration option that allows blocking HTTP endpoints by prefix. This allows operators to completely disallow access to specific endpoints on a given agent. [GH-3252]
-* cli: Added new [Consul catalog CLI command](https://www.consul.io/docs/commands/catalog.html) for reading datacenters, nodes, and services from the catalog. [GH-3204]
+* cli: Added a new [Consul catalog CLI command](https://www.consul.io/docs/commands/catalog.html) for reading datacenters, nodes, and services from the catalog. [GH-3204]
 
 IMPROVEMENTS:
 
