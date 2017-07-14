@@ -11,7 +11,7 @@ IMPROVEMENTS:
 * agent: (Consul Enterprise) Snapshot agent rotation uses S3's pagination API, enabling retaining more than a 100 snapshots.
 * agent: Removed registration of the `consul` service from the agent since it's already handled by the leader. This means that Consul servers no longer need to have an `acl_agent_token` with write access to the `consul` service if ACLs are enabled. [GH-3248]
 * api: Added the ability to pass in a `context` as part of the `QueryOptions` during a request. This provides a way to cancel outstanding blocking queries. [GH-3195]
-* docs: Added a complete end-to-end example of ACL bootstrapping in the [ACL Guide](https://www.consul.io/docs/guides/acl.html). [GH-3248]
+* docs: Added a complete end-to-end example of ACL bootstrapping in the [ACL Guide]https://www.consul.io/docs/guides/acl.html#bootstrapping-acls). [GH-3248]
 * vendor: Updated golang.org/x/sys/unix to support IBM s390 platforms. [GH-3240]
 
 BUG FIXES:
