@@ -106,9 +106,23 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
-	// Context (optional) is passed through to the underlying http request layer, can be used
-	// to set timeouts and deadlines as well as to cancel requests
-	Context context.Context
+	context context.Context
+}
+
+func (o *QueryOptions) Context() context.Context {
+	if o.context != nil {
+		return o.context
+	}
+	return context.Background()
+}
+
+func (o *QueryOptions) WithContext(ctx context.Context) *QueryOptions {
+	o2 := new(QueryOptions)
+	if o != nil {
+		*o2 = *o
+	}
+	o2.context = ctx
+	return o2
 }
 
 // WriteOptions are used to parameterize a write
@@ -125,6 +139,24 @@ type WriteOptions struct {
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
+
+	context context.Context
+}
+
+func (o *WriteOptions) Context() context.Context {
+	if o.context != nil {
+		return o.context
+	}
+	return context.Background()
+}
+
+func (o *WriteOptions) WithContext(ctx context.Context) *WriteOptions {
+	o2 := new(WriteOptions)
+	if o != nil {
+		*o2 = *o
+	}
+	o2.context = ctx
+	return o2
 }
 
 // QueryMeta is used to return meta data about a query
@@ -499,7 +531,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
-	r.ctx = q.Context
+	r.ctx = q.context
 }
 
 // durToMsec converts a duration to a millisecond specified string. If the
@@ -544,6 +576,7 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
+	r.ctx = q.context
 }
 
 // toHTTP converts the request to an HTTP request
