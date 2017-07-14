@@ -145,7 +145,7 @@ func (s *Session) Renew(id string, q *WriteOptions) (*SessionEntry, *WriteMeta, 
 // RenewPeriodic is used to periodically invoke Session.Renew on a
 // session until a doneCh is closed. This is meant to be used in a long running
 // goroutine to ensure a session stays valid.
-func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, doneCh chan struct{}) error {
+func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, doneCh <-chan struct{}) error {
 	ttl, err := time.ParseDuration(initialTTL)
 	if err != nil {
 		return err
