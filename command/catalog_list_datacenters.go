@@ -64,5 +64,5 @@ func (c *CatalogListDatacentersCommand) Run(args []string) int {
 }
 
 func (c *CatalogListDatacentersCommand) Synopsis() string {
-	return "Lists all known datacenters for this agent"
+	return "Lists all known datacenters"
 }
