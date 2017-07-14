@@ -106,14 +106,14 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
-	// context is an optional context pass through to the underlying HTTP
+	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
-	context context.Context
+	ctx context.Context
 }
 
 func (o *QueryOptions) Context() context.Context {
-	if o != nil && o.context != nil {
-		return o.context
+	if o != nil && o.ctx != nil {
+		return o.ctx
 	}
 	return context.Background()
 }
@@ -123,7 +123,7 @@ func (o *QueryOptions) WithContext(ctx context.Context) *QueryOptions {
 	if o != nil {
 		*o2 = *o
 	}
-	o2.context = ctx
+	o2.ctx = ctx
 	return o2
 }
 
@@ -142,14 +142,14 @@ type WriteOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
-	// context is an optional context pass through to the underlying HTTP
+	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
-	context context.Context
+	ctx context.Context
 }
 
 func (o *WriteOptions) Context() context.Context {
-	if o != nil && o.context != nil {
-		return o.context
+	if o != nil && o.ctx != nil {
+		return o.ctx
 	}
 	return context.Background()
 }
@@ -159,7 +159,7 @@ func (o *WriteOptions) WithContext(ctx context.Context) *WriteOptions {
 	if o != nil {
 		*o2 = *o
 	}
-	o2.context = ctx
+	o2.ctx = ctx
 	return o2
 }
 
@@ -535,7 +535,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
-	r.ctx = q.context
+	r.ctx = q.ctx
 }
 
 // durToMsec converts a duration to a millisecond specified string. If the
@@ -580,7 +580,7 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
-	r.ctx = q.context
+	r.ctx = q.ctx
 }
 
 // toHTTP converts the request to an HTTP request
