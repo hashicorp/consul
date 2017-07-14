@@ -64,13 +64,13 @@ by clicking on one of the links in the sidebar.
 
 ## Usage
 
-Usage: `consul kv <subcommand>`
+Usage: `consul catalog <subcommand>`
 
-For the exact documentation for your Consul version, run `consul kv -h` to view
-the complete list of subcommands.
+For the exact documentation for your Consul version, run `consul catalog -h` to
+view the complete list of subcommands.
 
 ```text
-Usage: consul kv <subcommand> [options] [args]
+Usage: consul catalog <subcommand> [options] [args]
 
   # ...
 
