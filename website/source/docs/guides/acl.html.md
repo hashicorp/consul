@@ -187,7 +187,7 @@ servers related to permission denied errors:
 
 These errors are because the agent doesn't yet have a properly configured
 [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) that it can use for its
-own internal operations like updating its node information in the catalog, and performing
+own internal operations like updating its node information in the catalog and performing
 [anti-entropy](/docs/internals/anti-entropy.html) syncing. We can create a token using the
 ACL API, and the ACL master token we set in the previous step:
 
