@@ -106,11 +106,13 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
+	// context is an optional context pass through to the underlying HTTP
+	// request layer. Use Context() and WithContext() to manage this.
 	context context.Context
 }
 
 func (o *QueryOptions) Context() context.Context {
-	if o.context != nil {
+	if o != nil && o.context != nil {
 		return o.context
 	}
 	return context.Background()
@@ -140,11 +142,13 @@ type WriteOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
+	// context is an optional context pass through to the underlying HTTP
+	// request layer. Use Context() and WithContext() to manage this.
 	context context.Context
 }
 
 func (o *WriteOptions) Context() context.Context {
-	if o.context != nil {
+	if o != nil && o.context != nil {
 		return o.context
 	}
 	return context.Background()
