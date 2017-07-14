@@ -21,7 +21,7 @@ Usage: consul catalog datacenters [options]
   ascending order based on the estimated median round trip time from the servers
   in this datacenter to the servers in the other datacenters.
 
-  To retrieve the list of datacenters
+  To retrieve the list of datacenters:
 
       $ consul catalog datacenters
 
