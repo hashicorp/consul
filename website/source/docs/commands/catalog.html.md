@@ -82,7 +82,3 @@ Subcommands:
 
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
-
-- [`datacenters`](/docs/commands/catalog/datacenters.html)
-- [`nodes`](/docs/commands/catalog/nodes.html)
-- [`services`](/docs/commands/catalog/services.html)
