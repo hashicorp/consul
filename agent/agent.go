@@ -309,16 +309,6 @@ func (a *Agent) Start() error {
 
 		a.delegate = server
 		a.state.delegate = server
-
-		// Automatically register the "consul" service on server nodes
-		consulService := structs.NodeService{
-			Service: consul.ConsulServiceName,
-			ID:      consul.ConsulServiceID,
-			Port:    c.Ports.Server,
-			Tags:    []string{},
-		}
-
-		a.state.AddService(&consulService, c.GetTokenForAgent())
 	} else {
 		client, err := consul.NewClientLogger(consulCfg, a.logger)
 		if err != nil {
@@ -1309,17 +1299,17 @@ func (a *Agent) sendCoordinate() {
 			members := a.LANMembers()
 			grok, err := consul.CanServersUnderstandProtocol(members, 3)
 			if err != nil {
-				a.logger.Printf("[ERR] agent: failed to check servers: %s", err)
+				a.logger.Printf("[ERR] agent: Failed to check servers: %s", err)
 				continue
 			}
 			if !grok {
-				a.logger.Printf("[DEBUG] agent: skipping coordinate updates until servers are upgraded")
+				a.logger.Printf("[DEBUG] agent: Skipping coordinate updates until servers are upgraded")
 				continue
 			}
 
 			c, err := a.GetLANCoordinate()
 			if err != nil {
-				a.logger.Printf("[ERR] agent: failed to get coordinate: %s", err)
+				a.logger.Printf("[ERR] agent: Failed to get coordinate: %s", err)
 				continue
 			}
 
@@ -1331,7 +1321,11 @@ func (a *Agent) sendCoordinate() {
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				a.logger.Printf("[ERR] agent: coordinate update error: %s", err)
+				if strings.Contains(err.Error(), permissionDenied) {
+					a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+				} else {
+					a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+				}
 				continue
 			}
 		case <-a.shutdownCh:
@@ -1561,13 +1555,6 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 // RemoveService is used to remove a service entry.
 // The agent will make a best effort to ensure it is deregistered
 func (a *Agent) RemoveService(serviceID string, persist bool) error {
-	// Protect "consul" service from deletion by a user
-	if _, ok := a.delegate.(*consul.Server); ok && serviceID == consul.ConsulServiceID {
-		return fmt.Errorf(
-			"Deregistering the %s service is not allowed",
-			consul.ConsulServiceID)
-	}
-
 	// Validate ServiceID
 	if serviceID == "" {
 		return fmt.Errorf("ServiceID missing")
@@ -2069,9 +2056,6 @@ func (a *Agent) loadServices(conf *Config) error {
 // known to the local agent.
 func (a *Agent) unloadServices() error {
 	for _, service := range a.state.Services() {
-		if service.ID == consul.ConsulServiceID {
-			continue
-		}
 		if err := a.RemoveService(service.ID, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
 		}

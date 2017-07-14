@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -483,6 +482,11 @@ func (l *localState) setSyncState() error {
 		// If we don't have the service locally, deregister it
 		existing, ok := l.services[id]
 		if !ok {
+			// The consul service is created automatically, and does
+			// not need to be deregistered.
+			if id == structs.ConsulServiceID {
+				continue
+			}
 			l.serviceStatus[id] = syncStatus{inSync: false}
 			continue
 		}
@@ -517,8 +521,8 @@ func (l *localState) setSyncState() error {
 		existing, ok := l.checks[id]
 		if !ok {
 			// The Serf check is created automatically, and does not
-			// need to be registered
-			if id == consul.SerfCheckID {
+			// need to be deregistered.
+			if id == structs.SerfCheckID {
 				continue
 			}
 			l.checkStatus[id] = syncStatus{inSync: false}

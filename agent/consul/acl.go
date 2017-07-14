@@ -341,7 +341,7 @@ func (f *aclFilter) allowService(service string) bool {
 		return true
 	}
 
-	if !f.enforceVersion8 && service == ConsulServiceID {
+	if !f.enforceVersion8 && service == structs.ConsulServiceID {
 		return true
 	}
 

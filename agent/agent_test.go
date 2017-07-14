@@ -492,11 +492,6 @@ func TestAgent_RemoveService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Remove the consul service
-	if err := a.RemoveService("consul", false); err == nil {
-		t.Fatalf("should have errored")
-	}
-
 	// Remove without an ID
 	if err := a.RemoveService("", false); err == nil {
 		t.Fatalf("should have errored")
@@ -879,34 +874,6 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
-	}
-}
-
-func TestAgent_ConsulService(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
-	defer a.Shutdown()
-
-	// Consul service is registered
-	services := a.state.Services()
-	if _, ok := services[consul.ConsulServiceID]; !ok {
-		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
-	}
-
-	// todo(fs): data race
-	func() {
-		a.state.Lock()
-		defer a.state.Unlock()
-
-		// Perform anti-entropy on consul service
-		if err := a.state.syncService(consul.ConsulServiceID); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}()
-
-	// Consul service should be in sync
-	if !a.state.serviceStatus[consul.ConsulServiceID].inSync {
-		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
 	}
 }
 
@@ -1432,19 +1399,8 @@ func TestAgent_unloadServices(t *testing.T) {
 	if err := a.unloadServices(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Make sure it was unloaded and the consul service remains
-	found = false
-	for id := range a.state.Services() {
-		if id == svc.ID {
-			t.Fatalf("should have unloaded services")
-		}
-		if id == consul.ConsulServiceID {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("consul service should not be removed")
+	if len(a.state.Services()) != 0 {
+		t.Fatalf("should have unloaded services")
 	}
 }
 

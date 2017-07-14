@@ -64,7 +64,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// is going away after version 0.8). We check this same policy
 		// later if version 0.8 is enabled, so we can eventually just
 		// delete this and do all the ACL checks down there.
-		if args.Service.Service != ConsulServiceName {
+		if args.Service.Service != structs.ConsulServiceName {
 			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
 				return errPermissionDenied
 			}

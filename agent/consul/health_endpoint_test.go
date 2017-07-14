@@ -54,7 +54,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 	if checks[0].Name != "memory utilization" {
 		t.Fatalf("Bad: %v", checks[0])
 	}
-	if checks[1].CheckID != SerfCheckID {
+	if checks[1].CheckID != structs.SerfCheckID {
 		t.Fatalf("Bad: %v", checks[1])
 	}
 }

@@ -53,10 +53,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
-	if checks[0].CheckID != SerfCheckID {
+	if checks[0].CheckID != structs.SerfCheckID {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Name != SerfCheckName {
+	if checks[0].Name != structs.SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 	if checks[0].Status != api.HealthPassing {
@@ -125,10 +125,10 @@ func TestLeader_FailedMember(t *testing.T) {
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
-	if checks[0].CheckID != SerfCheckID {
+	if checks[0].CheckID != structs.SerfCheckID {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Name != SerfCheckName {
+	if checks[0].Name != structs.SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 
@@ -270,8 +270,8 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 		Address:    "127.1.1.1",
 		Check: &structs.HealthCheck{
 			Node:    "no-longer-around",
-			CheckID: SerfCheckID,
-			Name:    SerfCheckName,
+			CheckID: structs.SerfCheckID,
+			Name:    structs.SerfCheckName,
 			Status:  api.HealthCritical,
 		},
 		WriteRequest: structs.WriteRequest{
@@ -378,8 +378,8 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		NodeMeta:   map[string]string{"hello": "world"},
 		Check: &structs.HealthCheck{
 			Node:    c1.config.NodeName,
-			CheckID: SerfCheckID,
-			Name:    SerfCheckName,
+			CheckID: structs.SerfCheckID,
+			Name:    structs.SerfCheckName,
 			Status:  api.HealthCritical,
 			Output:  "",
 		},
