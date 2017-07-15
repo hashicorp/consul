@@ -74,6 +74,75 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	}
 }
 
+func TestAgent_InmemKeyrings(t *testing.T) {
+	t.Parallel()
+	key := "tbLJg26ZJyJ9pK3qhc9jig=="
+
+	// Should be no configured keyring file by default
+	a1 := NewTestAgent(t.Name(), nil)
+	defer a1.Shutdown()
+
+	c1 := a1.Config.ConsulConfig
+	if c1.SerfLANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
+	}
+	if c1.SerfLANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
+	}
+	if c1.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
+	}
+	if c1.SerfWANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
+	}
+
+	cfg2 := TestConfig()
+	cfg2.EncryptKey = key
+	cfg2.DisableKeyringFile = true
+
+	// Server should auto-load LAN and WAN keyring
+	a2 := &TestAgent{Name: t.Name(), Config: cfg2}
+	a2.Start()
+	defer a2.Shutdown()
+
+	c2 := a2.Config.ConsulConfig
+	if c2.SerfLANConfig.KeyringFile != "" {
+		t.Fatalf("should not have keyring file")
+	}
+	if c2.SerfLANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+	if c2.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("should not have keyring file")
+	}
+	if c2.SerfWANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+
+	// Client should auto-load only the LAN keyring
+	cfg3 := TestConfig()
+	cfg3.EncryptKey = key
+	cfg3.DisableKeyringFile = true
+	cfg3.Server = false
+	a3 := &TestAgent{Name: t.Name(), Config: cfg3}
+	a3.Start()
+	defer a3.Shutdown()
+
+	c3 := a3.Config.ConsulConfig
+	if c3.SerfLANConfig.KeyringFile != "" {
+		t.Fatalf("should not have keyring file")
+	}
+	if c3.SerfLANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+	if c3.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c3.SerfWANConfig.KeyringFile)
+	}
+	if c3.SerfWANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
+	}
+}
+
 func TestAgent_InitKeyring(t *testing.T) {
 	t.Parallel()
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="

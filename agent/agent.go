@@ -794,10 +794,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Setup the loggers
 	base.LogOutput = a.LogOutput
 
-	if !a.config.DisableKeyringFile {
-		if err := a.setupKeyrings(base); err != nil {
-			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
-		}
+	// This will set up the LAN keyring, as well as the WAN for servers.
+	if err := a.setupKeyrings(base); err != nil {
+		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
 	return base, nil
@@ -1026,6 +1025,26 @@ func (a *Agent) setupNodeID(config *Config) error {
 
 // setupKeyrings is used to initialize and load keyrings during agent startup
 func (a *Agent) setupKeyrings(config *consul.Config) error {
+	// If the keyring file is disabled then just poke the provided key
+	// into the in-memory keyring.
+	if a.config.DisableKeyringFile {
+		if a.config.EncryptKey == "" {
+			return nil
+		}
+
+		keys := []string{a.config.EncryptKey}
+		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
+			return err
+		}
+		if a.config.Server {
+			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Otherwise, we need to deal with the keyring files.
 	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
 	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
 
@@ -1061,7 +1080,6 @@ LOAD:
 		}
 	}
 
-	// Success!
 	return nil
 }
 

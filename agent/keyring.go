@@ -69,19 +69,22 @@ func loadKeyringFile(c *serf.Config) error {
 		return err
 	}
 
-	// Read in the keyring file data
 	keyringData, err := ioutil.ReadFile(c.KeyringFile)
 	if err != nil {
 		return err
 	}
 
-	// Decode keyring JSON
 	keys := make([]string, 0)
 	if err := json.Unmarshal(keyringData, &keys); err != nil {
 		return err
 	}
 
-	// Decode base64 values
+	return loadKeyring(c, keys)
+}
+
+// loadKeyring takes a list of base64-encoded strings and installs them in the
+// given Serf's keyring.
+func loadKeyring(c *serf.Config, keys []string) error {
 	keysDecoded := make([][]byte, len(keys))
 	for i, key := range keys {
 		keyBytes, err := base64.StdEncoding.DecodeString(key)
@@ -91,20 +94,16 @@ func loadKeyringFile(c *serf.Config) error {
 		keysDecoded[i] = keyBytes
 	}
 
-	// Guard against empty keyring
 	if len(keysDecoded) == 0 {
-		return fmt.Errorf("no keys present in keyring file: %s", c.KeyringFile)
+		return fmt.Errorf("no keys present in keyring: %s", c.KeyringFile)
 	}
 
-	// Create the keyring
 	keyring, err := memberlist.NewKeyring(keysDecoded, keysDecoded[0])
 	if err != nil {
 		return err
 	}
 
 	c.MemberlistConfig.Keyring = keyring
-
-	// Success!
 	return nil
 }
 
