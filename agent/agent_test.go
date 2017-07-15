@@ -797,6 +797,37 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_ExecDisable(t *testing.T) {
+	t.Parallel()
+
+	cfg := TestConfig()
+	cfg.CheckEnableExec = false
+
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		Script:   "exit 0",
+		Interval: 15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err == nil || !strings.Contains(err.Error(), "exec scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we don't have a check mapping
+	_, ok := a.state.Checks()["mem"]
+	if ok {
+		t.Fatalf("should be missing mem check")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), nil)

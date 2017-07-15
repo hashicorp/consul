@@ -81,7 +81,7 @@ All together, these settings yield a
 ```text
 vagrant@n1:~$ consul agent -server -bootstrap-expect=1 \
 	-data-dir=/tmp/consul -node=agent-one -bind=172.20.20.10 \
-	-config-dir=/etc/consul.d
+	-check-enable-exec=true -config-dir=/etc/consul.d
 ...
 ```
 
@@ -102,7 +102,7 @@ All together, these settings yield a
 
 ```text
 vagrant@n2:~$ consul agent -data-dir=/tmp/consul -node=agent-two \
-	-bind=172.20.20.11 -config-dir=/etc/consul.d
+	-bind=172.20.20.11 -check-enable-exec=true -config-dir=/etc/consul.d
 ...
 ```
 

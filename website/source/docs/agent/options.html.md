@@ -96,6 +96,12 @@ will exit with an error at startup.
   This is an IP address that should be reachable by all other LAN nodes in the cluster. By default, the value follows the same rules as
   [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
 
+* <a name="_check_enable_exec"></a><a href="#_check_enable_exec">`check-enable-exec`</a> This
+  controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
+  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
+  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
+  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By default,
   this is "127.0.0.1", allowing only loopback connections.
@@ -605,6 +611,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="cert_file"></a><a href="#cert_file">`cert_file`</a> This provides a file path to a
   PEM-encoded certificate. The certificate is provided to clients or servers to verify the agent's
   authenticity. It must be provided along with [`key_file`](#key_file).
+
+* <a name="check_enable_exec"></a><a href="#check_enable_exec">`check_enable_exec`</a> Equivalent to the
+  [`-check-enable-exec` command-line flag](#_check_enable_exec).
 
 * <a name="check_update_interval"></a><a href="#check_update_interval">`check_update_interval`</a>
   This interval controls how often check output from

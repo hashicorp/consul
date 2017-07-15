@@ -24,7 +24,9 @@ There are five different kinds of checks:
   a script check is limited to 4K. Output larger than this will be truncated.
   By default, Script checks will be configured with a timeout equal to 30 seconds.
   It is possible to configure a custom Script check timeout value by specifying the
-  `timeout` field in the check definition.
+  `timeout` field in the check definition. In Consul 0.9.0 and later, the agent
+  must be configured with [`check_enable_exec`](/docs/agent/options.html#_check_enable_exec)
+  set to `true` in order to enable script checks.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
@@ -74,15 +76,17 @@ There are five different kinds of checks:
   valid through the end of the TTL from the time of the last check.
 
 * Docker + Interval - These checks depend on invoking an external application which
-is packaged within a Docker Container. The application is triggered within the running
-container via the Docker Exec API. We expect that the Consul agent user has access
-to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to
-determine the Docker API endpoint. The application is expected to run, perform a health
-check of the service running inside the container, and exit with an appropriate exit code.
-The check should be paired with an invocation interval. The shell on which the check
-has to be performed is configurable which makes it possible to run containers which
-have different shells on the same host. Check output for Docker is limited to
-4K. Any output larger than this will be truncated.
+  is packaged within a Docker Container. The application is triggered within the running
+  container via the Docker Exec API. We expect that the Consul agent user has access
+  to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to
+  determine the Docker API endpoint. The application is expected to run, perform a health
+  check of the service running inside the container, and exit with an appropriate exit code.
+  The check should be paired with an invocation interval. The shell on which the check
+  has to be performed is configurable which makes it possible to run containers which
+  have different shells on the same host. Check output for Docker is limited to
+  4K. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
+  must be configured with [`check_enable_exec`](/docs/agent/options.html#_check_enable_exec)
+  set to `true` in order to enable script checks.
 
 ## Check Definition
 
@@ -209,6 +213,10 @@ this convention:
 This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
+
+In Consul 0.9.0 and later, the agent must be configured with
+[`check_enable_exec`](/docs/agent/options.html#_check_enable_exec) set to `true`
+in order to enable script checks.
 
 ## Initial Health Check Status
 
