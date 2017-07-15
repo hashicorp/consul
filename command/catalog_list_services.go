@@ -123,6 +123,7 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		var b bytes.Buffer
 		tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 		for _, s := range order {
+			sort.Strings(services[s])
 			fmt.Fprintf(tw, "%s\t%s\n", s, strings.Join(services[s], ","))
 		}
 		if err := tw.Flush(); err != nil {

@@ -102,7 +102,7 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		}
 
 		output := ui.OutputWriter.String()
-		if expected := "foo,bar"; !strings.Contains(output, expected) {
+		if expected := "bar,foo"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
 		}
 	})
