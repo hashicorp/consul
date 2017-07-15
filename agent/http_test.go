@@ -331,16 +331,29 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	a.Start()
 	defer a.Shutdown()
 
-	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 		return nil, nil
 	}
-	a.srv.wrap(handler)(resp, req)
 
-	// Make sure no tokens from the URL show up in the log
-	if strings.Contains(buf.String(), "secret") {
-		t.Fatalf("bad: %s", buf.String())
+	for _, url := range []string{
+		"/some/url?token=secret1&token=secret2",
+		"/v1/acl/clone/secret1",
+		"/v1/acl/clone/secret1?token=secret2",
+		"/v1/acl/destroy/secret1",
+		"/v1/acl/destroy/secret1?token=secret2",
+		"/v1/acl/info/secret1",
+		"/v1/acl/info/secret1?token=secret2",
+	} {
+		t.Run(url, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", url, nil)
+			a.srv.wrap(handler)(resp, req)
+
+			// Make sure no tokens from the URL show up in the log
+			if strings.Contains(buf.String(), "secret") {
+				t.Fatalf("bad: %s", buf.String())
+			}
+		})
 	}
 }
 
