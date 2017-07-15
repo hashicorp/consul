@@ -146,6 +146,8 @@ func (s *Session) Renew(id string, q *WriteOptions) (*SessionEntry, *WriteMeta, 
 // session until a doneCh is closed. This is meant to be used in a long running
 // goroutine to ensure a session stays valid.
 func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, doneCh <-chan struct{}) error {
+	ctx := q.Context()
+
 	ttl, err := time.ParseDuration(initialTTL)
 	if err != nil {
 		return err
@@ -179,6 +181,11 @@ func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, d
 			// Attempt a session destroy
 			s.Destroy(id, q)
 			return nil
+
+		case <-ctx.Done():
+			// Bail immediately since attempting the destroy would
+			// use the canceled context in q, which would just bail.
+			return ctx.Err()
 		}
 	}
 }
