@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
@@ -230,15 +228,13 @@ func TestAPI_SessionRenewPeriodic_Cancel(t *testing.T) {
 			}
 		}
 
-		retry.Run(t, func(r *retry.R) {
-			sess, _, err := session.Info(id, nil)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			if sess != nil {
-				r.Fatalf("session was not expired")
-			}
-		})
+		sess, _, err := session.Info(id, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if sess != nil {
+			t.Fatalf("session was not expired")
+		}
 	})
 
 	t.Run("context", func(t *testing.T) {
@@ -264,15 +260,15 @@ func TestAPI_SessionRenewPeriodic_Cancel(t *testing.T) {
 			}
 		}
 
-		retry.Run(t, func(r *retry.R) {
-			sess, _, err := session.Info(id, nil)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			if sess != nil {
-				r.Fatalf("session was not expired")
-			}
-		})
+		// See comment in session.go for why the session isn't removed
+		// in this case.
+		sess, _, err := session.Info(id, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if sess == nil {
+			t.Fatalf("session should not be expired")
+		}
 	})
 }
 
