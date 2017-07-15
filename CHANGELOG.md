@@ -2,6 +2,8 @@
 
 BREAKING CHANGES:
 
+* api: Reworked `context` support in the API client to more closely match the Go standard library, and added context support to write requests in addition to read requests. [GH-3273, GH-2992]
+
 FEATURES:
 
 * agent: Added a new [`block_endpoints`](https://www.consul.io/docs/agent/options.html#block_endpoints) configuration option that allows blocking HTTP endpoints by prefix. This allows operators to completely disallow access to specific endpoints on a given agent. [GH-3252]
