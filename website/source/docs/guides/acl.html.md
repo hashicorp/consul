@@ -133,6 +133,20 @@ system, or accessing Consul in special situations:
 | [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see details below |
 | [`acl_token`](/docs/agent/options.html#acl_token) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
+Since it is designed to be used when the Consul servers are not available, the
+`acl_agent_master_token` is managed locally on the agent and does not need to have a
+policy defined on the Consul servers via the ACL API. Once set, it implicitly has the
+following policy associated with it (the `node` policy was added in Consul 0.9.0):
+
+```text
+agent "<node name of agent>" {
+  policy = "write"
+}
+node "" {
+  policy = "read"
+}
+```
+
 #### Bootstrapping ACLs
 
 Bootstrapping ACLs on a new cluster requires a few steps, outlined in the example in this
@@ -933,9 +947,9 @@ Two new configuration options are used once version 8 ACLs are enabled:
 
 * [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) is used as
   a special access token that has `agent` ACL policy `write` privileges on each agent where
-  it is configured. This token should only be used by operators during outages when Consul
-  servers aren't available to resolve ACL tokens. Applications should use regular ACL
-  tokens during normal operation.
+  it is configured, as well as `node` ACL policy `read` privileges for all nodes. This token
+  should only be used by operators during outages when Consul servers aren't available to
+  resolve ACL tokens. Applications should use regular ACL tokens during normal operation.
 * [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) is used internally by
   Consul agents to perform operations to the service catalog when registering themselves
   or sending network coordinates to the servers. This token must at least have `node` ACL
