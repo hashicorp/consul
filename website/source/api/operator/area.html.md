@@ -64,12 +64,16 @@ The table below shows this endpoint's support for
   If this list is not supplied, joining can be done with a call to the
   [join endpoint](#area-join) once the network area is created.
 
+- `UseTLS` `(bool: <optional>)` - Specifies whether gossip over this area should be
+  encrypted with TLS if possible.
+
 ### Sample Payload
 
 ```json
 {
   "PeerDatacenter": "dc2",
-  "RetryJoin": [ "10.1.2.3", "10.1.2.4", "10.1.2.5" ]
+  "RetryJoin": [ "10.1.2.3", "10.1.2.4", "10.1.2.5" ],
+  "UseTLS": false
 }
 ```
 
@@ -130,6 +134,49 @@ $ curl \
     "RetryJoin": ["10.1.2.3", "10.1.2.4", "10.1.2.5"]
   }
 ]
+```
+
+## Update Network Area
+
+This endpoint updates a network area to the given configuration.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `PUT`  | `/operator/area/:uuid`       | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required     |
+| ---------------- | ----------------- | ---------------- |
+| `NO`             | `none`            | `operator:write` |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as a URL query
+  parameter.
+
+- `UseTLS` `(bool: <optional>)` - Specifies whether gossip over this area should be
+  encrypted with TLS if possible.
+
+### Sample Payload
+
+```json
+{
+  "UseTLS": true
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## List Specific Network Area
