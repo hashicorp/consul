@@ -93,12 +93,6 @@
 			"revisionTime": "2012-06-04T00:48:16Z"
 		},
 		{
-			"checksumSHA1": "yXrS4e4yxaRBu/MX+39X3cS4kbg=",
-			"path": "github.com/sirupsen/logrus",
-			"revision": "a283a10442df8dc09befd873fab202bf8a253d6a",
-			"revisionTime": "2016-07-16T02:56:31Z"
-		},
-		{
 			"checksumSHA1": "9NR0rrcAT5J76C5xMS4AVksS9o0=",
 			"path": "github.com/StackExchange/wmi",
 			"revision": "e54cbda6595d7293a7a468ccf9525f6bc8887f99",
@@ -267,12 +261,6 @@
 			"revisionTime": "2017-02-16T22:28:40Z"
 		},
 		{
-			"checksumSHA1": "ODo+ko8D6unAxZuN1jGzMcN4QCc=",
-			"path": "github.com/aws/aws-sdk-go/private/protocol/restxml",
-			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
-			"revisionTime": "2017-02-16T22:28:40Z"
-		},
-		{
 			"checksumSHA1": "lZ1z4xAbT8euCzKoAsnEYic60VE=",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
@@ -287,24 +275,6 @@
 		{
 			"checksumSHA1": "MCyzbsgz1wWscxzKT9rOLxgTFJQ=",
 			"path": "github.com/aws/aws-sdk-go/service/ec2",
-			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
-			"revisionTime": "2017-02-16T22:28:40Z"
-		},
-		{
-			"checksumSHA1": "eEWM4wKzVbRqAwIy3MdMCDUGs2s=",
-			"path": "github.com/aws/aws-sdk-go/service/s3",
-			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
-			"revisionTime": "2017-02-16T22:28:40Z"
-		},
-		{
-			"checksumSHA1": "DxYdsl28d+xvrM1Pf3z2bdwrnFg=",
-			"path": "github.com/aws/aws-sdk-go/service/s3/s3iface",
-			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
-			"revisionTime": "2017-02-16T22:28:40Z"
-		},
-		{
-			"checksumSHA1": "hrF2w4LnxqLhi1N1iXsRO6JsANc=",
-			"path": "github.com/aws/aws-sdk-go/service/s3/s3manager",
 			"revision": "2d3b3bc3aae6a09a9b194aa6eb71326fcbe2e918",
 			"revisionTime": "2017-02-16T22:28:40Z"
 		},
@@ -876,12 +846,6 @@
 			"revisionTime": "2017-02-08T16:47:21Z"
 		},
 		{
-			"checksumSHA1": "BkNqcAh64gp36lSe81ws3zKSWEE=",
-			"path": "github.com/shirou/gopsutil",
-			"revision": "e30b7839cd6161b2fbef5f187377a345157abe04",
-			"revisionTime": "2017-06-02T00:51:11Z"
-		},
-		{
 			"checksumSHA1": "zW2k8E1gkuySzTz2eXuSEDhpffY=",
 			"path": "github.com/shirou/gopsutil/cpu",
 			"revision": "32b6636de04b303274daac3ca2b10d3b0e4afc35",
@@ -928,6 +892,12 @@
 			"path": "github.com/sirupsen/logrus",
 			"revision": "7f976d3a76720c4c27af2ba716b85d2e0a7e38b1",
 			"revisionTime": "2017-07-10T14:32:56Z"
+		},
+		{
+			"checksumSHA1": "yXrS4e4yxaRBu/MX+39X3cS4kbg=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "a283a10442df8dc09befd873fab202bf8a253d6a",
+			"revisionTime": "2016-07-16T02:56:31Z"
 		},
 		{
 			"checksumSHA1": "t24KnvC9jRxiANVhpw2pqFpmEu8=",
@@ -1026,24 +996,6 @@
 			"revisionTime": "2017-07-10T15:57:01Z"
 		},
 		{
-			"checksumSHA1": "kv3jbPJGCczHVQ7g51am1MxlD1c=",
-			"path": "golang.org/x/text/internal/gen",
-			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
-			"revisionTime": "2016-12-29T11:00:09Z"
-		},
-		{
-			"checksumSHA1": "47nwiUyVBY2RKoEGXmCSvusY4Js=",
-			"path": "golang.org/x/text/internal/triegen",
-			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
-			"revisionTime": "2016-12-29T11:00:09Z"
-		},
-		{
-			"checksumSHA1": "Yd5wMObzagIfCiKLpZbtBIrOUA4=",
-			"path": "golang.org/x/text/internal/ucd",
-			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
-			"revisionTime": "2016-12-29T11:00:09Z"
-		},
-		{
 			"checksumSHA1": "faFDXp++cLjLBlvsr+izZ+go1WU=",
 			"path": "golang.org/x/text/secure/bidirule",
 			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
@@ -1062,20 +1014,8 @@
 			"revisionTime": "2016-12-29T11:00:09Z"
 		},
 		{
-			"checksumSHA1": "i14IZXKECObKRUNvTr7xivSL1IU=",
-			"path": "golang.org/x/text/unicode/cldr",
-			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
-			"revisionTime": "2016-12-29T11:00:09Z"
-		},
-		{
 			"checksumSHA1": "Vircurgvsnt4k26havmxPM67PUA=",
 			"path": "golang.org/x/text/unicode/norm",
-			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
-			"revisionTime": "2016-12-29T11:00:09Z"
-		},
-		{
-			"checksumSHA1": "2c0iiKbdCsffuJeXG8Eh0LDdULU=",
-			"path": "golang.org/x/text/unicode/rangetable",
 			"revision": "44f4f658a783b0cee41fe0a23b8fc91d9c120558",
 			"revisionTime": "2016-12-29T11:00:09Z"
 		},
