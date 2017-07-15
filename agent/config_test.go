@@ -512,63 +512,63 @@ func TestDecodeConfig(t *testing.T) {
 		},
 		{
 			in: `{"retry_join_azure":{"client_id":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{ClientID: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure client_id=a"}},
 		},
 		{
 			in: `{"retry_join_azure":{"tag_name":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{TagName: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure tag_name=a"}},
 		},
 		{
 			in: `{"retry_join_azure":{"tag_value":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{TagValue: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure tag_value=a"}},
 		},
 		{
 			in: `{"retry_join_azure":{"secret_access_key":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{SecretAccessKey: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure secret_access_key=a"}},
 		},
 		{
 			in: `{"retry_join_azure":{"subscription_id":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{SubscriptionID: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure subscription_id=a"}},
 		},
 		{
 			in: `{"retry_join_azure":{"tenant_id":"a"}}`,
-			c:  &Config{RetryJoinAzure: RetryJoinAzure{TenantID: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=azure tenant_id=a"}},
 		},
 		{
 			in: `{"retry_join_ec2":{"access_key_id":"a"}}`,
-			c:  &Config{RetryJoinEC2: RetryJoinEC2{AccessKeyID: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=aws access_key_id=a"}},
 		},
 		{
 			in: `{"retry_join_ec2":{"region":"a"}}`,
-			c:  &Config{RetryJoinEC2: RetryJoinEC2{Region: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=aws region=a"}},
 		},
 		{
 			in: `{"retry_join_ec2":{"tag_key":"a"}}`,
-			c:  &Config{RetryJoinEC2: RetryJoinEC2{TagKey: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=aws tag_key=a"}},
 		},
 		{
 			in: `{"retry_join_ec2":{"tag_value":"a"}}`,
-			c:  &Config{RetryJoinEC2: RetryJoinEC2{TagValue: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=aws tag_value=a"}},
 		},
 		{
 			in: `{"retry_join_ec2":{"secret_access_key":"a"}}`,
-			c:  &Config{RetryJoinEC2: RetryJoinEC2{SecretAccessKey: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=aws secret_access_key=a"}},
 		},
 		{
 			in: `{"retry_join_gce":{"credentials_file":"a"}}`,
-			c:  &Config{RetryJoinGCE: RetryJoinGCE{CredentialsFile: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=gce credentials_file=a"}},
 		},
 		{
 			in: `{"retry_join_gce":{"project_name":"a"}}`,
-			c:  &Config{RetryJoinGCE: RetryJoinGCE{ProjectName: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=gce project_name=a"}},
 		},
 		{
 			in: `{"retry_join_gce":{"tag_value":"a"}}`,
-			c:  &Config{RetryJoinGCE: RetryJoinGCE{TagValue: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=gce tag_value=a"}},
 		},
 		{
 			in: `{"retry_join_gce":{"zone_pattern":"a"}}`,
-			c:  &Config{RetryJoinGCE: RetryJoinGCE{ZonePattern: "a"}},
+			c:  &Config{RetryJoin: []string{"provider=gce zone_pattern=a"}},
 		},
 		{
 			in: `{"retry_join_wan":["a","b"]}`,
@@ -1316,7 +1316,7 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
 		RetryIntervalWanRaw:    "10s",
-		RetryJoinEC2: RetryJoinEC2{
+		DeprecatedRetryJoinEC2: RetryJoinEC2{
 			Region:          "us-east-1",
 			TagKey:          "Key1",
 			TagValue:        "Value1",
@@ -1465,7 +1465,7 @@ func TestMergeConfig(t *testing.T) {
 				Perms: "0700",
 			},
 		},
-		RetryJoinEC2: RetryJoinEC2{
+		DeprecatedRetryJoinEC2: RetryJoinEC2{
 			Region:          "us-east-2",
 			TagKey:          "Key2",
 			TagValue:        "Value2",

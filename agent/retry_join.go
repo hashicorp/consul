@@ -2,57 +2,60 @@ package agent
 
 import (
 	"fmt"
+	"strings"
 	"time"
+
+	discover "github.com/hashicorp/go-discover"
+
+	// support retry-join only for the following providers
+	// to add more providers import additional packages or 'all'
+	// to support all providers of go-discover
+	_ "github.com/hashicorp/go-discover/provider/aws"
+	_ "github.com/hashicorp/go-discover/provider/azure"
+	_ "github.com/hashicorp/go-discover/provider/gce"
 )
 
 // RetryJoin is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
 func (a *Agent) retryJoin() {
 	cfg := a.config
-
-	ec2Enabled := cfg.RetryJoinEC2.TagKey != "" && cfg.RetryJoinEC2.TagValue != ""
-	gceEnabled := cfg.RetryJoinGCE.TagValue != ""
-	azureEnabled := cfg.RetryJoinAzure.TagName != "" && cfg.RetryJoinAzure.TagValue != ""
-
-	if len(cfg.RetryJoin) == 0 && !ec2Enabled && !gceEnabled && !azureEnabled {
+	if len(cfg.RetryJoin) == 0 {
 		return
 	}
 
+	a.logger.Printf("[INFO] agent: Supporting retry join for %v", discover.ProviderNames())
 	a.logger.Printf("[INFO] agent: Joining cluster...")
 	attempt := 0
 	for {
-		var servers []string
+		var addrs []string
 		var err error
-		switch {
-		case ec2Enabled:
-			servers, err = cfg.discoverEc2Hosts(a.logger)
-			if err != nil {
-				a.logger.Printf("[ERR] agent: Unable to query EC2 instances: %s", err)
+
+		for _, addr := range cfg.RetryJoin {
+			switch {
+			case strings.Contains(addr, "provider="):
+				servers, err := discover.Addrs(addr, a.logger)
+				if err != nil {
+					a.logger.Printf("[ERR] agent: %s", err)
+				} else {
+					addrs = append(addrs, servers...)
+					a.logger.Printf("[INFO] agent: Discovered servers: %s", strings.Join(servers, " "))
+				}
+
+			default:
+				addrs = append(addrs, addr)
 			}
-			a.logger.Printf("[INFO] agent: Discovered %d servers from EC2", len(servers))
-		case gceEnabled:
-			servers, err = cfg.discoverGCEHosts(a.logger)
-			if err != nil {
-				a.logger.Printf("[ERR] agent: Unable to query GCE instances: %s", err)
-			}
-			a.logger.Printf("[INFO] agent: Discovered %d servers from GCE", len(servers))
-		case azureEnabled:
-			servers, err = cfg.discoverAzureHosts(a.logger)
-			if err != nil {
-				a.logger.Printf("[ERR] agent: Unable to query Azure instances: %s", err)
-			}
-			a.logger.Printf("[INFO] agent: Discovered %d servers from Azure", len(servers))
 		}
 
-		servers = append(servers, cfg.RetryJoin...)
-		if len(servers) == 0 {
-			err = fmt.Errorf("No servers to join")
-		} else {
-			n, err := a.JoinLAN(servers)
+		if len(addrs) > 0 {
+			n, err := a.JoinLAN(addrs)
 			if err == nil {
 				a.logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
 				return
 			}
+		}
+
+		if len(addrs) == 0 {
+			err = fmt.Errorf("No servers to join")
 		}
 
 		attempt++
