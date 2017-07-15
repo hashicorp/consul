@@ -135,23 +135,23 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		"Maximum number of join attempts. Defaults to 0, which will retry indefinitely.")
 	f.StringVar(&retryInterval, "retry-interval", "",
 		"Time to wait between join attempts.")
-	f.StringVar(&cmdCfg.RetryJoinEC2.Region, "retry-join-ec2-region", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinEC2.Region, "retry-join-ec2-region", "",
 		"EC2 Region to discover servers in.")
-	f.StringVar(&cmdCfg.RetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "",
 		"EC2 tag key to filter on for server discovery.")
-	f.StringVar(&cmdCfg.RetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "",
 		"EC2 tag value to filter on for server discovery.")
-	f.StringVar(&cmdCfg.RetryJoinGCE.ProjectName, "retry-join-gce-project-name", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinGCE.ProjectName, "retry-join-gce-project-name", "",
 		"Google Compute Engine project to discover servers in.")
-	f.StringVar(&cmdCfg.RetryJoinGCE.ZonePattern, "retry-join-gce-zone-pattern", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinGCE.ZonePattern, "retry-join-gce-zone-pattern", "",
 		"Google Compute Engine region or zone to discover servers in (regex pattern).")
-	f.StringVar(&cmdCfg.RetryJoinGCE.TagValue, "retry-join-gce-tag-value", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinGCE.TagValue, "retry-join-gce-tag-value", "",
 		"Google Compute Engine tag value to filter on for server discovery.")
-	f.StringVar(&cmdCfg.RetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "",
 		"Path to credentials JSON file to use with Google Compute Engine.")
-	f.StringVar(&cmdCfg.RetryJoinAzure.TagName, "retry-join-azure-tag-name", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinAzure.TagName, "retry-join-azure-tag-name", "",
 		"Azure tag name to filter on for server discovery.")
-	f.StringVar(&cmdCfg.RetryJoinAzure.TagValue, "retry-join-azure-tag-value", "",
+	f.StringVar(&cmdCfg.DeprecatedRetryJoinAzure.TagValue, "retry-join-azure-tag-value", "",
 		"Azure tag value to filter on for server discovery.")
 	f.Var((*configutil.AppendSliceValue)(&cmdCfg.RetryJoinWan), "retry-join-wan",
 		"Address of an agent to join -wan at start time with retries enabled. "+
@@ -428,20 +428,6 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	// Warn if we are in bootstrap mode
 	if cfg.Bootstrap {
 		cmd.UI.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
-	}
-
-	// Need both tag key and value for EC2 discovery
-	if cfg.RetryJoinEC2.TagKey != "" || cfg.RetryJoinEC2.TagValue != "" {
-		if cfg.RetryJoinEC2.TagKey == "" || cfg.RetryJoinEC2.TagValue == "" {
-			cmd.UI.Error("tag key and value are both required for EC2 retry-join")
-			return nil
-		}
-	}
-
-	// EC2 and GCE discovery are mutually exclusive
-	if cfg.RetryJoinEC2.TagKey != "" && cfg.RetryJoinEC2.TagValue != "" && cfg.RetryJoinGCE.TagValue != "" {
-		cmd.UI.Error("EC2 and GCE discovery are mutually exclusive. Please provide one or the other.")
-		return nil
 	}
 
 	// Verify the node metadata entries are valid

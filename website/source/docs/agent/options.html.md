@@ -199,6 +199,68 @@ will exit with an error at startup.
   port number — for example: `[::1]:8301`. This is useful for cases where we
   know the address will become available eventually.
 
+  As of Consul 0.9.1 the cloud provider specific discovery of nodes has been
+  moved to the https://github.com/hashicorp/go-discover library which provides
+  a unified query interface for different providers. To use retry join for a
+  supported cloud provider provide a `-retry-join 'provider=xxx key=val key=val
+  ...'` parameter with the provider specific values as described below. This
+  can be combined with static IP addresses and names or even multiple
+  `go-discover` configurations for different providers. This deprecates and
+  replaces the `-retry-join-ec2-*`, `-retry-join-azure-*` and
+  `-retry-join-gce-*` parameters and their usage will be translated to a
+  corresponding `go-discover` config string.
+
+  The supported providers for retry join at this point are Amazon EC2,
+  Microsoft Azure, Google Cloud and Softlayer.
+
+  * For Amazon EC2 use:
+
+    `provider=aws tag_key=xxx tag_value=xxx [region=xxx] [access_key_id=xxx] [secret_access_key=xxx]`
+
+    This returns the first private IP address of all servers in the given region
+    which have the given `tag_key` and `tag_value`. If the region is omitted it
+    will be discovered through the local instance's [EC2 metadata
+    endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html).
+
+    Authentication is handled in the following order:
+
+    - Static credentials `acesss_key_id=xxx secret_access_key=xxx`
+    - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
+    - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
+    - ECS task role metadata (container-specific).
+    - EC2 instance role metadata.
+
+    The only required IAM permission is `ec2:DescribeInstances`, and it is
+    recommended that you make a dedicated key used only for auto-joining.
+
+  * For Microsoft Azure use:
+
+    `provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx`
+
+    This returns the first private IP address of all servers for the given
+    tenant/client/sucbscription with the given `tag_name` and `tag_value`.
+
+  * For Google Cloud (GCE) use:
+
+    `provider=gce project_name=xxx tag_value=xxx [zone_pattern=xxx] [credentials_file=xxx]`
+
+    This returns the first private IP address of all servers in the given project
+    which have the given `tag_value`. The list of zones can be restricted through
+    an RE2 compatible regular expression. If omitted, servers in all zones are
+    returned.
+
+    The discovery requires a
+    [GCE Service Account](https://cloud.google.com/compute/docs/access/service-accounts)
+    for which the credentials are searched in the following locations:
+
+    - Use credentials from `credentials_file`, if provided.
+    - Use JSON file from `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+    - Use JSON file in a location known to the gcloud command-line tool.
+      On Windows, this is `%APPDATA%/gcloud/application_default_credentials.json`.
+      On other systems, `$HOME/.config/gcloud/application_default_credentials.json`.
+    - On Google Compute Engine, use credentials from the metadata
+      server. In this final case any provided scopes are ignored.
+
 * <a name="_retry_join_ec2_tag_key"></a><a href="#_retry_join_ec2_tag_key">`-retry-join-ec2-tag-key`
   </a> - The Amazon EC2 instance tag key to filter on. When used with
   [`-retry-join-ec2-tag-value`](#_retry_join_ec2_tag_value), Consul will attempt to join EC2
@@ -213,13 +275,19 @@ will exit with an error at startup.
   The only required IAM permission is `ec2:DescribeInstances`, and it is recommended you make a dedicated
   key used only for auto-joining.
 
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
+
 * <a name="_retry_join_ec2_tag_value"></a><a href="#_retry_join_ec2_tag_value">`-retry-join-ec2-tag-value`
   </a> - The Amazon EC2 instance tag value to filter on.
+
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
 
 * <a name="_retry_join_ec2_region"></a><a href="#_retry_join_ec2_region">`-retry-join-ec2-region`
   </a> - (Optional) The Amazon EC2 region to use. If not specified, Consul
    will use the local instance's [EC2 metadata endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html)
    to discover the region.
+
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
 
 * <a name="_retry_join_gce_tag_value"></a><a href="#_retry_join_gce_tag_value">`-retry-join-gce-tag-value`
   </a> - A Google Compute Engine instance tag to filter on. Much like the
@@ -227,17 +295,23 @@ will exit with an error at startup.
   discovery on [Google Compute Engine](https://cloud.google.com/compute/) by
   searching the tags assigned to any particular instance.
 
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
+
 * <a name="_retry_join_gce_project_name"></a><a href="#_retry_join_gce_project_name">`-retry-join-gce-project-name`
   </a> - The project to search in for the tag supplied by
   [`-retry-join-gce-tag-value`](#_retry_join_gce_tag_value). If this is run
   from within a GCE instance, the default is the project the instance is
   located in.
 
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
+
 * <a name="_retry_join_gce_zone_pattern"></a><a href="#_retry_join_gce_zone_pattern">`-retry-join-gce-zone-pattern`
   </a> - A regular expression that indicates the zones the tag should be
   searched in. For example, while `us-west1-a` would only search in
   `us-west1-a`, `us-west1-.*` would search in `us-west1-a` and `us-west1-b`.
   The default is to search globally.
+
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
 
 * <a name="_retry_join_gce_credentials_file"></a><a href="#_retry_join_gce_credentials_file">`-retry-join-gce-credentials-file`
   </a> - The path to the JSON credentials file of the [GCE Service
@@ -252,6 +326,8 @@ will exit with an error at startup.
    - If none of these exist and discovery is being run from a GCE instance, the
      instance's configured service account will be used.
 
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
+
 * <a name="_retry_join_azure_tag_name"></a><a href="#_retry_join_azure_tag_name">`-retry-join-azure-tag-name`
   </a> - The Azure instance tag name to filter on. When used with
   [`-retry-join-azure-tag-value`](#_retry_join_azure_tag_value), Consul will attempt to join Azure
@@ -261,8 +337,12 @@ will exit with an error at startup.
 
   The only permission needed is the ListAll method for NetworkInterfaces. It is recommended you make a dedicated key used only for auto-joining.
 
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
+
 * <a name="_retry_join_azure_tag_value"></a><a href="#_retry_join_azure_tag_value">`-retry-join-azure-tag-value`
   </a> - The Azure instance tag value to filter on.
+
+  This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#_retry_join) for details.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.

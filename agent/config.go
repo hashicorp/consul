@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
+	discover "github.com/hashicorp/go-discover"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
 )
@@ -562,7 +564,7 @@ type Config struct {
 	StartJoinWan []string `mapstructure:"start_join_wan"`
 
 	// RetryJoin is a list of addresses to join with retry enabled.
-	RetryJoin []string `mapstructure:"retry_join"`
+	RetryJoin []string `mapstructure:"retry_join" json:"-"`
 
 	// RetryMaxAttempts specifies the maximum number of times to retry joining a
 	// host on startup. This is useful for cases where we know the node will be
@@ -574,15 +576,6 @@ type Config struct {
 	// the default is 30s.
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
-
-	// RetryJoinEC2 specifies the configuration for auto-join on EC2.
-	RetryJoinEC2 RetryJoinEC2 `mapstructure:"retry_join_ec2"`
-
-	// RetryJoinGCE specifies the configuration for auto-join on GCE.
-	RetryJoinGCE RetryJoinGCE `mapstructure:"retry_join_gce"`
-
-	// RetryJoinAzure specifies the configuration for auto-join on Azure.
-	RetryJoinAzure RetryJoinAzure `mapstructure:"retry_join_azure"`
 
 	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
 	RetryJoinWan []string `mapstructure:"retry_join_wan"`
@@ -786,6 +779,9 @@ type Config struct {
 	DeprecatedAtlasJoin              bool              `mapstructure:"atlas_join" json:"-"`
 	DeprecatedAtlasEndpoint          string            `mapstructure:"atlas_endpoint" json:"-"`
 	DeprecatedHTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
+	DeprecatedRetryJoinEC2           RetryJoinEC2      `mapstructure:"retry_join_ec2"`
+	DeprecatedRetryJoinGCE           RetryJoinGCE      `mapstructure:"retry_join_gce"`
+	DeprecatedRetryJoinAzure         RetryJoinAzure    `mapstructure:"retry_join_azure"`
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
@@ -1183,6 +1179,65 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	if result.DeprecatedAtlasEndpoint != "" {
 		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_endpoint is deprecated and "+
 			"is no longer used. Please remove it from your configuration.")
+	}
+
+	if !reflect.DeepEqual(result.DeprecatedRetryJoinEC2, RetryJoinEC2{}) {
+		m := discover.Config{
+			"provider":          "aws",
+			"region":            result.DeprecatedRetryJoinEC2.Region,
+			"tag_key":           result.DeprecatedRetryJoinEC2.TagKey,
+			"tag_value":         result.DeprecatedRetryJoinEC2.TagValue,
+			"access_key_id":     result.DeprecatedRetryJoinEC2.AccessKeyID,
+			"secret_access_key": result.DeprecatedRetryJoinEC2.SecretAccessKey,
+		}
+		result.RetryJoin = append(result.RetryJoin, m.String())
+		result.DeprecatedRetryJoinEC2 = RetryJoinEC2{}
+
+		// redact m before output
+		m["access_key_id"] = "<hidden>"
+		m["secret_access_key"] = "<hidden>"
+
+		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_ec2 is deprecated."+
+			"Please add %q to retry_join\n", m)
+	}
+	if !reflect.DeepEqual(result.DeprecatedRetryJoinAzure, RetryJoinAzure{}) {
+		m := discover.Config{
+			"provider":          "azure",
+			"tag_name":          result.DeprecatedRetryJoinAzure.TagName,
+			"tag_value":         result.DeprecatedRetryJoinAzure.TagValue,
+			"subscription_id":   result.DeprecatedRetryJoinAzure.SubscriptionID,
+			"tenant_id":         result.DeprecatedRetryJoinAzure.TenantID,
+			"client_id":         result.DeprecatedRetryJoinAzure.ClientID,
+			"secret_access_key": result.DeprecatedRetryJoinAzure.SecretAccessKey,
+		}
+		result.RetryJoin = append(result.RetryJoin, m.String())
+		result.DeprecatedRetryJoinAzure = RetryJoinAzure{}
+
+		// redact m before output
+		m["subscription_id"] = "<hidden>"
+		m["tenant_id"] = "<hidden>"
+		m["client_id"] = "<hidden>"
+		m["secret_access_key"] = "<hidden>"
+
+		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_azure is deprecated."+
+			"Please add %q to retry_join\n", m)
+	}
+	if !reflect.DeepEqual(result.DeprecatedRetryJoinGCE, RetryJoinGCE{}) {
+		m := discover.Config{
+			"provider":         "gce",
+			"project_name":     result.DeprecatedRetryJoinGCE.ProjectName,
+			"zone_pattern":     result.DeprecatedRetryJoinGCE.ZonePattern,
+			"tag_value":        result.DeprecatedRetryJoinGCE.TagValue,
+			"credentials_file": result.DeprecatedRetryJoinGCE.CredentialsFile,
+		}
+		result.RetryJoin = append(result.RetryJoin, m.String())
+		result.DeprecatedRetryJoinGCE = RetryJoinGCE{}
+
+		// redact m before output
+		m["credentials_file"] = "<hidden>"
+
+		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_gce is deprecated."+
+			"Please add %q to retry_join\n", m)
 	}
 
 	// Check unused fields and verify that no bad configuration options were
@@ -1843,50 +1898,50 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
 	}
-	if b.RetryJoinEC2.AccessKeyID != "" {
-		result.RetryJoinEC2.AccessKeyID = b.RetryJoinEC2.AccessKeyID
+	if b.DeprecatedRetryJoinEC2.AccessKeyID != "" {
+		result.DeprecatedRetryJoinEC2.AccessKeyID = b.DeprecatedRetryJoinEC2.AccessKeyID
 	}
-	if b.RetryJoinEC2.SecretAccessKey != "" {
-		result.RetryJoinEC2.SecretAccessKey = b.RetryJoinEC2.SecretAccessKey
+	if b.DeprecatedRetryJoinEC2.SecretAccessKey != "" {
+		result.DeprecatedRetryJoinEC2.SecretAccessKey = b.DeprecatedRetryJoinEC2.SecretAccessKey
 	}
-	if b.RetryJoinEC2.Region != "" {
-		result.RetryJoinEC2.Region = b.RetryJoinEC2.Region
+	if b.DeprecatedRetryJoinEC2.Region != "" {
+		result.DeprecatedRetryJoinEC2.Region = b.DeprecatedRetryJoinEC2.Region
 	}
-	if b.RetryJoinEC2.TagKey != "" {
-		result.RetryJoinEC2.TagKey = b.RetryJoinEC2.TagKey
+	if b.DeprecatedRetryJoinEC2.TagKey != "" {
+		result.DeprecatedRetryJoinEC2.TagKey = b.DeprecatedRetryJoinEC2.TagKey
 	}
-	if b.RetryJoinEC2.TagValue != "" {
-		result.RetryJoinEC2.TagValue = b.RetryJoinEC2.TagValue
+	if b.DeprecatedRetryJoinEC2.TagValue != "" {
+		result.DeprecatedRetryJoinEC2.TagValue = b.DeprecatedRetryJoinEC2.TagValue
 	}
-	if b.RetryJoinGCE.ProjectName != "" {
-		result.RetryJoinGCE.ProjectName = b.RetryJoinGCE.ProjectName
+	if b.DeprecatedRetryJoinGCE.ProjectName != "" {
+		result.DeprecatedRetryJoinGCE.ProjectName = b.DeprecatedRetryJoinGCE.ProjectName
 	}
-	if b.RetryJoinGCE.ZonePattern != "" {
-		result.RetryJoinGCE.ZonePattern = b.RetryJoinGCE.ZonePattern
+	if b.DeprecatedRetryJoinGCE.ZonePattern != "" {
+		result.DeprecatedRetryJoinGCE.ZonePattern = b.DeprecatedRetryJoinGCE.ZonePattern
 	}
-	if b.RetryJoinGCE.TagValue != "" {
-		result.RetryJoinGCE.TagValue = b.RetryJoinGCE.TagValue
+	if b.DeprecatedRetryJoinGCE.TagValue != "" {
+		result.DeprecatedRetryJoinGCE.TagValue = b.DeprecatedRetryJoinGCE.TagValue
 	}
-	if b.RetryJoinGCE.CredentialsFile != "" {
-		result.RetryJoinGCE.CredentialsFile = b.RetryJoinGCE.CredentialsFile
+	if b.DeprecatedRetryJoinGCE.CredentialsFile != "" {
+		result.DeprecatedRetryJoinGCE.CredentialsFile = b.DeprecatedRetryJoinGCE.CredentialsFile
 	}
-	if b.RetryJoinAzure.TagName != "" {
-		result.RetryJoinAzure.TagName = b.RetryJoinAzure.TagName
+	if b.DeprecatedRetryJoinAzure.TagName != "" {
+		result.DeprecatedRetryJoinAzure.TagName = b.DeprecatedRetryJoinAzure.TagName
 	}
-	if b.RetryJoinAzure.TagValue != "" {
-		result.RetryJoinAzure.TagValue = b.RetryJoinAzure.TagValue
+	if b.DeprecatedRetryJoinAzure.TagValue != "" {
+		result.DeprecatedRetryJoinAzure.TagValue = b.DeprecatedRetryJoinAzure.TagValue
 	}
-	if b.RetryJoinAzure.SubscriptionID != "" {
-		result.RetryJoinAzure.SubscriptionID = b.RetryJoinAzure.SubscriptionID
+	if b.DeprecatedRetryJoinAzure.SubscriptionID != "" {
+		result.DeprecatedRetryJoinAzure.SubscriptionID = b.DeprecatedRetryJoinAzure.SubscriptionID
 	}
-	if b.RetryJoinAzure.TenantID != "" {
-		result.RetryJoinAzure.TenantID = b.RetryJoinAzure.TenantID
+	if b.DeprecatedRetryJoinAzure.TenantID != "" {
+		result.DeprecatedRetryJoinAzure.TenantID = b.DeprecatedRetryJoinAzure.TenantID
 	}
-	if b.RetryJoinAzure.ClientID != "" {
-		result.RetryJoinAzure.ClientID = b.RetryJoinAzure.ClientID
+	if b.DeprecatedRetryJoinAzure.ClientID != "" {
+		result.DeprecatedRetryJoinAzure.ClientID = b.DeprecatedRetryJoinAzure.ClientID
 	}
-	if b.RetryJoinAzure.SecretAccessKey != "" {
-		result.RetryJoinAzure.SecretAccessKey = b.RetryJoinAzure.SecretAccessKey
+	if b.DeprecatedRetryJoinAzure.SecretAccessKey != "" {
+		result.DeprecatedRetryJoinAzure.SecretAccessKey = b.DeprecatedRetryJoinAzure.SecretAccessKey
 	}
 	if b.RetryMaxAttemptsWan != 0 {
 		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
