@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
@@ -192,6 +196,84 @@ func TestAPI_SessionCreateDestroyRenewPeriodic(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}
+}
+
+func TestAPI_SessionRenewPeriodic_Cancel(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	session := c.Session()
+	entry := &SessionEntry{
+		Behavior: SessionBehaviorDelete,
+		TTL:      "500s", // disable ttl
+	}
+
+	t.Run("done channel", func(t *testing.T) {
+		id, _, err := session.Create(entry, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		errCh := make(chan error, 1)
+		doneCh := make(chan struct{})
+		go func() { errCh <- session.RenewPeriodic("1s", id, nil, doneCh) }()
+
+		close(doneCh)
+
+		select {
+		case <-time.After(1 * time.Second):
+			t.Fatal("renewal loop didn't terminate")
+		case err = <-errCh:
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			sess, _, err := session.Info(id, nil)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+			if sess != nil {
+				r.Fatalf("session was not expired")
+			}
+		})
+	})
+
+	t.Run("context", func(t *testing.T) {
+		id, _, err := session.Create(entry, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		wo := new(WriteOptions).WithContext(ctx)
+
+		errCh := make(chan error, 1)
+		go func() { errCh <- session.RenewPeriodic("1s", id, wo, nil) }()
+
+		cancel()
+
+		select {
+		case <-time.After(1 * time.Second):
+			t.Fatal("renewal loop didn't terminate")
+		case err = <-errCh:
+			if err == nil || !strings.Contains(err.Error(), "context canceled") {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			sess, _, err := session.Info(id, nil)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+			if sess != nil {
+				r.Fatalf("session was not expired")
+			}
+		})
+	})
 }
 
 func TestAPI_SessionInfo(t *testing.T) {

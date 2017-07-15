@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -181,9 +182,13 @@ func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, d
 			// Attempt a session destroy
 			s.Destroy(id, q)
 			return nil
+
 		case <-ctx.Done():
-			// Attempt a session destroy
-			s.Destroy(id, q)
+			// Attempt a session destroy, we can't use the canceled
+			// context to attempt the destroy so we do a short
+			// timeout for best effort.
+			timeout, _ := context.WithTimeout(context.Background(), 1*time.Second)
+			s.Destroy(id, q.WithContext(timeout))
 			return ctx.Err()
 		}
 	}
