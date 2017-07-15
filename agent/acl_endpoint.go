@@ -128,11 +128,10 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 		return nil, err
 	}
 
-	// Bail if the ACL is not found
+	// Bail if the ACL is not found, this could be a 404 or a 403, so
+	// always just return a 403.
 	if len(out.ACLs) == 0 {
-		resp.WriteHeader(404)
-		fmt.Fprint(resp, "Target ACL not found")
-		return nil, nil
+		return nil, errPermissionDenied
 	}
 
 	// Create a new ACL
