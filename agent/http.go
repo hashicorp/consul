@@ -168,7 +168,24 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 }
 
 // aclEndpointRE is used to find old ACL endpoints that take tokens in the URL
-// so that we can redact them.
+// so that we can redact them. The ACL endpoints that take the token in the URL
+// are all of the form /v1/acl/<verb>/<token>, and can optionally include query
+// parameters which are indicated by a question mark. We capture the part before
+// the token, the token, and any query parameters after, and then reassemble as
+// $1<hidden>$3 (the token in $2 isn't used), which will give:
+//
+// /v1/acl/clone/foo           -> /v1/acl/clone/<hidden>
+// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=<hidden>
+//
+// The query parameter in the example above is obfuscated like any other, after
+// this regular expression is applied, so the regular expression substitution
+// results in:
+//
+// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//
+// And then the loop that looks for parameters called "token" does the last
+// step to get to the final redacted form.
 var (
 	aclEndpointRE = regexp.MustCompile("^(/v1/acl/[^/]+/)([^?]+)([?]?.*)$")
 )
