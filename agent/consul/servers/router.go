@@ -76,6 +76,9 @@ type areaInfo struct {
 	// managers maps datacenter names to managers for that datacenter in
 	// this area.
 	managers map[string]*managerInfo
+
+	// useTLS specifies whether to use TLS to communicate for this network area.
+	useTLS bool
 }
 
 // NewRouter returns a new Router with the given configuration.
@@ -112,7 +115,7 @@ func (r *Router) Shutdown() {
 }
 
 // AddArea registers a new network area with the router.
-func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger) error {
+func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger, useTLS bool) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -128,6 +131,7 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 		cluster:  cluster,
 		pinger:   pinger,
 		managers: make(map[string]*managerInfo),
+		useTLS:   useTLS,
 	}
 	r.areas[areaID] = area
 
@@ -168,6 +172,19 @@ func (r *Router) removeManagerFromIndex(datacenter string, manager *Manager) {
 	panic("managers index out of sync")
 }
 
+// Returns whether TLS is enabled for the given area ID
+func (r *Router) TLSEnabled(areaID types.AreaID) (bool, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	area, ok := r.areas[areaID]
+	if !ok {
+		return false, fmt.Errorf("area ID %q does not exist", areaID)
+	}
+
+	return area.useTLS, nil
+}
+
 // RemoveArea removes an existing network area from the router.
 func (r *Router) RemoveArea(areaID types.AreaID) error {
 	r.Lock()
@@ -205,6 +222,12 @@ func (r *Router) addServer(area *areaInfo, s *agent.Server) error {
 		managers := r.managers[s.Datacenter]
 		r.managers[s.Datacenter] = append(managers, manager)
 		go manager.Start()
+	}
+
+	// If TLS is enabled for the area, set it on the server so the manager
+	// knows to use TLS when pinging it.
+	if area.useTLS {
+		s.UseTLS = true
 	}
 
 	info.manager.AddServer(s)
