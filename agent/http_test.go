@@ -331,16 +331,50 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	a.Start()
 	defer a.Shutdown()
 
-	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 		return nil, nil
 	}
-	a.srv.wrap(handler)(resp, req)
 
-	// Make sure no tokens from the URL show up in the log
-	if strings.Contains(buf.String(), "secret") {
-		t.Fatalf("bad: %s", buf.String())
+	for _, pair := range [][]string{
+		{
+			"/some/url?token=secret1&token=secret2",
+			"/some/url?token=<hidden>&token=<hidden>",
+		},
+		{
+			"/v1/acl/clone/secret1",
+			"/v1/acl/clone/<hidden>",
+		},
+		{
+			"/v1/acl/clone/secret1?token=secret2",
+			"/v1/acl/clone/<hidden>?token=<hidden>",
+		},
+		{
+			"/v1/acl/destroy/secret1",
+			"/v1/acl/destroy/<hidden>",
+		},
+		{
+			"/v1/acl/destroy/secret1?token=secret2",
+			"/v1/acl/destroy/<hidden>?token=<hidden>",
+		},
+		{
+			"/v1/acl/info/secret1",
+			"/v1/acl/info/<hidden>",
+		},
+		{
+			"/v1/acl/info/secret1?token=secret2",
+			"/v1/acl/info/<hidden>?token=<hidden>",
+		},
+	} {
+		url, want := pair[0], pair[1]
+		t.Run(url, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", url, nil)
+			a.srv.wrap(handler)(resp, req)
+
+			if got := buf.String(); !strings.Contains(got, want) {
+				t.Fatalf("got %s want %s", got, want)
+			}
+		})
 	}
 }
 

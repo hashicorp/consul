@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -166,6 +167,29 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	return mux
 }
 
+// aclEndpointRE is used to find old ACL endpoints that take tokens in the URL
+// so that we can redact them. The ACL endpoints that take the token in the URL
+// are all of the form /v1/acl/<verb>/<token>, and can optionally include query
+// parameters which are indicated by a question mark. We capture the part before
+// the token, the token, and any query parameters after, and then reassemble as
+// $1<hidden>$3 (the token in $2 isn't used), which will give:
+//
+// /v1/acl/clone/foo           -> /v1/acl/clone/<hidden>
+// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=<hidden>
+//
+// The query parameter in the example above is obfuscated like any other, after
+// this regular expression is applied, so the regular expression substitution
+// results in:
+//
+// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//
+// And then the loop that looks for parameters called "token" does the last
+// step to get to the final redacted form.
+var (
+	aclEndpointRE = regexp.MustCompile("^(/v1/acl/[^/]+/)([^?]+)([?]?.*)$")
+)
+
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
@@ -189,6 +213,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
+		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$3")
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
@@ -208,15 +233,6 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			resp.WriteHeader(code)
 			fmt.Fprint(resp, errMsg)
 		}
-
-		// TODO (slackpad) We may want to consider redacting prepared
-		// query names/IDs here since they are proxies for tokens. But,
-		// knowing one only gives you read access to service listings
-		// which is pretty trivial, so it's probably not worth the code
-		// complexity and overhead of filtering them out. You can't
-		// recover the token it's a proxy for with just the query info;
-		// you'd need the actual token (or a management token) to read
-		// that back.
 
 		// Invoke the handler
 		start := time.Now()
