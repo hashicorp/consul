@@ -27,6 +27,7 @@ BUG FIXES:
 * agent: Fixed HTTP health checks to allow them to set the `Host` header correctly on outgoing requests. [GH-3203]
 * agent: Serf snapshots can now auto recover from disk write errors without needing a restart. [GH-1744]
 * agent: Fixed log redacting code to properly remove tokens from log lines with tokens in the URL itself: `/v1/acl/clone/:uuid`, `/v1/acl/destroy/:uuid`, `/v1/acl/info/:uuid`. [GH-3276]
+* agent: Fixed an issue in the Docker client where Docker checks would get EOF errors trying to connect to a volume-mounted Docker socket. [GH-3254]
 * server: Updated the Raft library to pull in a fix where servers that are very far behind in replication can get stuck in a loop trying to install snapshots. [GH-3201]
 * server: Fixed a rare but serious deadlock where the Consul leader routine could get stuck with the Raft internal leader routine while waiting for the initial barrier after a leader election. [GH-3230]
 * server: Added automatic cleanup of failed Raft snapshots. [GH-3258]
