@@ -107,6 +107,15 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	testRemoteExecGetSpec(t, cfg)
 }
 
+func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLAgentToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	testRemoteExecGetSpec(t, cfg)
+}
+
 func testRemoteExecGetSpec(t *testing.T, c *Config) {
 	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()

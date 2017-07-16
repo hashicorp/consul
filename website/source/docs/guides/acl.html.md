@@ -128,15 +128,15 @@ system, or accessing Consul in special situations:
 
 | Special Token | Servers | Clients | Purpose |
 | ------------- | ------- | ------- | ------- |
-| [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent.html) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations |
-| [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations with the [Catalog API](/api/catalog.html); this needs to have at least `node` policy access so the agent can self update its registration information, and also needs `service` read access for all services that will be registered with that node for [anti-entropy](/docs/internals/anti-entropy.html) syncing |
-| [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see details below |
+| [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent.html) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
+| [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details |
+| [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details |
 | [`acl_token`](/docs/agent/options.html#acl_token) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
-Since it is designed to be used when the Consul servers are not available, the
-`acl_agent_master_token` is managed locally on the agent and does not need to have a
-policy defined on the Consul servers via the ACL API. Once set, it implicitly has the
-following policy associated with it (the `node` policy was added in Consul 0.9.0):
+<a name="acl-agent-master-token"></a>
+**`ACL Agent Master Token`**
+
+Since the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
 
 ```text
 agent "<node name of agent>" {
@@ -147,6 +147,32 @@ node "" {
 }
 ```
 
+<a name="acl-agent-token"></a>
+**`ACL Agent Token`**
+
+The [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl_token`](/docs/agent/options.html#acl_token), though if the `acl_agent_token` isn't configured the `acl_token` will be used. The ACL agent token is used for the following operations by the agent:
+
+1. Updating the agent's node entry using the [Catalog API](/api/catalog.html), including updating its node metadata, tagged addresses, and network coordinates
+2. Performing [anti-entropy](/docs/internals/anti-entropy.html) syncing, in particular reading the node metadata and services registered with the catalog
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/docs/commands/exec.html) commands
+
+Here's an example policy sufficient to accomplish the above for a node called `mynode`:
+
+```text
+node "mynode" {
+  policy = "write"
+}
+service "" {
+  policy = "read"
+}
+key "_rexec" {
+  policy = "write"
+}
+```
+
+The `service` policy needs `read` access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options.html#disable_remote_exec), the default, then the `key` policy can be omitted.
+
+>>>>>>> Changes remote exec KV read to call GetTokenForAgent(), which can use
 #### Bootstrapping ACLs
 
 Bootstrapping ACLs on a new cluster requires a few steps, outlined in the example in this
@@ -238,6 +264,8 @@ catalog:
 ```
 2017/07/08 23:42:59 [INFO] agent: Synced node info
 ```
+
+See the [ACL Agent Token](#acl-agent-token) section for more details.
 
 **Enable ACLs on the Consul Clients**
 
