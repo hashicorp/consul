@@ -41,7 +41,8 @@ func (c *Config) discoverAzureHosts(logger *log.Logger) ([]string, error) {
 	for _, oneint := range *netres.Value {
 		// Make it a little more robust just in case there is actually no Tags
 		if oneint.Tags != nil {
-			if *(*oneint.Tags)[c.RetryJoinAzure.TagName] == c.RetryJoinAzure.TagValue {
+			tv := (*oneint.Tags)[c.RetryJoinAzure.TagName]
+			if tv != nil && *tv == c.RetryJoinAzure.TagValue {
 				// Make it a little more robust just in case IPConfigurations nil
 				if oneint.IPConfigurations != nil {
 					for _, onecfg := range *oneint.IPConfigurations {
