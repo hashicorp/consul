@@ -822,8 +822,7 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 	}
 
 	// Ensure we don't have a check mapping
-	_, ok := a.state.Checks()["mem"]
-	if ok {
+	if memChk := a.state.Checks()["mem"]; memChk != nil {
 		t.Fatalf("should be missing mem check")
 	}
 }
