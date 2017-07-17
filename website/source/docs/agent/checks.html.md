@@ -21,7 +21,7 @@ There are five different kinds of checks:
   that performs the health check, exits with an appropriate exit code, and potentially
   generates some output. A script is paired with an invocation interval (e.g.
   every 30 seconds). This is similar to the Nagios plugin system. The output of
-  a script check is limited to 4K. Output larger than this will be truncated.
+  a script check is limited to 4KB. Output larger than this will be truncated.
   By default, Script checks will be configured with a timeout equal to 30 seconds.
   It is possible to configure a custom Script check timeout value by specifying the
   `timeout` field in the check definition. In Consul 0.9.0 and later, the agent
@@ -40,7 +40,7 @@ There are five different kinds of checks:
   configured with a request timeout equal to the check interval, with a max of
   10 seconds. It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
-  check is limited to roughly 4K. Responses larger than this will be truncated.
+  check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support SSL. By default, a valid SSL certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
@@ -84,7 +84,7 @@ There are five different kinds of checks:
   The check should be paired with an invocation interval. The shell on which the check
   has to be performed is configurable which makes it possible to run containers which
   have different shells on the same host. Check output for Docker is limited to
-  4K. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
+  4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
   must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
   set to `true` in order to enable script checks.
 
