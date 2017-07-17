@@ -125,8 +125,7 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  randomPort(),
 			RPC:     randomPort(),
 		},
-		EnableScriptChecks: true,
-		ReadyTimeout:       10 * time.Second,
+		ReadyTimeout: 10 * time.Second,
 	}
 }
 
