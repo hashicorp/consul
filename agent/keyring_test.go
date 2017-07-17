@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +11,21 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/memberlist"
 )
+
+func checkForKey(key string, keyring *memberlist.Keyring) error {
+	rk, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return err
+	}
+
+	pk := keyring.GetPrimaryKey()
+	if !bytes.Equal(rk, pk) {
+		return fmt.Errorf("got %q want %q", pk, rk)
+	}
+	return nil
+}
 
 func TestAgent_LoadKeyrings(t *testing.T) {
 	t.Parallel()
@@ -45,11 +61,17 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	if c2.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
 	}
+	if err := checkForKey(key, c2.SerfLANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if c2.SerfWANConfig.KeyringFile == "" {
 		t.Fatalf("should have keyring file")
 	}
 	if c2.SerfWANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
+	}
+	if err := checkForKey(key, c2.SerfWANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Client should auto-load only the LAN keyring file
@@ -65,6 +87,9 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	}
 	if c3.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
+	}
+	if err := checkForKey(key, c3.SerfLANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 	if c3.SerfWANConfig.KeyringFile != "" {
 		t.Fatalf("bad: %#v", c3.SerfWANConfig.KeyringFile)
@@ -112,11 +137,17 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 	if c2.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
 	}
+	if err := checkForKey(key, c2.SerfLANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if c2.SerfWANConfig.KeyringFile != "" {
 		t.Fatalf("should not have keyring file")
 	}
 	if c2.SerfWANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
+	}
+	if err := checkForKey(key, c2.SerfWANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Client should auto-load only the LAN keyring
@@ -134,6 +165,9 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 	}
 	if c3.SerfLANConfig.MemberlistConfig.Keyring == nil {
 		t.Fatalf("keyring should be loaded")
+	}
+	if err := checkForKey(key, c3.SerfLANConfig.MemberlistConfig.Keyring); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 	if c3.SerfWANConfig.KeyringFile != "" {
 		t.Fatalf("bad: %#v", c3.SerfWANConfig.KeyringFile)
