@@ -456,18 +456,6 @@
 			"revisionTime": "2016-08-09T18:56:09Z"
 		},
 		{
-			"checksumSHA1": "uDa92yiRoedtzn0kIuIfIPc1KP0=",
-			"path": "github.com/docker/docker/pkg/term",
-			"revision": "6978a6e25a2e6063f280ec842bd0f3eae99426e1",
-			"revisionTime": "2017-07-11T09:04:27Z"
-		},
-		{
-			"checksumSHA1": "wsArE/BZtR0OZ8rh2wHbkXbEFvo=",
-			"path": "github.com/docker/docker/pkg/term/windows",
-			"revision": "6978a6e25a2e6063f280ec842bd0f3eae99426e1",
-			"revisionTime": "2017-07-11T09:04:27Z"
-		},
-		{
 			"checksumSHA1": "hZV62Xzt/i0e/WBKWww3rpkRAR4=",
 			"path": "github.com/docker/engine-api/types/filters",
 			"revision": "fc564829f64e3a820d7b896611ede92c8744d752",

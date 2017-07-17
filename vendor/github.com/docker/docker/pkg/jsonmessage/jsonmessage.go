@@ -11,7 +11,7 @@ import (
 	"github.com/Nvveen/Gotty"
 
 	"github.com/docker/docker/pkg/jsonlog"
-	"github.com/docker/docker/pkg/term"
+	//	"github.com/docker/docker/pkg/term"
 	"github.com/docker/go-units"
 )
 
@@ -48,10 +48,10 @@ func (p *JSONProgress) String() string {
 		timeLeftBox string
 	)
 
-	ws, err := term.GetWinsize(p.terminalFd)
-	if err == nil {
-		width = int(ws.Width)
-	}
+	//	ws, err := term.GetWinsize(p.terminalFd)
+	//	if err == nil {
+	//		width = int(ws.Width)
+	//	}
 
 	if p.Current <= 0 && p.Total <= 0 {
 		return ""
