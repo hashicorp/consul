@@ -459,11 +459,13 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true.
 
 * <a name="acl_agent_token"></a><a href="#acl_agent_token">`acl_agent_token`</a> - Used for clients
-  and servers to perform internal operations to the service catalog. If this isn't specified, then
-  the <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
+  and servers to perform internal operations. If this isn't specified, then the
+  <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
   <br><br>
   This token must at least have write access to the node name it will register as in order to set any
-  of the node-level information in the catalog such as metadata, or the node's tagged addresses.
+  of the node-level information in the catalog such as metadata, or the node's tagged addresses. There
+  are other places this token is used, please see [ACL Agent Token](/docs/guides/acl.html#acl-agent-token)
+  for more details.
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   Used for clients and servers to determine if enforcement should occur for new ACL policies being
