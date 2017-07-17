@@ -15,6 +15,7 @@ IMPROVEMENTS:
 * agent: (Consul Enterprise) Snapshot agent rotation uses S3's pagination API, enabling retaining more than a 100 snapshots.
 * agent: Removed registration of the `consul` service from the agent since it's already handled by the leader. This means that Consul servers no longer need to have an `acl_agent_token` with write access to the `consul` service if ACLs are enabled. [GH-3248]
 * agent: Changed /v1/acl/clone response to 403 (from 404) when trying to clone an ACL that doesn't exist. [GH-1113]
+* agent: Changed the `consul exec` ACL resolution logic to use the `acl_agent_token` if it's available. This lets operators configure an `acl_agent_token` with the required `write` privilieges to the `_rexec` prefix of the KV store without giving this to the `acl_token`, which would expose those privileges to users as well. [GH-3160]
 * api: Added the ability to pass in a `context` as part of the `QueryOptions` during a request. This provides a way to cancel outstanding blocking queries. [GH-3195]
 * api: Changed signature for "done" channels on `agent.Monitor()` and `session.RenewPeriodic` methods to make them more compatible with `context`. [GH-3271]
 * docs: Added a complete end-to-end example of ACL bootstrapping in the [ACL Guide]https://www.consul.io/docs/guides/acl.html#bootstrapping-acls). [GH-3248]
