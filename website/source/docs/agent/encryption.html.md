@@ -125,7 +125,7 @@ setting the [`https`](/docs/agent/options.html#http_port) port.
 everywhere but the agents will not yet be enforcing TLS.
 3. (Optional, Enterprise-only) If applicable, set the `UseTLS` setting in any network areas to `true`.
 This can be done either through the [`consul operator area update`](/docs/commands/operator/area.html)
-command or the [Operator API](api/operator/area.html).
+command or the [Operator API](/api/operator/area.html).
 4. Change the `verify_incoming` and `verify_outgoing` settings (as well as `verify_server_hostname`
 if applicable) to `true`.
 5. Perform another rolling restart of each agent in the cluster.
