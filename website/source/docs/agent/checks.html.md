@@ -86,7 +86,7 @@ There are five different kinds of checks:
   have different shells on the same host. Check output for Docker is limited to
   4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
   must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
-  set to `true` in order to enable script checks.
+  set to `true` in order to enable Docker health checks.
 
 ## Check Definition
 
