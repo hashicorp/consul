@@ -801,7 +801,7 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 	t.Parallel()
 
 	cfg := TestConfig()
-	cfg.CheckEnableExec = false
+	cfg.EnableScriptChecks = false
 
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()

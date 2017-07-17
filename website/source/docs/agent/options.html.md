@@ -96,12 +96,6 @@ will exit with an error at startup.
   This is an IP address that should be reachable by all other LAN nodes in the cluster. By default, the value follows the same rules as
   [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
 
-* <a name="_check_enable_exec"></a><a href="#_check_enable_exec">`check-enable-exec`</a> This
-  controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
-  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
-  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
-  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
-
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By default,
   this is "127.0.0.1", allowing only loopback connections.
@@ -153,12 +147,22 @@ will exit with an error at startup.
   [Nomad](https://www.nomadproject.io/), so if you opt-in to host-based IDs then Consul and Nomad will use
   information on the host to automatically assign the same ID in both systems.
 
+* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
+  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
+  `-encrypt` key will be available on startup. This defaults to false.
+
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
   This overrides the default port 8600. This is available in Consul 0.7 and later.
 
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
+
+* <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`enable-script-checks`</a> This
+  controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
+  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
+  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
+  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
@@ -172,10 +176,6 @@ will exit with an error at startup.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
-
-* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
-  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
-  `-encrypt` key will be available on startup. This defaults to false.
 
 * <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
   This overrides the default port 8500. This option is very useful when deploying Consul
@@ -612,9 +612,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   PEM-encoded certificate. The certificate is provided to clients or servers to verify the agent's
   authenticity. It must be provided along with [`key_file`](#key_file).
 
-* <a name="check_enable_exec"></a><a href="#check_enable_exec">`check_enable_exec`</a> Equivalent to the
-  [`-check-enable-exec` command-line flag](#_check_enable_exec).
-
 * <a name="check_update_interval"></a><a href="#check_update_interval">`check_update_interval`</a>
   This interval controls how often check output from
   checks in a steady state is synchronized with the server. By default, this is
@@ -720,6 +717,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
+
+* <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
+  [`-enable-script-checks` command-line flag](#_enable_script_checks).
 
 * <a name="enable_syslog"></a><a href="#enable_syslog">`enable_syslog`</a> Equivalent to
   the [`-syslog` command-line flag](#_syslog).

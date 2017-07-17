@@ -1601,7 +1601,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("Check type is not valid")
 		}
 
-		if chkType.IsScript() && !a.config.CheckEnableExec {
+		if chkType.IsScript() && !a.config.EnableScriptChecks {
 			return fmt.Errorf("Check types that exec scripts are disabled on this agent")
 		}
 	}

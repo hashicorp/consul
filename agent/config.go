@@ -625,9 +625,10 @@ type Config struct {
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool `mapstructure:"rejoin_after_leave"`
 
-	// CheckEnableExec controls whether health checks which execute scripts
-	// are enabled. This includes regular script checks and Docker checks.
-	CheckEnableExec bool `mapstructure:"check_enable_exec"`
+	// EnableScriptChecks controls whether health checks which execute
+	// scripts are enabled. This includes regular script checks and Docker
+	// checks.
+	EnableScriptChecks bool `mapstructure:"enable_script_checks"`
 
 	// CheckUpdateInterval controls the interval on which the output of a health check
 	// is updated if there is no change to the state. For example, a check in a steady
@@ -1936,8 +1937,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DNSConfig.RecursorTimeout != 0 {
 		result.DNSConfig.RecursorTimeout = b.DNSConfig.RecursorTimeout
 	}
-	if b.CheckEnableExec {
-		result.CheckEnableExec = true
+	if b.EnableScriptChecks {
+		result.EnableScriptChecks = true
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval

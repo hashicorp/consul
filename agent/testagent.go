@@ -314,7 +314,7 @@ func TestConfig() *Config {
 	cfg.Datacenter = "dc1"
 	cfg.Bootstrap = true
 	cfg.Server = true
-	cfg.CheckEnableExec = true
+	cfg.EnableScriptChecks = true
 
 	ccfg := consul.DefaultConfig()
 	cfg.ConsulConfig = ccfg

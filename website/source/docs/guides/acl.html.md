@@ -685,7 +685,7 @@ to use for registration events:
    [HTTP API](/api/index.html) for operations that require them.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
-[`check_enable_exec`](/docs/agent/options.html#_check_enable_exec) set to `true` in order to enable
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
 script checks.
 
 #### Operator Rules
@@ -871,7 +871,7 @@ to use for registration events:
    [HTTP API](/api/index.html) for operations that require them.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
-[`check_enable_exec`](/docs/agent/options.html#_check_enable_exec) set to `true` in order to enable
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
 script checks.
 
 #### Session Rules

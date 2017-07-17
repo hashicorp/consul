@@ -218,10 +218,6 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{CAPath: "a"},
 		},
 		{
-			in: `{"check_enable_exec":true}`,
-			c:  &Config{CheckEnableExec: true},
-		},
-		{
 			in: `{"check_update_interval":"2s"}`,
 			c:  &Config{CheckUpdateInterval: 2 * time.Second, CheckUpdateIntervalRaw: "2s"},
 		},
@@ -325,6 +321,10 @@ func TestDecodeConfig(t *testing.T) {
 		{
 			in: `{"disable_keyring_file":true}`,
 			c:  &Config{DisableKeyringFile: true},
+		},
+		{
+			in: `{"enable_script_checks":true}`,
+			c:  &Config{EnableScriptChecks: true},
 		},
 		{
 			in: `{"encrypt_verify_incoming":true}`,
@@ -1367,7 +1367,7 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutLan:    24 * time.Hour,
 		ReconnectTimeoutWanRaw: "36h",
 		ReconnectTimeoutWan:    36 * time.Hour,
-		CheckEnableExec:        true,
+		EnableScriptChecks:     true,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1111",

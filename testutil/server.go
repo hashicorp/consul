@@ -86,7 +86,7 @@ type TestServerConfig struct {
 	VerifyIncomingRPC   bool                   `json:"verify_incoming_rpc,omitempty"`
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
-	CheckEnableExec     bool                   `json:"check_enable_exec,omitempty"`
+	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
@@ -125,8 +125,8 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  randomPort(),
 			RPC:     randomPort(),
 		},
-		CheckEnableExec: true,
-		ReadyTimeout:    10 * time.Second,
+		EnableScriptChecks: true,
+		ReadyTimeout:       10 * time.Second,
 	}
 }
 
