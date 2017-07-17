@@ -559,6 +559,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
 		},
 		{
+			in: `{"service_prefix": "", "statsite_prefix": "a"}`,
+			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
+		},
+		{
 			in: `{"statsd_addr":"a"}`,
 			c:  &Config{Telemetry: Telemetry{StatsdAddr: "a"}},
 		},

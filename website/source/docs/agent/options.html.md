@@ -1000,7 +1000,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     statsite.
 
   * <a name="telemetry-statsite_prefix"></a><a href="#telemetry-statsite_prefix">`statsite_prefix`</a> DEPRECATED:
-    Use <a href="telemetry-service_prefix">`service_prefix`</a> instead.
+    Use <a href="telemetry-service_prefix">`service_prefix`</a> instead. If both `statsite_prefix` and `service_prefix` are set, the value from
+    `service_prefix` will be used.
 
   * <a name="telemetry-dogstatsd_addr"></a><a href="#telemetry-dogstatsd_addr">`dogstatsd_addr`</a> This provides the
     address of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible flavor of
