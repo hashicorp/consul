@@ -47,8 +47,8 @@ func (c *CheckType) Valid() bool {
 	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
 }
 
-// IsExec checks if this is a check that execs some kind of script.
-func (c *CheckType) IsExec() bool {
+// IsScript checks if this is a check that execs some kind of script.
+func (c *CheckType) IsScript() bool {
 	return c.Script != ""
 }
 
