@@ -95,7 +95,7 @@ func TestRexecWriter(t *testing.T) {
 
 func TestRemoteExecGetSpec(t *testing.T) {
 	t.Parallel()
-	testRemoteExecGetSpec(t, nil, "")
+	testRemoteExecGetSpec(t, nil, "", true)
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
@@ -105,7 +105,7 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, cfg, "root")
+	testRemoteExecGetSpec(t, cfg, "root", true)
 }
 
 func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
@@ -115,10 +115,19 @@ func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLAgentToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, cfg, "root")
+	testRemoteExecGetSpec(t, cfg, "root", true)
 }
 
-func testRemoteExecGetSpec(t *testing.T, c *Config, token string) {
+func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	testRemoteExecGetSpec(t, cfg, "root", false)
+}
+
+func testRemoteExecGetSpec(t *testing.T, c *Config, token string, shouldSucceed bool) {
 	a := NewTestAgent(t.Name(), c)
 	defer a.Shutdown()
 
@@ -141,17 +150,17 @@ func testRemoteExecGetSpec(t *testing.T, c *Config, token string) {
 	setKV(t, a.Agent, key, buf, token)
 
 	var out remoteExecSpec
-	if !a.remoteExecGetSpec(event, &out) {
+	if shouldSucceed != a.remoteExecGetSpec(event, &out) {
 		t.Fatalf("bad")
 	}
-	if !reflect.DeepEqual(spec, &out) {
+	if shouldSucceed && !reflect.DeepEqual(spec, &out) {
 		t.Fatalf("bad spec")
 	}
 }
 
 func TestRemoteExecWrites(t *testing.T) {
 	t.Parallel()
-	testRemoteExecWrites(t, nil, "")
+	testRemoteExecWrites(t, nil, "", true)
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
@@ -161,7 +170,7 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, cfg, "root")
+	testRemoteExecWrites(t, cfg, "root", true)
 }
 
 func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
@@ -171,11 +180,20 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 	cfg.ACLMasterToken = "root"
 	cfg.ACLAgentToken = "root"
 	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, cfg, "root")
+	testRemoteExecWrites(t, cfg, "root", true)
 }
 
-func testRemoteExecWrites(t *testing.T, c *Config, token string) {
-	a := NewTestAgent(t.Name(), nil)
+func TestRemoteExecWrites_ACLDeny(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.ACLDatacenter = "dc1"
+	cfg.ACLMasterToken = "root"
+	cfg.ACLDefaultPolicy = "deny"
+	testRemoteExecWrites(t, cfg, "root", false)
+}
+
+func testRemoteExecWrites(t *testing.T, c *Config, token string, shouldSucceed bool) {
+	a := NewTestAgent(t.Name(), c)
 	defer a.Shutdown()
 
 	event := &remoteExecEvent{
@@ -184,16 +202,21 @@ func testRemoteExecWrites(t *testing.T, c *Config, token string) {
 	}
 	defer destroySession(t, a.Agent, event.Session, token)
 
-	if !a.remoteExecWriteAck(event) {
+	if shouldSucceed != a.remoteExecWriteAck(event) {
 		t.Fatalf("bad")
 	}
 
 	output := []byte("testing")
-	if !a.remoteExecWriteOutput(event, 0, output) {
+	if shouldSucceed != a.remoteExecWriteOutput(event, 0, output) {
 		t.Fatalf("bad")
 	}
-	if !a.remoteExecWriteOutput(event, 10, output) {
+	if shouldSucceed != a.remoteExecWriteOutput(event, 10, output) {
 		t.Fatalf("bad")
+	}
+
+	// Bypass the remaining checks if the write was expected to fail.
+	if !shouldSucceed {
+		return
 	}
 
 	exitCode := 1
