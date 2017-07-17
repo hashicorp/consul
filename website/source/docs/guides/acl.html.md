@@ -684,6 +684,10 @@ to use for registration events:
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
    [HTTP API](/api/index.html) for operations that require them.
 
+In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
+script checks.
+
 #### Operator Rules
 
 The `operator` policy controls access to cluster-level operations in the
@@ -865,6 +869,10 @@ to use for registration events:
    available for both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
    [HTTP API](/api/index.html) for operations that require them.
+
+In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
+script checks.
 
 #### Session Rules
 

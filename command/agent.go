@@ -80,6 +80,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		"A unique ID for this node across space and time. Defaults to a randomly-generated ID"+
 			" that persists in the data-dir.")
 
+	f.BoolVar(&cmdCfg.EnableScriptChecks, "enable-script-checks", false, "Enables health check scripts.")
 	var disableHostNodeID configutil.BoolValue
 	f.Var(&disableHostNodeID, "disable-host-node-id",
 		"Setting this to true will prevent Consul from using information from the"+

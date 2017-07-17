@@ -323,6 +323,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{DisableKeyringFile: true},
 		},
 		{
+			in: `{"enable_script_checks":true}`,
+			c:  &Config{EnableScriptChecks: true},
+		},
+		{
 			in: `{"encrypt_verify_incoming":true}`,
 			c:  &Config{EncryptVerifyIncoming: Bool(true)},
 		},
@@ -1363,6 +1367,7 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutLan:    24 * time.Hour,
 		ReconnectTimeoutWanRaw: "36h",
 		ReconnectTimeoutWan:    36 * time.Hour,
+		EnableScriptChecks:     true,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1111",

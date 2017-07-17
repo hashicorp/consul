@@ -1595,8 +1595,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
-	if chkType != nil && !chkType.Valid() {
-		return fmt.Errorf("Check type is not valid")
+
+	if chkType != nil {
+		if !chkType.Valid() {
+			return fmt.Errorf("Check type is not valid")
+		}
+
+		if chkType.IsScript() && !a.config.EnableScriptChecks {
+			return fmt.Errorf("Check types that exec scripts are disabled on this agent")
+		}
 	}
 
 	if check.ServiceID != "" {

@@ -47,6 +47,11 @@ func (c *CheckType) Valid() bool {
 	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
 }
 
+// IsScript checks if this is a check that execs some kind of script.
+func (c *CheckType) IsScript() bool {
+	return c.Script != ""
+}
+
 // IsTTL checks if this is a TTL type
 func (c *CheckType) IsTTL() bool {
 	return c.TTL != 0
