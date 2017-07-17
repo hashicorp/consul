@@ -720,10 +720,10 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "ooNF6amPOxyz9OULy2hfbtNlIw4=",
+			"checksumSHA1": "zcZtXfxrusJpcaPeGJOBnPG1xjs=",
 			"path": "github.com/hashicorp/memberlist",
-			"revision": "924edbc42f05a6f7ccd6d4184b8147f2c20ae5f3",
-			"revisionTime": "2017-07-07T07:05:14Z"
+			"revision": "99594a4f171a77cb7cff01f143ccf608ac577c47",
+			"revisionTime": "2017-07-17T19:31:21Z"
 		},
 		{
 			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
