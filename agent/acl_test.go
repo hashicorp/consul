@@ -166,6 +166,12 @@ func TestACL_Special_IDs(t *testing.T) {
 	if !acl.AgentWrite(cfg.NodeName) {
 		t.Fatalf("should be able to write agent")
 	}
+	if !acl.NodeRead("hello") {
+		t.Fatalf("should be able to read any node")
+	}
+	if acl.NodeWrite("hello") {
+		t.Fatalf("should not be able to write any node")
+	}
 }
 
 func TestACL_Down_Deny(t *testing.T) {

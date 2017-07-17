@@ -453,10 +453,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
   Used to access <a href="/api/agent.html">agent endpoints</a> that require agent read
-  or write privileges even if Consul servers aren't present to validate any tokens. This should only
-  be used by operators during outages, regular ACL tokens should normally be used by applications.
-  This was added in Consul 0.7.2 and is only used when <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a>
-  is set to true.
+  or write privileges, or node read privileges, even if Consul servers aren't present to validate
+  any tokens. This should only be used by operators during outages, regular ACL tokens should normally
+  be used by applications. This was added in Consul 0.7.2 and is only used when
+  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true.
 
 * <a name="acl_agent_token"></a><a href="#acl_agent_token">`acl_agent_token`</a> - Used for clients
   and servers to perform internal operations to the service catalog. If this isn't specified, then
