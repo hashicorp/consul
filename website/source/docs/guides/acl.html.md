@@ -172,7 +172,6 @@ key "_rexec" {
 
 The `service` policy needs `read` access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options.html#disable_remote_exec), the default, then the `key` policy can be omitted.
 
->>>>>>> Changes remote exec KV read to call GetTokenForAgent(), which can use
 #### Bootstrapping ACLs
 
 Bootstrapping ACLs on a new cluster requires a few steps, outlined in the example in this
