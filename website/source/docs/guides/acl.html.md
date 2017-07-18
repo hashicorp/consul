@@ -107,7 +107,7 @@ This configuration also allows the ACL system to fail open or closed.
 [ACL replication](#replication) is also available to allow for the full set of ACL
 tokens to be replicated for use during an outage.
 
-#### Configuring ACLs
+## Configuring ACLs
 
 ACLs are configured using several different configuration options. These are marked
 as to whether they are set on servers, clients, or both.
@@ -133,8 +133,7 @@ system, or accessing Consul in special situations:
 | [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details |
 | [`acl_token`](/docs/agent/options.html#acl_token) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
-<a name="acl-agent-master-token"></a>
-**`ACL Agent Master Token`**
+#### ACL Agent Master Token
 
 Since the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
 
@@ -147,8 +146,7 @@ node "" {
 }
 ```
 
-<a name="acl-agent-token"></a>
-**`ACL Agent Token`**
+#### ACL Agent Token
 
 The [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl_token`](/docs/agent/options.html#acl_token), though if the `acl_agent_token` isn't configured the `acl_token` will be used. The ACL agent token is used for the following operations by the agent:
 
@@ -172,12 +170,12 @@ key "_rexec" {
 
 The `service` policy needs `read` access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options.html#disable_remote_exec), the default, then the `key` policy can be omitted.
 
-#### Bootstrapping ACLs
+## Bootstrapping ACLs
 
-Bootstrapping ACLs on a new cluster requires a few steps, outlined in the example in this
+Bootstrapping ACLs on a new cluster requires a few steps, outlined in the examples in this
 section.
 
-**Enable ACLs on the Consul Servers**
+#### Enable ACLs on the Consul Servers
 
 The first step for bootstrapping ACLs is to enable ACLs on the Consul servers in the ACL
 datacenter. In this example, we are configuring the following:
@@ -214,7 +212,7 @@ for all servers. Once this is done, restart the current leader to force a leader
 Once the ACL system is bootstrapped, ACL tokens can be managed through the
 [ACL API](/api/acl.html).
 
-**Create an Agent Token**
+#### Create an Agent Token
 
 After the servers are restarted above, you will see new errors in the logs of the Consul
 servers related to permission denied errors:
@@ -266,7 +264,7 @@ catalog:
 
 See the [ACL Agent Token](#acl-agent-token) section for more details.
 
-**Enable ACLs on the Consul Clients**
+#### Enable ACLs on the Consul Clients
 
 Since ACL enforcement also occurs on the Consul clients, we need to also restart them
 with a configuration file that enables ACLs:
@@ -292,7 +290,7 @@ so generally an empty `service` prefix can be used, as shown in the example.
 Clients will report similar permission denied errors until they are restarted with an ACL
 agent token.
 
-**Set an Anonymous Policy (Optional)**
+#### Set an Anonymous Policy (Optional)
 
 At this point ACLs are bootstrapped with ACL agent tokens configured, but there are no
 other policies set up. Even basic operations like `consul members` will be restricted
@@ -415,7 +413,7 @@ consul.service.consul.  0       IN      A       127.0.0.1
 
 The next section shows an alternative to the anonymous token.
 
-**Set Agent-specific Default Tokens (Optional)**
+#### Set Agent-specific Default Tokens (Optional)
 
 An alternative to the anonymous token is the [`acl_token`](/docs/agent/options.html#acl_token)
 configuration item. When a request is made to a particular Consul agent and no token is
@@ -430,12 +428,16 @@ default.
 If using [`acl_token`](/docs/agent/options.html#acl_token), then it's likely the anonymous
 token will have a more restrictive policy than shown in the examples here.
 
-**Next Steps**
+#### Next Steps
 
 The examples above configure a basic ACL environment with the ability to see all nodes
 by default, and limited access to just the "consul" service. The [ACL API](/api/acl.html)
 can be used to create tokens for applications specific to their intended use, and to create
 more specific ACL agent tokens for each agent's expected role.
+
+Also see [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html), which
+has an integration with Consul that allows it to generate ACL tokens on the fly and to manage
+their lifetimes.
 
 ## Rule Specification
 
