@@ -1787,7 +1787,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	// Add to the local state for anti-entropy
-	a.state.AddCheck(check, token)
+	err := a.state.AddCheck(check, token)
+	if err != nil {
+		return err
+	}
 
 	// Persist the check
 	if persist && !a.config.DevMode {
