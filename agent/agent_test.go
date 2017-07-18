@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"sync"
+
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/api"
@@ -624,6 +626,71 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	if a.state.Checks()["chk2"] != nil {
 		t.Fatal("Found health check chk2 want nil")
 	}
+}
+
+func TestAgent_AddCheck_RemoveServiceRace(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.NodeName = "node1"
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	// NOTE - trying a few times reproduces the race condition where a check can be added while a service is being deleted.
+	// This test may return a false positive if Addcheck happens to execute before RemoveService
+	for i := 0; i < 50; i++ {
+		addServiceAndChecks(a, t)
+		//try removing the service and adding a check for that service in two different go routines
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
+		hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+
+		go func() {
+			a.AddCheck(hchk1, chk1, false, "")
+			wg.Done()
+		}()
+
+		go func() {
+			a.RemoveService("redis", false)
+			wg.Done()
+		}()
+
+		wg.Wait()
+		checks := a.state.Checks()
+		if len(checks) > 0 {
+			t.Fatalf("Expected checks map to be empty")
+		}
+	}
+
+}
+
+func addServiceAndChecks(a *TestAgent, t *testing.T) {
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
+	chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
+	chk2 := &structs.CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
+	hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+	// register service with chk1
+	if err := a.AddService(svc, []*structs.CheckType{chk1}, false, ""); err != nil {
+		t.Fatal("Failed to register service", err)
+	}
+	// verify chk1 exists
+	if a.state.Checks()["chk1"] == nil {
+		t.Fatal("Could not find health check chk1")
+	}
+	// update the service with chk2
+	if err := a.AddService(svc, []*structs.CheckType{chk2}, false, ""); err != nil {
+		t.Fatal("Failed to update service", err)
+	}
+	// check that both checks are there
+	if got, want := a.state.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
+		t.FailNow()
+	}
+	if got, want := a.state.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
+		t.FailNow()
+	}
+
 }
 
 func TestAgent_AddCheck(t *testing.T) {

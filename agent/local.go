@@ -253,12 +253,17 @@ func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 
 	l.Lock()
 	defer l.Unlock()
-
-	l.checks[check.CheckID] = check
-	l.checkStatus[check.CheckID] = syncStatus{}
-	l.checkTokens[check.CheckID] = token
-	delete(l.checkCriticalTime, check.CheckID)
-	l.changeMade()
+	allow := true
+	if check.ServiceID != "" { //if there is a serviceID associated with the check, make sure it exists
+		_, allow = l.services[check.ServiceID]
+	}
+	if allow {
+		l.checks[check.CheckID] = check
+		l.checkStatus[check.CheckID] = syncStatus{}
+		l.checkTokens[check.CheckID] = token
+		delete(l.checkCriticalTime, check.CheckID)
+		l.changeMade()
+	}
 }
 
 // RemoveCheck is used to remove a health check from the local state.
