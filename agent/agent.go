@@ -1826,6 +1826,10 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 		check.Stop()
 		delete(a.checkTTLs, checkID)
 	}
+	if check, ok := a.checkDockers[checkID]; ok {
+		check.Stop()
+		delete(a.checkDockers, checkID)
+	}
 	if persist {
 		if err := a.purgeCheck(checkID); err != nil {
 			return err
