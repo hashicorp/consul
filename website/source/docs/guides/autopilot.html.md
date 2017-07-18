@@ -204,7 +204,7 @@ node3  127.0.0.1:8803  alive   server  0.7.5  2         dc1
 node4  127.0.0.1:8203  alive   server  0.8.0  2         dc1
 ```
 
-### Using migrations without a Consul version change
+### Migrations Without a Consul Version Change
 
 The `UpgradeVersionTag` can be used to override the version information used during
 a migration, so that the migration logic can be used for updating the cluster when
