@@ -23,6 +23,7 @@ IMPROVEMENTS:
 * api: Changed signature for "done" channels on `agent.Monitor()` and `session.RenewPeriodic` methods to make them more compatible with `context`. [GH-3271]
 * docs: Added a complete end-to-end example of ACL bootstrapping in the [ACL Guide](https://www.consul.io/docs/guides/acl.html#bootstrapping-acls). [GH-3248]
 * vendor: Updated golang.org/x/sys/unix to support IBM s390 platforms. [GH-3240]
+* agent: rewrote Docker health checks without using the Docker client and its dependencies. [GH-3270]
 
 BUG FIXES:
 
