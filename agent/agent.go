@@ -1158,6 +1158,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
+	for _, chk := range a.checkDockers {
+		chk.Stop()
+	}
 
 	var err error
 	if a.delegate != nil {
