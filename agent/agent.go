@@ -128,6 +128,9 @@ type Agent struct {
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
 
+	// dockerClient is the client for performing docker health checks.
+	dockerClient *DockerClient
+
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
 
@@ -1637,9 +1640,12 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 	// Check if already registered
 	if chkType != nil {
-		if chkType.IsTTL() {
+		switch {
+
+		case chkType.IsTTL():
 			if existing, ok := a.checkTTLs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkTTLs, check.CheckID)
 			}
 
 			ttl := &CheckTTL{
@@ -1658,9 +1664,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			ttl.Start()
 			a.checkTTLs[check.CheckID] = ttl
 
-		} else if chkType.IsHTTP() {
+		case chkType.IsHTTP():
 			if existing, ok := a.checkHTTPs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkHTTPs, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1682,9 +1689,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
 
-		} else if chkType.IsTCP() {
+		case chkType.IsTCP():
 			if existing, ok := a.checkTCPs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkTCPs, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1703,14 +1711,24 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
-		} else if chkType.IsDocker() {
+		case chkType.IsDocker():
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkDockers, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, MinInterval))
 				chkType.Interval = MinInterval
+			}
+
+			if a.dockerClient == nil {
+				dc, err := NewDockerClient(os.Getenv("DOCKER_HOST"), CheckBufSize)
+				if err != nil {
+					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
+					return err
+				}
+				a.dockerClient = dc
 			}
 
 			dockerCheck := &CheckDocker{
@@ -1721,15 +1739,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Script:            chkType.Script,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
-			}
-			if err := dockerCheck.Init(); err != nil {
-				return err
+				client:            a.dockerClient,
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
-		} else if chkType.IsMonitor() {
+
+		case chkType.IsMonitor():
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkMonitors, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1747,7 +1765,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
-		} else {
+
+		default:
 			return fmt.Errorf("Check type is not valid")
 		}
 
