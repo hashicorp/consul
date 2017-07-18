@@ -2,6 +2,7 @@ SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/... \
 	github.com/jteeuwen/go-bindata/... \
+	github.com/magiconair/vendorfmt/cmd/vendorfmt \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
@@ -31,6 +32,7 @@ bin: tools
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev:
+	vendorfmt
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
 	cp $(GOPATH)/bin/consul bin/
