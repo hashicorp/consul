@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/armon/circbuf"
@@ -32,7 +33,7 @@ func NewDockerClient(host string, maxbuf int64) (*DockerClient, error) {
 		host = DefaultDockerHost
 	}
 	p := strings.SplitN(host, "://", 2)
-	if len(p) == 1 {
+	if len(p) != 2 {
 		return nil, fmt.Errorf("invalid docker host: %s", host)
 	}
 	network, addr := p[0], p[1]
@@ -94,7 +95,7 @@ func (c *DockerClient) CreateExec(containerID string, cmd []string) (string, err
 		Cmd:          cmd,
 	}
 
-	uri := fmt.Sprintf("/containers/%s/exec", containerID)
+	uri := fmt.Sprintf("/containers/%s/exec", url.QueryEscape(containerID))
 	b, code, err := c.call("POST", uri, data)
 	switch {
 	case err != nil:

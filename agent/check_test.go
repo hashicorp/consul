@@ -696,7 +696,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					fmt.Fprint(w, "01234567890123456789OK") // more than 10 bytes
+					fmt.Fprint(w, "01234567890123456789OK") // more than 20 bytes
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
