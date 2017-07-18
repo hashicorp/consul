@@ -29,7 +29,7 @@ BUG FIXES:
 * agent: (Consul Enterprise) Fixed an issue with the snapshot agent where it could get stuck trying to obtain the leader lock after an extended server outage.
 * agent: Fixed HTTP health checks to allow them to set the `Host` header correctly on outgoing requests. [GH-3203]
 * agent: Serf snapshots can now auto recover from disk write errors without needing a restart. [GH-1744]
-* agent: Fixed log redacting code to properly remove tokens from log lines with tokens in the URL itself: `/v1/acl/clone/:uuid`, `/v1/acl/destroy/:uuid`, `/v1/acl/info/:uuid`. [GH-3276]
+* agent: Fixed log redacting code to properly remove tokens from log lines with ACL tokens in the URL itself: `/v1/acl/clone/:uuid`, `/v1/acl/destroy/:uuid`, `/v1/acl/info/:uuid`. [GH-3276]
 * agent: Fixed an issue in the Docker client where Docker checks would get EOF errors trying to connect to a volume-mounted Docker socket. [GH-3254]
 * agent: Fixed a crash when using Azure auto discovery. [GH-3193]
 * agent: Added `node` read privileges to the `acl_agent_master_token` by default so it can see all nodes, which enables it to be used with operations like `consul members`. [GH-3113]
