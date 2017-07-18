@@ -35,6 +35,10 @@ type AutopilotConfig struct {
 	// cluster before promoting them to voters.
 	DisableUpgradeMigration bool
 
+	// (Enterprise-only) UpgradeVersionTag is the node tag to use for version info when
+	// performing upgrade migrations. If left blank, the Consul version will be used.
+	UpgradeVersionTag string
+
 	// RaftIndex stores the create/modify indexes of this configuration.
 	RaftIndex
 }

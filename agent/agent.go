@@ -750,6 +750,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.Autopilot.DisableUpgradeMigration != nil {
 		base.AutopilotConfig.DisableUpgradeMigration = *a.config.Autopilot.DisableUpgradeMigration
 	}
+	if a.config.Autopilot.UpgradeVersionTag != "" {
+		base.AutopilotConfig.UpgradeVersionTag = a.config.Autopilot.UpgradeVersionTag
+	}
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
