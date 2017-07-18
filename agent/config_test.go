@@ -182,6 +182,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Autopilot: Autopilot{DisableUpgradeMigration: Bool(true)}},
 		},
 		{
+			in: `{"autopilot":{"upgrade_version_tag":"rev"}}`,
+			c:  &Config{Autopilot: Autopilot{UpgradeVersionTag: "rev"}},
+		},
+		{
 			in: `{"autopilot":{"last_contact_threshold":"2s"}}`,
 			c:  &Config{Autopilot: Autopilot{LastContactThreshold: Duration(2 * time.Second), LastContactThresholdRaw: "2s"}},
 		},

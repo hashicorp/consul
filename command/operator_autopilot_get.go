@@ -60,6 +60,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 	c.UI.Output(fmt.Sprintf("ServerStabilizationTime = %v", config.ServerStabilizationTime.String()))
 	c.UI.Output(fmt.Sprintf("RedundancyZoneTag = %q", config.RedundancyZoneTag))
 	c.UI.Output(fmt.Sprintf("DisableUpgradeMigration = %v", config.DisableUpgradeMigration))
+	c.UI.Output(fmt.Sprintf("UpgradeVersionTag = %q", config.UpgradeVersionTag))
 
 	return 0
 }

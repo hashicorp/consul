@@ -36,6 +36,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	var serverStabilizationTime configutil.DurationValue
 	var redundancyZoneTag configutil.StringValue
 	var disableUpgradeMigration configutil.BoolValue
+	var upgradeVersionTag configutil.StringValue
 
 	f := c.BaseCommand.NewFlagSet(c)
 
@@ -60,6 +61,9 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	f.Var(&disableUpgradeMigration, "disable-upgrade-migration",
 		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
 			"it can perform a migration. Must be one of `true|false`.")
+	f.Var(&upgradeVersionTag, "upgrade-version-tag",
+		"(Enterprise-only) The node_meta tag to use for version info when performing upgrade "+
+			"migrations. If left blank, the Consul version will be used.")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -88,6 +92,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	cleanupDeadServers.Merge(&conf.CleanupDeadServers)
 	redundancyZoneTag.Merge(&conf.RedundancyZoneTag)
 	disableUpgradeMigration.Merge(&conf.DisableUpgradeMigration)
+	upgradeVersionTag.Merge(&conf.UpgradeVersionTag)
 
 	trailing := uint(conf.MaxTrailingLogs)
 	maxTrailingLogs.Merge(&trailing)

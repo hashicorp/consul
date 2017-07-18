@@ -32,7 +32,8 @@ bootstrapping the cluster:
     "max_trailing_logs": 250,
     "server_stabilization_time": "10s",
     "redundancy_zone_tag": "az",
-    "disable_upgrade_migration": false
+    "disable_upgrade_migration": false,
+    "upgrade_version_tag": ""
 }
 ```
 
@@ -49,6 +50,7 @@ MaxTrailingLogs = 250
 ServerStabilizationTime = 10s
 RedundancyZoneTag = ""
 DisableUpgradeMigration = false
+UpgradeVersionTag = ""
 
 $ consul operator autopilot set-config -cleanup-dead-servers=false
 Configuration updated!
@@ -60,6 +62,7 @@ MaxTrailingLogs = 250
 ServerStabilizationTime = 10s
 RedundancyZoneTag = ""
 DisableUpgradeMigration = false
+UpgradeVersionTag = ""
 ```
 
 ## Dead Server Cleanup
@@ -200,3 +203,16 @@ node2  127.0.0.1:8703  alive   server  0.7.5  2         dc1
 node3  127.0.0.1:8803  alive   server  0.7.5  2         dc1
 node4  127.0.0.1:8203  alive   server  0.8.0  2         dc1
 ```
+
+### Migrations Without a Consul Version Change
+
+The `UpgradeVersionTag` can be used to override the version information used during
+a migration, so that the migration logic can be used for updating the cluster when
+changing configuration.
+
+If the `UpgradeVersionTag` setting is set, Consul will use its value to look for a
+version in each server's specified [`-node-meta`](/docs/agent/options.html#_node_meta)
+tag. For example, if `UpgradeVersionTag` is set to `build`, and `-node-meta build:0.0.2`
+is used when starting a server, that server's version will be `0.0.2` when considered in
+a migration. The upgrade logic will follow semantic versioning and the version string
+must be in the form of either `X`, `X.Y`, or `X.Y.Z`.

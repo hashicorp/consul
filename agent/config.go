@@ -324,6 +324,10 @@ type Autopilot struct {
 	// strategy of waiting until enough newer-versioned servers have been added to the
 	// cluster before promoting them to voters.
 	DisableUpgradeMigration *bool `mapstructure:"disable_upgrade_migration"`
+
+	// (Enterprise-only) UpgradeVersionTag is the node tag to use for version info when
+	// performing upgrade migrations. If left blank, the Consul version will be used.
+	UpgradeVersionTag string `mapstructure:"upgrade_version_tag"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -1686,6 +1690,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Autopilot.DisableUpgradeMigration != nil {
 		result.Autopilot.DisableUpgradeMigration = b.Autopilot.DisableUpgradeMigration
+	}
+	if b.Autopilot.UpgradeVersionTag != "" {
+		result.Autopilot.UpgradeVersionTag = b.Autopilot.UpgradeVersionTag
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true

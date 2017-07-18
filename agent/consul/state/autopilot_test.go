@@ -3,6 +3,7 @@ package state
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul/structs"
 )
@@ -11,7 +12,13 @@ func TestStateStore_Autopilot(t *testing.T) {
 	s := testStateStore(t)
 
 	expected := &structs.AutopilotConfig{
-		CleanupDeadServers: true,
+		CleanupDeadServers:      true,
+		LastContactThreshold:    5 * time.Second,
+		MaxTrailingLogs:         500,
+		ServerStabilizationTime: 100 * time.Second,
+		RedundancyZoneTag:       "az",
+		DisableUpgradeMigration: true,
+		UpgradeVersionTag:       "build",
 	}
 
 	if err := s.AutopilotSetConfig(0, expected); err != nil {
