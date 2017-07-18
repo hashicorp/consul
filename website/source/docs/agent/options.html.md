@@ -147,12 +147,22 @@ will exit with an error at startup.
   [Nomad](https://www.nomadproject.io/), so if you opt-in to host-based IDs then Consul and Nomad will use
   information on the host to automatically assign the same ID in both systems.
 
+* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
+  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
+  `-encrypt` key will be available on startup. This defaults to false.
+
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
   This overrides the default port 8600. This is available in Consul 0.7 and later.
 
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
+
+* <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`enable-script-checks`</a> This
+  controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
+  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
+  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
+  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
@@ -166,10 +176,6 @@ will exit with an error at startup.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
-
-* <a name="_disable_keyring_file"></a><a href="#_disable_keyring_file">`-disable-keyring-file`</a> - If set,
-  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
-  `-encrypt` key will be available on startup. This defaults to false.
 
 * <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
   This overrides the default port 8500. This option is very useful when deploying Consul
@@ -453,17 +459,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
   Used to access <a href="/api/agent.html">agent endpoints</a> that require agent read
-  or write privileges even if Consul servers aren't present to validate any tokens. This should only
-  be used by operators during outages, regular ACL tokens should normally be used by applications.
-  This was added in Consul 0.7.2 and is only used when <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a>
-  is set to true.
+  or write privileges, or node read privileges, even if Consul servers aren't present to validate
+  any tokens. This should only be used by operators during outages, regular ACL tokens should normally
+  be used by applications. This was added in Consul 0.7.2 and is only used when
+  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true.
 
 * <a name="acl_agent_token"></a><a href="#acl_agent_token">`acl_agent_token`</a> - Used for clients
-  and servers to perform internal operations to the service catalog. If this isn't specified, then
-  the <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
+  and servers to perform internal operations. If this isn't specified, then the
+  <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
   <br><br>
   This token must at least have write access to the node name it will register as in order to set any
-  of the node-level information in the catalog such as metadata, or the node's tagged addresses.
+  of the node-level information in the catalog such as metadata, or the node's tagged addresses. There
+  are other places this token is used, please see [ACL Agent Token](/docs/guides/acl.html#acl-agent-token)
+  for more details.
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   Used for clients and servers to determine if enforcement should occur for new ACL policies being
@@ -709,6 +717,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
+
+* <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
+  [`-enable-script-checks` command-line flag](#_enable_script_checks).
 
 * <a name="enable_syslog"></a><a href="#enable_syslog">`enable_syslog`</a> Equivalent to
   the [`-syslog` command-line flag](#_syslog).

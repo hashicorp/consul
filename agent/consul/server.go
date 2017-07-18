@@ -371,7 +371,7 @@ func NewServerLogger(config *Config, logger *log.Logger) (*Server, error) {
 	go s.lanEventHandler()
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
-	if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
+	if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 	}

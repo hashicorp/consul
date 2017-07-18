@@ -529,7 +529,9 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 
 func TestAPI_AgentChecks_Docker(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.EnableScriptChecks = true
+	})
 	defer s.Stop()
 
 	agent := c.Agent()

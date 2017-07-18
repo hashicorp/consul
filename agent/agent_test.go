@@ -628,7 +628,9 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 
 func TestAgent_AddCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.EnableScriptChecks = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -665,7 +667,9 @@ func TestAgent_AddCheck(t *testing.T) {
 
 func TestAgent_AddCheck_StartPassing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.EnableScriptChecks = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -702,7 +706,9 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 
 func TestAgent_AddCheck_MinInterval(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.EnableScriptChecks = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -735,7 +741,9 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 
 func TestAgent_AddCheck_MissingService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.EnableScriptChecks = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -797,9 +805,38 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_ExecDisable(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		Script:   "exit 0",
+		Interval: 15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err == nil || !strings.Contains(err.Error(), "exec scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we don't have a check mapping
+	if memChk := a.state.Checks()["mem"]; memChk != nil {
+		t.Fatalf("should be missing mem check")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.EnableScriptChecks = true
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Remove check that doesn't exist
@@ -1097,6 +1134,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	cfg := TestConfig()
 	cfg.Server = false
 	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
+	cfg.EnableScriptChecks = true
 	a := NewTestAgent(t.Name(), cfg)
 	defer os.RemoveAll(cfg.DataDir)
 	defer a.Shutdown()
@@ -1230,6 +1268,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	cfg := TestConfig()
 	cfg.Server = false
 	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
+	cfg.EnableScriptChecks = true
 	a := NewTestAgent(t.Name(), cfg)
 	defer os.RemoveAll(cfg.DataDir)
 	defer a.Shutdown()

@@ -104,6 +104,12 @@ func newACLManager(config *Config) (*aclManager, error) {
 					Policy: acl.PolicyWrite,
 				},
 			},
+			Nodes: []*acl.NodePolicy{
+				&acl.NodePolicy{
+					Name:   "",
+					Policy: acl.PolicyRead,
+				},
+			},
 		}
 		acl, err := acl.New(acl.DenyAll(), policy)
 		if err != nil {

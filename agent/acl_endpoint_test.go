@@ -124,8 +124,15 @@ func TestACL_Clone(t *testing.T) {
 
 	id := makeTestACL(t, a.srv)
 
-	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
+	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id, nil)
 	resp := httptest.NewRecorder()
+	_, err := a.srv.ACLClone(resp, req)
+	if !isPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
+	resp = httptest.NewRecorder()
 	obj, err := a.srv.ACLClone(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)

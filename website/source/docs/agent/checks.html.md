@@ -21,10 +21,12 @@ There are five different kinds of checks:
   that performs the health check, exits with an appropriate exit code, and potentially
   generates some output. A script is paired with an invocation interval (e.g.
   every 30 seconds). This is similar to the Nagios plugin system. The output of
-  a script check is limited to 4K. Output larger than this will be truncated.
+  a script check is limited to 4KB. Output larger than this will be truncated.
   By default, Script checks will be configured with a timeout equal to 30 seconds.
   It is possible to configure a custom Script check timeout value by specifying the
-  `timeout` field in the check definition.
+  `timeout` field in the check definition. In Consul 0.9.0 and later, the agent
+  must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+  set to `true` in order to enable script checks.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
@@ -38,7 +40,7 @@ There are five different kinds of checks:
   configured with a request timeout equal to the check interval, with a max of
   10 seconds. It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
-  check is limited to roughly 4K. Responses larger than this will be truncated.
+  check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support SSL. By default, a valid SSL certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
@@ -74,15 +76,17 @@ There are five different kinds of checks:
   valid through the end of the TTL from the time of the last check.
 
 * Docker + Interval - These checks depend on invoking an external application which
-is packaged within a Docker Container. The application is triggered within the running
-container via the Docker Exec API. We expect that the Consul agent user has access
-to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to
-determine the Docker API endpoint. The application is expected to run, perform a health
-check of the service running inside the container, and exit with an appropriate exit code.
-The check should be paired with an invocation interval. The shell on which the check
-has to be performed is configurable which makes it possible to run containers which
-have different shells on the same host. Check output for Docker is limited to
-4K. Any output larger than this will be truncated.
+  is packaged within a Docker Container. The application is triggered within the running
+  container via the Docker Exec API. We expect that the Consul agent user has access
+  to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to
+  determine the Docker API endpoint. The application is expected to run, perform a health
+  check of the service running inside the container, and exit with an appropriate exit code.
+  The check should be paired with an invocation interval. The shell on which the check
+  has to be performed is configurable which makes it possible to run containers which
+  have different shells on the same host. Check output for Docker is limited to
+  4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
+  must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+  set to `true` in order to enable Docker health checks.
 
 ## Check Definition
 
@@ -209,6 +213,10 @@ this convention:
 This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
+
+In Consul 0.9.0 and later, the agent must be configured with
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
+in order to enable script checks.
 
 ## Initial Health Check Status
 

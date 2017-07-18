@@ -243,7 +243,7 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 			AllowStale: true, // Stale read for scale! Retry on failure.
 		},
 	}
-	get.Token = a.config.ACLToken
+	get.Token = a.config.GetTokenForAgent()
 	var out structs.IndexedDirEntries
 QUERY:
 	if err := a.RPC("KVS.Get", &get, &out); err != nil {
@@ -310,7 +310,7 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 			Session: event.Session,
 		},
 	}
-	write.Token = a.config.ACLToken
+	write.Token = a.config.GetTokenForAgent()
 	var success bool
 	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
 		return err
