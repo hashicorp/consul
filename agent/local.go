@@ -247,18 +247,25 @@ func (l *localState) checkToken(checkID types.CheckID) string {
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
+func (l *localState) AddCheck(check *structs.HealthCheck, token string) error {
 	// Set the node name
 	check.Node = l.config.NodeName
 
 	l.Lock()
 	defer l.Unlock()
 
+	// if there is a serviceID associated with the check, make sure it exists before adding it
+	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
+	if check.ServiceID != "" && l.services[check.ServiceID] == nil {
+		return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
+	}
+
 	l.checks[check.CheckID] = check
 	l.checkStatus[check.CheckID] = syncStatus{}
 	l.checkTokens[check.CheckID] = token
 	delete(l.checkCriticalTime, check.CheckID)
 	l.changeMade()
+	return nil
 }
 
 // RemoveCheck is used to remove a health check from the local state.

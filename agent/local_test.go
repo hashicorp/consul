@@ -1475,6 +1475,9 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	cfg := TestConfig()
 	l := NewLocalState(cfg, nil)
 
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
+	l.AddService(svc, "")
+
 	// Add a passing check and make sure it's not critical.
 	checkID := types.CheckID("redis:1")
 	chk := &structs.HealthCheck{
