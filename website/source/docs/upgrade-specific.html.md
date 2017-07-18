@@ -24,7 +24,7 @@ If your cluster uses script health checks please be sure to set this to `true` a
 
 #### Web UI Is No Longer Released Separately
 
-Consul releases will no longer include a `web_ui.zip` file with the compiled web assets. These have been built in to the Consul binary since the 0.7.x series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui) configuration option. This makes it easier to deploy Consul as a single binary. THe [`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for hosting customized versions of the web assets.
+Consul releases will no longer include a `web_ui.zip` file with the compiled web assets. These have been built in to the Consul binary since the 0.7.x series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui) configuration option. These built-in web assets have always been identical to the contents of the `web_ui.zip` file for each release. The [`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for hosting customized versions of the web assets, but the vast majority of Consul users can just use the built in web assets.
 
 ## Consul 0.8.0
 
