@@ -31,9 +31,9 @@ The type is either "client" (meaning the token cannot modify ACL rules) or "mana
 (meaning the token is allowed to perform all actions).
 
 The token ID is passed along with each RPC request to the servers. Consul's
-[HTTP endpoints](http://localhost:4567/api/index.html) can accept tokens via the `token`
+[HTTP endpoints](/api/index.html) can accept tokens via the `token`
 query string parameter, or the `X-Consul-Token` request header. Consul's
-[CLI commands](http://localhost:4567/docs/commands/index.html) can accept tokens via the
+[CLI commands](/docs/commands/index.html) can accept tokens via the
 `token` argument, or the `CONSUL_HTTP_TOKEN` environment variable.
 
 If no token is provided, the rules associated with a special, configurable anonymous
