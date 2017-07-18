@@ -1789,6 +1789,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	// Add to the local state for anti-entropy
 	err := a.state.AddCheck(check, token)
 	if err != nil {
+		a.cancelCheckMonitors(check.CheckID)
 		return err
 	}
 
@@ -1814,6 +1815,21 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
 
+	a.cancelCheckMonitors(checkID)
+
+	if persist {
+		if err := a.purgeCheck(checkID); err != nil {
+			return err
+		}
+		if err := a.purgeCheckState(checkID); err != nil {
+			return err
+		}
+	}
+	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
+	return nil
+}
+
+func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
 	if check, ok := a.checkMonitors[checkID]; ok {
@@ -1836,16 +1852,6 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 		check.Stop()
 		delete(a.checkDockers, checkID)
 	}
-	if persist {
-		if err := a.purgeCheck(checkID); err != nil {
-			return err
-		}
-		if err := a.purgeCheckState(checkID); err != nil {
-			return err
-		}
-	}
-	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
-	return nil
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
