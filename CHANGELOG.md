@@ -36,6 +36,7 @@ BUG FIXES:
 * agent: Fixed a crash when using Azure auto discovery. [GH-3193]
 * agent: Added `node` read privileges to the `acl_agent_master_token` by default so it can see all nodes, which enables it to be used with operations like `consul members`. [GH-3113]
 * agent: Fixed an issue where enabling [`-disable-keyring-file`](https://www.consul.io/docs/agent/options.html#_disable_keyring_file) would cause gossip encryption to be disabled. [GH-3243]
+* agent: Stop docker checks on service deregistration and on shutdown. [GH-3265, GH-3295]
 * server: Updated the Raft library to pull in a fix where servers that are very far behind in replication can get stuck in a loop trying to install snapshots. [GH-3201]
 * server: Fixed a rare but serious deadlock where the Consul leader routine could get stuck with the Raft internal leader routine while waiting for the initial barrier after a leader election. [GH-3230]
 * server: Added automatic cleanup of failed Raft snapshots. [GH-3258]
