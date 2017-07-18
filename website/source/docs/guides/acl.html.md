@@ -413,7 +413,7 @@ consul.service.consul.  0       IN      A       127.0.0.1
 
 The next section shows an alternative to the anonymous token.
 
-#### Set Agent-specific Default Tokens (Optional)
+#### Set Agent-Specific Default Tokens (Optional)
 
 An alternative to the anonymous token is the [`acl_token`](/docs/agent/options.html#acl_token)
 configuration item. When a request is made to a particular Consul agent and no token is
