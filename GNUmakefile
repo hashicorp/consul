@@ -31,12 +31,17 @@ bin: tools
 	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev:
-	vendorfmt
+dev: vendorfmt dev-build
+
+dev-build:
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
+
+vendorfmt:
+	test -x $(GOPATH)/bin/vendorfmt || go get -u github.com/magiconair/vendorfmt/cmd/vendorfmt
+	vendorfmt
 
 # linux builds a linux package independent of the source platform
 linux:
@@ -51,7 +56,7 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: dev vet
+test: dev-build vet
 	go test -tags '$(GOTAGS)' -i ./...
 	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m -v ./... 2>&1 >test$(GOTEST_FLAGS).log ; echo $$? > exit-code
 	@echo "Exit code: `cat exit-code`" >> test$(GOTEST_FLAGS).log
@@ -100,4 +105,4 @@ static-assets:
 tools:
 	go get -u -v $(GOTOOLS)
 
-.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools
+.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt
