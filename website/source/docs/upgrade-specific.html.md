@@ -20,7 +20,11 @@ standard upgrade flow.
 
 A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) configuration option was added, and defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks.
 
-If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](https://www.consul.io/docs/guides/acl.html) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
+If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](/docs/guides/acl.html) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
+
+#### Web UI Is No Longer Released Separately
+
+Consul releases will no longer include a `web_ui.zip` file with the compiled web assets. These have been built in to the Consul binary since the 0.7.x series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui) configuration option. This makes it easier to deploy Consul as a single binary. THe [`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for hosting customized versions of the web assets.
 
 ## Consul 0.8.0
 
