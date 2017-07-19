@@ -1,10 +1,7 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "test appengine",
 	"package": [
-		{"path":"appengine","revision":""},
-		{"path":"appengine_internal","revision":""},
-		{"path":"appengine_internal/base","revision":""},
 		{"checksumSHA1":"ZLRh6zW4/DnVsGpgtt+ZiIaEFKc=","path":"cloud.google.com/go/compute/metadata","revision":"66ede4d838ea4808df6144568e8ea7660967010c","revisionTime":"2017-01-06T22:37:36Z"},
 		{"checksumSHA1":"4iounbuF7SMZdx/MlKSUuhnV848=","path":"cloud.google.com/go/internal","revision":"66ede4d838ea4808df6144568e8ea7660967010c","revisionTime":"2017-01-06T22:37:36Z"},
 		{"checksumSHA1":"ZT+e2iMSXAsKCuJ3BNYpOzDaSmk=","path":"github.com/Azure/azure-sdk-for-go/arm/network","revision":"8dd1f3ff407c300cff0a4bfedd969111ca5a7903","revisionTime":"2017-04-21T22:08:59Z"},
