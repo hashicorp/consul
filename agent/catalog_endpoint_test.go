@@ -907,3 +907,35 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		t.Fatalf("bad: %v", service2)
 	}
 }
+
+func TestCatalogNodeServices_ValidDNS(t *testing.T) {
+	t.Parallel()
+	cfg1 := TestConfig()
+	cfg1.Datacenter = "dc1"
+	cfg1.TranslateWanAddrs = true
+	cfg1.ACLDatacenter = ""
+	cfg1.EnforceValidDNS = true
+	a1 := NewTestAgent(t.Name(), cfg1)
+	defer a1.Shutdown()
+
+	// Register a node with DC2.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http_wan_translation_test",
+			},
+		}
+
+		var out struct{}
+		if err := a1.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+}

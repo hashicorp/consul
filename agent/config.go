@@ -380,7 +380,7 @@ type Config struct {
 	Domain string `mapstructure:"domain"`
 
 	//EnforceValidDNS Blocks registration of services that are valid dns.
-	EnforceValidDNS *bool `mapstructure:"enforcevaliddns"`
+	EnforceValidDNS bool `mapstructure:"enforcevaliddns"`
 
 	// HTTP configuration
 	HTTPConfig HTTPConfig `mapstructure:"http_config"`
@@ -917,7 +917,7 @@ func DefaultConfig() *Config {
 		Server:          false,
 		Datacenter:      consul.DefaultDC,
 		Domain:          "consul.",
-		EnforceValidDNS: Bool(false),
+		EnforceValidDNS: false,
 		LogLevel:        "INFO",
 		ClientAddr:      "127.0.0.1",
 		BindAddr:        "0.0.0.0",
@@ -1590,7 +1590,7 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Domain != "" {
 		result.Domain = b.Domain
 	}
-	if b.EnforceValidDNS != nil {
+	if b.EnforceValidDNS != false {
 		result.EnforceValidDNS = b.EnforceValidDNS
 	}
 	if b.EncryptKey != "" {

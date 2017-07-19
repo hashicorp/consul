@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
-	"os"
 	"regexp"
 )
 
@@ -19,6 +18,9 @@ import (
 type Catalog struct {
 	srv *Server
 }
+
+//Regex to limit service registration to just valid dns
+var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
@@ -100,8 +102,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	if c.srv.config.EnforceValidDNS {
-		dnsNameRe := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-		fmt.Fprintln(os.Stderr, "validating dns of  %s", args.Service.Service)
 		if !dnsNameRe.MatchString(args.Service.Service) {
 			return fmt.Errorf("Service name not valid for DNS: %s, blocking registration.", args.Service.Service)
 		}
