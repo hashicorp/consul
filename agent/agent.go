@@ -1734,6 +1734,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
 					return err
 				}
+				a.logger.Printf("[DEBUG] agent: created docker client for %s", dc.host)
 				a.dockerClient = dc
 			}
 

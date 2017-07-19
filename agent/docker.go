@@ -2,17 +2,16 @@ package agent
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/armon/circbuf"
+	"github.com/docker/go-connections/sockets"
 )
 
 // DockerClient is a simplified client for the Docker Engine API
@@ -21,43 +20,75 @@ import (
 // a ring buffer with a fixed limit to avoid excessive resource
 // consumption.
 type DockerClient struct {
-	network string
-	addr    string
-	baseurl string
-	maxbuf  int64
-	client  *http.Client
+	host     string
+	scheme   string
+	proto    string
+	addr     string
+	basepath string
+	maxbuf   int64
+	client   *http.Client
 }
 
 func NewDockerClient(host string, maxbuf int64) (*DockerClient, error) {
 	if host == "" {
 		host = DefaultDockerHost
 	}
-	p := strings.SplitN(host, "://", 2)
-	if len(p) != 2 {
-		return nil, fmt.Errorf("invalid docker host: %s", host)
+
+	proto, addr, basepath, err := ParseHost(host)
+	if err != nil {
+		return nil, err
 	}
-	network, addr := p[0], p[1]
-	basepath := "http://" + addr
-	if network == "unix" {
-		basepath = "http://unix"
+
+	transport := new(http.Transport)
+	sockets.ConfigureTransport(transport, proto, addr)
+	client := &http.Client{Transport: transport}
+
+	return &DockerClient{
+		host:     host,
+		scheme:   "http",
+		proto:    proto,
+		addr:     addr,
+		basepath: basepath,
+		maxbuf:   maxbuf,
+		client:   client,
+	}, nil
+}
+
+// ParseHost verifies that the given host strings is valid.
+// copied from github.com/docker/docker/client.go
+func ParseHost(host string) (string, string, string, error) {
+	protoAddrParts := strings.SplitN(host, "://", 2)
+	if len(protoAddrParts) == 1 {
+		return "", "", "", fmt.Errorf("unable to parse docker host `%s`", host)
 	}
-	client := &http.Client{}
-	if network == "unix" {
-		client.Transport = &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial(network, addr)
-			},
+
+	var basePath string
+	proto, addr := protoAddrParts[0], protoAddrParts[1]
+	if proto == "tcp" {
+		parsed, err := url.Parse("tcp://" + addr)
+		if err != nil {
+			return "", "", "", err
 		}
+		addr = parsed.Host
+		basePath = parsed.Path
 	}
-	return &DockerClient{network, addr, basepath, maxbuf, client}, nil
+	return proto, addr, basePath, nil
 }
 
 func (c *DockerClient) call(method, uri string, v interface{}) (*circbuf.Buffer, int, error) {
-	urlstr := c.baseurl + uri
-	req, err := http.NewRequest(method, urlstr, nil)
+	req, err := http.NewRequest(method, uri, nil)
 	if err != nil {
 		return nil, 0, err
 	}
+
+	if c.proto == "unix" || c.proto == "npipe" {
+		// For local communications, it doesn't matter what the host is. We just
+		// need a valid and meaningful host name. (See #189)
+		req.Host = "docker"
+	}
+
+	req.URL.Host = c.addr
+	req.URL.Scheme = c.scheme
 
 	if v != nil {
 		var b bytes.Buffer
