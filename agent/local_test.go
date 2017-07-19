@@ -1547,8 +1547,9 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 		ServiceID: "redis",
 		Status:    api.HealthPassing,
 	}
-	if err := l.AddCheck(chk, ""); err == nil {
-		t.Fatalf("Expected error when adding a check for a non-existent service")
+	expectedErr := "ServiceID \"redis\" does not exist"
+	if err := l.AddCheck(chk, ""); err == nil || expectedErr != err.Error() {
+		t.Fatalf("Expected error when adding a check for a non-existent service but got %v", err)
 	}
 
 }
