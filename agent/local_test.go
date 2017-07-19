@@ -1533,6 +1533,26 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheckFailure(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	l := NewLocalState(cfg, nil)
+
+	// Add a check for a service that does not exist and verify that it fails
+	checkID := types.CheckID("redis:1")
+	chk := &structs.HealthCheck{
+		Node:      "node",
+		CheckID:   checkID,
+		Name:      "redis:1",
+		ServiceID: "redis",
+		Status:    api.HealthPassing,
+	}
+	if err := l.AddCheck(chk, ""); err == nil {
+		t.Fatalf("Expected error when adding a check for a non-existent service")
+	}
+
+}
+
 func TestAgent_nestedPauseResume(t *testing.T) {
 	t.Parallel()
 	l := new(localState)
