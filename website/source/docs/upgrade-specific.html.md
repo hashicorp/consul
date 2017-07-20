@@ -16,7 +16,7 @@ standard upgrade flow.
 
 ## Consul 0.9.0
 
-#### Sciript Checks Are Now Opt-In
+#### Script Checks Are Now Opt-In
 
 A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) configuration option was added, and defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks.
 
@@ -323,7 +323,7 @@ this:
 ```
 
 This automatic upgrade will only exist in Consul 0.5.1+ and it will
-be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly 
+be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly
 from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
 [Consul Tools page](/downloads_tools.html).
 
