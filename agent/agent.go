@@ -1629,7 +1629,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		}
 
 		if chkType.IsScript() && !a.config.EnableScriptChecks {
-			return fmt.Errorf("Check types that exec scripts are disabled on this agent")
+			return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' to true")
 		}
 	}
 

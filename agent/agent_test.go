@@ -822,7 +822,7 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 		Interval: 15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
-	if err == nil || !strings.Contains(err.Error(), "exec scripts are disabled on this agent") {
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
 		t.Fatalf("err: %v", err)
 	}
 
