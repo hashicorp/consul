@@ -115,10 +115,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		return nil, nil, e
 	}
 	switch state.Type() {
-	case "AAAA":
-		// AAAA not implemented
-		return nil, nil, errNoItems
-	case "A", "CNAME":
+	case "A", "AAAA", "CNAME":
 		if state.Type() == "A" && isDefaultNS(state.Name(), r) {
 			// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
 			// SOA records always use this hardcoded name
@@ -126,6 +123,10 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 			return svcs, nil, nil
 		}
 		s, e := k.Entries(r)
+		if state.QType() == dns.TypeAAAA {
+			// AAAA not implemented
+			return nil, nil, e
+		}
 		return s, nil, e // Haven't implemented debug queries yet.
 	case "SRV":
 		s, e := k.Entries(r)
@@ -325,8 +326,8 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16) (r record
 		}
 		offset = 2
 	}
-	if qtype == dns.TypeA && len(segs) == 4 {
-		// This is an endpoint A record request. Get first element as endpoint.
+	if (qtype == dns.TypeA || qtype == dns.TypeAAAA) && len(segs) == 4 {
+		// This is an endpoint A/AAAA record request. Get first element as endpoint.
 		r.endpoint = segs[0]
 		offset = 1
 	}

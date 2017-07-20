@@ -81,6 +81,22 @@ var dnsTestCases = map[string](*test.Case){
 			test.CNAME("svc0.testns.fed.svc.cluster.local.	0	IN	CNAME	svc0.testns.fed.svc.fd-az.fd-r.federal.test."),
 		},
 	},
+	"AAAA Service (existing service)": {
+		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
+		Rcode:  dns.RcodeSuccess,
+		Answer: []dns.RR{},
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+	"AAAA Service (non-existing service)": {
+		Qname: "svc0.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
 }
 
 var autopathCases = map[string](*test.Case){
