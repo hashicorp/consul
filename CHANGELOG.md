@@ -1,10 +1,10 @@
-## 0.9.0 (UNRELEASED)
+## 0.9.0 (July 20, 2017)
 
 BREAKING CHANGES:
 
 * agent: Added a new [`enable_script_checks`](https://www.consul.io/docs/agent/options.html#_enable_script_checks) configuration option that defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks. [GH-3087]
 * api: Reworked `context` support in the API client to more closely match the Go standard library, and added context support to write requests in addition to read requests. [GH-3273, GH-2992]
-* ui: Since the ui is now bundled with the application we no longer provide a separate ui package for downloading. [GH-3292]
+* ui: Since the UI is now bundled with the application we no longer provide a separate UI package for downloading. [GH-3292]
 
 FEATURES:
 
