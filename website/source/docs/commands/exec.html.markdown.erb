@@ -65,3 +65,27 @@ completion as a script to evaluate.
   to 200 msec.
 
 * `-verbose` - Enables verbose output.
+
+## ACL Configuration
+
+To use `consul exec` with ACLs enabled, you will need to configure an agent token with the following permissions.
+
+```
+agent "" {
+  policy = "read"
+}
+session "" {
+  policy = "write"
+}
+node "" {
+  policy = "write"
+}
+key "_rexec" {
+  policy = "write"
+}
+event "_rexec" {
+  policy = "write"
+}
+
+```
+
