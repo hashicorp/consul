@@ -210,6 +210,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			ServerStabilizationTime: api.NewReadableDuration(reply.ServerStabilizationTime),
 			RedundancyZoneTag:       reply.RedundancyZoneTag,
 			DisableUpgradeMigration: reply.DisableUpgradeMigration,
+			UpgradeVersionTag:       reply.UpgradeVersionTag,
 			CreateIndex:             reply.CreateIndex,
 			ModifyIndex:             reply.ModifyIndex,
 		}
@@ -235,6 +236,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			ServerStabilizationTime: conf.ServerStabilizationTime.Duration(),
 			RedundancyZoneTag:       conf.RedundancyZoneTag,
 			DisableUpgradeMigration: conf.DisableUpgradeMigration,
+			UpgradeVersionTag:       conf.UpgradeVersionTag,
 		}
 
 		// Check for cas value
