@@ -8,14 +8,15 @@ import (
 )
 
 type Notify struct {
-	state   map[types.CheckID]string
-	updates map[types.CheckID]int
-	output  map[types.CheckID]string
+	updated chan int
 
 	// A guard to protect an access to the internal attributes
 	// of the notification mock in order to prevent panics
 	// raised by the race conditions detector.
 	sync.RWMutex
+	state   map[types.CheckID]string
+	updates map[types.CheckID]int
+	output  map[types.CheckID]string
 }
 
 func NewNotify() *Notify {
@@ -24,6 +25,16 @@ func NewNotify() *Notify {
 		updates: make(map[types.CheckID]int),
 		output:  make(map[types.CheckID]string),
 	}
+}
+
+func NewNotifyChan() (*Notify, chan int) {
+	n := &Notify{
+		updated: make(chan int),
+		state:   make(map[types.CheckID]string),
+		updates: make(map[types.CheckID]int),
+		output:  make(map[types.CheckID]string),
+	}
+	return n, n.updated
 }
 
 func (m *Notify) sprintf(v interface{}) string {
@@ -38,12 +49,15 @@ func (m *Notify) OutputMap() string  { return m.sprintf(m.output) }
 
 func (m *Notify) UpdateCheck(id types.CheckID, status, output string) {
 	m.Lock()
-	defer m.Unlock()
-
 	m.state[id] = status
 	old := m.updates[id]
 	m.updates[id] = old + 1
 	m.output[id] = output
+	m.Unlock()
+
+	if m.updated != nil {
+		m.updated <- 1
+	}
 }
 
 // State returns the state of the specified health-check.

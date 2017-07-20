@@ -1475,6 +1475,9 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	cfg := TestConfig()
 	l := NewLocalState(cfg, nil)
 
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
+	l.AddService(svc, "")
+
 	// Add a passing check and make sure it's not critical.
 	checkID := types.CheckID("redis:1")
 	chk := &structs.HealthCheck{
@@ -1528,6 +1531,27 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 	} else if crit.CriticalFor > time.Millisecond {
 		t.Fatalf("bad: %#v", crit)
 	}
+}
+
+func TestAgent_AddCheckFailure(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	l := NewLocalState(cfg, nil)
+
+	// Add a check for a service that does not exist and verify that it fails
+	checkID := types.CheckID("redis:1")
+	chk := &structs.HealthCheck{
+		Node:      "node",
+		CheckID:   checkID,
+		Name:      "redis:1",
+		ServiceID: "redis",
+		Status:    api.HealthPassing,
+	}
+	expectedErr := "ServiceID \"redis\" does not exist"
+	if err := l.AddCheck(chk, ""); err == nil || expectedErr != err.Error() {
+		t.Fatalf("Expected error when adding a check for a non-existent service but got %v", err)
+	}
+
 }
 
 func TestAgent_nestedPauseResume(t *testing.T) {

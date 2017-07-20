@@ -166,12 +166,14 @@ struct ltchars {
 #include <linux/fs.h>
 #include <linux/keyctl.h>
 #include <linux/netlink.h>
+#include <linux/perf_event.h>
 #include <linux/random.h>
 #include <linux/reboot.h>
 #include <linux/rtnetlink.h>
 #include <linux/ptrace.h>
 #include <linux/sched.h>
 #include <linux/seccomp.h>
+#include <linux/sockios.h>
 #include <linux/wait.h>
 #include <linux/icmpv6.h>
 #include <linux/serial.h>
@@ -404,6 +406,7 @@ ccflags="$@"
 		$2 ~ /^GRND_/ ||
 		$2 ~ /^KEY_(SPEC|REQKEY_DEFL)_/ ||
 		$2 ~ /^KEYCTL_/ ||
+		$2 ~ /^PERF_EVENT_IOC_/ ||
 		$2 ~ /^SECCOMP_MODE_/ ||
 		$2 ~ /^SPLICE_/ ||
 		$2 ~ /^(VM|VMADDR)_/ ||

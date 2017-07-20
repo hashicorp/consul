@@ -1,16 +1,25 @@
-## 0.9.0 (UNRELEASED)
+## 0.9.1 (UNRELEASED)
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
+## 0.9.0 (July 20, 2017)
 
 BREAKING CHANGES:
 
 * agent: Added a new [`enable_script_checks`](https://www.consul.io/docs/agent/options.html#_enable_script_checks) configuration option that defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks. [GH-3087]
 * api: Reworked `context` support in the API client to more closely match the Go standard library, and added context support to write requests in addition to read requests. [GH-3273, GH-2992]
-* ui: Since the ui is now bundled with the application we no longer provide a separate ui package for downloading. [GH-3292]
+* ui: Since the UI is now bundled with the application we no longer provide a separate UI package for downloading. [GH-3292]
 
 FEATURES:
 
-* agent: Added a new [`block_endpoints`](https://www.consul.io/docs/agent/options.html#block_endpoints) configuration option that allows blocking HTTP endpoints by prefix. This allows operators to completely disallow access to specific endpoints on a given agent. [GH-3252]
+* agent: Added a new [`block_endpoints`](https://www.consul.io/docs/agent/options.html#block_endpoints) configuration option that allows blocking HTTP API endpoints by prefix. This allows operators to completely disallow access to specific endpoints on a given agent. [GH-3252]
 * cli: Added a new [`consul catalog`](https://www.consul.io/docs/commands/catalog.html) command for reading datacenters, nodes, and services from the catalog. [GH-3204]
 * server: (Consul Enterprise) Added a new [`consul operator area update`](https://www.consul.io/docs/commands/operator/area.html#update) command and corresponding HTTP endpoint to allow for transitioning the TLS setting of network areas at runtime. [GH-3075]
+* server: (Consul Enterprise) Added a new `UpgradeVersionTag` field to the Autopilot config to allow for using the migration feature to roll out configuration or cluster changes, without having to upgrade Consul itself.
 
 IMPROVEMENTS:
 
@@ -23,6 +32,7 @@ IMPROVEMENTS:
 * api: Changed signature for "done" channels on `agent.Monitor()` and `session.RenewPeriodic` methods to make them more compatible with `context`. [GH-3271]
 * docs: Added a complete end-to-end example of ACL bootstrapping in the [ACL Guide](https://www.consul.io/docs/guides/acl.html#bootstrapping-acls). [GH-3248]
 * vendor: Updated golang.org/x/sys/unix to support IBM s390 platforms. [GH-3240]
+* agent: rewrote Docker health checks without using the Docker client and its dependencies. [GH-3270]
 
 BUG FIXES:
 
@@ -35,9 +45,12 @@ BUG FIXES:
 * agent: Fixed a crash when using Azure auto discovery. [GH-3193]
 * agent: Added `node` read privileges to the `acl_agent_master_token` by default so it can see all nodes, which enables it to be used with operations like `consul members`. [GH-3113]
 * agent: Fixed an issue where enabling [`-disable-keyring-file`](https://www.consul.io/docs/agent/options.html#_disable_keyring_file) would cause gossip encryption to be disabled. [GH-3243]
+* agent: Fixed a race condition where checks that are not associated with any existing services were allowed to persist. [GH-3297]
+* agent: Stop docker checks on service deregistration and on shutdown. [GH-3265, GH-3295]
 * server: Updated the Raft library to pull in a fix where servers that are very far behind in replication can get stuck in a loop trying to install snapshots. [GH-3201]
 * server: Fixed a rare but serious deadlock where the Consul leader routine could get stuck with the Raft internal leader routine while waiting for the initial barrier after a leader election. [GH-3230]
 * server: Added automatic cleanup of failed Raft snapshots. [GH-3258]
+* server: (Consul Enterprise) Fixed an issue where networks areas would not be able to be added when the server restarts if the Raft log contained a specific sequence of adds and deletes for network areas with the same peer datacenter.
 * ui: Provided a path to reset the ACL token when the current token is invalid. Previously, the UI would get stuck on the error page and it wasn't possible to get back to the settings. [GH-2370]
 * ui: Removed an extra fetch of the nodes resource when loading the UI. [GH-3245]
 * ui: Changed default ACL token type to "client" when creating ACLs. [GH-3246]

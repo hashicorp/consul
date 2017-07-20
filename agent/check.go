@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -516,14 +516,6 @@ func (c *CheckTCP) check() {
 	c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
-// DockerClient defines an interface for a docker client
-// which is used for injecting a fake client during tests.
-type DockerClient interface {
-	CreateExec(docker.CreateExecOptions) (*docker.Exec, error)
-	StartExec(string, docker.StartExecOptions) error
-	InspectExec(string) (*docker.ExecInspect, error)
-}
-
 // CheckDocker is used to periodically invoke a script to
 // determine the health of an application running inside a
 // Docker Container. We assume that the script is compatible
@@ -537,137 +529,100 @@ type CheckDocker struct {
 	Interval          time.Duration
 	Logger            *log.Logger
 
-	dockerClient DockerClient
-	cmd          []string
-	stop         bool
-	stopCh       chan struct{}
-	stopLock     sync.Mutex
+	client *DockerClient
+	stop   chan struct{}
 }
 
-// Init initializes the Docker Client
-func (c *CheckDocker) Init() error {
-	var err error
-	c.dockerClient, err = docker.NewClientFromEnv()
-	if err != nil {
-		c.Logger.Printf("[DEBUG] Error creating the Docker client: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// Start is used to start checks.
-// Docker Checks runs until stop is called
 func (c *CheckDocker) Start() {
-	c.stopLock.Lock()
-	defer c.stopLock.Unlock()
-
-	//figure out the shell
-	if c.Shell == "" {
-		c.Shell = shell()
+	if c.stop != nil {
+		panic("Docker check already started")
 	}
 
-	c.cmd = []string{c.Shell, "-c", c.Script}
+	if c.Logger == nil {
+		c.Logger = log.New(ioutil.Discard, "", 0)
+	}
 
-	c.stop = false
-	c.stopCh = make(chan struct{})
+	if c.Shell == "" {
+		c.Shell = os.Getenv("SHELL")
+		if c.Shell == "" {
+			c.Shell = "/bin/sh"
+		}
+	}
+	c.stop = make(chan struct{})
 	go c.run()
 }
 
-// Stop is used to stop a docker check.
 func (c *CheckDocker) Stop() {
-	c.stopLock.Lock()
-	defer c.stopLock.Unlock()
-	if !c.stop {
-		c.stop = true
-		close(c.stopCh)
+	if c.stop == nil {
+		panic("Stop called before start")
 	}
+	close(c.stop)
 }
 
-// run is invoked by a goroutine to run until Stop() is called
 func (c *CheckDocker) run() {
-	// Get the randomized initial pause time
-	initialPauseTime := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", initialPauseTime, c.Shell, c.Script, c.DockerContainerID)
-	next := time.After(initialPauseTime)
+	firstWait := lib.RandomStagger(c.Interval)
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", firstWait, c.Shell, c.Script, c.DockerContainerID)
+	next := time.After(firstWait)
 	for {
 		select {
 		case <-next:
 			c.check()
 			next = time.After(c.Interval)
-		case <-c.stopCh:
+		case <-c.stop:
 			return
 		}
 	}
 }
 
 func (c *CheckDocker) check() {
-	//Set up the Exec since
-	execOpts := docker.CreateExecOptions{
-		AttachStdin:  false,
-		AttachStdout: true,
-		AttachStderr: true,
-		Tty:          false,
-		Cmd:          c.cmd,
-		Container:    c.DockerContainerID,
-	}
-	var (
-		exec *docker.Exec
-		err  error
-	)
-	if exec, err = c.dockerClient.CreateExec(execOpts); err != nil {
-		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to create Exec, error: %s", err.Error()))
-		return
-	}
-
-	// Collect the output
-	output, _ := circbuf.NewBuffer(CheckBufSize)
-
-	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false, OutputStream: output, ErrorStream: output})
+	var out string
+	status, b, err := c.doCheck()
 	if err != nil {
-		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to start Exec: %s", err.Error()))
-		return
+		c.Logger.Printf("[DEBUG] agent: Check '%s': %s", c.CheckID, err)
+		out = err.Error()
+	} else {
+		// out is already limited to CheckBufSize since we're getting a
+		// limited buffer. So we don't need to truncate it just report
+		// that it was truncated.
+		out = string(b.Bytes())
+		if int(b.TotalWritten()) > len(out) {
+			out = fmt.Sprintf("Captured %d of %d bytes\n...\n%s", len(out), b.TotalWritten(), out)
+		}
+		c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s", c.CheckID, c.Script, out)
 	}
 
-	// Get the output, add a message about truncation
-	outputStr := string(output.Bytes())
-	if output.TotalWritten() > output.Size() {
-		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
-			output.Size(), output.TotalWritten(), outputStr)
+	if status == api.HealthCritical {
+		c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
 	}
 
-	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, outputStr)
-
-	execInfo, err := c.dockerClient.InspectExec(exec.ID)
-	if err != nil {
-		c.Logger.Printf("[DEBUG] Error in inspecting check result : %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, fmt.Sprintf("Unable to inspect Exec: %s", err.Error()))
-		return
-	}
-
-	// Sets the status of the check to healthy if exit code is 0
-	if execInfo.ExitCode == 0 {
-		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, outputStr)
-		return
-	}
-
-	// Set the status of the check to Warning if exit code is 1
-	if execInfo.ExitCode == 1 {
-		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", execInfo.ExitCode)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, outputStr)
-		return
-	}
-
-	// Set the health as critical
-	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, outputStr)
+	c.Notify.UpdateCheck(c.CheckID, status, out)
 }
 
-func shell() string {
-	if sh := os.Getenv("SHELL"); sh != "" {
-		return sh
+func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
+	cmd := []string{c.Shell, "-c", c.Script}
+	execID, err := c.client.CreateExec(c.DockerContainerID, cmd)
+	if err != nil {
+		return api.HealthCritical, nil, err
 	}
-	return "/bin/sh"
+
+	buf, err := c.client.StartExec(c.DockerContainerID, execID)
+	if err != nil {
+		return api.HealthCritical, nil, err
+	}
+
+	exitCode, err := c.client.InspectExec(c.DockerContainerID, execID)
+	if err != nil {
+		return api.HealthCritical, nil, err
+	}
+
+	switch exitCode {
+	case 0:
+		return api.HealthPassing, buf, nil
+	case 1:
+		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", exitCode)
+		return api.HealthWarning, buf, nil
+	default:
+		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", exitCode)
+		return api.HealthCritical, buf, nil
+	}
 }
