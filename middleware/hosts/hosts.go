@@ -59,7 +59,9 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		if h.Fallthrough {
 			return middleware.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 		}
-		return dns.RcodeRefused, nil
+		if !h.otherRecordsExist(state.QType(), qname) {
+			return dns.RcodeNameError, nil
+		}
 	}
 
 	m := new(dns.Msg)
@@ -71,6 +73,28 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
+}
+
+func (h Hosts) otherRecordsExist(qtype uint16, qname string) bool {
+	switch qtype {
+	case dns.TypeA:
+		if len(h.LookupStaticHostV6(qname)) > 0 {
+			return true
+		}
+	case dns.TypeAAAA:
+		if len(h.LookupStaticHostV4(qname)) > 0 {
+			return true
+		}
+	default:
+		if len(h.LookupStaticHostV4(qname)) > 0 {
+			return true
+		}
+		if len(h.LookupStaticHostV6(qname)) > 0 {
+			return true
+		}
+	}
+	return false
+
 }
 
 // Name implements the middleware.Handle interface.

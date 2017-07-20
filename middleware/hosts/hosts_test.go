@@ -78,6 +78,14 @@ var hostsTestCases = []test.Case{
 			test.PTR("1.0.0.127.in-addr.arpa. 3600 PTR localhost.domain."),
 		},
 	},
+	{
+		Qname: "example.org.", Qtype: dns.TypeAAAA,
+		Answer: []dns.RR{},
+	},
+	{
+		Qname: "example.org.", Qtype: dns.TypeMX,
+		Answer: []dns.RR{},
+	},
 }
 
 const hostsExample = `
