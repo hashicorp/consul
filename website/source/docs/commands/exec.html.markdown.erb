@@ -29,6 +29,16 @@ through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
+The table below shows the [required ACLs](/api/index.html#acls) in order to
+execute this command.
+
+| ACL Required    | Scope             |
+| ------------    | ------------      |
+| `agent:read`    | local agent       |
+| `session:write` | local agent       |
+| `key:write`     | `"_rexec"` prefix |
+| `event:write`   | `"_rexec"` prefix |
+
 ## Usage
 
 Usage: `consul exec [options] [-|command...]`
