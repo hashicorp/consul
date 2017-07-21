@@ -68,6 +68,66 @@ func TestKeyWatch(t *testing.T) {
 	}
 }
 
+func TestKeyWatch_With_PrefixDelete(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
+	invoke := 0
+	deletedKeyWatchInvoked := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil && deletedKeyWatchInvoked == 0 {
+			deletedKeyWatchInvoked++
+			return
+		}
+		if invoke == 0 {
+			v, ok := raw.(*consulapi.KVPair)
+			if !ok || v == nil || string(v.Value) != "test" {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		defer plan.Stop()
+		time.Sleep(20 * time.Millisecond)
+
+		kv := plan.client.KV()
+		pair := &consulapi.KVPair{
+			Key:   "foo/bar/baz",
+			Value: []byte("test"),
+		}
+		_, err := kv.Put(pair, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Wait for the query to run
+		time.Sleep(20 * time.Millisecond)
+
+		// Delete the key
+		_, err = kv.DeleteTree("foo/bar", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		plan.Stop()
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if invoke != 1 {
+		t.Fatalf("expected watch plan to be invoked once but got %v", invoke)
+	}
+
+	if deletedKeyWatchInvoked != 1 {
+		t.Fatalf("expected watch plan to be invoked once on delete but got %v", deletedKeyWatchInvoked)
+	}
+}
+
 func TestKeyPrefixWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()

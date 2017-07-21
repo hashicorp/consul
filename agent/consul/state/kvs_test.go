@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -1018,6 +1020,163 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_Watches_PrefixDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KVS entries
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 4, "foo/bar/zip/zorp", "zorp")
+	testSetKey(t, s, 5, "foo/bar/baz", "baz")
+
+	// Delete a key and make sure the index comes from the tombstone.
+	ws := memdb.NewWatchSet()
+	idx, _, err := s.KVSList(ws, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	if err := s.KVSDeleteTree(6, "foo/bar"); err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("expected watch to fire but it did not")
+	}
+	ws = memdb.NewWatchSet()
+	idx, _, err = s.KVSList(ws, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d, expected %d", idx, 6)
+	}
+
+	// Set a different key to bump the index. This shouldn't fire the
+	// watch since there's a different prefix.
+	testSetKey(t, s, 7, "some/other/key", "")
+	if watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Make sure we get the right index from the tombstone for the prefix
+	idx, _, err = s.KVSList(nil, "foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if idx != 6 {
+		t.Fatalf("bad index: %d, expected %v", idx, 7)
+	}
+
+	// Now ask for the index for a node within the prefix that was deleted
+	// We expect to get the max index in the tree because the tombstone contains the parent foo/bar
+	idx, _, err = s.KVSList(nil, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if idx != 7 {
+		t.Fatalf("bad index: %d, expected %v", idx, 7)
+	}
+
+	// Now reap the tombstones and make sure we get the latest index
+	// since there are no matching keys.
+	if err := s.ReapTombstones(6); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, _, err = s.KVSList(nil, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// List all the keys to make sure the index is also correct.
+	idx, _, err = s.KVSList(nil, "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_KVSDeleteTreePrefix(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create kvs entries in the state store.
+	for i := 0; i < 120; i++ {
+		ind := uint64(i + 1)
+		key := "foo/bar" + fmt.Sprintf("%d", ind)
+		testSetKey(t, s, ind, key, "bar")
+	}
+	testSetKey(t, s, 121, "foo/zorp", "zorp")
+
+	// Calling tree deletion which affects nothing does not
+	// modify the table index.
+	if err := s.KVSDeleteTree(129, "bar"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("kvs"); idx != 121 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Call tree deletion with a nested prefix.
+	if err := s.KVSDeleteTree(122, "foo/bar"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that all the matching keys were deleted
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	entries, err := tx.Get("kvs", "id")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	num := 0
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		if entry.(*structs.DirEntry).Key != "foo/zorp" {
+			t.Fatalf("unexpected kvs entry: %#v", entry)
+		}
+		num++
+	}
+
+	if num != 1 {
+		t.Fatalf("expected 1 key, got: %d", num)
+	}
+
+	// Index should be updated if modifications are made
+	if idx := s.maxIndex("kvs"); idx != 122 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Check that the tombstones ware created and that prevents the index
+	// from sliding backwards.
+	idx, _, err := s.KVSList(nil, "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 122 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Now reap the tombstones and watch the index revert to the remaining
+	// foo/zorp key's index.
+	if err := s.ReapTombstones(122); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, _, err = s.KVSList(nil, "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 121 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
