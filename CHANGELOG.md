@@ -5,6 +5,7 @@ FEATURES:
 IMPROVEMENTS:
 
 BUG FIXES:
+* agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
 
 ## 0.9.0 (July 20, 2017)
 
