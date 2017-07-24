@@ -373,6 +373,18 @@
   revision = "1195e3a8ee1a529d53eed7c624527a68555ddf1f"
   version = "v1.5.1"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/farsightsec/golang-framestream"
+  packages = ["."]
+  revision = "dec85654e8b8cf6712870afb14ee53d1c98cd5e2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dnstap/golang-dnstap"
+  packages = ["."]
+  revision = "c32b266c26b040b00f522a0183527a9eb2a1cf8b"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
