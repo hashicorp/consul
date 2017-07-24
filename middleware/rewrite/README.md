@@ -1,8 +1,9 @@
 # rewrite
 
-*rewrite* performs internal message rewriting. Rewrites are invisible to the client.
-There are simple rewrites (fast) and complex rewrites (slower), but they're powerful enough to
-accommodate most dynamic back-end applications.
+*rewrite* performs internal message rewriting.
+
+Rewrites are invisible to the client. There are simple rewrites (fast) and complex rewrites
+(slower), but they're powerful enough to accommodate most dynamic back-end applications.
 
 ## Syntax
 

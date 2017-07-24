@@ -31,7 +31,7 @@
 # Steps for docker
 # * Login into docker: docker login (should have push creds for coredns registry)
 # * Run: make -f Makefile.release docker
-# 
+#
 # Docker push should happen after you make the new release and uploaded it to Github.
 
 NAME:=coredns

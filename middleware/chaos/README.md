@@ -1,6 +1,7 @@
 # chaos
 
 The *chaos* middleware allows CoreDNS to respond to TXT queries in the CH class.
+
 This is useful for retrieving version or author information from the server.
 
 ## Syntax

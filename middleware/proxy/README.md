@@ -1,9 +1,10 @@
 # proxy
 
-*proxy* facilitates both a basic reverse proxy and a robust load balancer. The proxy has support for
- multiple backends. The load balancing features include multiple policies, health checks, and
- failovers. If all hosts fail their health check the proxy middleware will fail back to randomly
- selecting a target and sending packets to it.
+*proxy* facilitates both a basic reverse proxy and a robust load balancer.
+
+The proxy has support for multiple backends. The load balancing features include multiple policies,
+health checks, and failovers. If all hosts fail their health check the proxy middleware will fail
+back to randomly selecting a target and sending packets to it.
 
 ## Syntax
 

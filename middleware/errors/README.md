@@ -1,7 +1,8 @@
 # errors
 
 *errors* enables error logging.
-TODO: what are errors.
+
+Any errors encountered during the query processing will be printed on standard output.
 
 ## Syntax
 

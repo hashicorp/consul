@@ -1,6 +1,6 @@
 # hosts
 
-*hosts* enables serving zone data from a /etc/hosts style file.
+*hosts* enables serving zone data from a `/etc/hosts` style file.
 
 The hosts middleware is useful for serving zones from a /etc/hosts file. It serves from a preloaded
 file that exists on disk. It checks the file for changes and updates the zones accordingly. This
