@@ -76,7 +76,6 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 	//
 	// If not found, we check the potential wildcard, and use that for further processing.
 	// If not found and no wildcard we will process this as an NXDOMAIN response.
-	//
 	for {
 		parts, shot = z.nameFromRight(qname, i)
 		// We overshot the name, break and check if we previously found something.
@@ -88,12 +87,11 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 		if !found {
 			// Apex will always be found, when we are here we can search for a wildcard
 			// and save the result of that search. So when nothing match, but we have a
-			// wildcard we should expand the wildcard. There can only be one wildcard,
-			// so when we found one, we won't look for another.
+			// wildcard we should expand the wildcard.
 
-			if wildElem == nil {
-				wildcard := replaceWithAsteriskLabel(parts)
-				wildElem, _ = z.Tree.Search(wildcard)
+			wildcard := replaceWithAsteriskLabel(parts)
+			if wild, found := z.Tree.Search(wildcard); found {
+				wildElem = wild
 			}
 
 			// Keep on searching, because maybe we hit an empty-non-terminal (which aren't

@@ -266,6 +266,65 @@ func TestLookupApexWildcard(t *testing.T) {
 	}
 }
 
+var multiWildcardTestCases = []test.Case{
+	{
+		Qname: "foo.example.org.", Qtype: dns.TypeA,
+		Answer: []dns.RR{test.A(`foo.example.org. 3600	IN	A 127.0.0.54`)},
+		Ns: []dns.RR{test.NS(`example.org. 3600 IN NS b.iana-servers.net.`)},
+	},
+	{
+		Qname: "bar.example.org.", Qtype: dns.TypeA,
+		Answer: []dns.RR{test.A(`bar.example.org. 3600	IN	A 127.0.0.53`)},
+		Ns: []dns.RR{test.NS(`example.org. 3600 IN NS b.iana-servers.net.`)},
+	},
+	{
+		Qname: "bar.intern.example.org.", Qtype: dns.TypeA,
+		Answer: []dns.RR{test.A(`bar.intern.example.org. 3600	IN	A 127.0.1.52`)},
+		Ns: []dns.RR{test.NS(`example.org. 3600 IN NS b.iana-servers.net.`)},
+	},
+}
+
+func TestLookupMultiWildcard(t *testing.T) {
+	const name = "example.org."
+	zone, err := Parse(strings.NewReader(doubleWildcard), name, "stdin", 0)
+	if err != nil {
+		t.Fatalf("Expect no error when reading zone, got %q", err)
+	}
+
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{name: zone}, Names: []string{name}}}
+	ctx := context.TODO()
+
+	for _, tc := range multiWildcardTestCases {
+		m := tc.Msg()
+
+		rec := dnsrecorder.New(&test.ResponseWriter{})
+		_, err := fm.ServeDNS(ctx, rec, m)
+		if err != nil {
+			t.Errorf("Expected no error, got %v\n", err)
+			return
+		}
+
+		resp := rec.Msg
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
+
+		if !test.Header(t, tc, resp) {
+			t.Logf("%v\n", resp)
+			continue
+		}
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
+			t.Logf("%v\n", resp)
+		}
+	}
+}
+
 const exampleOrg = `; example.org test file
 example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
 example.org.		IN	NS	b.iana-servers.net.
@@ -283,5 +342,13 @@ const apexWildcard = `; example.org test file with wildcard at apex
 example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
 example.org.		IN	NS	b.iana-servers.net.
 *.example.org.          IN      A       127.0.0.53
+foo.example.org.        IN      A       127.0.0.54
+`
+
+const doubleWildcard = `; example.org test file with wildcard at apex
+example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
+example.org.		IN	NS	b.iana-servers.net.
+*.example.org.          IN      A       127.0.0.53
+*.intern.example.org.   IN      A       127.0.1.52
 foo.example.org.        IN      A       127.0.0.54
 `
