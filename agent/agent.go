@@ -1495,7 +1495,6 @@ func writeFileAtomic(path string, contents []byte) error {
 		return err
 	}
 	if err := fh.Close(); err != nil {
-		fh.Close()
 		os.Remove(tempPath)
 		return err
 	}
