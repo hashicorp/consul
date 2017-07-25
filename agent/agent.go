@@ -1485,15 +1485,25 @@ func writeFileAtomic(path string, contents []byte) error {
 		return err
 	}
 	if _, err := fh.Write(contents); err != nil {
+		fh.Close()
+		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Sync(); err != nil {
+		fh.Close()
+		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Close(); err != nil {
+		fh.Close()
+		os.Remove(tempPath)
 		return err
 	}
-	return os.Rename(tempPath, path)
+	if err := os.Rename(tempPath, path); err != nil {
+		os.Remove(tempPath)
+		return err
+	}
+	return nil
 }
 
 // AddService is used to add a service entry.
@@ -2069,6 +2079,12 @@ func (a *Agent) loadServices(conf *Config) error {
 	for _, fi := range files {
 		// Skip all dirs
 		if fi.IsDir() {
+			continue
+		}
+
+		// Skip all partially written temporary files
+		if strings.HasSuffix(fi.Name(), "tmp") {
+			a.logger.Printf("[WARN] Ignoring temporary service file %v", fi.Name())
 			continue
 		}
 
