@@ -21,6 +21,11 @@ The database provides the following:
   a single field index, or more advanced compound field indexes. Certain types like
   UUID can be efficiently compressed from strings into byte indexes for reduced
   storage requirements.
+  
+* Watches - Callers can populate a watch set as part of a query, which can be used to
+  detect when a modification has been made to the database which affects the query
+  results. This lets callers easily watch for changes in the database in a very general
+  way.
 
 For the underlying immutable radix trees, see [go-immutable-radix](https://github.com/hashicorp/go-immutable-radix).
 
