@@ -314,7 +314,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | ACL Required   |
 | ---------------- | ----------------- | -------------- |
-| `TEST`           | `all`             | `service:read` |
+| `YES`            | `all`             | `service:read` |
 
 ### Parameters
 
