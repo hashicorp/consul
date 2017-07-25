@@ -1428,7 +1428,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 		return err
 	}
 
-	return writeFileAtomic(svcPath, encoded, a.logger)
+	return writeFileAtomic(svcPath, encoded)
 }
 
 // purgeService removes a persisted service definition file from the data dir
@@ -1456,7 +1456,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 		return err
 	}
 
-	return writeFileAtomic(checkPath, encoded, a.logger)
+	return writeFileAtomic(checkPath, encoded)
 }
 
 // purgeCheck removes a persisted check definition file from the data dir
@@ -1470,7 +1470,7 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 
 // writeFileAtomic writes the given contents to a temporary file in the same
 // directory, does an fsync and then renames the file to its real path
-func writeFileAtomic(path string, contents []byte, logger *log.Logger) error {
+func writeFileAtomic(path string, contents []byte) error {
 	uuid, err := uuid.GenerateUUID()
 	if err != nil {
 		return err
@@ -1485,26 +1485,21 @@ func writeFileAtomic(path string, contents []byte, logger *log.Logger) error {
 		return err
 	}
 	if _, err := fh.Write(contents); err != nil {
-		logger.Printf("[INFO] Writing to temp file at %v failed, deleting...\n", tempPath)
 		fh.Close()
 		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Sync(); err != nil {
-		logger.Printf("[INFO] Syncing temp file at %v failed, deleting...\n", tempPath)
 		fh.Close()
 		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Close(); err != nil {
-		logger.Printf("[INFO] Closing file handle to temp file at %v failed, deleting...\n", tempPath)
 		fh.Close()
 		os.Remove(tempPath)
 		return err
 	}
 	if err := os.Rename(tempPath, path); err != nil {
-		logger.Printf("[INFO] Renaming temp file at %v failed, deleting...\n", tempPath)
-		fh.Close()
 		os.Remove(tempPath)
 		return err
 	}
@@ -2092,6 +2087,7 @@ func (a *Agent) loadServices(conf *Config) error {
 			a.logger.Printf("[WARN] Ignoring temporary service file %v", fi.Name())
 			continue
 		}
+
 		// Open the file for reading
 		file := filepath.Join(svcDir, fi.Name())
 		fh, err := os.Open(file)
