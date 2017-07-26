@@ -2,11 +2,15 @@
 
 FEATURES:
 
+* agent: Created a new [`/v1/agent/token`](https://www.consul.io/api/agent.html#update-acl-tokens) API that allows an agent's ACL tokens to be introduced without putting them into config files, and to update them without restarting the agent. This supports secure introduction of tokens and rotation. See the [ACL Guide](https://www.consul.io/docs/guides/acl.html#create-an-agent-token) for an example. [GH-3324]
+
 IMPROVEMENTS:
 
 BUG FIXES:
+
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
 * api: Implemented a much faster recursive delete algorithm for the KV store. It has been bench-marked to be up to 100X faster on recursive deletes that affect millions of nodes.
+
 ## 0.9.0 (July 20, 2017)
 
 BREAKING CHANGES:
