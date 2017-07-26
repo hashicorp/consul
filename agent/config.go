@@ -1590,8 +1590,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Domain != "" {
 		result.Domain = b.Domain
 	}
-	if b.EnforceValidDNS != false {
-		result.EnforceValidDNS = b.EnforceValidDNS
+	if b.EnforceValidDNS {
+		result.EnforceValidDNS = true
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey

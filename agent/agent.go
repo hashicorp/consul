@@ -738,8 +738,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLEnforceVersion8 != nil {
 		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
 	}
-	if a.config.EnforceValidDNS != false {
-		base.EnforceValidDNS = a.config.EnforceValidDNS
+	if a.config.EnforceValidDNS {
+		base.EnforceValidDNS = true
 	}
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin

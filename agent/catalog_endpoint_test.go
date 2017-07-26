@@ -920,21 +920,53 @@ func TestCatalogNodeServices_ValidDNS(t *testing.T) {
 
 	// Register a node with DC2.
 	{
-		args := &structs.RegisterRequest{
-			Datacenter: "dc2",
+		args1 := &structs.RegisterRequest{
+			Datacenter: "dc1",
 			Node:       "foo",
 			Address:    "127.0.0.1",
 			TaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
 			},
 			Service: &structs.NodeService{
-				Service: "http_wan_translation_test",
+				Service: "http\bad/dns",
+			},
+		}
+		args2 := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http2",
+				Tags:    []string{"bad\tag"},
+			},
+		}
+		args3 := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "works",
+				Tags:    []string{"working"},
 			},
 		}
 
 		var out struct{}
-		if err := a1.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+		a1.RPC("Catalog.Register", args1, &out)
+		a1.RPC("Catalog.Register", args2, &out)
+		a1.RPC("Catalog.Register", args3, &out)
+		req, _ := http.NewRequest("GET", "/v1/catalog/services?dc=dc1", nil)
+		resp := httptest.NewRecorder()
+		obj, _ := a1.srv.CatalogServices(resp, req)
+
+		services := obj.(structs.Services)
+		if len(services) != 1 {
+			t.Fatalf("bad: %v, lenght = %d", obj, len(services))
 		}
 	}
 

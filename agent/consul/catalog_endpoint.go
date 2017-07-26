@@ -20,7 +20,7 @@ type Catalog struct {
 }
 
 //Regex to limit service registration to just valid dns
-var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+//var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
@@ -100,8 +100,9 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			return err
 		}
 	}
-
+	fmt.Printf("enforce %v", c.srv.config.EnforceValidDNS  )
 	if c.srv.config.EnforceValidDNS {
+		var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 		if !dnsNameRe.MatchString(args.Service.Service) {
 			return fmt.Errorf("Service name not valid for DNS: %s, blocking registration.", args.Service.Service)
 		}
