@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/agent/systemd"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -180,6 +181,11 @@ type Agent struct {
 	// watchPlans tracks all the currently-running watch plans for the
 	// agent.
 	watchPlans []*watch.Plan
+
+	// tokens holds ACL tokens initially from the configuration, but can
+	// be updated at runtime, so should always be used instead of going to
+	// the configuration directly.
+	tokens *token.Store
 }
 
 func New(c *Config) (*Agent, error) {
@@ -220,6 +226,7 @@ func New(c *Config) (*Agent, error) {
 		endpoints:       make(map[string]string),
 		dnsAddrs:        dnsAddrs,
 		httpAddrs:       httpAddrs,
+		tokens:          new(token.Store),
 	}
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
@@ -271,6 +278,11 @@ func New(c *Config) (*Agent, error) {
 		"wan": a.config.AdvertiseAddrWan,
 	}
 
+	// Set up the initial state of the token store based on the config.
+	a.tokens.UpdateUserToken(a.config.ACLToken)
+	a.tokens.UpdateAgentToken(a.config.ACLAgentToken)
+	a.tokens.UpdateAgentMasterToken(a.config.ACLAgentMasterToken)
+
 	return a, nil
 }
 
@@ -292,7 +304,7 @@ func (a *Agent) Start() error {
 	}
 
 	// create the local state
-	a.state = NewLocalState(c, a.logger)
+	a.state = NewLocalState(c, a.logger, a.tokens)
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -1344,7 +1356,7 @@ func (a *Agent) sendCoordinate() {
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
 				Coord:        c,
-				WriteRequest: structs.WriteRequest{Token: a.config.GetTokenForAgent()},
+				WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {

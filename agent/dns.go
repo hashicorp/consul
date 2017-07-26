@@ -144,7 +144,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	args := structs.DCSpecificRequest{
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.config.ACLToken,
+			Token:      d.agent.tokens.UserToken(),
 			AllowStale: *d.config.AllowStale,
 		},
 	}
@@ -388,7 +388,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 		Datacenter: datacenter,
 		Node:       node,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.config.ACLToken,
+			Token:      d.agent.tokens.UserToken(),
 			AllowStale: *d.config.AllowStale,
 		},
 	}
@@ -602,7 +602,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		ServiceTag:  tag,
 		TagFilter:   tag != "",
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.config.ACLToken,
+			Token:      d.agent.tokens.UserToken(),
 			AllowStale: *d.config.AllowStale,
 		},
 	}
@@ -680,7 +680,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		Datacenter:    datacenter,
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.config.ACLToken,
+			Token:      d.agent.tokens.UserToken(),
 			AllowStale: *d.config.AllowStale,
 		},
 

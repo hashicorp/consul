@@ -133,6 +133,9 @@ system, or accessing Consul in special situations:
 | [`acl_master_token`](/docs/agent/options.html#acl_master_token) | `REQUIRED` | `N/A` | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details |
 | [`acl_token`](/docs/agent/options.html#acl_token) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
+In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
+[/v1/agent/token API](/api/agent.html#update-acl-tokens).
+
 #### ACL Agent Master Token
 
 Since the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
@@ -145,6 +148,9 @@ node "" {
   policy = "read"
 }
 ```
+
+In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
+[/v1/agent/token API](/api/agent.html#update-acl-tokens).
 
 #### ACL Agent Token
 
@@ -169,6 +175,9 @@ key "_rexec" {
 ```
 
 The `service` policy needs `read` access for any services that can be registered on the agent. If [remote exec is disabled](/docs/agent/options.html#disable_remote_exec), the default, then the `key` policy can be omitted.
+
+In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
+[/v1/agent/token API](/api/agent.html#update-acl-tokens).
 
 ## Bootstrapping ACLs
 
@@ -255,6 +264,19 @@ configuration and restart the servers once more to apply it:
 }
 ```
 
+In Consul 0.9.1 and later you can also introduce the agent token using an API,
+so it doesn't need to be set in the configuration file:
+
+```
+$ curl \
+    --request PUT \
+    --header "X-Consul-Token: b1gs33cr3t" \
+    --data \
+'{
+  "Token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
+}' http://127.0.0.1:8500/v1/agent/token/acl_agent_token
+```
+
 With that ACL agent token set, the servers will be able to sync themselves with the
 catalog:
 
@@ -275,6 +297,19 @@ with a configuration file that enables ACLs:
   "acl_down_policy": "extend-cache",
   "acl_agent_token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
 }
+```
+
+Similar to the previous example, in Consul 0.9.1 and later you can also introduce the
+agent token using an API, so it doesn't need to be set in the configuration file:
+
+```
+$ curl \
+    --request PUT \
+    --header "X-Consul-Token: b1gs33cr3t" \
+    --data \
+'{
+  "Token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
+}' http://127.0.0.1:8500/v1/agent/token/acl_agent_token
 ```
 
 We used the same ACL agent token that we created for the servers, which will work since
@@ -419,6 +454,9 @@ An alternative to the anonymous token is the [`acl_token`](/docs/agent/options.h
 configuration item. When a request is made to a particular Consul agent and no token is
 supplied, the [`acl_token`](/docs/agent/options.html#acl_token) will be used for the token,
 instead of being left empty which would normally invoke the anonymous token.
+
+In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
+[/v1/agent/token API](/api/agent.html#update-acl-tokens).
 
 This behaves very similarly to the anonymous token, but can be configured differently on each
 agent, if desired. For example, this allows more fine grained control of what DNS requests a

@@ -67,7 +67,6 @@ type aclManager struct {
 	acls *lru.TwoQueueCache
 
 	// master is the ACL to use when the agent master token is supplied.
-	// This may be nil if that option isn't set in the agent config.
 	master acl.ACL
 
 	// down is the ACL to use when the servers are down. This may be nil
@@ -93,29 +92,24 @@ func newACLManager(config *Config) (*aclManager, error) {
 		return nil, err
 	}
 
-	// If an agent master token is configured, build a policy and ACL for
-	// it, otherwise leave it nil.
-	var master acl.ACL
-	if len(config.ACLAgentMasterToken) > 0 {
-		policy := &acl.Policy{
-			Agents: []*acl.AgentPolicy{
-				&acl.AgentPolicy{
-					Node:   config.NodeName,
-					Policy: acl.PolicyWrite,
-				},
+	// Build a policy for the agent master token.
+	policy := &acl.Policy{
+		Agents: []*acl.AgentPolicy{
+			&acl.AgentPolicy{
+				Node:   config.NodeName,
+				Policy: acl.PolicyWrite,
 			},
-			Nodes: []*acl.NodePolicy{
-				&acl.NodePolicy{
-					Name:   "",
-					Policy: acl.PolicyRead,
-				},
+		},
+		Nodes: []*acl.NodePolicy{
+			&acl.NodePolicy{
+				Name:   "",
+				Policy: acl.PolicyRead,
 			},
-		}
-		acl, err := acl.New(acl.DenyAll(), policy)
-		if err != nil {
-			return nil, err
-		}
-		master = acl
+		},
+	}
+	master, err := acl.New(acl.DenyAll(), policy)
+	if err != nil {
+		return nil, err
 	}
 
 	var down acl.ACL
@@ -155,7 +149,7 @@ func (m *aclManager) lookupACL(a *Agent, id string) (acl.ACL, error) {
 		id = anonymousToken
 	} else if acl.RootACL(id) != nil {
 		return nil, errors.New(rootDenied)
-	} else if m.master != nil && id == a.config.ACLAgentMasterToken {
+	} else if a.tokens.IsAgentMasterToken(id) {
 		return m.master, nil
 	}
 

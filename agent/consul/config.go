@@ -460,15 +460,3 @@ func (c *Config) tlsConfig() *tlsutil.Config {
 	}
 	return tlsConf
 }
-
-// GetTokenForAgent returns the token the agent should use for its own internal
-// operations, such as registering itself with the catalog.
-func (c *Config) GetTokenForAgent() string {
-	if c.ACLAgentToken != "" {
-		return c.ACLAgentToken
-	}
-	if c.ACLToken != "" {
-		return c.ACLToken
-	}
-	return ""
-}

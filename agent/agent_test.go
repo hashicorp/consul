@@ -149,6 +149,27 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	}
 }
 
+func TestAgent_TokenStore(t *testing.T) {
+	t.Parallel()
+
+	cfg := TestConfig()
+	cfg.ACLToken = "user"
+	cfg.ACLAgentToken = "agent"
+	cfg.ACLAgentMasterToken = "master"
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	if got, want := a.tokens.UserToken(), "user"; got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	if got, want := a.tokens.AgentToken(), "agent"; got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {
+		t.Fatalf("got %v want %v", got, want)
+	}
+}
+
 func TestAgent_CheckPerformanceSettings(t *testing.T) {
 	t.Parallel()
 	// Try a default config.

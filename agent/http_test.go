@@ -569,14 +569,14 @@ func TestACLResolution(t *testing.T) {
 	defer a.Shutdown()
 
 	// Check when no token is set
-	a.Config.ACLToken = ""
+	a.tokens.UpdateUserToken("")
 	a.srv.parseToken(req, &token)
 	if token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Check when ACLToken set
-	a.Config.ACLToken = "agent"
+	a.tokens.UpdateUserToken("agent")
 	a.srv.parseToken(req, &token)
 	if token != "agent" {
 		t.Fatalf("bad: %s", token)

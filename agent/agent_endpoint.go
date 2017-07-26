@@ -698,3 +698,51 @@ func (h *httpLogHandler) HandleLog(log string) {
 		h.droppedCount++
 	}
 }
+
+func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
+
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
+		return nil, errPermissionDenied
+	}
+
+	// The body is just the token, but it's in a JSON object so we can add
+	// fields to this later if needed.
+	var args api.AgentToken
+	if err := decodeBody(req, &args, nil); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		return nil, nil
+	}
+
+	// Figure out the target token.
+	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
+	switch target {
+	case "acl_token":
+		s.agent.tokens.UpdateUserToken(args.Token)
+
+	case "acl_agent_token":
+		s.agent.tokens.UpdateAgentToken(args.Token)
+
+	case "acl_agent_master_token":
+		s.agent.tokens.UpdateAgentMasterToken(args.Token)
+
+	default:
+		resp.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(resp, "Token %q is unknown", target)
+		return nil, nil
+	}
+
+	s.agent.logger.Printf("[INFO] Updated agent's %q", target)
+	return nil, nil
+}

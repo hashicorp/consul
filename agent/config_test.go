@@ -1171,37 +1171,6 @@ func TestDecodeConfig(t *testing.T) {
 	}
 }
 
-func TestDecodeConfig_ACLTokenPreference(t *testing.T) {
-	tests := []struct {
-		in  string
-		tok string
-	}{
-		{
-			in:  `{}`,
-			tok: "",
-		},
-		{
-			in:  `{"acl_token":"a"}`,
-			tok: "a",
-		},
-		{
-			in:  `{"acl_token":"a","acl_agent_token":"b"}`,
-			tok: "b",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.in, func(t *testing.T) {
-			c, err := DecodeConfig(strings.NewReader(tt.in))
-			if err != nil {
-				t.Fatalf("got error %v want nil", err)
-			}
-			if got, want := c.GetTokenForAgent(), tt.tok; got != want {
-				t.Fatalf("got token for agent %q want %q", got, want)
-			}
-		})
-	}
-}
-
 func TestDecodeConfig_VerifyUniqueListeners(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

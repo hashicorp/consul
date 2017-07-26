@@ -382,3 +382,51 @@ $ curl \
     --request PUT \
     https://consul.rocks/v1/agent/force-leave
 ```
+
+## Update ACL Tokens
+
+This endpoint updates the ACL tokens currently in use by the agent. It can be
+used to introduce ACL tokens to the agent for the first time, or to update
+tokens that were initially loaded from the agent's configuration. Tokens are
+not persisted, so will need to be updated again if the agent is restarted.
+
+| Method | Path                                  | Produces                   |
+| ------ | ------------------------------------- | -------------------------- |
+| `PUT`  | `/agent/token/acl_token`              | `application/json`         |
+| `PUT`  | `/agent/token/acl_agent_token`        | `application/json`         |
+| `PUT`  | `/agent/token/acl_agent_master_token` | `application/json`         |
+
+The paths above correspond to the token names as found in the agent configuration,
+[`acl_token`](/docs/agent/options.html#acl_token),
+[`acl_agent_token`](/docs/agent/options.html#acl_agent_token),
+and [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token).
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required  |
+| ---------------- | ----------------- | ------------- |
+| `NO`             | `none`            | `agent:write` |
+
+### Parameters
+
+- `Token` `(string: "")` - Specifies the ACL token to set.
+
+### Sample Payload
+
+```json
+{
+  "Token": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    https://consul.rocks/v1/agent/token/acl_token
+```
