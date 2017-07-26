@@ -42,6 +42,13 @@ func (t *TokenStore) UpdateAgentToken(token string) {
 	t.l.Unlock()
 }
 
+// UpdateAgentMasterToken replaces the current agent master token in the store.
+func (t *TokenStore) UpdateAgentMasterToken(token string) {
+	t.l.Lock()
+	t.agentMasterToken = token
+	t.l.Unlock()
+}
+
 // UserToken returns the best token to use for user operations.
 func (t *TokenStore) UserToken() string {
 	t.l.RLock()
@@ -59,13 +66,6 @@ func (t *TokenStore) AgentToken() string {
 		return t.agentToken
 	}
 	return t.userToken
-}
-
-// UpdateAgentMasterToken replaces the current agent master token in the store.
-func (t *TokenStore) UpdateAgentMasterToken(token string) {
-	t.l.Lock()
-	t.agentMasterToken = token
-	t.l.Unlock()
 }
 
 // IsAgentMasterToken checks to see if a given token is the agent master token.
