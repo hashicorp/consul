@@ -1,12 +1,11 @@
 package state
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
-
-	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/go-memdb"
@@ -1032,77 +1031,85 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 	testSetKey(t, s, 2, "foo/bar", "bar")
 	testSetKey(t, s, 3, "foo/bar/zip", "zip")
 	testSetKey(t, s, 4, "foo/bar/zip/zorp", "zorp")
-	testSetKey(t, s, 5, "foo/bar/baz", "baz")
+	testSetKey(t, s, 5, "foo/bar/zip/zap", "zap")
+	testSetKey(t, s, 6, "foo/nope", "nope")
 
-	// Delete a key and make sure the index comes from the tombstone.
 	ws := memdb.NewWatchSet()
-	idx, _, err := s.KVSList(ws, "foo/bar/baz")
+	got, _, err := s.KVSList(ws, "foo/bar")
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
-	if err := s.KVSDeleteTree(6, "foo/bar"); err != nil {
+	var wantIndex uint64 = 5
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", wantIndex, got)
+	}
+
+	// Delete a key and make sure the index comes from the tombstone.
+	if err := s.KVSDeleteTree(7, "foo/bar/zip"); err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
+	// Make sure watch fires
 	if !watchFired(ws) {
 		t.Fatalf("expected watch to fire but it did not")
 	}
-	ws = memdb.NewWatchSet()
-	idx, _, err = s.KVSList(ws, "foo/bar/baz")
+
+	//Verify index matches tombstone
+	got, _, err = s.KVSList(ws, "foo/bar")
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	wantIndex = 7
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+	// Make sure watch fires
+	if !watchFired(ws) {
+		t.Fatalf("expected watch to fire but it did not")
+	}
+
+	// Reap tombstone and verify list on the same key reverts its index value
+	if err := s.ReapTombstones(wantIndex); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	got, _, err = s.KVSList(nil, "foo/bar")
+	wantIndex = 2
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 6 {
-		t.Fatalf("bad index: %d, expected %d", idx, 6)
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
 	}
 
+	if err := s.ReapTombstones(7); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	ws = memdb.NewWatchSet()
 	// Set a different key to bump the index. This shouldn't fire the
 	// watch since there's a different prefix.
-	testSetKey(t, s, 7, "some/other/key", "")
-	if watchFired(ws) {
-		t.Fatalf("bad")
-	}
-
-	// Make sure we get the right index from the tombstone for the prefix
-	idx, _, err = s.KVSList(nil, "foo/bar")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if idx != 6 {
-		t.Fatalf("bad index: %d, expected %v", idx, 7)
-	}
+	testSetKey(t, s, 8, "some/other/key", "")
 
 	// Now ask for the index for a node within the prefix that was deleted
-	// We expect to get the max index in the tree because the tombstone contains the parent foo/bar
-	idx, _, err = s.KVSList(nil, "foo/bar/baz")
+	// We expect to get the max index in the tree
+	wantIndex = 8
+	got, _, err = s.KVSList(ws, "foo/bar/baz")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	if idx != 7 {
-		t.Fatalf("bad index: %d, expected %v", idx, 7)
+	if watchFired(ws) {
+		t.Fatalf("Watch should not have fired")
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
 	}
 
-	// Now reap the tombstones and make sure we get the latest index
-	// since there are no matching keys.
-	if err := s.ReapTombstones(6); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	idx, _, err = s.KVSList(nil, "foo/bar/baz")
+	// List all the keys to make sure the index returned is the max index
+	got, _, err = s.KVSList(nil, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 7 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
-	// List all the keys to make sure the index is also correct.
-	idx, _, err = s.KVSList(nil, "")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 7 {
-		t.Fatalf("bad index: %d", idx)
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
 	}
 }
 
