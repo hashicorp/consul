@@ -1081,9 +1081,6 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
 	}
 
-	if err := s.ReapTombstones(7); err != nil {
-		t.Fatalf("err: %s", err)
-	}
 	ws = memdb.NewWatchSet()
 	// Set a different key to bump the index. This shouldn't fire the
 	// watch since there's a different prefix.
