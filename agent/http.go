@@ -80,6 +80,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
 		handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
 		handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
+		handleFuncMetrics("/v1/agent/token/", s.wrap(s.AgentToken))
 	} else {
 		handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
@@ -88,6 +89,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
+		handleFuncMetrics("/v1/agent/token/", s.wrap(ACLDisabled))
 	}
 	handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
 	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))

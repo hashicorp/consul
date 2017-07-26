@@ -1654,3 +1654,99 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 	// logic is a little complex to set up so isn't worth repeating again
 	// here.
 }
+
+func TestAgent_Token(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	t.Run("bad method", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/token/acl_token", nil)
+		if _, err := a.srv.AgentToken(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := resp.Code, http.StatusMethodNotAllowed; got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+	})
+
+	t.Run("bad token name", func(t *testing.T) {
+		args := &api.AgentToken{Token: "token"}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token_nope?token=root", jsonReader(args))
+		if _, err := a.srv.AgentToken(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := resp.Code, http.StatusNotFound; got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+	})
+
+	t.Run("user token", func(t *testing.T) {
+		args := &api.AgentToken{Token: "USER_TOKEN"}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token?token=root", jsonReader(args))
+		if _, err := a.srv.AgentToken(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := resp.Code, http.StatusOK; got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+		if got, want := a.tokens.GetTokenForUser(), "USER_TOKEN"; got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
+
+	t.Run("agent token", func(t *testing.T) {
+		args := &api.AgentToken{Token: "AGENT_TOKEN"}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_agent_token?token=root", jsonReader(args))
+		if _, err := a.srv.AgentToken(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := resp.Code, http.StatusOK; got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+		if got, want := a.tokens.GetTokenForAgent(), "AGENT_TOKEN"; got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
+
+	t.Run("master token", func(t *testing.T) {
+		args := &api.AgentToken{Token: "MASTER_TOKEN"}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_agent_master_token?token=root", jsonReader(args))
+		if _, err := a.srv.AgentToken(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := resp.Code, http.StatusOK; got != want {
+			t.Fatalf("got %d want %d", got, want)
+		}
+		if got, want := a.tokens.IsAgentMasterToken("MASTER_TOKEN"), true; got != want {
+			t.Fatalf("got %v want %v", got, want)
+		}
+	})
+}
+
+func TestAgent_Token_ACLDeny(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	args := &api.AgentToken{Token: "token"}
+
+	t.Run("no token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", jsonReader(args))
+		if _, err := a.srv.AgentToken(nil, req); !isPermissionDenied(err) {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	t.Run("management token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token?token=root", jsonReader(args))
+		if _, err := a.srv.AgentToken(nil, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+}
