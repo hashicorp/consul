@@ -1,10 +1,10 @@
-package agent
+package token
 
 import (
 	"testing"
 )
 
-func TestTokenStore_UserAndAgentTokens(t *testing.T) {
+func TestStore_UserAndAgentTokens(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -18,7 +18,7 @@ func TestTokenStore_UserAndAgentTokens(t *testing.T) {
 		{"user", "", "user", "user"},
 		{"", "", "", ""},
 	}
-	tokens := new(TokenStore)
+	tokens := new(Store)
 	for _, tt := range tests {
 		tokens.UpdateUserToken(tt.user)
 		tokens.UpdateAgentToken(tt.agent)
@@ -31,9 +31,9 @@ func TestTokenStore_UserAndAgentTokens(t *testing.T) {
 	}
 }
 
-func TestTokenStore_AgentMasterToken(t *testing.T) {
+func TestStore_AgentMasterToken(t *testing.T) {
 	t.Parallel()
-	tokens := new(TokenStore)
+	tokens := new(Store)
 
 	verify := func(want bool, toks ...string) {
 		for _, tok := range toks {

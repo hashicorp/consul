@@ -1,14 +1,14 @@
-package agent
+package token
 
 import (
 	"sync"
 )
 
-// TokenStore is used to hold the special ACL tokens used by Consul agents. It
-// is designed to update the tokens on the fly, so the token store itself should
-// be plumbed around and used to get tokens at runtime, don't save the resulting
+// Store is used to hold the special ACL tokens used by Consul agents. It is
+// designed to update the tokens on the fly, so the token store itself should be
+// plumbed around and used to get tokens at runtime, don't save the resulting
 // tokens.
-type TokenStore struct {
+type Store struct {
 	// l synchronizes access to the token store.
 	l sync.RWMutex
 
@@ -29,28 +29,28 @@ type TokenStore struct {
 }
 
 // UpdateUserToken replaces the current user token in the store.
-func (t *TokenStore) UpdateUserToken(token string) {
+func (t *Store) UpdateUserToken(token string) {
 	t.l.Lock()
 	t.userToken = token
 	t.l.Unlock()
 }
 
 // UpdateAgentToken replaces the current agent token in the store.
-func (t *TokenStore) UpdateAgentToken(token string) {
+func (t *Store) UpdateAgentToken(token string) {
 	t.l.Lock()
 	t.agentToken = token
 	t.l.Unlock()
 }
 
 // UpdateAgentMasterToken replaces the current agent master token in the store.
-func (t *TokenStore) UpdateAgentMasterToken(token string) {
+func (t *Store) UpdateAgentMasterToken(token string) {
 	t.l.Lock()
 	t.agentMasterToken = token
 	t.l.Unlock()
 }
 
 // UserToken returns the best token to use for user operations.
-func (t *TokenStore) UserToken() string {
+func (t *Store) UserToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
@@ -58,7 +58,7 @@ func (t *TokenStore) UserToken() string {
 }
 
 // AgentToken returns the best token to use for internal agent operations.
-func (t *TokenStore) AgentToken() string {
+func (t *Store) AgentToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
@@ -70,7 +70,7 @@ func (t *TokenStore) AgentToken() string {
 
 // IsAgentMasterToken checks to see if a given token is the agent master token.
 // This will never match an empty token for safety.
-func (t *TokenStore) IsAgentMasterToken(token string) bool {
+func (t *Store) IsAgentMasterToken(token string) bool {
 	t.l.RLock()
 	defer t.l.RUnlock()
 

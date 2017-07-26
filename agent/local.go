@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -37,7 +38,7 @@ type localStateConfig struct {
 	NodeID              types.NodeID
 	NodeName            string
 	TaggedAddresses     map[string]string
-	Tokens              *TokenStore
+	Tokens              *token.Store
 }
 
 // localState is used to represent the node's services,
@@ -88,7 +89,7 @@ type localState struct {
 }
 
 // NewLocalState creates a  is used to initialize the local state
-func NewLocalState(c *Config, lg *log.Logger, tokens *TokenStore) *localState {
+func NewLocalState(c *Config, lg *log.Logger, tokens *token.Store) *localState {
 	lc := localStateConfig{
 		AEInterval:          c.AEInterval,
 		AdvertiseAddr:       c.AdvertiseAddr,

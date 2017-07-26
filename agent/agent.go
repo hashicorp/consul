@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/agent/systemd"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -184,7 +185,7 @@ type Agent struct {
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
-	tokens *TokenStore
+	tokens *token.Store
 }
 
 func New(c *Config) (*Agent, error) {
@@ -225,7 +226,7 @@ func New(c *Config) (*Agent, error) {
 		endpoints:       make(map[string]string),
 		dnsAddrs:        dnsAddrs,
 		httpAddrs:       httpAddrs,
-		tokens:          new(TokenStore),
+		tokens:          new(token.Store),
 	}
 	if err := a.resolveTmplAddrs(); err != nil {
 		return nil, err
