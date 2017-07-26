@@ -430,7 +430,7 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	}
 
 	// Set the default ACLToken
-	*token = s.agent.tokens.GetTokenForUser()
+	*token = s.agent.tokens.UserToken()
 }
 
 // parseSource is used to parse the ?near=<node> query parameter, used for

@@ -159,10 +159,10 @@ func TestAgent_TokenStore(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	if got, want := a.tokens.GetTokenForUser(), "user"; got != want {
+	if got, want := a.tokens.UserToken(), "user"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
-	if got, want := a.tokens.GetTokenForAgent(), "agent"; got != want {
+	if got, want := a.tokens.AgentToken(), "agent"; got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
 	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {

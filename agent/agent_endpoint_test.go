@@ -1693,7 +1693,7 @@ func TestAgent_Token(t *testing.T) {
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("got %d want %d", got, want)
 		}
-		if got, want := a.tokens.GetTokenForUser(), "USER_TOKEN"; got != want {
+		if got, want := a.tokens.UserToken(), "USER_TOKEN"; got != want {
 			t.Fatalf("got %q want %q", got, want)
 		}
 	})
@@ -1708,7 +1708,7 @@ func TestAgent_Token(t *testing.T) {
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("got %d want %d", got, want)
 		}
-		if got, want := a.tokens.GetTokenForAgent(), "AGENT_TOKEN"; got != want {
+		if got, want := a.tokens.AgentToken(), "AGENT_TOKEN"; got != want {
 			t.Fatalf("got %q want %q", got, want)
 		}
 	})

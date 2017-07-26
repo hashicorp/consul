@@ -170,7 +170,7 @@ func (l *localState) ServiceToken(id string) string {
 func (l *localState) serviceToken(id string) string {
 	token := l.serviceTokens[id]
 	if token == "" {
-		token = l.config.Tokens.GetTokenForUser()
+		token = l.config.Tokens.UserToken()
 	}
 	return token
 }
@@ -237,7 +237,7 @@ func (l *localState) CheckToken(checkID types.CheckID) string {
 func (l *localState) checkToken(checkID types.CheckID) string {
 	token := l.checkTokens[checkID]
 	if token == "" {
-		token = l.config.Tokens.GetTokenForUser()
+		token = l.config.Tokens.UserToken()
 	}
 	return token
 }
@@ -447,7 +447,7 @@ func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.config.Tokens.GetTokenForAgent()},
+		QueryOptions: structs.QueryOptions{Token: l.config.Tokens.AgentToken()},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -783,7 +783,7 @@ func (l *localState) syncNodeInfo() error {
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
-		WriteRequest:    structs.WriteRequest{Token: l.config.Tokens.GetTokenForAgent()},
+		WriteRequest:    structs.WriteRequest{Token: l.config.Tokens.AgentToken()},
 	}
 	var out struct{}
 	err := l.delegate.RPC("Catalog.Register", &req, &out)

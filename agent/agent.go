@@ -1355,7 +1355,7 @@ func (a *Agent) sendCoordinate() {
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
 				Coord:        c,
-				WriteRequest: structs.WriteRequest{Token: a.tokens.GetTokenForAgent()},
+				WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {

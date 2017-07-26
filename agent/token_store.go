@@ -29,48 +29,42 @@ type TokenStore struct {
 }
 
 // UpdateUserToken replaces the current user token in the store.
-func (t *TokenStore) UpdateUserToken(userToken string) {
+func (t *TokenStore) UpdateUserToken(token string) {
 	t.l.Lock()
-	t.userToken = userToken
+	t.userToken = token
 	t.l.Unlock()
 }
 
 // UpdateAgentToken replaces the current agent token in the store.
-func (t *TokenStore) UpdateAgentToken(agentToken string) {
+func (t *TokenStore) UpdateAgentToken(token string) {
 	t.l.Lock()
-	t.agentToken = agentToken
+	t.agentToken = token
 	t.l.Unlock()
 }
 
-// GetTokenForUser returns the best token to use for user operations.
-func (t *TokenStore) GetTokenForUser() string {
+// UserToken returns the best token to use for user operations.
+func (t *TokenStore) UserToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	if t.userToken != "" {
-		return t.userToken
-	}
-	return ""
+	return t.userToken
 }
 
-// GetTokenForAgent returns the best token to use for internal agent operations.
-func (t *TokenStore) GetTokenForAgent() string {
+// AgentToken returns the best token to use for internal agent operations.
+func (t *TokenStore) AgentToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
 	if t.agentToken != "" {
 		return t.agentToken
 	}
-	if t.userToken != "" {
-		return t.userToken
-	}
-	return ""
+	return t.userToken
 }
 
 // UpdateAgentMasterToken replaces the current agent master token in the store.
-func (t *TokenStore) UpdateAgentMasterToken(agentMasterToken string) {
+func (t *TokenStore) UpdateAgentMasterToken(token string) {
 	t.l.Lock()
-	t.agentMasterToken = agentMasterToken
+	t.agentMasterToken = token
 	t.l.Unlock()
 }
 
