@@ -1107,6 +1107,20 @@ func TestStateStore_Watches_PrefixDelete(t *testing.T) {
 	if got != wantIndex {
 		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
 	}
+
+	// Delete all the keys, special case where tombstones are not inserted
+	if err := s.KVSDeleteTree(9, ""); err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	wantIndex = 9
+	got, _, err = s.KVSList(nil, "/foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+
 }
 
 func TestStateStore_KVSLockDelay(t *testing.T) {
