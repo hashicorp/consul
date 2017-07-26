@@ -68,6 +68,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dnstap/golang-dnstap"
+  packages = ["."]
+  revision = "c32b266c26b040b00f522a0183527a9eb2a1cf8b"
+
+[[projects]]
   name = "github.com/docker/distribution"
   packages = ["digest","reference"]
   revision = "a25b9ef0c9fe242ac04bb20d3a028442b7d266b6"
@@ -96,6 +102,12 @@
   packages = [".","log","swagger"]
   revision = "777bb3f19bcafe2575ffb2a3e46af92509ae9594"
   version = "v1.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/farsightsec/golang-framestream"
+  packages = ["."]
+  revision = "dec85654e8b8cf6712870afb14ee53d1c98cd5e2"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -183,12 +195,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/hashicorp/golang-lru"
-  packages = [".","simplelru"]
-  revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
-
-[[projects]]
-  branch = "master"
   name = "github.com/howeyc/gopass"
   packages = ["."]
   revision = "bf9dde6d0d2c004a008c27aaee91170c786f6db8"
@@ -228,12 +234,6 @@
   packages = ["pbutil"]
   revision = "3247c84500bff8d9fb6d579d800f20b3e091582c"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/miekg/dns"
-  packages = ["."]
-  revision = "e78414ef75607394ad7d917824f07f381df2eafa"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
@@ -315,12 +315,6 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "3da985ce5951d99de868be4385f21ea6c2b22f24"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","google","internal","jws","jwt"]
   revision = "f047394b6d14284165300fd82dad67edb3a4d7f6"
@@ -334,7 +328,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
+  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm","width"]
   revision = "4ee4af566555f5fbe026368b75596286a312663a"
 
 [[projects]]
@@ -373,21 +367,9 @@
   revision = "1195e3a8ee1a529d53eed7c624527a68555ddf1f"
   version = "v1.5.1"
 
-[[projects]]
-  branch = "master"
-  name = "github.com/farsightsec/golang-framestream"
-  packages = ["."]
-  revision = "dec85654e8b8cf6712870afb14ee53d1c98cd5e2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/dnstap/golang-dnstap"
-  packages = ["."]
-  revision = "c32b266c26b040b00f522a0183527a9eb2a1cf8b"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a59be89c7a92b81f951b47efd072c2af04fb66b4f2b7a780cadb7466559d0d6b"
+  inputs-digest = "0ddaab68018c7f38bccad1d9932df961ae52544dc56e3c0060ce1c28e5da0a47"
   solver-name = "gps-cdcl"
   solver-version = 1
