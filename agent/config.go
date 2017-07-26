@@ -1021,18 +1021,6 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 	return &net.TCPAddr{IP: ip, Port: port}, nil
 }
 
-// GetTokenForAgent returns the token the agent should use for its own internal
-// operations, such as registering itself with the catalog.
-func (c *Config) GetTokenForAgent() string {
-	if c.ACLAgentToken != "" {
-		return c.ACLAgentToken
-	}
-	if c.ACLToken != "" {
-		return c.ACLToken
-	}
-	return ""
-}
-
 // VerifyUniqueListeners checks to see if an address was used more than once in
 // the config
 func (c *Config) VerifyUniqueListeners() error {

@@ -1420,9 +1420,10 @@ func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
 
 func TestAgent_serviceTokens(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLToken = "default"
-	l := NewLocalState(cfg, nil)
+
+	tokens := new(TokenStore)
+	tokens.UpdateUserToken("default")
+	l := NewLocalState(TestConfig(), nil, tokens)
 
 	l.AddService(&structs.NodeService{
 		ID: "redis",
@@ -1448,9 +1449,10 @@ func TestAgent_serviceTokens(t *testing.T) {
 
 func TestAgent_checkTokens(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLToken = "default"
-	l := NewLocalState(cfg, nil)
+
+	tokens := new(TokenStore)
+	tokens.UpdateUserToken("default")
+	l := NewLocalState(TestConfig(), nil, tokens)
 
 	// Returns default when no token is set
 	if token := l.CheckToken("mem"); token != "default" {
@@ -1473,7 +1475,7 @@ func TestAgent_checkTokens(t *testing.T) {
 func TestAgent_checkCriticalTime(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	l := NewLocalState(cfg, nil)
+	l := NewLocalState(cfg, nil, new(TokenStore))
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
 	l.AddService(svc, "")
@@ -1536,7 +1538,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
-	l := NewLocalState(cfg, nil)
+	l := NewLocalState(cfg, nil, new(TokenStore))
 
 	// Add a check for a service that does not exist and verify that it fails
 	checkID := types.CheckID("redis:1")

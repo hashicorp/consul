@@ -30,7 +30,6 @@ type syncStatus struct {
 // populated during NewLocalAgent from the agent configuration to avoid
 // race conditions with the agent configuration.
 type localStateConfig struct {
-	ACLToken            string
 	AEInterval          time.Duration
 	AdvertiseAddr       string
 	CheckUpdateInterval time.Duration
@@ -38,7 +37,7 @@ type localStateConfig struct {
 	NodeID              types.NodeID
 	NodeName            string
 	TaggedAddresses     map[string]string
-	TokenForAgent       string
+	Tokens              *TokenStore
 }
 
 // localState is used to represent the node's services,
@@ -89,9 +88,8 @@ type localState struct {
 }
 
 // NewLocalState creates a  is used to initialize the local state
-func NewLocalState(c *Config, lg *log.Logger) *localState {
+func NewLocalState(c *Config, lg *log.Logger, tokens *TokenStore) *localState {
 	lc := localStateConfig{
-		ACLToken:            c.ACLToken,
 		AEInterval:          c.AEInterval,
 		AdvertiseAddr:       c.AdvertiseAddr,
 		CheckUpdateInterval: c.CheckUpdateInterval,
@@ -99,7 +97,7 @@ func NewLocalState(c *Config, lg *log.Logger) *localState {
 		NodeID:              c.NodeID,
 		NodeName:            c.NodeName,
 		TaggedAddresses:     map[string]string{},
-		TokenForAgent:       c.GetTokenForAgent(),
+		Tokens:              tokens,
 	}
 	for k, v := range c.TaggedAddresses {
 		lc.TaggedAddresses[k] = v
@@ -172,7 +170,7 @@ func (l *localState) ServiceToken(id string) string {
 func (l *localState) serviceToken(id string) string {
 	token := l.serviceTokens[id]
 	if token == "" {
-		token = l.config.ACLToken
+		token = l.config.Tokens.GetTokenForUser()
 	}
 	return token
 }
@@ -239,7 +237,7 @@ func (l *localState) CheckToken(checkID types.CheckID) string {
 func (l *localState) checkToken(checkID types.CheckID) string {
 	token := l.checkTokens[checkID]
 	if token == "" {
-		token = l.config.ACLToken
+		token = l.config.Tokens.GetTokenForUser()
 	}
 	return token
 }
@@ -449,7 +447,7 @@ func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.config.TokenForAgent},
+		QueryOptions: structs.QueryOptions{Token: l.config.Tokens.GetTokenForAgent()},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -785,7 +783,7 @@ func (l *localState) syncNodeInfo() error {
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
-		WriteRequest:    structs.WriteRequest{Token: l.config.TokenForAgent},
+		WriteRequest:    structs.WriteRequest{Token: l.config.Tokens.GetTokenForAgent()},
 	}
 	var out struct{}
 	err := l.delegate.RPC("Catalog.Register", &req, &out)
