@@ -6,6 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
+
 BUG FIXES:
 
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
