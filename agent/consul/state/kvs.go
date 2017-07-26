@@ -429,8 +429,6 @@ func (s *Store) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) error
 		return fmt.Errorf("failed recursive  deleting kvs entry: %s", err)
 	}
 
-	// Update the index if the delete was successful.
-	// Missing prefixes don't result in an index update
 	if deleted {
 		if err := s.kvsGraveyard.InsertTxn(tx, prefix, idx); err != nil {
 			return fmt.Errorf("failed adding to graveyard: %s", err)
