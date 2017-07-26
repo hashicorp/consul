@@ -49,7 +49,7 @@ Failover is just another policy choice for a prepared query, it works in the sam
 
 The following sections show examples using these fields to implement different geo failover policies.
 
-### Static
+### Static Policy
 
 A static failover policy includes a fixes list of datacenters to contact once there are no healthy instances in the local datacenter.
 
@@ -80,7 +80,7 @@ When this query is executed, such as with a DNS lookup to "api.query.consul", th
 3. If none are available in "dc1", then an RPC will be made to the Consul servers in "dc2" to perform the query there.
 4. Finally an error will be returned if none of these datacenters had any instances available.
 
-### Dynamic
+### Dynamic Policy
 
 In a complex federated environment with many Consul datacenters, it can be cumbersome to set static failover policies, so Consul offers a dynamic option based on Consul's [network coordinate](/docs/internals/coordinates.html) subsystem. Consul continuously maintains an estimate of the network round trip time from the local datacenter to the servers other datacenters it is federated with. Each server uses the median round trip time from itself to the servers in the remote datacenter. This means that failover can simply try other remote datacenters in order of increasing network round trip time, and if datacenters come and go, or experience network issues, this order will adjust automatically.
 
@@ -106,7 +106,7 @@ $ curl \
 
 This query is resolved in a similar fashion to the previous example, except the choice of "dc1" or "dc2", or possibly some other datacenter, is made automatically.
 
-### Mixed
+### Hybrid Policy
 
 It is possible to combine `Datacenters` and `NearestN` in the same policy. The `NearestN` queries will be performed first, followed by the list given by `Datacenters`. A given datacenter will only be queried one time during a failover, even if it is selected by both `NearestN` and is listed in `Datacenters`. This is useful for allowing a limited number of round trip-based attempts, followed by a static configuration for some known datacenter to failover to.
 
@@ -138,4 +138,4 @@ $ curl \
 
 Templates can match on prefixes or use full regular expressions to determine which services they match. In this case, we've chosen the `name_prefix_match` type and given it an empty name, which means that it will match any service. If multiple queries are registered, the most specific one will be selected, so it's possible to have a template like this as a catch-all, and then apply more specific policies to certain services.
 
-With this one prepared query template in place, changing application configurations to look up "<name>.query.consul" instead of "<name>.service.consul" via DNS will result in automatic geo failover to the next closest federated Consul datacenters, in order of increasing network round trip time!
+With this one prepared query template in place, simply changing application configurations to look up "api.query.consul" instead of "api.service.consul" via DNS will result in automatic geo failover to the next closest federated Consul datacenters, in order of increasing network round trip time.
