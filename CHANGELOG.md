@@ -6,7 +6,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
-
+* api: Implemented a much faster recursive delete algorithm for the KV store. It has been bench-marked to be up to 100X faster on recursive deletes that affect millions of nodes.
 ## 0.9.0 (July 20, 2017)
 
 BREAKING CHANGES:

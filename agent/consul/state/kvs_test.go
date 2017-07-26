@@ -1022,6 +1022,107 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	}
 }
 
+func TestStateStore_Watches_PrefixDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KVS entries
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 4, "foo/bar/zip/zorp", "zorp")
+	testSetKey(t, s, 5, "foo/bar/zip/zap", "zap")
+	testSetKey(t, s, 6, "foo/nope", "nope")
+
+	ws := memdb.NewWatchSet()
+	got, _, err := s.KVSList(ws, "foo/bar")
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	var wantIndex uint64 = 5
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", wantIndex, got)
+	}
+
+	// Delete a key and make sure the index comes from the tombstone.
+	if err := s.KVSDeleteTree(7, "foo/bar/zip"); err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	// Make sure watch fires
+	if !watchFired(ws) {
+		t.Fatalf("expected watch to fire but it did not")
+	}
+
+	//Verify index matches tombstone
+	got, _, err = s.KVSList(ws, "foo/bar")
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	wantIndex = 7
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+	// Make sure watch fires
+	if !watchFired(ws) {
+		t.Fatalf("expected watch to fire but it did not")
+	}
+
+	// Reap tombstone and verify list on the same key reverts its index value
+	if err := s.ReapTombstones(wantIndex); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	got, _, err = s.KVSList(nil, "foo/bar")
+	wantIndex = 2
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+
+	// Set a different key to bump the index. This shouldn't fire the
+	// watch since there's a different prefix.
+	testSetKey(t, s, 8, "some/other/key", "")
+
+	// Now ask for the index for a node within the prefix that was deleted
+	// We expect to get the max index in the tree
+	wantIndex = 8
+	ws = memdb.NewWatchSet()
+	got, _, err = s.KVSList(ws, "foo/bar/baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if watchFired(ws) {
+		t.Fatalf("Watch should not have fired")
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+
+	// List all the keys to make sure the index returned is the max index
+	got, _, err = s.KVSList(nil, "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+
+	// Delete all the keys, special case where tombstones are not inserted
+	if err := s.KVSDeleteTree(9, ""); err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	wantIndex = 9
+	got, _, err = s.KVSList(nil, "/foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if got != wantIndex {
+		t.Fatalf("bad index: %d, expected %d", got, wantIndex)
+	}
+
+}
+
 func TestStateStore_KVSLockDelay(t *testing.T) {
 	s := testStateStore(t)
 
