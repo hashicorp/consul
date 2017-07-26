@@ -1657,96 +1657,72 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 
 func TestAgent_Token(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	cfg := TestACLConfig()
+	cfg.ACLToken = ""
+	cfg.ACLAgentToken = ""
+	cfg.ACLAgentMasterToken = ""
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	t.Run("bad method", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v1/agent/token/acl_token", nil)
-		if _, err := a.srv.AgentToken(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := resp.Code, http.StatusMethodNotAllowed; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-	})
+	b := func(token string) io.Reader {
+		return jsonReader(&api.AgentToken{Token: token})
+	}
 
-	t.Run("bad token name", func(t *testing.T) {
-		args := &api.AgentToken{Token: "token"}
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token_nope?token=root", jsonReader(args))
-		if _, err := a.srv.AgentToken(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := resp.Code, http.StatusNotFound; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-	})
+	badJSON := func() io.Reader {
+		return jsonReader(false)
+	}
 
-	t.Run("user token", func(t *testing.T) {
-		args := &api.AgentToken{Token: "USER_TOKEN"}
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token?token=root", jsonReader(args))
-		if _, err := a.srv.AgentToken(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := resp.Code, http.StatusOK; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-		if got, want := a.tokens.UserToken(), "USER_TOKEN"; got != want {
-			t.Fatalf("got %q want %q", got, want)
-		}
-	})
+	tests := []struct {
+		name        string
+		method, url string
+		body        io.Reader
+		code        int
+		userToken   string
+		agentToken  string
+		masterToken string
+	}{
+		{"bad method", "GET", "acl_token", b("X"), http.StatusMethodNotAllowed, "", "", ""},
+		{"bad token name", "PUT", "nope?token=root", b("X"), http.StatusNotFound, "", "", ""},
+		{"bad JSON", "PUT", "acl_token?token=root", badJSON(), http.StatusBadRequest, "", "", ""},
+		{"set user", "PUT", "acl_token?token=root", b("U"), http.StatusOK, "U", "U", ""},
+		{"set agent", "PUT", "acl_agent_token?token=root", b("A"), http.StatusOK, "U", "A", ""},
+		{"set master", "PUT", "acl_agent_master_token?token=root", b("M"), http.StatusOK, "U", "A", "M"},
+		{"clear user", "PUT", "acl_token?token=root", b(""), http.StatusOK, "", "A", "M"},
+		{"clear agent", "PUT", "acl_agent_token?token=root", b(""), http.StatusOK, "", "", "M"},
+		{"clear master", "PUT", "acl_agent_master_token?token=root", b(""), http.StatusOK, "", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, url, tt.body)
+			if _, err := a.srv.AgentToken(resp, req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if got, want := resp.Code, tt.code; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			if got, want := a.tokens.UserToken(), tt.userToken; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+			if got, want := a.tokens.AgentToken(), tt.agentToken; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+			if tt.masterToken != "" && !a.tokens.IsAgentMasterToken(tt.masterToken) {
+				t.Fatalf("%q should be the master token", tt.masterToken)
+			}
+		})
+	}
 
-	t.Run("agent token", func(t *testing.T) {
-		args := &api.AgentToken{Token: "AGENT_TOKEN"}
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_agent_token?token=root", jsonReader(args))
-		if _, err := a.srv.AgentToken(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := resp.Code, http.StatusOK; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-		if got, want := a.tokens.AgentToken(), "AGENT_TOKEN"; got != want {
-			t.Fatalf("got %q want %q", got, want)
-		}
-	})
-
-	t.Run("master token", func(t *testing.T) {
-		args := &api.AgentToken{Token: "MASTER_TOKEN"}
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_agent_master_token?token=root", jsonReader(args))
-		if _, err := a.srv.AgentToken(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := resp.Code, http.StatusOK; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-		if got, want := a.tokens.IsAgentMasterToken("MASTER_TOKEN"), true; got != want {
-			t.Fatalf("got %v want %v", got, want)
-		}
-	})
-}
-
-func TestAgent_Token_ACLDeny(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
-	defer a.Shutdown()
-
-	args := &api.AgentToken{Token: "token"}
-
-	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", jsonReader(args))
+	// This one returns an error that is interpreted by the HTTP wrapper, so
+	// doesn't fit into our table above.
+	t.Run("permission denied", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", b("X"))
 		if _, err := a.srv.AgentToken(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
-	})
-
-	t.Run("management token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token?token=root", jsonReader(args))
-		if _, err := a.srv.AgentToken(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
+		if got, want := a.tokens.UserToken(), ""; got != want {
+			t.Fatalf("got %q want %q", got, want)
 		}
 	})
 }
