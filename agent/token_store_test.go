@@ -4,58 +4,30 @@ import (
 	"testing"
 )
 
-func TestTokenStore_AgentToken(t *testing.T) {
+func TestTokenStore_UserAndAgentTokens(t *testing.T) {
 	t.Parallel()
+
+	tests := []struct {
+		user, agent, wantUser, wantAgent string
+	}{
+		{"", "", "", ""},
+		{"user", "", "user", "user"},
+		{"user", "agent", "user", "agent"},
+		{"", "agent", "", "agent"},
+		{"user", "agent", "user", "agent"},
+		{"user", "", "user", "user"},
+		{"", "", "", ""},
+	}
 	tokens := new(TokenStore)
-
-	if got, want := tokens.AgentToken(), ""; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	// Precedence is agent token, user token, "".
-
-	tokens.UpdateUserToken("user")
-	if got, want := tokens.AgentToken(), "user"; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateAgentToken("agent")
-	if got, want := tokens.AgentToken(), "agent"; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateUserToken("")
-	if got, want := tokens.AgentToken(), "agent"; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateAgentToken("")
-	if got, want := tokens.AgentToken(), ""; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-}
-
-func TestTokenStore_UserToken(t *testing.T) {
-	t.Parallel()
-	tokens := new(TokenStore)
-
-	if got, want := tokens.UserToken(), ""; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateUserToken("hello")
-	if got, want := tokens.UserToken(), "hello"; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateUserToken("world")
-	if got, want := tokens.UserToken(), "world"; got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-
-	tokens.UpdateUserToken("")
-	if got, want := tokens.UserToken(), ""; got != want {
-		t.Fatalf("got %q want %q", got, want)
+	for _, tt := range tests {
+		tokens.UpdateUserToken(tt.user)
+		tokens.UpdateAgentToken(tt.agent)
+		if got, want := tokens.UserToken(), tt.wantUser; got != want {
+			t.Fatalf("got token %q want %q", got, want)
+		}
+		if got, want := tokens.AgentToken(), tt.wantAgent; got != want {
+			t.Fatalf("got token %q want %q", got, want)
+		}
 	}
 }
 
@@ -63,35 +35,24 @@ func TestTokenStore_AgentMasterToken(t *testing.T) {
 	t.Parallel()
 	tokens := new(TokenStore)
 
-	if got, want := tokens.IsAgentMasterToken(""), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
+	verify := func(want bool, toks ...string) {
+		for _, tok := range toks {
+			if got := tokens.IsAgentMasterToken(tok); got != want {
+				t.Fatalf("token %q got %v want %v", tok, got, want)
+			}
+		}
 	}
-	if got, want := tokens.IsAgentMasterToken("nope"), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
+
+	verify(false, "", "nope")
 
 	tokens.UpdateAgentMasterToken("master")
-	if got, want := tokens.IsAgentMasterToken(""), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	if got, want := tokens.IsAgentMasterToken("nope"), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	if got, want := tokens.IsAgentMasterToken("master"), true; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
+	verify(true, "master")
+	verify(false, "", "nope")
 
 	tokens.UpdateAgentMasterToken("another")
-	if got, want := tokens.IsAgentMasterToken(""), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	if got, want := tokens.IsAgentMasterToken("nope"), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	if got, want := tokens.IsAgentMasterToken("master"), false; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	if got, want := tokens.IsAgentMasterToken("another"), true; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
+	verify(true, "another")
+	verify(false, "", "nope", "master")
+
+	tokens.UpdateAgentMasterToken("")
+	verify(false, "", "nope", "master", "another")
 }
