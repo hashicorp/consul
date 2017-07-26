@@ -1,4 +1,4 @@
-# Dnstap
+# dnstap
 
 *dnstap* enables logging to dnstap, a flexible, structured binary log format for DNS software: http://dnstap.info.
 
