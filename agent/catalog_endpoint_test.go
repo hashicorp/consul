@@ -928,7 +928,7 @@ func TestCatalogNodeServices_ValidDNS(t *testing.T) {
 				"wan": "127.0.0.2",
 			},
 			Service: &structs.NodeService{
-				Service: "http\bad/dns",
+				Service: "http*bad*dns",
 			},
 		}
 		args2 := &structs.RegisterRequest{
@@ -940,7 +940,7 @@ func TestCatalogNodeServices_ValidDNS(t *testing.T) {
 			},
 			Service: &structs.NodeService{
 				Service: "http2",
-				Tags:    []string{"bad\tag"},
+				Tags:    []string{"bad+tag"},
 			},
 		}
 		args3 := &structs.RegisterRequest{
