@@ -426,12 +426,14 @@ func (s *Store) kvsDeleteTreeTxn(tx *memdb.Txn, idx uint64, prefix string) error
 	deleted, err := tx.DeletePrefix("kvs", "id_prefix", prefix)
 
 	if err != nil {
-		return fmt.Errorf("failed recursive  deleting kvs entry: %s", err)
+		return fmt.Errorf("failed recursive deleting kvs entry: %s", err)
 	}
 
 	if deleted {
-		if err := s.kvsGraveyard.InsertTxn(tx, prefix, idx); err != nil {
-			return fmt.Errorf("failed adding to graveyard: %s", err)
+		if prefix != "" { // don't insert a tombstone if the entire tree is deleted, all watchers on keys will see the max_index of the tree
+			if err := s.kvsGraveyard.InsertTxn(tx, prefix, idx); err != nil {
+				return fmt.Errorf("failed adding to graveyard: %s", err)
+			}
 		}
 		if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)

@@ -698,7 +698,7 @@ func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
 	expected := []string{
 		"cannot insert in read-only transaction",
 		"cannot insert in read-only transaction",
-		"cannot insert in read-only transaction",
+		"failed recursive deleting kvs entry",
 	}
 	if len(errors) != len(expected) {
 		t.Fatalf("bad len: %d != %d", len(errors), len(expected))
