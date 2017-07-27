@@ -333,7 +333,14 @@ func (s *Snapshotter) appendLine(l string) error {
 
 	n, err := s.buffered.WriteString(l)
 	if err != nil {
-		return err
+		// Try to recover from error state like disk-full.
+		s.buffered.Reset(s.fh)
+
+		if err := s.buffered.Flush(); err != nil {
+			return err
+		} else {
+			s.lastFlush = time.Now()
+		}
 	}
 
 	// Check if we should flush
