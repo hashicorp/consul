@@ -228,21 +228,9 @@ func New(c *Config) (*Agent, error) {
 		httpAddrs:       httpAddrs,
 		tokens:          new(token.Store),
 	}
-	if err := a.resolveTmplAddrs(); err != nil {
-		return nil, err
-	}
 
 	// Try to get an advertise address
 	switch {
-	case a.config.AdvertiseAddr != "":
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address: %v", ipStr)
-		}
-		a.config.AdvertiseAddr = ipStr
 
 	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
 		a.config.AdvertiseAddr = a.config.BindAddr
@@ -259,16 +247,7 @@ func New(c *Config) (*Agent, error) {
 	}
 
 	// Try to get an advertise address for the wan
-	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
-		if err != nil {
-			return nil, fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return nil, fmt.Errorf("Failed to parse advertise address for WAN: %v", ipStr)
-		}
-		a.config.AdvertiseAddrWan = ipStr
-	} else {
+	if a.config.AdvertiseAddrWan == "" {
 		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
 	}
 
@@ -837,94 +816,6 @@ func parseSingleIPTemplate(ipTmpl string) (string, error) {
 	default:
 		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
 	}
-}
-
-// resolveTmplAddrs iterates over the myriad of addresses in the agent's config
-// and performs go-sockaddr/template Parse on each known address in case the
-// user specified a template config for any of their values.
-func (a *Agent) resolveTmplAddrs() error {
-	if a.config.AdvertiseAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddr)
-		if err != nil {
-			return fmt.Errorf("Advertise address resolution failed: %v", err)
-		}
-		a.config.AdvertiseAddr = ipStr
-	}
-
-	if a.config.Addresses.DNS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.DNS)
-		if err != nil {
-			return fmt.Errorf("DNS address resolution failed: %v", err)
-		}
-		a.config.Addresses.DNS = ipStr
-	}
-
-	if a.config.Addresses.HTTP != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTP)
-		if err != nil {
-			return fmt.Errorf("HTTP address resolution failed: %v", err)
-		}
-		a.config.Addresses.HTTP = ipStr
-	}
-
-	if a.config.Addresses.HTTPS != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.Addresses.HTTPS)
-		if err != nil {
-			return fmt.Errorf("HTTPS address resolution failed: %v", err)
-		}
-		a.config.Addresses.HTTPS = ipStr
-	}
-
-	if a.config.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.AdvertiseAddrWan)
-		if err != nil {
-			return fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		a.config.AdvertiseAddrWan = ipStr
-	}
-
-	if a.config.BindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.BindAddr)
-		if err != nil {
-			return fmt.Errorf("Bind address resolution failed: %v", err)
-		}
-		a.config.BindAddr = ipStr
-	}
-
-	if a.config.ClientAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.ClientAddr)
-		if err != nil {
-			return fmt.Errorf("Client address resolution failed: %v", err)
-		}
-		a.config.ClientAddr = ipStr
-	}
-
-	if a.config.SerfLanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.SerfLanBindAddr)
-		if err != nil {
-			return fmt.Errorf("Serf LAN Address resolution failed: %v", err)
-		}
-		a.config.SerfLanBindAddr = ipStr
-	}
-
-	if a.config.SerfWanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(a.config.SerfWanBindAddr)
-		if err != nil {
-			return fmt.Errorf("Serf WAN Address resolution failed: %v", err)
-		}
-		a.config.SerfWanBindAddr = ipStr
-	}
-
-	// Parse all tagged addresses
-	for k, v := range a.config.TaggedAddresses {
-		ipStr, err := parseSingleIPTemplate(v)
-		if err != nil {
-			return fmt.Errorf("%s address resolution failed: %v", k, err)
-		}
-		a.config.TaggedAddresses[k] = ipStr
-	}
-
-	return nil
 }
 
 // makeRandomID will generate a random UUID for a node.

@@ -2121,6 +2121,100 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 	return result, nil
 }
 
+// ResolveTmplAddrs iterates over the myriad of addresses in the agent's config
+// and performs go-sockaddr/template Parse on each known address in case the
+// user specified a template config for any of their values.
+func (c *Config) ResolveTmplAddrs() error {
+	if c.AdvertiseAddr != "" {
+		ipStr, err := parseSingleIPTemplate(c.AdvertiseAddr)
+		if err != nil {
+			return fmt.Errorf("Advertise address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return fmt.Errorf("Failed to parse advertise address: %v", ipStr)
+		}
+		c.AdvertiseAddr = ipStr
+	}
+
+	if c.Addresses.DNS != "" {
+		ipStr, err := parseSingleIPTemplate(c.Addresses.DNS)
+		if err != nil {
+			return fmt.Errorf("DNS address resolution failed: %v", err)
+		}
+		c.Addresses.DNS = ipStr
+	}
+
+	if c.Addresses.HTTP != "" {
+		ipStr, err := parseSingleIPTemplate(c.Addresses.HTTP)
+		if err != nil {
+			return fmt.Errorf("HTTP address resolution failed: %v", err)
+		}
+		c.Addresses.HTTP = ipStr
+	}
+
+	if c.Addresses.HTTPS != "" {
+		ipStr, err := parseSingleIPTemplate(c.Addresses.HTTPS)
+		if err != nil {
+			return fmt.Errorf("HTTPS address resolution failed: %v", err)
+		}
+		c.Addresses.HTTPS = ipStr
+	}
+
+	if c.AdvertiseAddrWan != "" {
+		ipStr, err := parseSingleIPTemplate(c.AdvertiseAddrWan)
+		if err != nil {
+			return fmt.Errorf("Advertise WAN address resolution failed: %v", err)
+		}
+		if net.ParseIP(ipStr) == nil {
+			return fmt.Errorf("Failed to parse Advertise WAN address: %v", ipStr)
+		}
+		c.AdvertiseAddrWan = ipStr
+	}
+
+	if c.BindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(c.BindAddr)
+		if err != nil {
+			return fmt.Errorf("Bind address resolution failed: %v", err)
+		}
+		c.BindAddr = ipStr
+	}
+
+	if c.ClientAddr != "" {
+		ipStr, err := parseSingleIPTemplate(c.ClientAddr)
+		if err != nil {
+			return fmt.Errorf("Client address resolution failed: %v", err)
+		}
+		c.ClientAddr = ipStr
+	}
+
+	if c.SerfLanBindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(c.SerfLanBindAddr)
+		if err != nil {
+			return fmt.Errorf("Serf LAN Address resolution failed: %v", err)
+		}
+		c.SerfLanBindAddr = ipStr
+	}
+
+	if c.SerfWanBindAddr != "" {
+		ipStr, err := parseSingleIPTemplate(c.SerfWanBindAddr)
+		if err != nil {
+			return fmt.Errorf("Serf WAN Address resolution failed: %v", err)
+		}
+		c.SerfWanBindAddr = ipStr
+	}
+
+	// Parse all tagged addresses
+	for k, v := range c.TaggedAddresses {
+		ipStr, err := parseSingleIPTemplate(v)
+		if err != nil {
+			return fmt.Errorf("%s address resolution failed: %v", k, err)
+		}
+		c.TaggedAddresses[k] = ipStr
+	}
+
+	return nil
+}
+
 // Implement the sort interface for dirEnts
 func (d dirEnts) Len() int {
 	return len(d)
