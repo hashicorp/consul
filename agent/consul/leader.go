@@ -105,7 +105,11 @@ RECONCILE:
 			goto WAIT
 		}
 		establishedLeader = true
-		defer s.revokeLeadership()
+		defer func() {
+			if err := s.revokeLeadership(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			}
+		}()
 	}
 
 	// Reconcile any missing data
@@ -144,19 +148,18 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	// This will create the anonymous token and master token (if that is
+	// configured).
+	if err := s.initializeACL(); err != nil {
+		return err
+	}
+
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
 	s.tombstoneGC.SetEnabled(true)
 	lastIndex := s.raft.LastIndex()
 	s.tombstoneGC.Hint(lastIndex)
-	s.logger.Printf("[DEBUG] consul: reset tombstone GC to index %d", lastIndex)
-
-	// Setup ACLs if we are the leader and need to
-	if err := s.initializeACL(); err != nil {
-		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
-		return err
-	}
 
 	// Setup the session timers. This is done both when starting up or when
 	// a leader fail over happens. Since the timers are maintained by the leader
@@ -168,18 +171,12 @@ func (s *Server) establishLeadership() error {
 	// are available to be initialized. Otherwise initialization may use stale
 	// data.
 	if err := s.initializeSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v",
-			err)
 		return err
 	}
 
-	// Setup autopilot config if we need to
 	s.getOrCreateAutopilotConfig()
-
 	s.startAutopilot()
-
 	s.setConsistentReadReady()
-
 	return nil
 }
 
@@ -192,14 +189,11 @@ func (s *Server) revokeLeadership() error {
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
 	if err := s.clearAllSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
 
 	s.resetConsistentReadReady()
-
 	s.stopAutopilot()
-
 	return nil
 }
 
