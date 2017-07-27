@@ -1680,16 +1680,19 @@ func TestAgent_Token(t *testing.T) {
 		userToken   string
 		agentToken  string
 		masterToken string
+		replToken   string
 	}{
-		{"bad method", "GET", "acl_token", b("X"), http.StatusMethodNotAllowed, "", "", ""},
-		{"bad token name", "PUT", "nope?token=root", b("X"), http.StatusNotFound, "", "", ""},
-		{"bad JSON", "PUT", "acl_token?token=root", badJSON(), http.StatusBadRequest, "", "", ""},
-		{"set user", "PUT", "acl_token?token=root", b("U"), http.StatusOK, "U", "U", ""},
-		{"set agent", "PUT", "acl_agent_token?token=root", b("A"), http.StatusOK, "U", "A", ""},
-		{"set master", "PUT", "acl_agent_master_token?token=root", b("M"), http.StatusOK, "U", "A", "M"},
-		{"clear user", "PUT", "acl_token?token=root", b(""), http.StatusOK, "", "A", "M"},
-		{"clear agent", "PUT", "acl_agent_token?token=root", b(""), http.StatusOK, "", "", "M"},
-		{"clear master", "PUT", "acl_agent_master_token?token=root", b(""), http.StatusOK, "", "", ""},
+		{"bad method", "GET", "acl_token", b("X"), http.StatusMethodNotAllowed, "", "", "", ""},
+		{"bad token name", "PUT", "nope?token=root", b("X"), http.StatusNotFound, "", "", "", ""},
+		{"bad JSON", "PUT", "acl_token?token=root", badJSON(), http.StatusBadRequest, "", "", "", ""},
+		{"set user", "PUT", "acl_token?token=root", b("U"), http.StatusOK, "U", "U", "", ""},
+		{"set agent", "PUT", "acl_agent_token?token=root", b("A"), http.StatusOK, "U", "A", "", ""},
+		{"set master", "PUT", "acl_agent_master_token?token=root", b("M"), http.StatusOK, "U", "A", "M", ""},
+		{"set repl", "PUT", "acl_replication_token?token=root", b("R"), http.StatusOK, "U", "A", "M", "R"},
+		{"clear user", "PUT", "acl_token?token=root", b(""), http.StatusOK, "", "A", "M", "R"},
+		{"clear agent", "PUT", "acl_agent_token?token=root", b(""), http.StatusOK, "", "", "M", "R"},
+		{"clear master", "PUT", "acl_agent_master_token?token=root", b(""), http.StatusOK, "", "", "", "R"},
+		{"clear repl", "PUT", "acl_replication_token?token=root", b(""), http.StatusOK, "", "", "", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1710,6 +1713,9 @@ func TestAgent_Token(t *testing.T) {
 			}
 			if tt.masterToken != "" && !a.tokens.IsAgentMasterToken(tt.masterToken) {
 				t.Fatalf("%q should be the master token", tt.masterToken)
+			}
+			if got, want := a.tokens.ACLReplicationToken(), tt.replToken; got != want {
+				t.Fatalf("got %q want %q", got, want)
 			}
 		})
 	}

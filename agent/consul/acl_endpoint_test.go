@@ -535,9 +535,10 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
-		c.ACLReplicationToken = "secret"
+		c.EnableACLReplication = true
 		c.ACLReplicationInterval = 10 * time.Millisecond
 	})
+	s1.tokens.UpdateACLReplicationToken("secret")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)

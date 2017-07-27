@@ -154,7 +154,7 @@ func (s *Server) fetchRemoteACLs(lastRemoteIndex uint64) (*structs.IndexedACLs, 
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.ACLDatacenter,
 		QueryOptions: structs.QueryOptions{
-			Token:         s.config.ACLReplicationToken,
+			Token:         s.tokens.ACLReplicationToken(),
 			MinQueryIndex: lastRemoteIndex,
 			AllowStale:    true,
 		},
@@ -247,7 +247,7 @@ func (s *Server) replicateACLs(lastRemoteIndex uint64) (uint64, error) {
 func (s *Server) IsACLReplicationEnabled() bool {
 	authDC := s.config.ACLDatacenter
 	return len(authDC) > 0 && (authDC != s.config.Datacenter) &&
-		len(s.config.ACLReplicationToken) > 0
+		s.config.EnableACLReplication
 }
 
 // updateACLReplicationStatus safely updates the ACL replication status.

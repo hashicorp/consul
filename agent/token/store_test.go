@@ -1,33 +1,42 @@
 package token
 
 import (
+	"fmt"
 	"testing"
 )
 
-func TestStore_UserAndAgentTokens(t *testing.T) {
+func TestStore_RegularTokens(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		user, agent, wantUser, wantAgent string
+		user, agent, repl, wantUser, wantAgent, wantRepl string
 	}{
-		{"", "", "", ""},
-		{"user", "", "user", "user"},
-		{"user", "agent", "user", "agent"},
-		{"", "agent", "", "agent"},
-		{"user", "agent", "user", "agent"},
-		{"user", "", "user", "user"},
-		{"", "", "", ""},
+		{"", "", "", "", "", ""},
+		{"user", "", "", "user", "user", ""},
+		{"user", "agent", "", "user", "agent", ""},
+		{"", "agent", "", "", "agent", ""},
+		{"user", "agent", "", "user", "agent", ""},
+		{"user", "agent", "acl", "user", "agent", "acl"},
+		{"user", "agent", "", "user", "agent", ""},
+		{"user", "", "", "user", "user", ""},
+		{"", "", "", "", "", ""},
 	}
 	tokens := new(Store)
-	for _, tt := range tests {
-		tokens.UpdateUserToken(tt.user)
-		tokens.UpdateAgentToken(tt.agent)
-		if got, want := tokens.UserToken(), tt.wantUser; got != want {
-			t.Fatalf("got token %q want %q", got, want)
-		}
-		if got, want := tokens.AgentToken(), tt.wantAgent; got != want {
-			t.Fatalf("got token %q want %q", got, want)
-		}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			tokens.UpdateUserToken(tt.user)
+			tokens.UpdateAgentToken(tt.agent)
+			tokens.UpdateACLReplicationToken(tt.repl)
+			if got, want := tokens.UserToken(), tt.wantUser; got != want {
+				t.Fatalf("got token %q want %q", got, want)
+			}
+			if got, want := tokens.AgentToken(), tt.wantAgent; got != want {
+				t.Fatalf("got token %q want %q", got, want)
+			}
+			if got, want := tokens.ACLReplicationToken(), tt.wantRepl; got != want {
+				t.Fatalf("got token %q want %q", got, want)
+			}
+		})
 	}
 }
 

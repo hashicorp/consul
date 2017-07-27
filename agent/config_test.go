@@ -107,8 +107,12 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{ACLMasterToken: "a"},
 		},
 		{
+			// Decode will enable ACL replication if the token is set.
 			in: `{"acl_replication_token":"a"}`,
-			c:  &Config{ACLReplicationToken: "a"},
+			c: &Config{
+				EnableACLReplication: true,
+				ACLReplicationToken:  "a",
+			},
 		},
 		{
 			in: `{"acl_token":"a"}`,
@@ -365,6 +369,10 @@ func TestDecodeConfig(t *testing.T) {
 		{
 			in: `{"domain":"a"}`,
 			c:  &Config{Domain: "a"},
+		},
+		{
+			in: `{"enable_acl_replication":true}`,
+			c:  &Config{EnableACLReplication: true},
 		},
 		{
 			in: `{"enable_debug":true}`,

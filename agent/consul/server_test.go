@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -146,7 +147,7 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger)
+	srv, err := NewServerLogger(c, logger, new(token.Store))
 	if err != nil {
 		return nil, err
 	}

@@ -497,6 +497,12 @@ func (c *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*Write
 	return c.updateToken("acl_agent_master_token", token, q)
 }
 
+// UpdateACLReplicationToken updates the agent's "acl_replication_token". See
+// updateToken for more details.
+func (c *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return c.updateToken("acl_replication_token", token, q)
+}
+
 // updateToken can be used to update an agent's ACL token after the agent has
 // started. The tokens are not persisted, so will need to be updated again if
 // the agent is restarted.

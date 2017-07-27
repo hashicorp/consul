@@ -231,6 +231,7 @@ func New(c *Config) (*Agent, error) {
 	a.tokens.UpdateUserToken(a.config.ACLToken)
 	a.tokens.UpdateAgentToken(a.config.ACLAgentToken)
 	a.tokens.UpdateAgentMasterToken(a.config.ACLAgentMasterToken)
+	a.tokens.UpdateACLReplicationToken(a.config.ACLReplicationToken)
 
 	return a, nil
 }
@@ -266,7 +267,7 @@ func (a *Agent) Start() error {
 
 	// Setup either the client or the server.
 	if c.Server {
-		server, err := consul.NewServerLogger(consulCfg, a.logger)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -675,9 +676,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
-	if a.config.ACLReplicationToken != "" {
-		base.ACLReplicationToken = a.config.ACLReplicationToken
-	}
+	base.EnableACLReplication = a.config.EnableACLReplication
 	if a.config.ACLEnforceVersion8 != nil {
 		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
 	}
