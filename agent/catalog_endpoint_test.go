@@ -965,9 +965,12 @@ func TestCatalogNodeServices_ValidDNS(t *testing.T) {
 		obj, _ := a1.srv.CatalogServices(resp, req)
 
 		services := obj.(structs.Services)
-		if len(services) != 1 {
-			t.Fatalf("bad: %v, lenght = %d", obj, len(services))
+		if _, present := services[args1.Service.Service]; present {
+			t.Fatalf("bad: found bad service name: %s", args1.Service.Service)
 		}
-	}
+		if _, present := services[args2.Service.Service]; present {
+			t.Fatalf("bad: found bad dns tags %v", args2.Service.Tags)
+		}
 
+	}
 }
