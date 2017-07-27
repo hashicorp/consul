@@ -52,6 +52,10 @@ Windows has no POSIX compatible notion for `SIGTERM`.
 
 #### Command Options
 
+* `-child-exit-code` - Exit 2 if the child process exited with an error
+  if this is true, otherwise this doesn't propagate an error from the
+  child. The default value is false.
+
 * `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
    while monitoring the lock. This allows riding out brief periods of unavailability
    without causing leader elections, but increases the amount of time required
@@ -66,6 +70,9 @@ Windows has no POSIX compatible notion for `SIGTERM`.
   If not provided, one is generated based on the child command.
 
 * `-pass-stdin` - Pass stdin to child process.
+
+* `timeout` - Maximum amount of time to wait to acquire the lock, specified
+   as a duration like `1s` or `3h`. The default value is 0.
 
 * `-try` - Attempt to acquire the lock up to the given timeout. The timeout is a
   positive decimal number, with unit suffix, such as "500ms". Valid time units
