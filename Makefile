@@ -8,7 +8,7 @@ all: coredns
 # TODO: Add .go file dependencies.
 .PHONY: coredns
 coredns: check godeps
-	go build $(BUILD_VERBOSE) -ldflags="-s -w"
+	CGO_ENABLED=0 go build $(BUILD_VERBOSE) -ldflags="-s -w"
 
 .PHONY: deps
 deps: core/zmiddleware.go core/dnsserver/zdirectives.go godeps

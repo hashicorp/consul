@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "=> Building the CoreDNS binary"
+docker run \
+  -v $(pwd):/go/src/github.com/coredns/coredns \
+  -w /go/src/github.com/coredns/coredns \
+  golang:1.8.0 \
+  make
