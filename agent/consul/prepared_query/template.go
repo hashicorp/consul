@@ -30,7 +30,8 @@ type CompiledTemplate struct {
 	// re is the compiled regexp, if they supplied one (this can be nil).
 	re *regexp.Regexp
 
-	// whether to remove empty tags
+	// removeEmptyTags will cause the service tags to be stripped of any
+	// empty strings after interpolation.
 	removeEmptyTags bool
 }
 
@@ -44,8 +45,7 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 
 	// Start compile.
 	ct := &CompiledTemplate{
-		trees:           make(map[string]ast.Node),
-		removeEmptyTags: false,
+		trees: make(map[string]ast.Node),
 	}
 
 	// Make a copy of the query to use as the basis for rendering later.
