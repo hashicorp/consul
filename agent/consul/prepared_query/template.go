@@ -45,7 +45,8 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 
 	// Start compile.
 	ct := &CompiledTemplate{
-		trees: make(map[string]ast.Node),
+		trees:           make(map[string]ast.Node),
+		removeEmptyTags: query.Template.RemoveEmptyTags,
 	}
 
 	// Make a copy of the query to use as the basis for rendering later.
@@ -81,11 +82,6 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Bad Regexp: %s", err)
 		}
-	}
-
-	// Are we to remove empty tags?
-	if ct.query.Template.RemoveEmptyTags {
-		ct.removeEmptyTags = true
 	}
 
 	// Finally do a test render with the supplied name prefix. This will
@@ -191,7 +187,7 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 	}
 
 	if ct.removeEmptyTags {
-		tags := []string(nil)
+		tags := make([]string, 0, len(query.Service.Tags))
 		for _, tag := range query.Service.Tags {
 			if tag != "" {
 				tags = append(tags, tag)

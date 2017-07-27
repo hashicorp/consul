@@ -290,6 +290,7 @@ func TestTemplate_Render(t *testing.T) {
 					"",
 					"42",
 				},
+				NodeMeta: map[string]string{"foo": ""},
 			},
 		}
 		if !reflect.DeepEqual(actual, expected) {
@@ -370,7 +371,6 @@ func TestTemplate_Render(t *testing.T) {
 				Tags: []string{
 					"42",
 				},
-				NodeMeta: map[string]string{"foo": ""},
 			},
 		}
 		if !reflect.DeepEqual(actual, expected) {
