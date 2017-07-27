@@ -32,7 +32,8 @@ Here is an example prepared query template:
 {
   "Template": {
     "Type": "name_prefix_match",
-    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
+    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$",
+    "RemoveEmptyTags": false
   }
 }
 ```
@@ -54,6 +55,12 @@ static query. It has two fields:
   everything else after as a tag. See the
   [RE2](https://github.com/google/re2/wiki/Syntax) reference for syntax of this
   regular expression.
+
+- `RemoveEmptyTags` is optional, and if set to true, will cause the `Tags` list
+  inside the `Service` structure to be stripped of any empty strings. This defaults
+  to false, meaning that empty strings will remain in the list. This is useful
+  when interpolating into tags in a way where the tag is optional, and where
+  searching for an empty tag would yield no results from the query.
 
 All other fields of the query have the same meanings as for a static query,
 except that several interpolation variables are available to dynamically
