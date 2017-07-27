@@ -1,0 +1,3 @@
+#!/bin/sh
+set -x
+docker build --build-arg COREDNS_VERSION=$SOURCE_BRANCH -t $IMAGE_NAME .
