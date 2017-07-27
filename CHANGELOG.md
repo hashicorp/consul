@@ -6,7 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
-docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
+* cli: Added a `-child-exit-code` option to `consul lock` so that it propagates an error code of 2 if the child process exits with an error. [GH-947]
+* docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
 
 BUG FIXES:
 
