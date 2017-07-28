@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,7 +29,6 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
@@ -227,34 +225,6 @@ func New(c *Config) (*Agent, error) {
 		dnsAddrs:        dnsAddrs,
 		httpAddrs:       httpAddrs,
 		tokens:          new(token.Store),
-	}
-
-	// Try to get an advertise address
-	switch {
-
-	case a.config.BindAddr != "" && !ipaddr.IsAny(a.config.BindAddr):
-		a.config.AdvertiseAddr = a.config.BindAddr
-
-	default:
-		ip, err := consul.GetPrivateIP()
-		if ipaddr.IsAnyV6(a.config.BindAddr) {
-			ip, err = consul.GetPublicIPv6()
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
-		}
-		a.config.AdvertiseAddr = ip.String()
-	}
-
-	// Try to get an advertise address for the wan
-	if a.config.AdvertiseAddrWan == "" {
-		a.config.AdvertiseAddrWan = a.config.AdvertiseAddr
-	}
-
-	// Create the default set of tagged addresses.
-	a.config.TaggedAddresses = map[string]string{
-		"lan": a.config.AdvertiseAddr,
-		"wan": a.config.AdvertiseAddrWan,
 	}
 
 	// Set up the initial state of the token store based on the config.
@@ -797,25 +767,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	return base, nil
-}
-
-// parseSingleIPTemplate is used as a helper function to parse out a single IP
-// address from a config parameter.
-func parseSingleIPTemplate(ipTmpl string) (string, error) {
-	out, err := template.Parse(ipTmpl)
-	if err != nil {
-		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
-	}
-
-	ips := strings.Split(out, " ")
-	switch len(ips) {
-	case 0:
-		return "", errors.New("No addresses found, please configure one.")
-	case 1:
-		return ips[0], nil
-	default:
-		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
-	}
 }
 
 // makeRandomID will generate a random UUID for a node.

@@ -16,10 +16,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -2203,16 +2205,59 @@ func (c *Config) ResolveTmplAddrs() error {
 		c.SerfWanBindAddr = ipStr
 	}
 
-	// Parse all tagged addresses
-	for k, v := range c.TaggedAddresses {
-		ipStr, err := parseSingleIPTemplate(v)
-		if err != nil {
-			return fmt.Errorf("%s address resolution failed: %v", k, err)
+	return nil
+}
+
+// Additional post processing of the configs to set tagged and advertise addresses
+func (cfg *Config) SetupTaggedAndAdvertiseAddrs() error {
+	if cfg.AdvertiseAddr == "" {
+		switch {
+
+		case cfg.BindAddr != "" && !ipaddr.IsAny(cfg.BindAddr):
+			cfg.AdvertiseAddr = cfg.BindAddr
+
+		default:
+			ip, err := consul.GetPrivateIP()
+			if ipaddr.IsAnyV6(cfg.BindAddr) {
+				ip, err = consul.GetPublicIPv6()
+			}
+			if err != nil {
+				return fmt.Errorf("Failed to get advertise address: %v", err)
+			}
+			cfg.AdvertiseAddr = ip.String()
 		}
-		c.TaggedAddresses[k] = ipStr
 	}
 
+	// Try to get an advertise address for the wan
+	if cfg.AdvertiseAddrWan == "" {
+		cfg.AdvertiseAddrWan = cfg.AdvertiseAddr
+	}
+
+	// Create the default set of tagged addresses.
+	cfg.TaggedAddresses = map[string]string{
+		"lan": cfg.AdvertiseAddr,
+		"wan": cfg.AdvertiseAddrWan,
+	}
 	return nil
+}
+
+// parseSingleIPTemplate is used as a helper function to parse out a single IP
+// address from a config parameter.
+func parseSingleIPTemplate(ipTmpl string) (string, error) {
+	out, err := template.Parse(ipTmpl)
+	if err != nil {
+		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
+	}
+
+	ips := strings.Split(out, " ")
+	switch len(ips) {
+	case 0:
+		return "", errors.New("No addresses found, please configure one.")
+	case 1:
+		return ips[0], nil
+	default:
+		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
+	}
 }
 
 // Implement the sort interface for dirEnts

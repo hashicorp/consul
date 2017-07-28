@@ -466,6 +466,13 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		cmd.UI.Error(fmt.Sprintf("Failed to parse config: %v", err))
 		return nil
 	}
+	// More post processing of the config
+	if err := cfg.SetupTaggedAndAdvertiseAddrs(); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Failed to set up tagged and advertise addresses: %v", err))
+		return nil
+	}
+	// Try to get an advertise address if not set
+
 	return cfg
 }
 
