@@ -2137,6 +2137,10 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 			err = fmt.Errorf("Resolution of %s failed: %v", name, err)
 			return
 		}
+		if strings.HasPrefix(ip, "unix://") {
+			*addr = ip
+			return
+		}
 		if net.ParseIP(ip) == nil {
 			err = fmt.Errorf("Failed to parse %s: %v", name, ip)
 			return
