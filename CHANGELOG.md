@@ -9,11 +9,12 @@ IMPROVEMENTS:
 * cli: Added a `-child-exit-code` option to `consul lock` so that it propagates an error code of 2 if the child process exits with an error. [GH-947]
 * docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
 * server: Added a `RemoveEmptyTags` option to prepared query templates which will strip out any empty strings in the tags list before executing a query. This is useful when interpolating into tags in a way where the tag is optional, and where searching for an empty tag would yield no results from the query. [GH-2151]
+* server: Implemented a much faster recursive delete algorithm for the KV store. It has been bench-marked to be up to 100X faster on recursive deletes that affect millions of nodes. [GH-1278, GH-3313]
 
 BUG FIXES:
 
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
-* server: Implemented a much faster recursive delete algorithm for the KV store. It has been bench-marked to be up to 100X faster on recursive deletes that affect millions of nodes. [GH-1278, GH-3313]
+* agent: Fixed an issue where dns and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
 
 ## 0.9.0 (July 20, 2017)
 
