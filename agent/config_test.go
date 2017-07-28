@@ -73,7 +73,7 @@ func TestDecodeConfig(t *testing.T) {
 		},
 		{
 			in:               `{"addresses":{"http":"notunix://blah"}}`,
-			parseTemplateErr: errors.New("Failed to parse HTTP address, is not a valid IP address or socket: notunix://blah"),
+			parseTemplateErr: errors.New("Failed to parse HTTP address, \"notunix://blah\" is not a valid IP address or socket"),
 			c:                &Config{Addresses: AddressConfig{HTTP: "notunix://blah"}},
 		},
 

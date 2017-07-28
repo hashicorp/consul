@@ -2143,7 +2143,7 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 			return
 		}
 		if socketAllowed && socketPath(ip) == "" && ipAddr == nil {
-			err = fmt.Errorf("Failed to parse %s, is not a valid IP address or socket: %v", name, ip)
+			err = fmt.Errorf("Failed to parse %s, %q is not a valid IP address or socket", name, ip)
 			return
 		}
 
