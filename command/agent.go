@@ -462,6 +462,16 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	cfg.Version = cmd.Version
 	cfg.VersionPrerelease = cmd.VersionPrerelease
 
+	if err := cfg.ResolveTmplAddrs(); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Failed to parse config: %v", err))
+		return nil
+	}
+
+	if err := cfg.SetupTaggedAndAdvertiseAddrs(); err != nil {
+		cmd.UI.Error(fmt.Sprintf("Failed to set up tagged and advertise addresses: %v", err))
+		return nil
+	}
+
 	return cfg
 }
 

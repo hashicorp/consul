@@ -16,10 +16,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -2119,6 +2121,101 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 	}
 
 	return result, nil
+}
+
+// ResolveTmplAddrs iterates over the myriad of addresses in the agent's config
+// and performs go-sockaddr/template Parse on each known address in case the
+// user specified a template config for any of their values.
+func (c *Config) ResolveTmplAddrs() (err error) {
+	parse := func(addr *string, socketAllowed bool, name string) {
+		if *addr == "" || err != nil {
+			return
+		}
+		var ip string
+		ip, err = parseSingleIPTemplate(*addr)
+		if err != nil {
+			err = fmt.Errorf("Resolution of %s failed: %v", name, err)
+			return
+		}
+		ipAddr := net.ParseIP(ip)
+		if !socketAllowed && ipAddr == nil {
+			err = fmt.Errorf("Failed to parse %s: %v", name, ip)
+			return
+		}
+		if socketAllowed && socketPath(ip) == "" && ipAddr == nil {
+			err = fmt.Errorf("Failed to parse %s, %q is not a valid IP address or socket", name, ip)
+			return
+		}
+
+		*addr = ip
+	}
+
+	if c == nil {
+		return
+	}
+	parse(&c.Addresses.DNS, true, "DNS address")
+	parse(&c.Addresses.HTTP, true, "HTTP address")
+	parse(&c.Addresses.HTTPS, true, "HTTPS address")
+	parse(&c.AdvertiseAddr, false, "Advertise address")
+	parse(&c.AdvertiseAddrWan, false, "Advertise WAN address")
+	parse(&c.BindAddr, true, "Bind address")
+	parse(&c.ClientAddr, true, "Client address")
+	parse(&c.SerfLanBindAddr, false, "Serf LAN address")
+	parse(&c.SerfWanBindAddr, false, "Serf WAN address")
+
+	return
+}
+
+// SetupTaggedAndAdvertiseAddrs configures advertise addresses and sets up a map of tagged addresses
+func (cfg *Config) SetupTaggedAndAdvertiseAddrs() error {
+	if cfg.AdvertiseAddr == "" {
+		switch {
+
+		case cfg.BindAddr != "" && !ipaddr.IsAny(cfg.BindAddr):
+			cfg.AdvertiseAddr = cfg.BindAddr
+
+		default:
+			ip, err := consul.GetPrivateIP()
+			if ipaddr.IsAnyV6(cfg.BindAddr) {
+				ip, err = consul.GetPublicIPv6()
+			}
+			if err != nil {
+				return fmt.Errorf("Failed to get advertise address: %v", err)
+			}
+			cfg.AdvertiseAddr = ip.String()
+		}
+	}
+
+	// Try to get an advertise address for the wan
+	if cfg.AdvertiseAddrWan == "" {
+		cfg.AdvertiseAddrWan = cfg.AdvertiseAddr
+	}
+
+	// Create the default set of tagged addresses.
+	cfg.TaggedAddresses = map[string]string{
+		"lan": cfg.AdvertiseAddr,
+		"wan": cfg.AdvertiseAddrWan,
+	}
+	return nil
+}
+
+// parseSingleIPTemplate is used as a helper function to parse out a single IP
+// address from a config parameter.
+func parseSingleIPTemplate(ipTmpl string) (string, error) {
+	out, err := template.Parse(ipTmpl)
+	if err != nil {
+		return "", fmt.Errorf("Unable to parse address template %q: %v", ipTmpl, err)
+	}
+
+	ips := strings.Split(out, " ")
+	switch len(ips) {
+	case 0:
+		return "", errors.New("No addresses found, please configure one.")
+	case 1:
+		return ips[0], nil
+	default:
+		return "", fmt.Errorf("Multiple addresses found (%q), please configure one.", out)
+	}
 }
 
 // Implement the sort interface for dirEnts
