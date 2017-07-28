@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -11,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
-	"regexp"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -101,9 +101,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-
 	if args.Service != nil && c.srv.config.EnforceValidDNS {
-		//var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 		if !dnsNameRe.MatchString(args.Service.Service) {
 			return fmt.Errorf("Service name not valid for DNS: %s, blocking registration.", args.Service.Service)
 		}
