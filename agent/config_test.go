@@ -103,28 +103,56 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{ACLTTL: 2 * time.Second, ACLTTLRaw: "2s"},
 		},
 		{
-			in: `{"addresses":{"dns":"a"}}`,
-			c:  &Config{Addresses: AddressConfig{DNS: "a"}},
+			in: `{"addresses":{"dns":"1.2.3.4"}}`,
+			c:  &Config{Addresses: AddressConfig{DNS: "1.2.3.4"}},
 		},
 		{
-			in: `{"addresses":{"http":"a"}}`,
-			c:  &Config{Addresses: AddressConfig{HTTP: "a"}},
+			in: `{"addresses":{"dns":"{{\"1.2.3.4\"}}"}}`,
+			c:  &Config{Addresses: AddressConfig{DNS: "1.2.3.4"}},
 		},
 		{
-			in: `{"addresses":{"https":"a"}}`,
-			c:  &Config{Addresses: AddressConfig{HTTPS: "a"}},
+			in: `{"addresses":{"http":"1.2.3.4"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTP: "1.2.3.4"}},
+		},
+		{
+			in: `{"addresses":{"http":"unix:///var/foo/bar"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTP: "unix:///var/foo/bar"}},
+		},
+		{
+			in: `{"addresses":{"http":"{{\"1.2.3.4\"}}"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTP: "1.2.3.4"}},
+		},
+		{
+			in: `{"addresses":{"https":"1.2.3.4"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTPS: "1.2.3.4"}},
+		},
+		{
+			in: `{"addresses":{"https":"unix:///var/foo/bar"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTPS: "unix:///var/foo/bar"}},
+		},
+		{
+			in: `{"addresses":{"https":"{{\"1.2.3.4\"}}"}}`,
+			c:  &Config{Addresses: AddressConfig{HTTPS: "1.2.3.4"}},
 		},
 		{
 			in: `{"addresses":{"rpc":"a"}}`,
 			c:  &Config{Addresses: AddressConfig{RPC: "a"}},
 		},
 		{
-			in: `{"advertise_addr":"a"}`,
-			c:  &Config{AdvertiseAddr: "a"},
+			in: `{"advertise_addr":"1.2.3.4"}`,
+			c:  &Config{AdvertiseAddr: "1.2.3.4"},
 		},
 		{
-			in: `{"advertise_addr_wan":"a"}`,
-			c:  &Config{AdvertiseAddrWan: "a"},
+			in: `{"advertise_addr":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{AdvertiseAddr: "1.2.3.4"},
+		},
+		{
+			in: `{"advertise_addr_wan":"1.2.3.4"}`,
+			c:  &Config{AdvertiseAddrWan: "1.2.3.4"},
+		},
+		{
+			in: `{"advertise_addr_wan":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{AdvertiseAddrWan: "1.2.3.4"},
 		},
 		{
 			in: `{"advertise_addrs":{"rpc":"1.2.3.4:5678"}}`,
@@ -202,8 +230,12 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Autopilot: Autopilot{CleanupDeadServers: Bool(true)}},
 		},
 		{
-			in: `{"bind_addr":"a"}`,
-			c:  &Config{BindAddr: "a"},
+			in: `{"bind_addr":"1.2.3.4"}`,
+			c:  &Config{BindAddr: "1.2.3.4"},
+		},
+		{
+			in: `{"bind_addr":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{BindAddr: "1.2.3.4"},
 		},
 		{
 			in: `{"bootstrap":true}`,
@@ -230,8 +262,12 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{CertFile: "a"},
 		},
 		{
-			in: `{"client_addr":"a"}`,
-			c:  &Config{ClientAddr: "a"},
+			in: `{"client_addr":"1.2.3.4"}`,
+			c:  &Config{ClientAddr: "1.2.3.4"},
+		},
+		{
+			in: `{"client_addr":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{ClientAddr: "1.2.3.4"},
 		},
 		{
 			in: `{"data_dir":"a"}`,
@@ -531,12 +567,28 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{RetryMaxAttemptsWan: 123},
 		},
 		{
-			in: `{"serf_lan_bind":"a"}`,
-			c:  &Config{SerfLanBindAddr: "a"},
+			in: `{"serf_lan_bind":"1.2.3.4"}`,
+			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
 		},
 		{
-			in: `{"serf_wan_bind":"a"}`,
-			c:  &Config{SerfWanBindAddr: "a"},
+			in: `{"serf_lan_bind":"unix:///var/foo/bar"}`,
+			c:  &Config{SerfLanBindAddr: "unix:///var/foo/bar"},
+		},
+		{
+			in: `{"serf_lan_bind":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
+		},
+		{
+			in: `{"serf_wan_bind":"1.2.3.4"}`,
+			c:  &Config{SerfWanBindAddr: "1.2.3.4"},
+		},
+		{
+			in: `{"serf_wan_bind":"unix:///var/foo/bar"}`,
+			c:  &Config{SerfWanBindAddr: "unix:///var/foo/bar"},
+		},
+		{
+			in: `{"serf_wan_bind":"{{\"1.2.3.4\"}}"}`,
+			c:  &Config{SerfWanBindAddr: "1.2.3.4"},
 		},
 		{
 			in: `{"server":true}`,
@@ -1164,6 +1216,9 @@ func TestDecodeConfig(t *testing.T) {
 			c, err := DecodeConfig(strings.NewReader(tt.in))
 			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got error %v want %v", got, want)
+			}
+			if err := c.ResolveTmplAddrs(); err != nil {
+				t.Fatalf("got error %v on ResolveTmplAddrs", err)
 			}
 			got, want := c, tt.c
 			verify.Values(t, "", got, want)

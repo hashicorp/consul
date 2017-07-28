@@ -2148,6 +2148,9 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 		*addr = ip
 	}
 
+	if c == nil {
+		return
+	}
 	parse(&c.Addresses.DNS, "DNS address")
 	parse(&c.Addresses.HTTP, "HTTP address")
 	parse(&c.Addresses.HTTPS, "HTTPS address")
