@@ -19,7 +19,7 @@ type Catalog struct {
 	srv *Server
 }
 
-//Regex to limit service registration to just valid dns
+// Regex to limit service registration to just valid dns
 var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // Register is used register that a node is providing a given service.
