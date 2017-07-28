@@ -15,7 +15,6 @@ import (
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
 	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
-
 	a.Start()
 	defer a.Shutdown()
 
@@ -673,7 +672,6 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
 	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
-
 	defer a.Shutdown()
 
 	// Register info
