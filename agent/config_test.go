@@ -50,18 +50,28 @@ func TestConfigEncryptBytes(t *testing.T) {
 
 func TestDecodeConfig(t *testing.T) {
 	tests := []struct {
-		desc string
-		in   string
-		c    *Config
-		err  error
+		desc             string
+		in               string
+		c                *Config
+		err              error
+		parseTemplateErr error
 	}{
 		// special flows
 		{
 			in:  `{"bad": "no way jose"}`,
 			err: errors.New("Config has invalid keys: bad"),
 		},
-
-		// happy flows in alphabeical order
+		{
+			in:               `{"advertise_addr":"unix:///path/to/file"}`,
+			parseTemplateErr: errors.New("Failed to parse Advertise address: unix:///path/to/file"),
+			c:                &Config{AdvertiseAddr: "unix:///path/to/file"},
+		},
+		{
+			in:               `{"advertise_addr_wan":"unix:///path/to/file"}`,
+			parseTemplateErr: errors.New("Failed to parse Advertise WAN address: unix:///path/to/file"),
+			c:                &Config{AdvertiseAddrWan: "unix:///path/to/file"},
+		},
+		// happy flows in alphabetical order
 		{
 			in: `{"acl_agent_master_token":"a"}`,
 			c:  &Config{ACLAgentMasterToken: "a"},
@@ -571,8 +581,9 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
 		},
 		{
-			in: `{"serf_lan_bind":"unix:///var/foo/bar"}`,
-			c:  &Config{SerfLanBindAddr: "unix:///var/foo/bar"},
+			in:               `{"serf_lan_bind":"unix:///var/foo/bar"}`,
+			c:                &Config{SerfLanBindAddr: "unix:///var/foo/bar"},
+			parseTemplateErr: errors.New("Failed to parse Serf LAN address: unix:///var/foo/bar"),
 		},
 		{
 			in: `{"serf_lan_bind":"{{\"1.2.3.4\"}}"}`,
@@ -583,8 +594,9 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{SerfWanBindAddr: "1.2.3.4"},
 		},
 		{
-			in: `{"serf_wan_bind":"unix:///var/foo/bar"}`,
-			c:  &Config{SerfWanBindAddr: "unix:///var/foo/bar"},
+			in:               `{"serf_wan_bind":"unix:///var/foo/bar"}`,
+			c:                &Config{SerfWanBindAddr: "unix:///var/foo/bar"},
+			parseTemplateErr: errors.New("Failed to parse Serf WAN address: unix:///var/foo/bar"),
 		},
 		{
 			in: `{"serf_wan_bind":"{{\"1.2.3.4\"}}"}`,
@@ -1217,8 +1229,9 @@ func TestDecodeConfig(t *testing.T) {
 			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got error %v want %v", got, want)
 			}
-			if err := c.ResolveTmplAddrs(); err != nil {
-				t.Fatalf("got error %v on ResolveTmplAddrs", err)
+			err = c.ResolveTmplAddrs()
+			if got, want := err, tt.parseTemplateErr; !reflect.DeepEqual(got, want) {
+				t.Fatalf("got error %v on ResolveTmplAddrs, expected %v", err, want)
 			}
 			got, want := c, tt.c
 			verify.Values(t, "", got, want)

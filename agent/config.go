@@ -2127,7 +2127,7 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 // and performs go-sockaddr/template Parse on each known address in case the
 // user specified a template config for any of their values.
 func (c *Config) ResolveTmplAddrs() (err error) {
-	parse := func(addr *string, name string) {
+	parse := func(addr *string, validateIP bool, name string) {
 		if *addr == "" || err != nil {
 			return
 		}
@@ -2137,11 +2137,8 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 			err = fmt.Errorf("Resolution of %s failed: %v", name, err)
 			return
 		}
-		if strings.HasPrefix(ip, "unix://") {
-			*addr = ip
-			return
-		}
-		if net.ParseIP(ip) == nil {
+
+		if validateIP && net.ParseIP(ip) == nil {
 			err = fmt.Errorf("Failed to parse %s: %v", name, ip)
 			return
 		}
@@ -2151,15 +2148,15 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 	if c == nil {
 		return
 	}
-	parse(&c.Addresses.DNS, "DNS address")
-	parse(&c.Addresses.HTTP, "HTTP address")
-	parse(&c.Addresses.HTTPS, "HTTPS address")
-	parse(&c.AdvertiseAddr, "Advertise address")
-	parse(&c.AdvertiseAddrWan, "Advertise WAN address")
-	parse(&c.BindAddr, "Bind address")
-	parse(&c.ClientAddr, "Client address")
-	parse(&c.SerfLanBindAddr, "Serf LAN address")
-	parse(&c.SerfWanBindAddr, "Serf WAN address")
+	parse(&c.Addresses.DNS, false, "DNS address")
+	parse(&c.Addresses.HTTP, false, "HTTP address")
+	parse(&c.Addresses.HTTPS, false, "HTTPS address")
+	parse(&c.AdvertiseAddr, true, "Advertise address")
+	parse(&c.AdvertiseAddrWan, true, "Advertise WAN address")
+	parse(&c.BindAddr, false, "Bind address")
+	parse(&c.ClientAddr, false, "Client address")
+	parse(&c.SerfLanBindAddr, true, "Serf LAN address")
+	parse(&c.SerfWanBindAddr, true, "Serf WAN address")
 
 	return
 }
