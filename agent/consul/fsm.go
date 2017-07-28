@@ -691,6 +691,9 @@ func (s *consulSnapshot) persistAutopilot(sink raft.SnapshotSink,
 	if err != nil {
 		return err
 	}
+	if autopilot == nil {
+		return nil
+	}
 
 	sink.Write([]byte{byte(structs.AutopilotRequestType)})
 	if err := encoder.Encode(autopilot); err != nil {

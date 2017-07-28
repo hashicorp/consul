@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestStateStore_Autopilot(t *testing.T) {
@@ -91,4 +92,46 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	if config.CleanupDeadServers {
 		t.Fatalf("bad: %#v", config)
 	}
+}
+
+func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+	before := &structs.AutopilotConfig{
+		CleanupDeadServers: true,
+	}
+	if err := s.AutopilotSetConfig(99, before); err != nil {
+		t.Fatal(err)
+	}
+
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	after := &structs.AutopilotConfig{
+		CleanupDeadServers: false,
+	}
+	if err := s.AutopilotSetConfig(100, after); err != nil {
+		t.Fatal(err)
+	}
+
+	snapped, err := snap.Autopilot()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	verify.Values(t, "", before, snapped)
+
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	if err := restore.Autopilot(snapped); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	idx, res, err := s2.AutopilotConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 99 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	verify.Values(t, "", before, res)
 }
