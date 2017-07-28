@@ -2126,86 +2126,35 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 // ResolveTmplAddrs iterates over the myriad of addresses in the agent's config
 // and performs go-sockaddr/template Parse on each known address in case the
 // user specified a template config for any of their values.
-func (c *Config) ResolveTmplAddrs() error {
-	if c.AdvertiseAddr != "" {
-		ipStr, err := parseSingleIPTemplate(c.AdvertiseAddr)
+func (c *Config) ResolveTmplAddrs() (err error) {
+	parse := func(addr *string, name string) {
+		if *addr == "" || err != nil {
+			return
+		}
+		var ip string
+		ip, err = parseSingleIPTemplate(*addr)
 		if err != nil {
-			return fmt.Errorf("Advertise address resolution failed: %v", err)
+			err = fmt.Errorf("Resolution of %s failed: %v", name, err)
+			return
 		}
-		if net.ParseIP(ipStr) == nil {
-			return fmt.Errorf("Failed to parse advertise address: %v", ipStr)
+		if net.ParseIP(ip) == nil {
+			err = fmt.Errorf("Failed to parse %s: %v", name, ip)
+			return
 		}
-		c.AdvertiseAddr = ipStr
+		*addr = ip
 	}
 
-	if c.Addresses.DNS != "" {
-		ipStr, err := parseSingleIPTemplate(c.Addresses.DNS)
-		if err != nil {
-			return fmt.Errorf("DNS address resolution failed: %v", err)
-		}
-		c.Addresses.DNS = ipStr
-	}
+	parse(&c.Addresses.DNS, "DNS address")
+	parse(&c.Addresses.HTTP, "HTTP address")
+	parse(&c.Addresses.HTTPS, "HTTPS address")
+	parse(&c.AdvertiseAddr, "Advertise address")
+	parse(&c.AdvertiseAddrWan, "Advertise WAN address")
+	parse(&c.BindAddr, "Bind address")
+	parse(&c.ClientAddr, "Client address")
+	parse(&c.SerfLanBindAddr, "Serf LAN address")
+	parse(&c.SerfWanBindAddr, "Serf WAN address")
 
-	if c.Addresses.HTTP != "" {
-		ipStr, err := parseSingleIPTemplate(c.Addresses.HTTP)
-		if err != nil {
-			return fmt.Errorf("HTTP address resolution failed: %v", err)
-		}
-		c.Addresses.HTTP = ipStr
-	}
-
-	if c.Addresses.HTTPS != "" {
-		ipStr, err := parseSingleIPTemplate(c.Addresses.HTTPS)
-		if err != nil {
-			return fmt.Errorf("HTTPS address resolution failed: %v", err)
-		}
-		c.Addresses.HTTPS = ipStr
-	}
-
-	if c.AdvertiseAddrWan != "" {
-		ipStr, err := parseSingleIPTemplate(c.AdvertiseAddrWan)
-		if err != nil {
-			return fmt.Errorf("Advertise WAN address resolution failed: %v", err)
-		}
-		if net.ParseIP(ipStr) == nil {
-			return fmt.Errorf("Failed to parse Advertise WAN address: %v", ipStr)
-		}
-		c.AdvertiseAddrWan = ipStr
-	}
-
-	if c.BindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(c.BindAddr)
-		if err != nil {
-			return fmt.Errorf("Bind address resolution failed: %v", err)
-		}
-		c.BindAddr = ipStr
-	}
-
-	if c.ClientAddr != "" {
-		ipStr, err := parseSingleIPTemplate(c.ClientAddr)
-		if err != nil {
-			return fmt.Errorf("Client address resolution failed: %v", err)
-		}
-		c.ClientAddr = ipStr
-	}
-
-	if c.SerfLanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(c.SerfLanBindAddr)
-		if err != nil {
-			return fmt.Errorf("Serf LAN Address resolution failed: %v", err)
-		}
-		c.SerfLanBindAddr = ipStr
-	}
-
-	if c.SerfWanBindAddr != "" {
-		ipStr, err := parseSingleIPTemplate(c.SerfWanBindAddr)
-		if err != nil {
-			return fmt.Errorf("Serf WAN Address resolution failed: %v", err)
-		}
-		c.SerfWanBindAddr = ipStr
-	}
-
-	return nil
+	return
 }
 
 // Additional post processing of the configs to set tagged and advertise addresses
