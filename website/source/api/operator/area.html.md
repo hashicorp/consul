@@ -9,7 +9,7 @@ description: |-
 
 # Network Areas - Operator HTTP API
 
-The `/operator/area` endpoints expose the network tomography information via
+The `/operator/area` endpoints provide tools to manage network areas via
 Consul's HTTP API.
 
 ~> **Enterprise Only!** This API endpoint and functionality only exists in
