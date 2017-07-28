@@ -71,6 +71,12 @@ func TestDecodeConfig(t *testing.T) {
 			parseTemplateErr: errors.New("Failed to parse Advertise WAN address: unix:///path/to/file"),
 			c:                &Config{AdvertiseAddrWan: "unix:///path/to/file"},
 		},
+		{
+			in:               `{"addresses":{"http":"notunix://blah"}}`,
+			parseTemplateErr: errors.New("Failed to parse HTTP address, is not a valid IP address or socket: notunix://blah"),
+			c:                &Config{Addresses: AddressConfig{HTTP: "notunix://blah"}},
+		},
+
 		// happy flows in alphabetical order
 		{
 			in: `{"acl_agent_master_token":"a"}`,
