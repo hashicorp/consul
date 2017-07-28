@@ -14,8 +14,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	a := &TestAgent{Name: t.Name(), NoInitialSync: true, Config: cfg}
+	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
 
 	a.Start()
 	defer a.Shutdown()
@@ -672,8 +671,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	a := &TestAgent{Name: t.Name(), NoInitialSync: true, Config: cfg}
+	a := &TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
 
 	defer a.Shutdown()

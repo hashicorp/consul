@@ -2164,7 +2164,7 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 	return
 }
 
-// Additional post processing of the configs to set tagged and advertise addresses
+// SetupTaggedAndAdvertiseAddrs configures advertise addresses and sets up a map of tagged addresses
 func (cfg *Config) SetupTaggedAndAdvertiseAddrs() error {
 	if cfg.AdvertiseAddr == "" {
 		switch {
