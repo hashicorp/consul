@@ -119,21 +119,19 @@ func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
 	}
 	verify.Values(t, "", before, snapped)
 
-	func() {
-		s := testStateStore(t)
-		restore := s.Restore()
-		if err := restore.Autopilot(snapped); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		restore.Commit()
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	if err := restore.Autopilot(snapped); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
 
-		idx, res, err := s.AutopilotConfig()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 99 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		verify.Values(t, "", before, res)
-	}()
+	idx, res, err := s2.AutopilotConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 99 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	verify.Values(t, "", before, res)
 }
