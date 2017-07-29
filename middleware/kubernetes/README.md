@@ -10,7 +10,7 @@ CoreDNS running the kubernetes middleware can be used as a replacement of kube-d
 kubernetes ZONE [ZONE...] [{
 	[resyncperiod DURATION]
 	[endpoint URL
-	[tls CERT-FILE KEY-FILE CACERT-FILE]]
+	[tls CERT KEY CACERT]]
 	[namespaces NAMESPACE [NAMESPACE...]]
 	[labels EXPRESSION]
 	[pods POD-MODE]
@@ -46,7 +46,7 @@ kubernetes ZONE [ZONE...] [{
 	}
   ```
 
-* `tls` **CERT-FILE KEY-FILE CACERT-FILE**
+* `tls` **CERT** **KEY** **CACERT**
 
   The TLS cert, key and the CA cert file names for remote k8s connection. This option is ignored if connecting in-cluster (i.e. endpoint is not
 specified).

@@ -26,7 +26,7 @@ etcd [ZONES...] {
     path PATH
     endpoint ENDPOINT...
     upstream ADDRESS...
-    tls CERT KEY CACERt
+    tls CERT KEY CACERT
     debug
 }
 ~~~

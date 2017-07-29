@@ -27,7 +27,7 @@ proxy FROM TO... {
     health_check PATH:PORT [DURATION]
     except IGNORED_NAMES...
     spray
-    protocol [dns [force_tcp]|https_google [bootstrap ADDRESS...]|grpc [insecure|CA-PEM|KEY-PEM CERT-PEM|KEY-PEM CERT-PEM CA-PEM]]
+    protocol [dns [force_tcp]|https_google [bootstrap ADDRESS...]|grpc [insecure|CACERT|KEY CERT|KEY CERT CACERT]]
 }
 ~~~
 
@@ -85,11 +85,11 @@ payload over HTTPS). Note that with `https_google` the entire transport is encry
 * `grpc`: options are used to control how the TLS connection is made to the gRPC server.
   * None - No client authentication is used, and the system CAs are used to verify the server certificate.
   * `insecure` - TLS is not used, the connection is made in plaintext (not good in production).
-  * CA-PEM - No client authentication is used, and the file CA-PEM is used to verify the server certificate.
-  * KEY-PEM CERT-PEM - Client authentication is used with the specified key/cert pair. The server
+  * **CACERT** - No client authentication is used, and the file **CACERT** is used to verify the server certificate.
+  * **KEY** **CERT** - Client authentication is used with the specified key/cert pair. The server
     certificate is verified with the system CAs.
-  * KEY-PEM CERT-PEM CA-PEM - Client authentication is used with the specified key/cert pair. The
-    server certificate is verified using the CA-PEM file.
+  * **KEY** **CERT** **CACERT** - Client authentication is used with the specified key/cert pair. The
+    server certificate is verified using the **CACERT** file.
 
   An out-of-tree middleware that implements the server side of this can be found at
   [here](https://github.com/infobloxopen/coredns-grpc).
