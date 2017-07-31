@@ -380,16 +380,22 @@ func NS(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 func SOA(b ServiceBackend, zone string, state request.Request, opt Options) ([]dns.RR, []msg.Service, error) {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 
+	Mbox := hostmaster + "."
+	Ns := "ns.dns."
+	if zone[0] != '.' {
+		Mbox += zone
+		Ns += zone
+	}
+
 	soa := &dns.SOA{Hdr: header,
-		Mbox:    hostmaster + "." + zone,
-		Ns:      "ns.dns." + zone,
+		Mbox:    Mbox,
+		Ns:      Ns,
 		Serial:  uint32(time.Now().Unix()),
 		Refresh: 7200,
 		Retry:   1800,
 		Expire:  86400,
 		Minttl:  minTTL,
 	}
-	// TODO(miek): fake some msg.Service here when returning?
 	return []dns.RR{soa}, nil, nil
 }
 
