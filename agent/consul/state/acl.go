@@ -7,6 +7,25 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// aclsTableSchema returns a new table schema used for
+// storing ACL information.
+func aclsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "acls",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "ID",
+					Lowercase: false,
+				},
+			},
+		},
+	}
+}
+
 // ACLs is used to pull all the ACLs from the snapshot.
 func (s *Snapshot) ACLs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("acls", "id")
