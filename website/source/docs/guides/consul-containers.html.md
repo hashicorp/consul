@@ -3,17 +3,17 @@ layout: "docs"
 page_title: "Using Consul With Containers"
 sidebar_current: "docs-guides-consul-on-containers"
 description: |-
-  This guide describes how to run consul on containers, with docker as the primary focus. It also describes best practices when running a consul cluster in production on docker.
+  This guide describes how to run Consul on containers, with Docker as the primary focus. It also describes best practices when running a Consul cluster in production on Docker.
 ---
 
 ## Consul with Containers
-This guide describes critical aspects of operating a consul cluster that's run inside containers. It primarily focuses on Docker. 
+This guide describes critical aspects of operating a Consul cluster that's run inside containers. It primarily focuses on Docker.
 
 ## Consul Official Docker Image
 
-Consul's official docker image is available via `docker pull consul`. This will download a docker image that runs consul's latest stable released version.
+Consul's official Docker image is available via `docker pull consul`. This will download a Docker image that runs Consul's latest stable released version.
 
-More instructions on how to get started using this image are available at the [official docker repository page](https://hub.docker.com/_/consul/)
+More instructions on how to get started using this image are available at the [official Docker repository page](https://hub.docker.com/_/consul/)
 
 ## Data Directory Persistence
 
@@ -56,7 +56,7 @@ If a container that was running a leader is stopped, leader election will be tri
 When a previously stopped server container is restarted using `docker start <container_id>`,  and it is configured to obtain a new IP, Autopilot will add it back to the set of Raft peers with the same node-id and the new IP address, after which it can participate as a server again. 
 
 ## Known Issues
-**Consul does not currently gracefully handle the situation where all nodes in the cluster running inside a container are restarted at the same time, and they all obtain new IP addresses.** This is because the underlying Raft layer persists the IP address and needs it for leader election operations. Operators must carefully orchestrate restarts of consul containers that have ephemeral IP addresses to do restarts in small numbers, so that they can gracefully leave the cluster and re-join with their new IP address. 
+**Consul does not currently gracefully handle the situation where all nodes in the cluster running inside a container are restarted at the same time, and they all obtain new IP addresses.** This is because the underlying Raft layer persists the IP address and needs it for leader election operations. Operators must carefully orchestrate restarts of Consul containers that have ephemeral IP addresses to do restarts in small numbers, so that they can gracefully leave the cluster and re-join with their new IP address.
 
 
 
