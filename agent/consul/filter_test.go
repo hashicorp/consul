@@ -16,6 +16,7 @@ func TestFilter_DirEnt(t *testing.T) {
 	type tcase struct {
 		in  []string
 		out []string
+		err error
 	}
 	cases := []tcase{
 		tcase{
@@ -25,6 +26,7 @@ func TestFilter_DirEnt(t *testing.T) {
 		tcase{
 			in:  []string{"abe", "lincoln"},
 			out: nil,
+			err: errPermissionDenied,
 		},
 		tcase{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
@@ -38,7 +40,10 @@ func TestFilter_DirEnt(t *testing.T) {
 			ents = append(ents, &structs.DirEntry{Key: in})
 		}
 
-		ents = FilterDirEnt(aclR, ents)
+		ents, err := FilterDirEnt(aclR, ents)
+		if err != tc.err {
+			t.Fatalf("Unexpected error, got %v, wanted %v", err, tc.err)
+		}
 		var outL []string
 		for _, e := range ents {
 			outL = append(outL, e.Key)
@@ -58,6 +63,7 @@ func TestFilter_Keys(t *testing.T) {
 	type tcase struct {
 		in  []string
 		out []string
+		err error
 	}
 	cases := []tcase{
 		tcase{
@@ -67,6 +73,7 @@ func TestFilter_Keys(t *testing.T) {
 		tcase{
 			in:  []string{"abe", "lincoln"},
 			out: []string{},
+			err: errPermissionDenied,
 		},
 		tcase{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
@@ -75,10 +82,14 @@ func TestFilter_Keys(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		out := FilterKeys(aclR, tc.in)
+		out, err := FilterKeys(aclR, tc.in)
+		if tc.err != err {
+			t.Fatalf("Unexpected error, got %v, wanted %v", err, tc.err)
+		}
 		if !reflect.DeepEqual(out, tc.out) {
 			t.Fatalf("bad: %#v %#v", out, tc.out)
 		}
+
 	}
 }
 
@@ -90,6 +101,7 @@ func TestFilter_TxnResults(t *testing.T) {
 	type tcase struct {
 		in  []string
 		out []string
+		err error
 	}
 	cases := []tcase{
 		tcase{
@@ -99,6 +111,7 @@ func TestFilter_TxnResults(t *testing.T) {
 		tcase{
 			in:  []string{"abe", "lincoln"},
 			out: nil,
+			err: errPermissionDenied,
 		},
 		tcase{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
@@ -112,7 +125,10 @@ func TestFilter_TxnResults(t *testing.T) {
 			results = append(results, &structs.TxnResult{KV: &structs.DirEntry{Key: in}})
 		}
 
-		results = FilterTxnResults(aclR, results)
+		results, err := FilterTxnResults(aclR, results)
+		if tc.err != err {
+			t.Fatalf("Unexpected error, got %v, wanted %v", err, tc.err)
+		}
 		var outL []string
 		for _, r := range results {
 			outL = append(outL, r.KV.Key)
@@ -126,7 +142,10 @@ func TestFilter_TxnResults(t *testing.T) {
 	// Run a non-KV result.
 	results := structs.TxnResults{}
 	results = append(results, &structs.TxnResult{})
-	results = FilterTxnResults(aclR, results)
+	results, err := FilterTxnResults(aclR, results)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 	if len(results) != 1 {
 		t.Fatalf("should not have filtered non-KV result")
 	}

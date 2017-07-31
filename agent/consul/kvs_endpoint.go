@@ -129,7 +129,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				return err
 			}
 			if acl != nil && !acl.KeyRead(args.Key) {
-				ent = nil
+				return errPermissionDenied
 			}
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
@@ -168,9 +168,11 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				return err
 			}
 			if acl != nil {
-				ent = FilterDirEnt(acl, ent)
+				ent, err = FilterDirEnt(acl, ent)
+				if err != nil {
+					return err
+				}
 			}
-
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
 				// Index 1 is impossible anyways (due to Raft internals)
@@ -217,7 +219,10 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 			}
 
 			if acl != nil {
-				keys = FilterKeys(acl, keys)
+				keys, err = FilterKeys(acl, keys)
+				if err != nil {
+					return err
+				}
 			}
 			reply.Keys = keys
 			return nil
