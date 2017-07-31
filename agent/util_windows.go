@@ -5,39 +5,19 @@ package agent
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
-// makeCmdLine builds a command line out of args by escaping "special"
-// characters and joining the arguments with spaces.
-func makeCmdLine(args []string) string {
-	var s string
-	for _, v := range args {
-		if s != "" {
-			s += " "
-		}
-		s += v
-	}
-	return s
-}
-
 // ExecScript returns a command to execute a script
 func ExecScript(script string) (*exec.Cmd, error) {
-	var shell, flag string
-	shell = "cmd"
-	flag = "/C"
-
+	shell := "cmd"
 	if other := os.Getenv("SHELL"); other != "" {
 		shell = other
 	}
-	cmd := exec.Command(shell, flag, script)
-
-	var cmdLine string
-	cmdLine = makeCmdLine(cmd.Args)
-
+	cmd := exec.Command(shell, "/C", script)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CmdLine: cmdLine,
+		CmdLine: strings.Join(cmd.Args, " "),
 	}
-
 	return cmd, nil
 }
