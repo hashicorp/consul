@@ -72,7 +72,6 @@ func TestFilter_Keys(t *testing.T) {
 		},
 		tcase{
 			in:  []string{"abe", "lincoln"},
-			out: []string{},
 			err: errPermissionDenied,
 		},
 		tcase{
