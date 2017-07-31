@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"os/user"
-	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
-	"syscall"
 )
 
 const (
@@ -44,46 +41,6 @@ func aeScale(interval time.Duration, n int) time.Duration {
 
 	multiplier := math.Ceil(math.Log2(float64(n))-math.Log2(aeScaleThreshold)) + 1.0
 	return time.Duration(multiplier) * interval
-}
-
-// makeCmdLine builds a command line out of args
-// (No escaping of "special" characters)
-// and joining the arguments with spaces.
-func makeCmdLine(args []string) string {
-	var s string
-	for _, v := range args {
-		if s != "" {
-			s += " "
-		}
-		s += v
-	}
-	return s
-}
-
-// ExecScript returns a command to execute a script
-func ExecScript(script string) (*exec.Cmd, error) {
-	var shell, flag string
-	if runtime.GOOS == "windows" {
-		shell = "cmd"
-		flag = "/C"
-	} else {
-		shell = "/bin/sh"
-		flag = "-c"
-	}
-	if other := os.Getenv("SHELL"); other != "" {
-		shell = other
-	}
-	cmd := exec.Command(shell, flag, script)
-
-	if runtime.GOOS == "windows" {
-		var cmdLine string
-		cmdLine = makeCmdLine(cmd.Args)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine: cmdLine,
-		}
-	}
-
-	return cmd, nil
 }
 
 // decodeMsgPack is used to decode a MsgPack encoded object
