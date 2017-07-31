@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
+	"syscall"
 )
 
 const (
@@ -45,6 +46,20 @@ func aeScale(interval time.Duration, n int) time.Duration {
 	return time.Duration(multiplier) * interval
 }
 
+// makeCmdLine builds a command line out of args
+// (No escaping of "special" characters)
+// and joining the arguments with spaces.
+func makeCmdLine(args []string) string {
+	var s string
+	for _, v := range args {
+		if s != "" {
+			s += " "
+		}
+		s += v
+	}
+	return s
+}
+
 // ExecScript returns a command to execute a script
 func ExecScript(script string) (*exec.Cmd, error) {
 	var shell, flag string
@@ -59,6 +74,15 @@ func ExecScript(script string) (*exec.Cmd, error) {
 		shell = other
 	}
 	cmd := exec.Command(shell, flag, script)
+
+	if runtime.GOOS == "windows" {
+		var cmdLine string
+		cmdLine = makeCmdLine(cmd.Args)
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			CmdLine: cmdLine,
+		}
+	}
+
 	return cmd, nil
 }
 
