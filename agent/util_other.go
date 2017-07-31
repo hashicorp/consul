@@ -10,14 +10,9 @@ import (
 
 // ExecScript returns a command to execute a script
 func ExecScript(script string) (*exec.Cmd, error) {
-	var shell, flag string
-	shell = "/bin/sh"
-	flag = "-c"
-
+	shell := "/bin/sh"
 	if other := os.Getenv("SHELL"); other != "" {
 		shell = other
 	}
-	cmd := exec.Command(shell, flag, script)
-
-	return cmd, nil
+	return exec.Command(shell, "-c", script), nil
 }
