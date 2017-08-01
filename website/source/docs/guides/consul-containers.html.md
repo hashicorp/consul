@@ -22,7 +22,7 @@ More instructions on how to get started using this image are available at the [o
 
 The container exposes its data directory, `/consul/data`, as a [volume](https://docs.docker.com/engine/tutorials/dockervolumes/). This is where Consul will store its persisted state.
 
-For clients, this stores some information about the cluster and the client's health checks in case the container is restarted. If the volume on a client disappears, it doesn't affect cluster operations.
+For clients, this stores some information about the cluster and the client's services and health checks in case the container is restarted. If the volume on a client disappears, it doesn't affect cluster operations.
 
 For servers, this stores the client information plus snapshots and data related to the consensus algorithm and other state like Consul's key/value store and catalog. **Servers need the volume's data to be available when restarting containers to recover from outage scenarios.** Therefore, care must be taken by operators to make sure that volumes containing consul cluster data are not destroyed during container restarts,
 
@@ -37,13 +37,13 @@ Configuration can also be added by passing the configuration JSON via environmen
 
 ```sh
  $ docker run \
- -d \
- -e CONSUL_LOCAL_CONFIG='{
+   -d \
+   -e CONSUL_LOCAL_CONFIG='{
     "datacenter":"us_west",
     "server":true,
     "enable_debug":true
     }' \
- consul agent -server -bootstrap-expect=3
+   consul agent -server -bootstrap-expect=3
 ```
 
 ## Networking
@@ -51,9 +51,9 @@ When running inside a container, Consul must be configured with an appropriate _
 
  * **Cluster Address** -  The address at which other Consul agents may contact a given agent. This is also referred to as the bind address. 
 
- * **Client Address** -  The address where other processes on the host contact Consul in order to make HTTP or DNS requests. Consider setting this to localhost or `127.0.0.1` to only allow processes on the same container to make http/DNS requests.
+ * **Client Address** -  The address where other processes on the host contact Consul in order to make HTTP or DNS requests. Consider setting this to localhost or `127.0.0.1` to only allow processes on the same container to make HTTP/DNS requests.
 
- * **Advertise Address** - The advertise address is used to change the address that we advertise to other nodes in the cluster. This defaults to the bind address. Consider using this if you use NAT tables in your environment, or in scenarios where you have a routable address that cannot be bound
+ * **Advertise Address** - The advertise address is used to change the address that we advertise to other nodes in the cluster. This defaults to the bind address. Consider using this if you use NAT in your environment, or in scenarios where you have a routable address that cannot be bound.
 
 You will need to tell Consul what its cluster address is when starting so that it binds to the correct interface and advertises a workable interface to the rest of the Consul agents.  There are two ways of doing this:
 
@@ -61,20 +61,20 @@ You will need to tell Consul what its cluster address is when starting so that i
 
     ```sh
     $ docker run \
-    -d \
-    -e CONSUL_CLIENT_INTERFACE='eth0' \
-    -e CONSUL_BIND_INTERFACE='eth0' \
-    consul agent -server -bootstrap-expect=3
+      -d \
+      -e CONSUL_CLIENT_INTERFACE='eth0' \
+      -e CONSUL_BIND_INTERFACE='eth0' \
+      consul agent -server -bootstrap-expect=3
     ```
 2. Address Templates: You can declaratively specify the client and cluster addresses using the formats described in the [go-socketaddr](https://github.com/hashicorp/go-sockaddr) library.
 In the following example, the client and bind addresses are declaratively specified for the container network interface 'eth0'
 
     ```sh
     $ docker run \
-    consul agent -server \
-    -client='{{ GetInterfaceIP "eth0" }}' \
-    -bind='{{ GetInterfaceIP "eth0" }}' \
-    -bootstrap-expect=3
+      consul agent -server \
+      -client='{{ GetInterfaceIP "eth0" }}' \
+      -bind='{{ GetInterfaceIP "eth0" }}' \
+      -bootstrap-expect=3
     ```
 
 ## Stopping and Restarting Containers
@@ -100,7 +100,7 @@ As long as there are enough servers in the cluster to maintain [quorum](/docs/in
 
 * `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster. 
 * `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly. 
-* `server_stabilization_time`should be sufficiently large( on the order of several seconds) so that unstable servers are not added to the cluster until they stabilize.
+* `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the cluster until they stabilize.
 
 If the container running the currently-elected Consul server leader is stopped, a leader election will trigger. This event will cause a new Consul server in the cluster to assume leadership.
 
