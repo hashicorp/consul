@@ -117,6 +117,7 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	cfg.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
 	cfg.AdvertiseAddrs.SerfWan, _ = net.ResolveTCPAddr("tcp", "127.0.0.43:1234")
 	cfg.AdvertiseAddrs.RPC, _ = net.ResolveTCPAddr("tcp", "127.0.0.44:1235")
+	cfg.SetupTaggedAndAdvertiseAddrs()
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
