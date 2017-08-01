@@ -341,7 +341,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 		}
 		ns = append(ns, nsrr)
 
-		glue := d.formatNodeRecord(addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
+		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
 		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
@@ -485,9 +485,9 @@ INVALID:
 
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
-	// Only handle ANY, A and AAAA type requests
+	// Only handle ANY, A, AAAA and TXT type requests
 	qType := req.Question[0].Qtype
-	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA {
+	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
 		return
 	}
 
@@ -530,23 +530,36 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
+	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
 }
 
-// formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
-func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
+// formatTxtRecords takes a kv-map and returns it as "[k=]v" for non-empty k not starting with rfc1035-
+func (d *DNSServer) formatTxtRecords(meta map[string]string) (txt []string) {
+	for k, v := range meta {
+		if strings.HasPrefix(k, "rfc1035-") {
+			txt = append(txt, v)
+		} else {
+			txt = append(txt, k+"="+v)
+		}
+	}
+	return txt
+}
+
+// formatNodeRecord takes a Node and returns an A, AAAA, TXT or CNAME record
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
 	if ip != nil {
 		ipv4 = ip.To4()
 	}
+
 	switch {
 	case ipv4 != nil && (qType == dns.TypeANY || qType == dns.TypeA):
-		return []dns.RR{&dns.A{
+		records = append(records, &dns.A{
 			Hdr: dns.RR_Header{
 				Name:   qName,
 				Rrtype: dns.TypeA,
@@ -554,10 +567,10 @@ func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.
 				Ttl:    uint32(ttl / time.Second),
 			},
 			A: ip,
-		}}
+		})
 
 	case ip != nil && ipv4 == nil && (qType == dns.TypeANY || qType == dns.TypeAAAA):
-		return []dns.RR{&dns.AAAA{
+		records = append(records, &dns.AAAA{
 			Hdr: dns.RR_Header{
 				Name:   qName,
 				Rrtype: dns.TypeAAAA,
@@ -565,10 +578,10 @@ func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.
 				Ttl:    uint32(ttl / time.Second),
 			},
 			AAAA: ip,
-		}}
+		})
 
 	case ip == nil && (qType == dns.TypeANY || qType == dns.TypeCNAME ||
-		qType == dns.TypeA || qType == dns.TypeAAAA):
+		qType == dns.TypeA || qType == dns.TypeAAAA || qType == dns.TypeTXT):
 		// Get the CNAME
 		cnRec := &dns.CNAME{
 			Hdr: dns.RR_Header{
@@ -587,7 +600,7 @@ func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.
 	MORE_REC:
 		for _, rr := range more {
 			switch rr.Header().Rrtype {
-			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
+			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA, dns.TypeTXT:
 				records = append(records, rr)
 				extra++
 				if extra == maxRecurseRecords && !edns {
@@ -596,6 +609,21 @@ func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.
 			}
 		}
 	}
+
+	if node != nil && len(node.Meta) > 0 && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+		for _, txt := range d.formatTxtRecords(node.Meta) {
+			records = append(records, &dns.TXT{
+				Hdr: dns.RR_Header{
+					Name:   qName,
+					Rrtype: dns.TypeTXT,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(ttl / time.Second),
+				},
+				Txt: []string{txt},
+			})
+		}
+	}
+
 	return records
 }
 
@@ -929,7 +957,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(addr, qName, qType, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -973,7 +1001,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(addr, srvRec.Target, dns.TypeANY, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
