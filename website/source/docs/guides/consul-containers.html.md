@@ -28,6 +28,24 @@ For servers, this stores the client information plus snapshots and data related 
 
 ~> We also recommend taking additional backups via [`consul snapshot`](/docs/commands/snapshot.html), and storing them externally.
 
+## Configuration
+The container has a Consul configuration directory set up at `/consul/config` and the agent will load any configuration files placed here by binding a volume or by composing a new image and adding files.
+
+Note that the configuration directory is not exposed as a volume, and will not persist. Consul uses it only during start up and does not store any state there.
+
+Configuration can also be added by passing the configuration JSON via environment variable CONSUL_LOCAL_CONFIG. Example:
+
+```
+        docker run \
+        -d \
+        -e CONSUL_LOCAL_CONFIG='{
+            "datacenter":"us_west",
+            "server":true,
+            "enable_debug":true
+          }' \
+        consul agent -server -bootstrap-expect=3
+```
+
 ## Networking
 When run inside a container, Consul's IP addresses need to be setup properly. Consul has to be configured with an appropriate _cluster address_ as well as a _client address._ In some cases, it might also require configuring an _advertise_address_.
 
