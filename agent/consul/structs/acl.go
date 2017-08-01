@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"errors"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -10,6 +11,15 @@ import (
 type ACLOp string
 
 const (
+	// ACLBootstrapInit is used to perform a scan for existing tokens which
+	// will decide whether bootstrapping is allowed for a cluster. This is
+	// initiated by the leader when it steps up, if necessary.
+	ACLBootstrapInit = "bootstrap-init"
+
+	// ACLBootstrapNow is used to perform a one-time ACL bootstrap operation on
+	// a cluster to get the first management token.
+	ACLBootstrapNow = "bootstrap-now"
+
 	// ACLSet creates or updates a token.
 	ACLSet ACLOp = "set"
 
@@ -19,6 +29,16 @@ const (
 	// ACLDelete deletes a token.
 	ACLDelete = "delete"
 )
+
+// ACLBootstrapNotInitializedErr is returned when a bootstrap is attempted but
+// we haven't yet initialized ACL bootstrap. It provides some guidance to
+// operators on how to proceed.
+var ACLBootstrapNotInitializedErr = errors.New("ACL bootstrap not initialized, need to force a leader election and ensure all Consul servers support this feature")
+
+// ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
+// longer be done since the cluster was bootstrapped, or a management token
+// was created manually.
+var ACLBootstrapNotAllowedErr = errors.New("ACL bootstrap no longer allowed")
 
 const (
 	// ACLTypeClient tokens have rules applied
@@ -55,6 +75,16 @@ func (a *ACL) IsSame(other *ACL) bool {
 	}
 
 	return true
+}
+
+// ACLBootstrap keeps track of whether bootstrapping ACLs is allowed for a
+// cluster.
+type ACLBootstrap struct {
+	// AllowBootstrap will only be true if no existing management tokens
+	// have been found.
+	AllowBootstrap bool
+
+	RaftIndex
 }
 
 // ACLRequest is used to create, update or delete an ACL

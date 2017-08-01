@@ -32,19 +32,20 @@ type RaftIndex struct {
 }
 
 // These are serialized between Consul servers and stored in Consul snapshots,
-// so entries must only ever be added to the end.
+// so entries must only ever be added.
 const (
-	RegisterRequestType MessageType = iota
-	DeregisterRequestType
-	KVSRequestType
-	SessionRequestType
-	ACLRequestType
-	TombstoneRequestType
-	CoordinateBatchUpdateType
-	PreparedQueryRequestType
-	TxnRequestType
-	AutopilotRequestType
-	AreaRequestType
+	RegisterRequestType       MessageType = 0
+	DeregisterRequestType                 = 1
+	KVSRequestType                        = 2
+	SessionRequestType                    = 3
+	ACLRequestType                        = 4
+	TombstoneRequestType                  = 5
+	CoordinateBatchUpdateType             = 6
+	PreparedQueryRequestType              = 7
+	TxnRequestType                        = 8
+	AutopilotRequestType                  = 9
+	AreaRequestType                       = 10
+	ACLBootstrapRequestType               = 11 // FSM snapshots only.
 )
 
 const (

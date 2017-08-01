@@ -29,6 +29,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionsTableSchema,
 		sessionChecksTableSchema,
 		aclsTableSchema,
+		aclsBootstrapTableSchema,
 		coordinatesTableSchema,
 		preparedQueriesTableSchema,
 		autopilotConfigTableSchema,
