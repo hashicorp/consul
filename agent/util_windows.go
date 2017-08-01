@@ -15,7 +15,8 @@ func ExecScript(script string) (*exec.Cmd, error) {
 	if other := os.Getenv("SHELL"); other != "" {
 		shell = other
 	}
-	cmd := exec.Command(shell, "/C", script)
+	scriptQuoted := "\"" + script + "\"";
+	cmd := exec.Command(shell, "/C", scriptQuoted)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CmdLine: strings.Join(cmd.Args, " "),
 	}
