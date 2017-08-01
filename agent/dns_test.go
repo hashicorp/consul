@@ -78,6 +78,18 @@ func dnsA(src, dest string) *dns.A {
 	}
 }
 
+// dnsTXT returns a DNS TXT record struct
+func dnsTXT(src string, txt []string) *dns.TXT {
+	return &dns.TXT{
+		Hdr: dns.RR_Header{
+			Name:   dns.Fqdn(src),
+			Rrtype: dns.TypeTXT,
+			Class:  dns.ClassINET,
+		},
+		Txt: txt,
+	}
+}
+
 func TestRecursorAddr(t *testing.T) {
 	t.Parallel()
 	addr, err := recursorAddr("8.8.8.8")
@@ -300,6 +312,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
 			dnsA("google.com", "1.2.3.4"),
+			dnsTXT("google.com", []string{"my_txt_value"}),
 		},
 	})
 	defer recursor.Shutdown()
@@ -330,8 +343,8 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have the service record, CNAME record + A record
-	if len(in.Answer) != 3 {
+	// Should have the service record, CNAME record + A + TXT record
+	if len(in.Answer) != 4 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -343,6 +356,53 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 	if cnRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
+func TestDNS_NodeLookup_TXT(t *testing.T) {
+	cfg := TestConfig()
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"rfc1035-00": "value0",
+			"key0":       "value1",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("google.node.consul.", dns.TypeTXT)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have the 1 TXT record reply
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	txtRec, ok := in.Answer[0].(*dns.TXT)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if len(txtRec.Txt) != 1 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if txtRec.Txt[0] != "value0" && txtRec.Txt[0] != "key0=value1" {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 }
