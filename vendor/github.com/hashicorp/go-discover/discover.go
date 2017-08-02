@@ -8,37 +8,56 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/hashicorp/go-discover/provider/aws"
+	"github.com/hashicorp/go-discover/provider/azure"
+	"github.com/hashicorp/go-discover/provider/gce"
+	"github.com/hashicorp/go-discover/provider/softlayer"
 )
 
+// Provider has lookup functions for meta data in a
+// cloud environment.
 type Provider interface {
+	// Addrs looks up addresses in the cloud environment according to the
+	// configuration provided in args.
 	Addrs(args map[string]string, l *log.Logger) ([]string, error)
+
+	// Help provides the configuration help for the command line client.
+	Help() string
 }
 
-var (
-	mu        sync.Mutex
-	providers = map[string]Provider{}
-	helps     = map[string]string{}
-)
-
-// Register adds a new provider for the given name. If the
-// provider is nil or already registered the function panics.
-func Register(name string, provider Provider, help string) {
-	mu.Lock()
-	defer mu.Unlock()
-	if provider == nil {
-		panic("discover: Register called with nil provider")
-	}
-	if _, dup := providers[name]; dup {
-		panic("discover: Register called twice for provider " + name)
-	}
-	providers[name] = provider
-	helps[name] = help
+// Providers contains all available providers.
+var Providers = map[string]Provider{
+	"aws":       &aws.Provider{},
+	"azure":     &azure.Provider{},
+	"gce":       &gce.Provider{},
+	"softlayer": &softlayer.Provider{},
 }
 
-// ProviderNames returns the names of the registered providers.
-func ProviderNames() []string {
+// Discover looks up metadata in different cloud environments.
+type Discover struct {
+	// Providers is the list of address lookup providers.
+	// If nil, the default list of providers is used.
+	Providers map[string]Provider
+
+	// once is used to initialize the actual list of providers.
+	once sync.Once
+}
+
+// initProviders sets the list of providers to the
+// default list of providers if none are configured.
+func (d *Discover) initProviders() {
+	if d.Providers == nil {
+		d.Providers = Providers
+	}
+}
+
+// Names returns the names of the configured providers.
+func (d *Discover) Names() []string {
+	d.once.Do(d.initProviders)
+
 	var names []string
-	for n := range helps {
+	for n := range d.Providers {
 		names = append(names, n)
 	}
 	sort.Strings(names)
@@ -56,12 +75,12 @@ var globalHelp = `The options for discovering ip addresses are provided as a
 
 // Help describes the format of the configuration string for address discovery
 // and the various provider specific options.
-func Help() string {
-	mu.Lock()
-	defer mu.Unlock()
+func (d *Discover) Help() string {
+	d.once.Do(d.initProviders)
+
 	h := []string{globalHelp}
-	for _, name := range ProviderNames() {
-		h = append(h, helps[name])
+	for _, name := range d.Names() {
+		h = append(h, d.Providers[name].Help())
 	}
 	return strings.Join(h, "\n")
 }
@@ -69,7 +88,9 @@ func Help() string {
 // Addrs discovers ip addresses of nodes that match the given filter criteria.
 // The config string must have the format 'provider=xxx key=val key=val ...'
 // where the keys and values are provider specific. The values are URL encoded.
-func Addrs(cfg string, l *log.Logger) ([]string, error) {
+func (d *Discover) Addrs(cfg string, l *log.Logger) ([]string, error) {
+	d.once.Do(d.initProviders)
+
 	args, err := Parse(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("discover: %s", err)
@@ -80,10 +101,12 @@ func Addrs(cfg string, l *log.Logger) ([]string, error) {
 		return nil, fmt.Errorf("discover: no provider")
 	}
 
-	mu.Lock()
-	p := providers[name]
-	mu.Unlock()
+	providers := d.Providers
+	if providers == nil {
+		providers = Providers
+	}
 
+	p := providers[name]
 	if p == nil {
 		return nil, fmt.Errorf("discover: unknown provider " + name)
 	}

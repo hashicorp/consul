@@ -12,14 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	discover "github.com/hashicorp/go-discover"
 )
 
-func init() {
-	discover.Register("aws", &Provider{}, Help)
-}
+type Provider struct{}
 
-var Help = `Amazon AWS:
+func (p *Provider) Help() string {
+	return `Amazon AWS:
 
     provider:          "aws"
     region:            The AWS region. Default to region of instance.
@@ -31,8 +29,7 @@ var Help = `Amazon AWS:
     The only required IAM permission is 'ec2:DescribeInstances'. It is
     recommended you make a dedicated key used only for auto-joining.
 `
-
-type Provider struct{}
+}
 
 func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error) {
 	if args["provider"] != "aws" {
