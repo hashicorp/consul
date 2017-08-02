@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 type MockSink struct {
@@ -390,6 +390,9 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	fsm.state.SessionCreate(9, session)
 	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
 	fsm.state.ACLSet(10, acl)
+	if _, err := fsm.state.ACLBootstrapInit(10); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	fsm.state.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
@@ -540,6 +543,18 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if a.ModifyIndex <= 1 {
 		t.Fatalf("bad index: %d", idx)
 	}
+	gotB, err := fsm2.state.ACLGetBootstrap()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	wantB := &structs.ACLBootstrap{
+		AllowBootstrap: true,
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 10,
+			ModifyIndex: 10,
+		},
+	}
+	verify.Values(t, "", gotB, wantB)
 
 	// Verify tombstones are restored
 	func() {
@@ -1093,14 +1108,14 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 }
 
-func TestFSM_ACL_Set_Delete(t *testing.T) {
+func TestFSM_ACL_CRUD(t *testing.T) {
 	t.Parallel()
 	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create a new ACL
+	// Create a new ACL.
 	req := structs.ACLRequest{
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
@@ -1119,7 +1134,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("resp: %v", err)
 	}
 
-	// Get the ACL
+	// Get the ACL.
 	id := resp.(string)
 	_, acl, err := fsm.state.ACLGet(nil, id)
 	if err != nil {
@@ -1129,7 +1144,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("missing")
 	}
 
-	// Verify the ACL
+	// Verify the ACL.
 	if acl.ID != id {
 		t.Fatalf("bad: %v", *acl)
 	}
@@ -1140,7 +1155,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("bad: %v", *acl)
 	}
 
-	// Try to destroy
+	// Try to destroy.
 	destroy := structs.ACLRequest{
 		Datacenter: "dc1",
 		Op:         structs.ACLDelete,
@@ -1164,6 +1179,53 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 	if acl != nil {
 		t.Fatalf("should be destroyed")
 	}
+
+	// Initialize bootstrap (should work since we haven't made a management
+	// token).
+	init := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLBootstrapInit,
+	}
+	buf, err = structs.Encode(structs.ACLRequestType, init)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if enabled, ok := resp.(bool); !ok || !enabled {
+		t.Fatalf("resp: %v", resp)
+	}
+	gotB, err := fsm.state.ACLGetBootstrap()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	wantB := &structs.ACLBootstrap{
+		AllowBootstrap: true,
+		RaftIndex:      gotB.RaftIndex,
+	}
+	verify.Values(t, "", gotB, wantB)
+
+	// Do a bootstrap.
+	bootstrap := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLBootstrapNow,
+		ACL: structs.ACL{
+			ID:   generateUUID(),
+			Name: "Bootstrap Token",
+			Type: structs.ACLTypeManagement,
+		},
+	}
+	buf, err = structs.Encode(structs.ACLRequestType, bootstrap)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	respACL, ok := resp.(*structs.ACL)
+	if !ok {
+		t.Fatalf("resp: %v", resp)
+	}
+	bootstrap.ACL.CreateIndex = respACL.CreateIndex
+	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
+	verify.Values(t, "", respACL, &bootstrap.ACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
