@@ -60,44 +60,26 @@ Install the library with:
 go get -u github.com/hashicorp/go-discover
 ```
 
-Supported providers need to be registered by importing them similar
-to database drivers for the `database/sql` package. 
-
-Import the `go-discover` package and any provider package
-you want to support.
+You can then either support discovery for all available providers
+or only for some of them.
 
 ```go
-// support only AWS and GCE
-import (
-	discover "github.com/hashicorp/go-discover"
+// support discovery for all supported providers
+d := discover.Discover{}
 
-	_ "github.com/hashicorp/go-discover/provider/aws"
-	_ "github.com/hashicorp/go-discover/provider/gce"
-)
+// support discovery for AWS and GCE only
+d := discover.Discover{
+	Providers : map[string]discover.Provider{
+		"aws": discover.Providers["aws"],
+		"gce": discover.Providers["gce"],
+	}
+}
 
-```
-
-To import all known providers at once you can use the convenience 
-package `all`.
-
-
-```go
-// support all providers supported by go-discover
-import (
-	discover "github.com/hashicorp/go-discover"
-
-	_ "github.com/hashicorp/go-discover/provider/all"
-)
-```
-
-Then call the `discover.Addrs` function with the arguments
-for the provider you want to use:
-
-```go
-# use ioutil.Discard for no log output
+// use ioutil.Discard for no log output
 l := log.New(os.Stderr, "", log.LstdFlags)
+
 cfg := "provider=aws region=eu-west-1 ..."
-addrs, err := discover.Addrs(cfg, l)
+addrs, err := d.Addrs(cfg, l)
 ```
 
 For complete API documentation, see
