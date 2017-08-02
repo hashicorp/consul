@@ -20,7 +20,7 @@ type ACL struct {
 // Bootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) error {
-	if done, err := a.srv.forward("ACL.Apply", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.Bootstrap", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
