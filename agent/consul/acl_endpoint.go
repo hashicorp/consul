@@ -23,7 +23,6 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 	if done, err := a.srv.forward("ACL.Bootstrap", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
