@@ -43,18 +43,21 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 		return structs.ACLBootstrapNotAllowedErr
 	}
 
+	// Propose a new token.
+	token, err := uuid.GenerateUUID()
+	if err != nil {
+		return fmt.Errorf("failed to make random token: %v", err)
+	}
+
 	// Attempt a bootstrap.
 	req := structs.ACLRequest{
 		Datacenter: a.srv.config.ACLDatacenter,
 		Op:         structs.ACLBootstrapNow,
 		ACL: structs.ACL{
+			ID:   token,
 			Name: "Bootstrap Token",
 			Type: structs.ACLTypeManagement,
 		},
-	}
-	req.ACL.ID, err = uuid.GenerateUUID()
-	if err != nil {
-		return fmt.Errorf("failed to make random token: %v", err)
 	}
 	resp, err := a.srv.raftApply(structs.ACLRequestType, &req)
 	if err != nil {
