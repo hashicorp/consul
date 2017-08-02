@@ -97,6 +97,13 @@ var dnsTestCases = map[string](*test.Case){
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
+	"TXT Schema": {
+		Qname: "dns-version.cluster.local.", Qtype: dns.TypeTXT,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.TXT("dns-version.cluster.local 28800 IN TXT 1.0.1"),
+		},
+	},
 }
 
 var autopathCases = map[string](*test.Case){
