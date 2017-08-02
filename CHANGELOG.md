@@ -17,6 +17,7 @@ BUG FIXES:
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
 * agent: Fixed an issue where dns and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
 * agent: Fixed status code on all KV store operations that fail due to an ACL issue. They now return a 403 status code, rather than a 404. [GH-2637]
+* agent: Fixed quoting issues in script health check on windows. [GH-1875]
 
 ## 0.9.0 (July 20, 2017)
 
