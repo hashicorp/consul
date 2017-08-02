@@ -6,6 +6,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: Retry Join for Amazon AWS, Microsoft Azure, and Google Cloud is now handled through the https://github.com/hashicorp/go-discover library. With this all `-retry-join-{ec2,azure,gce}-*` parameters have been deprecated in favor of a unified configuration. See [`-retry-join`](https://www.consul.io/docs/agent/options.html#_retry_join) for details. [GH-3282]
 * cli: Added a `-child-exit-code` option to `consul lock` so that it propagates an error code of 2 if the child process exits with an error. [GH-947]
 * docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
 * server: Added a `RemoveEmptyTags` option to prepared query templates which will strip out any empty strings in the tags list before executing a query. This is useful when interpolating into tags in a way where the tag is optional, and where searching for an empty tag would yield no results from the query. [GH-2151]
@@ -15,6 +16,7 @@ BUG FIXES:
 
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
 * agent: Fixed an issue where dns and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
+* agent: Fixed status code on all KV store operations that fail due to an ACL issue. They now return a 403 status code, rather than a 404. [GH-2637]
 
 ## 0.9.0 (July 20, 2017)
 

@@ -22,6 +22,8 @@ The following guides are available:
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
+* [Consul with Containers](/docs/guides/consul-containers.html) - This guide describes critical aspects of operating a Consul cluster that's run inside containers.
+
 * [DNS Caching](/docs/guides/dns-cache.html) - Enabling TTLs for DNS query caching
 
 * [DNS Forwarding](/docs/guides/forwarding.html) - Forward DNS queries from Bind to Consul

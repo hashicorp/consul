@@ -48,7 +48,7 @@ The table below shows this endpoint's support for
 - `TaggedAddresses` `(map<string|string>: nil)` - Specifies the tagged
   addresses.
 
-- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+- `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   pairs for filtering purposes.
 
 - `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
