@@ -489,3 +489,25 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 	}
 	return maps, nil
 }
+
+func (r *Router) FindServerAddrs(datacenter string) ([]string, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	// Get the list of managers for this datacenter. This will usually just
+	// have one entry, but it's possible to have a user-defined area + WAN.
+	managers, ok := r.managers[datacenter]
+	if !ok {
+		return nil, fmt.Errorf("datacenter %v not found", datacenter)
+	}
+
+	var ret []string
+	// Try each manager until we get a server.
+	for _, manager := range managers {
+		if manager.IsOffline() {
+			continue
+		}
+		ret = append(ret, manager.GetServerAddrs()...)
+	}
+	return ret, nil
+}

@@ -168,7 +168,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Ns) != 1 {
+	if len(in.Ns) != 2 {
 		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
 	}
 
@@ -178,6 +178,14 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
+	nsRec, ok := in.Ns[1].(*dns.NS)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[1])
+	}
+	if nsRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[1])
 	}
 }
 
@@ -619,7 +627,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
+		if len(in.Ns) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -629,6 +637,14 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		}
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+
+		nsRec, ok := in.Ns[1].(*dns.NS)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[1])
+		}
+		if nsRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[1])
 		}
 	}
 }
@@ -679,7 +695,6 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
-
 	wantExtra := []dns.RR{
 		&dns.CNAME{
 			Hdr:    dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x5, Class: 0x1, Rdlength: 0x2},
@@ -687,6 +702,10 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		},
 		&dns.A{
 			Hdr: dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "ns.127.0.0.1.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
@@ -842,7 +861,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
-		if len(in.Extra) != 2 {
+		if len(in.Extra) != 3 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -872,6 +891,20 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		}
 		if aRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+
+		aRec2, ok := in.Extra[2].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+		if aRec2.Hdr.Name != "ns.127.0.0.1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+		if aRec2.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+		if aRec2.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[2])
 		}
 	}
 }
@@ -968,7 +1001,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
-		if len(in.Extra) != 3 {
+		if len(in.Extra) != 4 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -1012,6 +1045,20 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		}
 		if aRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Extra[2])
+		}
+
+		aRec2, ok := in.Extra[3].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[3])
+		}
+		if aRec2.Hdr.Name != "ns.127.0.0.1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[3])
+		}
+		if aRec2.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[3])
+		}
+		if aRec2.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[3])
 		}
 	}
 }
@@ -3758,7 +3805,7 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Ns) != 1 {
+	if len(in.Ns) != 2 {
 		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
 	}
 
@@ -3768,6 +3815,14 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
+	nsRec, ok := in.Ns[1].(*dns.NS)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[1])
+	}
+	if nsRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[1])
 	}
 }
 
@@ -3859,20 +3914,27 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
+		if len(in.Ns) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
-
-		soaRec, ok := in.Ns[0].(*dns.SOA)
+		soaRec, ok := in.Ns[1].(*dns.SOA)
 		if !ok {
-			t.Fatalf("Bad: %#v", in.Ns[0])
+			t.Fatalf("Bad: %#v", in.Ns[1])
 		}
 		if soaRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Ns[0])
+			t.Fatalf("Bad: %#v", in.Ns[1])
 		}
 
 		if in.Rcode != dns.RcodeSuccess {
 			t.Fatalf("Bad: %#v", in)
+		}
+
+		nsRec, ok := in.Ns[0].(*dns.NS)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if nsRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 	}
 
@@ -3893,16 +3955,24 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
+		if len(in.Ns) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
-		soaRec, ok := in.Ns[0].(*dns.SOA)
+		nsRec, ok := in.Ns[0].(*dns.NS)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
-		if soaRec.Hdr.Ttl != 0 {
+		if nsRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+
+		soaRec, ok := in.Ns[1].(*dns.SOA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[1])
+		}
+		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[1])
 		}
 
 		if in.Rcode != dns.RcodeSuccess {
@@ -3944,7 +4014,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
+		if len(in.Ns) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -3955,6 +4025,15 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+
+		nsRec, ok := in.Ns[1].(*dns.NS)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[1])
+		}
+		if nsRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[1])
+		}
+
 	}
 }
 
@@ -3982,7 +4061,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
+		if len(in.Ns) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -3992,6 +4071,14 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		}
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+
+		nsRec, ok := in.Ns[1].(*dns.NS)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[1])
+		}
+		if nsRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[1])
 		}
 	}
 }

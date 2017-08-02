@@ -223,6 +223,15 @@ func (m *Manager) getServerList() serverList {
 	return m.listValue.Load().(serverList)
 }
 
+// GetServerAddrs returns a slice with all server addresses
+func (m *Manager) GetServerAddrs() []string {
+	var ret []string
+	for _, server := range m.getServerList().servers {
+		ret = append(ret, server.Addr.String())
+	}
+	return ret
+}
+
 // saveServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) saveServerList(l serverList) {

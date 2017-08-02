@@ -372,6 +372,7 @@ PARSE:
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
 	d.addSOA(d.domain, resp)
+	d.addNSAndARecordsForDomain(resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
@@ -414,6 +415,7 @@ RPC:
 	// If we have no address, return not found!
 	if out.NodeServices == nil {
 		d.addSOA(d.domain, resp)
+		d.addNSAndARecordsForDomain(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -427,6 +429,9 @@ RPC:
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
+
+	// Add NS record and A record
+	d.addNSAndARecordsForDomain(resp)
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
@@ -641,6 +646,7 @@ RPC:
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
 		d.addSOA(d.domain, resp)
+		d.addNSAndARecordsForDomain(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -656,6 +662,9 @@ RPC:
 		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
+	// Add NS and A records
+	d.addNSAndARecordsForDomain(resp)
+
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
 		wasTrimmed := trimUDPResponse(d.config, req, resp)
@@ -670,6 +679,40 @@ RPC:
 	if len(resp.Answer) == 0 && !resp.Truncated {
 		d.addSOA(d.domain, resp)
 		return
+	}
+}
+
+// addNSAndARecordsForDomain uses the agent's advertise address to
+func (d *DNSServer) addNSAndARecordsForDomain(msg *dns.Msg) {
+	serverAddrs := d.agent.delegate.ServerAddrs()
+	for _, addr := range serverAddrs {
+		ipAddrStr := strings.Split(addr, ":")[0]
+		nsName := "ns." + ipAddrStr + "." + d.domain
+		ip := net.ParseIP(ipAddrStr)
+		if ip != nil {
+			ns := &dns.NS{
+				Hdr: dns.RR_Header{
+					Name:   d.domain,
+					Rrtype: dns.TypeNS,
+					Class:  dns.ClassINET,
+					Ttl:    0,
+				},
+				Ns: nsName,
+			}
+			msg.Ns = append(msg.Ns, ns)
+
+			//add an A record for the NS record
+			a := &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   nsName,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				A: ip,
+			}
+			msg.Extra = append(msg.Extra, a)
+		}
 	}
 }
 
@@ -710,6 +753,7 @@ RPC:
 		// here since the RPC layer loses the type information.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
 			d.addSOA(d.domain, resp)
+			d.addNSAndARecordsForDomain(resp)
 			resp.SetRcode(req, dns.RcodeNameError)
 			return
 		}
@@ -752,6 +796,7 @@ RPC:
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
 		d.addSOA(d.domain, resp)
+		d.addNSAndARecordsForDomain(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -776,6 +821,7 @@ RPC:
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
+		d.addNSAndARecordsForDomain(resp)
 		d.addSOA(d.domain, resp)
 		return
 	}
