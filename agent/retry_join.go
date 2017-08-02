@@ -6,13 +6,6 @@ import (
 	"time"
 
 	discover "github.com/hashicorp/go-discover"
-
-	// support retry-join only for the following providers
-	// to add more providers import additional packages or 'all'
-	// to support all providers of go-discover
-	_ "github.com/hashicorp/go-discover/provider/aws"
-	_ "github.com/hashicorp/go-discover/provider/azure"
-	_ "github.com/hashicorp/go-discover/provider/gce"
 )
 
 // RetryJoin is used to handle retrying a join until it succeeds or all
@@ -23,7 +16,8 @@ func (a *Agent) retryJoin() {
 		return
 	}
 
-	a.logger.Printf("[INFO] agent: Supporting retry join for %v", discover.ProviderNames())
+	disco := discover.Discover{}
+	a.logger.Printf("[INFO] agent: Retry join is supported for: %s", strings.Join(disco.Names(), " "))
 	a.logger.Printf("[INFO] agent: Joining cluster...")
 	attempt := 0
 	for {
@@ -33,7 +27,7 @@ func (a *Agent) retryJoin() {
 		for _, addr := range cfg.RetryJoin {
 			switch {
 			case strings.Contains(addr, "provider="):
-				servers, err := discover.Addrs(addr, a.logger)
+				servers, err := disco.Addrs(addr, a.logger)
 				if err != nil {
 					a.logger.Printf("[ERR] agent: %s", err)
 				} else {
