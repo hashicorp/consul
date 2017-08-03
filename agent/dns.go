@@ -32,7 +32,7 @@ const (
 	defaultMaxUDPSize = 512
 )
 
-var invalidCharsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
+var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 // DNSServer is used to wrap an Agent and expose various
 // service discovery endpoints using a DNS interface.
@@ -691,7 +691,7 @@ func (d *DNSServer) addAuthority(msg *dns.Msg) {
 	serverAddrs := d.agent.delegate.ServerAddrs()
 	for name, addr := range serverAddrs {
 		ipAddrStr := strings.Split(addr, ":")[0]
-		sanitizedName := invalidCharsRe.ReplaceAllString(name, "-") // does some basic sanitization of the name
+		sanitizedName := InvalidDnsRe.ReplaceAllString(name, "-") // does some basic sanitization of the name
 		nsName := "server-" + sanitizedName + "." + d.domain
 		ip := net.ParseIP(ipAddrStr)
 		if ip != nil {

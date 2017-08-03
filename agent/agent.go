@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,9 +49,6 @@ const (
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
 )
-
-// dnsNameRe checks if a name or tag is dns-compatible.
-var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
@@ -1370,7 +1366,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if !dnsNameRe.MatchString(service.Service) {
+	if InvalidDnsRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
@@ -1378,7 +1374,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if !dnsNameRe.MatchString(tag) {
+		if InvalidDnsRe.MatchString(tag) {
 			a.logger.Printf("[DEBUG] Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
