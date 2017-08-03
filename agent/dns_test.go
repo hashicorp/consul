@@ -407,6 +407,41 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 	}
 }
 
+func TestDNS_NodeLookup_ANY(t *testing.T) {
+	cfg := TestConfig()
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have 1 A and 1 TXT record
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+}
+
 func TestDNS_EDNS0(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
