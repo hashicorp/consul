@@ -502,7 +502,6 @@ func (r *Router) FindServerAddrs(datacenter string) ([]string, error) {
 	}
 
 	var ret []string
-	// Try each manager until we get a server.
 	for _, manager := range managers {
 		if manager.IsOffline() {
 			continue
