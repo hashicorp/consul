@@ -261,6 +261,13 @@ will exit with an error at startup.
     - On Google Compute Engine, use credentials from the metadata
       server. In this final case any provided scopes are ignored.
 
+  * For Softlayer use:
+
+    `provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx`
+
+    This returns the first private IP address of all servers for the given
+    datacenter with the given `tag_value`.
+
 * <a name="_retry_join_ec2_tag_key"></a><a href="#_retry_join_ec2_tag_key">`-retry-join-ec2-tag-key`
   </a> - The Amazon EC2 instance tag key to filter on. When used with
   [`-retry-join-ec2-tag-value`](#_retry_join_ec2_tag_value), Consul will attempt to join EC2
