@@ -2,8 +2,8 @@
 
 FEATURES:
 
-* agent: Created a new [`/v1/agent/token`](https://www.consul.io/api/agent.html#update-acl-tokens) API that allows an agent's ACL tokens to be introduced without placing them into config files, and to update them without restarting the agent. This supports secure introduction of tokens and rotation. See the [ACL Guide](https://www.consul.io/docs/guides/acl.html#create-an-agent-token) for an example. [GH-3324]
-* server: Created a new [`/v1/acl/bootstrap`](https://www.consul.io/api/acl.html#bootstrap-acls) API that allows a cluster's management token to be created without ever placing the token into config files. See the [ACL Guide](https://www.consul.io/docs/guides/acl.html#bootstrapping-acls) for an example. [GH-3349]
+* agent: Created a new [`/v1/agent/token`](https://www.consul.io/api/agent.html#update-acl-tokens) API that allows an agent's ACL tokens to be introduced without placing them into config files, and to update them without restarting the agent. This supports secure introduction of tokens and rotation. See the [ACL Guide](https://www.consul.io/docs/guides/acl.html#create-an-agent-token) for an example. This was extended to ACL replication as well, along with a new [`enable_acl_replication`](https://www.consul.io/docs/agent/options.html#enable_acl_replication) config option. [GH-3324,GH-3357]
+* agent: Created a new [`/v1/acl/bootstrap`](https://www.consul.io/api/acl.html#bootstrap-acls) API that allows a cluster's management token to be created without ever placing the token into config files. See the [ACL Guide](https://www.consul.io/docs/guides/acl.html#bootstrapping-acls) for an example. [GH-3349]
 
 IMPROVEMENTS:
 
