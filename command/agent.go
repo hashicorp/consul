@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
-	"github.com/hashicorp/go-checkpoint"
+	checkpoint "github.com/hashicorp/go-checkpoint"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -607,7 +607,7 @@ func startupTelemetry(config *agent.Config) error {
 	// metrics over stderr when there is a SIGUSR1 received.
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
-	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
+	metricsConf := metrics.DefaultConfig(config.Telemetry.ServicePrefix)
 	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
 
 	var sinks metrics.FanoutSink

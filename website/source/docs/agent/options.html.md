@@ -1096,6 +1096,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="telemetry"></a><a href="#telemetry">`telemetry`</a> This is a nested object that configures where Consul
   sends its runtime telemetry, and contains the following keys:
 
+  <a name="telemetry-service_prefix"></a><a href="#telemetry-service_prefix">`service_prefix`</a>
+    The prefix used while writing all telemetry data to metrics. By default, this is set to "consul".
+
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
     address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
@@ -1106,8 +1109,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
     statsite.
 
-  * <a name="telemetry-statsite_prefix"></a><a href="#telemetry-statsite_prefix">`statsite_prefix`</a>
-    The prefix used while writing all telemetry data to statsite. By default, this is set to "consul".
+  * <a name="telemetry-statsite_prefix"></a><a href="#telemetry-statsite_prefix">`statsite_prefix`</a> DEPRECATED:
+    Use <a href="telemetry-service_prefix">`service_prefix`</a> instead. If both `statsite_prefix` and `service_prefix` are set, the value from
+    `service_prefix` will be used.
 
   * <a name="telemetry-dogstatsd_addr"></a><a href="#telemetry-dogstatsd_addr">`dogstatsd_addr`</a> This provides the
     address of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible flavor of

@@ -204,6 +204,9 @@ type Performance struct {
 
 // Telemetry is the telemetry configuration for the server
 type Telemetry struct {
+	// ServicePrefix is the prefix used to write stats values to. By
+	// default this is set to "consul"
+	ServicePrefix string `mapstructure:"service_prefix"`
 	// StatsiteAddr is the address of a statsite instance. If provided,
 	// metrics will be streamed to that instance.
 	StatsiteAddr string `mapstructure:"statsite_address"`
@@ -212,8 +215,8 @@ type Telemetry struct {
 	// metrics will be sent to that instance.
 	StatsdAddr string `mapstructure:"statsd_address"`
 
-	// StatsitePrefix is the prefix used to write stats values to. By
-	// default this is set to 'consul'.
+	// StatsitePrefix is the old name for ServicePrefix kept for
+	// compatibility reasons.
 	StatsitePrefix string `mapstructure:"statsite_prefix"`
 
 	// DisableHostname will disable hostname prefixing for all metrics
@@ -1128,7 +1131,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		}
 
 		if sub, ok := obj["statsite_prefix"]; ok && result.Telemetry.StatsitePrefix == "" {
-			result.Telemetry.StatsitePrefix = sub.(string)
+			result.Telemetry.ServicePrefix = sub.(string)
 		}
 
 		if sub, ok := obj["dogstatsd_addr"]; ok && result.Telemetry.DogStatsdAddr == "" {
@@ -1761,8 +1764,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Telemetry.StatsiteAddr != "" {
 		result.Telemetry.StatsiteAddr = b.Telemetry.StatsiteAddr
 	}
+	// Set the service_prefix with the statside_prefix
 	if b.Telemetry.StatsitePrefix != "" {
-		result.Telemetry.StatsitePrefix = b.Telemetry.StatsitePrefix
+		result.Telemetry.ServicePrefix = b.Telemetry.StatsitePrefix
+	}
+	if b.Telemetry.ServicePrefix != "" {
+		result.Telemetry.ServicePrefix = b.Telemetry.ServicePrefix
 	}
 	if b.Telemetry.DogStatsdAddr != "" {
 		result.Telemetry.DogStatsdAddr = b.Telemetry.DogStatsdAddr

@@ -640,6 +640,14 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{StartJoinWan: []string{"a", "b"}},
 		},
 		{
+			in: `{"service_prefix": "a"}`,
+			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
+		},
+		{
+			in: `{"service_prefix": "", "statsite_prefix": "a"}`,
+			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
+		},
+		{
 			in: `{"statsd_addr":"a"}`,
 			c:  &Config{Telemetry: Telemetry{StatsdAddr: "a"}},
 		},
@@ -649,7 +657,7 @@ func TestDecodeConfig(t *testing.T) {
 		},
 		{
 			in: `{"statsite_prefix":"a"}`,
-			c:  &Config{Telemetry: Telemetry{StatsitePrefix: "a"}},
+			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
 		},
 		{
 			in: `{"syslog_facility":"a"}`,
@@ -729,7 +737,7 @@ func TestDecodeConfig(t *testing.T) {
 		},
 		{
 			in: `{"telemetry":{"statsite_prefix":"a"}}`,
-			c:  &Config{Telemetry: Telemetry{StatsitePrefix: "a"}},
+			c:  &Config{Telemetry: Telemetry{ServicePrefix: "a"}},
 		},
 		{
 			in: `{"tls_cipher_suites":"TLS_RSA_WITH_AES_256_CBC_SHA"}`,
