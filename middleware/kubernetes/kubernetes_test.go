@@ -6,23 +6,21 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 	"k8s.io/client-go/1.5/pkg/api"
-
-	"github.com/coredns/coredns/middleware"
-	"github.com/coredns/coredns/middleware/etcd/msg"
-	"github.com/coredns/coredns/request"
 )
 
 func TestRecordForTXT(t *testing.T) {
 	k := Kubernetes{Zones: []string{"inter.webs.test"}}
 	r, _ := k.parseRequest("dns-version.inter.webs.test", dns.TypeTXT)
-	expected := DNSSchemaVersion
 
-	var svcs []msg.Service
-	k.recordsForTXT(r, &svcs)
-	if svcs[0].Text != expected {
-		t.Errorf("Expected result '%v'. Instead got result '%v'.", expected, svcs[0].Text)
+	expected := DNSSchemaVersion
+	svc := k.recordsForTXT(r)
+	if svc.Text != expected {
+		t.Errorf("Expected result '%v'. Instead got result '%v'.", expected, svc.Text)
 	}
 }
 

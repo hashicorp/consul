@@ -24,15 +24,6 @@ func (i interfaceAddrs) interfaceAddrs() ([]net.Addr, error) {
 	return net.InterfaceAddrs()
 }
 
-func (k *Kubernetes) recordsForNS(r recordRequest, svcs *[]msg.Service) error {
-	ns := k.coreDNSRecord()
-	s := msg.Service{
-		Host: ns.A.String(),
-		Key:  msg.Path(strings.Join([]string{ns.Hdr.Name, r.zone}, "."), "coredns")}
-	*svcs = append(*svcs, s)
-	return nil
-}
-
 // DefaultNSMsg returns an msg.Service representing an A record for
 // ns.dns.[zone] -> dns service ip. This A record is needed to legitimize
 // the SOA response in middleware.NS(), which is hardcoded at ns.dns.[zone].

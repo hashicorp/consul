@@ -100,13 +100,15 @@ type recordRequest struct {
 
 var localPodIP net.IP
 
-var errNoItems = errors.New("no items found")
-var errNsNotExposed = errors.New("namespace is not exposed")
-var errInvalidRequest = errors.New("invalid query name")
-var errZoneNotFound = errors.New("zone not found")
-var errAPIBadPodType = errors.New("expected type *api.Pod")
-var errPodsDisabled = errors.New("pod records disabled")
-var errResolvConfReadErr = errors.New("resolv.conf read error")
+var (
+	errNoItems           = errors.New("no items found")
+	errNsNotExposed      = errors.New("namespace is not exposed")
+	errInvalidRequest    = errors.New("invalid query name")
+	errZoneNotFound      = errors.New("zone not found")
+	errAPIBadPodType     = errors.New("expected type *api.Pod")
+	errPodsDisabled      = errors.New("pod records disabled")
+	errResolvConfReadErr = errors.New("resolv.conf read error")
+)
 
 // Services implements the ServiceBackend interface.
 func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) (svcs []msg.Service, debug []msg.Service, err error) {
@@ -139,26 +141,28 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		}
 		return noext, nil, e
 	case "TXT":
-		err := k.recordsForTXT(r, &svcs)
+		if r.typeName == "dns-version" {
+			srv := k.recordsForTXT(r)
+			svcs = append(svcs, srv)
+		}
 		return svcs, nil, err
 	case "NS":
-		err = k.recordsForNS(r, &svcs)
+		srv := k.recordsForNS(r)
+		svcs = append(svcs, srv)
 		return svcs, nil, err
 	}
 	return nil, nil, nil
 }
 
-func (k *Kubernetes) recordsForTXT(r recordRequest, svcs *[]msg.Service) (err error) {
-	switch r.typeName {
-	case "dns-version":
-		s := msg.Service{
-			Text: DNSSchemaVersion,
-			TTL:  28800,
-			Key:  msg.Path(strings.Join([]string{r.typeName, r.zone}, "."), "coredns")}
-		*svcs = append(*svcs, s)
-		return nil
-	}
-	return nil
+func (k *Kubernetes) recordsForTXT(r recordRequest) msg.Service {
+	return msg.Service{Text: DNSSchemaVersion, TTL: 28800,
+		Key: msg.Path(strings.Join([]string{r.typeName, r.zone}, "."), "coredns")}
+}
+
+func (k *Kubernetes) recordsForNS(r recordRequest) msg.Service {
+	ns := k.coreDNSRecord()
+	return msg.Service{Host: ns.A.String(),
+		Key: msg.Path(strings.Join([]string{ns.Hdr.Name, r.zone}, "."), "coredns")}
 }
 
 // PrimaryZone will return the first non-reverse zone being handled by this middleware

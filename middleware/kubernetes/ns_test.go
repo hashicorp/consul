@@ -3,7 +3,6 @@ package kubernetes
 import "testing"
 import "net"
 
-import "github.com/coredns/coredns/middleware/etcd/msg"
 import "k8s.io/client-go/1.5/pkg/api"
 import "github.com/miekg/dns"
 
@@ -12,12 +11,11 @@ func TestRecordForNS(t *testing.T) {
 	corednsRecord.Hdr.Name = "coredns.kube-system."
 	corednsRecord.A = net.IP("1.2.3.4")
 	r, _ := k.parseRequest("inter.webs.test", dns.TypeNS)
-	expected := "/coredns/test/webs/inter/kube-system/coredns"
 
-	var svcs []msg.Service
-	k.recordsForNS(r, &svcs)
-	if svcs[0].Key != expected {
-		t.Errorf("Expected  result '%v'. Instead got result '%v'.", expected, svcs[0].Key)
+	expected := "/coredns/test/webs/inter/kube-system/coredns"
+	svc := k.recordsForNS(r)
+	if svc.Key != expected {
+		t.Errorf("Expected  result '%v'. Instead got result '%v'.", expected, svc.Key)
 	}
 }
 
@@ -26,8 +24,8 @@ func TestDefaultNSMsg(t *testing.T) {
 	corednsRecord.Hdr.Name = "coredns.kube-system."
 	corednsRecord.A = net.IP("1.2.3.4")
 	r, _ := k.parseRequest("ns.dns.inter.webs.test", dns.TypeA)
-	expected := "/coredns/test/webs/inter/dns/ns"
 
+	expected := "/coredns/test/webs/inter/dns/ns"
 	svc := k.defaultNSMsg(r)
 	if svc.Key != expected {
 		t.Errorf("Expected  result '%v'. Instead got result '%v'.", expected, svc.Key)
