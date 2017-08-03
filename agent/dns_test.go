@@ -651,7 +651,9 @@ func TestDNS_ServiceLookup(t *testing.T) {
 
 func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.NodeName = "my.test-node"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Register a node with a service.
@@ -705,7 +707,7 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 		&dns.A{
-			Hdr: dns.RR_Header{Name: "ns.127.0.0.1.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
+			Hdr: dns.RR_Header{Name: "server-my-test-node-dc1.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
@@ -788,6 +790,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	cfg.Domain = "CONSUL."
+	cfg.NodeName = "test node"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -897,7 +900,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[2])
 		}
-		if aRec2.Hdr.Name != "ns.127.0.0.1.consul." {
+		if aRec2.Hdr.Name != "server-test-node-dc1.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[2])
 		}
 		if aRec2.A.String() != "127.0.0.1" {
@@ -911,7 +914,9 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 
 func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.NodeName = "test-node"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Register the initial node with a service
@@ -1051,7 +1056,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[3])
 		}
-		if aRec2.Hdr.Name != "ns.127.0.0.1.consul." {
+		if aRec2.Hdr.Name != "server-test-node-dc1.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[3])
 		}
 		if aRec2.A.String() != "127.0.0.1" {
@@ -2741,6 +2746,7 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 	expectedService, expectedQuery, expectedQueryID int) (bool, error) {
 	cfg := TestConfig()
 	cfg.DNSConfig.UDPAnswerLimit = answerLimit
+	cfg.NodeName = "test-node"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 

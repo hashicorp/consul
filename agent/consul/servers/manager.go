@@ -223,11 +223,11 @@ func (m *Manager) getServerList() serverList {
 	return m.listValue.Load().(serverList)
 }
 
-// GetServerAddrs returns a slice with all server addresses
-func (m *Manager) GetServerAddrs() []string {
-	var ret []string
+// GetServerAddrs returns a map from node name to address for all servers
+func (m *Manager) GetServerAddrs() map[string]string {
+	ret := make(map[string]string)
 	for _, server := range m.getServerList().servers {
-		ret = append(ret, server.Addr.String())
+		ret[server.Name] = server.Addr.String()
 	}
 	return ret
 }

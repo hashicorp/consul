@@ -490,7 +490,7 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 	return maps, nil
 }
 
-func (r *Router) FindServerAddrs(datacenter string) ([]string, error) {
+func (r *Router) FindServerAddrs(datacenter string) (map[string]string, error) {
 	r.RLock()
 	defer r.RUnlock()
 
@@ -501,12 +501,14 @@ func (r *Router) FindServerAddrs(datacenter string) ([]string, error) {
 		return nil, fmt.Errorf("datacenter %v not found", datacenter)
 	}
 
-	var ret []string
+	ret := make(map[string]string)
 	for _, manager := range managers {
 		if manager.IsOffline() {
 			continue
 		}
-		ret = append(ret, manager.GetServerAddrs()...)
+		for name, addr := range manager.GetServerAddrs() {
+			ret[name] = addr
+		}
 	}
 	return ret, nil
 }

@@ -1047,7 +1047,7 @@ func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }
 
-func (s *Server) ServerAddrs() []string {
+func (s *Server) ServerAddrs() map[string]string {
 	ret, err := s.router.FindServerAddrs(s.config.Datacenter)
 	if err != nil {
 		s.logger.Printf("[WARN] Unexpected state, no server addresses for datacenter %v, got error: %v", s.config.Datacenter, err)

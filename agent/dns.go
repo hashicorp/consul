@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"regexp"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
@@ -29,6 +31,8 @@ const (
 
 	defaultMaxUDPSize = 512
 )
+
+var invalidCharsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 // DNSServer is used to wrap an Agent and expose various
 // service discovery endpoints using a DNS interface.
@@ -685,9 +689,10 @@ RPC:
 // addAuthority adds NS records and corresponding A records with the IP addresses of servers
 func (d *DNSServer) addAuthority(msg *dns.Msg) {
 	serverAddrs := d.agent.delegate.ServerAddrs()
-	for _, addr := range serverAddrs {
+	for name, addr := range serverAddrs {
 		ipAddrStr := strings.Split(addr, ":")[0]
-		nsName := "ns." + ipAddrStr + "." + d.domain
+		sanitizedName := invalidCharsRe.ReplaceAllString(name, "-") // does some basic sanitization of the name
+		nsName := "server-" + sanitizedName + "." + d.domain
 		ip := net.ParseIP(ipAddrStr)
 		if ip != nil {
 			ns := &dns.NS{

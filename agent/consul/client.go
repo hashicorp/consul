@@ -411,7 +411,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-func (c *Client) ServerAddrs() []string {
+func (c *Client) ServerAddrs() map[string]string {
 	return c.servers.GetServerAddrs()
 }
 
