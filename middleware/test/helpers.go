@@ -35,6 +35,7 @@ type Case struct {
 	Answer []dns.RR
 	Ns     []dns.RR
 	Extra  []dns.RR
+	Error  error
 }
 
 // Msg returns a *dns.Msg embedded in c.

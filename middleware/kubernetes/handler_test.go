@@ -106,6 +106,68 @@ var dnsTestCases = map[string](*test.Case){
 	},
 }
 
+var podModeDisabledCases = map[string](*test.Case){
+
+	"A Record Pod mode = Case 1": {
+		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Error:  errPodsDisabled,
+		Answer: []dns.RR{},
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+
+	"A Record Pod mode = Case 2": {
+		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Error:  errPodsDisabled,
+		Answer: []dns.RR{},
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+}
+
+var podModeInsecureCases = map[string](*test.Case){
+
+	"A Record Pod mode = Case 1": {
+		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
+		},
+	},
+
+	"A Record Pod mode = Case 2": {
+		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("172-0-0-2.podns.pod.cluster.local.	0	IN	A	172.0.0.2"),
+		},
+	},
+}
+
+var podModeVerifiedCases = map[string](*test.Case){
+
+	"A Record Pod mode = Case 1": {
+		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
+		},
+	},
+
+	"A Record Pod mode = Case 2": {
+		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode:  dns.RcodeNameError,
+		Answer: []dns.RR{},
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+}
+
 var autopathCases = map[string](*test.Case){
 	"A Autopath Service (Second Search)": {
 		Qname: "svc1.testns.podns.svc.cluster.local.", Qtype: dns.TypeA,
@@ -215,11 +277,20 @@ func TestServeDNS(t *testing.T) {
 	runServeDNSTests(t, autopathCases, k, ctx)
 	runServeDNSTests(t, autopathBareSearch, k, ctx)
 
+	//Set PodMode to Disabled
+	k.PodMode = PodModeDisabled
+	runServeDNSTests(t, podModeDisabledCases, k, ctx)
+	//Set PodMode to Insecure
+	k.PodMode = PodModeInsecure
+	runServeDNSTests(t, podModeInsecureCases, k, ctx)
+	//Set PodMode to Verified
+	k.PodMode = PodModeVerified
+	runServeDNSTests(t, podModeVerifiedCases, k, ctx)
+
 	// Set ndots to 2 for the ndots test cases
 	k.AutoPath.NDots = 2
 	runServeDNSTests(t, autopath2NDotsCases, k, ctx)
 	k.AutoPath.NDots = defautNdots
-
 	// Disable the NXDOMAIN override (enabled by default)
 	k.OnNXDOMAIN = dns.RcodeNameError
 	runServeDNSTests(t, autopathCases, k, ctx)
@@ -235,9 +306,12 @@ func runServeDNSTests(t *testing.T, dnsTestCases map[string](*test.Case), k Kube
 		w := dnsrecorder.New(&test.ResponseWriter{})
 
 		_, err := k.ServeDNS(ctx, w, r)
-		if err != nil {
+		if err != tc.Error {
 			t.Errorf("%v expected no error, got %v\n", testname, err)
 			return
+		}
+		if tc.Error != nil {
+			continue
 		}
 
 		resp := w.Msg
