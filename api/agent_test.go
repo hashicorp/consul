@@ -785,4 +785,8 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 }

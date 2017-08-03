@@ -696,6 +696,12 @@ type Config struct {
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 
+	// EnableACLReplication is used to turn on ACL replication when using
+	// /v1/agent/token/acl_replication_token to introduce the token, instead
+	// of setting acl_replication_token in the config. Setting the token via
+	// config will also set this to true for backward compatibility.
+	EnableACLReplication bool `mapstructure:"enable_acl_replication"`
+
 	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
 	// order to replicate them locally. Setting this to a non-empty value
 	// also enables replication. Replication is only available in datacenters
@@ -1448,6 +1454,13 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		}
 		result.DeprecatedHTTPAPIResponseHeaders = nil
 	}
+
+	// Set the ACL replication enable if they set a token, for backwards
+	// compatibility.
+	if result.ACLReplicationToken != "" {
+		result.EnableACLReplication = true
+	}
+
 	return &result, nil
 }
 
@@ -2022,6 +2035,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLDefaultPolicy != "" {
 		result.ACLDefaultPolicy = b.ACLDefaultPolicy
+	}
+	if b.EnableACLReplication {
+		result.EnableACLReplication = true
 	}
 	if b.ACLReplicationToken != "" {
 		result.ACLReplicationToken = b.ACLReplicationToken

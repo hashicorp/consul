@@ -158,7 +158,7 @@ will exit with an error at startup.
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
 
-* <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`enable-script-checks`</a> This
+* <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`-enable-script-checks`</a> This
   controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
   this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
   it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
@@ -583,7 +583,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="acl_replication_token"></a><a href="#acl_replication_token">`acl_replication_token`</a> -
   Only used for servers outside the [`acl_datacenter`](#acl_datacenter) running Consul 0.7 or later.
   When provided, this will enable [ACL replication](/docs/guides/acl.html#replication) using this
-  token to retrieve and replicate the ACLs to the non-authoritative local datacenter.
+  token to retrieve and replicate the ACLs to the non-authoritative local datacenter. In Consul 0.9.1
+  and later you can enable ACL replication using [`enable_acl_replication`](#enable_acl_replication)
+  and then set the token later using the [agent token API](/api/agent.html#update-acl-tokens) on each
+  server. If the `acl_replication_token` is set in the config, it will automatically set
+  [`enable_acl_replication`](#enable_acl_replication) to true for backward compatibility.
   <br><br>
   If there's a partition or other outage affecting the authoritative datacenter, and the
   [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
@@ -802,6 +806,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
+
+* <a name="enable_acl_replication"></a><a href="#enable_acl_replication">`enable_acl_replication`</a> When
+  set on a Consul server, enables [ACL replication](/docs/guides/acl.html#replication) without having to set
+  the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
+  and then introduce the token using the [agent token API](/api/agent.html#update-acl-tokens) on each server.
+  See [`acl_replication_token`](#acl_replication_token) for more details.
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.

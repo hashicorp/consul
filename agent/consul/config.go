@@ -218,11 +218,8 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
-	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
-	// order to replicate them locally. Setting this to a non-empty value
-	// also enables replication. Replication is only available in datacenters
-	// other than the ACLDatacenter.
-	ACLReplicationToken string
+	// EnableACLReplication is used to control ACL replication.
+	EnableACLReplication bool
 
 	// ACLReplicationInterval is the interval at which replication passes
 	// will occur. Queries to the ACLDatacenter may block, so replication

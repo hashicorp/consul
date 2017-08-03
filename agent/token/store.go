@@ -26,6 +26,10 @@ type Store struct {
 	// access to the /v1/agent utility operations if the servers aren't
 	// available.
 	agentMasterToken string
+
+	// aclReplicationToken is a special token that's used by servers to
+	// replicate ACLs from the ACL datacenter.
+	aclReplicationToken string
 }
 
 // UpdateUserToken replaces the current user token in the store.
@@ -49,6 +53,13 @@ func (t *Store) UpdateAgentMasterToken(token string) {
 	t.l.Unlock()
 }
 
+// UpdateACLReplicationToken replaces the current ACL replication token in the store.
+func (t *Store) UpdateACLReplicationToken(token string) {
+	t.l.Lock()
+	t.aclReplicationToken = token
+	t.l.Unlock()
+}
+
 // UserToken returns the best token to use for user operations.
 func (t *Store) UserToken() string {
 	t.l.RLock()
@@ -66,6 +77,14 @@ func (t *Store) AgentToken() string {
 		return t.agentToken
 	}
 	return t.userToken
+}
+
+// ACLReplicationToken returns the ACL replication token.
+func (t *Store) ACLReplicationToken() string {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.aclReplicationToken
 }
 
 // IsAgentMasterToken checks to see if a given token is the agent master token.

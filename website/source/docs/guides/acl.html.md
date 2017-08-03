@@ -969,11 +969,17 @@ for any previously resolved tokens and to deny any uncached tokens.
 Consul 0.7 added an ACL Replication capability that can allow non-authoritative
 datacenter agents to resolve even uncached tokens. This is enabled by setting an
 [`acl_replication_token`](/docs/agent/options.html#acl_replication_token) in the
-configuration on the servers in the non-authoritative datacenters. With replication
-enabled, the servers will maintain a replica of the authoritative datacenter's full
-set of ACLs on the non-authoritative servers. The ACL replication token needs to be
-a valid ACL token with management privileges, it can also be the same as the master
-ACL token.
+configuration on the servers in the non-authoritative datacenters. In Consul
+0.9.1 and later you can enable ACL replication using
+[`enable_acl_replication`](/docs/agent/options.html#enable_acl_replication) and
+then set the token later using the
+[agent token API](/api/agent.html#update-acl-tokens) on each server. This can
+also be used to rotate the token without restarting the Consul servers.
+
+With replication enabled, the servers will maintain a replica of the authoritative
+datacenter's full set of ACLs on the non-authoritative servers. The ACL replication
+token needs to be a valid ACL token with management privileges, it can also be the
+same as the master ACL token.
 
 Replication occurs with a background process that looks for new ACLs approximately
 every 30 seconds. Replicated changes are written at a rate that's throttled to

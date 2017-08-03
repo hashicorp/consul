@@ -737,6 +737,9 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	case "acl_agent_master_token":
 		s.agent.tokens.UpdateAgentMasterToken(args.Token)
 
+	case "acl_replication_token":
+		s.agent.tokens.UpdateACLReplicationToken(args.Token)
+
 	default:
 		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Token %q is unknown", target)

@@ -1664,7 +1664,18 @@ func TestAgent_Token(t *testing.T) {
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
-	b := func(token string) io.Reader {
+	type tokens struct {
+		user, agent, master, repl string
+	}
+
+	resetTokens := func(got tokens) {
+		a.tokens.UpdateUserToken(got.user)
+		a.tokens.UpdateAgentToken(got.agent)
+		a.tokens.UpdateAgentMasterToken(got.master)
+		a.tokens.UpdateACLReplicationToken(got.repl)
+	}
+
+	body := func(token string) io.Reader {
 		return jsonReader(&api.AgentToken{Token: token})
 	}
 
@@ -1677,22 +1688,97 @@ func TestAgent_Token(t *testing.T) {
 		method, url string
 		body        io.Reader
 		code        int
-		userToken   string
-		agentToken  string
-		masterToken string
+		got, want   tokens
 	}{
-		{"bad method", "GET", "acl_token", b("X"), http.StatusMethodNotAllowed, "", "", ""},
-		{"bad token name", "PUT", "nope?token=root", b("X"), http.StatusNotFound, "", "", ""},
-		{"bad JSON", "PUT", "acl_token?token=root", badJSON(), http.StatusBadRequest, "", "", ""},
-		{"set user", "PUT", "acl_token?token=root", b("U"), http.StatusOK, "U", "U", ""},
-		{"set agent", "PUT", "acl_agent_token?token=root", b("A"), http.StatusOK, "U", "A", ""},
-		{"set master", "PUT", "acl_agent_master_token?token=root", b("M"), http.StatusOK, "U", "A", "M"},
-		{"clear user", "PUT", "acl_token?token=root", b(""), http.StatusOK, "", "A", "M"},
-		{"clear agent", "PUT", "acl_agent_token?token=root", b(""), http.StatusOK, "", "", "M"},
-		{"clear master", "PUT", "acl_agent_master_token?token=root", b(""), http.StatusOK, "", "", ""},
+		{
+			name:   "bad method",
+			method: "GET",
+			url:    "acl_token",
+			code:   http.StatusMethodNotAllowed,
+		},
+		{
+			name:   "bad token name",
+			method: "PUT",
+			url:    "nope?token=root",
+			body:   body("X"),
+			code:   http.StatusNotFound,
+		},
+		{
+			name:   "bad JSON",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   badJSON(),
+			code:   http.StatusBadRequest,
+		},
+		{
+			name:   "set user",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   body("U"),
+			code:   http.StatusOK,
+			want:   tokens{user: "U", agent: "U"},
+		},
+		{
+			name:   "set agent",
+			method: "PUT",
+			url:    "acl_agent_token?token=root",
+			body:   body("A"),
+			code:   http.StatusOK,
+			got:    tokens{user: "U", agent: "U"},
+			want:   tokens{user: "U", agent: "A"},
+		},
+		{
+			name:   "set master",
+			method: "PUT",
+			url:    "acl_agent_master_token?token=root",
+			body:   body("M"),
+			code:   http.StatusOK,
+			want:   tokens{master: "M"},
+		},
+		{
+			name:   "set repl",
+			method: "PUT",
+			url:    "acl_replication_token?token=root",
+			body:   body("R"),
+			code:   http.StatusOK,
+			want:   tokens{repl: "R"},
+		},
+		{
+			name:   "clear user",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{user: "U"},
+		},
+		{
+			name:   "clear agent",
+			method: "PUT",
+			url:    "acl_agent_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{agent: "A"},
+		},
+		{
+			name:   "clear master",
+			method: "PUT",
+			url:    "acl_agent_master_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{master: "M"},
+		},
+		{
+			name:   "clear repl",
+			method: "PUT",
+			url:    "acl_replication_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{repl: "R"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			resetTokens(tt.got)
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
@@ -1702,14 +1788,17 @@ func TestAgent_Token(t *testing.T) {
 			if got, want := resp.Code, tt.code; got != want {
 				t.Fatalf("got %d want %d", got, want)
 			}
-			if got, want := a.tokens.UserToken(), tt.userToken; got != want {
+			if got, want := a.tokens.UserToken(), tt.want.user; got != want {
 				t.Fatalf("got %q want %q", got, want)
 			}
-			if got, want := a.tokens.AgentToken(), tt.agentToken; got != want {
+			if got, want := a.tokens.AgentToken(), tt.want.agent; got != want {
 				t.Fatalf("got %q want %q", got, want)
 			}
-			if tt.masterToken != "" && !a.tokens.IsAgentMasterToken(tt.masterToken) {
-				t.Fatalf("%q should be the master token", tt.masterToken)
+			if tt.want.master != "" && !a.tokens.IsAgentMasterToken(tt.want.master) {
+				t.Fatalf("%q should be the master token", tt.want.master)
+			}
+			if got, want := a.tokens.ACLReplicationToken(), tt.want.repl; got != want {
+				t.Fatalf("got %q want %q", got, want)
 			}
 		})
 	}
@@ -1717,7 +1806,8 @@ func TestAgent_Token(t *testing.T) {
 	// This one returns an error that is interpreted by the HTTP wrapper, so
 	// doesn't fit into our table above.
 	t.Run("permission denied", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", b("X"))
+		resetTokens(tokens{})
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", body("X"))
 		if _, err := a.srv.AgentToken(nil, req); !isPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
