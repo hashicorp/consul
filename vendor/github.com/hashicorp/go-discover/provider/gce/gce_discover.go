@@ -7,17 +7,15 @@ import (
 	"log"
 	"net/http"
 
-	discover "github.com/hashicorp/go-discover"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
 )
 
-func init() {
-	discover.Register("gce", &Provider{}, Help)
-}
+type Provider struct{}
 
-var Help = `Google Cloud:
+func (p *Provider) Help() string {
+	return `Google Cloud:
 
     provider:         "gce"
     project_name:     The name of the project. discovered if not set
@@ -36,8 +34,7 @@ var Help = `Google Cloud:
      4. On Google Compute Engine, use credentials from the metadata
         server. In this final case any provided scopes are ignored.
 `
-
-type Provider struct{}
+}
 
 func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error) {
 	if args["provider"] != "gce" {

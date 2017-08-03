@@ -9,14 +9,12 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	discover "github.com/hashicorp/go-discover"
 )
 
-func init() {
-	discover.Register("azure", &Provider{}, Help)
-}
+type Provider struct{}
 
-var Help = `Microsoft Azure:
+func (p *Provider) Help() string {
+	return `Microsoft Azure:
 
    provider:          "azure"
    tenant_id:         The id of the tenant
@@ -29,8 +27,7 @@ var Help = `Microsoft Azure:
    The only permission needed is the 'ListAll' method for 'NetworkInterfaces'.
    It is recommended you make a dedicated key used only for auto-joining.
 `
-
-type Provider struct{}
+}
 
 func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error) {
 	if args["provider"] != "azure" {
