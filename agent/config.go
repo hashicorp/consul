@@ -1457,7 +1457,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	// Set the ACL replication enable if they set a token, for backwards
 	// compatibility.
-	if len(result.ACLReplicationToken) > 0 {
+	if result.ACLReplicationToken != "" {
 		result.EnableACLReplication = true
 	}
 
