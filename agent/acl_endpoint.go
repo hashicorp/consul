@@ -20,6 +20,33 @@ func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, erro
 	return nil, nil
 }
 
+// ACLBootstrap is used to perform a one-time ACL bootstrap operation on
+// a cluster to get the first management token.
+func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
+	}
+
+	args := structs.DCSpecificRequest{
+		Datacenter: s.agent.config.ACLDatacenter,
+	}
+
+	var out structs.ACL
+	err := s.agent.RPC("ACL.Bootstrap", &args, &out)
+	if err != nil {
+		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprintf(resp, "Permission denied: %v", err)
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return aclCreateResponse{out.ID}, nil
+}
+
 func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {

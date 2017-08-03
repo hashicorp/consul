@@ -30,6 +30,52 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 	return aclResp.ID
 }
 
+func TestACL_Bootstrap(t *testing.T) {
+	t.Parallel()
+	cfg := TestACLConfig()
+	cfg.Version = "0.9.1"
+	cfg.ACLMasterToken = ""
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	tests := []struct {
+		name   string
+		method string
+		code   int
+		token  bool
+	}{
+		{"bad method", "GET", http.StatusMethodNotAllowed, false},
+		{"bootstrap", "PUT", http.StatusOK, true},
+		{"not again", "PUT", http.StatusForbidden, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", nil)
+			out, err := a.srv.ACLBootstrap(resp, req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if got, want := resp.Code, tt.code; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			if tt.token {
+				wrap, ok := out.(aclCreateResponse)
+				if !ok {
+					t.Fatalf("bad: %T", out)
+				}
+				if len(wrap.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") {
+					t.Fatalf("bad: %v", wrap)
+				}
+			} else {
+				if out != nil {
+					t.Fatalf("bad: %T", out)
+				}
+			}
+		})
+	}
+}
+
 func TestACL_Update(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())

@@ -17,6 +17,69 @@ type ACL struct {
 	srv *Server
 }
 
+// Bootstrap is used to perform a one-time ACL bootstrap operation on
+// a cluster to get the first management token.
+func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) error {
+	if done, err := a.srv.forward("ACL.Bootstrap", args, args, reply); done {
+		return err
+	}
+
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
+	}
+
+	// By doing some pre-checks we can head off later bootstrap attempts
+	// without having to run them through Raft, which should curb abuse.
+	state := a.srv.fsm.State()
+	bs, err := state.ACLGetBootstrap()
+	if err != nil {
+		return err
+	}
+	if bs == nil {
+		return structs.ACLBootstrapNotInitializedErr
+	}
+	if !bs.AllowBootstrap {
+		return structs.ACLBootstrapNotAllowedErr
+	}
+
+	// Propose a new token.
+	token, err := uuid.GenerateUUID()
+	if err != nil {
+		return fmt.Errorf("failed to make random token: %v", err)
+	}
+
+	// Attempt a bootstrap.
+	req := structs.ACLRequest{
+		Datacenter: a.srv.config.ACLDatacenter,
+		Op:         structs.ACLBootstrapNow,
+		ACL: structs.ACL{
+			ID:   token,
+			Name: "Bootstrap Token",
+			Type: structs.ACLTypeManagement,
+		},
+	}
+	resp, err := a.srv.raftApply(structs.ACLRequestType, &req)
+	if err != nil {
+		return err
+	}
+	switch v := resp.(type) {
+	case error:
+		return v
+
+	case *structs.ACL:
+		*reply = *v
+
+	default:
+		// Just log this, since it looks like the bootstrap may have
+		// completed.
+		a.srv.logger.Printf("[ERR] consul.acl: Unexpected response during bootstrap: %T", v)
+	}
+
+	a.srv.logger.Printf("[INFO] consul.acl: ACL bootstrap completed")
+	return nil
+}
+
 // aclApplyInternal is used to apply an ACL request after it has been vetted that
 // this is a valid operation. It is used when users are updating ACLs, in which
 // case we check their token to make sure they have management privileges. It is

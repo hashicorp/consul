@@ -29,6 +29,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionsTableSchema,
 		sessionChecksTableSchema,
 		aclsTableSchema,
+		aclsBootstrapTableSchema,
 		coordinatesTableSchema,
 		preparedQueriesTableSchema,
 		autopilotConfigTableSchema,
@@ -357,25 +358,6 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
 					Field: "Session",
-				},
-			},
-		},
-	}
-}
-
-// aclsTableSchema returns a new table schema used for
-// storing ACL information.
-func aclsTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acls",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ID",
-					Lowercase: false,
 				},
 			},
 		},

@@ -15,6 +15,13 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+// TODO (slackpad) - There are two refactors we should do here:
+//
+// 1. Register the different types from the state store and make the FSM more
+//    generic, especially around snapshot/restore. Those should really just
+//    pass the encoder into a WriteSnapshot() kind of method.
+// 2. Check all the error return values from all the Write() calls.
+
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
 var msgpackHandle = &codec.MsgpackHandle{}
 
@@ -231,6 +238,17 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
 	switch req.Op {
+	case structs.ACLBootstrapInit:
+		enabled, err := c.state.ACLBootstrapInit(index)
+		if err != nil {
+			return err
+		}
+		return enabled
+	case structs.ACLBootstrapNow:
+		if err := c.state.ACLBootstrap(index, &req.ACL); err != nil {
+			return err
+		}
+		return &req.ACL
 	case structs.ACLForceSet, structs.ACLSet:
 		if err := c.state.ACLSet(index, &req.ACL); err != nil {
 			return err
@@ -420,6 +438,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 			if err := restore.ACL(&req); err != nil {
+				return err
+			}
+
+		case structs.ACLBootstrapRequestType:
+			var req structs.ACLBootstrap
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.ACLBootstrap(&req); err != nil {
 				return err
 			}
 
@@ -623,6 +650,18 @@ func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 			return err
 		}
 	}
+
+	bs, err := s.state.ACLBootstrap()
+	if err != nil {
+		return err
+	}
+	if bs != nil {
+		sink.Write([]byte{byte(structs.ACLBootstrapRequestType)})
+		if err := encoder.Encode(bs); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

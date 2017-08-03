@@ -846,3 +846,70 @@ func TestLeader_ChangeServerID(t *testing.T) {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 }
+
+func TestLeader_ACL_Initialization(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		build     string
+		master    string
+		init      bool
+		bootstrap bool
+	}{
+		{"old version, no master", "0.8.0", "", false, false},
+		{"old version, master", "0.8.0", "root", false, false},
+		{"new version, no master", "0.9.1", "", true, true},
+		{"new version, master", "0.9.1", "root", true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conf := func(c *Config) {
+				c.Build = tt.build
+				c.Bootstrap = true
+				c.Datacenter = "dc1"
+				c.ACLDatacenter = "dc1"
+				c.ACLMasterToken = tt.master
+			}
+			dir1, s1 := testServerWithConfig(t, conf)
+			defer os.RemoveAll(dir1)
+			defer s1.Shutdown()
+			testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+			if tt.master != "" {
+				_, master, err := s1.fsm.State().ACLGet(nil, tt.master)
+				if err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				if master == nil {
+					t.Fatalf("master token wasn't created")
+				}
+			}
+
+			_, anon, err := s1.fsm.State().ACLGet(nil, anonymousToken)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if anon == nil {
+				t.Fatalf("anonymous token wasn't created")
+			}
+
+			bs, err := s1.fsm.State().ACLGetBootstrap()
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if !tt.init {
+				if bs != nil {
+					t.Fatalf("bootstrap should not be initialized")
+				}
+			} else {
+				if bs == nil {
+					t.Fatalf("bootstrap should be initialized")
+				}
+				if got, want := bs.AllowBootstrap, tt.bootstrap; got != want {
+					t.Fatalf("got %v want %v", got, want)
+				}
+			}
+		})
+	}
+}

@@ -660,12 +660,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
 	}
-	if a.config.ACLToken != "" {
-		base.ACLToken = a.config.ACLToken
-	}
-	if a.config.ACLAgentToken != "" {
-		base.ACLAgentToken = a.config.ACLAgentToken
-	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
 	}

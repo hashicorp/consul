@@ -4,6 +4,13 @@ import (
 	"testing"
 )
 
+func TestAPI_ACLBootstrap(t *testing.T) {
+	// TODO (slackpad) We currently can't inject the version, and the
+	// version in the binary depends on Git tags, so we can't reliably
+	// test this until we are just running an agent in-process here and
+	// have full control over the config.
+}
+
 func TestAPI_ACLCreateDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
