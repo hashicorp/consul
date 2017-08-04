@@ -12,14 +12,14 @@ IMPROVEMENTS:
 * docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
 * docs: Added a new [Consul with Containers Guide](https://www.consul.io/docs/guides/consul-containers.html) showing critical aspects of operating a Consul cluster that's run inside containers. [GH-3347]
 * server: Added a `RemoveEmptyTags` option to prepared query templates which will strip out any empty strings in the tags list before executing a query. This is useful when interpolating into tags in a way where the tag is optional, and where searching for an empty tag would yield no results from the query. [GH-2151]
-* server: Implemented a much faster recursive delete algorithm for the KV store. It has been bench-marked to be up to 100X faster on recursive deletes that affect millions of keys. [GH-1278, GH-3313]
+* server: Implemented a much faster recursive delete algorithm for the KV store. It has been benchmarked to be up to 100X faster on recursive deletes that affect millions of keys. [GH-1278, GH-3313]
 
 BUG FIXES:
 
 * agent: Clean up temporary files during disk write errors when persisting services and checks. [GH-3207]
-* agent: Fixed an issue where dns and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
+* agent: Fixed an issue where DNS and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
 * agent: Fixed status code on all KV store operations that fail due to an ACL issue. They now return a 403 status code, rather than a 404. [GH-2637]
-* agent: Fixed quoting issues in script health check on windows. [GH-1875]
+* agent: Fixed quoting issues in script health check on Windows. [GH-1875]
 
 ## 0.9.0 (July 20, 2017)
 
