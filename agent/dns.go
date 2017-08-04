@@ -137,7 +137,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(d.domain, m)
+		d.addSOA(m)
 	}
 
 	datacenter := d.agent.config.Datacenter
@@ -210,13 +210,40 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
-	// Only add the SOA if requested
-	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(d.domain, m)
-	}
+	switch req.Question[0].Qtype {
+	case dns.TypeSOA:
+		ns, glue := d.nameservers()
+		m.Answer = append(m.Answer, d.soa())
+		m.Ns = append(m.Ns, ns...)
+		m.Extra = append(m.Extra, glue...)
 
-	// Dispatch the correct handler
-	d.dispatch(network, req, m)
+		// add CNAMEs for "ns.<domain>" to the Extra
+		// section to make the MNAME entry in the SOA
+		// record resolvable
+		for _, rr := range ns {
+			cname := &dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "ns." + d.domain,
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(d.config.NodeTTL / time.Second),
+				},
+				Target: rr.(*dns.NS).Ns,
+			}
+			m.Extra = append(m.Extra, cname)
+		}
+
+		m.SetRcode(req, dns.RcodeSuccess)
+
+	case dns.TypeNS:
+		ns, glue := d.nameservers()
+		m.Answer = ns
+		m.Extra = glue
+		m.SetRcode(req, dns.RcodeSuccess)
+
+	default:
+		d.dispatch(network, req, m)
+	}
 
 	// Handle EDNS
 	if edns := req.IsEdns0(); edns != nil {
@@ -229,24 +256,89 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-// addSOA is used to add an SOA record to a message for the given domain
-func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
-	soa := &dns.SOA{
+func (d *DNSServer) soa() *dns.SOA {
+	return &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name:   domain,
+			Name:   d.domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			Ttl:    0,
 		},
-		Ns:      "ns." + domain,
-		Mbox:    "postmaster." + domain,
-		Serial:  uint32(time.Now().Unix()),
+		Ns:     "ns." + d.domain,
+		Serial: uint32(time.Now().Unix()),
+
+		// todo(fs): make these configurable
+		Mbox:    "postmaster." + d.domain,
 		Refresh: 3600,
 		Retry:   600,
 		Expire:  86400,
 		Minttl:  0,
 	}
-	msg.Ns = append(msg.Ns, soa)
+}
+
+// addSOA is used to add an SOA record to a message for the given domain
+func (d *DNSServer) addSOA(msg *dns.Msg) {
+	msg.Ns = append(msg.Ns, d.soa())
+}
+
+// nameservers returns the names and ip addresses of up to three random servers
+// in the current cluster which serve as authoritative name servers for zone.
+func (d *DNSServer) nameservers() (ns []dns.RR, extra []dns.RR) {
+	// get server names and store them in a map to randomize the output
+	servers := map[string]net.IP{}
+	for name, addr := range d.agent.delegate.ServerAddrs() {
+		ip := net.ParseIP(strings.Split(addr, ":")[0])
+		if ip == nil {
+			continue
+		}
+
+		// name is "name.dc" and domain is "consul."
+		// we want "name.node.dc.consul."
+		lastdot := strings.LastIndexByte(name, '.')
+		fqdn := name[:lastdot] + ".node" + name[lastdot:] + "." + d.domain
+
+		// create a consistent, unique and sanitized name for the server
+		fqdn = dns.Fqdn(strings.ToLower(fqdn))
+
+		servers[fqdn] = ip
+	}
+
+	if len(servers) == 0 {
+		return
+	}
+
+	for name, ip := range servers {
+		// the name server record
+		nsrr := &dns.NS{
+			Hdr: dns.RR_Header{
+				Name:   d.domain,
+				Rrtype: dns.TypeNS,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			Ns: name,
+		}
+		ns = append(ns, nsrr)
+
+		// the glue record providing the ip address
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
+			},
+			A: ip,
+		}
+		extra = append(extra, a)
+
+		// don't provide more than 3 servers
+		if len(ns) >= 3 {
+			return
+		}
+	}
+
+	return
 }
 
 // dispatch is used to parse a request and invoke the correct handler
@@ -375,8 +467,7 @@ PARSE:
 	return
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
-	d.addSOA(d.domain, resp)
-	d.addAuthority(resp)
+	d.addSOA(resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
@@ -418,8 +509,7 @@ RPC:
 
 	// If we have no address, return not found!
 	if out.NodeServices == nil {
-		d.addSOA(d.domain, resp)
-		d.addAuthority(resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -433,9 +523,6 @@ RPC:
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
-
-	// Add NS record and A record
-	d.addAuthority(resp)
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
@@ -649,8 +736,7 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(d.domain, resp)
-		d.addAuthority(resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -666,9 +752,6 @@ RPC:
 		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
-	// Add NS and A records
-	d.addAuthority(resp)
-
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
 		wasTrimmed := trimUDPResponse(d.config, req, resp)
@@ -681,43 +764,8 @@ RPC:
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		return
-	}
-}
-
-// addAuthority adds NS records and corresponding A records with the IP addresses of servers
-func (d *DNSServer) addAuthority(msg *dns.Msg) {
-	serverAddrs := d.agent.delegate.ServerAddrs()
-	for name, addr := range serverAddrs {
-		ipAddrStr := strings.Split(addr, ":")[0]
-		sanitizedName := InvalidDnsRe.ReplaceAllString(name, "-") // does some basic sanitization of the name
-		nsName := "server-" + sanitizedName + "." + d.domain
-		ip := net.ParseIP(ipAddrStr)
-		if ip != nil {
-			ns := &dns.NS{
-				Hdr: dns.RR_Header{
-					Name:   d.domain,
-					Rrtype: dns.TypeNS,
-					Class:  dns.ClassINET,
-					Ttl:    0,
-				},
-				Ns: nsName,
-			}
-			msg.Ns = append(msg.Ns, ns)
-
-			// add an A record for the NS record
-			a := &dns.A{
-				Hdr: dns.RR_Header{
-					Name:   nsName,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(d.config.NodeTTL / time.Second),
-				},
-				A: ip,
-			}
-			msg.Extra = append(msg.Extra, a)
-		}
 	}
 }
 
@@ -757,8 +805,7 @@ RPC:
 		// not a full on server error. We have to use a string compare
 		// here since the RPC layer loses the type information.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
-			d.addSOA(d.domain, resp)
-			d.addAuthority(resp)
+			d.addSOA(resp)
 			resp.SetRcode(req, dns.RcodeNameError)
 			return
 		}
@@ -800,8 +847,7 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(d.domain, resp)
-		d.addAuthority(resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -826,8 +872,7 @@ RPC:
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addAuthority(resp)
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		return
 	}
 }
