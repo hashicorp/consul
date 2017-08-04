@@ -299,34 +299,42 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16) (r record
 
 	offset := 0
 	if qtype == dns.TypeSRV {
-		if len(segs) != 5 {
-			return r, errInvalidRequest
-		}
-		// This is a SRV style request, get first two elements as port and
-		// protocol, stripping leading underscores if present.
-		if segs[0][0] == '_' {
-			r.port = segs[0][1:]
+		// The kubernetes peer-finder expects queries with empty port and service to resolve
+		// If neither is specified, treat it as a wildcard
+		if len(segs) == 3 {
+			r.port = "*"
+			r.service = "*"
+			offset = 0
 		} else {
-			r.port = segs[0]
-			if !symbolContainsWildcard(r.port) {
+			if len(segs) != 5 {
 				return r, errInvalidRequest
 			}
-		}
-		if segs[1][0] == '_' {
-			r.protocol = segs[1][1:]
-			if r.protocol != "tcp" && r.protocol != "udp" {
+			// This is a SRV style request, get first two elements as port and
+			// protocol, stripping leading underscores if present.
+			if segs[0][0] == '_' {
+				r.port = segs[0][1:]
+			} else {
+				r.port = segs[0]
+				if !symbolContainsWildcard(r.port) {
+					return r, errInvalidRequest
+				}
+			}
+			if segs[1][0] == '_' {
+				r.protocol = segs[1][1:]
+				if r.protocol != "tcp" && r.protocol != "udp" {
+					return r, errInvalidRequest
+				}
+			} else {
+				r.protocol = segs[1]
+				if !symbolContainsWildcard(r.protocol) {
+					return r, errInvalidRequest
+				}
+			}
+			if r.port == "" || r.protocol == "" {
 				return r, errInvalidRequest
 			}
-		} else {
-			r.protocol = segs[1]
-			if !symbolContainsWildcard(r.protocol) {
-				return r, errInvalidRequest
-			}
+			offset = 2
 		}
-		if r.port == "" || r.protocol == "" {
-			return r, errInvalidRequest
-		}
-		offset = 2
 	}
 	if (qtype == dns.TypeA || qtype == dns.TypeAAAA) && len(segs) == 4 {
 		// This is an endpoint A/AAAA record request. Get first element as endpoint.

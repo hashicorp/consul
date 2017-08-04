@@ -227,7 +227,6 @@ func TestParseRequest(t *testing.T) {
 	}
 
 	invalidSRVQueries := []string{
-		"webs.mynamespace.svc.inter.webs.test.",            // SRV requests must have port and protocol
 		"_http._pcp.webs.mynamespace.svc.inter.webs.test.", // SRV protocol must be tcp or udp
 		"_http._tcp.ep.webs.ns.svc.inter.webs.test.",       // SRV requests cannot have an endpoint
 		"_*._*.webs.mynamespace.svc.inter.webs.test.",      // SRV request with invalid wildcards
