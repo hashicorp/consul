@@ -13,10 +13,6 @@ type Federation struct {
 	zone string
 }
 
-var localNodeName string
-var federationZone string
-var federationRegion string
-
 const (
 	// TODO: Do not hardcode these labels. Pull them out of the API instead.
 	//
@@ -80,21 +76,18 @@ func (k *Kubernetes) federationCNAMERecord(r recordRequest) msg.Service {
 }
 
 func (k *Kubernetes) localNodeName() string {
-	if localNodeName != "" {
-		return localNodeName
-	}
-	localIP := k.localPodIP()
+	localIP := k.interfaceAddrsFunc()
 	if localIP == nil {
 		return ""
 	}
+
 	// Find endpoint matching localIP
 	endpointsList := k.APIConn.EndpointsList()
 	for _, ep := range endpointsList.Items {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {
-					localNodeName = *addr.NodeName
-					return localNodeName
+					return *addr.NodeName
 				}
 			}
 		}

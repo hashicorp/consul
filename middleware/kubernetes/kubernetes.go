@@ -46,7 +46,7 @@ type Kubernetes struct {
 	ReverseCidrs  []net.IPNet
 	Fallthrough   bool
 	AutoPath
-	interfaceAddrs interfaceAddrser
+	interfaceAddrsFunc func() net.IP
 }
 
 type AutoPath struct {
@@ -97,8 +97,6 @@ type recordRequest struct {
 	zone       string
 	federation string
 }
-
-var localPodIP net.IP
 
 var (
 	errNoItems           = errors.New("no items found")
@@ -651,11 +649,11 @@ func symbolContainsWildcard(symbol string) bool {
 	return (symbol == "*" || symbol == "any")
 }
 
-func (k *Kubernetes) localPodIP() net.IP {
-	if localPodIP != nil {
-		return localPodIP
+func localPodIP() net.IP {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
 	}
-	addrs, _ := k.interfaceAddrs.interfaceAddrs()
 
 	for _, addr := range addrs {
 		ip, _, _ := net.ParseCIDR(addr.String())
@@ -663,8 +661,7 @@ func (k *Kubernetes) localPodIP() net.IP {
 		if ip == nil || ip.IsLoopback() {
 			continue
 		}
-		localPodIP = ip
-		return localPodIP
+		return ip
 	}
 	return nil
 }

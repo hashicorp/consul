@@ -269,7 +269,7 @@ func TestServeDNS(t *testing.T) {
 	k.APIConn = &APIConnServeTest{}
 	k.AutoPath.Enabled = true
 	k.AutoPath.HostSearchPath = []string{"hostdom.test"}
-	//k.Proxy = test.MockHandler(nextMWMap)
+	k.interfaceAddrsFunc = localPodIP
 	k.Next = testHandler(nextMWMap)
 
 	ctx := context.TODO()

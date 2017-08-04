@@ -56,10 +56,10 @@ func setup(c *caddy.Controller) error {
 
 func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 	k8s := &Kubernetes{
-		ResyncPeriod:   defaultResyncPeriod,
-		interfaceAddrs: &interfaceAddrs{},
-		PodMode:        PodModeDisabled,
-		Proxy:          proxy.Proxy{},
+		ResyncPeriod:       defaultResyncPeriod,
+		interfaceAddrsFunc: localPodIP,
+		PodMode:            PodModeDisabled,
+		Proxy:              proxy.Proxy{},
 	}
 
 	for c.Next() {

@@ -88,11 +88,9 @@ func TestFederationCNAMERecord(t *testing.T) {
 	k := Kubernetes{Zones: []string{"inter.webs"}}
 	k.Federations = []Federation{{name: "fed", zone: "era.tion.com"}}
 	k.APIConn = apiConnFedTest{}
+	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("10.9.8.7") }
 
-	var r recordRequest
-
-	r, _ = k.parseRequest("s1.ns.fed.svc.inter.webs", dns.TypeA)
-	localPodIP = net.ParseIP("10.9.8.7")
+	r, _ := k.parseRequest("s1.ns.fed.svc.inter.webs", dns.TypeA)
 	testFederationCNAMERecord(t, k, r, msg.Service{Key: "/coredns/webs/inter/svc/fed/ns/s1", Host: "s1.ns.fed.svc.fd-az.fd-r.era.tion.com"})
 
 	r, _ = k.parseRequest("ep1.s1.ns.fed.svc.inter.webs", dns.TypeA)
@@ -100,5 +98,4 @@ func TestFederationCNAMERecord(t *testing.T) {
 
 	r, _ = k.parseRequest("ep1.s1.ns.foo.svc.inter.webs", dns.TypeA)
 	testFederationCNAMERecord(t, k, r, msg.Service{Key: "", Host: ""})
-
 }

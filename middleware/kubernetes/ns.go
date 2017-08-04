@@ -41,25 +41,15 @@ func isDefaultNS(name string, r recordRequest) bool {
 }
 
 func (k *Kubernetes) coreDNSRecord() dns.A {
-	var localIP net.IP
-	var svcName string
-	var svcNamespace string
-	var dnsIP net.IP
+	var (
+		svcName      string
+		svcNamespace string
+		dnsIP        net.IP
+	)
 
 	if len(corednsRecord.Hdr.Name) == 0 || corednsRecord.A == nil {
 		// get local Pod IP
-		addrs, _ := k.interfaceAddrs.interfaceAddrs()
-
-		for _, addr := range addrs {
-			ip, _, _ := net.ParseCIDR(addr.String())
-			ip = ip.To4()
-
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			localIP = ip
-			break
-		}
+		localIP := k.interfaceAddrsFunc()
 		// Find endpoint matching IP to get service and namespace
 		endpointsList := k.APIConn.EndpointsList()
 

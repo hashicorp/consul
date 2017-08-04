@@ -432,6 +432,7 @@ func TestServices(t *testing.T) {
 
 	k := Kubernetes{Zones: []string{"interwebs.test"}}
 	k.Federations = []Federation{{name: "fed", zone: "era.tion.com"}}
+	k.interfaceAddrsFunc = localPodIP
 	k.APIConn = &APIConnServiceTest{}
 
 	type svcAns struct {
