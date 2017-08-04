@@ -885,7 +885,7 @@ func TestDNS_NSRecords(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	cfg.Domain = "CONSUL."
-	cfg.NodeName = "foo"
+	cfg.NodeName = "server1"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -922,11 +922,26 @@ func TestDNS_NSRecords(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if nsRec.Ns != "foo.node.dc1.consul." {
+	if nsRec.Ns != "server1.node.dc1.consul." {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 	if nsRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	if len(in.Extra) != 1 {
+		t.Fatalf("Bad: %#v", in.Extra)
+	}
+
+	aRec, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra)
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Extra)
+	}
+	if aRec.Hdr.Name != "server1.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", in.Extra)
 	}
 
 }
