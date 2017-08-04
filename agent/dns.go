@@ -236,9 +236,9 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
-		ns, glue := d.nameservers()
+		ns, _ := d.nameservers()
 		m.Answer = ns
-		m.Extra = glue
+		// no need to send A records with the IP address, since the ns record is a node name that resolves correctly
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	default:
@@ -295,7 +295,12 @@ func (d *DNSServer) nameservers() (ns []dns.RR, extra []dns.RR) {
 		// name is "name.dc" and domain is "consul."
 		// we want "name.node.dc.consul."
 		lastdot := strings.LastIndexByte(name, '.')
-		fqdn := name[:lastdot] + ".node" + name[lastdot:] + "." + d.domain
+		nodeName := name[:lastdot]
+		if InvalidDnsRe.MatchString(nodeName) {
+			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
+			continue
+		}
+		fqdn := nodeName + ".node" + name[lastdot:] + "." + d.domain
 
 		// create a consistent, unique and sanitized name for the server
 		fqdn = dns.Fqdn(strings.ToLower(fqdn))
