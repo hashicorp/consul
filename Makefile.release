@@ -42,7 +42,7 @@ DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 all:
 	@echo Use the 'release' target to start a release
 
-release:	commit push build tar upload
+release:	generate commit push build tar upload
 
 docker: docker-build docker-upload
 
@@ -55,6 +55,10 @@ push:
 commit:
 	@echo Committing
 	git commit -am"Release $(VERSION)"
+
+.PHONY: generate
+generate: 
+	go generate
 
 .PHONY: build
 build: build-arm build-darwin build-linux
