@@ -419,9 +419,9 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 					Port: int(ep.port.Port),
 				}
 				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, "svc", r.federation, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
 				} else {
-					s.Key = strings.Join([]string{zonePath, "svc", svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
 				}
 				records = append(records, s)
 			}
@@ -433,22 +433,22 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 					Port: int(p.Port)}
 
 				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, "svc", r.federation, svc.namespace, svc.name}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
 				} else {
-					s.Key = strings.Join([]string{zonePath, "svc", svc.namespace, svc.name}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
 				}
 
 				records = append(records, s)
 			}
 			// If the addr is not an IP (i.e. an external service), add the record ...
 			s := msg.Service{
-				Key:  strings.Join([]string{zonePath, "svc", svc.namespace, svc.name}, "/"),
+				Key:  strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/"),
 				Host: svc.addr}
 			if t, _ := s.HostType(); t == dns.TypeCNAME {
 				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, "svc", r.federation, svc.namespace, svc.name}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
 				} else {
-					s.Key = strings.Join([]string{zonePath, "svc", svc.namespace, svc.name}, "/")
+					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
 				}
 				records = append(records, s)
 			}
@@ -458,7 +458,7 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 
 	for _, p := range pods {
 		s := msg.Service{
-			Key:  strings.Join([]string{zonePath, "pod", p.namespace, p.name}, "/"),
+			Key:  strings.Join([]string{zonePath, Pod, p.namespace, p.name}, "/"),
 			Host: p.addr,
 		}
 		records = append(records, s)
@@ -533,7 +533,7 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error)
 // get retrieves matching data from the cache.
 func (k *Kubernetes) get(r recordRequest) (services []service, pods []pod, err error) {
 	switch {
-	case r.typeName == "pod":
+	case r.typeName == Pod:
 		pods, err = k.findPods(r.namespace, r.service)
 		return nil, pods, err
 	default:
@@ -630,7 +630,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 			continue
 		}
 		if service.Spec.ClusterIP == ip {
-			domain := strings.Join([]string{service.Name, service.Namespace, "svc", k.PrimaryZone()}, ".")
+			domain := strings.Join([]string{service.Name, service.Namespace, Svc, k.PrimaryZone()}, ".")
 			return []msg.Service{{Host: domain}}
 		}
 	}
@@ -643,7 +643,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, "svc", k.PrimaryZone()}, ".")
+					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.PrimaryZone()}, ".")
 					return []msg.Service{{Host: domain}}
 				}
 			}
@@ -675,9 +675,14 @@ func localPodIP() net.IP {
 }
 
 func splitSearch(zone, question, namespace string) (name, search string, ok bool) {
-	search = strings.Join([]string{namespace, "svc", zone}, ".")
+	search = strings.Join([]string{namespace, Svc, zone}, ".")
 	if dns.IsSubDomain(search, question) {
 		return question[:len(question)-len(search)-1], search, true
 	}
 	return "", "", false
 }
+
+const (
+	Svc = "svc"
+	Pod = "pod"
+)

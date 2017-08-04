@@ -128,7 +128,7 @@ func TestParseRequest(t *testing.T) {
 		"endpoint":  "",
 		"service":   "webs",
 		"namespace": "mynamespace",
-		"typeName":  "svc",
+		"typeName":  Svc,
 		"zone":      "inter.webs.test",
 	}
 	for field, expected := range tcs {
@@ -149,7 +149,7 @@ func TestParseRequest(t *testing.T) {
 		"endpoint":  "",
 		"service":   "*",
 		"namespace": "any",
-		"typeName":  "svc",
+		"typeName":  Svc,
 		"zone":      "inter.webs.test",
 	}
 	for field, expected := range tcs {
@@ -168,7 +168,7 @@ func TestParseRequest(t *testing.T) {
 		"endpoint":  "1-2-3-4",
 		"service":   "webs",
 		"namespace": "mynamespace",
-		"typeName":  "svc",
+		"typeName":  Svc,
 		"zone":      "inter.webs.test",
 	}
 	for field, expected := range tcs {

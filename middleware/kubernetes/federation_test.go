@@ -25,8 +25,8 @@ func TestStripFederation(t *testing.T) {
 	k := Kubernetes{Zones: []string{"inter.webs.test"}}
 	k.Federations = []Federation{{name: "fed", zone: "era.tion.com"}}
 
-	testStripFederation(t, k, []string{"service", "ns", "fed", "svc"}, "fed", "service.ns.svc")
-	testStripFederation(t, k, []string{"service", "ns", "foo", "svc"}, "", "service.ns.foo.svc")
+	testStripFederation(t, k, []string{"service", "ns", "fed", Svc}, "fed", "service.ns.svc")
+	testStripFederation(t, k, []string{"service", "ns", "foo", Svc}, "", "service.ns.foo.svc")
 	testStripFederation(t, k, []string{"foo", "bar"}, "", "foo.bar")
 
 }
