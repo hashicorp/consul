@@ -14,16 +14,6 @@ const defaultNSName = "ns.dns."
 
 var corednsRecord dns.A
 
-type interfaceAddrser interface {
-	interfaceAddrs() ([]net.Addr, error)
-}
-
-type interfaceAddrs struct{}
-
-func (i interfaceAddrs) interfaceAddrs() ([]net.Addr, error) {
-	return net.InterfaceAddrs()
-}
-
 // DefaultNSMsg returns an msg.Service representing an A record for
 // ns.dns.[zone] -> dns service ip. This A record is needed to legitimize
 // the SOA response in middleware.NS(), which is hardcoded at ns.dns.[zone].
