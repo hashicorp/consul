@@ -41,7 +41,7 @@ func main() {
 			log.Fatalf("Duplicate priority '%d', slot already taken by %q", priority, v)
 		}
 		md[priority] = items[1]
-		mi[items[1]] = middlewarePath + items[2] // Default, unless overriden by 3rd arg
+		mi[items[1]] = middlewarePath + items[2] // Default, unless overridden by 3rd arg
 
 		if _, err := os.Stat(middlewareFSPath + items[2]); err != nil { // External package has been given
 			mi[items[1]] = items[2]

@@ -39,7 +39,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 		}
 	}()
 
-	// If z is a secondary zone we might not have transfered it, meaning we have
+	// If z is a secondary zone we might not have transferred it, meaning we have
 	// all zone context setup, except the actual record. This means (for one thing) the apex
 	// is empty and we don't have a SOA record.
 	soa := z.Apex.SOA

@@ -43,7 +43,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 
 		if c.prefetch > 0 && i.Freq.Hits() > c.prefetch && pct < c.percentage {
 			// When prefetching we loose the item i, and with it the frequency
-			// that we've gathered sofar. See we copy the frequence info back
+			// that we've gathered sofar. See we copy the frequencies info back
 			// into the new item that was stored in the cache.
 			prr := &ResponseWriter{ResponseWriter: w, Cache: c, prefetch: true}
 			middleware.NextOrFailure(c.Name(), c.Next, ctx, prr, r)

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Freq tracks the frequence of things.
+// Freq tracks the frequencies of things.
 type Freq struct {
 	// Last time we saw a query for this element.
 	last time.Time

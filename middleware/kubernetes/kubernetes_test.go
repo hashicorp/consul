@@ -71,7 +71,7 @@ func TestIsNameError(t *testing.T) {
 	if !k.IsNameError(errInvalidRequest) {
 		t.Errorf("Expected 'true' for '%v'", errInvalidRequest)
 	}
-	otherErr := errors.New("Some other error occured")
+	otherErr := errors.New("Some other error occurred")
 	if k.IsNameError(otherErr) {
 		t.Errorf("Expected 'true' for '%v'", otherErr)
 	}
