@@ -102,6 +102,8 @@ func (s *ServergRPC) OnStartupComplete() {
 	}
 }
 
+// Stop stops the server. It blocks until the server is
+// totally stopped.
 func (s *ServergRPC) Stop() (err error) {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -144,6 +146,7 @@ func (s *ServergRPC) Query(ctx context.Context, in *pb.DnsPacket) (*pb.DnsPacket
 	return &pb.DnsPacket{Msg: packed}, nil
 }
 
+// Shutdown stops the server (non gracefully).
 func (s *ServergRPC) Shutdown() error {
 	if s.grpcServer != nil {
 		s.grpcServer.Stop()

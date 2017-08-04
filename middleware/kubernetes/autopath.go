@@ -14,7 +14,6 @@ import "github.com/miekg/dns"
 //   is NXDOMAIN (NameError).  This is needed to support the AutoPath.OnNXDOMAIN
 //   function, which returns a NOERROR to client instead of NXDOMAIN if the final
 //   search in the path fails to produce results.
-
 type AutoPathWriter struct {
 	dns.ResponseWriter
 	original dns.Question

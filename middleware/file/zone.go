@@ -56,6 +56,7 @@ func NewZone(name, file string) *Zone {
 	return z
 }
 
+// Copy copies a zone.
 func (z *Zone) Copy() *Zone {
 	z1 := NewZone(z.origin, z.file)
 	z1.TransferTo = z.TransferTo

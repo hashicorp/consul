@@ -9,24 +9,23 @@ import (
 	"github.com/miekg/dns"
 )
 
-// serverTLS represents an instance of a TLS-over-DNS-server.
-type serverTLS struct {
+// ServerTLS represents an instance of a TLS-over-DNS-server.
+type ServerTLS struct {
 	*Server
 }
 
 // NewServerTLS returns a new CoreDNS TLS server and compiles all middleware in to it.
-func NewServerTLS(addr string, group []*Config) (*serverTLS, error) {
-
+func NewServerTLS(addr string, group []*Config) (*ServerTLS, error) {
 	s, err := NewServer(addr, group)
 	if err != nil {
 		return nil, err
 	}
 
-	return &serverTLS{Server: s}, nil
+	return &ServerTLS{Server: s}, nil
 }
 
 // Serve implements caddy.TCPServer interface.
-func (s *serverTLS) Serve(l net.Listener) error {
+func (s *ServerTLS) Serve(l net.Listener) error {
 	s.m.Lock()
 
 	// Only fill out the TCP server for this one.
@@ -40,10 +39,10 @@ func (s *serverTLS) Serve(l net.Listener) error {
 }
 
 // ServePacket implements caddy.UDPServer interface.
-func (s *serverTLS) ServePacket(p net.PacketConn) error { return nil }
+func (s *ServerTLS) ServePacket(p net.PacketConn) error { return nil }
 
 // Listen implements caddy.TCPServer interface.
-func (s *serverTLS) Listen() (net.Listener, error) {
+func (s *ServerTLS) Listen() (net.Listener, error) {
 	// The *tls* middleware must make sure that multiple conflicting
 	// TLS configuration return an error: it can only be specified once.
 	tlsConfig := new(tls.Config)
@@ -70,11 +69,11 @@ func (s *serverTLS) Listen() (net.Listener, error) {
 }
 
 // ListenPacket implements caddy.UDPServer interface.
-func (s *serverTLS) ListenPacket() (net.PacketConn, error) { return nil, nil }
+func (s *ServerTLS) ListenPacket() (net.PacketConn, error) { return nil, nil }
 
 // OnStartupComplete lists the sites served by this server
 // and any relevant information, assuming Quiet is false.
-func (s *serverTLS) OnStartupComplete() {
+func (s *ServerTLS) OnStartupComplete() {
 	if Quiet {
 		return
 	}

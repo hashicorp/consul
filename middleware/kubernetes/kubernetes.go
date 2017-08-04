@@ -49,6 +49,7 @@ type Kubernetes struct {
 	interfaceAddrsFunc func() net.IP
 }
 
+// AutoPath enables server side search path lookups for pods
 type AutoPath struct {
 	Enabled        bool
 	NDots          int
@@ -683,6 +684,8 @@ func splitSearch(zone, question, namespace string) (name, search string, ok bool
 }
 
 const (
+	// Svc is the DNS schema for kubernetes services
 	Svc = "svc"
+	// Pod is the DNS schema for kubernetes pods
 	Pod = "pod"
 )

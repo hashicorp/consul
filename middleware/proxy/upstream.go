@@ -273,7 +273,7 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 // otherwise checks will back up, potentially a lot of them if a host is
 // absent for a long time.  This arrangement makes checks quickly see if
 // they are the only one running and abort otherwise.
-func healthCheckUrl(nextTs time.Time, host *UpstreamHost) {
+func healthCheckURL(nextTs time.Time, host *UpstreamHost) {
 
 	// lock for our bool check.  We don't just defer the unlock because
 	// we don't want the lock held while http.Get runs
@@ -294,7 +294,7 @@ func healthCheckUrl(nextTs time.Time, host *UpstreamHost) {
 	// when the remote host is not merely not serving, but actually
 	// absent, then tcp syn timeouts can be very long, and so one
 	// fetch could last several check intervals
-	if r, err := http.Get(host.CheckUrl); err == nil {
+	if r, err := http.Get(host.CheckURL); err == nil {
 		io.Copy(ioutil.Discard, r.Body)
 		r.Body.Close()
 
@@ -317,7 +317,7 @@ func healthCheckUrl(nextTs time.Time, host *UpstreamHost) {
 func (u *staticUpstream) healthCheck() {
 	for _, host := range u.Hosts {
 
-		if host.CheckUrl == "" {
+		if host.CheckURL == "" {
 			var hostName, checkPort string
 
 			// The DNS server might be an HTTP server.  If so, extract its name.
@@ -338,14 +338,14 @@ func (u *staticUpstream) healthCheck() {
 				checkPort = u.HealthCheck.Port
 			}
 
-			host.CheckUrl = "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
+			host.CheckURL = "http://" + net.JoinHostPort(checkHostName, checkPort) + u.HealthCheck.Path
 		}
 
 		// calculate this before the get
 		nextTs := time.Now().Add(u.Future)
 
 		// locks/bools should prevent requests backing up
-		go healthCheckUrl(nextTs, host)
+		go healthCheckURL(nextTs, host)
 	}
 }
 
