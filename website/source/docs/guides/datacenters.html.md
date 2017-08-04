@@ -16,6 +16,15 @@ failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
+In general, data is not replicated between different Consul datacenters. When a
+request is made for a resource in another datacenter, the local Consul servers forward
+an RPC request to the remote Consul servers for that resource and return the results.
+If the remote datacenter is not available, then those resources will also not be
+available, but that won't otherwise affect the local datacenter. There are some special
+situations where a limited subset of data can be replicated, such as with Consul's built-in
+[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
+
 This guide covers the basic form of federating Consul clusters using a single
 WAN gossip pool, interconnecting all Consul servers.
 [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 added support
