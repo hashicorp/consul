@@ -316,7 +316,7 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16) (r record
 				r.port = segs[0][1:]
 			} else {
 				r.port = segs[0]
-				if !symbolContainsWildcard(r.port) {
+				if !wildcard(r.port) {
 					return r, errInvalidRequest
 				}
 			}
@@ -327,7 +327,7 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16) (r record
 				}
 			} else {
 				r.protocol = segs[1]
-				if !symbolContainsWildcard(r.protocol) {
+				if !wildcard(r.protocol) {
 					return r, errInvalidRequest
 				}
 			}
@@ -372,7 +372,7 @@ func (k *Kubernetes) Entries(r recordRequest) ([]msg.Service, error) {
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
-	if (!symbolContainsWildcard(r.namespace)) && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(r.namespace, k.Namespaces)) {
+	if (!wildcard(r.namespace)) && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(r.namespace, k.Namespaces)) {
 		return nil, errNsNotExposed
 	}
 	services, pods, err := k.get(r)
@@ -426,34 +426,34 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 				}
 				records = append(records, s)
 			}
-		} else {
-			// Create records for each exposed port...
-			for _, p := range svc.ports {
-				s := msg.Service{
-					Host: svc.addr,
-					Port: int(p.Port)}
+			continue
+		}
 
-				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
-				} else {
-					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
-				}
-
-				records = append(records, s)
-			}
-			// If the addr is not an IP (i.e. an external service), add the record ...
+		// Create records for each exposed port...
+		for _, p := range svc.ports {
 			s := msg.Service{
-				Key:  strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/"),
-				Host: svc.addr}
-			if t, _ := s.HostType(); t == dns.TypeCNAME {
-				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
-				} else {
-					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
-				}
-				records = append(records, s)
+				Host: svc.addr,
+				Port: int(p.Port)}
+
+			if r.federation != "" {
+				s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
+			} else {
+				s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
 			}
 
+			records = append(records, s)
+		}
+		// If the addr is not an IP (i.e. an external service), add the record ...
+		s := msg.Service{
+			Key:  strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/"),
+			Host: svc.addr}
+		if t, _ := s.HostType(); t == dns.TypeCNAME {
+			if r.federation != "" {
+				s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
+			} else {
+				s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
+			}
+			records = append(records, s)
 		}
 	}
 
@@ -511,7 +511,7 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error)
 	// PodModeVerified
 	objList := k.APIConn.PodIndex(ip)
 
-	nsWildcard := symbolContainsWildcard(namespace)
+	nsWildcard := wildcard(namespace)
 	for _, o := range objList {
 		p, ok := o.(*api.Pod)
 		if !ok {
@@ -522,7 +522,7 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error)
 			continue
 		}
 		// check for matching ip and namespace
-		if ip == p.Status.PodIP && symbolMatches(namespace, p.Namespace, nsWildcard) {
+		if ip == p.Status.PodIP && match(namespace, p.Namespace, nsWildcard) {
 			s := pod{name: podname, namespace: namespace, addr: ip}
 			pods = append(pods, s)
 			return pods, nil
@@ -547,13 +547,13 @@ func (k *Kubernetes) findServices(r recordRequest) ([]service, error) {
 	serviceList := k.APIConn.ServiceList()
 	var resultItems []service
 
-	nsWildcard := symbolContainsWildcard(r.namespace)
-	serviceWildcard := symbolContainsWildcard(r.service)
-	portWildcard := symbolContainsWildcard(r.port) || r.port == ""
-	protocolWildcard := symbolContainsWildcard(r.protocol) || r.protocol == ""
+	nsWildcard := wildcard(r.namespace)
+	serviceWildcard := wildcard(r.service)
+	portWildcard := wildcard(r.port) || r.port == ""
+	protocolWildcard := wildcard(r.protocol) || r.protocol == ""
 
 	for _, svc := range serviceList {
-		if !(symbolMatches(r.namespace, svc.Namespace, nsWildcard) && symbolMatches(r.service, svc.Name, serviceWildcard)) {
+		if !(match(r.namespace, svc.Namespace, nsWildcard) && match(r.service, svc.Name, serviceWildcard)) {
 			continue
 		}
 		// If namespace has a wildcard, filter results against Corefile namespace list.
@@ -578,7 +578,7 @@ func (k *Kubernetes) findServices(r recordRequest) ([]service, error) {
 							if r.endpoint != "" && r.endpoint != ephostname {
 								continue
 							}
-							if !(symbolMatches(r.port, strings.ToLower(p.Name), portWildcard) && symbolMatches(r.protocol, strings.ToLower(string(p.Protocol)), protocolWildcard)) {
+							if !(match(r.port, p.Name, portWildcard) && match(r.protocol, string(p.Protocol), protocolWildcard)) {
 								continue
 							}
 							s.endpoints = append(s.endpoints, endpoint{addr: addr, port: p})
@@ -602,7 +602,7 @@ func (k *Kubernetes) findServices(r recordRequest) ([]service, error) {
 		// ClusterIP service
 		s.addr = svc.Spec.ClusterIP
 		for _, p := range svc.Spec.Ports {
-			if !(symbolMatches(r.port, strings.ToLower(p.Name), portWildcard) && symbolMatches(r.protocol, strings.ToLower(string(p.Protocol)), protocolWildcard)) {
+			if !(match(r.port, p.Name, portWildcard) && match(r.protocol, string(p.Protocol), protocolWildcard)) {
 				continue
 			}
 			s.ports = append(s.ports, p)
@@ -613,11 +613,11 @@ func (k *Kubernetes) findServices(r recordRequest) ([]service, error) {
 	return resultItems, nil
 }
 
-func symbolMatches(queryString, candidateString string, wildcard bool) bool {
+func match(a, b string, wildcard bool) bool {
 	if wildcard {
 		return true
 	}
-	return queryString == candidateString
+	return strings.EqualFold(a, b)
 }
 
 // getServiceRecordForIP: Gets a service record with a cluster ip matching the ip argument
@@ -653,9 +653,9 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 	return nil
 }
 
-// symbolContainsWildcard checks whether symbol contains a wildcard value
-func symbolContainsWildcard(symbol string) bool {
-	return (symbol == "*" || symbol == "any")
+// wildcard checks whether s contains a wildcard value
+func wildcard(s string) bool {
+	return (s == "*" || s == "any")
 }
 
 func localPodIP() net.IP {

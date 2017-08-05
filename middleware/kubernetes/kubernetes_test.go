@@ -78,9 +78,9 @@ func TestIsNameError(t *testing.T) {
 }
 
 func TestSymbolContainsWildcard(t *testing.T) {
-	var testdataSymbolContainsWildcard = []struct {
-		Symbol         string
-		ExpectedResult bool
+	var tests = []struct {
+		s        string
+		expected bool
 	}{
 		{"mynamespace", false},
 		{"*", true},
@@ -90,10 +90,10 @@ func TestSymbolContainsWildcard(t *testing.T) {
 		{"myname*", false},
 	}
 
-	for _, example := range testdataSymbolContainsWildcard {
-		actualResult := symbolContainsWildcard(example.Symbol)
-		if actualResult != example.ExpectedResult {
-			t.Errorf("Expected SymbolContainsWildcard result '%v' for example string='%v'. Instead got result '%v'.", example.ExpectedResult, example.Symbol, actualResult)
+	for _, te := range tests {
+		got := wildcard(te.s)
+		if got != te.expected {
+			t.Errorf("Expected Wildcard result '%v' for example '%v', got '%v'.", te.expected, te.s, got)
 		}
 	}
 }
