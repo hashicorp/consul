@@ -2,6 +2,7 @@ package file
 
 import (
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/miekg/dns"
@@ -146,6 +147,9 @@ Restart:
 			if !retryActive {
 				break
 			}
+
+			time.Sleep(jitter(2000)) // 2s randomize
+
 			ok, err := z.shouldTransfer()
 			if err != nil && ok {
 				if err := z.TransferIn(); err != nil {
@@ -161,6 +165,9 @@ Restart:
 			}
 
 		case <-refreshTicker.C:
+
+			time.Sleep(jitter(5000)) // 5s randomize
+
 			ok, err := z.shouldTransfer()
 			retryActive = err != nil
 			if err != nil && ok {
@@ -178,6 +185,13 @@ Restart:
 			}
 		}
 	}
+}
+
+// jitter returns a random duration between [0,n) * time.Millisecond
+func jitter(n int) time.Duration {
+	r := rand.Intn(n)
+	return time.Duration(r) * time.Millisecond
+
 }
 
 // MaxSerialIncrement is the maximum difference between two serial numbers. If the difference between
