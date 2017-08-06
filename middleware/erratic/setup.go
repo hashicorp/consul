@@ -65,7 +65,7 @@ func parseErratic(c *caddy.Controller) (*Erratic, error) {
 
 				// Defaults.
 				e.delay = 2
-				e.duration = time.Duration(100 * time.Millisecond)
+				e.duration = 100 * time.Millisecond
 				if len(args) == 0 {
 					continue
 				}

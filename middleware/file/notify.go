@@ -61,12 +61,12 @@ func notify(zone string, to []string) error {
 	return nil
 }
 
-func notifyAddr(c *dns.Client, m *dns.Msg, s string) (err error) {
-	ret := new(dns.Msg)
+func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
+	var err error
 
 	code := dns.RcodeServerFailure
 	for i := 0; i < 3; i++ {
-		ret, _, err = c.Exchange(m, s)
+		ret, _, err := c.Exchange(m, s)
 		if err != nil {
 			continue
 		}

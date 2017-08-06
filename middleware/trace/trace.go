@@ -56,10 +56,8 @@ func (t *trace) setupZipkin() error {
 
 	recorder := zipkin.NewRecorder(collector, false, t.ServiceEndpoint, t.serviceName)
 	t.tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // Name implements the Handler interface.

@@ -11,10 +11,12 @@ import (
 // Go get external example middleware, compile it into CoreDNS
 // and check if it is really there, but running coredns -plugins.
 
-func TestExternalMiddlewareCompile(t *testing.T) {
+// Dangerous test as it messes with your git tree, maybe use tag?
+func testExternalMiddlewareCompile(t *testing.T) {
 	if err := addExampleMiddleware(); err != nil {
 		t.Fatal(err)
 	}
+	defer run(t, gitReset)
 
 	if _, err := run(t, goGet); err != nil {
 		t.Fatal(err)
@@ -56,17 +58,15 @@ func addExampleMiddleware() error {
 	defer f.Close()
 
 	_, err = f.WriteString(example)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 var (
-	goBuild = exec.Command("go", "build")
-	goGen   = exec.Command("go", "generate")
-	goGet   = exec.Command("go", "get", "github.com/coredns/example")
-	coredns = exec.Command("./coredns", "-plugins")
+	goBuild  = exec.Command("go", "build")
+	goGen    = exec.Command("go", "generate")
+	goGet    = exec.Command("go", "get", "github.com/coredns/example")
+	gitReset = exec.Command("git", "checkout", "core/*")
+	coredns  = exec.Command("./coredns", "-plugins")
 )
 
 const example = "1001:example:github.com/coredns/example"

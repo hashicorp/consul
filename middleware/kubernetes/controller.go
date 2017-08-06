@@ -51,11 +51,10 @@ type dnsControl struct {
 
 	selector *labels.Selector
 
-	svcController  *cache.Controller
-	podController  *cache.Controller
-	nsController   *cache.Controller
-	epController   *cache.Controller
-	nodeController *cache.Controller
+	svcController *cache.Controller
+	podController *cache.Controller
+	nsController  *cache.Controller
+	epController  *cache.Controller
 
 	svcLister cache.StoreToServiceLister
 	podLister cache.StoreToPodLister

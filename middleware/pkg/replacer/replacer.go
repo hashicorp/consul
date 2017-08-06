@@ -60,7 +60,7 @@ func New(r *dns.Msg, rr *dnsrecorder.Recorder, emptyValue string) Replacer {
 
 	// Header placeholders (case-insensitive)
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
-	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
+	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(r.Opcode)
 	rep.replacements[headerReplacer+"do}"] = boolToString(req.Do())
 	rep.replacements[headerReplacer+"bufsize}"] = strconv.Itoa(req.Size())
 

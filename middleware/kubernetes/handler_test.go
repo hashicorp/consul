@@ -273,32 +273,32 @@ func TestServeDNS(t *testing.T) {
 	k.Next = testHandler(nextMWMap)
 
 	ctx := context.TODO()
-	runServeDNSTests(t, dnsTestCases, k, ctx)
-	runServeDNSTests(t, autopathCases, k, ctx)
-	runServeDNSTests(t, autopathBareSearch, k, ctx)
+	runServeDNSTests(ctx, t, dnsTestCases, k)
+	runServeDNSTests(ctx, t, autopathCases, k)
+	runServeDNSTests(ctx, t, autopathBareSearch, k)
 
 	//Set PodMode to Disabled
 	k.PodMode = PodModeDisabled
-	runServeDNSTests(t, podModeDisabledCases, k, ctx)
+	runServeDNSTests(ctx, t, podModeDisabledCases, k)
 	//Set PodMode to Insecure
 	k.PodMode = PodModeInsecure
-	runServeDNSTests(t, podModeInsecureCases, k, ctx)
+	runServeDNSTests(ctx, t, podModeInsecureCases, k)
 	//Set PodMode to Verified
 	k.PodMode = PodModeVerified
-	runServeDNSTests(t, podModeVerifiedCases, k, ctx)
+	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
 
 	// Set ndots to 2 for the ndots test cases
 	k.AutoPath.NDots = 2
-	runServeDNSTests(t, autopath2NDotsCases, k, ctx)
+	runServeDNSTests(ctx, t, autopath2NDotsCases, k)
 	k.AutoPath.NDots = defautNdots
 	// Disable the NXDOMAIN override (enabled by default)
 	k.OnNXDOMAIN = dns.RcodeNameError
-	runServeDNSTests(t, autopathCases, k, ctx)
-	runServeDNSTests(t, autopathBareSearchExpectNameErr, k, ctx)
+	runServeDNSTests(ctx, t, autopathCases, k)
+	runServeDNSTests(ctx, t, autopathBareSearchExpectNameErr, k)
 
 }
 
-func runServeDNSTests(t *testing.T, dnsTestCases map[string](*test.Case), k Kubernetes, ctx context.Context) {
+func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](*test.Case), k Kubernetes) {
 	for testname, tc := range dnsTestCases {
 		testname = "\nTest Case \"" + testname + "\""
 		r := tc.Msg()

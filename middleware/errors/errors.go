@@ -76,11 +76,4 @@ func (h errorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns
 	h.Log.Printf(panicMsg)
 }
 
-// debugMsg creates a debug message that gets send back to the client.
-func debugMsg(rcode int, r *dns.Msg) *dns.Msg {
-	answer := new(dns.Msg)
-	answer.SetRcode(r, rcode)
-	return answer
-}
-
 const timeFormat = "02/Jan/2006:15:04:05 -0700"

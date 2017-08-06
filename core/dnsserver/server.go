@@ -187,7 +187,8 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	q := r.Question[0].Name
 	b := make([]byte, len(q))
-	off, end := 0, false
+	var off int
+	var end bool
 
 	var dshandler *Config
 

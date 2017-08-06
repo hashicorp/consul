@@ -74,25 +74,6 @@ func (network *network) ipToHostname(ip net.IP) (name string) {
 	return strings.Replace(network.Template, templateNameIP, name, 1)
 }
 
-// just the same from net.ip package, but with uint8
-func uitoa(val uint8) string {
-	if val == 0 {
-		// avoid string allocation
-		return "0"
-	}
-	var buf [20]byte // big enough for 64bit value base 10
-	i := len(buf) - 1
-	for val >= 10 {
-		q := val / 10
-		buf[i] = byte('0' + val - q*10)
-		i--
-		val = q
-	}
-	// val < 10
-	buf[i] = byte('0' + val)
-	return string(buf[i:])
-}
-
 type networks []network
 
 func (n networks) Len() int      { return len(n) }

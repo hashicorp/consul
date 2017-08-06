@@ -260,23 +260,6 @@ func TestEndpointHostname(t *testing.T) {
 	}
 }
 
-func TestIpFromPodName(t *testing.T) {
-	var tests = []struct {
-		ip       string
-		expected string
-	}{
-		{"10-11-12-13", "10.11.12.13"},
-		{"1-2-3-4", "1.2.3.4"},
-		{"1-2-3--A-B-C", "1:2:3::A:B:C"},
-	}
-	for _, test := range tests {
-		result := ipFromPodName(test.ip)
-		if result != test.expected {
-			t.Errorf("Expected ip for podname '%v' to be '%v', but got '%v'", test.ip, test.expected, result)
-		}
-	}
-}
-
 type APIConnServiceTest struct{}
 
 func (APIConnServiceTest) Run()                          { return }

@@ -97,7 +97,7 @@ func traceParse(c *caddy.Controller) (*trace, error) {
 func normalizeEndpoint(epType, ep string) (string, error) {
 	switch epType {
 	case "zipkin":
-		if strings.Index(ep, "http") == -1 {
+		if !strings.Contains(ep, "http") {
 			ep = "http://" + ep + "/api/v1/spans"
 		}
 		return ep, nil

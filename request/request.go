@@ -118,7 +118,7 @@ func (r *Request) Size() int {
 
 	size := 0
 	if o := r.Req.IsEdns0(); o != nil {
-		if o.Do() == true {
+		if o.Do() {
 			r.do = doTrue
 		} else {
 			r.do = doFalse

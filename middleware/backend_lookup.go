@@ -218,7 +218,7 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 			// Internal name, we should have some info on them, either v4 or v6
 			// Clients expect a complete answer, because we are a recursor in their view.
 			state1 := state.NewWithQuestion(srv.Target, dns.TypeA)
-			addr, debugAddr, e1 := A(b, zone, state1, nil, Options(opt))
+			addr, debugAddr, e1 := A(b, zone, state1, nil, opt)
 			if e1 == nil {
 				extra = append(extra, addr...)
 				debug = append(debug, debugAddr...)

@@ -231,7 +231,7 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 
 	ret := z.soa(do)
 	if do {
-		deny, found := z.Tree.Prev(qname)
+		deny, _ := z.Tree.Prev(qname) // TODO(miek): *found* was not used here.
 		nsec := z.typeFromElem(deny, dns.TypeNSEC, do)
 		ret = append(ret, nsec...)
 

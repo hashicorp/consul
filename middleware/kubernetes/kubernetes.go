@@ -100,13 +100,12 @@ type recordRequest struct {
 }
 
 var (
-	errNoItems           = errors.New("no items found")
-	errNsNotExposed      = errors.New("namespace is not exposed")
-	errInvalidRequest    = errors.New("invalid query name")
-	errZoneNotFound      = errors.New("zone not found")
-	errAPIBadPodType     = errors.New("expected type *api.Pod")
-	errPodsDisabled      = errors.New("pod records disabled")
-	errResolvConfReadErr = errors.New("resolv.conf read error")
+	errNoItems        = errors.New("no items found")
+	errNsNotExposed   = errors.New("namespace is not exposed")
+	errInvalidRequest = errors.New("invalid query name")
+	errZoneNotFound   = errors.New("zone not found")
+	errAPIBadPodType  = errors.New("expected type *api.Pod")
+	errPodsDisabled   = errors.New("pod records disabled")
 )
 
 // Services implements the ServiceBackend interface.
@@ -466,13 +465,6 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 	}
 
 	return records
-}
-
-func ipFromPodName(podname string) string {
-	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
-		return strings.Replace(podname, "-", ".", -1)
-	}
-	return strings.Replace(podname, "-", ":", -1)
 }
 
 func (k *Kubernetes) findPodWithIP(ip string) (p *api.Pod) {
