@@ -82,5 +82,21 @@ func NextOrFailure(name string, next Handler, ctx context.Context, w dns.Respons
 	return dns.RcodeServerFailure, Error(name, errors.New("no next middleware found"))
 }
 
+// ClientWrite returns true if the response has been written to the client.
+// Each middleware to adhire to this protocol.
+func ClientWrite(rcode int) bool {
+	switch rcode {
+	case dns.RcodeServerFailure:
+		fallthrough
+	case dns.RcodeRefused:
+		fallthrough
+	case dns.RcodeFormatError:
+		fallthrough
+	case dns.RcodeNotImplemented:
+		return false
+	}
+	return true
+}
+
 // Namespace is the namespace used for the metrics.
 const Namespace = "coredns"

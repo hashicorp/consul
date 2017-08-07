@@ -205,7 +205,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
 				rcode, _ := h.middlewareChain.ServeDNS(ctx, w, r)
-				if rcodeNoClientWrite(rcode) {
+				if !middleware.ClientWrite(rcode) {
 					DefaultErrorFunc(w, r, rcode)
 				}
 				return
@@ -226,7 +226,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	if dshandler != nil {
 		// DS request, and we found a zone, use the handler for the query
 		rcode, _ := dshandler.middlewareChain.ServeDNS(ctx, w, r)
-		if rcodeNoClientWrite(rcode) {
+		if !middleware.ClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)
 		}
 		return
@@ -235,7 +235,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.middlewareChain.ServeDNS(ctx, w, r)
-		if rcodeNoClientWrite(rcode) {
+		if !middleware.ClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)
 		}
 		return
@@ -280,20 +280,6 @@ func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rc int) {
 	vars.Report(state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
-}
-
-func rcodeNoClientWrite(rcode int) bool {
-	switch rcode {
-	case dns.RcodeServerFailure:
-		fallthrough
-	case dns.RcodeRefused:
-		fallthrough
-	case dns.RcodeFormatError:
-		fallthrough
-	case dns.RcodeNotImplemented:
-		return true
-	}
-	return false
 }
 
 const (
