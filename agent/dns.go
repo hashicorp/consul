@@ -254,7 +254,7 @@ func (d *DNSServer) soa() *dns.SOA {
 		Serial: uint32(time.Now().Unix()),
 
 		// todo(fs): make these configurable
-		Mbox:    "postmaster." + d.domain,
+		Mbox:    "hostmaster." + d.domain,
 		Refresh: 3600,
 		Retry:   600,
 		Expire:  86400,
