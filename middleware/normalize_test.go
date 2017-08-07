@@ -69,7 +69,9 @@ func TestNameNormalize(t *testing.T) {
 }
 
 func TestHostNormalize(t *testing.T) {
-	hosts := []string{".:53", ".", "example.org:53", "example.org.", "example.org.:53", "example.org."}
+	hosts := []string{".:53", ".", "example.org:53", "example.org.", "example.org.:53", "example.org.",
+		"10.0.0.0/8:53", "10.in-addr.arpa.", "10.0.0.0/9", "10.0.0.0/9.",
+		"dns://example.org", "example.org."}
 
 	for i := 0; i < len(hosts); i += 2 {
 		ts := hosts[i]
@@ -79,18 +81,4 @@ func TestHostNormalize(t *testing.T) {
 			t.Errorf("Expected %v, got %v\n", expected, actual)
 		}
 	}
-}
-
-func TestAddrNormalize(t *testing.T) {
-	addrs := []string{".:53", ".:53", "example.org", "example.org:53", "example.org.:1053", "example.org.:1053"}
-
-	for i := 0; i < len(addrs); i += 2 {
-		ts := addrs[i]
-		expected := addrs[i+1]
-		actual := Addr(ts).Normalize()
-		if expected != actual {
-			t.Errorf("Expected %v, got %v\n", expected, actual)
-		}
-	}
-
 }

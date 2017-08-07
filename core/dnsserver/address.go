@@ -1,9 +1,9 @@
 package dnsserver
 
 import (
-	"fmt"
-	"net"
 	"strings"
+
+	"github.com/coredns/coredns/middleware"
 
 	"github.com/miekg/dns"
 )
@@ -32,8 +32,6 @@ func Transport(s string) string {
 
 // normalizeZone parses an zone string into a structured format with separate
 // host, and port portions, as well as the original input string.
-//
-// TODO(miek): possibly move this to middleware/normalize.go
 func normalizeZone(str string) (zoneAddr, error) {
 	var err error
 
@@ -52,18 +50,9 @@ func normalizeZone(str string) (zoneAddr, error) {
 		str = str[len(TransportGRPC+"://"):]
 	}
 
-	host, port, err := net.SplitHostPort(str)
+	host, port, err := middleware.SplitHostPort(str)
 	if err != nil {
-		host, port, err = net.SplitHostPort(str + ":")
-		// no error check here; return err at end of function
-	}
-
-	if len(host) > 255 { // TODO(miek): this should take escaping into account.
-		return zoneAddr{}, fmt.Errorf("specified zone is too long: %d > 255", len(host))
-	}
-	_, d := dns.IsDomainName(host)
-	if !d {
-		return zoneAddr{}, fmt.Errorf("zone is not a valid domain name: %s", host)
+		return zoneAddr{}, err
 	}
 
 	if port == "" {
@@ -78,7 +67,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 		}
 	}
 
-	return zoneAddr{Zone: strings.ToLower(dns.Fqdn(host)), Port: port, Transport: trans}, err
+	return zoneAddr{Zone: dns.Fqdn(host), Port: port, Transport: trans}, nil
 }
 
 // Supported transports.
