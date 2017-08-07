@@ -116,19 +116,19 @@ func newMemberlist(conf *Config) (*Memberlist, error) {
 
 		// See comment below for details about the retry in here.
 		makeNetRetry := func(limit int) (*NetTransport, error) {
+			var err error
 			for try := 0; try < limit; try++ {
-				nt, err := NewNetTransport(nc)
-				if err == nil {
+				var nt *NetTransport
+				if nt, err = NewNetTransport(nc); err == nil {
 					return nt, nil
 				}
-
 				if strings.Contains(err.Error(), "address already in use") {
 					logger.Printf("[DEBUG] Got bind error: %v", err)
 					continue
 				}
 			}
 
-			return nil, fmt.Errorf("ran out of tries to obtain an address")
+			return nil, fmt.Errorf("failed to obtain an address: %v", err)
 		}
 
 		// The dynamic bind port operation is inherently racy because
