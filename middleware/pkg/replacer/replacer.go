@@ -56,6 +56,9 @@ func New(r *dns.Msg, rr *dnsrecorder.Recorder, emptyValue string) Replacer {
 		rep.replacements["{rcode}"] = rcode
 		rep.replacements["{rsize}"] = strconv.Itoa(rr.Len)
 		rep.replacements["{duration}"] = time.Since(rr.Start).String()
+		if rr.Msg != nil {
+			rep.replacements[headerReplacer+"rflags}"] = flagsToString(rr.Msg.MsgHdr)
+		}
 	}
 
 	// Header placeholders (case-insensitive)
@@ -108,6 +111,48 @@ func boolToString(b bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+// flagsToString checks all header flags and returns those
+// that are set as a string separated with commas
+func flagsToString(h dns.MsgHdr) string {
+	flags := make([]string, 7)
+	i := 0
+
+	if h.Response {
+		flags[i] = "qr"
+		i++
+	}
+
+	if h.Authoritative {
+		flags[i] = "aa"
+		i++
+	}
+	if h.Truncated {
+		flags[i] = "tc"
+		i++
+	}
+	if h.RecursionDesired {
+		flags[i] = "rd"
+		i++
+	}
+	if h.RecursionAvailable {
+		flags[i] = "ra"
+		i++
+	}
+	if h.Zero {
+		flags[i] = "z"
+		i++
+	}
+	if h.AuthenticatedData {
+		flags[i] = "ad"
+		i++
+	}
+	if h.CheckingDisabled {
+		flags[i] = "cd"
+		i++
+	}
+	return strings.Join(flags[:i], ",")
 }
 
 const (
