@@ -272,7 +272,7 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 	// get server names and store them in a map to randomize the output
 	servers := map[string]net.IP{}
-	for name, addr := range d.agent.delegate.ServerAddrs() {
+	for _, addr := range d.agent.delegate.ServerAddrs() {
 		host, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			d.logger.Println("[WARN] Unable to parse address %v, got error: %v", addr, err)
@@ -283,17 +283,9 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 			continue
 		}
 
-		// name is "name.dc" and domain is "consul."
-		// we want "name.node.dc.consul."
-		lastdot := strings.LastIndexByte(name, '.')
-		nodeName := name[:lastdot]
-		if InvalidDnsRe.MatchString(nodeName) {
-			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
-			continue
-		}
-		fqdn := nodeName + ".node" + name[lastdot:] + "." + d.domain
-
 		// create a consistent, unique and sanitized name for the server
+		r := strings.NewReplacer(".", "-", ":", "-")
+		fqdn := "server-" + r.Replace(host) + "." + d.domain
 		fqdn = dns.Fqdn(strings.ToLower(fqdn))
 
 		servers[fqdn] = ip
