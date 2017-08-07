@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/kubernetes/autopath"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	"github.com/coredns/coredns/request"
 
@@ -41,14 +42,14 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	records, extra, _, err := k.routeRequest(zone, state)
 
 	// Check for Autopath search eligibility
-	if k.AutoPath.Enabled && k.IsNameError(err) && (state.QType() == dns.TypeA || state.QType() == dns.TypeAAAA) {
+	if (k.autoPath != nil) && k.IsNameError(err) && (state.QType() == dns.TypeA || state.QType() == dns.TypeAAAA) {
 		p := k.findPodWithIP(state.IP())
 		for p != nil {
 			name, path, ok := splitSearch(zone, state.QName(), p.Namespace)
 			if !ok {
 				break
 			}
-			if (dns.CountLabel(name) - 1) < k.AutoPath.NDots {
+			if (dns.CountLabel(name) - 1) < k.autoPath.NDots {
 				break
 			}
 			origQName := state.QName()
@@ -60,7 +61,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 				if !k.IsNameError(err) && len(records) > 0 {
 					records = append(records, nil)
 					copy(records[1:], records)
-					records[0] = newCNAME(origQName, records[0].Header().Name, records[0].Header().Ttl)
+					records[0] = autopath.CNAME(origQName, records[0].Header().Name, records[0].Header().Ttl)
 					break
 				}
 			}
@@ -68,8 +69,8 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 				break
 			}
 			// Try host search path (if set) in the next middleware
-			apw := NewAutoPathWriter(w, r)
-			for _, hostsearch := range k.AutoPath.HostSearchPath {
+			apw := autopath.NewWriter(w, r)
+			for _, hostsearch := range k.autoPath.HostSearchPath {
 				newstate := state.NewWithQuestion(strings.Join([]string{name, hostsearch}, "."), state.QType())
 				rcode, nextErr := middleware.NextOrFailure(k.Name(), k.Next, ctx, apw, newstate.Req)
 				if apw.Sent {
@@ -82,11 +83,11 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 			if !k.IsNameError(err) && len(records) > 0 {
 				records = append(records, nil)
 				copy(records[1:], records)
-				records[0] = newCNAME(origQName, records[0].Header().Name, records[0].Header().Ttl)
+				records[0] = autopath.CNAME(origQName, records[0].Header().Name, records[0].Header().Ttl)
 				break
 			}
 			// Search . in the next middleware
-			apw.Rcode = k.AutoPath.OnNXDOMAIN
+			apw.Rcode = k.autoPath.OnNXDOMAIN
 			newstate = state.NewWithQuestion(strings.Join([]string{name, "."}, ""), state.QType())
 			r = newstate.Req
 			rcode, nextErr := middleware.NextOrFailure(k.Name(), k.Next, ctx, apw, r)
@@ -123,11 +124,6 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
-}
-
-func newCNAME(name string, target string, ttl uint32) *dns.CNAME {
-	// TODO factor this out and put in dnsutil
-	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: ttl}, Target: dns.Fqdn(target)}
 }
 
 func (k *Kubernetes) routeRequest(zone string, state request.Request) (records []dns.RR, extra []dns.RR, debug []dns.RR, err error) {

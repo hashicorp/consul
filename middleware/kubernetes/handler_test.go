@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/coredns/coredns/middleware/kubernetes/autopath"
 	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
 	"github.com/coredns/coredns/middleware/test"
 
@@ -267,8 +268,8 @@ func TestServeDNS(t *testing.T) {
 	k.ReverseCidrs = []net.IPNet{*cidr}
 	k.Federations = []Federation{{name: "fed", zone: "federal.test."}}
 	k.APIConn = &APIConnServeTest{}
-	k.AutoPath.Enabled = true
-	k.AutoPath.HostSearchPath = []string{"hostdom.test"}
+	k.autoPath = new(autopath.AutoPath)
+	k.autoPath.HostSearchPath = []string{"hostdom.test"}
 	k.interfaceAddrsFunc = localPodIP
 	k.Next = testHandler(nextMWMap)
 
@@ -288,11 +289,11 @@ func TestServeDNS(t *testing.T) {
 	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
 
 	// Set ndots to 2 for the ndots test cases
-	k.AutoPath.NDots = 2
+	k.autoPath.NDots = 2
 	runServeDNSTests(ctx, t, autopath2NDotsCases, k)
-	k.AutoPath.NDots = defautNdots
+	k.autoPath.NDots = defautNdots
 	// Disable the NXDOMAIN override (enabled by default)
-	k.OnNXDOMAIN = dns.RcodeNameError
+	k.autoPath.OnNXDOMAIN = dns.RcodeNameError
 	runServeDNSTests(ctx, t, autopathCases, k)
 	runServeDNSTests(ctx, t, autopathBareSearchExpectNameErr, k)
 

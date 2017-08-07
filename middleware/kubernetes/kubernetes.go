@@ -11,6 +11,7 @@ import (
 
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/kubernetes/autopath"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	dnsstrings "github.com/coredns/coredns/middleware/pkg/strings"
 	"github.com/coredns/coredns/middleware/proxy"
@@ -45,17 +46,9 @@ type Kubernetes struct {
 	PodMode       string
 	ReverseCidrs  []net.IPNet
 	Fallthrough   bool
-	AutoPath
-	interfaceAddrsFunc func() net.IP
-}
 
-// AutoPath enables server side search path lookups for pods
-type AutoPath struct {
-	Enabled        bool
-	NDots          int
-	ResolvConfFile string
-	HostSearchPath []string
-	OnNXDOMAIN     int
+	autoPath           *autopath.AutoPath
+	interfaceAddrsFunc func() net.IP
 }
 
 const (
@@ -259,7 +252,7 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 	}
 
 	opts := dnsControlOpts{
-		initPodCache: (k.PodMode == PodModeVerified || k.AutoPath.Enabled),
+		initPodCache: (k.PodMode == PodModeVerified || (k.autoPath != nil)),
 	}
 	k.APIConn = newdnsController(kubeClient, k.ResyncPeriod, k.Selector, opts)
 
@@ -468,7 +461,7 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 }
 
 func (k *Kubernetes) findPodWithIP(ip string) (p *api.Pod) {
-	if !k.AutoPath.Enabled {
+	if k.autoPath == nil {
 		return nil
 	}
 	objList := k.APIConn.PodIndex(ip)
