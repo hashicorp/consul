@@ -55,7 +55,7 @@
 		{"checksumSHA1":"kqCMCHy2b+RBMKC+ER+OPqp8C3E=","path":"github.com/hashicorp/hil","revision":"1e86c6b523c55d1fa6c6e930ce80b548664c95c2","revisionTime":"2016-07-11T23:18:37Z"},
 		{"checksumSHA1":"UICubs001+Q4MsUf9zl2vcMzWQQ=","path":"github.com/hashicorp/hil/ast","revision":"1e86c6b523c55d1fa6c6e930ce80b548664c95c2","revisionTime":"2016-07-11T23:18:37Z"},
 		{"checksumSHA1":"vt+P9D2yWDO3gdvdgCzwqunlhxU=","path":"github.com/hashicorp/logutils","revision":"0dc08b1671f34c4250ce212759ebd880f743d883","revisionTime":"2015-06-09T07:04:31Z"},
-		{"checksumSHA1":"zcZtXfxrusJpcaPeGJOBnPG1xjs=","path":"github.com/hashicorp/memberlist","revision":"99594a4f171a77cb7cff01f143ccf608ac577c47","revisionTime":"2017-07-17T19:31:21Z"},
+		{"checksumSHA1":"ALN/cUj3330lnFRKFE3G58Z8p+E=","path":"github.com/hashicorp/memberlist","revision":"ea4ef7f066304a8e6f28bdb958888fe899f3b44e","revisionTime":"2017-08-07T23:34:30Z"},
 		{"checksumSHA1":"qnlqWJYV81ENr61SZk9c65R1mDo=","path":"github.com/hashicorp/net-rpc-msgpackrpc","revision":"a14192a58a694c123d8fe5481d4a4727d6ae82f3","revisionTime":"2015-11-16T02:03:38Z"},
 		{"checksumSHA1":"5GHIYEtOr1rsHOZUac6RA/82d3I=","path":"github.com/hashicorp/raft","revision":"0a6e1b039ba3d8057e9f16c919d2afb813884f74","revisionTime":"2017-08-04T15:11:58Z","version":"library-v2-stage-one","versionExact":"library-v2-stage-one"},
 		{"checksumSHA1":"QAxukkv54/iIvLfsUP6IK4R0m/A=","path":"github.com/hashicorp/raft-boltdb","revision":"d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee","revisionTime":"2015-02-01T20:08:39Z"},
