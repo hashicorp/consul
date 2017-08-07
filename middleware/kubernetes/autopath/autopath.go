@@ -1,6 +1,10 @@
 package autopath
 
-import "github.com/miekg/dns"
+import (
+	"strings"
+
+	"github.com/miekg/dns"
+)
 
 // Writer implements a ResponseWriter that also does the following:
 // * reverts question section of a packet to its original state.
@@ -18,7 +22,6 @@ type Writer struct {
 	dns.ResponseWriter
 	original dns.Question
 	Rcode    int
-	Sent     bool
 }
 
 // AutoPath enables server side search path lookups for pods.
@@ -40,24 +43,10 @@ func NewWriter(w dns.ResponseWriter, r *dns.Msg) *Writer {
 
 // WriteMsg writes to client, unless response will be NXDOMAIN.
 func (apw *Writer) WriteMsg(res *dns.Msg) error {
-	return apw.overrideMsg(res, false)
-}
-
-// ForceWriteMsg forces the write to client regardless of response code.
-func (apw *Writer) ForceWriteMsg(res *dns.Msg) error {
-	return apw.overrideMsg(res, true)
-}
-
-// overrideMsg overrides rcode, reverts question, adds CNAME, and calls the
-// underlying ResponseWriter's WriteMsg method unless the write is deferred,
-// or force = true.
-func (apw *Writer) overrideMsg(res *dns.Msg, force bool) error {
 	if res.Rcode == dns.RcodeNameError {
 		res.Rcode = apw.Rcode
 	}
-	if res.Rcode != dns.RcodeSuccess && !force {
-		return nil
-	}
+
 	for _, a := range res.Answer {
 		if apw.original.Name == a.Header().Name {
 			continue
@@ -67,7 +56,7 @@ func (apw *Writer) overrideMsg(res *dns.Msg, force bool) error {
 		res.Answer[0] = CNAME(apw.original.Name, a.Header().Name, a.Header().Ttl)
 	}
 	res.Question[0] = apw.original
-	apw.Sent = true
+
 	return apw.ResponseWriter.WriteMsg(res)
 }
 
@@ -77,9 +66,10 @@ func (apw *Writer) Write(buf []byte) (int, error) {
 	return n, err
 }
 
-// Hijack implements dns.Hijacker. It simply wraps the underlying
-// ResponseWriter's Hijack method if there is one, or returns an error.
-func (apw *Writer) Hijack() {
-	apw.ResponseWriter.Hijack()
-	return
+func SplitSearch(zone, question, namespace string) (name, search string, ok bool) {
+	search = strings.Join([]string{namespace, "svc", zone}, ".")
+	if dns.IsSubDomain(search, question) {
+		return question[:len(question)-len(search)-1], search, true
+	}
+	return "", "", false
 }

@@ -660,14 +660,6 @@ func localPodIP() net.IP {
 	return nil
 }
 
-func splitSearch(zone, question, namespace string) (name, search string, ok bool) {
-	search = strings.Join([]string{namespace, Svc, zone}, ".")
-	if dns.IsSubDomain(search, question) {
-		return question[:len(question)-len(search)-1], search, true
-	}
-	return "", "", false
-}
-
 const (
 	// Svc is the DNS schema for kubernetes services
 	Svc = "svc"
