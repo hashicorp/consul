@@ -216,23 +216,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.Answer = append(m.Answer, d.soa())
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
-
-		// add CNAMEs for "ns.<domain>" to the Extra
-		// section to make the MNAME entry in the SOA
-		// record resolvable
-		for _, rr := range ns {
-			cname := &dns.CNAME{
-				Hdr: dns.RR_Header{
-					Name:   "ns." + d.domain,
-					Rrtype: dns.TypeCNAME,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(d.config.NodeTTL / time.Second),
-				},
-				Target: rr.(*dns.NS).Ns,
-			}
-			m.Extra = append(m.Extra, cname)
-		}
-
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
