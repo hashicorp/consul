@@ -224,6 +224,9 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.Extra = glue
 		m.SetRcode(req, dns.RcodeSuccess)
 
+	case dns.TypeAXFR:
+		m.SetRcode(req, dns.RcodeNotImplemented)
+
 	default:
 		d.dispatch(network, req, m)
 	}
