@@ -60,6 +60,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 		// Register the wrapper, which will close over the expensive-to-compute
 		// parts from above.
+		// TODO (kyhavlov): Convert this to utilize metric labels in a major release
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
@@ -97,6 +98,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
 	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
 	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
+	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.AgentMetrics))
 	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
 	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
 	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))

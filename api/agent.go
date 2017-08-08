@@ -96,6 +96,42 @@ type AgentToken struct {
 	Token string
 }
 
+// Metrics info is used to store different types of metric values from the agent.
+type MetricsInfo struct {
+	Timestamp string
+	Gauges    []GaugeValue
+	Points    []PointValue
+	Counters  []SampledValue
+	Samples   []SampledValue
+}
+
+// GaugeValue stores one value that is updated as time goes on, such as
+// the amount of memory allocated.
+type GaugeValue struct {
+	Name   string
+	Value  float32
+	Labels map[string]string
+}
+
+// PointValue holds a series of points for a metric.
+type PointValue struct {
+	Name   string
+	Points []float32
+}
+
+// SampledValue stores info about a metric that is incremented over time,
+// such as the number of requests to an HTTP endpoint.
+type SampledValue struct {
+	Name   string
+	Count  int
+	Sum    float64
+	Min    float64
+	Max    float64
+	Mean   float64
+	Stddev float64
+	Labels map[string]string
+}
+
 // Agent can be used to query the Agent endpoints
 type Agent struct {
 	c *Client
@@ -120,6 +156,23 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	defer resp.Body.Close()
 
 	var out map[string]map[string]interface{}
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Metrics is used to query the agent we are speaking to for
+// its current internal metric data
+func (a *Agent) Metrics() (*MetricsInfo, error) {
+	r := a.c.newRequest("GET", "/v1/agent/metrics")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out *MetricsInfo
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}

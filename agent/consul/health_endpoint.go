@@ -139,12 +139,15 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Provide some metrics
 	if err == nil {
-		metrics.IncrCounter([]string{"consul", "health", "service", "query", args.ServiceName}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query"}, 1,
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		if args.ServiceTag != "" {
-			metrics.IncrCounter([]string{"consul", "health", "service", "query-tag", args.ServiceName, args.ServiceTag}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query-tag"}, 1,
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
 		if len(reply.Nodes) == 0 {
-			metrics.IncrCounter([]string{"consul", "health", "service", "not-found", args.ServiceName}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "not-found"}, 1,
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		}
 	}
 	return err

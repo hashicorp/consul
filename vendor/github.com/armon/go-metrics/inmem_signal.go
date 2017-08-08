@@ -79,7 +79,7 @@ func (i *InmemSignal) dumpStats() {
 		intv := data[i]
 		intv.RLock()
 		for name, val := range intv.Gauges {
-			fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val)
+			fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val.Value)
 		}
 		for name, vals := range intv.Points {
 			for _, val := range vals {
@@ -87,10 +87,10 @@ func (i *InmemSignal) dumpStats() {
 			}
 		}
 		for name, agg := range intv.Counters {
-			fmt.Fprintf(buf, "[%v][C] '%s': %s\n", intv.Interval, name, agg)
+			fmt.Fprintf(buf, "[%v][C] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
 		}
 		for name, agg := range intv.Samples {
-			fmt.Fprintf(buf, "[%v][S] '%s': %s\n", intv.Interval, name, agg)
+			fmt.Fprintf(buf, "[%v][S] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
 		}
 		intv.RUnlock()
 	}

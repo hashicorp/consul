@@ -54,6 +54,21 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
+		return nil, errPermissionDenied
+	}
+
+	return s.agent.MemSink.DisplayMetrics(resp, req)
+}
+
 func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
 		resp.WriteHeader(http.StatusMethodNotAllowed)

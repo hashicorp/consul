@@ -263,7 +263,8 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		return structs.ErrNoDCPath
 	}
 
-	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
+	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1,
+		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)

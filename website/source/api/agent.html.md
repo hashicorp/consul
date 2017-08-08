@@ -249,6 +249,127 @@ $ curl \
     https://consul.rocks/v1/agent/maintenance?enable=true&reason=For+API+docs
 ```
 
+## View Metrics
+
+This endpoint returns the configuration and member information of the local
+agent.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/agent/metrics`             | `application/json`         |
+
+This endpoint will dump the metrics for the most recent finished interval.
+For more information about metrics, see the [telemetry](/docs/agent/telemetry.html)
+page.
+
+| Blocking Queries | Consistency Modes | ACL Required |
+| ---------------- | ----------------- | ------------ |
+| `NO`             | `none`            | `agent:read` |
+
+### Sample Request
+
+```text
+$ curl \
+    https://consul.rocks/v1/agent/metrics
+```
+
+### Sample Response
+
+```json
+{
+    "Timestamp": "2017-08-08 02:55:10 +0000 UTC",
+    "Gauges": [
+        {
+            "Name": "consul.consul.session_ttl.active",
+            "Value": 0,
+            "Labels": {}
+        },
+        {
+            "Name": "consul.runtime.alloc_bytes",
+            "Value": 4704344,
+            "Labels": {}
+        },
+        {
+            "Name": "consul.runtime.free_count",
+            "Value": 74063,
+            "Labels": {}
+        }
+    ],
+    "Points": [],
+    "Counters": [
+        {
+            "Name": "consul.consul.catalog.service.query",
+            "Count": 1,
+            "Sum": 1,
+            "Min": 1,
+            "Max": 1,
+            "Mean": 1,
+            "Stddev": 0,
+            "Labels": {
+                "service": "consul"
+            }
+        },
+        {
+            "Name": "consul.raft.apply",
+            "Count": 1,
+            "Sum": 1,
+            "Min": 1,
+            "Max": 1,
+            "Mean": 1,
+            "Stddev": 0,
+            "Labels": {}
+        }
+    ],
+    "Samples": [
+        {
+            "Name": "consul.consul.http.GET.v1.agent.metrics",
+            "Count": 1,
+            "Sum": 0.1817069947719574,
+            "Min": 0.1817069947719574,
+            "Max": 0.1817069947719574,
+            "Mean": 0.1817069947719574,
+            "Stddev": 0,
+            "Labels": {}
+        },
+        {
+            "Name": "consul.consul.http.GET.v1.catalog.service._",
+            "Count": 1,
+            "Sum": 0.23342099785804749,
+            "Min": 0.23342099785804749,
+            "Max": 0.23342099785804749,
+            "Mean": 0.23342099785804749,
+            "Stddev": 0,
+            "Labels": {}
+        },
+        {
+            "Name": "consul.serf.queue.Query",
+            "Count": 20,
+            "Sum": 0,
+            "Min": 0,
+            "Max": 0,
+            "Mean": 0,
+            "Stddev": 0,
+            "Labels": {}
+        }
+    ]
+}
+```
+
+- `Timestamp` is the timestamp of the interval for the displayed metrics. Metrics are
+aggregated on a ten second interval, so this value (along with the displayed metrics)
+will change every ten seconds.
+
+- `Gauges` is a list of gauges which store one value that is updated as time goes on,
+such as the amount of memory allocated.
+
+- `Points` is a list of point metrics, which each store a series of points under a given name.
+
+- `Counters` is a list of counters, which store info about a metric that is incremented
+over time such as the number of requests to an HTTP endpoint.
+
+- `Samples` is a list of samples, which store info about the amount of time spent on an
+operation, such as the time taken to serve a request to a specific http endpoint.
+
 ## Stream Logs
 
 This endpoint streams logs from the local agent until the connection is closed.

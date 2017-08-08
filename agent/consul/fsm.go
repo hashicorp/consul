@@ -172,7 +172,8 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "kvs", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "kvs"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case api.KVSet:
 		return c.state.KVSSet(index, &req.DirEnt)
@@ -216,7 +217,8 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "session", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "session"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.SessionCreate:
 		if err := c.state.SessionCreate(index, &req.Session); err != nil {
@@ -236,7 +238,8 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "acl"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.ACLBootstrapInit:
 		enabled, err := c.state.ACLBootstrapInit(index)
@@ -267,7 +270,8 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "tombstone", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "tombstone"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.TombstoneReap:
 		return c.state.ReapTombstones(req.ReapIndex)
@@ -301,7 +305,8 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	defer metrics.MeasureSince([]string{"consul", "fsm", "prepared-query", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "prepared-query"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
 		return c.state.PreparedQuerySet(index, req.Query)

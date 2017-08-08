@@ -1130,6 +1130,24 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="telemetry-disable_hostname"></a><a href="#telemetry-disable_hostname">`disable_hostname`</a>
       This controls whether or not to prepend runtime telemetry with the machine's hostname, defaults to false.
 
+    * <a name="telemetry-prefix_filter"></a><a href="#telemetry-prefix_filter">`prefix_filter`</a>
+      This is a list of filter rules to apply for allowing/blocking metrics by prefix in the following format:
+
+        ```javascript
+        [
+          "+consul.raft.apply",
+          "-consul.http",
+          "+consul.http.GET"
+        ]
+        ```
+      A leading "<b>+</b>" will enable any metrics with the given prefix, and a leading "<b>-</b>" will block them. If there
+      is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same
+      prefix is listed multiple times.
+
+    * <a name="telemetry-filter_default"></a><a href="#telemetry-filter_default">`filter_default`</a>
+     This controls whether to allow metrics that have not been specified by the filter. Defaults to `true`, which will
+     allow all metrics when no filters are provided. When set to `false` with no filters, no metrics will be sent.
+
     * <a name="telemetry-circonus_api_token"></a><a href="#telemetry-circonus_api_token">`circonus_api_token`</a>
       A valid API Token used to create/manage check. If provided, metric management is enabled.
 
@@ -1327,3 +1345,4 @@ items which are reloaded include:
 * Watches
 * HTTP Client Address
 * <a href="#node_meta">Node Metadata</a>
+* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
