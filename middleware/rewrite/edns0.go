@@ -52,7 +52,7 @@ Option:
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo(true)
+		o.SetDo()
 		o.Option = append(o.Option, &dns.EDNS0_NSID{Code: dns.EDNS0NSID, Nsid: ""})
 		result = RewriteDone
 	}
@@ -81,7 +81,7 @@ func (rule *edns0LocalRule) Rewrite(r *dns.Msg) Result {
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo(true)
+		o.SetDo()
 		var opt dns.EDNS0_LOCAL
 		opt.Code = rule.code
 		opt.Data = rule.data
