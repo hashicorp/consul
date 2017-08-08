@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -95,6 +96,10 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 			for c.NextBlock() {
 				switch c.Val() {
 				case "cidrs":
+
+					// DEPRECATION WARNING
+					log.Printf("[WARNING] \"cidrs\" will be removed for CoreDNS soon. See https://coredns.io/2017/07/23/corefile-explained#reverse-zones for the replacement")
+
 					args := c.RemainingArgs()
 					if len(args) > 0 {
 						for _, cidrStr := range args {
