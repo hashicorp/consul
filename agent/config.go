@@ -1483,7 +1483,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		case '-':
 			result.Telemetry.BlockedPrefixes = append(result.Telemetry.BlockedPrefixes, rule[1:])
 		default:
-			return nil, fmt.Errorf("Filter rule must begin with either '+' or '-': %s", rule)
+			return nil, fmt.Errorf("Filter rule must begin with either '+' or '-': %q", rule)
 		}
 	}
 

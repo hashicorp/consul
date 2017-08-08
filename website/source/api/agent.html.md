@@ -355,6 +355,21 @@ $ curl \
 }
 ```
 
+- `Timestamp` is the timestamp of the interval for the displayed metrics. Metrics are
+aggregated on a ten second interval, so this value (along with the displayed metrics)
+will change every ten seconds.
+
+- `Gauges` is a list of gauges which store one value that is updated as time goes on,
+such as the amount of memory allocated.
+
+- `Points` is a list of point metrics, which each store a series of points under a given name.
+
+- `Counters` is a list of counters, which store info about a metric that is incremented
+over time such as the number of requests to an HTTP endpoint.
+
+- `Samples` is a list of samples, which store info about the amount of time spent on an
+operation, such as the time taken to serve a request to a specific http endpoint.
+
 ## Stream Logs
 
 This endpoint streams logs from the local agent until the connection is closed.

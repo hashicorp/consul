@@ -2248,5 +2248,8 @@ func (a *Agent) ReloadConfig(newCfg *Config) error {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
+	// Update filtered metrics
+	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes, newCfg.Telemetry.BlockedPrefixes)
+
 	return nil
 }
