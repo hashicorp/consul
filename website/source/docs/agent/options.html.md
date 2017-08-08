@@ -1345,3 +1345,4 @@ items which are reloaded include:
 * Watches
 * HTTP Client Address
 * <a href="#node_meta">Node Metadata</a>
+* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>

@@ -98,7 +98,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
 	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
 	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
-	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.requireAgentRead(s.agent.MemSink.DisplayMetrics)))
+	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.AgentMetrics))
 	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
 	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
 	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
@@ -261,26 +261,6 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		}
 		resp.Header().Set("Content-Type", "application/json")
 		resp.Write(buf)
-	}
-}
-
-type handlerFunc func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
-
-// requireAgentRead wraps the given function, requiring a token with agent read permissions
-func (s *HTTPServer) requireAgentRead(handler handlerFunc) handlerFunc {
-	return func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-		// Fetch the ACL token, if any, and enforce agent policy.
-		var token string
-		s.parseToken(req, &token)
-		acl, err := s.agent.resolveToken(token)
-		if err != nil {
-			return nil, err
-		}
-		if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-			return nil, errPermissionDenied
-		}
-
-		return handler(resp, req)
 	}
 }
 
