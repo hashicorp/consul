@@ -13,7 +13,7 @@ IMPROVEMENTS:
 * agent: Reports a more detailed error message if the LAN or WAN Serf instance fails to bind to an address. [GH-3312]
 * agent: Added NS records and corrected SOA records to allow Consul's DNS interface to work properly with zone delegation. [GH-1301]
 * agent: Added support for sending metrics with labels/tags to supported backends. [GH-3369]
-* agent: Added a new `prefix_filter` option in the `telemetry` config to allow fine-grained allowing/blocking the sending of certain metrics by prefix.
+* agent: Added a new `prefix_filter` option in the `telemetry` config to allow fine-grained allowing/blocking the sending of certain metrics by prefix. [GH-3369]
 * cli: Added a `-child-exit-code` option to `consul lock` so that it propagates an error code of 2 if the child process exits with an error. [GH-947]
 * docs: Added a new [Geo Failover Guide](https://www.consul.io/docs/guides/geo-failover.html) showing how to use prepared queries to implement geo failover policies for services. [GH-3328]
 * docs: Added a new [Consul with Containers Guide](https://www.consul.io/docs/guides/consul-containers.html) showing critical aspects of operating a Consul cluster that's run inside containers. [GH-3347]
