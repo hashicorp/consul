@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-immutable-radix"
 )
 
 type Label struct {
@@ -127,8 +129,28 @@ func (m *Metrics) MeasureSinceWithLabels(key []string, start time.Time, labels [
 	m.sink.AddSampleWithLabels(key, msec, labels)
 }
 
+// UpdateFilter overwrites the existing filter with the given rules.
+func (m *Metrics) UpdateFilter(allow, block []string) {
+	m.filterLock.Lock()
+	defer m.filterLock.Unlock()
+
+	m.AllowedPrefixes = allow
+	m.BlockedPrefixes = block
+
+	m.filter = iradix.New()
+	for _, prefix := range m.AllowedPrefixes {
+		m.filter, _, _ = m.filter.Insert([]byte(prefix), true)
+	}
+	for _, prefix := range m.BlockedPrefixes {
+		m.filter, _, _ = m.filter.Insert([]byte(prefix), false)
+	}
+}
+
 // Returns whether the metric should be allowed based on configured prefix filters
 func (m *Metrics) allowMetric(key []string) bool {
+	m.filterLock.RLock()
+	defer m.filterLock.RUnlock()
+
 	if m.filter == nil || m.filter.Len() == 0 {
 		return m.Config.FilterDefault
 	}

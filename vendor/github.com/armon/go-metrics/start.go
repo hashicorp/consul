@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -19,18 +20,20 @@ type Config struct {
 	EnableTypePrefix     bool          // Prefixes key with a type ("counter", "gauge", "timer")
 	TimerGranularity     time.Duration // Granularity of timers.
 	ProfileInterval      time.Duration // Interval to profile runtime metrics
-	AllowedPrefixes      []string      // A list of metric prefixes to allow, with '.' as the separator
-	BlockedPrefixes      []string      // A list of metric prefixes to block, with '.' as the separator
-	FilterDefault        bool          // Whether to allow metrics by default
+
+	AllowedPrefixes []string // A list of metric prefixes to allow, with '.' as the separator
+	BlockedPrefixes []string // A list of metric prefixes to block, with '.' as the separator
+	FilterDefault   bool     // Whether to allow metrics by default
 }
 
 // Metrics represents an instance of a metrics sink that can
 // be used to emit
 type Metrics struct {
 	Config
-	lastNumGC uint32
-	sink      MetricSink
-	filter    *iradix.Tree
+	lastNumGC  uint32
+	sink       MetricSink
+	filter     *iradix.Tree
+	filterLock sync.RWMutex
 }
 
 // Shared global metrics instance
@@ -65,14 +68,7 @@ func New(conf *Config, sink MetricSink) (*Metrics, error) {
 	met := &Metrics{}
 	met.Config = *conf
 	met.sink = sink
-	met.filter = iradix.New()
-
-	for _, prefix := range conf.AllowedPrefixes {
-		met.filter, _, _ = met.filter.Insert([]byte(prefix), true)
-	}
-	for _, prefix := range conf.BlockedPrefixes {
-		met.filter, _, _ = met.filter.Insert([]byte(prefix), false)
-	}
+	met.UpdateFilter(conf.AllowedPrefixes, conf.BlockedPrefixes)
 
 	// Start the runtime collector
 	if conf.EnableRuntimeMetrics {
@@ -126,4 +122,8 @@ func MeasureSince(key []string, start time.Time) {
 
 func MeasureSinceWithLabels(key []string, start time.Time, labels []Label) {
 	globalMetrics.Load().(*Metrics).MeasureSinceWithLabels(key, start, labels)
+}
+
+func UpdateFilter(allow, block []string) {
+	globalMetrics.Load().(*Metrics).UpdateFilter(allow, block)
 }
