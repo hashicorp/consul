@@ -44,8 +44,7 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		t.Fatalf("bad: %v", metrics)
 	}
 
-	name := metrics.Gauges[0]["Name"]
-	if name != "consul.runtime.alloc_bytes" {
+	if metrics.Gauges[0].Name != "consul.runtime.alloc_bytes" {
 		t.Fatalf("bad: %v", metrics.Gauges[0])
 	}
 }
