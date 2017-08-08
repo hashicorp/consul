@@ -121,6 +121,7 @@ func NewHTTPSTransport(cc *tls.Config) *http.Transport {
 		}).Dial,
 		TLSHandshakeTimeout: 10 * time.Second,
 		TLSClientConfig:     cc,
+		MaxIdleConnsPerHost: 25,
 	}
 
 	return tr
