@@ -16,6 +16,9 @@ type Request struct {
 	Req *dns.Msg
 	W   dns.ResponseWriter
 
+	// Optional lowercased zone of this query.
+	Zone string
+
 	// Cache size after first call to Size or Do.
 	size int
 	do   int // 0: not, 1: true: 2: false
