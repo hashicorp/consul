@@ -277,7 +277,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 	for name, addr := range d.agent.delegate.ServerAddrs() {
 		host, _, err := net.SplitHostPort(addr)
 		if err != nil {
-			d.logger.Println("[WARN] Unable to parse address %v, got error: %v", addr, err)
+			d.logger.Printf("[WARN] Unable to parse address %v, got error: %v", addr, err)
 			continue
 		}
 
