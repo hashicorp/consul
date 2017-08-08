@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"regexp"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
@@ -29,6 +31,8 @@ const (
 
 	defaultMaxUDPSize = 512
 )
+
+var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 // DNSServer is used to wrap an Agent and expose various
 // service discovery endpoints using a DNS interface.
@@ -133,7 +137,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(d.domain, m)
+		d.addSOA(m)
 	}
 
 	datacenter := d.agent.config.Datacenter
@@ -206,13 +210,26 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
-	// Only add the SOA if requested
-	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(d.domain, m)
-	}
+	switch req.Question[0].Qtype {
+	case dns.TypeSOA:
+		ns, glue := d.nameservers(req.IsEdns0() != nil)
+		m.Answer = append(m.Answer, d.soa())
+		m.Ns = append(m.Ns, ns...)
+		m.Extra = append(m.Extra, glue...)
+		m.SetRcode(req, dns.RcodeSuccess)
 
-	// Dispatch the correct handler
-	d.dispatch(network, req, m)
+	case dns.TypeNS:
+		ns, glue := d.nameservers(req.IsEdns0() != nil)
+		m.Answer = ns
+		m.Extra = glue
+		m.SetRcode(req, dns.RcodeSuccess)
+
+	case dns.TypeAXFR:
+		m.SetRcode(req, dns.RcodeNotImplemented)
+
+	default:
+		d.dispatch(network, req, m)
+	}
 
 	// Handle EDNS
 	if edns := req.IsEdns0(); edns != nil {
@@ -225,24 +242,92 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-// addSOA is used to add an SOA record to a message for the given domain
-func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
-	soa := &dns.SOA{
+func (d *DNSServer) soa() *dns.SOA {
+	return &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name:   domain,
+			Name:   d.domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			Ttl:    0,
 		},
-		Ns:      "ns." + domain,
-		Mbox:    "postmaster." + domain,
-		Serial:  uint32(time.Now().Unix()),
+		Ns:     "ns." + d.domain,
+		Serial: uint32(time.Now().Unix()),
+
+		// todo(fs): make these configurable
+		Mbox:    "hostmaster." + d.domain,
 		Refresh: 3600,
 		Retry:   600,
 		Expire:  86400,
 		Minttl:  0,
 	}
-	msg.Ns = append(msg.Ns, soa)
+}
+
+// addSOA is used to add an SOA record to a message for the given domain
+func (d *DNSServer) addSOA(msg *dns.Msg) {
+	msg.Ns = append(msg.Ns, d.soa())
+}
+
+// nameservers returns the names and ip addresses of up to three random servers
+// in the current cluster which serve as authoritative name servers for zone.
+func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
+	// get server names and store them in a map to randomize the output
+	servers := map[string]net.IP{}
+	for name, addr := range d.agent.delegate.ServerAddrs() {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			d.logger.Println("[WARN] Unable to parse address %v, got error: %v", addr, err)
+			continue
+		}
+
+		ip := net.ParseIP(host)
+		if ip == nil {
+			continue
+		}
+
+		// Use "NODENAME.node.DC.DOMAIN" as a unique name for the server
+		// since we use that name in other places as well.
+		// 'name' is "NODENAME.DC" so we need to split it
+		// to construct the server name.
+		lastdot := strings.LastIndexByte(name, '.')
+		nodeName, dc := name[:lastdot], name[lastdot:]
+		if InvalidDnsRe.MatchString(nodeName) {
+			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
+			continue
+		}
+		fqdn := nodeName + ".node" + dc + "." + d.domain
+		fqdn = dns.Fqdn(strings.ToLower(fqdn))
+
+		servers[fqdn] = ip
+	}
+
+	if len(servers) == 0 {
+		return
+	}
+
+	for name, ip := range servers {
+		// NS record
+		nsrr := &dns.NS{
+			Hdr: dns.RR_Header{
+				Name:   d.domain,
+				Rrtype: dns.TypeNS,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
+			},
+			Ns: name,
+		}
+		ns = append(ns, nsrr)
+
+		// A or AAAA glue record
+		glue := d.formatNodeRecord(ip.String(), name, dns.TypeANY, d.config.NodeTTL, edns)
+		extra = append(extra, glue...)
+
+		// don't provide more than 3 servers
+		if len(ns) >= 3 {
+			return
+		}
+	}
+
+	return
 }
 
 // dispatch is used to parse a request and invoke the correct handler
@@ -371,7 +456,7 @@ PARSE:
 	return
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
-	d.addSOA(d.domain, resp)
+	d.addSOA(resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
@@ -413,7 +498,7 @@ RPC:
 
 	// If we have no address, return not found!
 	if out.NodeServices == nil {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -422,15 +507,14 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(out.NodeServices.Node, addr,
-		req.Question[0].Name, qType, d.config.NodeTTL, edns)
+	records := d.formatNodeRecord(addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -640,7 +724,7 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -668,7 +752,7 @@ RPC:
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		return
 	}
 }
@@ -709,7 +793,7 @@ RPC:
 		// not a full on server error. We have to use a string compare
 		// here since the RPC layer loses the type information.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
-			d.addSOA(d.domain, resp)
+			d.addSOA(resp)
 			resp.SetRcode(req, dns.RcodeNameError)
 			return
 		}
@@ -751,7 +835,7 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -776,7 +860,7 @@ RPC:
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addSOA(d.domain, resp)
+		d.addSOA(resp)
 		return
 	}
 }
@@ -810,7 +894,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
+		records := d.formatNodeRecord(addr, qName, qType, ttl, edns)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -854,7 +938,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
+		records := d.formatNodeRecord(addr, srvRec.Target, dns.TypeANY, ttl, edns)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
