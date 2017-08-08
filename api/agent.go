@@ -499,7 +499,8 @@ func (a *Agent) DisableNodeMaintenance() error {
 
 // Monitor returns a channel which will receive streaming logs from the agent
 // Providing a non-nil stopCh can be used to close the connection and stop the
-// log stream
+// log stream. An empty string will be sent down the given channel when there's
+// nothing left to stream, after which the caller should close the stopCh.
 func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
@@ -524,7 +525,17 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 			default:
 			}
 			if scanner.Scan() {
-				logCh <- scanner.Text()
+				// An empty string signals to the caller that
+				// the scan is done, so make sure we only emit
+				// that when the scanner says it's done, not if
+				// we happen to ingest an empty line.
+				if text := scanner.Text(); text != "" {
+					logCh <- text
+				} else {
+					logCh <- " "
+				}
+			} else {
+				logCh <- ""
 			}
 		}
 	}()
