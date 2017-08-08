@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -93,6 +94,9 @@ type Agent struct {
 
 	// Used for streaming logs to
 	LogWriter *logger.LogWriter
+
+	// In-memory sink used for collecting metrics
+	MemSink *metrics.InmemSink
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration

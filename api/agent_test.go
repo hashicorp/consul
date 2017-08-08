@@ -28,6 +28,28 @@ func TestAPI_AgentSelf(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentMetrics(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	metrics, err := agent.Metrics()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(metrics.Gauges) < 0 {
+		t.Fatalf("bad: %v", metrics)
+	}
+
+	name := metrics.Gauges[0]["Name"]
+	if name != "consul.runtime.alloc_bytes" {
+		t.Fatalf("bad: %v", metrics.Gauges[0])
+	}
+}
+
 func TestAPI_AgentReload(t *testing.T) {
 	t.Parallel()
 

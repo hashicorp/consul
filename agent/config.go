@@ -219,6 +219,16 @@ type Telemetry struct {
 	// DisableHostname will disable hostname prefixing for all metrics
 	DisableHostname bool `mapstructure:"disable_hostname"`
 
+	// PrefixFilter is a list of filter rules to apply for allowing/blocking metrics
+	// by prefix.
+	PrefixFilter    []string `mapstructure:"prefix_filter"`
+	AllowedPrefixes []string `mapstructure:"-" json:"-"`
+	BlockedPrefixes []string `mapstructure:"-" json:"-"`
+
+	// FilterDefault is the default for whether to allow a metric that's not
+	// covered by the filter.
+	FilterDefault *bool `mapstructure:"filter_default"`
+
 	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
 	// metrics will be sent to that instance
 	DogStatsdAddr string `mapstructure:"dogstatsd_addr"`
@@ -937,6 +947,7 @@ func DefaultConfig() *Config {
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
+			FilterDefault:  Bool(true),
 		},
 		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
@@ -1461,6 +1472,21 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.EnableACLReplication = true
 	}
 
+	// Parse the metric filters
+	for _, rule := range result.Telemetry.PrefixFilter {
+		if rule == "" {
+			return nil, fmt.Errorf("Cannot have empty filter rule in prefix_filter")
+		}
+		switch rule[0] {
+		case '+':
+			result.Telemetry.AllowedPrefixes = append(result.Telemetry.AllowedPrefixes, rule[1:])
+		case '-':
+			result.Telemetry.BlockedPrefixes = append(result.Telemetry.BlockedPrefixes, rule[1:])
+		default:
+			return nil, fmt.Errorf("Filter rule must begin with either '+' or '-': %s", rule)
+		}
+	}
+
 	return &result, nil
 }
 
@@ -1754,6 +1780,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
+	}
+	if len(b.Telemetry.PrefixFilter) != 0 {
+		result.Telemetry.PrefixFilter = append(result.Telemetry.PrefixFilter, b.Telemetry.PrefixFilter...)
+	}
+	if b.Telemetry.FilterDefault != nil {
+		result.Telemetry.FilterDefault = b.Telemetry.FilterDefault
 	}
 	if b.Telemetry.StatsdAddr != "" {
 		result.Telemetry.StatsdAddr = b.Telemetry.StatsdAddr

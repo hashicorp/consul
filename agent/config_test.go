@@ -720,6 +720,18 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Telemetry: Telemetry{DogStatsdTags: []string{"a", "b"}}},
 		},
 		{
+			in: `{"telemetry":{"filter_default":true}}`,
+			c:  &Config{Telemetry: Telemetry{FilterDefault: Bool(true)}},
+		},
+		{
+			in: `{"telemetry":{"prefix_filter":["+consul.metric","-consul.othermetric"]}}`,
+			c: &Config{Telemetry: Telemetry{
+				PrefixFilter:    []string{"+consul.metric", "-consul.othermetric"},
+				AllowedPrefixes: []string{"consul.metric"},
+				BlockedPrefixes: []string{"consul.othermetric"},
+			}},
+		},
+		{
 			in: `{"telemetry":{"statsd_address":"a"}}`,
 			c:  &Config{Telemetry: Telemetry{StatsdAddr: "a"}},
 		},

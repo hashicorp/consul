@@ -601,7 +601,7 @@ func circonusSink(config *agent.Config, hostname string) (metrics.MetricSink, er
 	return sink, nil
 }
 
-func startupTelemetry(config *agent.Config) error {
+func startupTelemetry(config *agent.Config) (*metrics.InmemSink, error) {
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -609,6 +609,7 @@ func startupTelemetry(config *agent.Config) error {
 	metrics.DefaultInmemSignal(memSink)
 	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
 	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
+	metricsConf.FilterDefault = *config.Telemetry.FilterDefault
 
 	var sinks metrics.FanoutSink
 	addSink := func(name string, fn func(*agent.Config, string) (metrics.MetricSink, error)) error {
@@ -623,16 +624,16 @@ func startupTelemetry(config *agent.Config) error {
 	}
 
 	if err := addSink("statsite", statsiteSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("statsd", statsdSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("dogstatd", dogstatdSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("circonus", circonusSink); err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(sinks) > 0 {
@@ -642,7 +643,7 @@ func startupTelemetry(config *agent.Config) error {
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, memSink)
 	}
-	return nil
+	return memSink, nil
 }
 
 func (cmd *AgentCommand) Run(args []string) int {
@@ -682,7 +683,8 @@ func (cmd *AgentCommand) run(args []string) int {
 	cmd.logOutput = logOutput
 	cmd.logger = log.New(logOutput, "", log.LstdFlags)
 
-	if err := startupTelemetry(config); err != nil {
+	memSink, err := startupTelemetry(config)
+	if err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
@@ -696,6 +698,7 @@ func (cmd *AgentCommand) run(args []string) int {
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = logWriter
+	agent.MemSink = memSink
 
 	if err := agent.Start(); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))

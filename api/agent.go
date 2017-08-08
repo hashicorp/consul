@@ -96,6 +96,15 @@ type AgentToken struct {
 	Token string
 }
 
+// Metrics info is used to store different types of metric values from the agent.
+type MetricsInfo struct {
+	Timestamp string
+	Gauges    []map[string]interface{}
+	Points    []map[string]interface{}
+	Counters  []map[string]interface{}
+	Samples   []map[string]interface{}
+}
+
 // Agent can be used to query the Agent endpoints
 type Agent struct {
 	c *Client
@@ -120,6 +129,23 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	defer resp.Body.Close()
 
 	var out map[string]map[string]interface{}
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Metrics is used to query the agent we are speaking to for
+// its current internal metric data
+func (a *Agent) Metrics() (*MetricsInfo, error) {
+	r := a.c.newRequest("GET", "/v1/agent/metrics")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out *MetricsInfo
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
