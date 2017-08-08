@@ -26,6 +26,7 @@ BUG FIXES:
 * agent: Fixed an issue where DNS and client bind address templates were not being parsed via the go-sockaddr library. [GH-3322]
 * agent: Fixed status code on all KV store operations that fail due to an ACL issue. They now return a 403 status code, rather than a 404. [GH-2637]
 * agent: Fixed quoting issues in script health check on Windows. [GH-1875]
+* agent: Fixed an issue where `consul monitor` would exit on any empty log line. [GH-3253]
 * server: Updated raft library to fix issue with machine crashes causing snapshot files to not get saved to disk [GH-3362]
 
 ## 0.9.0 (July 20, 2017)
