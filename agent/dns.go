@@ -278,22 +278,23 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 			d.logger.Println("[WARN] Unable to parse address %v, got error: %v", addr, err)
 			continue
 		}
+
 		ip := net.ParseIP(host)
 		if ip == nil {
 			continue
 		}
 
-		// name is "name.dc" and domain is "consul."
-		// we want "name.node.dc.consul."
+		// Use "NODENAME.node.DC.DOMAIN" as a unique name for the server
+		// since we use that name in other places as well.
+		// 'name' is "NODENAME.DC" so we need to split it
+		// to construct the server name.
 		lastdot := strings.LastIndexByte(name, '.')
-		nodeName := name[:lastdot]
+		nodeName, dc := name[:lastdot], name[lastdot:]
 		if InvalidDnsRe.MatchString(nodeName) {
 			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
 			continue
 		}
-		fqdn := nodeName + ".node" + name[lastdot:] + "." + d.domain
-
-		// create a consistent, unique and sanitized name for the server
+		fqdn := nodeName + ".node" + dc + "." + d.domain
 		fqdn = dns.Fqdn(strings.ToLower(fqdn))
 
 		servers[fqdn] = ip
@@ -304,19 +305,21 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 	}
 
 	for name, ip := range servers {
-		// the name server record
+		// NS record
 		nsrr := &dns.NS{
 			Hdr: dns.RR_Header{
 				Name:   d.domain,
 				Rrtype: dns.TypeNS,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
 			},
 			Ns: name,
 		}
 		ns = append(ns, nsrr)
-		// the glue record providing the ip address
-		extra = append(extra, d.formatNodeRecord(ip.String(), name, dns.TypeANY, d.config.NodeTTL, edns)...)
+
+		// A or AAAA glue record
+		glue := d.formatNodeRecord(ip.String(), name, dns.TypeANY, d.config.NodeTTL, edns)
+		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
 		if len(ns) >= 3 {
@@ -504,8 +507,7 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(addr,
-		req.Question[0].Name, qType, d.config.NodeTTL, edns)
+	records := d.formatNodeRecord(addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
