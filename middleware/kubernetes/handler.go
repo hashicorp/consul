@@ -38,14 +38,44 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		zone = state.Name()
 	}
 
-	// TODO(miek): place contents of route-request back here.
-	records, extra, _, err := k.routeRequest(zone, state)
+	var (
+		records []dns.RR
+		extra   []dns.RR
+		err     error
+	)
+
+	switch state.Type() {
+	case "A":
+		records, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
+	case "AAAA":
+		records, _, err = middleware.AAAA(&k, zone, state, nil, middleware.Options{})
+	case "TXT":
+		records, _, err = middleware.TXT(&k, zone, state, middleware.Options{})
+	case "CNAME":
+		records, _, err = middleware.CNAME(&k, zone, state, middleware.Options{})
+	case "PTR":
+		records, _, err = middleware.PTR(&k, zone, state, middleware.Options{})
+	case "MX":
+		records, extra, _, err = middleware.MX(&k, zone, state, middleware.Options{})
+	case "SRV":
+		records, extra, _, err = middleware.SRV(&k, zone, state, middleware.Options{})
+	case "SOA":
+		records, _, err = middleware.SOA(&k, zone, state, middleware.Options{})
+	case "NS":
+		if state.Name() == zone {
+			records, extra, _, err = middleware.NS(&k, zone, state, middleware.Options{})
+			break
+		}
+		fallthrough
+	default:
+		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
+		_, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
+	}
 
 	if k.IsNameError(err) {
 		if k.Fallthrough {
 			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
-		// Make err nil when returning here, so we don't log spam for NXDOMAIN.
 		return middleware.BackendError(&k, zone, dns.RcodeNameError, state, nil /*debug*/, nil /* err */, middleware.Options{})
 	}
 	if err != nil {
@@ -64,37 +94,6 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
-}
-
-func (k *Kubernetes) routeRequest(zone string, state request.Request) (records []dns.RR, extra []dns.RR, debug []dns.RR, err error) {
-	switch state.Type() {
-	case "A":
-		records, _, err = middleware.A(k, zone, state, nil, middleware.Options{})
-	case "AAAA":
-		records, _, err = middleware.AAAA(k, zone, state, nil, middleware.Options{})
-	case "TXT":
-		records, _, err = middleware.TXT(k, zone, state, middleware.Options{})
-	case "CNAME":
-		records, _, err = middleware.CNAME(k, zone, state, middleware.Options{})
-	case "PTR":
-		records, _, err = middleware.PTR(k, zone, state, middleware.Options{})
-	case "MX":
-		records, extra, _, err = middleware.MX(k, zone, state, middleware.Options{})
-	case "SRV":
-		records, extra, _, err = middleware.SRV(k, zone, state, middleware.Options{})
-	case "SOA":
-		records, _, err = middleware.SOA(k, zone, state, middleware.Options{})
-	case "NS":
-		if state.Name() == zone {
-			records, extra, _, err = middleware.NS(k, zone, state, middleware.Options{})
-			break
-		}
-		fallthrough
-	default:
-		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, _, err = middleware.A(k, zone, state, nil, middleware.Options{})
-	}
-	return records, extra, nil, err
 }
 
 // Name implements the Handler interface.
