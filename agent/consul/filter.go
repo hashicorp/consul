@@ -25,7 +25,7 @@ func (d *dirEntFilter) Move(dst, src, span int) {
 func FilterDirEnt(acl acl.ACL, ent structs.DirEntries) (structs.DirEntries, error) {
 	df := dirEntFilter{acl: acl, ent: ent}
 	filtered := ent[:FilterEntries(&df)]
-	if len(ent) > 0 && len(filtered) == 0 {
+	if len(filtered) == 0 {
 		return nil, errPermissionDenied
 	}
 	return filtered, nil
@@ -52,7 +52,7 @@ func (k *keyFilter) Move(dst, src, span int) {
 func FilterKeys(acl acl.ACL, keys []string) ([]string, error) {
 	kf := keyFilter{acl: acl, keys: keys}
 	filteredKeys := keys[:FilterEntries(&kf)]
-	if len(keys) > 0 && len(filteredKeys) == 0 {
+	if len(filteredKeys) == 0 {
 		return nil, errPermissionDenied
 	}
 	return filteredKeys, nil
@@ -84,7 +84,7 @@ func (t *txnResultsFilter) Move(dst, src, span int) {
 func FilterTxnResults(acl acl.ACL, results structs.TxnResults) (structs.TxnResults, error) {
 	rf := txnResultsFilter{acl: acl, results: results}
 	filtered := results[:FilterEntries(&rf)]
-	if len(results) > 0 && len(filtered) == 0 {
+	if len(filtered) == 0 {
 		return nil, errPermissionDenied
 	}
 	return filtered, nil
