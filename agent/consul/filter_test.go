@@ -32,10 +32,6 @@ func TestFilter_DirEnt(t *testing.T) {
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
 			out: []string{"foo/1", "foo/2", "foo/3"},
 		},
-		tcase{
-			in:  []string{},
-			out: nil,
-		},
 	}
 
 	for _, tc := range cases {
@@ -82,10 +78,6 @@ func TestFilter_Keys(t *testing.T) {
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
 			out: []string{"foo/1", "foo/2", "foo/3"},
 		},
-		tcase{
-			in:  []string{},
-			out: []string{},
-		},
 	}
 
 	for _, tc := range cases {
@@ -123,10 +115,6 @@ func TestFilter_TxnResults(t *testing.T) {
 		tcase{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
 			out: []string{"foo/1", "foo/2", "foo/3"},
-		},
-		tcase{
-			in:  []string{},
-			out: nil,
 		},
 	}
 
