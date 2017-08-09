@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* agent: Fixed an issue where the old `-retry-join-{ec2,azure,gce}` command line flags were not being honored. [GH-3384]
 * server: Reverted the change that made unauthorized KV queries return 403 instead of 404 because it had a minor bug that affected the operation of Vault, and in addition to fixing the bug, we identified an additional case that needed to be covered. This restores the <= 0.9.0 behavior until we can get a complete fix. [GH-2637]
 
 ## 0.9.1 (August 9, 2017)
