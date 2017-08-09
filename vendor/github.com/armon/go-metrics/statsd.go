@@ -97,11 +97,10 @@ func (s *StatsdSink) flattenKey(parts []string) string {
 
 // Flattens the key along with labels for formatting, removes spaces
 func (s *StatsdSink) flattenKeyLabels(parts []string, labels []Label) string {
-	fullName := parts
 	for _, label := range labels {
-		fullName = append(parts, label.Value)
+		parts = append(parts, label.Value)
 	}
-	return s.flattenKey(fullName)
+	return s.flattenKey(parts)
 }
 
 // Does a non-blocking push to the metrics queue
