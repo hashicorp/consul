@@ -11,7 +11,6 @@ import (
 
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
-	"github.com/coredns/coredns/middleware/kubernetes/autopath"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	dnsstrings "github.com/coredns/coredns/middleware/pkg/strings"
 	"github.com/coredns/coredns/middleware/proxy"
@@ -47,7 +46,6 @@ type Kubernetes struct {
 	ReverseCidrs  []net.IPNet
 	Fallthrough   bool
 
-	autoPath           *autopath.AutoPath
 	interfaceAddrsFunc func() net.IP
 }
 
@@ -252,7 +250,7 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 	}
 
 	opts := dnsControlOpts{
-		initPodCache: (k.PodMode == PodModeVerified || (k.autoPath != nil)),
+		initPodCache: k.PodMode == PodModeVerified,
 	}
 	k.APIConn = newdnsController(kubeClient, k.ResyncPeriod, k.Selector, opts)
 
@@ -458,21 +456,6 @@ func (k *Kubernetes) getRecordsForK8sItems(services []service, pods []pod, r rec
 	}
 
 	return records
-}
-
-func (k *Kubernetes) findPodWithIP(ip string) (p *api.Pod) {
-	if k.autoPath == nil {
-		return nil
-	}
-	objList := k.APIConn.PodIndex(ip)
-	for _, o := range objList {
-		p, ok := o.(*api.Pod)
-		if !ok {
-			return nil
-		}
-		return p
-	}
-	return nil
 }
 
 func (k *Kubernetes) findPods(namespace, podname string) (pods []pod, err error) {

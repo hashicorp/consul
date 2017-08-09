@@ -2,17 +2,11 @@ package kubernetes
 
 import (
 	"net"
-	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/middleware/kubernetes/autopath"
-	"github.com/coredns/coredns/middleware/test"
-
 	"github.com/mholt/caddy"
-	"github.com/miekg/dns"
 	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
 )
 
@@ -22,13 +16,6 @@ func parseCidr(cidr string) net.IPNet {
 }
 
 func TestKubernetesParse(t *testing.T) {
-	f, rm, err := test.TempFile(os.TempDir(), testResolveConf)
-	autoPathResolvConfFile := f
-	if err != nil {
-		t.Fatalf("Could not create resolv.conf TempFile: %s", err)
-	}
-	defer rm()
-
 	tests := []struct {
 		description           string        // Human-facing description of test case
 		input                 string        // Corefile data as string
@@ -43,7 +30,6 @@ func TestKubernetesParse(t *testing.T) {
 		expectedFallthrough   bool
 		expectedUpstreams     []string
 		expectedFederations   []Federation
-		expectedAutoPath      *autopath.AutoPath
 	}{
 		// positive
 		{
@@ -60,7 +46,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -76,7 +61,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -93,7 +77,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"endpoint keyword with url",
@@ -111,7 +94,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -127,7 +109,6 @@ func TestKubernetesParse(t *testing.T) {
 			PodModeDisabled,
 			nil,
 			false,
-			nil,
 			nil,
 			nil,
 		},
@@ -147,7 +128,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"resync period in seconds",
@@ -165,7 +145,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"resync period in minutes",
@@ -183,7 +162,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"basic label selector",
@@ -201,7 +179,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"multi-label selector",
@@ -219,7 +196,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"fully specified valid config",
@@ -241,7 +217,6 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// negative
 		{
@@ -258,7 +233,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -274,7 +248,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -292,7 +265,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -310,7 +282,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"resyncperiod keyword without a duration value",
@@ -328,7 +299,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"resync period no units",
@@ -346,7 +316,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"resync period invalid",
@@ -364,7 +333,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"labels with no selector value",
@@ -382,7 +350,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		{
 			"labels with invalid selector value",
@@ -400,7 +367,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// pods disabled
 		{
@@ -419,7 +385,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// pods insecure
 		{
@@ -438,7 +403,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// pods verified
 		{
@@ -457,7 +421,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// pods invalid
 		{
@@ -476,7 +439,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// cidrs ok
 		{
@@ -495,7 +457,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// cidrs ok
 		{
@@ -514,7 +475,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// fallthrough invalid
 		{
@@ -533,7 +493,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// Valid upstream
 		{
@@ -552,7 +511,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			[]string{"13.14.15.16:53"},
 			[]Federation{},
-			nil,
 		},
 		// Invalid upstream
 		{
@@ -571,7 +529,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
 		},
 		// Valid federations
 		{
@@ -594,7 +551,6 @@ func TestKubernetesParse(t *testing.T) {
 				{name: "foo", zone: "bar.crawl.com"},
 				{name: "fed", zone: "era.tion.com"},
 			},
-			nil,
 		},
 		// Invalid federations
 		{
@@ -613,103 +569,6 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			nil,
 			[]Federation{},
-			nil,
-		},
-		// autopath
-		{
-			"valid autopath",
-			`kubernetes coredns.local {
-	autopath 1 NXDOMAIN ` + autoPathResolvConfFile + `
-}`,
-			false,
-			"",
-			1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			nil,
-			&autopath.AutoPath{
-				NDots:          1,
-				HostSearchPath: []string{"bar.com.", "baz.com."},
-				ResolvConfFile: autoPathResolvConfFile,
-				OnNXDOMAIN:     dns.RcodeNameError,
-			},
-		},
-		{
-			"invalid autopath RESPONSE",
-			`kubernetes coredns.local {
-	autopath 0 CRY
-}`,
-			true,
-			"invalid RESPONSE argument for autopath",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			nil,
-			nil,
-		},
-		{
-			"invalid autopath NDOTS",
-			`kubernetes coredns.local {
-	autopath polka
-}`,
-			true,
-			"invalid NDOTS argument for autopath",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			nil,
-			nil,
-		},
-		{
-			"invalid autopath RESOLV-CONF",
-			`kubernetes coredns.local {
-	autopath 1 NOERROR /wrong/path/to/resolv.conf
-}`,
-			true,
-			"error when parsing",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			nil,
-			nil,
-		},
-		{
-			"invalid autopath invalid option",
-			`kubernetes coredns.local {
-	autopath 1 SERVFAIL ` + autoPathResolvConfFile + ` foo
-}`,
-			true,
-			"incorrect number of arguments",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			nil,
-			nil,
 		},
 	}
 
@@ -810,15 +669,5 @@ func TestKubernetesParse(t *testing.T) {
 
 			}
 		}
-		// autopath
-		if !reflect.DeepEqual(test.expectedAutoPath, k8sController.autoPath) {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with autopath '%v'. Instead found autopath '%v' for input '%s'", i, test.expectedAutoPath, k8sController.autoPath, test.input)
-		}
 	}
 }
-
-const testResolveConf = `nameserver 1.2.3.4
-domain foo.com
-search bar.com baz.com
-options ndots:5
-`

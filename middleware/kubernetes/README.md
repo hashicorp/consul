@@ -11,7 +11,7 @@ to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/mast
 ## Syntax
 
 ```
-kubernetes ZONE [ZONE...] [{
+kubernetes ZONE [ZONE...] [
 	resyncperiod DURATION
 	endpoint URL
 	tls CERT KEY CACERT]
@@ -20,9 +20,8 @@ kubernetes ZONE [ZONE...] [{
 	pods POD-MODE]
 	upstream ADDRESS [ADDRESS...]
 	federation NAME DOMAIN
-	autopath [NDOTS [RESPONSE [RESOLV-CONF]]
 	fallthrough
-}]
+}
 ```
 
 * `resyncperiod` **DURATION**
@@ -135,62 +134,6 @@ specified).
 	}
   ```
 
-* `autopath` **[NDOTS [RESPONSE [RESOLV-CONF]]**
-
-  Enables server side search path lookups for pods.  When enabled, the kubernetes middleware will identify search path queries from pods and perform the remaining lookups in the path on the pod's behalf.  The search path used mimics the resolv.conf search path deployed to pods by the "cluster-first" dns-policy. E.g.
-
-  ```
-  search ns1.svc.cluster.local svc.cluster.local cluster.local foo.com
-  ```
-
-  If no domains in the path produce an answer, a lookup on the bare question will be attempted.
-
-  A successful response will contain a question section with the original question, and an answer section containing the record for the question that actually had an answer.  This means that the question and answer will not match. To avoid potential client confusion, a dynamically generated CNAME entry is added to join the two. For example:
-
-  ```
-    # host -v -t a google.com
-    Trying "google.com.default.svc.cluster.local"
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 50957
-    ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
-
-    ;; QUESTION SECTION:
-    ;google.com.default.svc.cluster.local. IN A
-
-    ;; ANSWER SECTION:
-    google.com.default.svc.cluster.local. 175 IN CNAME google.com.
-    google.com.		175	IN	A	216.58.194.206
-  ```
-
-  **Fully Qualified Queries:** There is a known limitation of the autopath feature involving fully qualified queries. When the kubernetes middleware receives a query from a client, it cannot tell the difference between a query that was fully qualified by the user, and one that was expanded by the first search path on the client side.
-
-  This means that the kubernetes middleware with autopath enabled will perform a server-side path search for the query `google.com.default.svc.cluster.local.` as if the client had queried just `google.com`.  In other words, a query for `google.com.default.svc.cluster.local.` will produce the IP address for `google.com` as seen below.
-
-  ```
-	# host -t a google.com
-	google.com has address 216.58.194.206
-	google.com.default.svc.cluster.local is an alias for google.com.
-
-	# host -t a google.com.default.svc.cluster.local.
-	google.com has address 216.58.194.206
-	google.com.default.svc.cluster.local is an alias for google.com.
-  ```
-
-  **NDOTS** (default: `0`) This provides an adjustable threshold to prevent server side lookups from triggering. If the number of dots before the first search domain is less than this number, then the search path will not executed on the server side.  When autopath is enabled with default settings, the search path is always conducted when the query is in the first search domain `<pod-namespace>.svc.<zone>.`.
-
-  **RESPONSE** (default: `NOERROR`) This option causes the kubernetes middleware to return the given response instead of NXDOMAIN when the all searches in the path produce no results. Valid values: `NXDOMAIN`, `SERVFAIL` or `NOERROR`. Setting this to `SERVFAIL` or `NOERROR` should prevent the client from fruitlessly continuing the client side searches in the path after the server already checked them.
-
-  **RESOLV-CONF** (default: `/etc/resolv.conf`) If specified, the kubernetes middleware uses this file to get the host's search domains. The kubernetes middleware performs a lookup on these domains if the in-cluster search domains in the path fail to produce an answer. If not specified, the values will be read from the local resolv.conf file (i.e the resolv.conf file in the pod containing CoreDNS).  In practice, this option should only need to be used if running CoreDNS outside of the cluster and the search path in /etc/resolv.conf does not match the cluster's "default" dns-policiy.
-
-  Enabling autopath requires more memory, since it needs to maintain a watch on all pods. If autopath and `pods verified` mode are both enabled, they will share the same watch. Enabling both options should have an equivalent memory impact of just one.
-
-  Example:
-
-  ```
-	kubernetes cluster.local. {
-		autopath 0 NXDOMAIN /etc/resolv.conf
-	}
-  ```
-
 * `fallthrough`
 
   If a query for a record in the cluster zone results in NXDOMAIN, normally that is what the response will be. However, if you specify this option, the query will instead be passed on down the middleware chain, which can include another middleware to handle the query.
@@ -204,13 +147,12 @@ specified).
 
 **Example 2:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster.
  Handle all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
- requests.  Resolve upstream records against `10.102.3.10`. Enable the autopath feature.
+ requests.  Resolve upstream records against `10.102.3.10`.
 
     10.0.0.0/16 cluster.local {
         kubernetes {
             pods verified
             upstream 10.102.3.10:53
-            autopath
         }
     }
 
@@ -232,14 +174,13 @@ specified).
     }
 
 **Out-Of-Cluster Example:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes from outside the cluster.
-  Verify the existence of pods when answering pod requests.  Resolve upstream records against `10.102.3.10`. Enable the autopath feature, using the `cluster.conf` file instead of `/etc/resolv.conf`.
+  Verify the existence of pods when answering pod requests.  Resolve upstream records against `10.102.3.10`.
 
 	kubernetes cluster.local {
 		endpoint https://k8s-endpoint:8443
 		tls cert key cacert
 		pods verified
 		upstream 10.102.3.10:53
-		autopath 0 NOERROR cluster.conf
 	}
 
 

@@ -5,6 +5,7 @@ package core
 import (
 	// Include all middleware.
 	_ "github.com/coredns/coredns/middleware/auto"
+	_ "github.com/coredns/coredns/middleware/autopath"
 	_ "github.com/coredns/coredns/middleware/bind"
 	_ "github.com/coredns/coredns/middleware/cache"
 	_ "github.com/coredns/coredns/middleware/chaos"
