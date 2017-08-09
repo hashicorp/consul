@@ -406,10 +406,10 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 		// redact m before output
 		if m["access_key_id"] != "" {
-			m["access_key_id"] = "(hidden)"
+			m["access_key_id"] = "hidden"
 		}
 		if m["secret_access_key"] != "" {
-			m["secret_access_key"] = "(hidden)"
+			m["secret_access_key"] = "hidden"
 		}
 
 		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_ec2 is deprecated. "+
@@ -430,16 +430,16 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 		// redact m before output
 		if m["subscription_id"] != "" {
-			m["subscription_id"] = "(hidden)"
+			m["subscription_id"] = "hidden"
 		}
 		if m["tenant_id"] != "" {
-			m["tenant_id"] = "(hidden)"
+			m["tenant_id"] = "hidden"
 		}
 		if m["client_id"] != "" {
-			m["client_id"] = "(hidden)"
+			m["client_id"] = "hidden"
 		}
 		if m["secret_access_key"] != "" {
-			m["secret_access_key"] = "(hidden)"
+			m["secret_access_key"] = "hidden"
 		}
 
 		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_azure is deprecated. "+
@@ -458,7 +458,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 		// redact m before output
 		if m["credentials_file"] != "" {
-			m["credentials_file"] = "(hidden)"
+			m["credentials_file"] = "hidden"
 		}
 
 		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_gce is deprecated. "+
