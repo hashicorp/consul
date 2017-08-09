@@ -72,10 +72,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	// just taking the two slices.
 	if txnResp, ok := resp.(structs.TxnResponse); ok {
 		if acl != nil {
-			txnResp.Results, err = FilterTxnResults(acl, txnResp.Results)
-			if err != nil {
-				return err
-			}
+			txnResp.Results = FilterTxnResults(acl, txnResp.Results)
 		}
 		*reply = txnResp
 	} else {
@@ -116,10 +113,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
 	if acl != nil {
-		reply.Results, err = FilterTxnResults(acl, reply.Results)
-		if err != nil {
-			return err
-		}
+		reply.Results = FilterTxnResults(acl, reply.Results)
 	}
 	return nil
 }
