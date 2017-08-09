@@ -14,7 +14,7 @@ import (
 func TestSetupAutoPath(t *testing.T) {
 	resolv, rm, err := test.TempFile(os.TempDir(), resolvConf)
 	if err != nil {
-		t.Fatalf("Could not create resolv.conf test file: %s", resolvConf, err)
+		t.Fatalf("Could not create resolv.conf test file %s: %s", resolvConf, err)
 	}
 	defer rm()
 

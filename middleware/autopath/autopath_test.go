@@ -132,8 +132,6 @@ func nextHandler(mm map[string]int) test.Handler {
 		default:
 			panic("nextHandler: unhandled rcode")
 		}
-
-		return dns.RcodeServerFailure, nil
 	})
 }
 
@@ -159,7 +157,7 @@ func TestInSearchPath(t *testing.T) {
 	for i, tc := range tests {
 		got := a.FirstInSearchPath(tc.qname)
 		if got != tc.b {
-			t.Errorf("Test %d, got %d, expected %d", i, got, tc.b)
+			t.Errorf("Test %d, got %v, expected %v", i, got, tc.b)
 		}
 	}
 }

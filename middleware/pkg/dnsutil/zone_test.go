@@ -24,7 +24,7 @@ func TestTrimZone(t *testing.T) {
 	for i, tc := range tests {
 		got, err := TrimZone(dns.Fqdn(tc.qname), dns.Fqdn(tc.zone))
 		if tc.err != nil && err == nil {
-			t.Errorf("Test %d, expected error got nil")
+			t.Errorf("Test %d, expected error got nil", i)
 			continue
 		}
 		if tc.err == nil && err != nil {
