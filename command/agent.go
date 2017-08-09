@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"syscall"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
+	discover "github.com/hashicorp/go-discover"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -385,6 +387,82 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	if ipaddr.IsAny(cfg.AdvertiseAddrWan) {
 		cmd.UI.Error("Advertise WAN address cannot be " + cfg.AdvertiseAddrWan)
 		return nil
+	}
+
+	// patch deprecated retry-join-{gce,azure,ec2)-* parameters
+	// into -retry-join and issue warning.
+	// todo(fs): this should really be in DecodeConfig where it can be tested
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinEC2, agent.RetryJoinEC2{}) {
+		m := discover.Config{
+			"provider":          "aws",
+			"region":            cfg.DeprecatedRetryJoinEC2.Region,
+			"tag_key":           cfg.DeprecatedRetryJoinEC2.TagKey,
+			"tag_value":         cfg.DeprecatedRetryJoinEC2.TagValue,
+			"access_key_id":     cfg.DeprecatedRetryJoinEC2.AccessKeyID,
+			"secret_access_key": cfg.DeprecatedRetryJoinEC2.SecretAccessKey,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinEC2 = agent.RetryJoinEC2{}
+
+		// redact m before output
+		if m["access_key_id"] != "" {
+			m["access_key_id"] = "hidden"
+		}
+		if m["secret_access_key"] != "" {
+			m["secret_access_key"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_ec2 is deprecated. "+
+			"Please add %q to retry_join\n", m))
+	}
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinAzure, agent.RetryJoinAzure{}) {
+		m := discover.Config{
+			"provider":          "azure",
+			"tag_name":          cfg.DeprecatedRetryJoinAzure.TagName,
+			"tag_value":         cfg.DeprecatedRetryJoinAzure.TagValue,
+			"subscription_id":   cfg.DeprecatedRetryJoinAzure.SubscriptionID,
+			"tenant_id":         cfg.DeprecatedRetryJoinAzure.TenantID,
+			"client_id":         cfg.DeprecatedRetryJoinAzure.ClientID,
+			"secret_access_key": cfg.DeprecatedRetryJoinAzure.SecretAccessKey,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinAzure = agent.RetryJoinAzure{}
+
+		// redact m before output
+		if m["subscription_id"] != "" {
+			m["subscription_id"] = "hidden"
+		}
+		if m["tenant_id"] != "" {
+			m["tenant_id"] = "hidden"
+		}
+		if m["client_id"] != "" {
+			m["client_id"] = "hidden"
+		}
+		if m["secret_access_key"] != "" {
+			m["secret_access_key"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_azure is deprecated. "+
+			"Please add %q to retry_join\n", m))
+	}
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinGCE, agent.RetryJoinGCE{}) {
+		m := discover.Config{
+			"provider":         "gce",
+			"project_name":     cfg.DeprecatedRetryJoinGCE.ProjectName,
+			"zone_pattern":     cfg.DeprecatedRetryJoinGCE.ZonePattern,
+			"tag_value":        cfg.DeprecatedRetryJoinGCE.TagValue,
+			"credentials_file": cfg.DeprecatedRetryJoinGCE.CredentialsFile,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinGCE = agent.RetryJoinGCE{}
+
+		// redact m before output
+		if m["credentials_file"] != "" {
+			m["credentials_file"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_gce is deprecated. "+
+			"Please add %q to retry_join\n", m))
 	}
 
 	// Compile all the watches
