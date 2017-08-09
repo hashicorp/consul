@@ -11,7 +11,6 @@ import (
 
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
-	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	dnsstrings "github.com/coredns/coredns/middleware/pkg/strings"
 	"github.com/coredns/coredns/middleware/proxy"
 	"github.com/coredns/coredns/request"
@@ -157,28 +156,6 @@ func (k *Kubernetes) recordsForNS(r recordRequest) msg.Service {
 // PrimaryZone will return the first non-reverse zone being handled by this middleware
 func (k *Kubernetes) PrimaryZone() string {
 	return k.Zones[k.primaryZone]
-}
-
-// Reverse implements the ServiceBackend interface.
-func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
-
-	ip := dnsutil.ExtractAddressFromReverse(state.Name())
-	if ip == "" {
-		return nil, nil, nil
-	}
-
-	records := k.getServiceRecordForIP(ip, state.Name())
-	return records, nil, nil
-}
-
-func (k *Kubernetes) isRequestInReverseRange(name string) bool {
-	ip := dnsutil.ExtractAddressFromReverse(name)
-	for _, c := range k.ReverseCidrs {
-		if c.Contains(net.ParseIP(ip)) {
-			return true
-		}
-	}
-	return false
 }
 
 // Lookup implements the ServiceBackend interface.
