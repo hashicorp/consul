@@ -5,6 +5,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/kubernetes"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
@@ -25,14 +26,14 @@ func setup(c *caddy.Controller) error {
 	}
 
 	c.OnStartup(func() error {
-		// So we know for sure the mw is initialized.
+		// Do this in OnStartup, so all middleware has been initialized.
+		// TODO(miek): fabricate test to proof this is not thread safe.
 		m := dnsserver.GetMiddleware(c, mw)
 		switch mw {
 		case "kubernetes":
-			m = m
-			//if k, ok := m.(kubernetes.Kubernetes); ok {
-			//&ap.searchFunc = k.AutoPath
-			//}
+			if k, ok := m.(kubernetes.Kubernetes); ok {
+				ap.searchFunc = k.AutoPath
+			}
 		}
 		return nil
 	})

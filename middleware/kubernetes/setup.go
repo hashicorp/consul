@@ -203,8 +203,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 }
 
 const (
-	defaultResyncPeriod   = 5 * time.Minute
-	defautNdots           = 0
-	defaultResolvConfFile = "/etc/resolv.conf"
-	defaultOnNXDOMAIN     = dns.RcodeSuccess
+	defaultResyncPeriod = 5 * time.Minute
+	defautNdots         = 0
+	defaultOnNXDOMAIN   = dns.RcodeSuccess
 )
