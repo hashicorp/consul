@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -22,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	discover "github.com/hashicorp/go-discover"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
 )
@@ -1196,65 +1194,6 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	if result.DeprecatedAtlasEndpoint != "" {
 		fmt.Fprintln(os.Stderr, "==> DEPRECATION: atlas_endpoint is deprecated and "+
 			"is no longer used. Please remove it from your configuration.")
-	}
-
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinEC2, RetryJoinEC2{}) {
-		m := discover.Config{
-			"provider":          "aws",
-			"region":            result.DeprecatedRetryJoinEC2.Region,
-			"tag_key":           result.DeprecatedRetryJoinEC2.TagKey,
-			"tag_value":         result.DeprecatedRetryJoinEC2.TagValue,
-			"access_key_id":     result.DeprecatedRetryJoinEC2.AccessKeyID,
-			"secret_access_key": result.DeprecatedRetryJoinEC2.SecretAccessKey,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinEC2 = RetryJoinEC2{}
-
-		// redact m before output
-		m["access_key_id"] = "<hidden>"
-		m["secret_access_key"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_ec2 is deprecated."+
-			"Please add %q to retry_join\n", m)
-	}
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinAzure, RetryJoinAzure{}) {
-		m := discover.Config{
-			"provider":          "azure",
-			"tag_name":          result.DeprecatedRetryJoinAzure.TagName,
-			"tag_value":         result.DeprecatedRetryJoinAzure.TagValue,
-			"subscription_id":   result.DeprecatedRetryJoinAzure.SubscriptionID,
-			"tenant_id":         result.DeprecatedRetryJoinAzure.TenantID,
-			"client_id":         result.DeprecatedRetryJoinAzure.ClientID,
-			"secret_access_key": result.DeprecatedRetryJoinAzure.SecretAccessKey,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinAzure = RetryJoinAzure{}
-
-		// redact m before output
-		m["subscription_id"] = "<hidden>"
-		m["tenant_id"] = "<hidden>"
-		m["client_id"] = "<hidden>"
-		m["secret_access_key"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_azure is deprecated."+
-			"Please add %q to retry_join\n", m)
-	}
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinGCE, RetryJoinGCE{}) {
-		m := discover.Config{
-			"provider":         "gce",
-			"project_name":     result.DeprecatedRetryJoinGCE.ProjectName,
-			"zone_pattern":     result.DeprecatedRetryJoinGCE.ZonePattern,
-			"tag_value":        result.DeprecatedRetryJoinGCE.TagValue,
-			"credentials_file": result.DeprecatedRetryJoinGCE.CredentialsFile,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinGCE = RetryJoinGCE{}
-
-		// redact m before output
-		m["credentials_file"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_gce is deprecated."+
-			"Please add %q to retry_join\n", m)
 	}
 
 	// Check unused fields and verify that no bad configuration options were
