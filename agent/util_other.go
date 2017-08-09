@@ -7,7 +7,6 @@ import (
 	"os/exec"
 )
 
-
 // ExecScript returns a command to execute a script
 func ExecScript(script string) (*exec.Cmd, error) {
 	shell := "/bin/sh"
