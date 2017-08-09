@@ -3,11 +3,11 @@ package proxy
 
 import (
 	"errors"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -41,52 +41,13 @@ type Upstream interface {
 	// The domain name this upstream host should be routed on.
 	From() string
 	// Selects an upstream host to be routed to.
-	Select() *UpstreamHost
+	Select() *healthcheck.UpstreamHost
 	// Checks if subpdomain is not an ignored.
 	IsAllowedDomain(string) bool
 	// Exchanger returns the exchanger to be used for this upstream.
 	Exchanger() Exchanger
 	// Stops the upstream from proxying requests to shutdown goroutines cleanly.
 	Stop() error
-}
-
-// UpstreamHostDownFunc can be used to customize how Down behaves.
-type UpstreamHostDownFunc func(*UpstreamHost) bool
-
-// UpstreamHost represents a single proxy upstream
-type UpstreamHost struct {
-	Conns             int64  // must be first field to be 64-bit aligned on 32-bit systems
-	Name              string // IP address (and port) of this upstream host
-	Fails             int32
-	FailTimeout       time.Duration
-	OkUntil           time.Time
-	CheckDown         UpstreamHostDownFunc
-	CheckURL          string
-	WithoutPathPrefix string
-	Checking          bool
-	checkMu           sync.Mutex
-}
-
-// Down checks whether the upstream host is down or not.
-// Down will try to use uh.CheckDown first, and will fall
-// back to some default criteria if necessary.
-func (uh *UpstreamHost) Down() bool {
-	if uh.CheckDown == nil {
-		// Default settings
-		fails := atomic.LoadInt32(&uh.Fails)
-		after := false
-
-		uh.checkMu.Lock()
-		until := uh.OkUntil
-		uh.checkMu.Unlock()
-
-		if !until.IsZero() && time.Now().After(until) {
-			after = true
-		}
-
-		return after || fails > 0
-	}
-	return uh.CheckDown(uh)
 }
 
 // tryDuration is how long to try upstream hosts; failures result in
@@ -145,7 +106,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				timeout = 10 * time.Second
 			}
 			atomic.AddInt32(&host.Fails, 1)
-			go func(host *UpstreamHost, timeout time.Duration) {
+			go func(host *healthcheck.UpstreamHost, timeout time.Duration) {
 				time.Sleep(timeout)
 				atomic.AddInt32(&host.Fails, -1)
 			}(host, timeout)

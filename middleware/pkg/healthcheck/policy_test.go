@@ -1,6 +1,8 @@
-package proxy
+package healthcheck
 
 import (
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -39,6 +41,57 @@ func testPool() HostPool {
 		},
 	}
 	return HostPool(pool)
+}
+
+func TestRegisterPolicy(t *testing.T) {
+	name := "custom"
+	customPolicy := &customPolicy{}
+	RegisterPolicy(name, func() Policy { return customPolicy })
+	if _, ok := SupportedPolicies[name]; !ok {
+		t.Error("Expected supportedPolicies to have a custom policy.")
+	}
+
+}
+
+func TestHealthCheck(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+
+	u := &HealthCheck{
+		Hosts:       testPool(),
+		FailTimeout: 10 * time.Second,
+		Future:      60 * time.Second,
+		MaxFails:    1,
+	}
+
+	u.healthCheck()
+	// sleep a bit, it's async now
+	time.Sleep(time.Duration(2 * time.Second))
+
+	if u.Hosts[0].Down() {
+		t.Error("Expected first host in testpool to not fail healthcheck.")
+	}
+	if !u.Hosts[1].Down() {
+		t.Error("Expected second host in testpool to fail healthcheck.")
+	}
+}
+
+func TestSelect(t *testing.T) {
+	u := &HealthCheck{
+		Hosts:       testPool()[:3],
+		FailTimeout: 10 * time.Second,
+		Future:      60 * time.Second,
+		MaxFails:    1,
+	}
+	u.Hosts[0].OkUntil = time.Unix(0, 0)
+	u.Hosts[1].OkUntil = time.Unix(0, 0)
+	u.Hosts[2].OkUntil = time.Unix(0, 0)
+	if h := u.Select(); h != nil {
+		t.Error("Expected select to return nil as all host are down")
+	}
+	u.Hosts[2].OkUntil = time.Time{}
+	if h := u.Select(); h == nil {
+		t.Error("Expected select to not return nil")
+	}
 }
 
 func TestRoundRobinPolicy(t *testing.T) {

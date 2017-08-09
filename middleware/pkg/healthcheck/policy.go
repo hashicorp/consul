@@ -1,4 +1,4 @@
-package proxy
+package healthcheck
 
 import (
 	"log"
@@ -6,8 +6,14 @@ import (
 	"sync/atomic"
 )
 
-// HostPool is a collection of UpstreamHosts.
-type HostPool []*UpstreamHost
+var (
+	SupportedPolicies = make(map[string]func() Policy)
+)
+
+// RegisterPolicy adds a custom policy to the proxy.
+func RegisterPolicy(name string, policy func() Policy) {
+	SupportedPolicies[name] = policy
+}
 
 // Policy decides how a host will be selected from a pool. When all hosts are unhealthy, it is assumed the
 // healthchecking failed. In this case each policy will *randomly* return a host from the pool to prevent
