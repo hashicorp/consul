@@ -622,6 +622,57 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_EmptyKeys_ACLAllow(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	getKeyR := structs.KeyListRequest{
+		Datacenter:   "dc1",
+		Prefix:       "abc",
+		Seperator:    "/",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+	var keyent structs.IndexedKeyList
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getKeyR, &keyent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if keyent.Index == 0 {
+		t.Fatalf("Bad: %v", keyent)
+	}
+	if len(keyent.Keys) != 0 {
+		t.Fatalf("Bad: %v", keyent.Keys)
+	}
+
+	getR := structs.KeyRequest{
+		Datacenter:   "dc1",
+		Key:          "abc",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	var dirent structs.IndexedDirEntries
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 0 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
+
+}
+
 func TestKVS_Apply_LockDelay(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
