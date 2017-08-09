@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
@@ -34,9 +34,9 @@ func TestStatsFetcher(t *testing.T) {
 		t.Fatalf("bad len: %d", len(members))
 	}
 
-	var servers []*agent.Server
+	var servers []*metadata.Server
 	for _, member := range members {
-		ok, server := agent.IsConsulServer(member)
+		ok, server := metadata.IsConsulServer(member)
 		if !ok {
 			t.Fatalf("bad: %#v", member)
 		}

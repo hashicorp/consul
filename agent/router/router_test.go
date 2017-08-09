@@ -1,4 +1,4 @@
-package servers
+package router
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"

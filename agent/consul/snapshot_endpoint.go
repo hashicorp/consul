@@ -16,8 +16,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/go-msgpack/codec"
 )

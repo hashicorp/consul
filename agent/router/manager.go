@@ -1,9 +1,9 @@
 // Package servers provides a Manager interface for Manager managed
-// agent.Server objects.  The servers package manages servers from a Consul
+// metadata.Server objects.  The servers package manages servers from a Consul
 // client's perspective (i.e. a list of servers that a client talks with for
 // RPCs).  The servers package does not provide any API guarantees and should
 // be called only by `hashicorp/consul`.
-package servers
+package router
 
 import (
 	"log"
@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -71,7 +71,7 @@ type Pinger interface {
 type serverList struct {
 	// servers tracks the locally known servers.  List membership is
 	// maintained by Serf.
-	servers []*agent.Server
+	servers []*metadata.Server
 }
 
 type Manager struct {
@@ -111,7 +111,7 @@ type Manager struct {
 // begin seeing use after the rebalance timer fires or enough servers fail
 // organically.  If the server is already known, merge the new server
 // details.
-func (m *Manager) AddServer(s *agent.Server) {
+func (m *Manager) AddServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
 	l := m.getServerList()
@@ -120,7 +120,7 @@ func (m *Manager) AddServer(s *agent.Server) {
 	found := false
 	for idx, existing := range l.servers {
 		if existing.Name == s.Name {
-			newServers := make([]*agent.Server, len(l.servers))
+			newServers := make([]*metadata.Server, len(l.servers))
 			copy(newServers, l.servers)
 
 			// Overwrite the existing server details in order to
@@ -135,7 +135,7 @@ func (m *Manager) AddServer(s *agent.Server) {
 
 	// Add to the list if not known
 	if !found {
-		newServers := make([]*agent.Server, len(l.servers), len(l.servers)+1)
+		newServers := make([]*metadata.Server, len(l.servers), len(l.servers)+1)
 		copy(newServers, l.servers)
 		newServers = append(newServers, s)
 		l.servers = newServers
@@ -156,13 +156,13 @@ func (m *Manager) AddServer(s *agent.Server) {
 // less desirable than just returning the next server in the firing line.  If
 // the next server fails, it will fail fast enough and cycleServer will be
 // called again.
-func (l *serverList) cycleServer() (servers []*agent.Server) {
+func (l *serverList) cycleServer() (servers []*metadata.Server) {
 	numServers := len(l.servers)
 	if numServers < 2 {
 		return servers // No action required
 	}
 
-	newServers := make([]*agent.Server, 0, numServers)
+	newServers := make([]*metadata.Server, 0, numServers)
 	newServers = append(newServers, l.servers[1:]...)
 	newServers = append(newServers, l.servers[0])
 
@@ -170,7 +170,7 @@ func (l *serverList) cycleServer() (servers []*agent.Server) {
 }
 
 // removeServerByKey performs an inline removal of the first matching server
-func (l *serverList) removeServerByKey(targetKey *agent.Key) {
+func (l *serverList) removeServerByKey(targetKey *metadata.Key) {
 	for i, s := range l.servers {
 		if targetKey.Equal(s.Key()) {
 			copy(l.servers[i:], l.servers[i+1:])
@@ -202,7 +202,7 @@ func (m *Manager) IsOffline() bool {
 // server list.  If the server at the front of the list has failed or fails
 // during an RPC call, it is rotated to the end of the list.  If there are no
 // servers available, return nil.
-func (m *Manager) FindServer() *agent.Server {
+func (m *Manager) FindServer() *metadata.Server {
 	l := m.getServerList()
 	numServers := len(l.servers)
 	if numServers == 0 {
@@ -249,14 +249,14 @@ func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCl
 	atomic.StoreInt32(&m.offline, 1)
 
 	l := serverList{}
-	l.servers = make([]*agent.Server, 0)
+	l.servers = make([]*metadata.Server, 0)
 	m.saveServerList(l)
 	return m
 }
 
 // NotifyFailedServer marks the passed in server as "failed" by rotating it
 // to the end of the server list.
-func (m *Manager) NotifyFailedServer(s *agent.Server) {
+func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 	l := m.getServerList()
 
 	// If the server being failed is not the first server on the list,
@@ -290,7 +290,7 @@ func (m *Manager) NumServers() int {
 	return len(l.servers)
 }
 
-// RebalanceServers shuffles the list of servers on this agent.  The server
+// RebalanceServers shuffles the list of servers on this metadata.  The server
 // at the front of the list is selected for the next RPC.  RPC calls that
 // fail for a particular server are rotated to the end of the list.  This
 // method reshuffles the list periodically in order to redistribute work
@@ -376,14 +376,14 @@ func (m *Manager) reconcileServerList(l *serverList) bool {
 	}
 
 	type targetServer struct {
-		server *agent.Server
+		server *metadata.Server
 
 		//   'b' == both
 		//   'o' == original
 		//   'n' == new
 		state byte
 	}
-	mergedList := make(map[agent.Key]*targetServer, len(l.servers))
+	mergedList := make(map[metadata.Key]*targetServer, len(l.servers))
 	for _, s := range l.servers {
 		mergedList[*s.Key()] = &targetServer{server: s, state: 'o'}
 	}
@@ -425,7 +425,7 @@ func (m *Manager) reconcileServerList(l *serverList) bool {
 
 // RemoveServer takes out an internal write lock and removes a server from
 // the server list.
-func (m *Manager) RemoveServer(s *agent.Server) {
+func (m *Manager) RemoveServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
 	l := m.getServerList()
@@ -433,7 +433,7 @@ func (m *Manager) RemoveServer(s *agent.Server) {
 	// Remove the server if known
 	for i := range l.servers {
 		if l.servers[i].Name == s.Name {
-			newServers := make([]*agent.Server, 0, len(l.servers)-1)
+			newServers := make([]*metadata.Server, 0, len(l.servers)-1)
 			newServers = append(newServers, l.servers[:i]...)
 			newServers = append(newServers, l.servers[i+1:]...)
 			l.servers = newServers

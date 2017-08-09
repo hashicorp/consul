@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )

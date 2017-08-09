@@ -3,7 +3,7 @@
 // communicate Consul server information.  Gossiped information that ends up
 // in Server contains the necessary metadata required for servers.Manager to
 // select which server an RPC request should be routed to.
-package agent
+package metadata
 
 import (
 	"fmt"

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestFilter_DirEnt(t *testing.T) {

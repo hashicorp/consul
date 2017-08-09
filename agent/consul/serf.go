@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -125,7 +125,7 @@ func (s *Server) localEvent(event serf.UserEvent) {
 // lanNodeJoin is used to handle join events on the LAN pool.
 func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -166,9 +166,9 @@ func (s *Server) maybeBootstrap() {
 
 	// Scan for all the known servers.
 	members := s.serfLAN.Members()
-	var servers []agent.Server
+	var servers []metadata.Server
 	for _, member := range members {
-		valid, p := agent.IsConsulServer(member)
+		valid, p := metadata.IsConsulServer(member)
 		if !valid {
 			continue
 		}
@@ -265,7 +265,7 @@ func (s *Server) maybeBootstrap() {
 // lanNodeFailed is used to handle fail events on the LAN pool.
 func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := agent.IsConsulServer(m)
+		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}

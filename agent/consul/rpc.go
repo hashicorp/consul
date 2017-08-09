@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -225,7 +225,7 @@ CHECK_LEADER:
 // getLeader returns if the current node is the leader, and if not then it
 // returns the leader which is potentially nil if the cluster has not yet
 // elected a leader.
-func (s *Server) getLeader() (bool, *agent.Server) {
+func (s *Server) getLeader() (bool, *metadata.Server) {
 	// Check if we are the leader
 	if s.IsLeader() {
 		return true, nil
@@ -247,7 +247,7 @@ func (s *Server) getLeader() (bool, *agent.Server) {
 }
 
 // forwardLeader is used to forward an RPC call to the leader, or fail if no leader
-func (s *Server) forwardLeader(server *agent.Server, method string, args interface{}, reply interface{}) error {
+func (s *Server) forwardLeader(server *metadata.Server, method string, args interface{}, reply interface{}) error {
 	// Handle a missing server
 	if server == nil {
 		return structs.ErrNoLeader
