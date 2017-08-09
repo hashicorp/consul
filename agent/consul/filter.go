@@ -22,13 +22,9 @@ func (d *dirEntFilter) Move(dst, src, span int) {
 
 // FilterDirEnt is used to filter a list of directory entries
 // by applying an ACL policy
-func FilterDirEnt(acl acl.ACL, ent structs.DirEntries) (structs.DirEntries, error) {
+func FilterDirEnt(acl acl.ACL, ent structs.DirEntries) structs.DirEntries {
 	df := dirEntFilter{acl: acl, ent: ent}
-	filtered := ent[:FilterEntries(&df)]
-	if len(filtered) == 0 {
-		return nil, errPermissionDenied
-	}
-	return filtered, nil
+	return ent[:FilterEntries(&df)]
 }
 
 type keyFilter struct {
@@ -49,13 +45,9 @@ func (k *keyFilter) Move(dst, src, span int) {
 
 // FilterKeys is used to filter a list of keys by
 // applying an ACL policy
-func FilterKeys(acl acl.ACL, keys []string) ([]string, error) {
+func FilterKeys(acl acl.ACL, keys []string) []string {
 	kf := keyFilter{acl: acl, keys: keys}
-	filteredKeys := keys[:FilterEntries(&kf)]
-	if len(filteredKeys) == 0 {
-		return nil, errPermissionDenied
-	}
-	return filteredKeys, nil
+	return keys[:FilterEntries(&kf)]
 }
 
 type txnResultsFilter struct {
@@ -81,13 +73,9 @@ func (t *txnResultsFilter) Move(dst, src, span int) {
 
 // FilterTxnResults is used to filter a list of transaction results by
 // applying an ACL policy.
-func FilterTxnResults(acl acl.ACL, results structs.TxnResults) (structs.TxnResults, error) {
+func FilterTxnResults(acl acl.ACL, results structs.TxnResults) structs.TxnResults {
 	rf := txnResultsFilter{acl: acl, results: results}
-	filtered := results[:FilterEntries(&rf)]
-	if len(filtered) == 0 {
-		return nil, errPermissionDenied
-	}
-	return filtered, nil
+	return results[:FilterEntries(&rf)]
 }
 
 // Filter interface is used with FilterEntries to do an
