@@ -536,15 +536,9 @@ RPC:
 	}
 }
 
-// formatTxtRecords takes a kv-map and returns it as "[k=]v" for non-empty k not starting with rfc1035-
-func (d *DNSServer) formatTxtRecords(meta map[string]string) (txt []string) {
-	for k, v := range meta {
-		if strings.HasPrefix(k, "rfc1035-") {
-			txt = append(txt, v)
-		} else {
-			txt = append(txt, k+"="+v)
-		}
-	}
+// encodeKVasRFC1464 encodes a key-value pair according to RFC1464
+func (d *DNSServer) encodeKVasRFC1464(key, value string) (txt string) {
+	txt = key + "=" + value
 	return txt
 }
 
@@ -611,7 +605,11 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	}
 
 	if node != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
-		for _, txt := range d.formatTxtRecords(node.Meta) {
+		for key, value := range node.Meta {
+			txt := value
+			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
+				txt = d.encodeKVasRFC1464(key, value)
+			}
 			records = append(records, &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   qName,
