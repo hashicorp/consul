@@ -537,7 +537,7 @@ RPC:
 }
 
 // encodeKVasRFC1464 encodes a key-value pair according to RFC1464
-func (d *DNSServer) encodeKVasRFC1464(key, value string) (txt string) {
+func encodeKVasRFC1464(key, value string) (txt string) {
 	txt = key + "=" + value
 	return txt
 }
@@ -608,7 +608,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
-				txt = d.encodeKVasRFC1464(key, value)
+				txt = encodeKVasRFC1464(key, value)
 			}
 			records = append(records, &dns.TXT{
 				Hdr: dns.RR_Header{
