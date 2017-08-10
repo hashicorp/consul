@@ -32,7 +32,9 @@ func setup(c *caddy.Controller) error {
 	}
 
 	// If we have enabled prometheus we should add newly discovered zones to it.
-	met := dnsserver.GetMiddleware(c, "prometheus")
+	// This does not have to happen in a on.Startup because monitoring is one of the first
+	// to be initialized.
+	met := dnsserver.GetConfig(c).GetHandler("prometheus")
 	if met != nil {
 		a.metrics = met.(*metrics.Metrics)
 	}

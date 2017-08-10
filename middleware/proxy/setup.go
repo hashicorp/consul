@@ -20,7 +20,7 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("proxy", err)
 	}
 
-	t := dnsserver.GetMiddleware(c, "trace")
+	t := dnsserver.GetConfig(c).GetHandler("trace")
 	P := &Proxy{Trace: t}
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		P.Next = next

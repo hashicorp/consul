@@ -51,6 +51,9 @@ func setup(c *caddy.Controller) error {
 		return kubernetes
 	})
 
+	// Also register kubernetes for use in autopath.
+	dnsserver.GetConfig(c).RegisterHandler(kubernetes)
+
 	return nil
 }
 

@@ -38,6 +38,9 @@ func setup(c *caddy.Controller) error {
 	}
 	c.OnFinalShutdown(m.OnShutdown)
 
+	// Also register metrics for use in other middleware.
+	dnsserver.GetConfig(c).RegisterHandler(m)
+
 	return nil
 }
 
