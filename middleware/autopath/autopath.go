@@ -27,8 +27,8 @@ AutoPathFunc. Note the searchpath must be ending with the empty string.
 
 I.e:
 
-func (m Middleware ) AutoPath(state request.Request) ([]string, error) {
-	return []string{"first", "second", "last", ""}, nil
+func (m Middleware ) AutoPath(state request.Request) []string {
+	return []string{"first", "second", "last", ""}
 }
 */
 
@@ -45,8 +45,8 @@ import (
 
 // AutoPathFunc defines the function middleware should implement to return a search
 // path to the autopath middleware. The last element of the slice must be the empty string.
-// If AutoPathFunc returns a non-nil error no autopathing is performed.
-type AutoPathFunc func(request.Request) ([]string, error)
+// If AutoPathFunc returns a nil slice, no autopathing will be done.
+type AutoPathFunc func(request.Request) []string
 
 // Autopath perform autopath: service side search path completion.
 type AutoPath struct {
@@ -69,8 +69,8 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	var err error
 	searchpath := a.search
 	if a.searchFunc != nil {
-		searchpath, err = a.searchFunc(state)
-		if err != nil {
+		searchpath = a.searchFunc(state)
+		if len(searchpath) == 0 {
 			return middleware.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 		}
 	}

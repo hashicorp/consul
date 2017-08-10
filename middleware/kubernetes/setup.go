@@ -62,6 +62,8 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 		Proxy:              proxy.Proxy{},
 	}
 
+	k8s.autoPathSearch = searchFromResolvConf()
+
 	for c.Next() {
 		if c.Val() == "kubernetes" {
 			zones := c.RemainingArgs()
@@ -200,6 +202,15 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 		}
 	}
 	return nil, errors.New("kubernetes setup called without keyword 'kubernetes' in Corefile")
+}
+
+func searchFromResolvConf() []string {
+	rc, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return nil
+	}
+	middleware.Zones(rc.Search).Normalize()
+	return rc.Search
 }
 
 const (

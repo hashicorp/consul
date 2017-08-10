@@ -47,6 +47,7 @@ type Kubernetes struct {
 	Fallthrough   bool
 
 	interfaceAddrsFunc func() net.IP
+	autoPathSearch     []string // Local search path from /etc/resolv.conf. Needed for autopath.
 }
 
 const (
