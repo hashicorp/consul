@@ -64,6 +64,11 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		return dns.RcodeServerFailure, middleware.Error(a.Name(), errors.New("can only deal with ClassINET"))
 	}
 
+	zone := middleware.Zones(a.Zones).Matches(state.Name())
+	if zone == "" {
+		return middleware.NextOrFailure(a.Name(), a.Next, ctx, w, r)
+	}
+
 	// Check if autopath should be done, searchFunc takes precedence over the local configured
 	// search path.
 	var err error
@@ -83,7 +88,7 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	origQName := state.QName()
 
 	// Establish base name of the query. I.e what was originally asked.
-	base, err := dnsutil.TrimZone(state.QName(), a.search[0]) // TOD(miek): we loose the original case of the query here.
+	base, err := dnsutil.TrimZone(state.QName(), a.search[0]) // TODO(miek): we loose the original case of the query here.
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
@@ -91,15 +96,21 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	firstReply := new(dns.Msg)
 	firstRcode := 0
 	var firstErr error
+
+	ar := r.Copy()
 	// Walk the search path and see if we can get a non-nxdomain - if they all fail we return the first
 	// query we've done and return that as-is. This means the client will do the search path walk again...
 	for i, s := range searchpath {
-
 		newQName := base + "." + s
-		r.Question[0].Name = newQName
+		ar.Question[0].Name = newQName
 		nw := NewNonWriter(w)
 
-		rcode, err := middleware.NextOrFailure(a.Name(), a.Next, ctx, nw, r)
+		rcode, err := middleware.NextOrFailure(a.Name(), a.Next, ctx, nw, ar)
+		if err != nil {
+			// Return now - not sure if this is the best. We should also check if the write has happened.
+			return rcode, err
+
+		}
 		if i == 0 {
 			firstReply = nw.Msg
 			firstRcode = rcode
@@ -139,4 +150,4 @@ func (a *AutoPath) FirstInSearchPath(name string) bool {
 	return false
 }
 
-func (a AutoPath) Name() string { return "autopath" }
+func (a *AutoPath) Name() string { return "autopath" }

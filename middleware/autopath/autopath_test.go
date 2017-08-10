@@ -31,6 +31,7 @@ var autopathTestCases = []test.Case{
 
 func newTestAutoPath() *AutoPath {
 	ap := new(AutoPath)
+	ap.Zones = []string{"."}
 	ap.Next = nextHandler(map[string]int{
 		"b.example.org.": dns.RcodeNameError,
 		"b.com.":         dns.RcodeSuccess,

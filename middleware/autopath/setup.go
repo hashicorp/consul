@@ -5,7 +5,6 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
-	"github.com/coredns/coredns/middleware/kubernetes"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
@@ -20,7 +19,7 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	ap, mw, err := autoPathParse(c)
+	ap, _, err := autoPathParse(c)
 	if err != nil {
 		return middleware.Error("autopath", err)
 	}
@@ -28,13 +27,15 @@ func setup(c *caddy.Controller) error {
 	c.OnStartup(func() error {
 		// Do this in OnStartup, so all middleware has been initialized.
 		// TODO(miek): fabricate test to proof this is not thread safe.
-		m := dnsserver.GetMiddleware(c, mw)
-		switch mw {
-		case "kubernetes":
-			if k, ok := m.(kubernetes.Kubernetes); ok {
-				ap.searchFunc = k.AutoPath
+		// TODO(miek): disable this for now: See https://github.com/coredns/coredns/issues/881
+		/*
+			switch mw {
+			case "kubernetes":
+				if k, ok := m.(kubernetes.Kubernetes); ok {
+					ap.searchFunc = k.AutoPath
+				}
 			}
-		}
+		*/
 		return nil
 	})
 
@@ -51,13 +52,13 @@ var allowedMiddleware = map[string]bool{
 }
 
 func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
-	ap := new(AutoPath)
+	ap := &AutoPath{}
 	mw := ""
 
 	for c.Next() {
 		zoneAndresolv := c.RemainingArgs()
 		if len(zoneAndresolv) < 1 {
-			return nil, "", fmt.Errorf("no resolv-conf specified")
+			return ap, "", fmt.Errorf("no resolv-conf specified")
 		}
 		resolv := zoneAndresolv[len(zoneAndresolv)-1]
 		if resolv[0] == '@' {
@@ -69,7 +70,7 @@ func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
 			// assume file on disk
 			rc, err := dns.ClientConfigFromFile(resolv)
 			if err != nil {
-				return nil, "", fmt.Errorf("failed to parse %q: %v", resolv, err)
+				return ap, "", fmt.Errorf("failed to parse %q: %v", resolv, err)
 			}
 			ap.search = rc.Search
 			middleware.Zones(ap.search).Normalize()
