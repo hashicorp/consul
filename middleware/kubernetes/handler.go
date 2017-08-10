@@ -25,7 +25,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	// otherwise delegate to the next in the pipeline.
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
-		if state.Type() != "PTR" {
+		if state.QType() != dns.TypePTR {
 			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
 		// If this is a PTR request, and the request is in a defined

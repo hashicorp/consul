@@ -86,7 +86,6 @@ var (
 	errNoItems        = errors.New("no items found")
 	errNsNotExposed   = errors.New("namespace is not exposed")
 	errInvalidRequest = errors.New("invalid query name")
-	errZoneNotFound   = errors.New("zone not found")
 	errAPIBadPodType  = errors.New("expected type *api.Pod")
 	errPodsDisabled   = errors.New("pod records disabled")
 )
@@ -97,7 +96,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 	// We're looking again at types, which we've already done in ServeDNS, but there are some types k8s just can't answer.
 	switch state.QType() {
 	case dns.TypeTXT:
-		// 1 label + zone, label must be "dns-version"
+		// 1 label + zone, label must be "dns-version".
 		t, err := dnsutil.TrimZone(state.Name(), state.Zone)
 		if err != nil {
 			return nil, nil, err
@@ -110,6 +109,11 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 			return nil, nil, errInvalidRequest
 		}
 		svc := msg.Service{Text: DNSSchemaVersion, TTL: 28800, Key: msg.Path(state.QName(), "coredns")}
+		return []msg.Service{svc}, nil, nil
+	case dns.TypeNS:
+		// We can only get here if the qname equal the zone, see ServeDNS in handler.go.
+		ns := k.coreDNSRecord()
+		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
 		return []msg.Service{svc}, nil, nil
 	}
 
@@ -142,18 +146,8 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 			}
 		}
 		return noext, nil, e
-	case dns.TypeNS:
-		srv := k.recordsForNS(r)
-		svcs = append(svcs, srv)
-		return svcs, nil, err
 	}
 	return nil, nil, nil
-}
-
-func (k *Kubernetes) recordsForNS(r recordRequest) msg.Service {
-	ns := k.coreDNSRecord()
-	return msg.Service{Host: ns.A.String(),
-		Key: msg.Path(strings.Join([]string{ns.Hdr.Name, r.zone}, "."), "coredns")}
 }
 
 // PrimaryZone will return the first non-reverse zone being handled by this middleware
@@ -168,7 +162,7 @@ func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dn
 
 // IsNameError implements the ServiceBackend interface.
 func (k *Kubernetes) IsNameError(err error) bool {
-	return err == errNoItems || err == errNsNotExposed || err == errInvalidRequest || err == errZoneNotFound
+	return err == errNoItems || err == errNsNotExposed || err == errInvalidRequest
 }
 
 // Debug implements the ServiceBackend interface.

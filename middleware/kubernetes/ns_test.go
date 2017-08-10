@@ -6,19 +6,6 @@ import "net"
 import "k8s.io/client-go/1.5/pkg/api"
 import "github.com/miekg/dns"
 
-func TestRecordForNS(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test."}}
-	corednsRecord.Hdr.Name = "coredns.kube-system."
-	corednsRecord.A = net.IP("1.2.3.4")
-	r, _ := k.parseRequest("inter.webs.test.", dns.TypeNS, "inter.webs.test.")
-
-	expected := "/coredns/test/webs/inter/kube-system/coredns"
-	svc := k.recordsForNS(r)
-	if svc.Key != expected {
-		t.Errorf("Expected  result '%v'. Instead got result '%v'.", expected, svc.Key)
-	}
-}
-
 func TestDefaultNSMsg(t *testing.T) {
 	k := Kubernetes{Zones: []string{"inter.webs.test."}}
 	corednsRecord.Hdr.Name = "coredns.kube-system."
