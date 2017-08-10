@@ -343,7 +343,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have the service record, CNAME record + A + TXT record
+	// Should have the service, CNAME, A, and TXT records
 	if len(in.Answer) != 4 {
 		t.Fatalf("Bad: %#v", in)
 	}

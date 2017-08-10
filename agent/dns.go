@@ -485,7 +485,7 @@ INVALID:
 
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
-	// Only handle ANY, A, AAAA and TXT type requests
+	// Only handle ANY, A, AAAA, and TXT type requests
 	qType := req.Question[0].Qtype
 	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
 		return
