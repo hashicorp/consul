@@ -1,42 +1,11 @@
 package kubernetes
 
-import "testing"
-import "net"
+import (
+	"net"
+	"testing"
 
-import "k8s.io/client-go/1.5/pkg/api"
-import "github.com/miekg/dns"
-
-func TestDefaultNSMsg(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test."}}
-	corednsRecord.Hdr.Name = "coredns.kube-system."
-	corednsRecord.A = net.IP("1.2.3.4")
-	r, _ := k.parseRequest("ns.dns.inter.webs.test.", dns.TypeA, "inter.webs.test.")
-
-	expected := "/coredns/test/webs/inter/dns/ns"
-	svc := k.defaultNSMsg(r)
-	if svc.Key != expected {
-		t.Errorf("Expected  result '%v'. Instead got result '%v'.", expected, svc.Key)
-	}
-}
-
-func TestIsDefaultNS(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test."}}
-	r, _ := k.parseRequest("ns.dns.inter.webs.test", dns.TypeA, "inter.webs.test.")
-
-	var name string
-	var expected bool
-
-	name = "ns.dns.inter.webs.test."
-	expected = true
-	if isDefaultNS(name, r) != expected {
-		t.Errorf("Expected IsDefaultNS('%v') to be '%v'.", name, expected)
-	}
-	name = "ns.dns.blah.inter.webs.test"
-	expected = false
-	if isDefaultNS(name, r) != expected {
-		t.Errorf("Expected IsDefaultNS('%v') to be '%v'.", name, expected)
-	}
-}
+	"k8s.io/client-go/1.5/pkg/api"
+)
 
 type APIConnTest struct{}
 
@@ -83,24 +52,20 @@ func (APIConnTest) EndpointsList() api.EndpointsList {
 
 func (APIConnTest) GetNodeByName(name string) (api.Node, error) { return api.Node{}, nil }
 
-func TestDoCoreDNSRecord(t *testing.T) {
+func TestNsAddr(t *testing.T) {
 
-	corednsRecord = dns.A{}
 	k := Kubernetes{Zones: []string{"inter.webs.test"}}
-
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("172.0.40.10") }
-
 	k.APIConn = &APIConnTest{}
 
-	cdr := k.coreDNSRecord()
-
+	cdr := k.nsAddr()
 	expected := "10.0.0.111"
 
 	if cdr.A.String() != expected {
-		t.Errorf("Expected A to be '%v', got '%v'", expected, cdr.A.String())
+		t.Errorf("Expected A to be %q, got %q", expected, cdr.A.String())
 	}
 	expected = "dns-service.kube-system.svc."
 	if cdr.Hdr.Name != expected {
-		t.Errorf("Expected Hdr.Name to be '%v', got '%v'", expected, cdr.Hdr.Name)
+		t.Errorf("Expected Hdr.Name to be %q, got %q", expected, cdr.Hdr.Name)
 	}
 }
