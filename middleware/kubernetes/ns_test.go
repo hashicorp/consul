@@ -7,10 +7,10 @@ import "k8s.io/client-go/1.5/pkg/api"
 import "github.com/miekg/dns"
 
 func TestRecordForNS(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+	k := Kubernetes{Zones: []string{"inter.webs.test."}}
 	corednsRecord.Hdr.Name = "coredns.kube-system."
 	corednsRecord.A = net.IP("1.2.3.4")
-	r, _ := k.parseRequest("inter.webs.test", dns.TypeNS)
+	r, _ := k.parseRequest("inter.webs.test.", dns.TypeNS, "inter.webs.test.")
 
 	expected := "/coredns/test/webs/inter/kube-system/coredns"
 	svc := k.recordsForNS(r)
@@ -20,10 +20,10 @@ func TestRecordForNS(t *testing.T) {
 }
 
 func TestDefaultNSMsg(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+	k := Kubernetes{Zones: []string{"inter.webs.test."}}
 	corednsRecord.Hdr.Name = "coredns.kube-system."
 	corednsRecord.A = net.IP("1.2.3.4")
-	r, _ := k.parseRequest("ns.dns.inter.webs.test", dns.TypeA)
+	r, _ := k.parseRequest("ns.dns.inter.webs.test.", dns.TypeA, "inter.webs.test.")
 
 	expected := "/coredns/test/webs/inter/dns/ns"
 	svc := k.defaultNSMsg(r)
@@ -33,13 +33,13 @@ func TestDefaultNSMsg(t *testing.T) {
 }
 
 func TestIsDefaultNS(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test"}}
-	r, _ := k.parseRequest("ns.dns.inter.webs.test", dns.TypeA)
+	k := Kubernetes{Zones: []string{"inter.webs.test."}}
+	r, _ := k.parseRequest("ns.dns.inter.webs.test", dns.TypeA, "inter.webs.test.")
 
 	var name string
 	var expected bool
 
-	name = "ns.dns.inter.webs.test"
+	name = "ns.dns.inter.webs.test."
 	expected = true
 	if isDefaultNS(name, r) != expected {
 		t.Errorf("Expected IsDefaultNS('%v') to be '%v'.", name, expected)

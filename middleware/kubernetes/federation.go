@@ -62,13 +62,13 @@ func (k *Kubernetes) federationCNAMERecord(r recordRequest) msg.Service {
 		}
 		if r.endpoint == "" {
 			return msg.Service{
-				Key:  strings.Join([]string{msg.Path(r.zone, "coredns"), r.typeName, r.federation, r.namespace, r.service}, "/"),
-				Host: strings.Join([]string{r.service, r.namespace, r.federation, r.typeName, node.Labels[labelAvailabilityZone], node.Labels[labelRegion], f.zone}, "."),
+				Key:  strings.Join([]string{msg.Path(r.zone, "coredns"), r.podOrSvc, r.federation, r.namespace, r.service}, "/"),
+				Host: strings.Join([]string{r.service, r.namespace, r.federation, r.podOrSvc, node.Labels[labelAvailabilityZone], node.Labels[labelRegion], f.zone}, "."),
 			}
 		}
 		return msg.Service{
-			Key:  strings.Join([]string{msg.Path(r.zone, "coredns"), r.typeName, r.federation, r.namespace, r.service, r.endpoint}, "/"),
-			Host: strings.Join([]string{r.endpoint, r.service, r.namespace, r.federation, r.typeName, node.Labels[labelAvailabilityZone], node.Labels[labelRegion], f.zone}, "."),
+			Key:  strings.Join([]string{msg.Path(r.zone, "coredns"), r.podOrSvc, r.federation, r.namespace, r.service, r.endpoint}, "/"),
+			Host: strings.Join([]string{r.endpoint, r.service, r.namespace, r.federation, r.podOrSvc, node.Labels[labelAvailabilityZone], node.Labels[labelRegion], f.zone}, "."),
 		}
 	}
 
