@@ -1031,8 +1031,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent
   to the [`-rejoin` command-line flag](#_rejoin).
 
-* `retry_join` - Equivalent to the
-  [`-retry-join`](#retry-join) command-line flag. Takes a list of addresses to attempt joining every [`retry_interval`](#_retry_interval) until at least one join works. The list should contain IPv4 addresses with optional Serf LAN port number also specified or bracketed IPv6 addresses with optional port number — for example: `[::1]:8301`.
+* `retry_join` - Equivalent to the [`-retry-join`](#retry-join) command-line flag.
 
 * `retry_join_ec2`- This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
 
