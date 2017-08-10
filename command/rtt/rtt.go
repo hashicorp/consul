@@ -78,14 +78,14 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		// Parse the input nodes.
-		parts1 := strings.Split(nodes[0], ".")
-		parts2 := strings.Split(nodes[1], ".")
-		if len(parts1) != 2 || len(parts2) != 2 {
+		node0index := strings.LastIndex(nodes[0], ".")
+		node1index := strings.LastIndex(nodes[1], ".")
+		if node0index == -1 || node1index == -1 {
 			c.UI.Error("Node names must be specified as <node name>.<datacenter> with -wan")
 			return 1
 		}
-		node1, dc1 := parts1[0], parts1[1]
-		node2, dc2 := parts2[0], parts2[1]
+		node1, dc1 := nodes[0][:node0index], nodes[0][node0index+1:]
+		node2, dc2 := nodes[1][:node1index], nodes[1][node1index+1:]
 
 		// Pull all the WAN coordinates.
 		dcs, err := coordClient.Datacenters()
