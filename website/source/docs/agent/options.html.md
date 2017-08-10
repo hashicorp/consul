@@ -238,7 +238,7 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": "provider=my-cloud config=val ..."
+      "retry_join": ["provider=my-cloud config=val ..."]
     }
     ```
 
@@ -262,7 +262,7 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": "provider=aws tag_key=xxx tag_value=xxx"
+      "retry_join": ["provider=aws tag_key=xxx tag_value=xxx"]
     }
     ```
 
@@ -299,7 +299,7 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": "provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"
+      "retry_join": ["provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"]
     }
     ```
 
@@ -321,7 +321,7 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": "provider=gce project_name=xxx tag_value=xxx"
+      "retry_join": ["provider=gce project_name=xxx tag_value=xxx"]
     }
     ```
 
@@ -356,7 +356,7 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": "provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"
+      "retry_join": ["provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"]
     }
     ```
 
