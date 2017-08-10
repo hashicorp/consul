@@ -956,7 +956,7 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
-	a.endpointsLock.Lock()
+	a.endpointsLock.RLock()
 	// fast path: only translate if there are overrides
 	if len(a.endpoints) > 0 {
 		p := strings.SplitN(method, ".", 2)
@@ -964,7 +964,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 			method = e + "." + p[1]
 		}
 	}
-	a.endpointsLock.Unlock()
+	a.endpointsLock.RUnlock()
 	return a.delegate.RPC(method, args, reply)
 }
 
