@@ -24,120 +24,39 @@ kubernetes ZONE [ZONE...] [
 }
 ```
 
-* `resyncperiod` **DURATION**
+* `resyncperiod` specifies the Kubernetes data API **DURATION** period.
+* `endpoint` specifies the **URL** for a remove k8s API endpoint.
+   If omitted, it will connect to k8s in-cluster using the cluster service account.
+* `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.
+   This option is ignored if connecting in-cluster (i.e. endpoint is not specified).
+* `namespaces` **NAMESPACE [NAMESPACE...]**, exposed only the k8s namespaces listed.
+   If this option is omitted all namespaces are exposed
+* `labels` **EXPRESSION** only exposes the records for Kubernetes objects that match this label selector.
+   The label selector syntax is described in the
+   [Kubernetes User Guide - Labels](http://kubernetes.io/docs/user-guide/labels/). An example that
+   only exposes objects labeled as "application=nginx" in the "staging" or "qa" environments, would
+   use: `labels environment in (staging, qa),application=nginx`.
+* `pods` **POD-MODE** sets the mode for handling IP-based pod A records, e.g.
+   `1-2-3-4.ns.pod.cluster.local. in A 1.2.3.4`.
+   This option is provided to facilitate use of SSL certs when connecting directly to pods. Valid
+   values for **POD-MODE**:
 
-  The Kubernetes data API resynchronization period. Default is 5m. Example values: 60s, 5m, 1h
+   * `disabled`: Default. Do not process pod requests, always returning `NXDOMAIN`
+   * `insecure`: Always return an A record with IP from request (without checking k8s).  This option
+     is is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs.  This
+     option is provided for backward compatibility with kube-dns.
+   * `verified`: Return an A record if there exists a pod in same namespace with matching IP.  This
+     option requires substantially more memory than in insecure mode, since it will maintain a watch
+     on all pods.
 
-  Example:
-
-  ```
-	kubernetes cluster.local. {
-		resyncperiod 15m
-	}
-  ```
-
-* `endpoint` **URL**
-
-  Use **URL** for a remote k8s API endpoint.  If omitted, it will connect to k8s in-cluster using the cluster service account.
-
-  Example:
-
-  ```
-	kubernetes cluster.local. {
-		endpoint http://k8s-endpoint:8080
-	}
-  ```
-
-* `tls` **CERT** **KEY** **CACERT**
-
-  The TLS cert, key and the CA cert file names for remote k8s connection. This option is ignored if connecting in-cluster (i.e. endpoint is not
-specified).
-
-  Example:
-
-  ```
-	kubernetes cluster.local. {
-		endpoint https://k8s-endpoint:8443
-		tls cert key cacert
-	}
-  ```
-
-* `namespaces` **NAMESPACE [NAMESPACE...]**
-
-  Only expose the k8s namespaces listed.  If this option is omitted all namespaces are exposed
-
-  Example:
-
-  ```
-	kubernetes cluster.local. {
-		namespaces demo default
-	}
-  ```
-
-* `labels` **EXPRESSION**
-
-  Only expose the records for Kubernetes objects that match this label selector. The label selector syntax is described in the  [Kubernetes User Guide - Labels](http://kubernetes.io/docs/user-guide/labels/).
-
-  Example:
-
-  The following example only exposes objects labeled as "application=nginx" in the "staging" or "qa" environments.
-
-  ```
-	kubernetes cluster.local. {
-		labels environment in (staging, qa),application=nginx
-	}
-  ```
-
-* `pods` **POD-MODE**
-
-  Set the mode for handling IP-based pod A records, e.g. `1-2-3-4.ns.pod.cluster.local. in A 1.2.3.4`.  This option is provided to facilitate use of SSL certs when connecting directly to pods.
-
-  Valid values for **POD-MODE**:
-
-  * `disabled`: Default. Do not process pod requests, always returning `NXDOMAIN`
-
-  * `insecure`: Always return an A record with IP from request (without checking k8s).  This option is is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs.  This option is provided for backward compatibility with kube-dns.
-
-  * `verified`: Return an A record if there exists a pod in same namespace with matching IP.  This option requires substantially more memory than in insecure mode, since it will maintain a watch on all pods.
-
-  Example:
-
-
-  ```
-	kubernetes cluster.local. {
-		pods verified
-	}
-  ```
-
-* `upstream` **ADDRESS [ADDRESS...]**
-
-  Defines upstream resolvers used for resolving services that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path to a file structured like resolv.conf.
-
-  Example:
-
-   ```
-	kubernetes cluster.local. {
-		upstream 12.34.56.78:5053
-	}
-
-   ```
-
-* `federation` **NAME DOMAIN**
-
-  Defines federation membership.  One line for each federation membership. Each line consists of the name of the federation, and the domain.
-
-  Example:
-
-  ```
- 	kubernetes cluster.local. {
-		federation myfed foo.example.com
-	}
-  ```
-
-* `fallthrough`
-
-  If a query for a record in the cluster zone results in NXDOMAIN, normally that is what the response will be. However, if you specify this option, the query will instead be passed on down the middleware chain, which can include another middleware to handle the query.
-
+* `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
+  that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path
+  to a file structured like resolv.conf.
+* `federation` **NAME DOMAIN** defines federation membership.  One line for each federation
+  membership. Each line consists of the name of the federation, and the domain.
+* `fallthrough`  If a query for a record in the cluster zone results in NXDOMAIN, normally that is
+  what the response will be. However, if you specify this option, the query will instead be passed
+  on down the middleware chain, which can include another middleware to handle the query.
 
 ## Examples
 
