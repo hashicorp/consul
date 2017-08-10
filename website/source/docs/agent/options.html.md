@@ -195,14 +195,31 @@ will exit with an error at startup.
 <a name="_retry_join"></a>
 
 * `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
-  first attempt fails. This is useful for cases where we know the address will
-  become available eventually. The list should contain IPv4 or IPv6 addresses
-  and optionally the Serf LAN port number.specified or bracketed IPv6 addresses
-  with optional port number. This is useful for cases where we know the address
-  will become available eventually.
+  first attempt fails. This is useful for cases where you know the address will
+  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. If
+  Consul is running on the non-default Serf LAN port, this must be specified as
+  well. IPv6 must use the "bracketed" syntax. If multiple values are given, they
+  are tried and retried in the order listed until the first succeeds. Here are
+  some examples:
 
     ```sh
+    # Using a DNS entry
+    $ consul agent -retry-join "consul.domain.internal"
+    ```
+
+    ```sh
+    # Using IPv4
+    $ consul agent -retry-join "10.0.4.67"
+    ```
+
+    ```sh
+    # Using IPv6
     $ consul agent -retry-join "[::1]:8301"
+    ```
+
+    ```sh
+    # Using Cloud Auto-Joining
+    $ consul agent -retry-join "provider=aws tag_key=..."
     ```
 
     ### Cloud Auto-Joining
