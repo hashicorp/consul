@@ -343,21 +343,25 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have the service, CNAME, A, and TXT records
-	if len(in.Answer) != 4 {
-		t.Fatalf("Bad: %#v", in)
+	wantAnswer := []dns.RR{
+		&dns.CNAME{
+			Hdr:    dns.RR_Header{Name: "google.node.consul.", Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x10},
+			Target: "www.google.com.",
+		},
+		&dns.CNAME{
+			Hdr:    dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Rdlength: 0x2},
+			Target: "google.com.",
+		},
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x1, 0x2, 0x3, 0x4}, // 1.2.3.4
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xd},
+			Txt: []string{"my_txt_value"},
+		},
 	}
-
-	cnRec, ok := in.Answer[0].(*dns.CNAME)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if cnRec.Target != "www.google.com." {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if cnRec.Hdr.Ttl != 0 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
 }
 
 func TestDNS_NodeLookup_TXT(t *testing.T) {
@@ -436,10 +440,18 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have 1 A and 1 TXT record
-	if len(in.Answer) != 2 {
-		t.Fatalf("Bad: %#v", in)
+	wantAnswer := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xa},
+			Txt: []string{"key=value"},
+		},
 	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+
 }
 
 func TestDNS_EDNS0(t *testing.T) {
