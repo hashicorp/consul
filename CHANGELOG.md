@@ -5,6 +5,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: Switched to using a read lock for the agent's RPC dispatcher, which prevents RPC calls from getting serialized. [GH-3376]
+
 BUG FIXES:
 
 ## 0.9.2 (August 9, 2017)
