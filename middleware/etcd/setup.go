@@ -60,71 +60,69 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		stubzones = false
 	)
 	for c.Next() {
-		if c.Val() == "etcd" {
-			etc.Zones = c.RemainingArgs()
-			if len(etc.Zones) == 0 {
-				etc.Zones = make([]string, len(c.ServerBlockKeys))
-				copy(etc.Zones, c.ServerBlockKeys)
-			}
-			for i, str := range etc.Zones {
-				etc.Zones[i] = middleware.Host(str).Normalize()
-			}
+		etc.Zones = c.RemainingArgs()
+		if len(etc.Zones) == 0 {
+			etc.Zones = make([]string, len(c.ServerBlockKeys))
+			copy(etc.Zones, c.ServerBlockKeys)
+		}
+		for i, str := range etc.Zones {
+			etc.Zones[i] = middleware.Host(str).Normalize()
+		}
 
-			if c.NextBlock() {
-				for {
-					switch c.Val() {
-					case "stubzones":
-						stubzones = true
-					case "debug":
-						etc.Debugging = true
-					case "path":
-						if !c.NextArg() {
-							return &Etcd{}, false, c.ArgErr()
-						}
-						etc.PathPrefix = c.Val()
-					case "endpoint":
-						args := c.RemainingArgs()
-						if len(args) == 0 {
-							return &Etcd{}, false, c.ArgErr()
-						}
-						endpoints = args
-					case "upstream":
-						args := c.RemainingArgs()
-						if len(args) == 0 {
-							return &Etcd{}, false, c.ArgErr()
-						}
-						ups, err := dnsutil.ParseHostPortOrFile(args...)
-						if err != nil {
-							return &Etcd{}, false, err
-						}
-						etc.Proxy = proxy.NewLookup(ups)
-					case "tls": // cert key cacertfile
-						args := c.RemainingArgs()
-						tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
-						if err != nil {
-							return &Etcd{}, false, err
-						}
-					default:
-						if c.Val() != "}" {
-							return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
-						}
+		if c.NextBlock() {
+			for {
+				switch c.Val() {
+				case "stubzones":
+					stubzones = true
+				case "debug":
+					etc.Debugging = true
+				case "path":
+					if !c.NextArg() {
+						return &Etcd{}, false, c.ArgErr()
 					}
-
-					if !c.Next() {
-						break
+					etc.PathPrefix = c.Val()
+				case "endpoint":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return &Etcd{}, false, c.ArgErr()
+					}
+					endpoints = args
+				case "upstream":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return &Etcd{}, false, c.ArgErr()
+					}
+					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					if err != nil {
+						return &Etcd{}, false, err
+					}
+					etc.Proxy = proxy.NewLookup(ups)
+				case "tls": // cert key cacertfile
+					args := c.RemainingArgs()
+					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
+					if err != nil {
+						return &Etcd{}, false, err
+					}
+				default:
+					if c.Val() != "}" {
+						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
 					}
 				}
 
+				if !c.Next() {
+					break
+				}
 			}
-			client, err := newEtcdClient(endpoints, tlsConfig)
-			if err != nil {
-				return &Etcd{}, false, err
-			}
-			etc.Client = client
-			etc.endpoints = endpoints
 
-			return &etc, stubzones, nil
 		}
+		client, err := newEtcdClient(endpoints, tlsConfig)
+		if err != nil {
+			return &Etcd{}, false, err
+		}
+		etc.Client = client
+		etc.endpoints = endpoints
+
+		return &etc, stubzones, nil
 	}
 	return &Etcd{}, false, nil
 }

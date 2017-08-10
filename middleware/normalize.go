@@ -30,7 +30,8 @@ func (z Zones) Matches(qname string) string {
 	return zone
 }
 
-// Normalize fully qualifies all zones in z.
+// Normalize fully qualifies all zones in z. The zones in Z must be domain names, without
+// a port or protocol prefix.
 func (z Zones) Normalize() {
 	for i := range z {
 		z[i] = Name(z[i]).Normalize()
@@ -54,7 +55,7 @@ func (n Name) Normalize() string { return strings.ToLower(dns.Fqdn(string(n))) }
 
 type (
 	// Host represents a host from the Corefile, may contain port.
-	Host string // Host represents a host from the Corefile, may contain port.
+	Host string
 )
 
 // Normalize will return the host portion of host, stripping

@@ -55,76 +55,74 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 	config := dnsserver.GetConfig(c)
 
 	for c.Next() {
-		if c.Val() == "file" {
-			// file db.file [zones...]
-			if !c.NextArg() {
-				return Zones{}, c.ArgErr()
-			}
-			fileName := c.Val()
+		// file db.file [zones...]
+		if !c.NextArg() {
+			return Zones{}, c.ArgErr()
+		}
+		fileName := c.Val()
 
-			origins = make([]string, len(c.ServerBlockKeys))
-			copy(origins, c.ServerBlockKeys)
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				origins = args
-			}
+		origins = make([]string, len(c.ServerBlockKeys))
+		copy(origins, c.ServerBlockKeys)
+		args := c.RemainingArgs()
+		if len(args) > 0 {
+			origins = args
+		}
 
-			if !path.IsAbs(fileName) && config.Root != "" {
-				fileName = path.Join(config.Root, fileName)
-			}
+		if !path.IsAbs(fileName) && config.Root != "" {
+			fileName = path.Join(config.Root, fileName)
+		}
 
-			reader, err := os.Open(fileName)
-			if err != nil {
-				// bail out
+		reader, err := os.Open(fileName)
+		if err != nil {
+			// bail out
+			return Zones{}, err
+		}
+
+		for i := range origins {
+			origins[i] = middleware.Host(origins[i]).Normalize()
+			zone, err := Parse(reader, origins[i], fileName, 0)
+			if err == nil {
+				z[origins[i]] = zone
+			} else {
 				return Zones{}, err
 			}
+			names = append(names, origins[i])
+		}
 
-			for i := range origins {
-				origins[i] = middleware.Host(origins[i]).Normalize()
-				zone, err := Parse(reader, origins[i], fileName, 0)
-				if err == nil {
-					z[origins[i]] = zone
-				} else {
+		noReload := false
+		prxy := proxy.Proxy{}
+		t := []string{}
+		var e error
+
+		for c.NextBlock() {
+			switch c.Val() {
+			case "transfer":
+				t, _, e = TransferParse(c, false)
+				if e != nil {
+					return Zones{}, e
+				}
+
+			case "no_reload":
+				noReload = true
+
+			case "upstream":
+				args := c.RemainingArgs()
+				if len(args) == 0 {
+					return Zones{}, c.ArgErr()
+				}
+				ups, err := dnsutil.ParseHostPortOrFile(args...)
+				if err != nil {
 					return Zones{}, err
 				}
-				names = append(names, origins[i])
+				prxy = proxy.NewLookup(ups)
 			}
 
-			noReload := false
-			prxy := proxy.Proxy{}
-			t := []string{}
-			var e error
-
-			for c.NextBlock() {
-				switch c.Val() {
-				case "transfer":
-					t, _, e = TransferParse(c, false)
-					if e != nil {
-						return Zones{}, e
-					}
-
-				case "no_reload":
-					noReload = true
-
-				case "upstream":
-					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return Zones{}, c.ArgErr()
-					}
-					ups, err := dnsutil.ParseHostPortOrFile(args...)
-					if err != nil {
-						return Zones{}, err
-					}
-					prxy = proxy.NewLookup(ups)
+			for _, origin := range origins {
+				if t != nil {
+					z[origin].TransferTo = append(z[origin].TransferTo, t...)
 				}
-
-				for _, origin := range origins {
-					if t != nil {
-						z[origin].TransferTo = append(z[origin].TransferTo, t...)
-					}
-					z[origin].NoReload = noReload
-					z[origin].Proxy = prxy
-				}
+				z[origin].NoReload = noReload
+				z[origin].Proxy = prxy
 			}
 		}
 	}

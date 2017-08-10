@@ -42,36 +42,34 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 
 	capacity := defaultCap
 	for c.Next() {
-		if c.Val() == "dnssec" {
-			// dnssec [zones...]
-			zones = make([]string, len(c.ServerBlockKeys))
-			copy(zones, c.ServerBlockKeys)
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				zones = args
-			}
+		// dnssec [zones...]
+		zones = make([]string, len(c.ServerBlockKeys))
+		copy(zones, c.ServerBlockKeys)
+		args := c.RemainingArgs()
+		if len(args) > 0 {
+			zones = args
+		}
 
-			for c.NextBlock() {
-				switch c.Val() {
-				case "key":
-					k, e := keyParse(c)
-					if e != nil {
-						return nil, nil, 0, e
-					}
-					keys = append(keys, k...)
-				case "cache_capacity":
-					if !c.NextArg() {
-						return nil, nil, 0, c.ArgErr()
-					}
-					value := c.Val()
-					cacheCap, err := strconv.Atoi(value)
-					if err != nil {
-						return nil, nil, 0, err
-					}
-					capacity = cacheCap
+		for c.NextBlock() {
+			switch c.Val() {
+			case "key":
+				k, e := keyParse(c)
+				if e != nil {
+					return nil, nil, 0, e
 				}
-
+				keys = append(keys, k...)
+			case "cache_capacity":
+				if !c.NextArg() {
+					return nil, nil, 0, c.ArgErr()
+				}
+				value := c.Val()
+				cacheCap, err := strconv.Atoi(value)
+				if err != nil {
+					return nil, nil, 0, err
+				}
+				capacity = cacheCap
 			}
+
 		}
 	}
 	for i := range zones {
