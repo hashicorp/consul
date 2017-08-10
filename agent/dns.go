@@ -610,7 +610,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	if node != nil && len(node.Meta) > 0 && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+	if node != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
 		for _, txt := range d.formatTxtRecords(node.Meta) {
 			records = append(records, &dns.TXT{
 				Hdr: dns.RR_Header{
