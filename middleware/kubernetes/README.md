@@ -10,8 +10,17 @@ to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/mast
 
 ## Syntax
 
+~~~
+kubernetes [ZONES...]
+~~~
+
+With only the directive specified, the *kubernetes* middleware will default to the zone specified in
+the server's block. It will handle all queries in that zone and connect to Kubernetes in-cluster. It
+will not provide PTR records for services, or A records for pods. If **ZONES** is used is specifies
+all the zones the middleware should be authoritative for.
+
 ```
-kubernetes ZONE [ZONE...] [
+kubernetes [ZONES...] {
 	resyncperiod DURATION
 	endpoint URL
 	tls CERT KEY CACERT]
@@ -23,7 +32,6 @@ kubernetes ZONE [ZONE...] [
 	fallthrough
 }
 ```
-
 * `resyncperiod` specifies the Kubernetes data API **DURATION** period.
 * `endpoint` specifies the **URL** for a remove k8s API endpoint.
    If omitted, it will connect to k8s in-cluster using the cluster service account.
@@ -63,13 +71,10 @@ kubernetes ZONE [ZONE...] [
 
 ## Examples
 
-**Example 1:** This is a minimal configuration with no options other than zone. It will handle all queries in the `cluster.local` zone and connect to Kubernetes in-cluster, but it will not provide PTR records for services, or A records for pods.
-
-	kubernetes cluster.local
-
-**Example 2:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster.
- Handle all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
- requests.  Resolve upstream records against `10.102.3.10`.
+Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster.
+Als handl all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
+requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block
+here:
 
     10.0.0.0/16 cluster.local {
         kubernetes {
@@ -78,38 +83,36 @@ kubernetes ZONE [ZONE...] [
         }
     }
 
-**Selective Exposure Example:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Only expose objects in the test and staging namespaces.
-  Resolve upstream records using the servers configured in `/etc/resolv.conf`.
+Or you can selective expose some namespaces:
 
 	kubernetes cluster.local {
 		namespaces test staging
+    }
 
-**Federation Example:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Handle federated service requests in the `prod` and `stage` federations.
-  Resolve upstream records using the servers configured in `/etc/resolv.conf`.
+If you want to use federation, just use the `federation` option. Here we handle all service requests
+in the `prod` and `stage` federations. We resolve upstream records using the servers configured in
+`/etc/resolv.conf`.
 
-    cluster.local {
-        kubernetes {
+    . {
+        kubernetes cluster.local {
 		    federation prod prod.feddomain.com
 		    federation stage stage.feddomain.com
 		    upstream /etc/resolv.conf
     	}
     }
 
-**Out-Of-Cluster Example:** Handle all queries in the `cluster.local` zone. Connect to Kubernetes from outside the cluster.
-  Verify the existence of pods when answering pod requests.  Resolve upstream records against `10.102.3.10`.
+And finally we connect to Kubernetes from outside the cluster:
 
 	kubernetes cluster.local {
 		endpoint https://k8s-endpoint:8443
 		tls cert key cacert
-		pods verified
-		upstream 10.102.3.10:53
 	}
-
 
 
 ## Wildcard
 
-Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*, or the word "any"), then that label will match all values.  The labels that accept wildcards are:
+Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*,
+or the word "any"), then that label will match all values.  The labels that accept wildcards are:
 
  * _service_ in an `A` record request: _service_.namespace.svc.zone.
    * e.g. `*.ns.svc.myzone.local`

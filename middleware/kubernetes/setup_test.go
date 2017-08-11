@@ -17,7 +17,6 @@ func parseCidr(cidr string) net.IPNet {
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
-		description           string        // Human-facing description of test case
 		input                 string        // Corefile data as string
 		shouldErr             bool          // true if test case is exected to produce an error.
 		expectedErrContent    string        // substring from the expected error. Empty for positive cases.
@@ -29,11 +28,9 @@ func TestKubernetesParse(t *testing.T) {
 		expectedCidrs         []net.IPNet
 		expectedFallthrough   bool
 		expectedUpstreams     []string
-		expectedFederations   []Federation
 	}{
 		// positive
 		{
-			"kubernetes keyword with one zone",
 			`kubernetes coredns.local`,
 			false,
 			"",
@@ -45,10 +42,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"kubernetes keyword with multiple zones",
 			`kubernetes coredns.local test.local`,
 			false,
 			"",
@@ -60,10 +55,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"kubernetes keyword with zone and empty braces",
 			`kubernetes coredns.local {
 }`,
 			false,
@@ -76,10 +69,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"endpoint keyword with url",
 			`kubernetes coredns.local {
 	endpoint http://localhost:9090
 }`,
@@ -93,10 +84,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"namespaces keyword with one namespace",
 			`kubernetes coredns.local {
 	namespaces demo
 }`,
@@ -110,10 +99,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			nil,
 		},
 		{
-			"namespaces keyword with multiple namespaces",
 			`kubernetes coredns.local {
 	namespaces demo test
 }`,
@@ -127,10 +114,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"resync period in seconds",
 			`kubernetes coredns.local {
     resyncperiod 30s
 }`,
@@ -144,10 +129,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"resync period in minutes",
 			`kubernetes coredns.local {
     resyncperiod 15m
 }`,
@@ -161,10 +144,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"basic label selector",
 			`kubernetes coredns.local {
     labels environment=prod
 }`,
@@ -178,10 +159,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"multi-label selector",
 			`kubernetes coredns.local {
     labels environment in (production, staging, qa),application=nginx
 }`,
@@ -195,10 +174,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"fully specified valid config",
 			`kubernetes coredns.local test.local {
     resyncperiod 15m
 	endpoint http://localhost:8080
@@ -216,11 +193,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			true,
 			nil,
-			[]Federation{},
 		},
 		// negative
 		{
-			"no kubernetes keyword",
 			"",
 			true,
 			"kubernetes setup called without keyword 'kubernetes' in Corefile",
@@ -232,25 +207,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"kubernetes keyword without a zone",
-			`kubernetes`,
-			true,
-			"zone name must be provided for kubernetes middleware",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			[]Federation{},
-		},
-		{
-			"endpoint keyword without an endpoint value",
 			`kubernetes coredns.local {
     endpoint
 }`,
@@ -264,10 +222,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"namespace keyword without a namespace value",
 			`kubernetes coredns.local {
 	namespaces
 }`,
@@ -281,10 +237,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"resyncperiod keyword without a duration value",
 			`kubernetes coredns.local {
     resyncperiod
 }`,
@@ -298,10 +252,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"resync period no units",
 			`kubernetes coredns.local {
     resyncperiod 15
 }`,
@@ -315,10 +267,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"resync period invalid",
 			`kubernetes coredns.local {
     resyncperiod abc
 }`,
@@ -332,10 +282,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"labels with no selector value",
 			`kubernetes coredns.local {
     labels
 }`,
@@ -349,10 +297,8 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		{
-			"labels with invalid selector value",
 			`kubernetes coredns.local {
     labels environment in (production, qa
 }`,
@@ -366,11 +312,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// pods disabled
 		{
-			"pods disabled",
 			`kubernetes coredns.local {
 	pods disabled
 }`,
@@ -384,11 +328,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// pods insecure
 		{
-			"pods insecure",
 			`kubernetes coredns.local {
 	pods insecure
 }`,
@@ -402,11 +344,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// pods verified
 		{
-			"pods verified",
 			`kubernetes coredns.local {
 	pods verified
 }`,
@@ -420,11 +360,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// pods invalid
 		{
-			"invalid pods mode",
 			`kubernetes coredns.local {
 	pods giant_seed
 }`,
@@ -438,11 +376,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// cidrs ok
 		{
-			"valid cidrs",
 			`kubernetes coredns.local {
 	cidrs 10.0.0.0/24 10.0.1.0/24
 }`,
@@ -456,11 +392,9 @@ func TestKubernetesParse(t *testing.T) {
 			[]net.IPNet{parseCidr("10.0.0.0/24"), parseCidr("10.0.1.0/24")},
 			false,
 			nil,
-			[]Federation{},
 		},
 		// cidrs ok
 		{
-			"invalid cidr: hard",
 			`kubernetes coredns.local {
 	cidrs hard dry
 }`,
@@ -474,11 +408,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// fallthrough invalid
 		{
-			"Extra params for fallthrough",
 			`kubernetes coredns.local {
 	fallthrough junk
 }`,
@@ -492,11 +424,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
 		},
 		// Valid upstream
 		{
-			"valid upstream",
 			`kubernetes coredns.local {
 	upstream 13.14.15.16:53
 }`,
@@ -510,11 +440,9 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			[]string{"13.14.15.16:53"},
-			[]Federation{},
 		},
 		// Invalid upstream
 		{
-			"valid upstream",
 			`kubernetes coredns.local {
 	upstream 13.14.15.16orange
 }`,
@@ -528,47 +456,6 @@ func TestKubernetesParse(t *testing.T) {
 			nil,
 			false,
 			nil,
-			[]Federation{},
-		},
-		// Valid federations
-		{
-			"valid upstream",
-			`kubernetes coredns.local {
-	federation foo bar.crawl.com
-	federation fed era.tion.com
-}`,
-			false,
-			"",
-			1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			[]Federation{
-				{name: "foo", zone: "bar.crawl.com"},
-				{name: "fed", zone: "era.tion.com"},
-			},
-		},
-		// Invalid federations
-		{
-			"valid upstream",
-			`kubernetes coredns.local {
-	federation starship
-}`,
-			true,
-			`incorrect number of arguments for federation`,
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
-			false,
-			nil,
-			[]Federation{},
 		},
 	}
 
@@ -667,6 +554,73 @@ func TestKubernetesParse(t *testing.T) {
 					}
 				}
 
+			}
+		}
+	}
+}
+
+func TestKubernetesParseFederation(t *testing.T) {
+	tests := []struct {
+		input               string // Corefile data as string
+		shouldErr           bool   // true if test case is exected to produce an error.
+		expectedErrContent  string // substring from the expected error. Empty for positive cases.
+		expectedFederations []Federation
+	}{
+		// Valid federations
+		{
+			`kubernetes coredns.local {
+	federation foo bar.crawl.com
+	federation fed era.tion.com
+}`,
+			false,
+			"",
+			[]Federation{
+				{name: "foo", zone: "bar.crawl.com"},
+				{name: "fed", zone: "era.tion.com"},
+			},
+		},
+		// Invalid federations
+		{
+			`kubernetes coredns.local {
+	federation starship
+}`,
+			true,
+			`incorrect number of arguments for federation`,
+			[]Federation{},
+		},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.input)
+		k8sController, err := kubernetesParse(c)
+
+		if test.shouldErr && err == nil {
+			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
+		}
+
+		if err != nil {
+			if !test.shouldErr {
+				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
+				continue
+			}
+
+			if test.shouldErr && (len(test.expectedErrContent) < 1) {
+				t.Fatalf("Test %d: Test marked as expecting an error, but no expectedErrContent provided for input '%s'. Error was: '%v'", i, test.input, err)
+			}
+
+			if !strings.Contains(err.Error(), test.expectedErrContent) {
+				t.Errorf("Test %d: Expected error to contain: %v, found error: %v, input: %s", i, test.expectedErrContent, err, test.input)
+			}
+			continue
+		}
+
+		foundFed := k8sController.Federations
+		if len(foundFed) != len(test.expectedFederations) {
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d fedrations. Instead found %d fedrations for input '%s'", i, len(test.expectedFederations), len(foundFed), test.input)
+		}
+		for j, fed := range test.expectedFederations {
+			if fed != foundFed[j] {
+				t.Errorf("Test %d: Expected kubernetes controller to be initialized with federation '%s'. Instead found federation '%s' for input '%s'", i, test.expectedFederations[j], foundFed[j], test.input)
 			}
 		}
 	}
