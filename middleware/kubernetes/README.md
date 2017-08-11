@@ -108,6 +108,15 @@ And finally we can connect to Kubernetes from outside the cluster:
 		tls cert key cacert
 	}
 
+## Enabling server-side domain search path completion with *autopath*
+
+The *kubernetes* middleware can be used in conjunction with the *autopath* middleware.  Using this feature enables server-side domain search path completion in kubernetes clusters.  Note: `pods` must be set to `verified` for this to function properly.
+
+	autopath @kubernetes
+	kubernetes cluster.local {
+		pods verified
+	}
+
 
 ## Wildcard
 
