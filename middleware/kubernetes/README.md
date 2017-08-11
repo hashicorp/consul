@@ -72,7 +72,7 @@ kubernetes [ZONES...] {
 ## Examples
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster.
-Als handl all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
+Also handle all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
 requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block
 here:
 
@@ -83,7 +83,7 @@ here:
         }
     }
 
-Or you can selective expose some namespaces:
+Or you can selectively expose some namespaces:
 
 	kubernetes cluster.local {
 		namespaces test staging
@@ -101,7 +101,7 @@ in the `prod` and `stage` federations. We resolve upstream records using the ser
     	}
     }
 
-And finally we connect to Kubernetes from outside the cluster:
+And finally we can connect to Kubernetes from outside the cluster:
 
 	kubernetes cluster.local {
 		endpoint https://k8s-endpoint:8443
