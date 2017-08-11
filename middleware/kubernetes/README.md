@@ -23,10 +23,10 @@ all the zones the middleware should be authoritative for.
 kubernetes [ZONES...] {
 	resyncperiod DURATION
 	endpoint URL
-	tls CERT KEY CACERT]
+	tls CERT KEY CACERT
 	namespaces NAMESPACE [NAMESPACE...]
 	labels EXPRESSION
-	pods POD-MODE]
+	pods POD-MODE
 	upstream ADDRESS [ADDRESS...]
 	federation NAME DOMAIN
 	fallthrough
