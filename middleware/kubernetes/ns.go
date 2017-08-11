@@ -29,7 +29,6 @@ FindEndpoint:
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {
-
 					svcNamespace = ep.ObjectMeta.Namespace
 					svcName = ep.ObjectMeta.Name
 					break FindEndpoint

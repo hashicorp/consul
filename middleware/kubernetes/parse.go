@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -23,33 +24,29 @@ type recordRequest struct {
 	federation string
 }
 
-// TODO(miek): make it use request.Request.
-func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16, zone ...string) (r recordRequest, err error) {
+// parseRequest parses the qname to find all the elements we need for querying k8s.
+func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err error) {
 	// 3 Possible cases
 	//   SRV Request: _port._protocol.service.namespace.[federation.]type.zone
 	//   A Request (endpoint): endpoint.service.namespace.[federation.]type.zone
 	//   A Request (service): service.namespace.[federation.]type.zone
 
-	if len(zone) == 0 {
-		panic("parseRequest must be called with a zone")
-	}
-
-	base, _ := dnsutil.TrimZone(lowerCasedName, zone[0])
+	base, _ := dnsutil.TrimZone(state.Name(), state.Zone)
 	segs := dns.SplitDomainName(base)
 
-	r.zone = zone[0]
+	r.zone = state.Zone
 	r.federation, segs = k.stripFederation(segs)
 
-	if qtype == dns.TypeNS {
+	if state.QType() == dns.TypeNS {
 		return r, nil
 	}
 
-	if qtype == dns.TypeA && isDefaultNS(lowerCasedName, r) {
+	if state.QType() == dns.TypeA && isDefaultNS(state.Name(), r) {
 		return r, nil
 	}
 
 	offset := 0
-	if qtype == dns.TypeSRV {
+	if state.QType() == dns.TypeSRV {
 		// The kubernetes peer-finder expects queries with empty port and service to resolve
 		// If neither is specified, treat it as a wildcard
 		if len(segs) == 3 {
@@ -87,7 +84,7 @@ func (k *Kubernetes) parseRequest(lowerCasedName string, qtype uint16, zone ...s
 			offset = 2
 		}
 	}
-	if (qtype == dns.TypeA || qtype == dns.TypeAAAA) && len(segs) == 4 {
+	if (state.QType() == dns.TypeA || state.QType() == dns.TypeAAAA) && len(segs) == 4 {
 		// This is an endpoint A/AAAA record request. Get first element as endpoint.
 		r.endpoint = segs[0]
 		offset = 1

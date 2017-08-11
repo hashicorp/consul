@@ -120,7 +120,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		return []msg.Service{svc}, nil, nil
 	}
 
-	r, e := k.parseRequest(state.Name(), state.QType(), state.Zone)
+	r, e := k.parseRequest(state)
 	if e != nil {
 		return nil, nil, e
 	}

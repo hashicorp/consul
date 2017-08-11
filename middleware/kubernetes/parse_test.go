@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"testing"
 
+	"github.com/coredns/coredns/request"
 	"github.com/miekg/dns"
 )
 
@@ -35,7 +36,11 @@ func TestParseRequest(t *testing.T) {
 		},
 	}
 	for i, tc := range tests {
-		r, e := k.parseRequest(tc.query, tc.qtype, zone)
+		m := new(dns.Msg)
+		m.SetQuestion(tc.query, tc.qtype)
+		state := request.Request{Zone: zone, Req: m}
+
+		r, e := k.parseRequest(state)
 		if e != nil {
 			t.Errorf("Test %d, expected no error, got '%v'.", i, e)
 		}
@@ -58,7 +63,11 @@ func TestParseInvalidRequest(t *testing.T) {
 	}
 
 	for query, qtype := range invalid {
-		if _, e := k.parseRequest(query, qtype, zone); e == nil {
+		m := new(dns.Msg)
+		m.SetQuestion(query, qtype)
+		state := request.Request{Zone: zone, Req: m}
+
+		if _, e := k.parseRequest(state); e == nil {
 			t.Errorf("Expected error from %s:%d, got none", query, qtype)
 		}
 	}
