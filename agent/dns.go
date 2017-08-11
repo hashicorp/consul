@@ -538,8 +538,23 @@ RPC:
 
 // encodeKVasRFC1464 encodes a key-value pair according to RFC1464
 func encodeKVasRFC1464(key, value string) (txt string) {
-	txt = key + "=" + value
-	return txt
+	// For details on these replacements c.f. https://www.ietf.org/rfc/rfc1464.txt
+	key = strings.Replace(key, "`", "``", -1)
+	key = strings.Replace(key, "=", "`=", -1)
+
+	// Backquote the leading spaces
+	leadingSpacesRE := regexp.MustCompile("^ +")
+	numLeadingSpaces := len(leadingSpacesRE.FindString(key))
+	key = leadingSpacesRE.ReplaceAllString(key, strings.Repeat("` ", numLeadingSpaces))
+
+	// Backquote the trailing spaces
+	trailingSpacesRE := regexp.MustCompile(" +$")
+	numTrailingSpaces := len(trailingSpacesRE.FindString(key))
+	key = trailingSpacesRE.ReplaceAllString(key, strings.Repeat("` ", numTrailingSpaces))
+
+	value = strings.Replace(value, "`", "``", -1)
+
+	return key + "=" + value
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, TXT or CNAME record
