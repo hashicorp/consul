@@ -19,6 +19,7 @@ type UpstreamHostDownFunc func(*UpstreamHost) bool
 type UpstreamHost struct {
 	Conns             int64  // must be first field to be 64-bit aligned on 32-bit systems
 	Name              string // IP address (and port) of this upstream host
+	Network           string // Network (tcp, unix, etc) of the host, default "" is "tcp"
 	Fails             int32
 	FailTimeout       time.Duration
 	OkUntil           time.Time

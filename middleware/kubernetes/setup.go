@@ -39,10 +39,16 @@ func setup(c *caddy.Controller) error {
 	// Register KubeCache start and stop functions with Caddy
 	c.OnStartup(func() error {
 		go kubernetes.APIConn.Run()
+		if kubernetes.APIProxy != nil {
+			go kubernetes.APIProxy.Run()
+		}
 		return nil
 	})
 
 	c.OnShutdown(func() error {
+		if kubernetes.APIProxy != nil {
+			kubernetes.APIProxy.Stop()
+		}
 		return kubernetes.APIConn.Stop()
 	})
 
@@ -140,7 +146,9 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 				case "endpoint":
 					args := c.RemainingArgs()
 					if len(args) > 0 {
-						k8s.APIEndpoint = args[0]
+						for _, endpoint := range strings.Split(args[0], ",") {
+							k8s.APIServerList = append(k8s.APIServerList, strings.TrimSpace(endpoint))
+						}
 						continue
 					}
 					return nil, c.ArgErr()

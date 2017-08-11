@@ -27,6 +27,9 @@ kubernetes ZONE [ZONE...] [
 * `resyncperiod` specifies the Kubernetes data API **DURATION** period.
 * `endpoint` specifies the **URL** for a remove k8s API endpoint.
    If omitted, it will connect to k8s in-cluster using the cluster service account.
+   Multiple k8s API endpoints could be specified, separated by `,`s, e.g.
+   `endpoint http://k8s-endpoint1:8080,http://k8s-endpoint2:8080`. CoreDNS
+   will automatically perform a healthcheck and proxy to the healthy k8s API endpoint.
 * `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.
    This option is ignored if connecting in-cluster (i.e. endpoint is not specified).
 * `namespaces` **NAMESPACE [NAMESPACE...]**, exposed only the k8s namespaces listed.
