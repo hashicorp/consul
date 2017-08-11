@@ -101,6 +101,35 @@ func TestRecursorAddr(t *testing.T) {
 	}
 }
 
+func TestEncodeKVasRFC1464(t *testing.T) {
+	// Test cases are from rfc1464
+	type rfc1464Test struct {
+		key, value, internalForm, externalForm string
+	}
+	tests := []rfc1464Test{
+		{"color", "blue", "color=blue", "color=blue"},
+		{"equation", "a=4", "equation=a=4", "equation=a=4"},
+		{"a=a", "true", "a`=a=true", "a`=a=true"},
+		{"a\\=a", "false", "a\\`=a=false", "a\\`=a=false"},
+		{"=", "\\=", "`==\\=", "`==\\="},
+
+		{"string", "\"Cat\"", "string=\"Cat\"", "string=\"Cat\""},
+		{"string2", "`abc`", "string2=``abc``", "string2=``abc``"},
+		{"novalue", "", "novalue=", "novalue="},
+		{"a b", "c d", "a b=c d", "a b=c d"},
+		{"abc ", "123 ", "abc` =123 ", "abc` =123 "},
+
+		// Additional tests
+		{" abc", " 321", "` abc= 321", "` abc= 321"},
+		{"`a", "b", "``a=b", "``a=b"},
+	}
+
+	for _, test := range tests {
+		answer := encodeKVasRFC1464(test.key, test.value)
+		verify.Values(t, "internalForm", answer, test.internalForm)
+	}
+}
+
 func TestDNS_NodeLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
