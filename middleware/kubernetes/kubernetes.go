@@ -130,8 +130,9 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		if state.Type() == "A" && isDefaultNS(state.Name(), r) {
 			// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
 			// SOA records always use this hardcoded name
-			svcs = append(svcs, k.defaultNSMsg(r))
-			return svcs, nil, nil
+			ns := k.nsAddr()
+			svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
+			return []msg.Service{svc}, nil, nil
 		}
 		s, e := k.Entries(r)
 		if state.QType() == dns.TypeAAAA {

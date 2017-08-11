@@ -4,23 +4,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/coredns/coredns/middleware/etcd/msg"
-
 	"github.com/miekg/dns"
 	"k8s.io/client-go/1.5/pkg/api"
 )
-
-// DefaultNSMsg returns an msg.Service representing an A record for
-// ns.dns.[zone] -> dns service ip. This A record is needed to legitimize
-// the SOA response in middleware.NS(), which is hardcoded at ns.dns.[zone].
-func (k *Kubernetes) defaultNSMsg(r recordRequest) msg.Service {
-	ns := k.nsAddr()
-	s := msg.Service{
-		Key:  msg.Path(strings.Join([]string{defaultNSName, r.zone}, "."), "coredns"),
-		Host: ns.A.String(),
-	}
-	return s
-}
 
 func isDefaultNS(name string, r recordRequest) bool {
 	return strings.Index(name, defaultNSName) == 0 && strings.Index(name, r.zone) == len(defaultNSName)
