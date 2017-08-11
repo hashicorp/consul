@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// SupportedPolicies is the collection of policies registered
 	SupportedPolicies = make(map[string]func() Policy)
 )
 

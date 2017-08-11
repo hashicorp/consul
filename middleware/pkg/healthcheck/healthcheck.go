@@ -55,6 +55,9 @@ func (uh *UpstreamHost) Down() bool {
 // HostPool is a collection of UpstreamHosts.
 type HostPool []*UpstreamHost
 
+// HealthCheck is used for performing healthcheck
+// on a collection of upstream hosts and select
+// one based on the policy.
 type HealthCheck struct {
 	wg          sync.WaitGroup // Used to wait for running goroutines to stop.
 	stop        chan struct{}  // Signals running goroutines to stop.
@@ -69,13 +72,14 @@ type HealthCheck struct {
 	Interval    time.Duration
 }
 
+// Start starts the healthcheck
 func (u *HealthCheck) Start() {
 	u.stop = make(chan struct{})
 	if u.Path != "" {
 		u.wg.Add(1)
 		go func() {
 			defer u.wg.Done()
-			u.HealthCheckWorker(u.stop)
+			u.healthCheckWorker(u.stop)
 		}()
 	}
 }
@@ -178,7 +182,7 @@ func (u *HealthCheck) healthCheck() {
 	}
 }
 
-func (u *HealthCheck) HealthCheckWorker(stop chan struct{}) {
+func (u *HealthCheck) healthCheckWorker(stop chan struct{}) {
 	ticker := time.NewTicker(u.Interval)
 	u.healthCheck()
 	for {
@@ -192,6 +196,8 @@ func (u *HealthCheck) HealthCheckWorker(stop chan struct{}) {
 	}
 }
 
+// Select selects an upstream host based on the policy
+// and the healthcheck result.
 func (u *HealthCheck) Select() *UpstreamHost {
 	pool := u.Hosts
 	if len(pool) == 1 {
