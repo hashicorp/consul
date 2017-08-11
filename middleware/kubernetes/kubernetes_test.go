@@ -10,15 +10,6 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 )
 
-func TestPrimaryZone(t *testing.T) {
-	k := Kubernetes{Zones: []string{"inter.webs.test", "inter.nets.test"}}
-	expected := "inter.webs.test"
-	result := k.PrimaryZone()
-	if result != expected {
-		t.Errorf("Expected result '%v'. Instead got result '%v'.", expected, result)
-	}
-}
-
 func TestWildcard(t *testing.T) {
 	var tests = []struct {
 		s        string
@@ -104,7 +95,6 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 		},
 	}
 	return svcs
-
 }
 
 func (APIConnServiceTest) EndpointsList() api.EndpointsList {

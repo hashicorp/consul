@@ -32,7 +32,6 @@ import (
 type Kubernetes struct {
 	Next          middleware.Handler
 	Zones         []string
-	primaryZone   int
 	Proxy         proxy.Proxy // Proxy for looking up names during the resolution process
 	APIServerList []string
 	APIProxy      *apiProxy
@@ -49,6 +48,7 @@ type Kubernetes struct {
 	ReverseCidrs  []net.IPNet
 	Fallthrough   bool
 
+	primaryZoneIndex   int
 	interfaceAddrsFunc func() net.IP
 	autoPathSearch     []string // Local search path from /etc/resolv.conf. Needed for autopath.
 }
@@ -154,9 +154,9 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 	return nil, nil, nil
 }
 
-// PrimaryZone will return the first non-reverse zone being handled by this middleware
-func (k *Kubernetes) PrimaryZone() string {
-	return k.Zones[k.primaryZone]
+// primaryZone will return the first non-reverse zone being handled by this middleware
+func (k *Kubernetes) primaryZone() string {
+	return k.Zones[k.primaryZoneIndex]
 }
 
 // Lookup implements the ServiceBackend interface.
@@ -538,7 +538,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 			continue
 		}
 		if service.Spec.ClusterIP == ip {
-			domain := strings.Join([]string{service.Name, service.Namespace, Svc, k.PrimaryZone()}, ".")
+			domain := strings.Join([]string{service.Name, service.Namespace, Svc, k.primaryZone()}, ".")
 			return []msg.Service{{Host: domain}}
 		}
 	}
@@ -551,7 +551,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.PrimaryZone()}, ".")
+					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()}, ".")
 					return []msg.Service{{Host: domain}}
 				}
 			}

@@ -14,13 +14,13 @@ func TestIsRequestInReverseRange(t *testing.T) {
 	}{
 		{"1.2.3.0/24", "4.3.2.1.in-addr.arpa.", true},
 		{"1.2.3.0/24", "5.3.2.1.in-addr.arpa.", true},
+		{"5.6.0.0/16", "5.4.6.5.in-addr.arpa.", true},
 		{"1.2.3.0/24", "5.4.2.1.in-addr.arpa.", false},
 		{"5.6.0.0/16", "5.4.2.1.in-addr.arpa.", false},
-		{"5.6.0.0/16", "5.4.6.5.in-addr.arpa.", true},
 		{"5.6.0.0/16", "5.6.0.1.in-addr.arpa.", false},
 	}
 
-	k := Kubernetes{Zones: []string{"inter.webs.test"}}
+	k := Kubernetes{}
 
 	for _, test := range tests {
 		_, cidr, _ := net.ParseCIDR(test.cidr)
