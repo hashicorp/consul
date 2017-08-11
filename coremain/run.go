@@ -168,7 +168,7 @@ func showVersion() {
 
 // versionString returns the CoreDNS version as a string.
 func versionString() string {
-	return fmt.Sprintf("%s-%s\n", caddy.AppName, caddy.AppVersion)
+	return fmt.Sprintf("%s-%s\n%s/%s, %s, %s\n", caddy.AppName, caddy.AppVersion, runtime.GOOS, runtime.GOARCH, runtime.Version(), gitCommit)
 }
 
 // setVersion figures out the version information

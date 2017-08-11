@@ -1,3 +1,5 @@
+GITCOMMIT     := $(shell git describe --dirty --always)
+
 BUILD_VERBOSE := -v
 
 TEST_VERBOSE := -v
@@ -8,7 +10,7 @@ all: coredns
 # TODO: Add .go file dependencies.
 .PHONY: coredns
 coredns: check godeps
-	CGO_ENABLED=0 go build $(BUILD_VERBOSE) -ldflags="-s -w"
+	CGO_ENABLED=0 go build $(BUILD_VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)"
 
 .PHONY: deps
 deps: core/zmiddleware.go core/dnsserver/zdirectives.go godeps
