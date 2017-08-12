@@ -48,7 +48,7 @@ import (
 // If AutoPathFunc returns a nil slice, no autopathing will be done.
 type AutoPathFunc func(request.Request) []string
 
-// Autopath perform autopath: service side search path completion.
+// AutoPath perform autopath: service side search path completion.
 type AutoPath struct {
 	Next  middleware.Handler
 	Zones []string
@@ -58,6 +58,7 @@ type AutoPath struct {
 	searchFunc AutoPathFunc
 }
 
+// ServeDNS implements the middleware.Handle interface.
 func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
@@ -150,4 +151,5 @@ func (a *AutoPath) FirstInSearchPath(name string) bool {
 	return false
 }
 
+// Name implements the Handler interface.
 func (a *AutoPath) Name() string { return "autopath" }
