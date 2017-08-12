@@ -156,11 +156,15 @@ func defaultLoader(serverType string) (caddy.Input, error) {
 }
 
 // logVersion logs the version that is starting.
-func logVersion() { log.Print("[INFO] " + versionString()) }
+func logVersion() {
+	log.Print("[INFO] " + versionString())
+	log.Print("[INFO] " + releaseString())
+}
 
 // showVersion prints the version that is starting.
 func showVersion() {
 	fmt.Print(versionString())
+	fmt.Print(releaseString())
 	if devBuild && gitShortStat != "" {
 		fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
 	}
@@ -168,7 +172,15 @@ func showVersion() {
 
 // versionString returns the CoreDNS version as a string.
 func versionString() string {
-	return fmt.Sprintf("%s-%s\n%s/%s, %s, %s\n", caddy.AppName, caddy.AppVersion, runtime.GOOS, runtime.GOARCH, runtime.Version(), gitCommit)
+	return fmt.Sprintf("%s-%s\n", caddy.AppName, caddy.AppVersion)
+}
+
+// releaseString returns the release information related to CoreDNS version:
+// <OS>/<ARCH>, <go version>, <commit>
+// e.g.,
+// linux/amd64, go1.8.3, a6d2d7b5
+func releaseString() string {
+	return fmt.Sprintf("%s/%s, %s, %s\n", runtime.GOOS, runtime.GOARCH, runtime.Version(), gitCommit)
 }
 
 // setVersion figures out the version information
