@@ -1,5 +1,12 @@
 # Makefile for releasing CoreDNS
 #
+# The release binaries are built through docker run like
+# make coredns
+#
+# There advantage of the above command is that we could control reused
+# the binary generation from the default `Makefile`, instread of repeating
+# in `Makefile.release`.
+#
 # The release is controlled from coremain/version.go. The version found
 # there is used to tag the git repo and to build the assets that are
 # uploaded to github (after some sanity checks).
@@ -43,7 +50,7 @@ GITCOMMIT:=$(shell git describe --dirty --always)
 all:
 	@echo Use the 'release' target to start a release
 
-release:	generate commit push build tar upload
+release: commit push build tar upload
 
 docker: docker-build docker-upload
 
@@ -57,28 +64,14 @@ commit:
 	@echo Committing
 	git commit -am"Release $(VERSION)"
 
-.PHONY: generate
-generate: 
-	go generate
-
 .PHONY: build
-build: build-arm build-darwin build-linux
-
-.PHONY: build-linux
-build-linux:
-	@echo Building: linux $(VERSION)
-	mkdir -p build/Linux      && CGO_ENABLED=0 GOOS=linux             go build -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o build/Linux/$(NAME)
-
-.PHONY: build-darwin
-build-darwin:
+build:
+	@echo Building: linux  $(VERSION)
+	mkdir -p build/Linux      && $(MAKE) coredns BINARY=build/Linux/$(NAME) SYSTEM="GOOS=linux"
 	@echo Building: darwin $(VERSION)
-	mkdir -p build/Darwin     && CGO_ENABLED=0 GOOS=darwin            go build -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o build/Darwin/$(NAME)
-
-.PHONY: build-arm
-build-arm:
-	@echo Building: arm $(VERSION)
-	mkdir -p build/Linux/Arm  && CGO_ENABLED=0 GOOS=linux GOARCH=arm  go build -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o build/Linux/Arm/$(NAME)
-
+	mkdir -p build/Darwin     && $(MAKE) coredns BINARY=build/Darwin/$(NAME) SYSTEM="GOOS=darwin"
+	@echo Building: arm    $(VERSION)
+	mkdir -p build/Linux/Arm  && $(MAKE) coredns BINARY=build/Linux/Arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm"
 
 .PHONY: tar
 tar:
@@ -94,7 +87,7 @@ upload:
 
 .PHONY: docker-build
 docker-build:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
+	$(MAKE) coredns SYSTEM="GOOS=linux"
 	docker build -t $(DOCKER_IMAGE_NAME) .
 	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
 

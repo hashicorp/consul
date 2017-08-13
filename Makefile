@@ -1,4 +1,6 @@
 GITCOMMIT:=$(shell git describe --dirty --always)
+BINARY:=coredns
+SYSTEM:=
 
 all: coredns
 
@@ -6,7 +8,7 @@ all: coredns
 # TODO: Add .go file dependencies.
 .PHONY: coredns
 coredns: check godeps
-	CGO_ENABLED=0 go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)"
+	CGO_ENABLED=0 $(SYSTEM) go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
 check: fmt core/zmiddleware.go core/dnsserver/zdirectives.go godeps
