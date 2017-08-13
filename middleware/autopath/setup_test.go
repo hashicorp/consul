@@ -21,21 +21,18 @@ func TestSetupAutoPath(t *testing.T) {
 	tests := []struct {
 		input              string
 		shouldErr          bool
+		expectedZone       string
 		expectedMw         string   // expected middleware.
 		expectedSearch     []string // expected search path
 		expectedErrContent string   // substring from the expected error. Empty for positive cases.
 	}{
 		// positive
-		{
-			`autopath @kubernetes`, false, "kubernetes", nil, "",
-		},
-		{
-			`autopath ` + resolv, false, "", []string{"bar.com.", "baz.com.", ""}, "",
-		},
+		{`autopath @kubernetes`, false, "", "kubernetes", nil, ""},
+		{`autopath example.org @kubernetes`, false, "example.org.", "kubernetes", nil, ""},
+		{`autopath 10.0.0.0/8 @kubernetes`, false, "10.in-addr.arpa.", "kubernetes", nil, ""},
+		{`autopath ` + resolv, false, "", "", []string{"bar.com.", "baz.com.", ""}, ""},
 		// negative
-		{
-			`autopath kubernetes`, true, "", nil, "open kubernetes: no such file or directory",
-		},
+		{`autopath kubernetes`, true, "", "", nil, "open kubernetes: no such file or directory"},
 	}
 
 	for i, test := range tests {
@@ -62,6 +59,11 @@ func TestSetupAutoPath(t *testing.T) {
 		if !test.shouldErr && ap.search != nil {
 			if !reflect.DeepEqual(test.expectedSearch, ap.search) {
 				t.Errorf("Test %d, wrong searchpath for input %s. Expected: '%v', actual: '%v'", i, test.input, test.expectedSearch, ap.search)
+			}
+		}
+		if !test.shouldErr && test.expectedZone != "" {
+			if test.expectedZone != ap.Zones[0] {
+				t.Errorf("Test %d, expected zone %q for input %s, got: %q", i, test.expectedZone, test.input, ap.Zones[0])
 			}
 		}
 	}

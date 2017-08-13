@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -44,6 +43,8 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		if !c.Args(&upstream.from) {
 			return upstreams, c.ArgErr()
 		}
+		upstream.from = middleware.Host(upstream.from).Normalize()
+
 		to := c.RemainingArgs()
 		if len(to) == 0 {
 			return upstreams, c.ArgErr()
@@ -168,7 +169,7 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 			return c.ArgErr()
 		}
 		for i := 0; i < len(ignoredDomains); i++ {
-			ignoredDomains[i] = strings.ToLower(dns.Fqdn(ignoredDomains[i]))
+			ignoredDomains[i] = middleware.Host(ignoredDomains[i]).Normalize()
 		}
 		u.IgnoredSubDomains = ignoredDomains
 	case "spray":

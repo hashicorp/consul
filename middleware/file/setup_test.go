@@ -48,6 +48,11 @@ func TestFileParse(t *testing.T) {
 			false,
 			Zones{Names: []string{"dnssex.nl."}},
 		},
+		{
+			`file ` + zoneFileName2 + ` 10.0.0.0/8`,
+			false,
+			Zones{Names: []string{"10.in-addr.arpa."}},
+		},
 	}
 
 	for i, test := range tests {

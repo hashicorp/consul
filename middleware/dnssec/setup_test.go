@@ -20,12 +20,15 @@ func TestSetupDnssec(t *testing.T) {
 			`dnssec`, false, nil, nil, defaultCap, "",
 		},
 		{
-			`dnssec miek.nl`, false, []string{"miek.nl."}, nil, defaultCap, "",
+			`dnssec example.org`, false, []string{"example.org."}, nil, defaultCap, "",
 		},
 		{
-			`dnssec miek.nl {
+			`dnssec 10.0.0.0/8`, false, []string{"10.in-addr.arpa."}, nil, defaultCap, "",
+		},
+		{
+			`dnssec example.org {
 				cache_capacity 100
-			}`, false, []string{"miek.nl."}, nil, 100, "",
+			}`, false, []string{"example.org."}, nil, 100, "",
 		},
 	}
 

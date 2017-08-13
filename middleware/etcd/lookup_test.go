@@ -3,11 +3,26 @@
 package etcd
 
 import (
+	"context"
+	"encoding/json"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
+	"github.com/coredns/coredns/middleware/pkg/singleflight"
+	"github.com/coredns/coredns/middleware/pkg/tls"
+	"github.com/coredns/coredns/middleware/proxy"
 	"github.com/coredns/coredns/middleware/test"
 
+	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
 )
+
+func init() {
+	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
+}
 
 // Note the key is encoded as DNS name, while in "reality" it is a etcd path.
 var services = []*msg.Service{
@@ -206,3 +221,70 @@ var dnsTestCases = []test.Case{
 		Answer: []dns.RR{test.PTR("1.0.0.10.in-addr.arpa. 300 PTR reverse.example.com.")},
 	},
 }
+
+func newEtcdMiddleware() *Etcd {
+	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
+
+	endpoints := []string{"http://localhost:2379"}
+	tlsc, _ := tls.NewTLSConfigFromArgs()
+	client, _ := newEtcdClient(endpoints, tlsc)
+
+	return &Etcd{
+		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53"}),
+		PathPrefix: "skydns",
+		Ctx:        context.Background(),
+		Inflight:   &singleflight.Group{},
+		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},
+		Client:     client,
+	}
+}
+
+func set(t *testing.T, e *Etcd, k string, ttl time.Duration, m *msg.Service) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
+	e.Client.Set(ctxt, path, string(b), &etcdc.SetOptions{TTL: ttl})
+}
+
+func delete(t *testing.T, e *Etcd, k string) {
+	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
+	e.Client.Delete(ctxt, path, &etcdc.DeleteOptions{Recursive: false})
+}
+
+func TestLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
+	for _, serv := range services {
+		set(t, etc, serv.Key, 0, serv)
+		defer delete(t, etc, serv.Key)
+	}
+
+	for _, tc := range dnsTestCases {
+		m := tc.Msg()
+
+		rec := dnsrecorder.New(&test.ResponseWriter{})
+		etc.ServeDNS(ctxt, rec, m)
+
+		resp := rec.Msg
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
+
+		if !test.Header(t, tc, resp) {
+			t.Logf("%v\n", resp)
+			continue
+		}
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
+			t.Logf("%v\n", resp)
+		}
+	}
+}
+
+var ctxt context.Context

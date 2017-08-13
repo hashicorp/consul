@@ -50,10 +50,10 @@ func TestHostsParse(t *testing.T) {
 			false, "/etc/hosts", []string{"miek.nl."}, true,
 		},
 		{
-			`hosts /etc/hosts miek.nl. pun.gent. {
+			`hosts /etc/hosts miek.nl 10.0.0.9/8 {
 				fallthrough
 			}`,
-			false, "/etc/hosts", []string{"miek.nl.", "pun.gent."}, true,
+			false, "/etc/hosts", []string{"miek.nl.", "10.in-addr.arpa."}, true,
 		},
 	}
 

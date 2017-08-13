@@ -23,6 +23,12 @@ func TestAutoParse(t *testing.T) {
 			false, "/tmp", "${1}", `db\.(.*)`, []string{"127.0.0.1:53"},
 		},
 		{
+			`auto 10.0.0.0/24 {
+				directory /tmp
+			}`,
+			false, "/tmp", "${1}", `db\.(.*)`, nil,
+		},
+		{
 			`auto {
 				directory /tmp
 			}`,
