@@ -127,6 +127,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 		if id != a.Config.NodeID ||
 			!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
 			!reflect.DeepEqual(meta, a.Config.Meta) {
@@ -828,6 +829,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 		if id != a.Config.NodeID ||
 			!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
 			!reflect.DeepEqual(meta, a.Config.Meta) {
@@ -1364,6 +1366,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 		if id != cfg.NodeID ||
 			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
 			!reflect.DeepEqual(meta, cfg.Meta) {
@@ -1387,6 +1390,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 		if id != cfg.NodeID ||
 			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
 			!reflect.DeepEqual(meta, cfg.Meta) {

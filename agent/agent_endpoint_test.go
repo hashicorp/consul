@@ -191,13 +191,14 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 
-	c, err := a.GetLANCoordinate()
+	cs, err := a.GetLANCoordinate()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !reflect.DeepEqual(c, val.Coord) {
+	if c := cs[cfg.Segment]; !reflect.DeepEqual(c, val.Coord) {
 		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
 	}
+	delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
 	if !reflect.DeepEqual(cfg.Meta, val.Meta) {
 		t.Fatalf("meta fields are not equal: %v != %v", cfg.Meta, val.Meta)
 	}

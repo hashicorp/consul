@@ -593,6 +593,14 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{RetryMaxAttemptsWan: 123},
 		},
 		{
+			in: `{"segment":"thing"}`,
+			c:  &Config{Segment: "thing"},
+		},
+		{
+			in: `{"segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "advertise": "1.1.1.1"}]}`,
+			c:  &Config{Segments: []NetworkSegment{{Name: "alpha", Bind: "127.0.0.1", Port: 1234, Advertise: "1.1.1.1"}}},
+		},
+		{
 			in: `{"serf_lan_bind":"1.2.3.4"}`,
 			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
 		},
@@ -1400,6 +1408,15 @@ func TestMergeConfig(t *testing.T) {
 			DNS:   "127.0.0.1",
 			HTTP:  "127.0.0.2",
 			HTTPS: "127.0.0.4",
+		},
+		Segment: "alpha",
+		Segments: []NetworkSegment{
+			{
+				Name:      "alpha",
+				Bind:      "127.0.0.1",
+				Port:      1234,
+				Advertise: "127.0.0.2",
+			},
 		},
 		Server:         true,
 		LeaveOnTerm:    Bool(true),

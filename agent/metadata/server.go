@@ -10,6 +10,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
@@ -27,19 +28,21 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name        string
-	ID          string
-	Datacenter  string
-	Port        int
-	WanJoinPort int
-	Bootstrap   bool
-	Expect      int
-	Build       version.Version
-	Version     int
-	RaftVersion int
-	NonVoter    bool
-	Addr        net.Addr
-	Status      serf.MemberStatus
+	Name         string
+	ID           string
+	Datacenter   string
+	Segment      string
+	Port         int
+	SegmentPorts map[string]int
+	WanJoinPort  int
+	Bootstrap    bool
+	Expect       int
+	Build        version.Version
+	Version      int
+	RaftVersion  int
+	NonVoter     bool
+	Addr         net.Addr
+	Status       serf.MemberStatus
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -73,8 +76,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	}
 
 	datacenter := m.Tags["dc"]
+	segment := m.Tags["segment"]
 	_, bootstrap := m.Tags["bootstrap"]
-
 	_, useTLS := m.Tags["use_tls"]
 
 	expect := 0
@@ -91,6 +94,17 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
 		return false, nil
+	}
+
+	segment_ports := make(map[string]int)
+	for name, value := range m.Tags {
+		if strings.HasPrefix(name, "segment_port_") {
+			segment_port, err := strconv.Atoi(value)
+			if err != nil {
+				return false, nil
+			}
+			segment_ports[strings.TrimPrefix(name, "segment_port_")] = segment_port
+		}
 	}
 
 	build_version, err := version.NewVersion(versionFormat.FindString(m.Tags["build"]))
@@ -127,20 +141,22 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
-		Name:        m.Name,
-		ID:          m.Tags["id"],
-		Datacenter:  datacenter,
-		Port:        port,
-		WanJoinPort: wan_join_port,
-		Bootstrap:   bootstrap,
-		Expect:      expect,
-		Addr:        addr,
-		Build:       *build_version,
-		Version:     vsn,
-		RaftVersion: raft_vsn,
-		Status:      m.Status,
-		NonVoter:    nonVoter,
-		UseTLS:      useTLS,
+		Name:         m.Name,
+		ID:           m.Tags["id"],
+		Datacenter:   datacenter,
+		Segment:      segment,
+		Port:         port,
+		SegmentPorts: segment_ports,
+		WanJoinPort:  wan_join_port,
+		Bootstrap:    bootstrap,
+		Expect:       expect,
+		Addr:         addr,
+		Build:        *build_version,
+		Version:      vsn,
+		RaftVersion:  raft_vsn,
+		Status:       m.Status,
+		NonVoter:     nonVoter,
+		UseTLS:       useTLS,
 	}
 	return true, parts
 }

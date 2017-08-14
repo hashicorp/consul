@@ -342,6 +342,22 @@ type Autopilot struct {
 	UpgradeVersionTag string `mapstructure:"upgrade_version_tag"`
 }
 
+// (Enterprise-only) NetworkSegment is the configuration for a network segment, which is an
+// isolated serf group on the LAN.
+type NetworkSegment struct {
+	// Name is the name of the segment.
+	Name string `mapstructure:"name"`
+
+	// Bind is the bind address for this segment.
+	Bind string `mapstructure:"bind"`
+
+	// Port is the port for this segment.
+	Port int `mapstructure:"port"`
+
+	// Advertise is the advertise address of this segment.
+	Advertise string `mapstructure:"advertise"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -464,6 +480,12 @@ type Config struct {
 
 	// Address configurations
 	Addresses AddressConfig
+
+	// (Enterprise-only) NetworkSegment is the network segment for this client to join
+	Segment string `mapstructure:"segment"`
+
+	// Segments
+	Segments []NetworkSegment `mapstructure:"segments"`
 
 	// Tagged addresses. These are used to publish a set of addresses for
 	// for a node, which can be used by the remote agent. We currently
@@ -1426,6 +1448,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		}
 	}
 
+	// Validate node meta fields
+	if err := structs.ValidateMetadata(result.Meta); err != nil {
+		return nil, fmt.Errorf("Failed to parse node metadata: %v", err)
+	}
+
 	return &result, nil
 }
 
@@ -1861,6 +1888,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
 	}
+	if b.Segment != "" {
+		result.Segment = b.Segment
+	}
+	if len(b.Segments) > 0 {
+		result.Segments = append(result.Segments, b.Segments...)
+	}
 	if b.EnableUI {
 		result.EnableUI = true
 	}
@@ -2204,6 +2237,11 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 	parse(&c.ClientAddr, true, "Client address")
 	parse(&c.SerfLanBindAddr, false, "Serf LAN address")
 	parse(&c.SerfWanBindAddr, false, "Serf WAN address")
+	for i, segment := range c.Segments {
+		parse(&c.Segments[i].Bind, false, fmt.Sprintf("Segment %q bind address", segment.Name))
+		parse(&c.Segments[i].Advertise, false, fmt.Sprintf("Segment %q advertise address", segment.Name))
+
+	}
 
 	return
 }

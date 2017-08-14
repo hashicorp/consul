@@ -81,5 +81,18 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 	if out.Coordinates == nil {
 		out.Coordinates = make(structs.Coordinates, 0)
 	}
+
+	// Filter by segment if applicable
+	if v, ok := req.URL.Query()["segment"]; ok && len(v) > 0 {
+		segment := v[0]
+		filtered := make(structs.Coordinates, 0)
+		for _, coord := range out.Coordinates {
+			if coord.Segment == segment {
+				filtered = append(filtered, coord)
+			}
+		}
+		out.Coordinates = filtered
+	}
+
 	return out.Coordinates, nil
 }

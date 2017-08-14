@@ -64,7 +64,12 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
 	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
-		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
+		s.logger.Printf("[WARN] consul: failed to broadcast new leader event on default segment: %v", err)
+	}
+	for name, segment := range s.LANSegments() {
+		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
+			s.logger.Printf("[WARN] consul: failed to broadcast new leader event on segment %q: %v", name, err)
+		}
 	}
 
 	// Reconcile channel is only used once initial reconcile
@@ -439,7 +444,9 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 	if valid, dc := isConsulNode(member); valid && dc == s.config.Datacenter {
 		return true
 	}
-	if valid, parts := metadata.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
+	if valid, parts := metadata.IsConsulServer(member); valid &&
+		parts.Segment == "" &&
+		parts.Datacenter == s.config.Datacenter {
 		return true
 	}
 	return false

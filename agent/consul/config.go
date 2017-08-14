@@ -49,6 +49,15 @@ func init() {
 	}
 }
 
+// (Enterprise-only)
+type NetworkSegment struct {
+	Name       string
+	Bind       string
+	Port       int
+	Advertise  string
+	SerfConfig *serf.Config
+}
+
 // Config is used to configure the server
 type Config struct {
 	// Bootstrap mode is used to bring up the first Consul server.
@@ -104,6 +113,13 @@ type Config struct {
 
 	// RPCSrcAddr is the source address for outgoing RPC connections.
 	RPCSrcAddr *net.TCPAddr
+
+	// (Enterprise-only) The network segment this agent is part of.
+	Segment string
+
+	// (Enterprise-only) Segments is a list of network segments for a server to
+	// bind on.
+	Segments []NetworkSegment
 
 	// SerfLANConfig is the configuration for the intra-dc serf
 	SerfLANConfig *serf.Config

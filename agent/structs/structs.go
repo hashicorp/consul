@@ -74,6 +74,9 @@ const (
 	// metaValueMaxLength is the maximum allowed length of a metadata value
 	metaValueMaxLength = 512
 
+	// MetaSegmentKey is the node metadata key used to store the node's network segment
+	MetaSegmentKey = "consul-network-segment"
+
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
@@ -747,8 +750,9 @@ type IndexedSessions struct {
 
 // Coordinate stores a node name with its associated network coordinate.
 type Coordinate struct {
-	Node  string
-	Coord *coordinate.Coordinate
+	Node    string
+	Segment string
+	Coord   *coordinate.Coordinate
 }
 
 type Coordinates []*Coordinate
@@ -781,6 +785,7 @@ type DatacenterMap struct {
 type CoordinateUpdateRequest struct {
 	Datacenter string
 	Node       string
+	Segment    string
 	Coord      *coordinate.Coordinate
 	WriteRequest
 }
