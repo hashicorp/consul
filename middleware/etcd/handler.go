@@ -46,7 +46,10 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		if opt.Debug != "" {
 			r.Question[0].Name = opt.Debug
 		}
-		return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
+		if e.Fallthrough {
+			return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
+		}
+		return dns.RcodeServerFailure, nil
 	}
 
 	var (

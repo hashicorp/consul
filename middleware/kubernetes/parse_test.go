@@ -18,21 +18,21 @@ func TestParseRequest(t *testing.T) {
 		{
 			// valid SRV request
 			"_http._tcp.webs.mynamespace.svc.inter.webs.test.", dns.TypeSRV,
-			"http.tcp..webs.mynamespace.svc.intern.webs.tests..",
+			"http.tcp..webs.mynamespace.svc.intern.webs.tests.",
 		},
 		{
 			// wildcard acceptance
 			"*.any.*.any.svc.inter.webs.test.", dns.TypeSRV,
-			"*.any..*.any.svc.intern.webs.tests..",
+			"*.any..*.any.svc.intern.webs.tests.",
 		},
 		{
 			// A request of endpoint
 			"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", dns.TypeA,
-			"..1-2-3-4.webs.mynamespace.svc.intern.webs.tests..",
+			"..1-2-3-4.webs.mynamespace.svc.intern.webs.tests.",
 		},
 		{
 			"inter.webs.test.", dns.TypeNS,
-			"......intern.webs.tests..",
+			"......intern.webs.tests.",
 		},
 	}
 	for i, tc := range tests {

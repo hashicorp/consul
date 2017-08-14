@@ -59,28 +59,6 @@ var dnsTestCases = map[string](*test.Case){
 			test.CNAME("external.testns.svc.cluster.local.	0	IN	CNAME	ext.interwebs.test."),
 		},
 	},
-	"A Service (Local Federated)": {
-		Qname: "svc1.testns.fed.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("svc1.testns.fed.svc.cluster.local.	0	IN	A	10.0.0.1"),
-		},
-	},
-	"PTR Service": {
-		Qname: "1.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.PTR("1.0.0.10.in-addr.arpa.	0	IN	PTR	svc1.testns.svc.cluster.local."),
-		},
-	},
-	// TODO A Service (Remote Federated)
-	"CNAME Service (Remote Federated)": {
-		Qname: "svc0.testns.fed.svc.cluster.local.", Qtype: dns.TypeCNAME,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.CNAME("svc0.testns.fed.svc.cluster.local.	0	IN	CNAME	svc0.testns.fed.svc.fd-az.fd-r.federal.test."),
-		},
-	},
 	"AAAA Service (existing service)": {
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode:  dns.RcodeSuccess,
@@ -174,7 +152,6 @@ func TestServeDNS(t *testing.T) {
 	_, cidr, _ := net.ParseCIDR("10.0.0.0/8")
 
 	k.ReverseCidrs = []net.IPNet{*cidr}
-	k.Federations = []Federation{{name: "fed", zone: "federal.test."}}
 	k.APIConn = &APIConnServeTest{}
 	k.interfaceAddrsFunc = localPodIP
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
@@ -405,10 +382,6 @@ func (APIConnServeTest) GetNodeByName(name string) (api.Node, error) {
 	return api.Node{
 		ObjectMeta: api.ObjectMeta{
 			Name: "test.node.foo.bar",
-			Labels: map[string]string{
-				labelRegion:           "fd-r",
-				labelAvailabilityZone: "fd-az",
-			},
 		},
 	}, nil
 }

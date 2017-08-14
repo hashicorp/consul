@@ -42,6 +42,7 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
         path /skydns
         endpoint http://localhost:2379
         upstream 8.8.8.8:53 8.8.4.4:53
+	fallthrough
     }
     proxy . 8.8.8.8:53
 }`

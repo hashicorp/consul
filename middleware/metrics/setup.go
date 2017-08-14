@@ -89,7 +89,7 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 					return met, e
 				}
 			default:
-				return met, c.Errf("unknown item: %s", c.Val())
+				return met, c.Errf("unknown property: %s", c.Val())
 			}
 
 		}

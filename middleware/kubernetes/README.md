@@ -21,15 +21,14 @@ all the zones the middleware should be authoritative for.
 
 ```
 kubernetes [ZONES...] {
-	resyncperiod DURATION
-	endpoint URL
-	tls CERT KEY CACERT
-	namespaces NAMESPACE [NAMESPACE...]
-	labels EXPRESSION
-	pods POD-MODE
-	upstream ADDRESS [ADDRESS...]
-	federation NAME DOMAIN
-	fallthrough
+    resyncperiod DURATION
+    endpoint URL
+    tls CERT KEY CACERT
+    namespaces NAMESPACE [NAMESPACE...]
+    labels EXPRESSION
+    pods POD-MODE
+    upstream ADDRESS [ADDRESS...]
+    fallthrough
 }
 ```
 * `resyncperiod` specifies the Kubernetes data API **DURATION** period.
@@ -63,8 +62,6 @@ kubernetes [ZONES...] {
 * `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
   that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path
   to a file structured like resolv.conf.
-* `federation` **NAME DOMAIN** defines federation membership.  One line for each federation
-  membership. Each line consists of the name of the federation, and the domain.
 * `fallthrough`  If a query for a record in the cluster zone results in NXDOMAIN, normally that is
   what the response will be. However, if you specify this option, the query will instead be passed
   on down the middleware chain, which can include another middleware to handle the query.
@@ -85,40 +82,47 @@ here:
 
 Or you can selectively expose some namespaces:
 
-	kubernetes cluster.local {
-		namespaces test staging
-    }
-
-If you want to use federation, just use the `federation` option. Here we handle all service requests
-in the `prod` and `stage` federations. We resolve upstream records using the servers configured in
-`/etc/resolv.conf`.
-
-    . {
-        kubernetes cluster.local {
-		    federation prod prod.feddomain.com
-		    federation stage stage.feddomain.com
-		    upstream /etc/resolv.conf
-    	}
+    kubernetes cluster.local {
+        namespaces test staging
     }
 
 And finally we can connect to Kubernetes from outside the cluster:
 
-	kubernetes cluster.local {
-		endpoint https://k8s-endpoint:8443
-		tls cert key cacert
-	}
+    kubernetes cluster.local {
+        endpoint https://k8s-endpoint:8443
+        tls cert key cacert
+    }
 
-## Enabling server-side domain search path completion with *autopath*
+## AutoPath
 
-The *kubernetes* middleware can be used in conjunction with the *autopath* middleware.  Using this feature enables server-side domain search path completion in kubernetes clusters.  Note: `pods` must be set to `verified` for this to function properly.
+The *kubernetes* middleware can be used in conjunction with the *autopath* middleware.  Using this
+feature enables server-side domain search path completion in kubernetes clusters.  Note: `pods` must
+be set to `verified` for this to function properly.
 
-	autopath @kubernetes
-	kubernetes cluster.local {
-		pods verified
-	}
+    cluster.local {
+        autopath @kubernetes
+        kubernetes {
+            pods verified
+        }
+    }
+
+## Federation
+
+The *kubernetes* middleware can be used in conjunction with the *federation* middleware.  Using this
+feature enables serving federated domains from the kubernetes clusters.
+
+    cluster.local {
+        federation {
+            fallthrough
+            prod prod.example.org
+            staging staging.example.org
+
+        }
+        kubernetes
+    }
 
 
-## Wildcard
+## Wildcards
 
 Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*,
 or the word "any"), then that label will match all values.  The labels that accept wildcards are:

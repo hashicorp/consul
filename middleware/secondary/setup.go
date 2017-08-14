@@ -88,6 +88,8 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 						return file.Zones{}, err
 					}
 					prxy = proxy.NewLookup(ups)
+				default:
+					return file.Zones{}, c.Errf("unknown property '%s'", c.Val())
 				}
 
 				for _, origin := range origins {

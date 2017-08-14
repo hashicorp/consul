@@ -79,6 +79,8 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 					continue
 				}
 				return h, c.ArgErr()
+			default:
+				return h, c.Errf("unknown property '%s'", c.Val())
 			}
 		}
 	}

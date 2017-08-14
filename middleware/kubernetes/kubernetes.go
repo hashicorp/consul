@@ -41,7 +41,6 @@ type Kubernetes struct {
 	APIConn       dnsController
 	ResyncPeriod  time.Duration
 	Namespaces    []string
-	Federations   []Federation
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
 	PodMode       string
@@ -309,13 +308,6 @@ func (k *Kubernetes) Entries(r recordRequest) ([]msg.Service, error) {
 		return nil, err
 	}
 	if len(services) == 0 && len(pods) == 0 {
-		// Did not find item in k8s, try federated
-		if r.federation != "" {
-			fedCNAME := k.federationCNAMERecord(r)
-			if fedCNAME.Key != "" {
-				return []msg.Service{fedCNAME}, nil
-			}
-		}
 		return nil, errNoItems
 	}
 
@@ -344,15 +336,9 @@ func (k *Kubernetes) getRecordsForK8sItems(services []kService, pods []kPod, r r
 		if svc.addr == api.ClusterIPNone || len(svc.endpoints) > 0 {
 			// This is a headless service or endpoints are present, create records for each endpoint
 			for _, ep := range svc.endpoints {
-				s := msg.Service{
-					Host: ep.addr.IP,
-					Port: int(ep.port.Port),
-				}
-				if r.federation != "" {
-					s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
-				} else {
-					s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
-				}
+				s := msg.Service{Host: ep.addr.IP, Port: int(ep.port.Port)}
+				s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name, endpointHostname(ep.addr)}, "/")
+
 				records = append(records, s)
 			}
 			continue
@@ -360,37 +346,22 @@ func (k *Kubernetes) getRecordsForK8sItems(services []kService, pods []kPod, r r
 
 		// Create records for each exposed port...
 		for _, p := range svc.ports {
-			s := msg.Service{
-				Host: svc.addr,
-				Port: int(p.Port)}
-
-			if r.federation != "" {
-				s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
-			} else {
-				s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
-			}
+			s := msg.Service{Host: svc.addr, Port: int(p.Port)}
+			s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
 
 			records = append(records, s)
 		}
 		// If the addr is not an IP (i.e. an external service), add the record ...
-		s := msg.Service{
-			Key:  strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/"),
-			Host: svc.addr}
+		s := msg.Service{Key: strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/"), Host: svc.addr}
 		if t, _ := s.HostType(); t == dns.TypeCNAME {
-			if r.federation != "" {
-				s.Key = strings.Join([]string{zonePath, Svc, r.federation, svc.namespace, svc.name}, "/")
-			} else {
-				s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
-			}
+			s.Key = strings.Join([]string{zonePath, Svc, svc.namespace, svc.name}, "/")
+
 			records = append(records, s)
 		}
 	}
 
 	for _, p := range pods {
-		s := msg.Service{
-			Key:  strings.Join([]string{zonePath, Pod, p.namespace, p.name}, "/"),
-			Host: p.addr,
-		}
+		s := msg.Service{Key: strings.Join([]string{zonePath, Pod, p.namespace, p.name}, "/"), Host: p.addr}
 		records = append(records, s)
 	}
 

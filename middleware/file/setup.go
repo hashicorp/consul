@@ -115,6 +115,8 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 					return Zones{}, err
 				}
 				prxy = proxy.NewLookup(ups)
+			default:
+				return Zones{}, c.Errf("unknown property '%s'", c.Val())
 			}
 
 			for _, origin := range origins {

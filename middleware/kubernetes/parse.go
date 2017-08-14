@@ -19,14 +19,13 @@ type recordRequest struct {
 	namespace string
 	// A each name can be for a pod or a service, here we track what we've seen. This value is true for
 	// pods and false for services. If we ever need to extend this well use a typed value.
-	podOrSvc   string
-	zone       string
-	federation string
+	podOrSvc string
+	zone     string
 }
 
 // parseRequest parses the qname to find all the elements we need for querying k8s.
 func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err error) {
-	// 3 Possible cases
+	// 3 Possible cases: TODO(chris): remove federations comments here.
 	//   SRV Request: _port._protocol.service.namespace.[federation.]type.zone
 	//   A Request (endpoint): endpoint.service.namespace.[federation.]type.zone
 	//   A Request (service): service.namespace.[federation.]type.zone
@@ -35,7 +34,6 @@ func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err e
 	segs := dns.SplitDomainName(base)
 
 	r.zone = state.Zone
-	r.federation, segs = k.stripFederation(segs)
 
 	if state.QType() == dns.TypeNS {
 		return r, nil
@@ -112,6 +110,5 @@ func (r recordRequest) String() string {
 	s += "." + r.namespace
 	s += "." + r.podOrSvc
 	s += "." + r.zone
-	s += "." + r.federation
 	return s
 }

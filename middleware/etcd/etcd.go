@@ -21,15 +21,16 @@ import (
 
 // Etcd is a middleware talks to an etcd cluster.
 type Etcd struct {
-	Next       middleware.Handler
-	Zones      []string
-	PathPrefix string
-	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
-	Client     etcdc.KeysAPI
-	Ctx        context.Context
-	Inflight   *singleflight.Group
-	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
-	Debugging  bool                    // Do we allow debug queries.
+	Next        middleware.Handler
+	Fallthrough bool
+	Zones       []string
+	PathPrefix  string
+	Proxy       proxy.Proxy // Proxy for looking up names during the resolution process
+	Client      etcdc.KeysAPI
+	Ctx         context.Context
+	Inflight    *singleflight.Group
+	Stubmap     *map[string]proxy.Proxy // list of proxies for stub resolving.
+	Debugging   bool                    // Do we allow debug queries.
 
 	endpoints []string // Stored here as well, to aid in testing.
 }

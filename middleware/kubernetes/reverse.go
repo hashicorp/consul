@@ -1,8 +1,6 @@
 package kubernetes
 
 import (
-	"net"
-
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
@@ -19,14 +17,4 @@ func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.O
 
 	records := k.getServiceRecordForIP(ip, state.Name())
 	return records, nil, nil
-}
-
-func (k *Kubernetes) isRequestInReverseRange(name string) bool {
-	ip := dnsutil.ExtractAddressFromReverse(name)
-	for _, c := range k.ReverseCidrs {
-		if c.Contains(net.ParseIP(ip)) {
-			return true
-		}
-	}
-	return false
 }

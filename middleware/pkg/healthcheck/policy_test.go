@@ -53,7 +53,9 @@ func TestRegisterPolicy(t *testing.T) {
 
 }
 
-func TestHealthCheck(t *testing.T) {
+// TODO(miek): Disabled for now, we should get out of the habit of using
+// realtime in these tests .
+func testHealthCheck(t *testing.T) {
 	log.SetOutput(ioutil.Discard)
 
 	u := &HealthCheck{

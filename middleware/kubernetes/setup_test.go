@@ -1,19 +1,13 @@
 package kubernetes
 
 import (
-	"net"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/mholt/caddy"
-	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
+	"k8s.io/client-go/1.5/pkg/api/unversioned"
 )
-
-func parseCidr(cidr string) net.IPNet {
-	_, ipnet, _ := net.ParseCIDR(cidr)
-	return *ipnet
-}
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
@@ -25,7 +19,6 @@ func TestKubernetesParse(t *testing.T) {
 		expectedResyncPeriod  time.Duration // expected resync period value
 		expectedLabelSelector string        // expected label selector value
 		expectedPodMode       string
-		expectedCidrs         []net.IPNet
 		expectedFallthrough   bool
 		expectedUpstreams     []string
 	}{
@@ -39,7 +32,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -52,7 +44,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -66,7 +57,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -81,7 +71,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -96,7 +85,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -111,7 +99,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -126,7 +113,6 @@ func TestKubernetesParse(t *testing.T) {
 			30 * time.Second,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -141,7 +127,6 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -156,7 +141,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"environment=prod",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -171,7 +155,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"application=nginx,environment in (production,qa,staging)",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -190,7 +173,6 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"application=nginx,environment in (production,qa,staging)",
 			PodModeDisabled,
-			nil,
 			true,
 			nil,
 		},
@@ -204,7 +186,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -219,7 +200,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -234,7 +214,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -249,7 +228,6 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Minute,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -264,7 +242,6 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -279,7 +256,6 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -294,7 +270,6 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -309,7 +284,6 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -325,7 +299,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -341,7 +314,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeInsecure,
-			nil,
 			false,
 			nil,
 		},
@@ -357,7 +329,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeVerified,
-			nil,
 			false,
 			nil,
 		},
@@ -373,39 +344,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeVerified,
-			nil,
-			false,
-			nil,
-		},
-		// cidrs ok
-		{
-			`kubernetes coredns.local {
-	cidrs 10.0.0.0/24 10.0.1.0/24
-}`,
-			false,
-			"",
-			1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			[]net.IPNet{parseCidr("10.0.0.0/24"), parseCidr("10.0.1.0/24")},
-			false,
-			nil,
-		},
-		// cidrs ok
-		{
-			`kubernetes coredns.local {
-	cidrs hard dry
-}`,
-			true,
-			"invalid cidr: hard",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -421,7 +359,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -437,7 +374,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			[]string{"13.14.15.16:53"},
 		},
@@ -453,7 +389,6 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			PodModeDisabled,
-			nil,
 			false,
 			nil,
 		},
@@ -508,7 +443,7 @@ func TestKubernetesParse(t *testing.T) {
 
 		//    Labels
 		if k8sController.LabelSelector != nil {
-			foundLabelSelectorString := unversionedapi.FormatLabelSelector(k8sController.LabelSelector)
+			foundLabelSelectorString := unversioned.FormatLabelSelector(k8sController.LabelSelector)
 			if foundLabelSelectorString != test.expectedLabelSelector {
 				t.Errorf("Test %d: Expected kubernetes controller to be initialized with label selector '%s'. Instead found selector '%s' for input '%s'", i, test.expectedLabelSelector, foundLabelSelectorString, test.input)
 			}
@@ -519,16 +454,6 @@ func TestKubernetesParse(t *testing.T) {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with pod mode '%s'. Instead found pod mode '%s' for input '%s'", i, test.expectedPodMode, foundPodMode, test.input)
 		}
 
-		//    Cidrs
-		foundCidrs := k8sController.ReverseCidrs
-		if len(foundCidrs) != len(test.expectedCidrs) {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d cidrs. Instead found %d cidrs for input '%s'", i, len(test.expectedCidrs), len(foundCidrs), test.input)
-		}
-		for j, cidr := range test.expectedCidrs {
-			if cidr.String() != foundCidrs[j].String() {
-				t.Errorf("Test %d: Expected kubernetes controller to be initialized with cidr '%s'. Instead found cidr '%s' for input '%s'", i, test.expectedCidrs[j].String(), foundCidrs[j].String(), test.input)
-			}
-		}
 		// fallthrough
 		foundFallthrough := k8sController.Fallthrough
 		if foundFallthrough != test.expectedFallthrough {
@@ -554,73 +479,6 @@ func TestKubernetesParse(t *testing.T) {
 					}
 				}
 
-			}
-		}
-	}
-}
-
-func TestKubernetesParseFederation(t *testing.T) {
-	tests := []struct {
-		input               string // Corefile data as string
-		shouldErr           bool   // true if test case is exected to produce an error.
-		expectedErrContent  string // substring from the expected error. Empty for positive cases.
-		expectedFederations []Federation
-	}{
-		// Valid federations
-		{
-			`kubernetes coredns.local {
-	federation foo bar.crawl.com
-	federation fed era.tion.com
-}`,
-			false,
-			"",
-			[]Federation{
-				{name: "foo", zone: "bar.crawl.com"},
-				{name: "fed", zone: "era.tion.com"},
-			},
-		},
-		// Invalid federations
-		{
-			`kubernetes coredns.local {
-	federation starship
-}`,
-			true,
-			`incorrect number of arguments for federation`,
-			[]Federation{},
-		},
-	}
-
-	for i, test := range tests {
-		c := caddy.NewTestController("dns", test.input)
-		k8sController, err := kubernetesParse(c)
-
-		if test.shouldErr && err == nil {
-			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
-		}
-
-		if err != nil {
-			if !test.shouldErr {
-				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
-				continue
-			}
-
-			if test.shouldErr && (len(test.expectedErrContent) < 1) {
-				t.Fatalf("Test %d: Test marked as expecting an error, but no expectedErrContent provided for input '%s'. Error was: '%v'", i, test.input, err)
-			}
-
-			if !strings.Contains(err.Error(), test.expectedErrContent) {
-				t.Errorf("Test %d: Expected error to contain: %v, found error: %v, input: %s", i, test.expectedErrContent, err, test.input)
-			}
-			continue
-		}
-
-		foundFed := k8sController.Federations
-		if len(foundFed) != len(test.expectedFederations) {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d fedrations. Instead found %d fedrations for input '%s'", i, len(test.expectedFederations), len(foundFed), test.input)
-		}
-		for j, fed := range test.expectedFederations {
-			if fed != foundFed[j] {
-				t.Errorf("Test %d: Expected kubernetes controller to be initialized with federation '%s'. Instead found federation '%s' for input '%s'", i, test.expectedFederations[j], foundFed[j], test.input)
 			}
 		}
 	}
