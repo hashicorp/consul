@@ -7,7 +7,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
@@ -286,12 +286,15 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Provide some metrics
 	if err == nil {
-		metrics.IncrCounter([]string{"consul", "catalog", "service", "query", args.ServiceName}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query"}, 1,
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		if args.ServiceTag != "" {
-			metrics.IncrCounter([]string{"consul", "catalog", "service", "query-tag", args.ServiceName, args.ServiceTag}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1,
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
 		if len(reply.ServiceNodes) == 0 {
-			metrics.IncrCounter([]string{"consul", "catalog", "service", "not-found", args.ServiceName}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "not-found"}, 1,
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		}
 	}
 	return err

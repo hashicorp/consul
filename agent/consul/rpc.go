@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -225,7 +225,7 @@ CHECK_LEADER:
 // getLeader returns if the current node is the leader, and if not then it
 // returns the leader which is potentially nil if the cluster has not yet
 // elected a leader.
-func (s *Server) getLeader() (bool, *agent.Server) {
+func (s *Server) getLeader() (bool, *metadata.Server) {
 	// Check if we are the leader
 	if s.IsLeader() {
 		return true, nil
@@ -247,7 +247,7 @@ func (s *Server) getLeader() (bool, *agent.Server) {
 }
 
 // forwardLeader is used to forward an RPC call to the leader, or fail if no leader
-func (s *Server) forwardLeader(server *agent.Server, method string, args interface{}, reply interface{}) error {
+func (s *Server) forwardLeader(server *metadata.Server, method string, args interface{}, reply interface{}) error {
 	// Handle a missing server
 	if server == nil {
 		return structs.ErrNoLeader
@@ -263,7 +263,8 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		return structs.ErrNoDCPath
 	}
 
-	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
+	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1,
+		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)

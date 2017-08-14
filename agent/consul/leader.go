@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -105,7 +106,11 @@ RECONCILE:
 			goto WAIT
 		}
 		establishedLeader = true
-		defer s.revokeLeadership()
+		defer func() {
+			if err := s.revokeLeadership(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			}
+		}()
 	}
 
 	// Reconcile any missing data
@@ -144,19 +149,18 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	// This will create the anonymous token and master token (if that is
+	// configured).
+	if err := s.initializeACL(); err != nil {
+		return err
+	}
+
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
 	s.tombstoneGC.SetEnabled(true)
 	lastIndex := s.raft.LastIndex()
 	s.tombstoneGC.Hint(lastIndex)
-	s.logger.Printf("[DEBUG] consul: reset tombstone GC to index %d", lastIndex)
-
-	// Setup ACLs if we are the leader and need to
-	if err := s.initializeACL(); err != nil {
-		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
-		return err
-	}
 
 	// Setup the session timers. This is done both when starting up or when
 	// a leader fail over happens. Since the timers are maintained by the leader
@@ -168,18 +172,12 @@ func (s *Server) establishLeadership() error {
 	// are available to be initialized. Otherwise initialization may use stale
 	// data.
 	if err := s.initializeSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v",
-			err)
 		return err
 	}
 
-	// Setup autopilot config if we need to
 	s.getOrCreateAutopilotConfig()
-
 	s.startAutopilot()
-
 	s.setConsistentReadReady()
-
 	return nil
 }
 
@@ -192,38 +190,33 @@ func (s *Server) revokeLeadership() error {
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
 	if err := s.clearAllSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
 
 	s.resetConsistentReadReady()
-
 	s.stopAutopilot()
-
 	return nil
 }
 
 // initializeACL is used to setup the ACLs if we are the leader
 // and need to do this.
 func (s *Server) initializeACL() error {
-	// Bail if not configured or we are not authoritative
+	// Bail if not configured or we are not authoritative.
 	authDC := s.config.ACLDatacenter
 	if len(authDC) == 0 || authDC != s.config.Datacenter {
 		return nil
 	}
 
-	// Purge the cache, since it could've changed while we
-	// were not the leader
+	// Purge the cache, since it could've changed while we were not the
+	// leader.
 	s.aclAuthCache.Purge()
 
-	// Look for the anonymous token
+	// Create anonymous token if missing.
 	state := s.fsm.State()
 	_, acl, err := state.ACLGet(nil, anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
-
-	// Create anonymous token if missing
 	if acl == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
@@ -240,33 +233,69 @@ func (s *Server) initializeACL() error {
 		}
 	}
 
-	// Check for configured master token
-	master := s.config.ACLMasterToken
-	if len(master) == 0 {
-		return nil
-	}
-
-	// Look for the master token
-	_, acl, err = state.ACLGet(nil, master)
-	if err != nil {
-		return fmt.Errorf("failed to get master token: %v", err)
-	}
-	if acl == nil {
-		req := structs.ACLRequest{
-			Datacenter: authDC,
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				ID:   master,
-				Name: "Master Token",
-				Type: structs.ACLTypeManagement,
-			},
-		}
-		_, err := s.raftApply(structs.ACLRequestType, &req)
+	// Check for configured master token.
+	if master := s.config.ACLMasterToken; len(master) > 0 {
+		_, acl, err = state.ACLGet(nil, master)
 		if err != nil {
-			return fmt.Errorf("failed to create master token: %v", err)
+			return fmt.Errorf("failed to get master token: %v", err)
 		}
-
+		if acl == nil {
+			req := structs.ACLRequest{
+				Datacenter: authDC,
+				Op:         structs.ACLSet,
+				ACL: structs.ACL{
+					ID:   master,
+					Name: "Master Token",
+					Type: structs.ACLTypeManagement,
+				},
+			}
+			_, err := s.raftApply(structs.ACLRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to create master token: %v", err)
+			}
+			s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
+		}
 	}
+
+	// Check to see if we need to initialize the ACL bootstrap info. This
+	// needs a Consul version check since it introduces a new Raft operation
+	// that'll produce an error on older servers, and it also makes a piece
+	// of state in the state store that will cause problems with older
+	// servers consuming snapshots, so we have to wait to create it.
+	var minVersion = version.Must(version.NewVersion("0.9.1"))
+	if ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+		bs, err := state.ACLGetBootstrap()
+		if err != nil {
+			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
+		}
+		if bs == nil {
+			req := structs.ACLRequest{
+				Datacenter: authDC,
+				Op:         structs.ACLBootstrapInit,
+			}
+			resp, err := s.raftApply(structs.ACLRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to initialize ACL bootstrap: %v", err)
+			}
+			switch v := resp.(type) {
+			case error:
+				return fmt.Errorf("failed to initialize ACL bootstrap: %v", v)
+
+			case bool:
+				if v {
+					s.logger.Printf("[INFO] consul: ACL bootstrap enabled")
+				} else {
+					s.logger.Printf("[INFO] consul: ACL bootstrap disabled, existing management tokens found")
+				}
+
+			default:
+				return fmt.Errorf("unexpected response trying to initialize ACL bootstrap: %T", v)
+			}
+		}
+	} else {
+		s.logger.Printf("[WARN] consul: Can't initialize ACL bootstrap until all servers are >= %s", minVersion.String())
+	}
+
 	return nil
 }
 
@@ -411,7 +440,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 	if valid, dc := isConsulNode(member); valid && dc == s.config.Datacenter {
 		return true
 	}
-	if valid, parts := agent.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
+	if valid, parts := metadata.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
 		return true
 	}
 	return false
@@ -422,7 +451,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 func (s *Server) handleAliveMember(member serf.Member) error {
 	// Register consul service if a server
 	var service *structs.NodeService
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		service = &structs.NodeService{
 			ID:      structs.ConsulServiceID,
 			Service: structs.ConsulServiceName,
@@ -566,7 +595,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Remove from Raft peers if this was a server
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
@@ -593,7 +622,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 }
 
 // joinConsulServer is used to try to join another consul server
-func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
+func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	// Do not join ourself
 	if m.Name == s.config.NodeName {
 		return nil
@@ -603,7 +632,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	if parts.Bootstrap {
 		members := s.serfLAN.Members()
 		for _, member := range members {
-			valid, p := agent.IsConsulServer(member)
+			valid, p := metadata.IsConsulServer(member)
 			if valid && member.Name != m.Name && p.Bootstrap {
 				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
 				return nil
@@ -703,7 +732,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		return err
 	}
 
-	_, parts := agent.IsConsulServer(m)
+	_, parts := metadata.IsConsulServer(m)
 
 	// Pick which remove API to use based on how the server was added.
 	for _, server := range configFuture.Configuration().Servers {

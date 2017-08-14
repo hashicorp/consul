@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"syscall"
@@ -17,13 +18,14 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/configutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
+	discover "github.com/hashicorp/go-discover"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -387,6 +389,82 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		return nil
 	}
 
+	// patch deprecated retry-join-{gce,azure,ec2)-* parameters
+	// into -retry-join and issue warning.
+	// todo(fs): this should really be in DecodeConfig where it can be tested
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinEC2, agent.RetryJoinEC2{}) {
+		m := discover.Config{
+			"provider":          "aws",
+			"region":            cfg.DeprecatedRetryJoinEC2.Region,
+			"tag_key":           cfg.DeprecatedRetryJoinEC2.TagKey,
+			"tag_value":         cfg.DeprecatedRetryJoinEC2.TagValue,
+			"access_key_id":     cfg.DeprecatedRetryJoinEC2.AccessKeyID,
+			"secret_access_key": cfg.DeprecatedRetryJoinEC2.SecretAccessKey,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinEC2 = agent.RetryJoinEC2{}
+
+		// redact m before output
+		if m["access_key_id"] != "" {
+			m["access_key_id"] = "hidden"
+		}
+		if m["secret_access_key"] != "" {
+			m["secret_access_key"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_ec2 is deprecated. "+
+			"Please add %q to retry_join\n", m))
+	}
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinAzure, agent.RetryJoinAzure{}) {
+		m := discover.Config{
+			"provider":          "azure",
+			"tag_name":          cfg.DeprecatedRetryJoinAzure.TagName,
+			"tag_value":         cfg.DeprecatedRetryJoinAzure.TagValue,
+			"subscription_id":   cfg.DeprecatedRetryJoinAzure.SubscriptionID,
+			"tenant_id":         cfg.DeprecatedRetryJoinAzure.TenantID,
+			"client_id":         cfg.DeprecatedRetryJoinAzure.ClientID,
+			"secret_access_key": cfg.DeprecatedRetryJoinAzure.SecretAccessKey,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinAzure = agent.RetryJoinAzure{}
+
+		// redact m before output
+		if m["subscription_id"] != "" {
+			m["subscription_id"] = "hidden"
+		}
+		if m["tenant_id"] != "" {
+			m["tenant_id"] = "hidden"
+		}
+		if m["client_id"] != "" {
+			m["client_id"] = "hidden"
+		}
+		if m["secret_access_key"] != "" {
+			m["secret_access_key"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_azure is deprecated. "+
+			"Please add %q to retry_join\n", m))
+	}
+	if !reflect.DeepEqual(cfg.DeprecatedRetryJoinGCE, agent.RetryJoinGCE{}) {
+		m := discover.Config{
+			"provider":         "gce",
+			"project_name":     cfg.DeprecatedRetryJoinGCE.ProjectName,
+			"zone_pattern":     cfg.DeprecatedRetryJoinGCE.ZonePattern,
+			"tag_value":        cfg.DeprecatedRetryJoinGCE.TagValue,
+			"credentials_file": cfg.DeprecatedRetryJoinGCE.CredentialsFile,
+		}
+		cfg.RetryJoin = append(cfg.RetryJoin, m.String())
+		cfg.DeprecatedRetryJoinGCE = agent.RetryJoinGCE{}
+
+		// redact m before output
+		if m["credentials_file"] != "" {
+			m["credentials_file"] = "hidden"
+		}
+
+		cmd.UI.Warn(fmt.Sprintf("==> DEPRECATION: retry_join_gce is deprecated. "+
+			"Please add %q to retry_join\n", m))
+	}
+
 	// Compile all the watches
 	for _, params := range cfg.Watches {
 		// Parse the watches, excluding the handler
@@ -601,7 +679,7 @@ func circonusSink(config *agent.Config, hostname string) (metrics.MetricSink, er
 	return sink, nil
 }
 
-func startupTelemetry(config *agent.Config) error {
+func startupTelemetry(config *agent.Config) (*metrics.InmemSink, error) {
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -609,6 +687,7 @@ func startupTelemetry(config *agent.Config) error {
 	metrics.DefaultInmemSignal(memSink)
 	metricsConf := metrics.DefaultConfig(config.Telemetry.StatsitePrefix)
 	metricsConf.EnableHostname = !config.Telemetry.DisableHostname
+	metricsConf.FilterDefault = *config.Telemetry.FilterDefault
 
 	var sinks metrics.FanoutSink
 	addSink := func(name string, fn func(*agent.Config, string) (metrics.MetricSink, error)) error {
@@ -623,16 +702,16 @@ func startupTelemetry(config *agent.Config) error {
 	}
 
 	if err := addSink("statsite", statsiteSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("statsd", statsdSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("dogstatd", dogstatdSink); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addSink("circonus", circonusSink); err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(sinks) > 0 {
@@ -642,7 +721,7 @@ func startupTelemetry(config *agent.Config) error {
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, memSink)
 	}
-	return nil
+	return memSink, nil
 }
 
 func (cmd *AgentCommand) Run(args []string) int {
@@ -682,7 +761,8 @@ func (cmd *AgentCommand) run(args []string) int {
 	cmd.logOutput = logOutput
 	cmd.logger = log.New(logOutput, "", log.LstdFlags)
 
-	if err := startupTelemetry(config); err != nil {
+	memSink, err := startupTelemetry(config)
+	if err != nil {
 		cmd.UI.Error(err.Error())
 		return 1
 	}
@@ -696,6 +776,7 @@ func (cmd *AgentCommand) run(args []string) int {
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = logWriter
+	agent.MemSink = memSink
 
 	if err := agent.Start(); err != nil {
 		cmd.UI.Error(fmt.Sprintf("Error starting agent: %s", err))

@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"os/user"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -43,23 +41,6 @@ func aeScale(interval time.Duration, n int) time.Duration {
 
 	multiplier := math.Ceil(math.Log2(float64(n))-math.Log2(aeScaleThreshold)) + 1.0
 	return time.Duration(multiplier) * interval
-}
-
-// ExecScript returns a command to execute a script
-func ExecScript(script string) (*exec.Cmd, error) {
-	var shell, flag string
-	if runtime.GOOS == "windows" {
-		shell = "cmd"
-		flag = "/C"
-	} else {
-		shell = "/bin/sh"
-		flag = "-c"
-	}
-	if other := os.Getenv("SHELL"); other != "" {
-		shell = other
-	}
-	cmd := exec.Command(shell, flag, script)
-	return cmd, nil
 }
 
 // decodeMsgPack is used to decode a MsgPack encoded object

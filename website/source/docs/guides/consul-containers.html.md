@@ -24,7 +24,7 @@ The container exposes its data directory, `/consul/data`, as a [volume](https://
 
 For clients, this stores some information about the cluster and the client's services and health checks in case the container is restarted. If the volume on a client disappears, it doesn't affect cluster operations.
 
-For servers, this stores the client information plus snapshots and data related to the consensus algorithm and other state like Consul's key/value store and catalog. **Servers need the volume's data to be available when restarting containers to recover from outage scenarios.** Therefore, care must be taken by operators to make sure that volumes containing consul cluster data are not destroyed during container restarts,
+For servers, this stores the client information plus snapshots and data related to the consensus algorithm and other state like Consul's key/value store and catalog. **Servers need the volume's data to be available when restarting containers to recover from outage scenarios.** Therefore, care must be taken by operators to make sure that volumes containing consul cluster data are not destroyed during container restarts.
 
 ~> We also recommend taking additional backups via [`consul snapshot`](/docs/commands/snapshot.html), and storing them externally.
 

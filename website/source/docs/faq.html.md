@@ -115,3 +115,14 @@ HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
 [Server Performance](/docs/guides/performance.html) for more details.
+
+## Q: What data is replicated between Consul datacenters?
+
+In general, data is not replicated between different Consul datacenters. When a
+request is made for a resource in another datacenter, the local Consul servers forward
+an RPC request to the remote Consul servers for that resource and return the results.
+If the remote datacenter is not available, then those resources will also not be
+available, but that won't otherwise affect the local datacenter. There are some special
+situations where a limited subset of data can be replicated, such as with Consul's built-in
+[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).

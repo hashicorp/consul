@@ -11,7 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -146,7 +147,7 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger)
+	srv, err := NewServerLogger(c, logger, new(token.Store))
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +667,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 
 	// Have s2 make an RPC call to s1
 	s2.localLock.RLock()
-	var leader *agent.Server
+	var leader *metadata.Server
 	for _, server := range s2.localConsuls {
 		if server.Name == s1.config.NodeName {
 			leader = server

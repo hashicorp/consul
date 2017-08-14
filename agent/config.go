@@ -10,19 +10,17 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	discover "github.com/hashicorp/go-discover"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
 )
@@ -218,6 +216,16 @@ type Telemetry struct {
 
 	// DisableHostname will disable hostname prefixing for all metrics
 	DisableHostname bool `mapstructure:"disable_hostname"`
+
+	// PrefixFilter is a list of filter rules to apply for allowing/blocking metrics
+	// by prefix.
+	PrefixFilter    []string `mapstructure:"prefix_filter"`
+	AllowedPrefixes []string `mapstructure:"-" json:"-"`
+	BlockedPrefixes []string `mapstructure:"-" json:"-"`
+
+	// FilterDefault is the default for whether to allow a metric that's not
+	// covered by the filter.
+	FilterDefault *bool `mapstructure:"filter_default"`
 
 	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
 	// metrics will be sent to that instance
@@ -699,6 +707,12 @@ type Config struct {
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 
+	// EnableACLReplication is used to turn on ACL replication when using
+	// /v1/agent/token/acl_replication_token to introduce the token, instead
+	// of setting acl_replication_token in the config. Setting the token via
+	// config will also set this to true for backward compatibility.
+	EnableACLReplication bool `mapstructure:"enable_acl_replication"`
+
 	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
 	// order to replicate them locally. Setting this to a non-empty value
 	// also enables replication. Replication is only available in datacenters
@@ -935,6 +949,7 @@ func DefaultConfig() *Config {
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
+			FilterDefault:  Bool(true),
 		},
 		Meta:                       make(map[string]string),
 		SyslogFacility:             "LOCAL0",
@@ -1185,65 +1200,6 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			"is no longer used. Please remove it from your configuration.")
 	}
 
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinEC2, RetryJoinEC2{}) {
-		m := discover.Config{
-			"provider":          "aws",
-			"region":            result.DeprecatedRetryJoinEC2.Region,
-			"tag_key":           result.DeprecatedRetryJoinEC2.TagKey,
-			"tag_value":         result.DeprecatedRetryJoinEC2.TagValue,
-			"access_key_id":     result.DeprecatedRetryJoinEC2.AccessKeyID,
-			"secret_access_key": result.DeprecatedRetryJoinEC2.SecretAccessKey,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinEC2 = RetryJoinEC2{}
-
-		// redact m before output
-		m["access_key_id"] = "<hidden>"
-		m["secret_access_key"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_ec2 is deprecated."+
-			"Please add %q to retry_join\n", m)
-	}
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinAzure, RetryJoinAzure{}) {
-		m := discover.Config{
-			"provider":          "azure",
-			"tag_name":          result.DeprecatedRetryJoinAzure.TagName,
-			"tag_value":         result.DeprecatedRetryJoinAzure.TagValue,
-			"subscription_id":   result.DeprecatedRetryJoinAzure.SubscriptionID,
-			"tenant_id":         result.DeprecatedRetryJoinAzure.TenantID,
-			"client_id":         result.DeprecatedRetryJoinAzure.ClientID,
-			"secret_access_key": result.DeprecatedRetryJoinAzure.SecretAccessKey,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinAzure = RetryJoinAzure{}
-
-		// redact m before output
-		m["subscription_id"] = "<hidden>"
-		m["tenant_id"] = "<hidden>"
-		m["client_id"] = "<hidden>"
-		m["secret_access_key"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_azure is deprecated."+
-			"Please add %q to retry_join\n", m)
-	}
-	if !reflect.DeepEqual(result.DeprecatedRetryJoinGCE, RetryJoinGCE{}) {
-		m := discover.Config{
-			"provider":         "gce",
-			"project_name":     result.DeprecatedRetryJoinGCE.ProjectName,
-			"zone_pattern":     result.DeprecatedRetryJoinGCE.ZonePattern,
-			"tag_value":        result.DeprecatedRetryJoinGCE.TagValue,
-			"credentials_file": result.DeprecatedRetryJoinGCE.CredentialsFile,
-		}
-		result.RetryJoin = append(result.RetryJoin, m.String())
-		result.DeprecatedRetryJoinGCE = RetryJoinGCE{}
-
-		// redact m before output
-		m["credentials_file"] = "<hidden>"
-
-		fmt.Fprintf(os.Stderr, "==> DEPRECATION: retry_join_gce is deprecated."+
-			"Please add %q to retry_join\n", m)
-	}
-
 	// Check unused fields and verify that no bad configuration options were
 	// passed to Consul. There are a few additional fields which don't directly
 	// use mapstructure decoding, so we need to account for those as well. These
@@ -1452,6 +1408,28 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		}
 		result.DeprecatedHTTPAPIResponseHeaders = nil
 	}
+
+	// Set the ACL replication enable if they set a token, for backwards
+	// compatibility.
+	if result.ACLReplicationToken != "" {
+		result.EnableACLReplication = true
+	}
+
+	// Parse the metric filters
+	for _, rule := range result.Telemetry.PrefixFilter {
+		if rule == "" {
+			return nil, fmt.Errorf("Cannot have empty filter rule in prefix_filter")
+		}
+		switch rule[0] {
+		case '+':
+			result.Telemetry.AllowedPrefixes = append(result.Telemetry.AllowedPrefixes, rule[1:])
+		case '-':
+			result.Telemetry.BlockedPrefixes = append(result.Telemetry.BlockedPrefixes, rule[1:])
+		default:
+			return nil, fmt.Errorf("Filter rule must begin with either '+' or '-': %q", rule)
+		}
+	}
+
 	return &result, nil
 }
 
@@ -1749,6 +1727,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
 	}
+	if len(b.Telemetry.PrefixFilter) != 0 {
+		result.Telemetry.PrefixFilter = append(result.Telemetry.PrefixFilter, b.Telemetry.PrefixFilter...)
+	}
+	if b.Telemetry.FilterDefault != nil {
+		result.Telemetry.FilterDefault = b.Telemetry.FilterDefault
+	}
 	if b.Telemetry.StatsdAddr != "" {
 		result.Telemetry.StatsdAddr = b.Telemetry.StatsdAddr
 	}
@@ -2029,6 +2013,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLDefaultPolicy != "" {
 		result.ACLDefaultPolicy = b.ACLDefaultPolicy
+	}
+	if b.EnableACLReplication {
+		result.EnableACLReplication = true
 	}
 	if b.ACLReplicationToken != "" {
 		result.ACLReplicationToken = b.ACLReplicationToken

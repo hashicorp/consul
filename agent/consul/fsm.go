@@ -9,11 +9,18 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 )
+
+// TODO (slackpad) - There are two refactors we should do here:
+//
+// 1. Register the different types from the state store and make the FSM more
+//    generic, especially around snapshot/restore. Those should really just
+//    pass the encoder into a WriteSnapshot() kind of method.
+// 2. Check all the error return values from all the Write() calls.
 
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
 var msgpackHandle = &codec.MsgpackHandle{}
@@ -165,7 +172,8 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "kvs", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "kvs"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case api.KVSet:
 		return c.state.KVSSet(index, &req.DirEnt)
@@ -209,7 +217,8 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "session", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "session"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.SessionCreate:
 		if err := c.state.SessionCreate(index, &req.Session); err != nil {
@@ -229,8 +238,20 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "acl"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
+	case structs.ACLBootstrapInit:
+		enabled, err := c.state.ACLBootstrapInit(index)
+		if err != nil {
+			return err
+		}
+		return enabled
+	case structs.ACLBootstrapNow:
+		if err := c.state.ACLBootstrap(index, &req.ACL); err != nil {
+			return err
+		}
+		return &req.ACL
 	case structs.ACLForceSet, structs.ACLSet:
 		if err := c.state.ACLSet(index, &req.ACL); err != nil {
 			return err
@@ -249,7 +270,8 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "tombstone", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "tombstone"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.TombstoneReap:
 		return c.state.ReapTombstones(req.ReapIndex)
@@ -283,7 +305,8 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	defer metrics.MeasureSince([]string{"consul", "fsm", "prepared-query", string(req.Op)}, time.Now())
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "prepared-query"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
 		return c.state.PreparedQuerySet(index, req.Query)
@@ -420,6 +443,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 			if err := restore.ACL(&req); err != nil {
+				return err
+			}
+
+		case structs.ACLBootstrapRequestType:
+			var req structs.ACLBootstrap
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.ACLBootstrap(&req); err != nil {
 				return err
 			}
 
@@ -623,6 +655,18 @@ func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 			return err
 		}
 	}
+
+	bs, err := s.state.ACLBootstrap()
+	if err != nil {
+		return err
+	}
+	if bs != nil {
+		sink.Write([]byte{byte(structs.ACLBootstrapRequestType)})
+		if err := encoder.Encode(bs); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

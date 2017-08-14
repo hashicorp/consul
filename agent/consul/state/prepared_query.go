@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/consul/agent/consul/prepared_query"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
 

@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TranslateAddress is used to provide the final, translated address for a node,

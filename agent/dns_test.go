@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -179,6 +179,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
+
 }
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
@@ -630,12 +631,15 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+
 	}
 }
 
 func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.NodeName = "my.test-node"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Register a node with a service.
@@ -679,7 +683,6 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
-
 	wantExtra := []dns.RR{
 		&dns.CNAME{
 			Hdr:    dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x5, Class: 0x1, Rdlength: 0x2},
@@ -769,6 +772,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 	t.Parallel()
 	cfg := TestConfig()
 	cfg.Domain = "CONSUL."
+	cfg.NodeName = "test node"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -873,12 +877,119 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		if aRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
+
 	}
+}
+
+func TestDNS_NSRecords(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.Domain = "CONSUL."
+	cfg.NodeName = "server1"
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		TaggedAddresses: map[string]string{
+			"wan": "127.0.0.2",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("something.node.consul.", dns.TypeNS)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAnswer := []dns.RR{
+		&dns.NS{
+			Hdr: dns.RR_Header{Name: "consul.", Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x13},
+			Ns:  "server1.node.dc1.consul.",
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+	wantExtra := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "server1.node.dc1.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4, Ttl: 0},
+			A:   net.ParseIP("127.0.0.1").To4(),
+		},
+	}
+
+	verify.Values(t, "extra", in.Extra, wantExtra)
+
+}
+
+func TestDNS_NSRecords_IPV6(t *testing.T) {
+	t.Parallel()
+	cfg := TestConfig()
+	cfg.Domain = "CONSUL."
+	cfg.NodeName = "server1"
+	cfg.AdvertiseAddr = "::1"
+	cfg.AdvertiseAddrWan = "::1"
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		TaggedAddresses: map[string]string{
+			"wan": "127.0.0.2",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("server1.node.dc1.consul.", dns.TypeNS)
+
+	c := new(dns.Client)
+	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAnswer := []dns.RR{
+		&dns.NS{
+			Hdr: dns.RR_Header{Name: "consul.", Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x2},
+			Ns:  "server1.node.dc1.consul.",
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+	wantExtra := []dns.RR{
+		&dns.AAAA{
+			Hdr:  dns.RR_Header{Name: "server1.node.dc1.consul.", Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Rdlength: 0x10, Ttl: 0},
+			AAAA: net.ParseIP("::1"),
+		},
+	}
+
+	verify.Values(t, "extra", in.Extra, wantExtra)
+
 }
 
 func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	cfg := TestConfig()
+	cfg.NodeName = "test-node"
+	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
 	// Register the initial node with a service
@@ -2694,6 +2805,7 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 	expectedService, expectedQuery, expectedQueryID int) (bool, error) {
 	cfg := TestConfig()
 	cfg.DNSConfig.UDPAnswerLimit = answerLimit
+	cfg.NodeName = "test-node"
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
 
@@ -3862,7 +3974,6 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		if len(in.Ns) != 1 {
 			t.Fatalf("Bad: %#v", in)
 		}
-
 		soaRec, ok := in.Ns[0].(*dns.SOA)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Ns[0])
@@ -3874,6 +3985,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		if in.Rcode != dns.RcodeSuccess {
 			t.Fatalf("Bad: %#v", in)
 		}
+
 	}
 
 	// Check for ipv4 records on ipv6-only service directly and via the
@@ -3955,6 +4067,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+
 	}
 }
 
@@ -3993,6 +4106,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+
 	}
 }
 
@@ -4686,5 +4800,28 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	// sure the message is smaller to see if it's respecting the flag.
 	if compressed == 0 || unc == 0 || compressed >= unc {
 		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
+	}
+}
+
+func TestDNSInvalidRegex(t *testing.T) {
+	tests := []struct {
+		desc    string
+		in      string
+		invalid bool
+	}{
+		{"Valid Hostname", "testnode", false},
+		{"Valid Hostname", "test-node", false},
+		{"Invalid Hostname with special chars", "test#$$!node", true},
+		{"Invalid Hostname with special chars in the end", "testnode%^", true},
+		{"Whitespace", "  ", true},
+		{"Only special chars", "./$", true},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			if got, want := InvalidDnsRe.MatchString(test.in), test.invalid; got != want {
+				t.Fatalf("Expected %v to return %v", test.in, want)
+			}
+		})
+
 	}
 }

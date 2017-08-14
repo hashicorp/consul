@@ -3,7 +3,7 @@ package consul
 import (
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/servers"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -24,7 +24,7 @@ func (s *Server) FloodNotify() {
 // Flood is a long-running goroutine that floods servers from the LAN to the
 // given global Serf instance, such as the WAN. This will exit once either of
 // the Serf instances are shut down.
-func (s *Server) Flood(portFn servers.FloodPortFn, global *serf.Serf) {
+func (s *Server) Flood(portFn router.FloodPortFn, global *serf.Serf) {
 	s.floodLock.Lock()
 	floodCh := make(chan struct{})
 	s.floodCh = append(s.floodCh, floodCh)
@@ -61,6 +61,6 @@ func (s *Server) Flood(portFn servers.FloodPortFn, global *serf.Serf) {
 		}
 
 	FLOOD:
-		servers.FloodJoins(s.logger, portFn, s.config.Datacenter, s.serfLAN, global)
+		router.FloodJoins(s.logger, portFn, s.config.Datacenter, s.serfLAN, global)
 	}
 }

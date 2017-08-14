@@ -13,14 +13,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -51,9 +51,6 @@ const (
 		"service, but no reason was provided. This is a default message."
 )
 
-// dnsNameRe checks if a name or tag is dns-compatible.
-var dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
-
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
 type delegate interface {
@@ -65,6 +62,7 @@ type delegate interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
 	RPC(method string, args interface{}, reply interface{}) error
+	ServerAddrs() map[string]string
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -93,6 +91,9 @@ type Agent struct {
 
 	// Used for streaming logs to
 	LogWriter *logger.LogWriter
+
+	// In-memory sink used for collecting metrics
+	MemSink *metrics.InmemSink
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -231,6 +232,7 @@ func New(c *Config) (*Agent, error) {
 	a.tokens.UpdateUserToken(a.config.ACLToken)
 	a.tokens.UpdateAgentToken(a.config.ACLAgentToken)
 	a.tokens.UpdateAgentMasterToken(a.config.ACLAgentMasterToken)
+	a.tokens.UpdateACLReplicationToken(a.config.ACLReplicationToken)
 
 	return a, nil
 }
@@ -266,7 +268,7 @@ func (a *Agent) Start() error {
 
 	// Setup either the client or the server.
 	if c.Server {
-		server, err := consul.NewServerLogger(consulCfg, a.logger)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -660,12 +662,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
 	}
-	if a.config.ACLToken != "" {
-		base.ACLToken = a.config.ACLToken
-	}
-	if a.config.ACLAgentToken != "" {
-		base.ACLAgentToken = a.config.ACLAgentToken
-	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
 	}
@@ -681,9 +677,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
-	if a.config.ACLReplicationToken != "" {
-		base.ACLReplicationToken = a.config.ACLReplicationToken
-	}
+	base.EnableACLReplication = a.config.EnableACLReplication
 	if a.config.ACLEnforceVersion8 != nil {
 		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
 	}
@@ -965,7 +959,7 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
-	a.endpointsLock.Lock()
+	a.endpointsLock.RLock()
 	// fast path: only translate if there are overrides
 	if len(a.endpoints) > 0 {
 		p := strings.SplitN(method, ".", 2)
@@ -973,7 +967,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 			method = e + "." + p[1]
 		}
 	}
-	a.endpointsLock.Unlock()
+	a.endpointsLock.RUnlock()
 	return a.delegate.RPC(method, args, reply)
 }
 
@@ -1379,7 +1373,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if !dnsNameRe.MatchString(service.Service) {
+	if InvalidDnsRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
@@ -1387,7 +1381,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if !dnsNameRe.MatchString(tag) {
+		if InvalidDnsRe.MatchString(tag) {
 			a.logger.Printf("[DEBUG] Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
@@ -2253,6 +2247,9 @@ func (a *Agent) ReloadConfig(newCfg *Config) error {
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
+
+	// Update filtered metrics
+	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes, newCfg.Telemetry.BlockedPrefixes)
 
 	return nil
 }

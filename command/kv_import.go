@@ -41,7 +41,7 @@ Usage: consul kv import [DATA]
 
   Or it can be read from stdin using the "-" symbol:
 
-      $ cat filename.json | consul kv import config/program/license -
+      $ cat filename.json | consul kv import -
 
   Alternatively the data may be provided as the final parameter to the command,
   though care must be taken with regards to shell escaping.
@@ -116,7 +116,7 @@ func (c *KVImportCommand) dataFromArgs(args []string) (string, error) {
 		return "", errors.New("Missing DATA argument")
 	case 1:
 	default:
-		return "", fmt.Errorf("Too many arguments (expected 1 or 2, got %d)", len(args))
+		return "", fmt.Errorf("Too many arguments (expected 1, got %d)", len(args))
 	}
 
 	data := args[0]

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/logger"
@@ -52,6 +52,21 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		Stats:  s.agent.Stats(),
 		Meta:   s.agent.state.Metadata(),
 	}, nil
+}
+
+func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	acl, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
+		return nil, errPermissionDenied
+	}
+
+	return s.agent.MemSink.DisplayMetrics(resp, req)
 }
 
 func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -737,12 +752,15 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	case "acl_agent_master_token":
 		s.agent.tokens.UpdateAgentMasterToken(args.Token)
 
+	case "acl_replication_token":
+		s.agent.tokens.UpdateACLReplicationToken(args.Token)
+
 	default:
 		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Token %q is unknown", target)
 		return nil, nil
 	}
 
-	s.agent.logger.Printf("[INFO] Updated agent's %q", target)
+	s.agent.logger.Printf("[INFO] Updated agent's ACL token %q", target)
 	return nil, nil
 }

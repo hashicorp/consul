@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
@@ -206,7 +206,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	}
 	var out bool
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
-		t.Fatalf("Unexpected err: %v", err)
+		t.Fatalf("err: %v", err)
 	}
 
 	getR := structs.KeyRequest{
@@ -214,10 +214,16 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		Key:        "zip",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err.Error() != errPermissionDenied.Error() {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
 }
 
 func TestKVSEndpoint_List(t *testing.T) {

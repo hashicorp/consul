@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/memberlist"
@@ -194,16 +194,6 @@ type Config struct {
 	// operators track which versions are actively deployed
 	Build string
 
-	// ACLToken is the default token to use when making a request.
-	// If not provided, the anonymous token is used. This enables
-	// backwards compatibility as well.
-	ACLToken string
-
-	// ACLAgentToken is the default token used to make requests for the agent
-	// itself, such as for registering itself with the catalog. If not
-	// configured, the ACLToken will be used.
-	ACLAgentToken string
-
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
@@ -231,11 +221,8 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
-	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
-	// order to replicate them locally. Setting this to a non-empty value
-	// also enables replication. Replication is only available in datacenters
-	// other than the ACLDatacenter.
-	ACLReplicationToken string
+	// EnableACLReplication is used to control ACL replication.
+	EnableACLReplication bool
 
 	// ACLReplicationInterval is the interval at which replication passes
 	// will occur. Queries to the ACLDatacenter may block, so replication

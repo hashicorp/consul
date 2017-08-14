@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -60,6 +60,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 		// Register the wrapper, which will close over the expensive-to-compute
 		// parts from above.
+		// TODO (kyhavlov): Convert this to utilize metric labels in a major release
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
@@ -73,6 +74,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 	// API V1.
 	if s.agent.config.ACLDatacenter != "" {
+		handleFuncMetrics("/v1/acl/bootstrap", s.wrap(s.ACLBootstrap))
 		handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
 		handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
 		handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
@@ -82,6 +84,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 		handleFuncMetrics("/v1/agent/token/", s.wrap(s.AgentToken))
 	} else {
+		handleFuncMetrics("/v1/acl/bootstrap", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
 		handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
@@ -95,6 +98,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
 	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
 	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
+	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.AgentMetrics))
 	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
 	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
 	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))

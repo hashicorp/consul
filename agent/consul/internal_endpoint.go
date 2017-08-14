@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
 )
