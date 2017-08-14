@@ -72,5 +72,5 @@ func (p *apiProxy) Run() {
 
 func (p *apiProxy) Stop() {
 	p.handler.Stop()
-	p.Close()
+	p.listener.Close()
 }
