@@ -76,7 +76,9 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 
 		if len(zones) != 0 {
 			k8s.Zones = zones
-			middleware.Zones(k8s.Zones).Normalize()
+			for i := 0; i < len(k8s.Zones); i++ {
+				k8s.Zones[i] = middleware.Host(k8s.Zones[i]).Normalize()
+			}
 		} else {
 			k8s.Zones = make([]string, len(c.ServerBlockKeys))
 			for i := 0; i < len(c.ServerBlockKeys); i++ {
