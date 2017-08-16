@@ -3,7 +3,6 @@ package test
 import (
 	"io/ioutil"
 	"log"
-	"sort"
 	"testing"
 
 	"github.com/coredns/coredns/middleware/proxy"
@@ -66,22 +65,6 @@ func TestLookupDS(t *testing.T) {
 			t.Fatalf("Expected to receive reply, but didn't for %s %d", tc.Qname, tc.Qtype)
 		}
 
-		sort.Sort(mtest.RRSet(resp.Answer))
-		sort.Sort(mtest.RRSet(resp.Ns))
-		sort.Sort(mtest.RRSet(resp.Extra))
-
-		if !mtest.Header(t, tc, resp) {
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if !mtest.Section(t, tc, mtest.Answer, resp.Answer) {
-			t.Logf("%v\n", resp)
-		}
-		if !mtest.Section(t, tc, mtest.Ns, resp.Ns) {
-			t.Logf("%v\n", resp)
-		}
-		if !mtest.Section(t, tc, mtest.Extra, resp.Extra) {
-			t.Logf("%v\n", resp)
-		}
+		mtest.SortAndCheck(t, resp, tc)
 	}
 }

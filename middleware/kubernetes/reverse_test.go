@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
@@ -118,23 +117,6 @@ func TestReverse(t *testing.T) {
 		if resp == nil {
 			t.Fatalf("Test %d: got nil message and no error for: %s %d", i, r.Question[0].Name, r.Question[0].Qtype)
 		}
-
-		sort.Sort(test.RRSet(resp.Answer))
-		sort.Sort(test.RRSet(resp.Ns))
-		sort.Sort(test.RRSet(resp.Extra))
-
-		if !test.Header(t, tc, resp) {
-			t.Logf("Test %d, received: %v", i, resp)
-			continue
-		}
-		if !test.Section(t, tc, test.Answer, resp.Answer) {
-			t.Logf("Test %d, received: %v", i, resp)
-		}
-		if !test.Section(t, tc, test.Ns, resp.Ns) {
-			t.Logf("Test %d, received: %v", i, resp)
-		}
-		if !test.Section(t, tc, test.Extra, resp.Extra) {
-			t.Logf("Test %d, received: %v", i, resp)
-		}
+		test.SortAndCheck(t, resp, tc)
 	}
 }

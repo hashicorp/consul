@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/coredns/coredns/middleware/pkg/dnsrecorder"
@@ -201,24 +200,7 @@ func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string
 
 			}
 		}
-
-		sort.Sort(test.RRSet(resp.Answer))
-		sort.Sort(test.RRSet(resp.Ns))
-		sort.Sort(test.RRSet(resp.Extra))
-
-		if !test.Header(t, tc, resp) {
-			t.Logf("%v Received:\n %v\n", testname, resp)
-			continue
-		}
-		if !test.Section(t, tc, test.Answer, resp.Answer) {
-			t.Logf("%v Received:\n %v\n", testname, resp)
-		}
-		if !test.Section(t, tc, test.Ns, resp.Ns) {
-			t.Logf("%v Received:\n %v\n", testname, resp)
-		}
-		if !test.Section(t, tc, test.Extra, resp.Extra) {
-			t.Logf("%v Received:\n %v\n", testname, resp)
-		}
+		test.SortAndCheck(t, resp, tc)
 	}
 }
 

@@ -56,6 +56,8 @@ func TestAutoPath(t *testing.T) {
 			continue
 		}
 
+		// No sorting here as we want to check if the CNAME sits *before* the
+		// test of the answer.
 		resp := rec.Msg
 
 		if !test.Header(t, tc, resp) {

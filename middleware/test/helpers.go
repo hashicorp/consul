@@ -1,6 +1,7 @@
 package test
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -261,6 +262,33 @@ func Section(t *testing.T, tc Case, sec sect, rr []dns.RR) bool {
 		}
 	}
 	return true
+}
+
+// SortAndCheck sorts resp and the checks the header and three sections against the testcase in tc.
+func SortAndCheck(t *testing.T, resp *dns.Msg, tc Case) {
+	sort.Sort(RRSet(resp.Answer))
+	sort.Sort(RRSet(resp.Ns))
+	sort.Sort(RRSet(resp.Extra))
+
+	if !Header(t, tc, resp) {
+		t.Logf("%v\n", resp)
+		return
+	}
+
+	if !Section(t, tc, Answer, resp.Answer) {
+		t.Logf("%v\n", resp)
+		return
+	}
+	if !Section(t, tc, Ns, resp.Ns) {
+		t.Logf("%v\n", resp)
+		return
+
+	}
+	if !Section(t, tc, Extra, resp.Extra) {
+		t.Logf("%v\n", resp)
+		return
+	}
+	return
 }
 
 // ErrorHandler returns a Handler that returns ServerFailure error when called.
