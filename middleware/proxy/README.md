@@ -108,19 +108,19 @@ specified in the config, `proto` is the protocol used by the incoming query ("tc
 Proxy all requests within example.org. to a backend system:
 
 ~~~
-proxy example.org localhost:9005
+proxy example.org 127.0.0.1:9005
 ~~~
 
 Load-balance all requests between three backends (using random policy):
 
 ~~~
-proxy . dns1.local:53 dns2.local:1053 dns3.local
+proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12
 ~~~
 
 Same as above, but round-robin style:
 
 ~~~
-proxy . dns1.local:53 dns2.local:1053 dns3.local {
+proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12 {
 	policy round_robin
 }
 ~~~
@@ -128,7 +128,7 @@ proxy . dns1.local:53 dns2.local:1053 dns3.local {
 With health checks and proxy headers to pass hostname, IP, and scheme upstream:
 
 ~~~
-proxy . dns1.local:53 dns2.local:53 dns3.local:53 {
+proxy . 10.0.0.11:53 10.0.0.11:53 10.0.0.12:53 {
 	policy round_robin
 	health_check /health:8080
 }
@@ -137,7 +137,7 @@ proxy . dns1.local:53 dns2.local:53 dns3.local:53 {
 Proxy everything except requests to miek.nl or example.org
 
 ~~~
-proxy . backend:1234 {
+proxy . 10.0.0.10:1234 {
 	except miek.nl example.org
 }
 ~~~
