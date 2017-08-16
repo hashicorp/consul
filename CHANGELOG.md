@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* serf: Updated memberlist library for deadlock fix. [GH-3396]
+
 ## 0.9.2 (August 9, 2017)
 
 BUG FIXES:
