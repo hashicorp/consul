@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"net"
 	"sort"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 )
 
-var dnsTestCases = map[string](*test.Case){
+var dnsTestCases = map[string](test.Case){
 	"A Service": {
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
@@ -84,7 +83,7 @@ var dnsTestCases = map[string](*test.Case){
 	},
 }
 
-var podModeDisabledCases = map[string](*test.Case){
+var podModeDisabledCases = map[string](test.Case){
 
 	"A Record Pod mode = Case 1": {
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
@@ -107,7 +106,7 @@ var podModeDisabledCases = map[string](*test.Case){
 	},
 }
 
-var podModeInsecureCases = map[string](*test.Case){
+var podModeInsecureCases = map[string](test.Case){
 
 	"A Record Pod mode = Case 1": {
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
@@ -126,7 +125,7 @@ var podModeInsecureCases = map[string](*test.Case){
 	},
 }
 
-var podModeVerifiedCases = map[string](*test.Case){
+var podModeVerifiedCases = map[string](test.Case){
 
 	"A Record Pod mode = Case 1": {
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
@@ -149,9 +148,7 @@ var podModeVerifiedCases = map[string](*test.Case){
 func TestServeDNS(t *testing.T) {
 
 	k := Kubernetes{Zones: []string{"cluster.local."}}
-	_, cidr, _ := net.ParseCIDR("10.0.0.0/8")
 
-	k.ReverseCidrs = []net.IPNet{*cidr}
 	k.APIConn = &APIConnServeTest{}
 	k.interfaceAddrsFunc = localPodIP
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
@@ -170,7 +167,7 @@ func TestServeDNS(t *testing.T) {
 	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
 }
 
-func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](*test.Case), k Kubernetes) {
+func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](test.Case), k Kubernetes) {
 	for testname, tc := range dnsTestCases {
 		r := tc.Msg()
 
@@ -208,21 +205,18 @@ func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))
-		sort.Sort(test.RRSet(tc.Answer))
-		sort.Sort(test.RRSet(tc.Ns))
-		sort.Sort(test.RRSet(tc.Extra))
 
-		if !test.Header(t, *tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v Received:\n %v\n", testname, resp)
 			continue
 		}
-		if !test.Section(t, *tc, test.Answer, resp.Answer) {
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
 			t.Logf("%v Received:\n %v\n", testname, resp)
 		}
-		if !test.Section(t, *tc, test.Ns, resp.Ns) {
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
 			t.Logf("%v Received:\n %v\n", testname, resp)
 		}
-		if !test.Section(t, *tc, test.Extra, resp.Extra) {
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v Received:\n %v\n", testname, resp)
 		}
 	}

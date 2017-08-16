@@ -44,7 +44,6 @@ type Kubernetes struct {
 	LabelSelector *unversionedapi.LabelSelector
 	Selector      *labels.Selector
 	PodMode       string
-	ReverseCidrs  []net.IPNet
 	Fallthrough   bool
 
 	primaryZoneIndex   int
@@ -297,7 +296,6 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 // just this name. This is used when find matches when completing SRV lookups
 // for instance.
 func (k *Kubernetes) Entries(r recordRequest) ([]msg.Service, error) {
-
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
 	if (!wildcard(r.namespace)) && (len(k.Namespaces) > 0) && (!dnsstrings.StringInSlice(r.namespace, k.Namespaces)) {

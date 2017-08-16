@@ -21,8 +21,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
-	// Check that query matches one of the zones served by this middleware,
-	// otherwise delegate to the next in the pipeline.
+
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
 		if k.Fallthrough {
