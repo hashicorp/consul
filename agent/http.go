@@ -18,6 +18,16 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
+type MethodNotAllowedError struct {
+	Method string
+	Allow  []string
+}
+
+func (e MethodNotAllowedError) Error() string {
+	return fmt.Sprintf("method %s not allowed", e.Method)
+}
+
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
@@ -234,6 +244,11 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
+		isMethodNotAllowed := func(err error) bool {
+			_, ok := err.(MethodNotAllowedError)
+			return ok
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
@@ -242,6 +257,13 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				fmt.Fprint(resp, err.Error())
 			case structs.IsErrRPCRateExceeded(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
+			case isMethodNotAllowed(err):
+				// RFC2616 states that for 405 Method Not Allowed the response
+				// MUST include an Allow header containing the list of valid
+				// methods for the requested resource.
+				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+				resp.Header()["Allow"] = err.(MethodNotAllowedError).Allow
+				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)

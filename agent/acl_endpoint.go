@@ -25,8 +25,7 @@ func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, erro
 // a cluster to get the first management token.
 func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.DCSpecificRequest{
@@ -49,10 +48,8 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 }
 
 func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLRequest{
@@ -77,18 +74,22 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 }
 
 func (s *HTTPServer) ACLCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
 	return s.aclSet(resp, req, false)
 }
 
 func (s *HTTPServer) ACLUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
 	return s.aclSet(resp, req, true)
 }
 
 func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update bool) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLRequest{
@@ -128,10 +129,8 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 }
 
 func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLSpecificRequest{
@@ -182,6 +181,10 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 }
 
 func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.ACLSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
@@ -212,6 +215,10 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 }
 
 func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.DCSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
@@ -234,6 +241,10 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 }
 
 func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Note that we do not forward to the ACL DC here. This is a query for
 	// any DC that's doing replication.
 	args := structs.DCSpecificRequest{}

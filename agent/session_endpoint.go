@@ -27,10 +27,8 @@ type sessionCreateResponse struct {
 
 // SessionCreate is used to create a new session
 func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	// Default the session to our node + serf check + release session invalidate behavior
@@ -107,10 +105,8 @@ func FixupLockDelay(raw interface{}) error {
 
 // SessionDestroy is used to destroy an existing session
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.SessionRequest{
@@ -136,10 +132,8 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 
 // SessionRenew is used to renew the TTL on an existing TTL session
 func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.SessionSpecificRequest{}
@@ -169,6 +163,10 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 
 // SessionGet is used to get info for a particular session
 func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.SessionSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -197,6 +195,10 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 
 // SessionList is used to list all the sessions
 func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -217,6 +219,10 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 
 // SessionsForNode returns all the nodes belonging to a node
 func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

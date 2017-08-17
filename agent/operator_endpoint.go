@@ -17,8 +17,7 @@ import (
 // This supports the stale query mode in case the cluster doesn't have a leader.
 func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "GET" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
 	var args structs.DCSpecificRequest
@@ -38,8 +37,7 @@ func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *ht
 // removing peers by address.
 func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "DELETE" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"DELETE"}}
 	}
 
 	var args structs.RaftRemovePeerRequest
@@ -125,8 +123,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 	case "DELETE":
 		return s.KeyringRemove(resp, req, &args)
 	default:
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST", "PUT", "DELETE"}}
 	}
 }
 
@@ -264,8 +261,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		return reply, nil
 
 	default:
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT"}}
 	}
 }
 
@@ -295,8 +291,7 @@ func FixupConfigDurations(raw interface{}) error {
 // OperatorServerHealth is used to get the health of the servers in the local DC
 func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "GET" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
 	var args structs.DCSpecificRequest

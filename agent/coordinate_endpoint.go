@@ -40,6 +40,10 @@ func (s *sorter) Less(i, j int) bool {
 // CoordinateDatacenters returns the WAN nodes in each datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	var out []structs.DatacenterMap
 	if err := s.agent.RPC("Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
 		for i := range out {
@@ -65,6 +69,10 @@ func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.R
 // CoordinateNodes returns the LAN nodes in the given datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
