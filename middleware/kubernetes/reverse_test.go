@@ -96,6 +96,13 @@ func TestReverse(t *testing.T) {
 				test.SOA("0.10.in-addr.arpa.	300	IN	SOA	ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502782828 7200 1800 86400 60"),
 			},
 		},
+		{
+			Qname: "example.org.cluster.local.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeSuccess,
+			Ns: []dns.RR{
+				test.SOA("cluster.local.       300     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+			},
+		},
 	}
 
 	ctx := context.TODO()
@@ -108,9 +115,6 @@ func TestReverse(t *testing.T) {
 		if err != tc.Error {
 			t.Errorf("Test %d: expected no error, got %v", i, err)
 			return
-		}
-		if tc.Error != nil {
-			continue
 		}
 
 		resp := w.Msg
