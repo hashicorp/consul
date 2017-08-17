@@ -214,16 +214,10 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		Key:        "zip",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err.Error() != errPermissionDenied.Error() {
 		t.Fatalf("err: %v", err)
 	}
 
-	if dirent.Index == 0 {
-		t.Fatalf("Bad: %v", dirent)
-	}
-	if len(dirent.Entries) != 0 {
-		t.Fatalf("Bad: %v", dirent)
-	}
 }
 
 func TestKVSEndpoint_List(t *testing.T) {

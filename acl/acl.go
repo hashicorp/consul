@@ -58,6 +58,10 @@ type ACL interface {
 	// KeyRead checks for permission to read a given key
 	KeyRead(string) bool
 
+	// KeyReadPrefix checks for permission to read a given key prefix.
+	// Returns true if any suffixes of the prefix have read permissions
+	KeyReadPrefix(string) bool
+
 	// KeyWrite checks for permission to write a given key
 	KeyWrite(string) bool
 
@@ -147,6 +151,10 @@ func (s *StaticACL) EventWrite(string) bool {
 }
 
 func (s *StaticACL) KeyRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyReadPrefix(string) bool {
 	return s.defaultAllow
 }
 
@@ -431,6 +439,33 @@ func (p *PolicyACL) KeyRead(key string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.KeyRead(key)
+}
+
+// KeyWritePrefix returns if a prefix is allowed to be read
+func (p *PolicyACL) KeyReadPrefix(prefix string) bool {
+	// Look for a matching rule
+	_, rule, ok := p.keyRules.LongestPrefix(prefix)
+
+	// Look if any of our children have a read policy
+	subRuleFound := false
+	p.keyRules.WalkPrefix(prefix, func(path string, rule interface{}) bool {
+		if rule.(string) == PolicyRead || rule.(string) == PolicyWrite {
+			subRuleFound = true
+			return true
+		}
+		return false
+	})
+
+	if subRuleFound {
+		return true
+	}
+
+	if ok {
+		return rule.(string) != PolicyDeny
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.KeyReadPrefix(prefix)
 }
 
 // KeyWrite returns if a key is allowed to be written
