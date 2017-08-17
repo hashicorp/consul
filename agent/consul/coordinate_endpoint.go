@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -128,13 +129,13 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	acl, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && c.srv.config.ACLEnforceVersion8 {
-		if !acl.NodeWrite(args.Node) {
-			return errPermissionDenied
+	if rule != nil && c.srv.config.ACLEnforceVersion8 {
+		if !rule.NodeWrite(args.Node) {
+			return acl.ErrPermissionDenied
 		}
 	}
 

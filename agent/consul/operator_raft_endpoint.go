@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/raft"
@@ -17,12 +18,12 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	}
 
 	// This action requires operator read access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorRead() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorRead() {
+		return acl.ErrPermissionDenied
 	}
 
 	// We can't fetch the leader and the configuration atomically with
@@ -76,12 +77,12 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorWrite() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return
@@ -143,12 +144,12 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorWrite() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return

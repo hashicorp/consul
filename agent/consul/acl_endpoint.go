@@ -26,7 +26,7 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
+		return acl.ErrDisabled
 	}
 
 	// By doing some pre-checks we can head off later bootstrap attempts
@@ -103,7 +103,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 
 		// Verify this is not a root ACL
 		if acl.RootACL(args.ACL.ID) != nil {
-			return fmt.Errorf("%s: Cannot modify root ACL", permissionDenied)
+			return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}
 		}
 
 		// Validate the rules compile
@@ -114,7 +114,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 
 	case structs.ACLDelete:
 		if args.ACL.ID == anonymousToken {
-			return fmt.Errorf("%s: Cannot delete anonymous token", permissionDenied)
+			return acl.PermissionDeniedError{Cause: "Cannot delete anonymous token"}
 		}
 
 	default:
@@ -149,14 +149,14 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
+		return acl.ErrDisabled
 	}
 
 	// Verify token is permitted to modify ACLs
-	if acl, err := a.srv.resolveToken(args.Token); err != nil {
+	if rule, err := a.srv.resolveToken(args.Token); err != nil {
 		return err
-	} else if acl == nil || !acl.ACLModify() {
-		return errPermissionDenied
+	} else if rule == nil || !rule.ACLModify() {
+		return acl.ErrPermissionDenied
 	}
 
 	// If no ID is provided, generate a new ID. This must be done prior to
@@ -206,7 +206,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
+		return acl.ErrDisabled
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions,
@@ -241,7 +241,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
+		return acl.ErrDisabled
 	}
 
 	// Get the policy via the cache
@@ -276,14 +276,14 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
+		return acl.ErrDisabled
 	}
 
 	// Verify token is permitted to list ACLs
-	if acl, err := a.srv.resolveToken(args.Token); err != nil {
+	if rule, err := a.srv.resolveToken(args.Token); err != nil {
 		return err
-	} else if acl == nil || !acl.ACLList() {
-		return errPermissionDenied
+	} else if rule == nil || !rule.ACLList() {
+		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions,

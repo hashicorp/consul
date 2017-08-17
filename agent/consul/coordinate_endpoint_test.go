@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -237,7 +238,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	// Now turn on version 8 enforcement and try again.
 	s1.config.ACLEnforceVersion8 = true
 	err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -270,7 +271,7 @@ node "node1" {
 	// But it should be blocked for the other node.
 	req.Node = "node2"
 	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 }

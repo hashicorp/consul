@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -164,7 +165,7 @@ service "foo" {
 	// This should fail since we are writing to the "db" service, which isn't
 	// allowed.
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -187,7 +188,7 @@ service "foo" {
 	// enforcement.
 	s1.config.ACLEnforceVersion8 = true
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -210,7 +211,7 @@ service "foo" {
 	argR.Service.ID = "my-id"
 	argR.Token = id
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -433,7 +434,7 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			CheckID:    "service-check"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
@@ -441,7 +442,7 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			CheckID:    "node-check"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
@@ -449,14 +450,14 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			ServiceID:  "service"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
 			Node:       "node"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 

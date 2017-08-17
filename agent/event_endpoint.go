@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -63,9 +64,8 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
-		if strings.Contains(err.Error(), permissionDenied) {
-			resp.WriteHeader(403)
-			fmt.Fprint(resp, permissionDenied)
+		if acl.IsErrPermissionDenied(err) {
+			http.Error(resp, acl.ErrPermissionDenied.Error(), 403)
 			return nil, nil
 		}
 		resp.WriteHeader(500)

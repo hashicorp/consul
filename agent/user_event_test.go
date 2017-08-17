@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 )
@@ -217,10 +218,7 @@ func TestUserEventToken(t *testing.T) {
 	for _, c := range cases {
 		event := &UserEvent{Name: c.name}
 		err := a.UserEvent("dc1", token, event)
-		allowed := false
-		if err == nil || err.Error() != permissionDenied {
-			allowed = true
-		}
+		allowed := !acl.IsErrPermissionDenied(err)
 		if allowed != c.expect {
 			t.Fatalf("bad: %#v result: %v", c, allowed)
 		}

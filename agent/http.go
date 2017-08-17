@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
@@ -231,13 +232,12 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
-			code := http.StatusInternalServerError // 500
-			errMsg := err.Error()
-			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
-				code = http.StatusForbidden // 403
+			switch {
+			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
+				http.Error(resp, err.Error(), http.StatusForbidden) // 403
+			default:
+				http.Error(resp, err.Error(), http.StatusInternalServerError) // 500
 			}
-			resp.WriteHeader(code)
-			fmt.Fprint(resp, errMsg)
 		}
 
 		// Invoke the handler

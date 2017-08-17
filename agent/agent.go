@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -1195,7 +1196,7 @@ func (a *Agent) sendCoordinate() {
 			}
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				if strings.Contains(err.Error(), permissionDenied) {
+				if acl.IsErrPermissionDenied(err) {
 					a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
 				} else {
 					a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)

@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestSnapshot(t *testing.T) {
@@ -61,7 +63,7 @@ func TestSnapshot_Options(t *testing.T) {
 			req, _ := http.NewRequest(method, "/v1/snapshot?token=anonymous", body)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.Snapshot(resp, req)
-			if err == nil || !strings.Contains(err.Error(), "Permission denied") {
+			if !acl.IsErrPermissionDenied(err) {
 				t.Fatalf("err: %v", err)
 			}
 		})

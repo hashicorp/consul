@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -427,10 +427,9 @@ func (s *Server) reconcileMember(member serf.Member) error {
 			member, err)
 
 		// Permission denied should not bubble up
-		if strings.Contains(err.Error(), permissionDenied) {
+		if acl.IsErrPermissionDenied(err) {
 			return nil
 		}
-		return err
 	}
 	return nil
 }
