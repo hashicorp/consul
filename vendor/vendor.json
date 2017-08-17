@@ -60,7 +60,7 @@
 		{"checksumSHA1":"5GHIYEtOr1rsHOZUac6RA/82d3I=","path":"github.com/hashicorp/raft","revision":"0a6e1b039ba3d8057e9f16c919d2afb813884f74","revisionTime":"2017-08-04T15:11:58Z","version":"library-v2-stage-one","versionExact":"library-v2-stage-one"},
 		{"checksumSHA1":"QAxukkv54/iIvLfsUP6IK4R0m/A=","path":"github.com/hashicorp/raft-boltdb","revision":"d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee","revisionTime":"2015-02-01T20:08:39Z"},
 		{"checksumSHA1":"/oss17GO4hXGM7QnUdI3VzcAHzA=","comment":"v0.7.0-66-g6c4672d","path":"github.com/hashicorp/serf/coordinate","revision":"c2e4be24cdc9031eb0ad869c5d160775efdf7d7a","revisionTime":"2017-05-25T23:15:04Z"},
-		{"checksumSHA1":"o1VR3OEjCXQW/vT1wpUBOYfGrPQ=","comment":"v0.7.0-66-g6c4672d","path":"github.com/hashicorp/serf/serf","revision":"6669b5d30985da6dd423ecf65f033cee400203fe","revisionTime":"2017-07-07T06:54:45Z"},
+		{"checksumSHA1":"3WPnGSL9ZK6EmkAE6tEW5SCxrd8=","comment":"v0.7.0-66-g6c4672d","path":"github.com/hashicorp/serf/serf","revision":"b84a66cc5575994cb672940d244a2404141688c0","revisionTime":"2017-08-17T21:22:02Z"},
 		{"checksumSHA1":"ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=","path":"github.com/hashicorp/yamux","revision":"d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd","revisionTime":"2016-07-20T23:31:40Z"},
 		{"checksumSHA1":"xZuhljnmBysJPta/lMyYmJdujCg=","path":"github.com/mattn/go-isatty","revision":"66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8","revisionTime":"2016-08-06T12:27:52Z"},
 		{"checksumSHA1":"OUZ1FFXyKs+Cfg9M9rmXqqweQck=","path":"github.com/miekg/dns","revision":"db96a2b759cdef4f11a34506a42eb8d1290c598e","revisionTime":"2016-07-26T03:20:27Z"},
