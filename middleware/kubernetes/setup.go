@@ -67,9 +67,8 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 		interfaceAddrsFunc: localPodIP,
 		PodMode:            PodModeDisabled,
 		Proxy:              proxy.Proxy{},
+		autoPathSearch:     searchFromResolvConf(),
 	}
-
-	k8s.autoPathSearch = searchFromResolvConf()
 
 	for c.Next() {
 		zones := c.RemainingArgs()

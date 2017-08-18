@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
 func TestParseRequest(t *testing.T) {
-	k := Kubernetes{Zones: []string{zone}}
+	k := New([]string{zone})
 
 	tests := []struct {
 		query    string
@@ -30,10 +31,6 @@ func TestParseRequest(t *testing.T) {
 			"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", dns.TypeA,
 			"..1-2-3-4.webs.mynamespace.svc.intern.webs.tests.",
 		},
-		{
-			"inter.webs.test.", dns.TypeNS,
-			"......intern.webs.tests.",
-		},
 	}
 	for i, tc := range tests {
 		m := new(dns.Msg)
@@ -52,7 +49,7 @@ func TestParseRequest(t *testing.T) {
 }
 
 func TestParseInvalidRequest(t *testing.T) {
-	k := Kubernetes{Zones: []string{zone}}
+	k := New([]string{zone})
 
 	invalid := map[string]uint16{
 		"_http._tcp.webs.mynamespace.svc.inter.webs.test.": dns.TypeA,   // A requests cannot have port or protocol

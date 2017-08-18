@@ -77,8 +77,7 @@ func (APIConnReverseTest) GetNodeByName(name string) (api.Node, error) {
 
 func TestReverse(t *testing.T) {
 
-	k := Kubernetes{Zones: []string{"cluster.local.", "0.10.in-addr.arpa."}}
-	k.interfaceAddrsFunc = localPodIP
+	k := New([]string{"cluster.local.", "0.10.in-addr.arpa."})
 	k.APIConn = &APIConnReverseTest{}
 
 	tests := []test.Case{

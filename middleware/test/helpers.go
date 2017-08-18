@@ -218,35 +218,35 @@ func Section(t *testing.T, tc Case, sec sect, rr []dns.RR) bool {
 		case *dns.SOA:
 			tt := section[i].(*dns.SOA)
 			if x.Ns != tt.Ns {
-				t.Errorf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
+				t.Errorf("SOA nameserver should be %q, but is %q", tt.Ns, x.Ns)
 				return false
 			}
 		case *dns.PTR:
 			tt := section[i].(*dns.PTR)
 			if x.Ptr != tt.Ptr {
-				t.Errorf("PTR ptr should be %q, but is %q", x.Ptr, tt.Ptr)
+				t.Errorf("PTR ptr should be %q, but is %q", tt.Ptr, x.Ptr)
 				return false
 			}
 		case *dns.CNAME:
 			tt := section[i].(*dns.CNAME)
 			if x.Target != tt.Target {
-				t.Errorf("CNAME target should be %q, but is %q", x.Target, tt.Target)
+				t.Errorf("CNAME target should be %q, but is %q", tt.Target, x.Target)
 				return false
 			}
 		case *dns.MX:
 			tt := section[i].(*dns.MX)
 			if x.Mx != tt.Mx {
-				t.Errorf("MX Mx should be %q, but is %q", x.Mx, tt.Mx)
+				t.Errorf("MX Mx should be %q, but is %q", tt.Mx, x.Mx)
 				return false
 			}
 			if x.Preference != tt.Preference {
-				t.Errorf("MX Preference should be %q, but is %q", x.Preference, tt.Preference)
+				t.Errorf("MX Preference should be %q, but is %q", tt.Preference, x.Preference)
 				return false
 			}
 		case *dns.NS:
 			tt := section[i].(*dns.NS)
 			if x.Ns != tt.Ns {
-				t.Errorf("NS nameserver should be %q, but is %q", x.Ns, tt.Ns)
+				t.Errorf("NS nameserver should be %q, but is %q", tt.Ns, x.Ns)
 				return false
 			}
 		case *dns.OPT:

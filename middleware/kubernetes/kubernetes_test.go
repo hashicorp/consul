@@ -195,8 +195,7 @@ func (APIConnServiceTest) GetNodeByName(name string) (api.Node, error) {
 
 func TestServices(t *testing.T) {
 
-	k := Kubernetes{Zones: []string{"interwebs.test."}}
-	k.interfaceAddrsFunc = localPodIP
+	k := New([]string{"interwebs.test."})
 	k.APIConn = &APIConnServiceTest{}
 
 	type svcAns struct {

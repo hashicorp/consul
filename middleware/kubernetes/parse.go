@@ -25,23 +25,16 @@ type recordRequest struct {
 
 // parseRequest parses the qname to find all the elements we need for querying k8s.
 func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err error) {
-	// 3 Possible cases: TODO(chris): remove federations comments here.
-	//   SRV Request: _port._protocol.service.namespace.[federation.]type.zone
-	//   A Request (endpoint): endpoint.service.namespace.[federation.]type.zone
-	//   A Request (service): service.namespace.[federation.]type.zone
+	// 3 Possible cases:
+	// o SRV Request: _port._protocol.service.namespace.type.zone
+	// o A Request (endpoint): endpoint.service.namespace.type.zone
+	// o A Request (service): service.namespace.type.zone
+	// Federations are handled in the federation middleware.
 
 	base, _ := dnsutil.TrimZone(state.Name(), state.Zone)
 	segs := dns.SplitDomainName(base)
 
 	r.zone = state.Zone
-
-	if state.QType() == dns.TypeNS {
-		return r, nil
-	}
-
-	if state.QType() == dns.TypeA && isDefaultNS(state.Name(), r) {
-		return r, nil
-	}
 
 	offset := 0
 	if state.QType() == dns.TypeSRV {
@@ -99,8 +92,7 @@ func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err e
 	return r, errInvalidRequest
 }
 
-// String return a string representation of r, it just returns all
-// fields concatenated with dots.
+// String return a string representation of r, it just returns all fields concatenated with dots.
 // This is mostly used in tests.
 func (r recordRequest) String() string {
 	s := r.port

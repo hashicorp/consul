@@ -15,6 +15,7 @@ import (
 	_ "github.com/coredns/coredns/middleware/erratic"
 	_ "github.com/coredns/coredns/middleware/errors"
 	_ "github.com/coredns/coredns/middleware/etcd"
+	_ "github.com/coredns/coredns/middleware/federation"
 	_ "github.com/coredns/coredns/middleware/file"
 	_ "github.com/coredns/coredns/middleware/health"
 	_ "github.com/coredns/coredns/middleware/hosts"

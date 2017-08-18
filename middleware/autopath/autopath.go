@@ -1,8 +1,6 @@
-package autopath
-
 /*
-Autopath is a hack; it shortcuts the client's search path resolution by performing
-these lookups on the server...
+Autopath package implement autopathing. This is a hack; it shortcuts the
+client's search path resolution by performing these lookups on the server...
 
 The server has a copy (via AutoPathFunc) of the client's search path and on
 receiving a query it first establish if the suffix matches the FIRST configured
@@ -31,6 +29,7 @@ func (m Middleware ) AutoPath(state request.Request) []string {
 	return []string{"first", "second", "last", ""}
 }
 */
+package autopath
 
 import (
 	"log"
@@ -108,7 +107,6 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		if err != nil {
 			// Return now - not sure if this is the best. We should also check if the write has happened.
 			return rcode, err
-
 		}
 		if i == 0 {
 			firstReply = nw.Msg

@@ -146,10 +146,8 @@ var podModeVerifiedCases = map[string](test.Case){
 
 func TestServeDNS(t *testing.T) {
 
-	k := Kubernetes{Zones: []string{"cluster.local."}}
-
+	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
-	k.interfaceAddrsFunc = localPodIP
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
 
 	ctx := context.TODO()
@@ -166,7 +164,7 @@ func TestServeDNS(t *testing.T) {
 	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
 }
 
-func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](test.Case), k Kubernetes) {
+func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](test.Case), k *Kubernetes) {
 	for testname, tc := range dnsTestCases {
 		r := tc.Msg()
 

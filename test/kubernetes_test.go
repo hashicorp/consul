@@ -357,7 +357,7 @@ func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
 		}
 
 		if len(res.Answer) != len(tc.Answer) {
-			t.Errorf("Expected %d answers but got %d for query %s, %d", len(tc.Answer), len(res.Answer), tc.Qname, tc.Qtype)
+			t.Errorf("Expected %d answers but got %d for query %s, %d\nfull reply %s", len(tc.Answer), len(res.Answer), tc.Qname, tc.Qtype, res)
 		}
 
 		//TODO: Check the actual RR values

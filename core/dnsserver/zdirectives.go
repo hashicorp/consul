@@ -30,6 +30,7 @@ var directives = []string{
 	"dnssec",
 	"reverse",
 	"hosts",
+	"federation",
 	"kubernetes",
 	"file",
 	"auto",

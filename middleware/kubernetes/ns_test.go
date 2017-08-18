@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"net"
 	"testing"
 
 	"k8s.io/client-go/1.5/pkg/api"
@@ -36,7 +35,7 @@ func (APIConnTest) EndpointsList() api.EndpointsList {
 					{
 						Addresses: []api.EndpointAddress{
 							{
-								IP: "172.0.40.10",
+								IP: "127.0.0.1",
 							},
 						},
 					},
@@ -54,8 +53,7 @@ func (APIConnTest) GetNodeByName(name string) (api.Node, error) { return api.Nod
 
 func TestNsAddr(t *testing.T) {
 
-	k := Kubernetes{Zones: []string{"inter.webs.test"}}
-	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("172.0.40.10") }
+	k := New([]string{"inter.webs.test."})
 	k.APIConn = &APIConnTest{}
 
 	cdr := k.nsAddr()

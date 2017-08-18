@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 )
 
-func isDefaultNS(name string, r recordRequest) bool {
-	return strings.Index(name, defaultNSName) == 0 && strings.Index(name, r.zone) == len(defaultNSName)
+func isDefaultNS(name, zone string) bool {
+	return strings.Index(name, defaultNSName) == 0 && strings.Index(name, zone) == len(defaultNSName)
 }
 
 func (k *Kubernetes) nsAddr() *dns.A {
