@@ -10,6 +10,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * serf: Updated memberlist library for deadlock fix. [GH-3396]
+* agent: Fixed an issue with consul watches not triggering when ACL is enabled. [GH-3392]
 
 ## 0.9.2 (August 9, 2017)
 
