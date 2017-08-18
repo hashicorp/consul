@@ -33,6 +33,7 @@ func TestSetupAutoPath(t *testing.T) {
 		{`autopath ` + resolv, false, "", "", []string{"bar.com.", "baz.com.", ""}, ""},
 		// negative
 		{`autopath kubernetes`, true, "", "", nil, "open kubernetes: no such file or directory"},
+		{`autopath`, true, "", "", nil, "no resolv-conf"},
 	}
 
 	for i, test := range tests {

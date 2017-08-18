@@ -22,6 +22,7 @@ autopath [ZONE..] RESOLV-CONF
 Currently the following set of middleware has implemented *autopath*:
 
 * *kubernetes*
+* *erratic*
 
 ## Examples
 

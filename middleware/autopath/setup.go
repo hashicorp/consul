@@ -5,6 +5,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/erratic"
 	"github.com/coredns/coredns/middleware/kubernetes"
 
 	"github.com/mholt/caddy"
@@ -32,8 +33,11 @@ func setup(c *caddy.Controller) error {
 		if m == nil {
 			return nil
 		}
-		if k, ok := m.(kubernetes.Kubernetes); ok {
-			ap.searchFunc = k.AutoPath
+		if x, ok := m.(kubernetes.Kubernetes); ok {
+			ap.searchFunc = x.AutoPath
+		}
+		if x, ok := m.(*erratic.Erratic); ok {
+			ap.searchFunc = x.AutoPath
 		}
 		return nil
 	})
@@ -50,6 +54,7 @@ func setup(c *caddy.Controller) error {
 // need to register themselves with dnsserver.RegisterHandler.
 var allowedMiddleware = map[string]bool{
 	"@kubernetes": true,
+	"@erratic":    true,
 }
 
 func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {

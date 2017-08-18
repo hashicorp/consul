@@ -158,7 +158,7 @@ func TestInSearchPath(t *testing.T) {
 		{"a.b.svc.cluster.local.", false},
 	}
 	for i, tc := range tests {
-		got := a.FirstInSearchPath(tc.qname)
+		got := firstInSearchPath(tc.qname, a.search)
 		if got != tc.b {
 			t.Errorf("Test %d, got %v, expected %v", i, got, tc.b)
 		}
