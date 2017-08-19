@@ -43,7 +43,7 @@ ifeq ($(TEST_TYPE),middleware)
 endif
 ifeq ($(TEST_TYPE),coverage)
 	for d in `go list ./... | grep -v vendor`; do \
-		go test -v  -tags 'etcd k8s' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
+		time go test -v  -tags 'etcd k8s' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
 		if [ -f cover.out ]; then \
 			cat cover.out >> coverage.txt; \
 			rm cover.out; \
