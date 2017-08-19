@@ -214,7 +214,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/pass/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/pass/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -247,7 +247,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/warn/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/warn/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -280,7 +280,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/fail/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/fail/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
