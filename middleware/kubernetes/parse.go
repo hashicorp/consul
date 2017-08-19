@@ -20,7 +20,6 @@ type recordRequest struct {
 	// A each name can be for a pod or a service, here we track what we've seen. This value is true for
 	// pods and false for services. If we ever need to extend this well use a typed value.
 	podOrSvc string
-	zone     string
 }
 
 // parseRequest parses the qname to find all the elements we need for querying k8s.
@@ -33,8 +32,6 @@ func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err e
 
 	base, _ := dnsutil.TrimZone(state.Name(), state.Zone)
 	segs := dns.SplitDomainName(base)
-
-	r.zone = state.Zone
 
 	offset := 0
 	if state.QType() == dns.TypeSRV {
@@ -101,6 +98,5 @@ func (r recordRequest) String() string {
 	s += "." + r.service
 	s += "." + r.namespace
 	s += "." + r.podOrSvc
-	s += "." + r.zone
 	return s
 }

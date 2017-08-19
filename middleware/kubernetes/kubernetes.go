@@ -315,7 +315,7 @@ func (k *Kubernetes) Entries(state request.Request) ([]msg.Service, error) {
 		return nil, errNoItems
 	}
 
-	records := k.getRecordsForK8sItems(services, pods, r)
+	records := k.getRecordsForK8sItems(services, pods, state.Zone)
 	return records, nil
 }
 
@@ -332,8 +332,8 @@ func endpointHostname(addr api.EndpointAddress) string {
 	return ""
 }
 
-func (k *Kubernetes) getRecordsForK8sItems(services []kService, pods []kPod, r recordRequest) (records []msg.Service) {
-	zonePath := msg.Path(r.zone, "coredns")
+func (k *Kubernetes) getRecordsForK8sItems(services []kService, pods []kPod, zone string) (records []msg.Service) {
+	zonePath := msg.Path(zone, "coredns")
 
 	for _, svc := range services {
 		if svc.addr == api.ClusterIPNone || len(svc.endpoints) > 0 {
