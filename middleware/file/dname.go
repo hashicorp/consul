@@ -1,7 +1,7 @@
 package file
 
 import (
-	"strings"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 
 	"github.com/miekg/dns"
 )
@@ -14,7 +14,7 @@ func substituteDNAME(qname, owner, target string) string {
 		labels := dns.SplitDomainName(qname)
 		labels = append(labels[0:len(labels)-dns.CountLabel(owner)], dns.SplitDomainName(target)...)
 
-		return strings.Join(labels, ".") + "."
+		return dnsutil.Join(labels)
 	}
 
 	return ""

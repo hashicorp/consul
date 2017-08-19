@@ -14,8 +14,6 @@ Federation is only useful in conjunction with the kubernetes middleware, without
 package federation
 
 import (
-	"strings"
-
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
@@ -133,7 +131,7 @@ func (f *Federation) isNameFederation(name, zone string) (string, string) {
 	fed := labels[ll-2]
 
 	if _, ok := f.f[fed]; ok {
-		without := strings.Join(labels[:ll-2], ".") + "." + labels[ll-1] + "." + zone
+		without := dnsutil.Join(labels[:ll-2]) + labels[ll-1] + "." + zone
 		return without, fed
 	}
 	return "", ""

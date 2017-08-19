@@ -1,9 +1,8 @@
 package kubernetes
 
 import (
-	"strings"
-
 	"github.com/coredns/coredns/middleware/etcd/msg"
+	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	"github.com/coredns/coredns/request"
 )
 
@@ -36,8 +35,8 @@ func (k *Kubernetes) Federations(state request.Request, fname, fzone string) (ms
 	lr := node.Labels[LabelRegion]
 
 	if r.endpoint == "" {
-		return msg.Service{Host: strings.Join([]string{r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone}, ".")}, nil
+		return msg.Service{Host: dnsutil.Join([]string{r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone})}, nil
 	}
 
-	return msg.Service{Host: strings.Join([]string{r.endpoint, r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone}, ".")}, nil
+	return msg.Service{Host: dnsutil.Join([]string{r.endpoint, r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone})}, nil
 }

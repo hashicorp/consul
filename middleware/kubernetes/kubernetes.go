@@ -508,7 +508,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 			continue
 		}
 		if service.Spec.ClusterIP == ip {
-			domain := strings.Join([]string{service.Name, service.Namespace, Svc, k.primaryZone()}, ".")
+			domain := dnsutil.Join([]string{service.Name, service.Namespace, Svc, k.primaryZone()})
 			return []msg.Service{{Host: domain}}
 		}
 	}
@@ -521,7 +521,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()}, ".")
+					domain := dnsutil.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()})
 					return []msg.Service{{Host: domain}}
 				}
 			}
