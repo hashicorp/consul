@@ -737,39 +737,6 @@ func TestPreparedQuery_Delete(t *testing.T) {
 	}
 }
 
-func TestPreparedQuery_BadMethods(t *testing.T) {
-	t.Parallel()
-	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
-		defer a.Shutdown()
-
-		body := bytes.NewBuffer(nil)
-		req, _ := http.NewRequest("DELETE", "/v1/query", body)
-		resp := httptest.NewRecorder()
-		if _, err := a.srv.PreparedQueryGeneral(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 405 {
-			t.Fatalf("bad code: %d", resp.Code)
-		}
-	})
-
-	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
-		defer a.Shutdown()
-
-		body := bytes.NewBuffer(nil)
-		req, _ := http.NewRequest("POST", "/v1/query/my-id", body)
-		resp := httptest.NewRecorder()
-		if _, err := a.srv.PreparedQuerySpecific(resp, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 405 {
-			t.Fatalf("bad code: %d", resp.Code)
-		}
-	})
-}
-
 func TestPreparedQuery_parseLimit(t *testing.T) {
 	t.Parallel()
 	body := bytes.NewBuffer(nil)

@@ -386,9 +386,7 @@ func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
 		// {"GET", "/v1/operator/area/xxx/members"},
 	}
 
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 
