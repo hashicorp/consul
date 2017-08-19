@@ -7,14 +7,25 @@ services:
 
 language: go
 go:
-  - 1.7
   - 1.8
+  - 1.7
 
 go_import_path: github.com/coredns/coredns
 
-env:
-  - ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl" DNS_ARGUMENTS=""
+git:
+  depth: 3
 
+cache:
+  directories:
+    - $GOPATH/src
+    - $GOPATH/pkg
+
+env:
+  - TEST_TYPE=coverage ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
+  - TEST_TYPE=integration ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
+  - TEST_TYPE=core ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
+  - TEST_TYPE=middleware ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
+  
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
@@ -31,7 +42,7 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
-  - docker run -d --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --volume=`pwd`/.travis:/travis --net=host --pid=host --privileged --name=hyperkube gcr.io/google_containers/hyperkube-amd64:v$K8S_VERSION /hyperkube kubelet --containerized --hostname-override=127.0.0.1 --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests $DNS_ARGUMENTS --allow-privileged --v=2
+  - docker run -d --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --volume=`pwd`/.travis:/travis --net=host --pid=host --privileged --name=hyperkube gcr.io/google_containers/hyperkube-amd64:v$K8S_VERSION /hyperkube kubelet --containerized --hostname-override=127.0.0.1 --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --allow-privileged --v=2
   # Wait until kubectl is ready
   - for i in {1..10}; do $KUBECTL version && break || sleep 5; done
   - $KUBECTL version
@@ -44,7 +55,7 @@ before_script:
   - docker ps -a
 
 script:
-  - make coverage
+  - make TEST_TYPE=$TEST_TYPE travis
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

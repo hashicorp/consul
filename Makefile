@@ -28,10 +28,20 @@ godeps:
 	go get golang.org/x/net/context
 	go get golang.org/x/text
 
-.PHONY: coverage
-coverage: check
-	set -e -x
-	echo "" > coverage.txt
+.PHONY: travis
+travis: check
+ifeq ($(TEST_TYPE),core)
+	( cd request ; go test -v  -tags 'etcd k8s' -race ./... )
+	( cd core ; go test -v  -tags 'etcd k8s' -race  ./... )
+	( cd coremain go test -v  -tags 'etcd k8s' -race ./... )
+endif
+ifeq ($(TEST_TYPE),integration)
+	( cd test ; go test -v  -tags 'etcd k8s' -race ./... )
+endif
+ifeq ($(TEST_TYPE),middleware)
+	( cd middleware ; go test -v  -tags 'etcd k8s' -race ./... )
+endif
+ifeq ($(TEST_TYPE),coverage)
 	for d in `go list ./... | grep -v vendor`; do \
 		go test -v  -tags 'etcd k8s' -race -coverprofile=cover.out -covermode=atomic -bench=. $$d || exit 1; \
 		if [ -f cover.out ]; then \
@@ -39,6 +49,8 @@ coverage: check
 			rm cover.out; \
 		fi; \
 	done
+endif
+
 
 core/zmiddleware.go core/dnsserver/zdirectives.go: middleware.cfg
 	go generate coredns.go
@@ -55,7 +67,6 @@ fmt:
 
 .PHONY: lint
 lint:
-	## run go lint, suggestion only (not enforced)
 	go get -u github.com/golang/lint/golint
 	@test -z "$$(find . -type d | grep -vE '(/vendor|^\.$$|/.git|/.travis)' | grep -vE '(^\./pb)' | xargs golint \
 		| grep -vE "context\.Context should be the first parameter of a function" | tee /dev/stderr)"
