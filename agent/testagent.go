@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -147,6 +148,7 @@ func (a *TestAgent) Start() *TestAgent {
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+		agent.MemSink = &metrics.InmemSink{}
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
