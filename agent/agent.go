@@ -340,8 +340,8 @@ func (a *Agent) Start() error {
 	}
 
 	// start retry join
-	go a.retryJoin()
-	go a.retryJoinWan()
+	go a.retryJoinLAN()
+	go a.retryJoinWAN()
 
 	return nil
 }
