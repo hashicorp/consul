@@ -25,7 +25,7 @@ env:
   - TEST_TYPE=integration ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
   - TEST_TYPE=core ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
   - TEST_TYPE=middleware ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
-  
+
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
