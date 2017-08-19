@@ -211,8 +211,8 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 }
 
 func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	// Fetch the ACL token, if any, and enforce agent policy.

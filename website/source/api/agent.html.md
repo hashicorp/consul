@@ -423,7 +423,7 @@ This endpoint instructs the agent to attempt to connect to a given address.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/join/:address`       | `application/json`         |
+| `PUT`  | `/agent/join/:address`       | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),

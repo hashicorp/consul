@@ -331,7 +331,7 @@ func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
 		{"GET", "/v1/agent/check/warn/"}, // GET ??
 		{"GET", "/v1/agent/checks"},
 		{"PUT", "/v1/agent/force-leave/"},
-		{"GET", "/v1/agent/join/"},
+		{"PUT", "/v1/agent/join/"},
 		{"PUT", "/v1/agent/leave"},
 		{"PUT", "/v1/agent/maintenance"},
 		{"GET", "/v1/agent/metrics"},
