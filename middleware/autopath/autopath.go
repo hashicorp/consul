@@ -36,6 +36,7 @@ import (
 
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/pkg/nonwriter"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -101,7 +102,7 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	for i, s := range searchpath {
 		newQName := base + "." + s
 		ar.Question[0].Name = newQName
-		nw := NewNonWriter(w)
+		nw := nonwriter.New(w)
 
 		rcode, err := middleware.NextOrFailure(a.Name(), a.Next, ctx, nw, ar)
 		if err != nil {

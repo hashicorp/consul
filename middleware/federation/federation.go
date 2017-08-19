@@ -17,6 +17,7 @@ import (
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
+	"github.com/coredns/coredns/middleware/pkg/nonwriter"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -67,7 +68,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 
 	// Start the next middleware, but with a nowriter, capture the result, if NXDOMAIN
 	// perform federation, otherwise just write the result.
-	nw := NewNonWriter(w)
+	nw := nonwriter.New(w)
 	ret, err := middleware.NextOrFailure(f.Name(), f.Next, ctx, nw, r)
 
 	if !middleware.ClientWrite(ret) {
