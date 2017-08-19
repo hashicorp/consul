@@ -136,7 +136,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		return []msg.Service{svc}, nil, nil
 	}
 
-	s, e := k.Entries(state)
+	s, e := k.Records(state, false)
 
 	// SRV for external services is not yet implemented, so remove those records.
 
@@ -291,13 +291,8 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 	return err
 }
 
-// Records is not implemented.
-func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-// Entries looks up services in kubernetes.
-func (k *Kubernetes) Entries(state request.Request) ([]msg.Service, error) {
+// Records looks up services in kubernetes.
+func (k *Kubernetes) Records(state request.Request, exact bool) ([]msg.Service, error) {
 	r, e := k.parseRequest(state)
 	if e != nil {
 		return nil, e

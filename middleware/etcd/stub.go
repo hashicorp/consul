@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/middleware/etcd/msg"
 	"github.com/coredns/coredns/middleware/proxy"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -29,7 +30,11 @@ func (e *Etcd) UpdateStubZones() {
 // Only the first zone configured on e is used for the lookup.
 func (e *Etcd) updateStubZones() {
 	zone := e.Zones[0]
-	services, err := e.Records(stubDomain+"."+zone, false)
+
+	fakeState := request.Request{W: nil, Req: new(dns.Msg)}
+	fakeState.Req.SetQuestion(stubDomain+"."+zone, dns.TypeA)
+
+	services, err := e.Records(fakeState, false)
 	if err != nil {
 		return
 	}

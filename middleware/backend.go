@@ -28,7 +28,7 @@ type ServiceBackend interface {
 
 	// Returns _all_ services that matches a certain name.
 	// Note: it does not implement a specific service.
-	Records(name string, exact bool) ([]msg.Service, error)
+	Records(state request.Request, exact bool) ([]msg.Service, error)
 }
 
 // Options are extra options that can be specified for a lookup.
