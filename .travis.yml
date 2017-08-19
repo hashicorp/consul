@@ -15,11 +15,6 @@ go_import_path: github.com/coredns/coredns
 git:
   depth: 3
 
-cache:
-  directories:
-    - $GOPATH/src
-    - $GOPATH/pkg
-
 env:
   - TEST_TYPE=coverage ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
   - TEST_TYPE=integration ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
