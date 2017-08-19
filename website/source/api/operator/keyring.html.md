@@ -179,9 +179,9 @@ $ curl \
 This endpoint removes a gossip encryption key from the cluster. This operation
 may only be performed on keys which are not currently the primary key.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/operator/keyring`          | `application/json`         |
+| Method  | Path                         | Produces                   |
+| ------- | ---------------------------- | -------------------------- |
+| `DELETE`| `/operator/keyring`          | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
