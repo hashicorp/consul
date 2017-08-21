@@ -38,3 +38,8 @@ autopath @kubernetes
 ~~~
 
 Use the search path dynamically retrieved from the kubernetes middleware.
+
+## Bugs
+
+When the *cache* middleware is enabled it is possible for pods in different namespaces to get the
+same answer.
