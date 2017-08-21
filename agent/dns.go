@@ -711,16 +711,6 @@ RPC:
 		}
 	}
 
-	// Determine the TTL
-	var ttl time.Duration
-	if d.config.ServiceTTL != nil {
-		var ok bool
-		ttl, ok = d.config.ServiceTTL[service]
-		if !ok {
-			ttl = d.config.ServiceTTL["*"]
-		}
-	}
-
 	// Filter out any service nodes due to health checks
 	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
 
@@ -733,6 +723,16 @@ RPC:
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
+
+	// Determine the TTL
+	var ttl time.Duration
+	if d.config.ServiceTTL != nil {
+		var ok bool
+		ttl, ok = d.config.ServiceTTL[service]
+		if !ok {
+			ttl = d.config.ServiceTTL["*"]
+		}
+	}
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
