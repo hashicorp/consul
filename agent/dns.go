@@ -692,22 +692,27 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 			AllowStale: *d.config.AllowStale,
 		},
 	}
+
 	var out structs.IndexedCheckServiceNodes
-RPC:
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
 
-	// Verify that request is not too stale, redo the request
-	if args.AllowStale {
-		if out.LastContact > d.config.MaxStale {
-			args.AllowStale = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-			goto RPC
-		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+	if args.AllowStale && out.LastContact > staleCounterThreshold {
+		metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+	}
+
+	// redo the request the response was too stale
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+
+		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
+			d.logger.Printf("[ERR] dns: rpc error: %v", err)
+			resp.SetRcode(req, dns.RcodeServerFailure)
+			return
 		}
 	}
 
