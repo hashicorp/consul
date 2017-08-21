@@ -62,7 +62,6 @@ type delegate interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
 	RPC(method string, args interface{}, reply interface{}) error
-	ServerAddrs() map[string]string
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string

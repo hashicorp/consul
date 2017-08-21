@@ -1047,15 +1047,6 @@ func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }
 
-func (s *Server) ServerAddrs() map[string]string {
-	ret, err := s.router.FindServerAddrs(s.config.Datacenter)
-	if err != nil {
-		s.logger.Printf("[WARN] Unexpected state, no server addresses for datacenter %v, got error: %v", s.config.Datacenter, err)
-		return nil
-	}
-	return ret
-}
-
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
 func (s *Server) setConsistentReadReady() {
 	atomic.StoreInt32(&s.readyForConsistentReads, 1)
