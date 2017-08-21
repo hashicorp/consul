@@ -679,9 +679,8 @@ func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
 	return len(resp.Answer) < numAnswers
 }
 
-// serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
-	// Make an RPC request
+// lookupServiceNodes returns nodes with a given service.
+func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  datacenter,
 		ServiceName: service,
@@ -695,9 +694,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 
 	var out structs.IndexedCheckServiceNodes
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
-		return
+		return structs.IndexedCheckServiceNodes{}, err
 	}
 
 	if args.AllowStale && out.LastContact > staleCounterThreshold {
@@ -710,14 +707,24 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 
 		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			d.logger.Printf("[ERR] dns: rpc error: %v", err)
-			resp.SetRcode(req, dns.RcodeServerFailure)
-			return
+			return structs.IndexedCheckServiceNodes{}, err
 		}
 	}
 
 	// Filter out any service nodes due to health checks
 	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
+
+	return out, nil
+}
+
+// serviceLookup is used to handle a service query
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
+	out, err := d.lookupServiceNodes(datacenter, service, tag)
+	if err != nil {
+		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
