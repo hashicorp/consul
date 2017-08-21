@@ -411,10 +411,6 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-func (c *Client) ServerAddrs() map[string]string {
-	return c.routers.GetServerAddrs()
-}
-
 // GetLANCoordinate returns the network coordinate of the current node, as
 // maintained by Serf.
 func (c *Client) GetLANCoordinate() (*coordinate.Coordinate, error) {
