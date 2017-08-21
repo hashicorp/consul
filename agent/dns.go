@@ -272,41 +272,31 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
-	// get server names and store them in a map to randomize the output
-	servers := map[string]net.IP{}
-	for name, addr := range d.agent.delegate.ServerAddrs() {
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			d.logger.Printf("[WARN] Unable to parse address %v, got error: %v", addr, err)
-			continue
-		}
-
-		ip := net.ParseIP(host)
-		if ip == nil {
-			continue
-		}
-
-		// Use "NODENAME.node.DC.DOMAIN" as a unique name for the server
-		// since we use that name in other places as well.
-		// 'name' is "NODENAME.DC" so we need to split it
-		// to construct the server name.
-		lastdot := strings.LastIndexByte(name, '.')
-		nodeName, dc := name[:lastdot], name[lastdot:]
-		if InvalidDnsRe.MatchString(nodeName) {
-			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
-			continue
-		}
-		fqdn := nodeName + ".node" + dc + "." + d.domain
-		fqdn = dns.Fqdn(strings.ToLower(fqdn))
-
-		servers[fqdn] = ip
+	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "")
+	if err != nil {
+		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
+		return nil, nil
 	}
 
-	if len(servers) == 0 {
+	if len(out.Nodes) == 0 {
+		d.logger.Printf("[WARN] dns: no servers found")
 		return
 	}
 
-	for name, ip := range servers {
+	// shuffle the nodes to randomize the output
+	out.Nodes.Shuffle()
+
+	for _, o := range out.Nodes {
+		name, addr, dc := o.Node.Node, o.Node.Address, o.Node.Datacenter
+
+		if InvalidDnsRe.MatchString(name) {
+			d.logger.Printf("[WARN] dns: Skipping invalid node %q for NS records", name)
+			continue
+		}
+
+		fqdn := name + ".node." + dc + "." + d.domain
+		fqdn = dns.Fqdn(strings.ToLower(fqdn))
+
 		// NS record
 		nsrr := &dns.NS{
 			Hdr: dns.RR_Header{
@@ -315,12 +305,12 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 				Class:  dns.ClassINET,
 				Ttl:    uint32(d.config.NodeTTL / time.Second),
 			},
-			Ns: name,
+			Ns: fqdn,
 		}
 		ns = append(ns, nsrr)
 
 		// A or AAAA glue record
-		glue := d.formatNodeRecord(ip.String(), name, dns.TypeANY, d.config.NodeTTL, edns)
+		glue := d.formatNodeRecord(addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
 		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
