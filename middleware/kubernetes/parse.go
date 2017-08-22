@@ -13,80 +13,87 @@ type recordRequest struct {
 	port string
 	// The protocol is usually _udp or _tcp (if set), and comes from the protocol part of a well formed
 	// SRV record.
-	protocol  string
-	endpoint  string
-	service   string
+	protocol string
+	endpoint string
+	// The servicename used in Kubernetes.
+	service string
+	// The namespace used in Kubernetes.
 	namespace string
-	// A each name can be for a pod or a service, here we track what we've seen. This value is true for
-	// pods and false for services. If we ever need to extend this well use a typed value.
+	// A each name can be for a pod or a service, here we track what we've seen, either "pod" or "service".
 	podOrSvc string
 }
 
-// parseRequest parses the qname to find all the elements we need for querying k8s.
+// parseRequest parses the qname to find all the elements we need for querying k8s. Anything
+// that is not parsed will have the wildcard "*" value (except r.endpoint).
+// Potential underscores are stripped from _port and _protocol.
 func (k *Kubernetes) parseRequest(state request.Request) (r recordRequest, err error) {
 	// 3 Possible cases:
-	// o SRV Request: _port._protocol.service.namespace.type.zone
-	// o A Request (endpoint): endpoint.service.namespace.type.zone
-	// o A Request (service): service.namespace.type.zone
-	// Federations are handled in the federation middleware.
+	// 1. _port._protocol.service.namespace.pod|svc.zone
+	// 2. (endpoint): endpoint.service.namespace.pod|svc.zone
+	// 3. (service): service.namespace.pod|svc.zone
+	//
+	// Federations are handled in the federation middleware. And aren't parsed here.
 
 	base, _ := dnsutil.TrimZone(state.Name(), state.Zone)
 	segs := dns.SplitDomainName(base)
 
-	offset := 0
-	if state.QType() == dns.TypeSRV {
-		// The kubernetes peer-finder expects queries with empty port and service to resolve
-		// If neither is specified, treat it as a wildcard
-		if len(segs) == 3 {
-			r.port = "*"
-			r.service = "*"
-			offset = 0
-		} else {
-			if len(segs) != 5 {
-				return r, errInvalidRequest
-			}
-			// This is a SRV style request, get first two elements as port and
-			// protocol, stripping leading underscores if present.
-			if segs[0][0] == '_' {
-				r.port = segs[0][1:]
-			} else {
-				r.port = segs[0]
-				if !wildcard(r.port) {
-					return r, errInvalidRequest
-				}
-			}
-			if segs[1][0] == '_' {
-				r.protocol = segs[1][1:]
-				if r.protocol != "tcp" && r.protocol != "udp" {
-					return r, errInvalidRequest
-				}
-			} else {
-				r.protocol = segs[1]
-				if !wildcard(r.protocol) {
-					return r, errInvalidRequest
-				}
-			}
-			if r.port == "" || r.protocol == "" {
-				return r, errInvalidRequest
-			}
-			offset = 2
-		}
-	}
-	if (state.QType() == dns.TypeA || state.QType() == dns.TypeAAAA) && len(segs) == 4 {
-		// This is an endpoint A/AAAA record request. Get first element as endpoint.
-		r.endpoint = segs[0]
-		offset = 1
-	}
+	r.port = "*"
+	r.protocol = "*"
+	r.service = "*"
+	r.namespace = "*"
+	// r.endpoint is the odd one out, we need to know if it has been set or not. If it is
+	// empty we should skip the endpoint check in k.get(). Hence we cannot set if to "*".
 
-	if len(segs) == (offset + 3) {
-		r.service = segs[offset]
-		r.namespace = segs[offset+1]
-		r.podOrSvc = segs[offset+2]
+	// start at the right and fill out recordRequest with the bits we find, so we look for
+	// pod|svc.namespace.service and then either
+	// * endpoint
+	// *_protocol._port
 
+	last := len(segs) - 1
+	r.podOrSvc = segs[last]
+	if r.podOrSvc != Pod && r.podOrSvc != Svc {
+		return r, errInvalidRequest
+	}
+	last--
+	if last < 0 {
 		return r, nil
 	}
 
-	return r, errInvalidRequest
+	r.namespace = segs[last]
+	last--
+	if last < 0 {
+		return r, nil
+	}
+
+	r.service = segs[last]
+	last--
+	if last < 0 {
+		return r, nil
+	}
+
+	// Becuase of ambiquity we check the labels left: 1: an endpoint. 2: port and protocol.
+	// Anything else is a query that is too long to answer and can safely be delegated to return an nxdomain.
+	switch last {
+
+	case 0: // endpoint only
+		r.endpoint = segs[last]
+	case 1: // service and port
+		r.protocol = stripUnderscore(segs[last])
+		r.port = stripUnderscore(segs[last-1])
+
+	default: // too long
+		return r, errInvalidRequest
+	}
+
+	return r, nil
+}
+
+// stripUnderscore removes a prefixed underscore from s.
+func stripUnderscore(s string) string {
+	if s[0] != '_' {
+		return s
+	}
+	return s[1:]
 }
 
 // String return a string representation of r, it just returns all fields concatenated with dots.

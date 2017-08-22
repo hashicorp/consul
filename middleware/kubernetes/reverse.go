@@ -15,6 +15,6 @@ func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.O
 		return nil, nil, nil
 	}
 
-	records := k.getServiceRecordForIP(ip, state.Name())
+	records := k.serviceRecordForIP(ip, state.Name())
 	return records, nil, nil
 }

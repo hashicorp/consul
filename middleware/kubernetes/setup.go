@@ -59,13 +59,9 @@ func setup(c *caddy.Controller) error {
 }
 
 func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
-	k8s := &Kubernetes{
-		ResyncPeriod:       defaultResyncPeriod,
-		interfaceAddrsFunc: localPodIP,
-		PodMode:            PodModeDisabled,
-		Proxy:              proxy.Proxy{},
-		autoPathSearch:     searchFromResolvConf(),
-	}
+	k8s := New([]string{""})
+	k8s.interfaceAddrsFunc = localPodIP
+	k8s.autoPathSearch = searchFromResolvConf()
 
 	for c.Next() {
 		zones := c.RemainingArgs()
@@ -112,7 +108,9 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 			case "namespaces":
 				args := c.RemainingArgs()
 				if len(args) > 0 {
-					k8s.Namespaces = append(k8s.Namespaces, args...)
+					for _, a := range args {
+						k8s.Namespaces[a] = true
+					}
 					continue
 				}
 				return nil, c.ArgErr()

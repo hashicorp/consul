@@ -13,34 +13,18 @@ func TestParseRequest(t *testing.T) {
 
 	tests := []struct {
 		query    string
-		qtype    uint16
 		expected string // output from r.String()
 	}{
-		{
-			// valid SRV request
-			"_http._tcp.webs.mynamespace.svc.inter.webs.test.", dns.TypeSRV,
-			"http.tcp..webs.mynamespace.svc",
-		},
-		{
-			// wildcard acceptance
-			"*.any.*.any.svc.inter.webs.test.", dns.TypeSRV,
-			"*.any..*.any.svc",
-		},
-		{
-			// A request of endpoint
-			"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", dns.TypeA,
-			"..1-2-3-4.webs.mynamespace.svc",
-		},
-		{
-
-			// 3 segments
-			"webs.mynamespace.svc.inter.webs.test.", dns.TypeSRV,
-			"*...webs.mynamespace.svc",
-		},
+		// valid SRV request
+		{"_http._tcp.webs.mynamespace.svc.inter.webs.test.", "http.tcp..webs.mynamespace.svc"},
+		// wildcard acceptance
+		{"*.any.*.any.svc.inter.webs.test.", "*.any..*.any.svc"},
+		// A request of endpoint
+		{"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", "*.*.1-2-3-4.webs.mynamespace.svc"},
 	}
 	for i, tc := range tests {
 		m := new(dns.Msg)
-		m.SetQuestion(tc.query, tc.qtype)
+		m.SetQuestion(tc.query, dns.TypeA)
 		state := request.Request{Zone: zone, Req: m}
 
 		r, e := k.parseRequest(state)
@@ -57,21 +41,18 @@ func TestParseRequest(t *testing.T) {
 func TestParseInvalidRequest(t *testing.T) {
 	k := New([]string{zone})
 
-	invalid := map[string]uint16{
-		"_http._tcp.webs.mynamespace.svc.inter.webs.test.": dns.TypeA,   // A requests cannot have port or protocol
-		"_http._pcp.webs.mynamespace.svc.inter.webs.test.": dns.TypeSRV, // SRV protocol must be tcp or udp
-		"_http._tcp.ep.webs.ns.svc.inter.webs.test.":       dns.TypeSRV, // SRV requests cannot have an endpoint
-		"_*._*.webs.mynamespace.svc.inter.webs.test.":      dns.TypeSRV, // SRV request with invalid wildcards
-
+	invalid := []string{
+		"webs.mynamespace.pood.inter.webs.test.",                 // Request must be for pod or svc subdomain.
+		"too.long.for.what.I.am.trying.to.pod.inter.webs.tests.", // Too long.
 	}
 
-	for query, qtype := range invalid {
+	for i, query := range invalid {
 		m := new(dns.Msg)
-		m.SetQuestion(query, qtype)
+		m.SetQuestion(query, dns.TypeA)
 		state := request.Request{Zone: zone, Req: m}
 
 		if _, e := k.parseRequest(state); e == nil {
-			t.Errorf("Expected error from %s:%d, got none", query, qtype)
+			t.Errorf("Test %d: expected error from %s, got none", i, query)
 		}
 	}
 }

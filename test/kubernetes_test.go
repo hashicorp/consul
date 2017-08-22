@@ -203,13 +203,21 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("*.svc-1-a.test-1.svc.cluster.local.   0       IN      SRV     0 50 443 172-17-0-7.svc-1-a.test-1.svc.cluster.local."),
+			test.SRV("*.svc-1-a.test-1.svc.cluster.local.   0       IN      SRV     0 50 80 172-17-0-7.svc-1-a.test-1.svc.cluster.local."),
+		},
+		Extra: []dns.RR{
+			test.A("172-17-0-7.svc-1-a.test-1.svc.cluster.local.    0       IN      A       172.17.0.7"),
+		},
 	},
 	{
 		Qname: "*._not-udp-or-tcp.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
 	},
 	{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,

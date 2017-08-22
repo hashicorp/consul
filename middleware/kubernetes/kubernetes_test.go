@@ -217,24 +217,26 @@ func TestServices(t *testing.T) {
 		{qname: "external.testns.svc.interwebs.test.", qtype: dns.TypeCNAME, answer: svcAns{host: "coredns.io", key: "/coredns/test/interwebs/svc/testns/external"}},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		state := request.Request{
 			Req:  &dns.Msg{Question: []dns.Question{{Name: test.qname, Qtype: test.qtype}}},
 			Zone: "interwebs.test.", // must match from k.Zones[0]
 		}
 		svcs, _, e := k.Services(state, false, middleware.Options{})
 		if e != nil {
-			t.Errorf("Query '%v' got error '%v'", test.qname, e)
+			t.Errorf("Test %d: got error '%v'", i, e)
+			continue
 		}
 		if len(svcs) != 1 {
-			t.Errorf("Query %v %v: expected expected 1 answer, got %v", test.qname, dns.TypeToString[test.qtype], len(svcs))
-		} else {
-			if test.answer.host != svcs[0].Host {
-				t.Errorf("Query %v %v: expected host '%v', got '%v'", test.qname, dns.TypeToString[test.qtype], test.answer.host, svcs[0].Host)
-			}
-			if test.answer.key != svcs[0].Key {
-				t.Errorf("Query %v %v: expected key '%v', got '%v'", test.qname, dns.TypeToString[test.qtype], test.answer.key, svcs[0].Key)
-			}
+			t.Errorf("Test %d, expected expected 1 answer, got %v", i, len(svcs))
+			continue
+		}
+
+		if test.answer.host != svcs[0].Host {
+			t.Errorf("Test %d, expected host '%v', got '%v'", i, test.answer.host, svcs[0].Host)
+		}
+		if test.answer.key != svcs[0].Key {
+			t.Errorf("Test %d, expected key '%v', got '%v'", i, test.answer.key, svcs[0].Key)
 		}
 	}
 }

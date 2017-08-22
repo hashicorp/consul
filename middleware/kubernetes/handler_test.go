@@ -19,12 +19,37 @@ var dnsTestCases = map[string](test.Case){
 			test.A("svc1.testns.svc.cluster.local.	0	IN	A	10.0.0.1"),
 		},
 	},
-	"A Service (Headless)": {
-		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+	"A Service (wildcard)": {
+		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("hdls1.testns.svc.cluster.local.	0	IN	A	172.0.0.2"),
-			test.A("hdls1.testns.svc.cluster.local.	0	IN	A	172.0.0.3"),
+			test.A("svc1.*.svc.cluster.local.  0       IN      A       10.0.0.1"),
+		},
+	},
+	"SRV Service (wildcard)": {
+		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{test.SRV("svc1.*.svc.cluster.local.	0	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  0       IN      A       10.0.0.1")},
+	},
+	"SRV Service (wildcards)": {
+		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{test.SRV("*.any.svc1.*.svc.cluster.local.	0	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  0       IN      A       10.0.0.1")},
+	},
+	"A Service (wildcards)": {
+		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("*.any.svc1.*.svc.cluster.local.  0       IN      A       10.0.0.1"),
+		},
+	},
+	"SRV Service Not udp/tcp": {
+		Qname: "*._not-udp-or-tcp.svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
 	"SRV Service": {
@@ -35,6 +60,14 @@ var dnsTestCases = map[string](test.Case){
 		},
 		Extra: []dns.RR{
 			test.A("svc1.testns.svc.cluster.local.	0	IN	A	10.0.0.1"),
+		},
+	},
+	"A Service (Headless)": {
+		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("hdls1.testns.svc.cluster.local.	0	IN	A	172.0.0.2"),
+			test.A("hdls1.testns.svc.cluster.local.	0	IN	A	172.0.0.3"),
 		},
 	},
 	"SRV Service (Headless)": {
@@ -49,7 +82,6 @@ var dnsTestCases = map[string](test.Case){
 			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	0	IN	A	172.0.0.3"),
 		},
 	},
-	// TODO A External
 	"CNAME External": {
 		Qname: "external.testns.svc.cluster.local.", Qtype: dns.TypeCNAME,
 		Rcode: dns.RcodeSuccess,
@@ -153,13 +185,12 @@ func TestServeDNS(t *testing.T) {
 	ctx := context.TODO()
 	runServeDNSTests(ctx, t, dnsTestCases, k)
 
-	//Set PodMode to Disabled
 	k.PodMode = PodModeDisabled
 	runServeDNSTests(ctx, t, podModeDisabledCases, k)
-	//Set PodMode to Insecure
+
 	k.PodMode = PodModeInsecure
 	runServeDNSTests(ctx, t, podModeInsecureCases, k)
-	//Set PodMode to Verified
+
 	k.PodMode = PodModeVerified
 	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
 }
