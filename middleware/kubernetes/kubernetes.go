@@ -4,7 +4,6 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -38,10 +37,7 @@ type Kubernetes struct {
 	APIClientCert string
 	APIClientKey  string
 	APIConn       dnsController
-	ResyncPeriod  time.Duration
 	Namespaces    map[string]bool
-	LabelSelector *unversionedapi.LabelSelector
-	Selector      *labels.Selector
 	PodMode       string
 	Fallthrough   bool
 
@@ -59,7 +55,6 @@ func New(zones []string) *Kubernetes {
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("127.0.0.1") }
 	k.PodMode = PodModeDisabled
 	k.Proxy = proxy.Proxy{}
-	k.ResyncPeriod = defaultResyncPeriod
 
 	return k
 }
@@ -260,8 +255,8 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	return clientConfig.ClientConfig()
 }
 
-// InitKubeCache initializes a new Kubernetes cache.
-func (k *Kubernetes) InitKubeCache() (err error) {
+// initKubeCache initializes a new Kubernetes cache.
+func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
 
 	config, err := k.getClientConfig()
 	if err != nil {
@@ -273,23 +268,18 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 		return fmt.Errorf("failed to create kubernetes notification controller: %q", err)
 	}
 
-	if k.LabelSelector != nil {
+	if opts.labelSelector != nil {
 		var selector labels.Selector
-		selector, err = unversionedapi.LabelSelectorAsSelector(k.LabelSelector)
-		k.Selector = &selector
+		selector, err = unversionedapi.LabelSelectorAsSelector(opts.labelSelector)
 		if err != nil {
-			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", k.LabelSelector, err)
+			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", opts.labelSelector, err)
 		}
+		opts.selector = &selector
 	}
 
-	if k.LabelSelector != nil {
-		log.Printf("[INFO] Kubernetes has label selector '%s'. Only objects matching this label selector will be exposed.", unversionedapi.FormatLabelSelector(k.LabelSelector))
-	}
+	opts.initPodCache = k.PodMode == PodModeVerified
 
-	opts := dnsControlOpts{
-		initPodCache: k.PodMode == PodModeVerified,
-	}
-	k.APIConn = newdnsController(kubeClient, k.ResyncPeriod, k.Selector, opts)
+	k.APIConn = newdnsController(kubeClient, opts)
 
 	return err
 }

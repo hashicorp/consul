@@ -176,19 +176,6 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			nil,
 		},
-		// negative
-		{
-			"",
-			true,
-			"kubernetes setup called without keyword 'kubernetes' in Corefile",
-			-1,
-			-1,
-			defaultResyncPeriod,
-			"",
-			PodModeDisabled,
-			false,
-			nil,
-		},
 		{
 			`kubernetes coredns.local {
     endpoint
@@ -396,7 +383,7 @@ func TestKubernetesParse(t *testing.T) {
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		k8sController, err := kubernetesParse(c)
+		k8sController, opts, err := kubernetesParse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
@@ -436,14 +423,14 @@ func TestKubernetesParse(t *testing.T) {
 		}
 
 		//    ResyncPeriod
-		foundResyncPeriod := k8sController.ResyncPeriod
+		foundResyncPeriod := opts.resyncPeriod
 		if foundResyncPeriod != test.expectedResyncPeriod {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", i, test.expectedResyncPeriod, foundResyncPeriod, test.input)
 		}
 
 		//    Labels
-		if k8sController.LabelSelector != nil {
-			foundLabelSelectorString := unversioned.FormatLabelSelector(k8sController.LabelSelector)
+		if opts.labelSelector != nil {
+			foundLabelSelectorString := unversioned.FormatLabelSelector(opts.labelSelector)
 			if foundLabelSelectorString != test.expectedLabelSelector {
 				t.Errorf("Test %d: Expected kubernetes controller to be initialized with label selector '%s'. Instead found selector '%s' for input '%s'", i, test.expectedLabelSelector, foundLabelSelectorString, test.input)
 			}

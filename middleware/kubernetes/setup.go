@@ -24,12 +24,12 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	kubernetes, err := kubernetesParse(c)
+	kubernetes, initOpts, err := kubernetesParse(c)
 	if err != nil {
 		return middleware.Error("kubernetes", err)
 	}
 
-	err = kubernetes.InitKubeCache()
+	err = kubernetes.initKubeCache(initOpts)
 	if err != nil {
 		return middleware.Error("kubernetes", err)
 	}
@@ -58,10 +58,14 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
+func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 	k8s := New([]string{""})
 	k8s.interfaceAddrsFunc = localPodIP
 	k8s.autoPathSearch = searchFromResolvConf()
+
+	opts := dnsControlOpts{
+		resyncPeriod: defaultResyncPeriod,
+	}
 
 	for c.Next() {
 		zones := c.RemainingArgs()
@@ -88,7 +92,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 		}
 
 		if k8s.primaryZoneIndex == -1 {
-			return nil, errors.New("non-reverse zone name must be used")
+			return nil, opts, errors.New("non-reverse zone name must be used")
 		}
 
 		for c.NextBlock() {
@@ -100,11 +104,11 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					case PodModeDisabled, PodModeInsecure, PodModeVerified:
 						k8s.PodMode = args[0]
 					default:
-						return nil, fmt.Errorf("wrong value for pods: %s,  must be one of: disabled, verified, insecure", args[0])
+						return nil, opts, fmt.Errorf("wrong value for pods: %s,  must be one of: disabled, verified, insecure", args[0])
 					}
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "namespaces":
 				args := c.RemainingArgs()
 				if len(args) > 0 {
@@ -113,7 +117,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					}
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "endpoint":
 				args := c.RemainingArgs()
 				if len(args) > 0 {
@@ -122,61 +126,60 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					}
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "tls": // cert key cacertfile
 				args := c.RemainingArgs()
 				if len(args) == 3 {
 					k8s.APIClientCert, k8s.APIClientKey, k8s.APICertAuth = args[0], args[1], args[2]
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "resyncperiod":
 				args := c.RemainingArgs()
 				if len(args) > 0 {
 					rp, err := time.ParseDuration(args[0])
 					if err != nil {
-						return nil, fmt.Errorf("unable to parse resync duration value: '%v': %v", args[0], err)
+						return nil, opts, fmt.Errorf("unable to parse resync duration value: '%v': %v", args[0], err)
 					}
-					k8s.ResyncPeriod = rp
+					opts.resyncPeriod = rp
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "labels":
 				args := c.RemainingArgs()
 				if len(args) > 0 {
 					labelSelectorString := strings.Join(args, " ")
 					ls, err := unversionedapi.ParseToLabelSelector(labelSelectorString)
 					if err != nil {
-						return nil, fmt.Errorf("unable to parse label selector value: '%v': %v", labelSelectorString, err)
+						return nil, opts, fmt.Errorf("unable to parse label selector value: '%v': %v", labelSelectorString, err)
 					}
-					k8s.LabelSelector = ls
+					opts.labelSelector = ls
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "fallthrough":
 				args := c.RemainingArgs()
 				if len(args) == 0 {
 					k8s.Fallthrough = true
 					continue
 				}
-				return nil, c.ArgErr()
+				return nil, opts, c.ArgErr()
 			case "upstream":
 				args := c.RemainingArgs()
 				if len(args) == 0 {
-					return nil, c.ArgErr()
+					return nil, opts, c.ArgErr()
 				}
 				ups, err := dnsutil.ParseHostPortOrFile(args...)
 				if err != nil {
-					return nil, err
+					return nil, opts, err
 				}
 				k8s.Proxy = proxy.NewLookup(ups)
 			default:
-				return nil, c.Errf("unknown property '%s'", c.Val())
+				return nil, opts, c.Errf("unknown property '%s'", c.Val())
 			}
 		}
-		return k8s, nil
 	}
-	return nil, errors.New("kubernetes setup called without keyword 'kubernetes' in Corefile")
+	return k8s, opts, nil
 }
 
 func searchFromResolvConf() []string {
