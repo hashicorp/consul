@@ -31,13 +31,14 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("auto", err)
 	}
 
-	// If we have enabled prometheus we should add newly discovered zones to it.
-	// This does not have to happen in a on.Startup because monitoring is one of the first
-	// to be initialized.
-	met := dnsserver.GetConfig(c).GetHandler("prometheus")
-	if met != nil {
-		a.metrics = met.(*metrics.Metrics)
-	}
+	c.OnStartup(func() error {
+		m := dnsserver.GetConfig(c).Handler("prometheus")
+		if m == nil {
+			return nil
+		}
+		(&a).metrics = m.(*metrics.Metrics)
+		return nil
+	})
 
 	walkChan := make(chan bool)
 

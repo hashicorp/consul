@@ -26,7 +26,7 @@ func setup(c *caddy.Controller) error {
 
 	// Do this in OnStartup, so all middleware has been initialized.
 	c.OnStartup(func() error {
-		m := dnsserver.GetConfig(c).GetHandler("kubernetes")
+		m := dnsserver.GetConfig(c).Handler("kubernetes")
 		if m == nil {
 			return nil
 		}

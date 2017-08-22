@@ -28,9 +28,6 @@ func setupErratic(c *caddy.Controller) error {
 		return e
 	})
 
-	// Also register erratic for use in autopath.
-	dnsserver.GetConfig(c).RegisterHandler(e)
-
 	return nil
 }
 

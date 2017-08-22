@@ -124,9 +124,9 @@ func (c *Config) AddMiddleware(m middleware.Middleware) {
 	c.Middleware = append(c.Middleware, m)
 }
 
-// RegisterHandler adds a handler to a site's handler registration. Handlers
-// should use this if the want to announce that they exist to other middleware.
-func (c *Config) RegisterHandler(h middleware.Handler) {
+// registerHandler adds a handler to a site's handler registration. Handlers
+//  use this to announce that they exist to other middleware.
+func (c *Config) registerHandler(h middleware.Handler) {
 	if c.Registry == nil {
 		c.Registry = make(map[string]middleware.Handler)
 	}
@@ -135,12 +135,11 @@ func (c *Config) RegisterHandler(h middleware.Handler) {
 	c.Registry[h.Name()] = h
 }
 
-// GetHandler returns the middleware handler that has been added to the config under its name.
+// Handler returns the middleware handler that has been added to the config under its name.
 // This is useful to inspect if a certain middleware is active in this server.
 // Note that this is order dependent and the order is defined in directives.go, i.e. if your middleware
 // comes before the middleware you are checking; it will not be there (yet).
-// See RegisterHandler on how to register the middleware with this server.
-func (c *Config) GetHandler(name string) middleware.Handler {
+func (c *Config) Handler(name string) middleware.Handler {
 	if c.Registry == nil {
 		return nil
 	}

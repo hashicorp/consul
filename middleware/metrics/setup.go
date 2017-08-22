@@ -38,9 +38,6 @@ func setup(c *caddy.Controller) error {
 	}
 	c.OnFinalShutdown(m.OnShutdown)
 
-	// Also register metrics for use in other middleware.
-	dnsserver.GetConfig(c).RegisterHandler(m)
-
 	return nil
 }
 
@@ -74,24 +71,6 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 			}
 		default:
 			return met, c.ArgErr()
-		}
-		for c.NextBlock() {
-			switch c.Val() {
-			case "address":
-				args = c.RemainingArgs()
-				if len(args) != 1 {
-					return met, c.ArgErr()
-				}
-				met.Addr = args[0]
-				// expecting something that resembles a host-port
-				_, _, e := net.SplitHostPort(met.Addr)
-				if e != nil {
-					return met, e
-				}
-			default:
-				return met, c.Errf("unknown property: %s", c.Val())
-			}
-
 		}
 	}
 	return met, err

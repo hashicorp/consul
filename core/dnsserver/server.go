@@ -66,6 +66,10 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		var stack middleware.Handler
 		for i := len(site.Middleware) - 1; i >= 0; i-- {
 			stack = site.Middleware[i](stack)
+
+			// register the *handler* also
+			site.registerHandler(stack)
+
 			if s.trace == nil && stack.Name() == "trace" {
 				// we have to stash away the middleware, not the
 				// Tracer object, because the Tracer won't be initialized yet

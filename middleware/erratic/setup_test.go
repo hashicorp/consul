@@ -47,13 +47,32 @@ func TestParseErratic(t *testing.T) {
 			delay 3 1ms
 
 		}`, false, 0, 3, 2},
+		{`erraric {
+			drop 3
+			delay
+		}`, false, 3, 2, 0},
 		// fails
 		{`erratic {
 			drop -1
 		}`, true, 0, 0, 0},
+		{`erratic {
+			delay -1
+		}`, true, 0, 0, 0},
+		{`erratic {
+			delay 1 2 4
+		}`, true, 0, 0, 0},
+		{`erratic {
+			delay 15.a
+		}`, true, 0, 0, 0},
 		{`erraric {
 			drop 3
 			delay 3 bla
+		}`, true, 0, 0, 0},
+		{`erraric {
+			truncate 15.a
+		}`, true, 0, 0, 0},
+		{`erraric {
+			something-else
 		}`, true, 0, 0, 0},
 	}
 	for i, test := range tests {

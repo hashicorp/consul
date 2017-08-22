@@ -18,6 +18,7 @@ func TestPrometheusParse(t *testing.T) {
 		// fails
 		{`prometheus {}`, true, ""},
 		{`prometheus /foo`, true, ""},
+		{`prometheus a b c`, true, ""},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
