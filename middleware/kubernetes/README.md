@@ -24,10 +24,10 @@ kubernetes [ZONES...] {
     resyncperiod DURATION
     endpoint URL
     tls CERT KEY CACERT
-    namespaces NAMESPACE [NAMESPACE...]
+    namespaces NAMESPACE...
     labels EXPRESSION
     pods POD-MODE
-    upstream ADDRESS [ADDRESS...]
+    upstream ADDRESS...
     fallthrough
 }
 ```
