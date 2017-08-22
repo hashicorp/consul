@@ -38,7 +38,7 @@ type Kubernetes struct {
 	APIClientKey  string
 	APIConn       dnsController
 	Namespaces    map[string]bool
-	PodMode       string
+	podMode       string
 	Fallthrough   bool
 
 	primaryZoneIndex   int
@@ -53,19 +53,19 @@ func New(zones []string) *Kubernetes {
 	k.Zones = zones
 	k.Namespaces = make(map[string]bool)
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("127.0.0.1") }
-	k.PodMode = PodModeDisabled
+	k.podMode = podModeDisabled
 	k.Proxy = proxy.Proxy{}
 
 	return k
 }
 
 const (
-	// PodModeDisabled is the default value where pod requests are ignored
-	PodModeDisabled = "disabled"
-	// PodModeVerified is where Pod requests are answered only if they exist
-	PodModeVerified = "verified"
-	// PodModeInsecure is where pod requests are answered without verfying they exist
-	PodModeInsecure = "insecure"
+	// podModeDisabled is the default value where pod requests are ignored
+	podModeDisabled = "disabled"
+	// podModeVerified is where Pod requests are answered only if they exist
+	podModeVerified = "verified"
+	// podModeInsecure is where pod requests are answered without verfying they exist
+	podModeInsecure = "insecure"
 	// DNSSchemaVersion is the schema version: https://github.com/kubernetes/dns/blob/master/docs/specification.md
 	DNSSchemaVersion = "1.0.1"
 )
@@ -277,7 +277,7 @@ func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
 		opts.selector = &selector
 	}
 
-	opts.initPodCache = k.PodMode == PodModeVerified
+	opts.initPodCache = k.podMode == podModeVerified
 
 	k.APIConn = newdnsController(kubeClient, opts)
 
@@ -360,7 +360,7 @@ func (k *Kubernetes) getRecordsForK8sItems(services []kService, pods []kPod, zon
 }
 
 func (k *Kubernetes) findPods(namespace, podname string) (pods []kPod, err error) {
-	if k.PodMode == PodModeDisabled {
+	if k.podMode == podModeDisabled {
 		return pods, errPodsDisabled
 	}
 
@@ -371,7 +371,7 @@ func (k *Kubernetes) findPods(namespace, podname string) (pods []kPod, err error
 		ip = strings.Replace(podname, "-", ":", -1)
 	}
 
-	if k.PodMode == PodModeInsecure {
+	if k.podMode == podModeInsecure {
 		s := kPod{name: podname, namespace: namespace, addr: ip}
 		pods = append(pods, s)
 		return pods, nil
