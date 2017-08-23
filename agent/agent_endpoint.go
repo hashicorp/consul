@@ -568,13 +568,13 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	if enable {
 		reason := params.Get("reason")
 		if err = s.agent.EnableServiceMaintenance(serviceID, reason, token); err != nil {
-			resp.WriteHeader(404)
+			resp.WriteHeader(http.StatusNotFound) // 404
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
-			resp.WriteHeader(404)
+			resp.WriteHeader(http.StatusNotFound) // 404
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}

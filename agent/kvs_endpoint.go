@@ -73,7 +73,7 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 
 	// Check if we get a not found
 	if len(out.Entries) == 0 {
-		resp.WriteHeader(404)
+		resp.WriteHeader(http.StatusNotFound) // 404
 		return nil, nil
 	}
 
@@ -120,7 +120,7 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 	// Check if we get a not found. We do not generate
 	// not found for the root, but just provide the empty list
 	if len(out.Keys) == 0 && listArgs.Prefix != "" {
-		resp.WriteHeader(404)
+		resp.WriteHeader(http.StatusNotFound) // 404
 		return nil, nil
 	}
 
