@@ -9,8 +9,6 @@ import (
 )
 
 func TestParseRequest(t *testing.T) {
-	k := New([]string{zone})
-
 	tests := []struct {
 		query    string
 		expected string // output from r.String()
@@ -27,7 +25,7 @@ func TestParseRequest(t *testing.T) {
 		m.SetQuestion(tc.query, dns.TypeA)
 		state := request.Request{Zone: zone, Req: m}
 
-		r, e := k.parseRequest(state)
+		r, e := parseRequest(state)
 		if e != nil {
 			t.Errorf("Test %d, expected no error, got '%v'.", i, e)
 		}
@@ -39,8 +37,6 @@ func TestParseRequest(t *testing.T) {
 }
 
 func TestParseInvalidRequest(t *testing.T) {
-	k := New([]string{zone})
-
 	invalid := []string{
 		"webs.mynamespace.pood.inter.webs.test.",                 // Request must be for pod or svc subdomain.
 		"too.long.for.what.I.am.trying.to.pod.inter.webs.tests.", // Too long.
@@ -51,7 +47,7 @@ func TestParseInvalidRequest(t *testing.T) {
 		m.SetQuestion(query, dns.TypeA)
 		state := request.Request{Zone: zone, Req: m}
 
-		if _, e := k.parseRequest(state); e == nil {
+		if _, e := parseRequest(state); e == nil {
 			t.Errorf("Test %d: expected error from %s, got none", i, query)
 		}
 	}
