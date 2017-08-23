@@ -6,6 +6,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Switched to using a read lock for the agent's RPC dispatcher, which prevents RPC calls from getting serialized. [GH-3376]
+* agent: Support Retry Join via go-discover for Amazon AWS, Microsoft Azure, Google Cloud and Softlayer also for `-retry-join-wan` [GH-3406]
 
 BUG FIXES:
 
