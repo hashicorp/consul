@@ -69,7 +69,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 			fmt.Fprint(resp, acl.ErrPermissionDenied.Error())
 			return nil, nil
 		}
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError) // 500
 		return nil, err
 	}
 
