@@ -79,6 +79,9 @@ type Manager struct {
 	listValue atomic.Value
 	listLock  sync.Mutex
 
+	// idToAddress provides lookup of server address by id, and is maintained alongside listValue
+	idToAddress atomic.Value
+
 	// rebalanceTimer controls the duration of the rebalance interval
 	rebalanceTimer *time.Timer
 
@@ -223,10 +226,30 @@ func (m *Manager) getServerList() serverList {
 	return m.listValue.Load().(serverList)
 }
 
+// GetServerAddress by ID returns a server address based on the id
+func (m *Manager) GetServerAddressByID(id string) string {
+	idAddrMap := m.idToAddress.Load().(map[string]string)
+	addr, ok := idAddrMap[id]
+	if !ok {
+		m.logger.Printf("[WARN] Unable to find address for node id %v", id)
+		return ""
+	}
+	return addr
+}
+
 // saveServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) saveServerList(l serverList) {
 	m.listValue.Store(l)
+	m.idToAddress.Store(makeIdAddrMap(l))
+}
+
+func makeIdAddrMap(list serverList) map[string]string {
+	ret := make(map[string]string)
+	for _, server := range list.servers {
+		ret[server.ID] = server.Addr.String()
+	}
+	return ret
 }
 
 // New is the only way to safely create a new Manager struct.

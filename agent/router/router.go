@@ -489,3 +489,28 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 	}
 	return maps, nil
 }
+
+func (r *Router) GetServerAddressByID(datacenter string, id string) (string, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	// Get the list of managers for this datacenter. This will usually just
+	// have one entry, but it's possible to have a user-defined area + WAN.
+	managers, ok := r.managers[datacenter]
+	if !ok {
+		return "", fmt.Errorf("datacenter %v not found", datacenter)
+	}
+
+	// loop over all the managers till we find a matching address for the id
+	// there could be more than for if network areas are configured
+	for _, manager := range managers {
+		if manager.IsOffline() {
+			continue
+		}
+		id := manager.GetServerAddressByID(id)
+		if id != "" {
+			return id, nil
+		}
+	}
+	return "", fmt.Errorf("Unable to match id %v to any known servers ", id)
+}
