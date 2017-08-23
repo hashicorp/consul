@@ -29,7 +29,7 @@ type sessionCreateResponse struct {
 func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
@@ -50,7 +50,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.Session, FixupLockDelay); err != nil {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
@@ -109,7 +109,7 @@ func FixupLockDelay(raw interface{}) error {
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
@@ -122,7 +122,7 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	// Pull out the session id
 	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
 	if args.Session.ID == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
@@ -150,7 +150,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	// Pull out the session id
 	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
 	if args.Session == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -159,7 +159,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
-		resp.WriteHeader(http.StatusNotFound) // 404
+		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Session id '%s' not found", args.Session)
 		return nil, nil
 	}
@@ -177,7 +177,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	// Pull out the session id
 	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
 	if args.Session == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -225,7 +225,7 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")
 	if args.Node == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}
