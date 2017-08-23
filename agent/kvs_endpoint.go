@@ -257,7 +257,7 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 // missingKey checks if the key is missing
 func missingKey(resp http.ResponseWriter, args *structs.KeyRequest) bool {
 	if args.Key == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing key name")
 		return true
 	}
@@ -272,7 +272,7 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 	for _, conflict := range flags {
 		if _, ok := params[conflict]; ok {
 			if found {
-				resp.WriteHeader(400)
+				resp.WriteHeader(http.StatusBadRequest) // 400
 				fmt.Fprint(resp, "Conflicting flags: "+params.Encode())
 				return true
 			}
