@@ -110,5 +110,7 @@ func (d *Discover) Addrs(cfg string, l *log.Logger) ([]string, error) {
 	if p == nil {
 		return nil, fmt.Errorf("discover: unknown provider " + name)
 	}
+	l.Printf("[DEBUG] discover: Using provider %q", name)
+
 	return p.Addrs(args, l)
 }
