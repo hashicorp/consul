@@ -68,7 +68,7 @@ func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (in
 	// Verify we have some DC, or use the default
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
 	if args.Node == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}

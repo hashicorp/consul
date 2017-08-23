@@ -33,7 +33,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	event := &UserEvent{}
 	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing name")
 		return nil, nil
 	}

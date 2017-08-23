@@ -64,7 +64,7 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 	// Pull out the acl id
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/destroy/")
 	if args.ACL.ID == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
@@ -103,7 +103,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.ACL, nil); err != nil {
-			resp.WriteHeader(400)
+			resp.WriteHeader(http.StatusBadRequest) // 400
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
@@ -112,7 +112,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// Ensure there is an ID set for update. ID is optional for
 	// create, as one will be generated if not provided.
 	if update && args.ACL.ID == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "ACL ID must be set")
 		return nil, nil
 	}
@@ -145,7 +145,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/clone/")
 	if args.ACL == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
@@ -193,7 +193,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/info/")
 	if args.ACL == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
