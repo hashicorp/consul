@@ -234,9 +234,11 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
 			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
-				http.Error(resp, err.Error(), http.StatusForbidden) // 403
+				resp.WriteHeader(http.StatusForbidden) // 403
+				fmt.Fprint(resp, err.Error())
 			default:
-				http.Error(resp, err.Error(), http.StatusInternalServerError) // 500
+				resp.WriteHeader(http.StatusInternalServerError) // 500
+				fmt.Fprint(resp, err.Error())
 			}
 		}
 

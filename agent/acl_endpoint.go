@@ -38,8 +38,6 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
 			resp.WriteHeader(http.StatusForbidden)
-			// todo(fs): my guess is that "Permission denied" is a magic value therefore we should use the error type
-			// fmt.Fprintf(resp, "Permission denied: %v", err)
 			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
 			return nil, nil
 		} else {
