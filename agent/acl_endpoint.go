@@ -16,7 +16,7 @@ type aclCreateResponse struct {
 
 // ACLDisabled handles if ACL datacenter is not configured
 func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	resp.WriteHeader(401)
+	resp.WriteHeader(http.StatusUnauthorized) // 401
 	fmt.Fprint(resp, "ACL support disabled")
 	return nil, nil
 }
