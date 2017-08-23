@@ -65,7 +65,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if acl.IsErrPermissionDenied(err) {
-			resp.WriteHeader(403)
+			resp.WriteHeader(http.StatusForbidden) // 403
 			fmt.Fprint(resp, acl.ErrPermissionDenied.Error())
 			return nil, nil
 		}
