@@ -50,6 +50,9 @@ func parseRequest(state request.Request) (r recordRequest, err error) {
 	// *_protocol._port
 
 	last := len(segs) - 1
+	if last < 0 {
+		return r, nil
+	}
 	r.podOrSvc = segs[last]
 	if r.podOrSvc != Pod && r.podOrSvc != Svc {
 		return r, errInvalidRequest
