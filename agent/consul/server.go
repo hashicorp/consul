@@ -494,7 +494,9 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer.
-	trans := raft.NewNetworkTransportWithServerAddressProvider(s.raftLayer, 3, 10*time.Second, s)
+	transConfig := &raft.NetworkTransportConfig{Stream: s.raftLayer, MaxPool: 3, Timeout: 10 * time.Second, ServerAddressProvider: s}
+
+	trans := raft.NewNetworkTransportWithConfig(transConfig)
 	s.raftTransport = trans
 
 	// Make sure we set the LogOutput.
