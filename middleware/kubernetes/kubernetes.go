@@ -154,69 +154,71 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	overrides := &clientcmd.ConfigOverrides{}
 	clusterinfo := clientcmdapi.Cluster{}
 	authinfo := clientcmdapi.AuthInfo{}
-	if len(k.APIServerList) > 0 {
-		endpoint := k.APIServerList[0]
-		if len(k.APIServerList) > 1 {
-			// Use a random port for api proxy, will get the value later through listener.Addr()
-			listener, err := net.Listen("tcp", "127.0.0.1:0")
-			if err != nil {
-				return nil, fmt.Errorf("failed to create kubernetes api proxy: %v", err)
-			}
-			k.APIProxy = &apiProxy{
-				listener: listener,
-				handler: proxyHandler{
-					HealthCheck: healthcheck.HealthCheck{
-						FailTimeout: 3 * time.Second,
-						MaxFails:    1,
-						Future:      10 * time.Second,
-						Path:        "/",
-						Interval:    5 * time.Second,
-					},
-				},
-			}
-			k.APIProxy.handler.Hosts = make([]*healthcheck.UpstreamHost, len(k.APIServerList))
-			for i, entry := range k.APIServerList {
 
-				uh := &healthcheck.UpstreamHost{
-					Name: strings.TrimPrefix(entry, "http://"),
-
-					CheckDown: func(upstream *proxyHandler) healthcheck.UpstreamHostDownFunc {
-						return func(uh *healthcheck.UpstreamHost) bool {
-
-							down := false
-
-							uh.CheckMu.Lock()
-							until := uh.OkUntil
-							uh.CheckMu.Unlock()
-
-							if !until.IsZero() && time.Now().After(until) {
-								down = true
-							}
-
-							fails := atomic.LoadInt32(&uh.Fails)
-							if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-								down = true
-							}
-							return down
-						}
-					}(&k.APIProxy.handler),
-				}
-
-				k.APIProxy.handler.Hosts[i] = uh
-			}
-			k.APIProxy.Handler = &k.APIProxy.handler
-
-			// Find the random port used for api proxy
-			endpoint = fmt.Sprintf("http://%s", listener.Addr())
-		}
-		clusterinfo.Server = endpoint
-	} else {
+	if len(k.APIServerList) == 0 {
 		cc, err := rest.InClusterConfig()
 		if err != nil {
 			return nil, err
 		}
 		return cc, err
 	}
+
+	endpoint := k.APIServerList[0]
+	if len(k.APIServerList) > 1 {
+		// Use a random port for api proxy, will get the value later through listener.Addr()
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create kubernetes api proxy: %v", err)
+		}
+		k.APIProxy = &apiProxy{
+			listener: listener,
+			handler: proxyHandler{
+				HealthCheck: healthcheck.HealthCheck{
+					FailTimeout: 3 * time.Second,
+					MaxFails:    1,
+					Future:      10 * time.Second,
+					Path:        "/",
+					Interval:    5 * time.Second,
+				},
+			},
+		}
+		k.APIProxy.handler.Hosts = make([]*healthcheck.UpstreamHost, len(k.APIServerList))
+		for i, entry := range k.APIServerList {
+
+			uh := &healthcheck.UpstreamHost{
+				Name: strings.TrimPrefix(entry, "http://"),
+
+				CheckDown: func(upstream *proxyHandler) healthcheck.UpstreamHostDownFunc {
+					return func(uh *healthcheck.UpstreamHost) bool {
+
+						down := false
+
+						uh.CheckMu.Lock()
+						until := uh.OkUntil
+						uh.CheckMu.Unlock()
+
+						if !until.IsZero() && time.Now().After(until) {
+							down = true
+						}
+
+						fails := atomic.LoadInt32(&uh.Fails)
+						if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
+							down = true
+						}
+						return down
+					}
+				}(&k.APIProxy.handler),
+			}
+
+			k.APIProxy.handler.Hosts[i] = uh
+		}
+		k.APIProxy.Handler = &k.APIProxy.handler
+
+		// Find the random port used for api proxy
+		endpoint = fmt.Sprintf("http://%s", listener.Addr())
+	}
+	clusterinfo.Server = endpoint
+
 	if len(k.APICertAuth) > 0 {
 		clusterinfo.CertificateAuthority = k.APICertAuth
 	}
