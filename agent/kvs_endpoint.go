@@ -48,7 +48,7 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	case "DELETE":
 		return s.KVSDelete(resp, req, &args)
 	default:
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 }

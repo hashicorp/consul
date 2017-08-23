@@ -384,7 +384,7 @@ type checkUpdate struct {
 // APIs.
 func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 
@@ -530,7 +530,7 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only PUT supported
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 
@@ -586,7 +586,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only PUT supported
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 
@@ -629,7 +629,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only GET supported.
 	if req.Method != "GET" {
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 

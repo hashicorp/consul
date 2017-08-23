@@ -22,7 +22,7 @@ const (
 func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 

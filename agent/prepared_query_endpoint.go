@@ -71,7 +71,7 @@ func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Re
 		return s.preparedQueryList(resp, req)
 
 	default:
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 }
@@ -261,7 +261,7 @@ func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.R
 		return s.preparedQueryDelete(id, resp, req)
 
 	default:
-		resp.WriteHeader(405)
+		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 		return nil, nil
 	}
 }
