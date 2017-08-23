@@ -22,7 +22,7 @@ const (
 func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
@@ -33,7 +33,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	event := &UserEvent{}
 	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing name")
 		return nil, nil
 	}
@@ -65,11 +65,11 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
 		if acl.IsErrPermissionDenied(err) {
-			resp.WriteHeader(http.StatusForbidden) // 403
+			resp.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(resp, acl.ErrPermissionDenied.Error())
 			return nil, nil
 		}
-		resp.WriteHeader(http.StatusInternalServerError) // 500
+		resp.WriteHeader(http.StatusInternalServerError)
 		return nil, err
 	}
 

@@ -252,20 +252,20 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return FixupCheckType(raw)
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
 	// Verify the check has a name.
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing check name")
 		return nil, nil
 	}
 
 	if args.Status != "" && !structs.ValidStatus(args.Status) {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Bad check status")
 		return nil, nil
 	}
@@ -276,7 +276,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	// Verify the check type.
 	chkType := args.CheckType()
 	if !chkType.Valid() {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, invalidCheckMessage)
 		return nil, nil
 	}
@@ -384,13 +384,13 @@ type checkUpdate struct {
 // APIs.
 func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
 	var update checkUpdate
 	if err := decodeBody(req, &update, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
@@ -400,7 +400,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	case api.HealthWarning:
 	case api.HealthCritical:
 	default:
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)
 		return nil, nil
 	}
@@ -457,14 +457,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
 
 	// Verify the service has a name.
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
@@ -472,7 +472,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Check the service address here and in the catalog RPC endpoint
 	// since service registration isn't sychronous.
 	if ipaddr.IsAny(args.Address) {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid service address")
 		return nil, nil
 	}
@@ -484,12 +484,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	chkTypes := args.CheckTypes()
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
 			return nil, nil
 		}
 		if !check.Valid() {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, invalidCheckMessage)
 			return nil, nil
 		}
@@ -530,14 +530,14 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only PUT supported
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
 	// Ensure we have a service ID
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
 	if serviceID == "" {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service ID")
 		return nil, nil
 	}
@@ -545,7 +545,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing value for enable")
 		return nil, nil
 	}
@@ -553,7 +553,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
 		return nil, nil
 	}
@@ -568,13 +568,13 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	if enable {
 		reason := params.Get("reason")
 		if err = s.agent.EnableServiceMaintenance(serviceID, reason, token); err != nil {
-			resp.WriteHeader(http.StatusNotFound) // 404
+			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
-			resp.WriteHeader(http.StatusNotFound) // 404
+			resp.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
@@ -586,14 +586,14 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only PUT supported
 	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
 	// Ensure we have some action
 	params := req.URL.Query()
 	if _, ok := params["enable"]; !ok {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing value for enable")
 		return nil, nil
 	}
@@ -601,7 +601,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	raw := params.Get("enable")
 	enable, err := strconv.ParseBool(raw)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid value for enable: %q", raw)
 		return nil, nil
 	}
@@ -629,7 +629,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Only GET supported.
 	if req.Method != "GET" {
-		resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+		resp.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, nil
 	}
 
@@ -657,7 +657,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	filter := logger.LevelFilter()
 	filter.MinLevel = logutils.LogLevel(logLevel)
 	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Unknown log level: %s", filter.MinLevel)
 		return nil, nil
 	}

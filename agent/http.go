@@ -207,7 +207,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
 			s.agent.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
-			resp.WriteHeader(http.StatusInternalServerError) // 500
+			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		logURL := req.URL.String()
@@ -234,10 +234,10 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
 			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
-				resp.WriteHeader(http.StatusForbidden) // 403
+				resp.WriteHeader(http.StatusForbidden)
 				fmt.Fprint(resp, err.Error())
 			default:
-				resp.WriteHeader(http.StatusInternalServerError) // 500
+				resp.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(resp, err.Error())
 			}
 		}
@@ -294,7 +294,7 @@ func (s *HTTPServer) IsUIEnabled() bool {
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
-		resp.WriteHeader(http.StatusNotFound) // 404
+		resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -378,7 +378,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Invalid wait time")
 			return true
 		}
@@ -387,7 +387,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if idx := query.Get("index"); idx != "" {
 		index, err := strconv.ParseUint(idx, 10, 64)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Invalid index")
 			return true
 		}
@@ -407,7 +407,7 @@ func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.Qu
 		b.RequireConsistent = true
 	}
 	if b.AllowStale && b.RequireConsistent {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
 		return true
 	}
