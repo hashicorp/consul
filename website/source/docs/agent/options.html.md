@@ -400,8 +400,8 @@ will exit with an error at startup.
 
 * <a name="_retry_join_wan"></a><a href="#_retry_join_wan">`-retry-join-wan`</a> - Similar
   to [`retry-join`](#_retry_join) but allows retrying a wan join if the first attempt fails.
-  This is useful for cases where we know the address will become
-  available eventually.
+  This is useful for cases where we know the address will become available eventually. 
+  As of Consul 0.9.3 [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
 
 * <a name="_retry_interval_wan"></a><a href="#_retry_interval_wan">`-retry-interval-wan`</a> - Time
   to wait between [`-join-wan`](#_join_wan) attempts.
