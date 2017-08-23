@@ -17,10 +17,10 @@ The following cloud providers have implementations in the go-discover/provider
 sub packages. Additional providers can be added through the [Register](https://godoc.org/github.com/hashicorp/go-discover#Register)
 function.
 
- * Amazon AWS [Config options](http://godoc.org/github.com/hashicorp/go-discover/aws)
- * Google Cloud [Config options](http://godoc.org/github.com/hashicorp/go-discover/gce)
- * Microsoft Azure [Config options](http://godoc.org/github.com/hashicorp/go-discover/azure)
- * SoftLayer [Config options](http://godoc.org/github.com/hashicorp/go-discover/softlayer)
+ * Amazon AWS [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/aws)
+ * Google Cloud [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/gce)
+ * Microsoft Azure [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/azure)
+ * SoftLayer [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/softlayer)
 
 ### Config Example
 
