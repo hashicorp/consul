@@ -1,11 +1,9 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -16,19 +14,6 @@ import (
 
 // These must be kept in sync with the constants in command/agent/acl.go.
 const (
-	// aclNotFound indicates there is no matching ACL.
-	aclNotFound = "ACL not found"
-
-	// rootDenied is returned when attempting to resolve a root ACL.
-	rootDenied = "Cannot resolve root ACL"
-
-	// permissionDenied is returned when an ACL based rejection happens.
-	permissionDenied = "Permission denied"
-
-	// aclDisabled is returned when ACL changes are not permitted since they
-	// are disabled.
-	aclDisabled = "ACL support disabled"
-
 	// anonymousToken is the token ID we re-write to if there is no token ID
 	// provided.
 	anonymousToken = "anonymous"
@@ -40,8 +25,6 @@ const (
 	// Maximum number of cached ACL entries.
 	aclCacheSize = 10 * 1024
 )
-
-var errPermissionDenied = errors.New(permissionDenied)
 
 // aclCacheEntry is used to cache non-authoritative ACLs
 // If non-authoritative, then we must respect a TTL
@@ -60,22 +43,22 @@ func (s *Server) aclLocalFault(id string) (string, string, error) {
 
 	// Query the state store.
 	state := s.fsm.State()
-	_, acl, err := state.ACLGet(nil, id)
+	_, rule, err := state.ACLGet(nil, id)
 	if err != nil {
 		return "", "", err
 	}
-	if acl == nil {
-		return "", "", errors.New(aclNotFound)
+	if rule == nil {
+		return "", "", acl.ErrNotFound
 	}
 
 	// Management tokens have no policy and inherit from the 'manage' root
 	// policy.
-	if acl.Type == structs.ACLTypeManagement {
+	if rule.Type == structs.ACLTypeManagement {
 		return "manage", "", nil
 	}
 
 	// Otherwise use the default policy.
-	return s.config.ACLDefaultPolicy, acl.Rules, nil
+	return s.config.ACLDefaultPolicy, rule.Rules, nil
 }
 
 // resolveToken is the primary interface used by ACL-checkers (such as an
@@ -95,7 +78,7 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	if len(id) == 0 {
 		id = anonymousToken
 	} else if acl.RootACL(id) != nil {
-		return nil, errors.New(rootDenied)
+		return nil, acl.ErrRootDenied
 	}
 
 	// Check if we are the ACL datacenter and the leader, use the
@@ -189,8 +172,8 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Check for not-found, which will cause us to bail immediately. For any
 	// other error we report it in the logs but can continue.
-	if strings.Contains(err.Error(), aclNotFound) {
-		return nil, errors.New(aclNotFound)
+	if acl.IsErrNotFound(err) {
+		return nil, acl.ErrNotFound
 	}
 	c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 
@@ -656,10 +639,10 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 // address this race better (even then it would be super rare, and would at
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
-func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
+func vetRegisterWithACL(rule acl.ACL, subj *structs.RegisterRequest,
 	ns *structs.NodeServices) error {
 	// Fast path if ACLs are not enabled.
-	if acl == nil {
+	if rule == nil {
 		return nil
 	}
 
@@ -667,22 +650,22 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
 	// node info for each request without having to have node "write"
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
-	if needsNode && !acl.NodeWrite(subj.Node) {
-		return errPermissionDenied
+	if needsNode && !rule.NodeWrite(subj.Node) {
+		return acl.ErrPermissionDenied
 	}
 
 	// Vet the service change. This includes making sure they can register
 	// the given service, and that we can write to any existing service that
 	// is being modified by id (if any).
 	if subj.Service != nil {
-		if !acl.ServiceWrite(subj.Service.Service) {
-			return errPermissionDenied
+		if !rule.ServiceWrite(subj.Service.Service) {
+			return acl.ErrPermissionDenied
 		}
 
 		if ns != nil {
 			other, ok := ns.Services[subj.Service.ID]
-			if ok && !acl.ServiceWrite(other.Service) {
-				return errPermissionDenied
+			if ok && !rule.ServiceWrite(other.Service) {
+				return acl.ErrPermissionDenied
 			}
 		}
 	}
@@ -710,8 +693,8 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if !acl.NodeWrite(subj.Node) {
-				return errPermissionDenied
+			if !rule.NodeWrite(subj.Node) {
+				return acl.ErrPermissionDenied
 			}
 			continue
 		}
@@ -735,8 +718,8 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
 			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
 		}
 
-		if !acl.ServiceWrite(other.Service) {
-			return errPermissionDenied
+		if !rule.ServiceWrite(other.Service) {
+			return acl.ErrPermissionDenied
 		}
 	}
 
@@ -748,10 +731,10 @@ func vetRegisterWithACL(acl acl.ACL, subj *structs.RegisterRequest,
 // dynamic, this is a pretty complex algorithm and was worth breaking out of the
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
-func vetDeregisterWithACL(acl acl.ACL, subj *structs.DeregisterRequest,
+func vetDeregisterWithACL(rule acl.ACL, subj *structs.DeregisterRequest,
 	ns *structs.NodeService, nc *structs.HealthCheck) error {
 	// Fast path if ACLs are not enabled.
-	if acl == nil {
+	if rule == nil {
 		return nil
 	}
 
@@ -762,25 +745,25 @@ func vetDeregisterWithACL(acl acl.ACL, subj *structs.DeregisterRequest,
 		if ns == nil {
 			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
 		}
-		if !acl.ServiceWrite(ns.Service) {
-			return errPermissionDenied
+		if !rule.ServiceWrite(ns.Service) {
+			return acl.ErrPermissionDenied
 		}
 	} else if subj.CheckID != "" {
 		if nc == nil {
 			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
 		}
 		if nc.ServiceID != "" {
-			if !acl.ServiceWrite(nc.ServiceName) {
-				return errPermissionDenied
+			if !rule.ServiceWrite(nc.ServiceName) {
+				return acl.ErrPermissionDenied
 			}
 		} else {
-			if !acl.NodeWrite(subj.Node) {
-				return errPermissionDenied
+			if !rule.NodeWrite(subj.Node) {
+				return acl.ErrPermissionDenied
 			}
 		}
 	} else {
-		if !acl.NodeWrite(subj.Node) {
-			return errPermissionDenied
+		if !rule.NodeWrite(subj.Node) {
+			return acl.ErrPermissionDenied
 		}
 	}
 

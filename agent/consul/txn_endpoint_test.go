@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
@@ -314,7 +315,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    errPermissionDenied.Error(),
+				What:    acl.ErrPermissionDenied.Error(),
 			})
 		}
 	}
@@ -578,7 +579,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    errPermissionDenied.Error(),
+				What:    acl.ErrPermissionDenied.Error(),
 			})
 		}
 	}

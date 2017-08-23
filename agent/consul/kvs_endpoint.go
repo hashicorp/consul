@@ -20,18 +20,18 @@ type KVS struct {
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func kvsPreApply(srv *Server, acl acl.ACL, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(srv *Server, rule acl.ACL, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")
 	}
 
 	// Apply the ACL policy if any.
-	if acl != nil {
+	if rule != nil {
 		switch op {
 		case api.KVDeleteTree:
-			if !acl.KeyWritePrefix(dirEnt.Key) {
-				return false, errPermissionDenied
+			if !rule.KeyWritePrefix(dirEnt.Key) {
+				return false, acl.ErrPermissionDenied
 			}
 
 		case api.KVGet, api.KVGetTree:
@@ -41,13 +41,13 @@ func kvsPreApply(srv *Server, acl acl.ACL, op api.KVOp, dirEnt *structs.DirEntry
 			// These could reveal information based on the outcome
 			// of the transaction, and they operate on individual
 			// keys so we check them here.
-			if !acl.KeyRead(dirEnt.Key) {
-				return false, errPermissionDenied
+			if !rule.KeyRead(dirEnt.Key) {
+				return false, acl.ErrPermissionDenied
 			}
 
 		default:
-			if !acl.KeyWrite(dirEnt.Key) {
-				return false, errPermissionDenied
+			if !rule.KeyWrite(dirEnt.Key) {
+				return false, acl.ErrPermissionDenied
 			}
 		}
 	}

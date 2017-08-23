@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -13,12 +14,12 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	}
 
 	// This action requires operator read access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorRead() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorRead() {
+		return acl.ErrPermissionDenied
 	}
 
 	state := op.srv.fsm.State()
@@ -42,12 +43,12 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// This action requires operator write access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorWrite() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Apply the update
@@ -78,12 +79,12 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	}
 
 	// This action requires operator read access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorRead() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorRead() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Exit early if the min Raft version is too low

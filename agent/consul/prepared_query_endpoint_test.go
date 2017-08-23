@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
@@ -235,7 +236,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// Creating without a token should fail since the default policy is to
 	// deny.
 	err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -278,7 +279,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Op = structs.PreparedQueryUpdate
 	query.WriteRequest.Token = ""
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -292,7 +293,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Op = structs.PreparedQueryDelete
 	query.WriteRequest.Token = ""
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -458,7 +459,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Query.Name = "redis"
 	query.WriteRequest.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 }
@@ -678,7 +679,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	// Creating without a token should fail since the default policy is to
 	// deny.
 	err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -725,7 +726,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("bad: %v", err)
 		}
 
@@ -784,7 +785,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 		}
 		var resp structs.PreparedQueryExplainResponse
 		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("bad: %v", err)
 		}
 	}
@@ -924,7 +925,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("bad: %v", err)
 		}
 
@@ -1405,7 +1406,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		}
 		var resp structs.PreparedQueryExplainResponse
 		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		if !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("bad: %v", err)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -173,7 +174,7 @@ func TestACL_Clone(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id, nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ACLClone(resp, req)
-	if !isPermissionDenied(err) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 

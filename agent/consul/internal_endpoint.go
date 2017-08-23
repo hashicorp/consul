@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -68,14 +69,14 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	acl, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	if acl != nil && !acl.EventWrite(args.Name) {
+	if rule != nil && !rule.EventWrite(args.Name) {
 		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
-		return errPermissionDenied
+		return acl.ErrPermissionDenied
 	}
 
 	// Set the query meta data
@@ -94,14 +95,14 @@ func (m *Internal) KeyringOperation(
 	reply *structs.KeyringResponses) error {
 
 	// Check ACLs
-	acl, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil {
+	if rule != nil {
 		switch args.Operation {
 		case structs.KeyringList:
-			if !acl.KeyringRead() {
+			if !rule.KeyringRead() {
 				return fmt.Errorf("Reading keyring denied by ACLs")
 			}
 		case structs.KeyringInstall:
@@ -109,7 +110,7 @@ func (m *Internal) KeyringOperation(
 		case structs.KeyringUse:
 			fallthrough
 		case structs.KeyringRemove:
-			if !acl.KeyringWrite() {
+			if !rule.KeyringWrite() {
 				return fmt.Errorf("Modifying keyring denied due to ACLs")
 			}
 		default:

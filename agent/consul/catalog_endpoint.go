@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -36,7 +37,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Fetch the ACL token, if any.
-	acl, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -65,8 +66,8 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// later if version 0.8 is enabled, so we can eventually just
 		// delete this and do all the ACL checks down there.
 		if args.Service.Service != structs.ConsulServiceName {
-			if acl != nil && !acl.ServiceWrite(args.Service.Service) {
-				return errPermissionDenied
+			if rule != nil && !rule.ServiceWrite(args.Service.Service) {
+				return acl.ErrPermissionDenied
 			}
 		}
 	}
@@ -86,13 +87,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+	if rule != nil && c.srv.config.ACLEnforceVersion8 {
 		state := c.srv.fsm.State()
 		_, ns, err := state.NodeServices(nil, args.Node)
 		if err != nil {
 			return fmt.Errorf("Node lookup failed: %v", err)
 		}
-		if err := vetRegisterWithACL(acl, args, ns); err != nil {
+		if err := vetRegisterWithACL(rule, args, ns); err != nil {
 			return err
 		}
 	}
@@ -120,13 +121,13 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Fetch the ACL token, if any.
-	acl, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
 	// Check the complete deregister request against the given ACL policy.
-	if acl != nil && c.srv.config.ACLEnforceVersion8 {
+	if rule != nil && c.srv.config.ACLEnforceVersion8 {
 		state := c.srv.fsm.State()
 
 		var ns *structs.NodeService
@@ -145,7 +146,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 			}
 		}
 
-		if err := vetDeregisterWithACL(acl, args, ns, nc); err != nil {
+		if err := vetDeregisterWithACL(rule, args, ns, nc); err != nil {
 			return err
 		}
 	}

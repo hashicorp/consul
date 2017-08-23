@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -37,7 +38,7 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
 			resp.WriteHeader(http.StatusForbidden)
-			fmt.Fprintf(resp, "Permission denied: %v", err)
+			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
 			return nil, nil
 		} else {
 			return nil, err
@@ -158,7 +159,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	// Bail if the ACL is not found, this could be a 404 or a 403, so
 	// always just return a 403.
 	if len(out.ACLs) == 0 {
-		return nil, errPermissionDenied
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Create a new ACL

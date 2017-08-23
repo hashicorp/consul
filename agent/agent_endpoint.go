@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -37,12 +38,12 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	return Self{
@@ -58,12 +59,12 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	return s.agent.MemSink.DisplayMetrics(resp, req)
@@ -78,12 +79,12 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Trigger the reload
@@ -170,12 +171,12 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Check if the WAN is being queried
@@ -203,12 +204,12 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	if err := s.agent.Leave(); err != nil {
@@ -221,12 +222,12 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
@@ -608,12 +609,12 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.NodeWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.NodeWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	if enable {
@@ -635,12 +636,12 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentRead(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Get the provided loglevel.
@@ -723,12 +724,12 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	rule, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
-	if acl != nil && !acl.AgentWrite(s.agent.config.NodeName) {
-		return nil, errPermissionDenied
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// The body is just the token, but it's in a JSON object so we can add

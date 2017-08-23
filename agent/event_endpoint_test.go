@@ -2,13 +2,14 @@ package agent
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 )
@@ -96,14 +97,14 @@ func TestEventFire_token(t *testing.T) {
 		// Check the result
 		body := resp.Body.String()
 		if c.allowed {
-			if strings.Contains(body, permissionDenied) {
+			if acl.IsErrPermissionDenied(errors.New(body)) {
 				t.Fatalf("bad: %s", body)
 			}
 			if resp.Code != 200 {
 				t.Fatalf("bad: %d", resp.Code)
 			}
 		} else {
-			if !strings.Contains(body, permissionDenied) {
+			if !acl.IsErrPermissionDenied(errors.New(body)) {
 				t.Fatalf("bad: %s", body)
 			}
 			if resp.Code != 403 {

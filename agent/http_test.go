@@ -646,10 +646,6 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 	return uint64(val)
 }
 
-func isPermissionDenied(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
-}
-
 func jsonReader(v interface{}) io.Reader {
 	if v == nil {
 		return nil

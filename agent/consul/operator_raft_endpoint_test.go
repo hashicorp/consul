@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
@@ -76,7 +77,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	}
 	var reply structs.RaftConfigurationResponse
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftGetConfiguration", &arg, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -213,7 +214,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	}
 	var reply struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftRemovePeerByAddress", &arg, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -331,7 +332,7 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 	}
 	var reply struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftRemovePeerByID", &arg, &reply)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 

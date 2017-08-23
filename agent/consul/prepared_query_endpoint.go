@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -59,7 +60,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	*reply = args.Query.ID
 
 	// Get the ACL token for the request for the checks below.
-	acl, err := p.srv.resolveToken(args.Token)
+	rule, err := p.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -68,9 +69,9 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if acl != nil && !acl.PreparedQueryWrite(prefix) {
+		if rule != nil && !rule.PreparedQueryWrite(prefix) {
 			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
-			return errPermissionDenied
+			return acl.ErrPermissionDenied
 		}
 	}
 
@@ -88,9 +89,9 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if acl != nil && !acl.PreparedQueryWrite(prefix) {
+			if rule != nil && !rule.PreparedQueryWrite(prefix) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
-				return errPermissionDenied
+				return acl.ErrPermissionDenied
 			}
 		}
 	}
@@ -249,7 +250,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			// then alert the user with a permission denied error.
 			if len(reply.Queries) == 0 {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied due to ACLs", args.QueryID)
-				return errPermissionDenied
+				return acl.ErrPermissionDenied
 			}
 
 			return nil
@@ -317,7 +318,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	// If the query was filtered out, return an error.
 	if len(queries.Queries) == 0 {
 		p.srv.logger.Printf("[WARN] consul.prepared_query: Explain on prepared query '%s' denied due to ACLs", query.ID)
-		return errPermissionDenied
+		return acl.ErrPermissionDenied
 	}
 
 	reply.Query = *(queries.Queries[0])
