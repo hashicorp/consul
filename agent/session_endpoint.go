@@ -159,7 +159,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
-		resp.WriteHeader(404)
+		resp.WriteHeader(http.StatusNotFound) // 404
 		fmt.Fprintf(resp, "Session id '%s' not found", args.Session)
 		return nil, nil
 	}

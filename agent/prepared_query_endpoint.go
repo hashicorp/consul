@@ -111,7 +111,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
-			resp.WriteHeader(404)
+			resp.WriteHeader(http.StatusNotFound) // 404
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
@@ -155,7 +155,7 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
-			resp.WriteHeader(404)
+			resp.WriteHeader(http.StatusNotFound) // 404
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
@@ -178,7 +178,7 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if err.Error() == consul.ErrQueryNotFound.Error() {
-			resp.WriteHeader(404)
+			resp.WriteHeader(http.StatusNotFound) // 404
 			fmt.Fprint(resp, err.Error())
 			return nil, nil
 		}
