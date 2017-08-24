@@ -133,88 +133,13 @@ var dnsTestCases = map[string](test.Case){
 	},
 }
 
-var podModeDisabledCases = map[string](test.Case){
-
-	"A Record Pod mode = Case 1": {
-		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Error:  errPodsDisabled,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
-		},
-	},
-
-	"A Record Pod mode = Case 2": {
-		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Error:  errPodsDisabled,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
-		},
-	},
-}
-
-var podModeInsecureCases = map[string](test.Case){
-
-	"A Record Pod mode = Case 1": {
-		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
-		},
-	},
-
-	"A Record Pod mode = Case 2": {
-		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("172-0-0-2.podns.pod.cluster.local.	0	IN	A	172.0.0.2"),
-		},
-	},
-}
-
-var podModeVerifiedCases = map[string](test.Case){
-
-	"A Record Pod mode = Case 1": {
-		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
-		},
-	},
-
-	"A Record Pod mode = Case 2": {
-		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
-		},
-	},
-}
-
 func TestServeDNS(t *testing.T) {
 
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
-
 	ctx := context.TODO()
-	runServeDNSTests(ctx, t, dnsTestCases, k)
 
-	k.podMode = podModeDisabled
-	runServeDNSTests(ctx, t, podModeDisabledCases, k)
-
-	k.podMode = podModeInsecure
-	runServeDNSTests(ctx, t, podModeInsecureCases, k)
-
-	k.podMode = podModeVerified
-	runServeDNSTests(ctx, t, podModeVerifiedCases, k)
-}
-
-func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string](test.Case), k *Kubernetes) {
 	for testname, tc := range dnsTestCases {
 		r := tc.Msg()
 
