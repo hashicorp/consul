@@ -660,52 +660,34 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 }
 
-func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
-	server, err := CoreDNSServer(corefile)
+func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
+	server, udp, _, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
-
-	udp, _ := CoreDNSServerPorts(server, 0)
-	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
-	}
-
-	return server, udp
-}
-
-func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
-	server, udp := createTestServer(t, corefile)
 	defer server.Stop()
 
-	// Work-around for timing condition that results in no-data being returned in
-	// test environment.
+	// Work-around for timing condition that results in no-data being returned in test environment.
 	time.Sleep(3 * time.Second)
 
 	for _, tc := range testCases {
 
-		dnsClient := new(dns.Client)
-		dnsMessage := new(dns.Msg)
+		c := new(dns.Client)
+		m := tc.Msg()
 
-		dnsMessage.SetQuestion(tc.Qname, tc.Qtype)
-
-		res, _, err := dnsClient.Exchange(dnsMessage, udp)
+		res, _, err := c.Exchange(m, udp)
 		if err != nil {
 			t.Fatalf("Could not send query: %s", err)
 		}
 
-		// Before sorting, make sure that CNAMES do not appear after their target records
+		// Before sorting, make sure that CNAMES do not appear after their target records and then sort the tc.
 		test.CNAMEOrder(t, res)
-
-		// Sorting the test cases to check with the response
 		sort.Sort(test.RRSet(tc.Answer))
 		sort.Sort(test.RRSet(tc.Ns))
 		sort.Sort(test.RRSet(tc.Extra))
 
 		test.SortAndCheck(t, res, tc)
-
 	}
-
 }
 
 func createUpstreamServer(t *testing.T) (func(), *caddy.Instance, string) {
@@ -719,7 +701,10 @@ func createUpstreamServer(t *testing.T) (func(), *caddy.Instance, string) {
 		drop 0
 	}
 	`
-	server, udp := createTestServer(t, upstreamServerCorefile)
+	server, udp, _, err := CoreDNSServerAndPorts(upstreamServerCorefile)
+	if err != nil {
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
+	}
 	return rmfile, server, udp
 }
 
