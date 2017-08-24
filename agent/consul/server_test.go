@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 )
 
 func getPort() int {
@@ -444,6 +445,59 @@ func TestServer_Leave(t *testing.T) {
 		r.Check(wantPeers(s1, 1))
 		r.Check(wantPeers(s2, 1))
 	})
+}
+
+func TestServer_LeaveWAN(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s1 WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.router.GetDatacenters()), 2; got != want {
+			r.Fatalf("got %d routes want %d", got, want)
+		}
+		if got, want := len(s2.router.GetDatacenters()), 2; got != want {
+			r.Fatalf("got %d datacenters want %d", got, want)
+		}
+	})
+
+	// Now make s2 leave
+	if err := s2.LeaveWAN(); err != nil {
+		t.Fatalf("Unexpected error when leaving WAN: %v", err)
+	}
+
+	members := s1.WANMembers()
+	var leftMembers []string
+	var aliveMembers []string
+
+	for _, mem := range members {
+		if mem.Status == serf.StatusAlive {
+			aliveMembers = append(aliveMembers, mem.Name)
+		} else if mem.Status == serf.StatusLeft {
+			leftMembers = append(leftMembers, mem.Name)
+		}
+	}
+
+	if len(leftMembers) != 1 || len(aliveMembers) != 1 {
+		t.Fatalf("Expected one member to have left, got alive members:%v and left members:%v ", aliveMembers, leftMembers)
+	}
 }
 
 func TestServer_RPC(t *testing.T) {

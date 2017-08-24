@@ -467,6 +467,65 @@ func TestAgent_Join_WAN(t *testing.T) {
 	})
 }
 
+func TestAgent_Leave_WAN(t *testing.T) {
+	t.Parallel()
+	a1 := NewTestAgent(t.Name(), nil)
+	defer a1.Shutdown()
+	cfg := TestConfig()
+	cfg.Datacenter = "dc2"
+	a2 := NewTestAgent(t.Name(), cfg)
+	defer a2.Shutdown()
+
+	// first join the two agents together
+
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfWan)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s?wan=true", addr), nil)
+	obj, err := a1.srv.AgentJoin(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("Err: %v", obj)
+	}
+
+	if len(a1.WANMembers()) != 2 {
+		t.Fatalf("should have 2 members")
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
+
+	//test leave wan http end point
+	req, _ = http.NewRequest("PUT", "/v1/agent/leave-wan", nil)
+	obj, err = a2.srv.AgentLeaveWAN(nil, req)
+	if err != nil {
+		t.Fatalf("Unexpected Err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("Unexpected response: %v", obj)
+	}
+
+	members := a1.WANMembers()
+	var leftMembers []string
+	var aliveMembers []string
+
+	for _, mem := range members {
+		if mem.Status == serf.StatusAlive {
+			aliveMembers = append(aliveMembers, mem.Name)
+		} else if mem.Status == serf.StatusLeft {
+			leftMembers = append(leftMembers, mem.Name)
+		}
+	}
+
+	if len(leftMembers) != 1 || len(aliveMembers) != 1 {
+		t.Fatalf("Expected one member to have left, got alive members:%v and left members:%v ", aliveMembers, leftMembers)
+	}
+
+}
+
 func TestAgent_Join_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t.Name(), TestACLConfig())
