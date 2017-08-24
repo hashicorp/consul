@@ -20,12 +20,10 @@ func TestGrpc(t *testing.T) {
 		whoami
 }
 `
-	g, err := CoreDNSServer(corefile)
+	g, _, tcp, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
-
-	_, tcp := CoreDNSServerPorts(g, 0)
 	defer g.Stop()
 
 	conn, err := grpc.Dial(tcp, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(5*time.Second))

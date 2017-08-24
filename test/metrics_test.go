@@ -45,13 +45,11 @@ func TestMetricsRefused(t *testing.T) {
 	prometheus localhost:0
 }
 `
-	srv, err := CoreDNSServer(corefile)
+	srv, udp, _, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer srv.Stop()
-
-	udp, _ := CoreDNSServerPorts(srv, 0)
 
 	m := new(dns.Msg)
 	m.SetQuestion("google.com.", dns.TypeA)

@@ -22,14 +22,9 @@ func TestProxyErratic(t *testing.T) {
 	}
 `
 
-	backend, err := CoreDNSServer(corefile)
+	backend, udp, _, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
-	}
-
-	udp, _ := CoreDNSServerPorts(backend, 0)
-	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
 	}
 	defer backend.Stop()
 

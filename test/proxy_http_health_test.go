@@ -51,14 +51,9 @@ func TestProxyWithHTTPCheckOK(t *testing.T) {
 }
 `
 
-	authoritativeInstance, err := CoreDNSServer(authoritativeCorefile)
+	authoritativeInstance, authoritativeAddr, _, err := CoreDNSServerAndPorts(authoritativeCorefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS authoritative instance: %s", err)
-	}
-
-	authoritativeAddr, _ := CoreDNSServerPorts(authoritativeInstance, 0)
-	if authoritativeAddr == "" {
-		t.Fatalf("Could not get CoreDNS authoritative instance UDP listening port")
 	}
 	defer authoritativeInstance.Stop()
 
@@ -70,14 +65,9 @@ func TestProxyWithHTTPCheckOK(t *testing.T) {
 }
 `
 
-	proxyInstance, err := CoreDNSServer(proxyCorefile)
+	proxyInstance, proxyAddr, _, err := CoreDNSServerAndPorts(proxyCorefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS proxy instance: %s", err)
-	}
-
-	proxyAddr, _ := CoreDNSServerPorts(proxyInstance, 0)
-	if proxyAddr == "" {
-		t.Fatalf("Could not get CoreDNS proxy instance UDP listening port")
 	}
 	defer proxyInstance.Stop()
 

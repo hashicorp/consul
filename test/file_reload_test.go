@@ -32,14 +32,9 @@ example.net:0 {
 	file ` + name + `
 }
 `
-	i, err := CoreDNSServer(corefile)
+	i, udp, _, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
-	}
-
-	udp, _ := CoreDNSServerPorts(i, 0)
-	if udp == "" {
-		t.Fatalf("Could not get UDP listening port")
 	}
 	defer i.Stop()
 

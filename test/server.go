@@ -48,6 +48,17 @@ func CoreDNSServerPorts(i *caddy.Instance, k int) (udp, tcp string) {
 	return
 }
 
+// CoreDNSServerAndPorts combines CoreDNSServer and CoreDNSServerPorts to start a CoreDNS
+// server and returns the udp and tcp ports of the first instance.
+func CoreDNSServerAndPorts(corefile string) (i *caddy.Instance, udp, tcp string, err error) {
+	i, err = CoreDNSServer(corefile)
+	if err != nil {
+		return nil, "", "", err
+	}
+	udp, tcp = CoreDNSServerPorts(i, 0)
+	return i, udp, tcp, nil
+}
+
 // Input implements the caddy.Input interface and acts as an easy way to use a string as a Corefile.
 type Input struct {
 	corefile []byte
