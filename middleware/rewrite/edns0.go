@@ -2,11 +2,14 @@
 package rewrite
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
+	"github.com/coredns/coredns/request"
 	"github.com/miekg/dns"
 )
 
@@ -15,6 +18,13 @@ type edns0LocalRule struct {
 	action string
 	code   uint16
 	data   []byte
+}
+
+// edns0VariableRule is a rewrite rule for EDNS0_LOCAL options with variable
+type edns0VariableRule struct {
+	action   string
+	code     uint16
+	variable string
 }
 
 // ends0NsidRule is a rewrite rule for EDNS0_NSID options
@@ -33,7 +43,7 @@ func setupEdns0Opt(r *dns.Msg) *dns.OPT {
 }
 
 // Rewrite will alter the request EDNS0 NSID option
-func (rule *edns0NsidRule) Rewrite(r *dns.Msg) Result {
+func (rule *edns0NsidRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	result := RewriteIgnored
 	o := setupEdns0Opt(r)
 	found := false
@@ -61,7 +71,7 @@ Option:
 }
 
 // Rewrite will alter the request EDNS0 local options
-func (rule *edns0LocalRule) Rewrite(r *dns.Msg) Result {
+func (rule *edns0LocalRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	result := RewriteIgnored
 	o := setupEdns0Opt(r)
 	found := false
@@ -113,6 +123,10 @@ func newEdns0Rule(args ...string) (Rule, error) {
 		if len(args) != 4 {
 			return nil, fmt.Errorf("EDNS0 local rules require exactly three args")
 		}
+		//Check for variable option
+		if strings.HasPrefix(args[3], "{") && strings.HasSuffix(args[3], "}") {
+			return newEdns0VariableRule(action, args[2], args[3])
+		}
 		return newEdns0LocalRule(action, args[2], args[3])
 	case "nsid":
 		if len(args) != 2 {
@@ -137,8 +151,157 @@ func newEdns0LocalRule(action, code, data string) (*edns0LocalRule, error) {
 			return nil, err
 		}
 	}
-
 	return &edns0LocalRule{action: action, code: uint16(c), data: decoded}, nil
+}
+
+// newEdns0VariableRule creates an EDNS0 rule that handles variable substitution
+func newEdns0VariableRule(action, code, variable string) (*edns0VariableRule, error) {
+	c, err := strconv.ParseUint(code, 0, 16)
+	if err != nil {
+		return nil, err
+	}
+	//Validate
+	if !isValidVariable(variable) {
+		return nil, fmt.Errorf("unsupported variable name %q", variable)
+	}
+	return &edns0VariableRule{action: action, code: uint16(c), variable: variable}, nil
+}
+
+// ipToWire writes IP address to wire/binary format, 4 or 16 bytes depends on IPV4 or IPV6.
+func (rule *edns0VariableRule) ipToWire(family int, ipAddr string) ([]byte, error) {
+
+	switch family {
+	case 1:
+		return net.ParseIP(ipAddr).To4(), nil
+	case 2:
+		return net.ParseIP(ipAddr).To16(), nil
+	}
+	return nil, fmt.Errorf("Invalid IP address family (i.e. version) %d", family)
+}
+
+// uint16ToWire writes unit16 to wire/binary format
+func (rule *edns0VariableRule) uint16ToWire(data uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(data))
+	return buf
+}
+
+// portToWire writes port to wire/binary format, 2 bytes
+func (rule *edns0VariableRule) portToWire(portStr string) ([]byte, error) {
+
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+	return rule.uint16ToWire(uint16(port)), nil
+}
+
+// Family returns the family of the transport, 1 for IPv4 and 2 for IPv6.
+func (rule *edns0VariableRule) family(ip net.Addr) int {
+	var a net.IP
+	if i, ok := ip.(*net.UDPAddr); ok {
+		a = i.IP
+	}
+	if i, ok := ip.(*net.TCPAddr); ok {
+		a = i.IP
+	}
+	if a.To4() != nil {
+		return 1
+	}
+	return 2
+}
+
+// ruleData returns the data specified by the variable
+func (rule *edns0VariableRule) ruleData(w dns.ResponseWriter, r *dns.Msg) ([]byte, error) {
+
+	req := request.Request{W: w, Req: r}
+	switch rule.variable {
+	case queryName:
+		//Query name is written as ascii string
+		return []byte(req.QName()), nil
+
+	case queryType:
+		return rule.uint16ToWire(req.QType()), nil
+
+	case clientIP:
+		return rule.ipToWire(req.Family(), req.IP())
+
+	case clientPort:
+		return rule.portToWire(req.Port())
+
+	case protocol:
+		// Proto is written as ascii string
+		return []byte(req.Proto()), nil
+
+	case serverIP:
+		serverIp, _, err := net.SplitHostPort(w.LocalAddr().String())
+		if err != nil {
+			serverIp = w.RemoteAddr().String()
+		}
+		return rule.ipToWire(rule.family(w.RemoteAddr()), serverIp)
+
+	case serverPort:
+		_, port, err := net.SplitHostPort(w.LocalAddr().String())
+		if err != nil {
+			port = "0"
+		}
+		return rule.portToWire(port)
+	}
+
+	return nil, fmt.Errorf("Unable to extract data for variable %s", rule.variable)
+}
+
+// Rewrite will alter the request EDNS0 local options with specified variables
+func (rule *edns0VariableRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+	result := RewriteIgnored
+
+	data, err := rule.ruleData(w, r)
+	if err != nil || data == nil {
+		return result
+	}
+
+	o := setupEdns0Opt(r)
+	found := false
+	for _, s := range o.Option {
+		switch e := s.(type) {
+		case *dns.EDNS0_LOCAL:
+			if rule.code == e.Code {
+				if rule.action == Replace || rule.action == Set {
+					e.Data = data
+					result = RewriteDone
+				}
+				found = true
+				break
+			}
+		}
+	}
+
+	// add option if not found
+	if !found && (rule.action == Append || rule.action == Set) {
+		o.SetDo()
+		var opt dns.EDNS0_LOCAL
+		opt.Code = rule.code
+		opt.Data = data
+		o.Option = append(o.Option, &opt)
+		result = RewriteDone
+	}
+
+	return result
+}
+
+func isValidVariable(variable string) bool {
+	switch variable {
+	case
+		queryName,
+		queryType,
+		clientIP,
+		clientPort,
+		protocol,
+		serverIP,
+		serverPort:
+		return true
+	}
+	return false
 }
 
 // These are all defined actions.
@@ -146,4 +309,15 @@ const (
 	Replace = "replace"
 	Set     = "set"
 	Append  = "append"
+)
+
+// Supported local EDNS0 variables
+const (
+	queryName  = "{qname}"
+	queryType  = "{qtype}"
+	clientIP   = "{client_ip}"
+	clientPort = "{client_port}"
+	protocol   = "{protocol}"
+	serverIP   = "{server_ip}"
+	serverPort = "{server_port}"
 )

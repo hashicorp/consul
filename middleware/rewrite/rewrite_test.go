@@ -57,6 +57,30 @@ func TestNewRule(t *testing.T) {
 		{[]string{"edns0", "nsid", "append"}, false, reflect.TypeOf(&edns0NsidRule{})},
 		{[]string{"edns0", "nsid", "replace"}, false, reflect.TypeOf(&edns0NsidRule{})},
 		{[]string{"edns0", "nsid", "foo"}, true, nil},
+		{[]string{"edns0", "local", "set", "0xffee", "{dummy}"}, true, nil},
+		{[]string{"edns0", "local", "set", "0xffee", "{qname}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{qtype}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{client_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{client_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "set", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{dummy}"}, true, nil},
+		{[]string{"edns0", "local", "append", "0xffee", "{qname}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{qtype}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{client_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{client_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "append", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{dummy}"}, true, nil},
+		{[]string{"edns0", "local", "replace", "0xffee", "{qname}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{qtype}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{client_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{client_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "local", "replace", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
 	}
 
 	for i, tc := range tests {
@@ -284,4 +308,84 @@ func optsEqual(a, b []dns.EDNS0) bool {
 		}
 	}
 	return true
+}
+
+func TestRewriteEDNS0LocalVariable(t *testing.T) {
+	rw := Rewrite{
+		Next:     middleware.HandlerFunc(msgPrinter),
+		noRevert: true,
+	}
+
+	// test.ResponseWriter has the following values:
+	// 		The remote will always be 10.240.0.1 and port 40212.
+	// 		The local address is always 127.0.0.1 and port 53.
+
+	tests := []struct {
+		fromOpts []dns.EDNS0
+		args     []string
+		toOpts   []dns.EDNS0
+	}{
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{qname}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("example.com.")}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{qtype}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x00, 0x01}}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{client_ip}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x0A, 0xF0, 0x00, 0x01}}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{client_port}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x9D, 0x14}}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{protocol}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("udp")}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{server_ip}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x7F, 0x00, 0x00, 0x01}}},
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{server_port}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x00, 0x35}}},
+		},
+	}
+
+	ctx := context.TODO()
+	for i, tc := range tests {
+		m := new(dns.Msg)
+		m.SetQuestion("example.com.", dns.TypeA)
+		m.Question[0].Qclass = dns.ClassINET
+
+		r, err := newEdns0Rule(tc.args...)
+		if err != nil {
+			t.Errorf("Error creating test rule: %s", err)
+			continue
+		}
+		rw.Rules = []Rule{r}
+
+		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rw.ServeDNS(ctx, rec, m)
+
+		resp := rec.Msg
+		o := resp.IsEdns0()
+		if o == nil {
+			t.Errorf("Test %d: EDNS0 options not set", i)
+			continue
+		}
+		if !optsEqual(o.Option, tc.toOpts) {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.toOpts, o)
+		}
+	}
 }

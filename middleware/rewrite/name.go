@@ -15,7 +15,7 @@ func newNameRule(from, to string) (Rule, error) {
 }
 
 // Rewrite rewrites the the current request.
-func (rule *nameRule) Rewrite(r *dns.Msg) Result {
+func (rule *nameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	if rule.From == r.Question[0].Name {
 		r.Question[0].Name = rule.To
 		return RewriteDone

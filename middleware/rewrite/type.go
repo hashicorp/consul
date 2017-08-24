@@ -26,7 +26,7 @@ func newTypeRule(fromS, toS string) (Rule, error) {
 }
 
 // Rewrite rewrites the the current request.
-func (rule *typeRule) Rewrite(r *dns.Msg) Result {
+func (rule *typeRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	if rule.fromType > 0 && rule.toType > 0 {
 		if r.Question[0].Qtype == rule.fromType {
 			r.Question[0].Qtype = rule.toType

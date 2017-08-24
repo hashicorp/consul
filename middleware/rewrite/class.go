@@ -24,7 +24,7 @@ func newClassRule(fromS, toS string) (Rule, error) {
 }
 
 // Rewrite rewrites the the current request.
-func (rule *classRule) Rewrite(r *dns.Msg) Result {
+func (rule *classRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	if rule.fromClass > 0 && rule.toClass > 0 {
 		if r.Question[0].Qclass == rule.fromClass {
 			r.Question[0].Qclass = rule.toClass

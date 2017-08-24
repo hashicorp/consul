@@ -35,7 +35,7 @@ type Rewrite struct {
 func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	wr := NewResponseReverter(w, r)
 	for _, rule := range rw.Rules {
-		switch result := rule.Rewrite(r); result {
+		switch result := rule.Rewrite(w, r); result {
 		case RewriteDone:
 			if rw.noRevert {
 				return middleware.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
@@ -59,7 +59,7 @@ func (rw Rewrite) Name() string { return "rewrite" }
 // Rule describes a rewrite rule.
 type Rule interface {
 	// Rewrite rewrites the current request.
-	Rewrite(*dns.Msg) Result
+	Rewrite(dns.ResponseWriter, *dns.Msg) Result
 }
 
 func newRule(args ...string) (Rule, error) {

@@ -41,8 +41,9 @@ Currently supported are `EDNS0_LOCAL` and `EDNS0_NSID`.
 
 ### `EDNS0_LOCAL`
 
-This has two fields, code and data. A match is defined as having the same code. Data may be a string, or if
-it starts with `0x` it will be treated as hex. Example:
+This has two fields, code and data. A match is defined as having the same code. Data may be a string or a variable.  
+
+* A string data can be treated as hex if it starts with `0x`. Example:
 
 ~~~
 rewrite edns0 local set 0xffee 0x61626364
@@ -52,6 +53,21 @@ rewrites the first local option with code 0xffee, setting the data to "abcd". Eq
 
 ~~~
 rewrite edns0 local set 0xffee abcd
+~~~
+
+* A variable data is specified with a pair of curly brackets `{}`. Following are the supported variables:
+    * {qname}
+    * {qtype}
+    * {client_ip}
+    * {client_port}
+    * {protocol}
+    * {server_ip}
+    * {server_port}
+
+Example:
+
+~~~
+rewrite edns0 local set 0xffee {client_ip}
 ~~~
 
 ### `EDNS0_NSID`
