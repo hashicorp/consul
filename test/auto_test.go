@@ -58,7 +58,7 @@ func TestAuto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(1100 * time.Millisecond) // wait for it to be picked up
+	time.Sleep(1500 * time.Millisecond) // wait for it to be picked up
 
 	resp, err = p.Lookup(state, "www.example.org.", dns.TypeA)
 	if err != nil {
