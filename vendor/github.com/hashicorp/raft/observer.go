@@ -24,6 +24,12 @@ type FilterFn func(o *Observation) bool
 
 // Observer describes what to do with a given observation.
 type Observer struct {
+	// numObserved and numDropped are performance counters for this observer.
+	// 64 bit types must be 64 bit aligned to use with atomic operations on
+	// 32 bit platforms, so keep them at the top of the struct.
+	numObserved uint64
+	numDropped  uint64
+
 	// channel receives observations.
 	channel chan Observation
 
@@ -37,10 +43,6 @@ type Observer struct {
 
 	// id is the ID of this observer in the Raft map.
 	id uint64
-
-	// numObserved and numDropped are performance counters for this observer.
-	numObserved uint64
-	numDropped  uint64
 }
 
 // NewObserver creates a new observer that can be registered
