@@ -1,5 +1,5 @@
 /*
-Autopath package implement autopathing. This is a hack; it shortcuts the
+Package autopath implements autopathing. This is a hack; it shortcuts the
 client's search path resolution by performing these lookups on the server...
 
 The server has a copy (via AutoPathFunc) of the client's search path and on
@@ -21,7 +21,7 @@ through the search path.
 It is assume the search path ordering is identical between server and client.
 
 Midldeware implementing autopath, must have a function called `AutoPath` of type
-AutoPathFunc. Note the searchpath must be ending with the empty string.
+autopath.Func. Note the searchpath must be ending with the empty string.
 
 I.e:
 
@@ -43,10 +43,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-// AutoPathFunc defines the function middleware should implement to return a search
+// Func defines the function middleware should implement to return a search
 // path to the autopath middleware. The last element of the slice must be the empty string.
-// If AutoPathFunc returns a nil slice, no autopathing will be done.
-type AutoPathFunc func(request.Request) []string
+// If Func returns a nil slice, no autopathing will be done.
+type Func func(request.Request) []string
 
 // AutoPath perform autopath: service side search path completion.
 type AutoPath struct {
@@ -55,7 +55,7 @@ type AutoPath struct {
 
 	// Search always includes "" as the last element, so we try the base query with out any search paths added as well.
 	search     []string
-	searchFunc AutoPathFunc
+	searchFunc Func
 }
 
 // ServeDNS implements the middleware.Handle interface.
