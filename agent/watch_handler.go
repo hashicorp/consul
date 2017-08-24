@@ -12,6 +12,9 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-cleanhttp"
+	"net/http"
+	"time"
 )
 
 const (
@@ -84,6 +87,65 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 
 		// Log the output
 		logger.Printf("[DEBUG] agent: watch handler '%v' output: %s", handler, outputStr)
+	}
+	return fn
+}
+
+func makeHTTPWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc {
+	httpUrl := params.(string)
+	logger := log.New(logOutput, "", log.LstdFlags)
+
+	fn := func(idx uint64, data interface{}) {
+		// Create the transport. We disable HTTP Keep-Alive's to prevent
+		// failing checks due to the keepalive interval.
+		trans := cleanhttp.DefaultTransport()
+		trans.DisableKeepAlives = true
+
+		// Create the HTTP client.
+		httpClient := &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: trans,
+		}
+
+		// Setup the input
+		var inp bytes.Buffer
+		enc := json.NewEncoder(&inp)
+		if err := enc.Encode(data); err != nil {
+			logger.Printf("[ERR] agent: Failed to encode data for http watch '%s': %v", httpUrl, err)
+			return
+		}
+
+		req, err := http.NewRequest("POST", httpUrl, &inp)
+		if err != nil {
+			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
+			return
+		}
+		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", httpUrl, err)
+			return
+		}
+		defer resp.Body.Close()
+
+		// Collect the output
+		output, _ := circbuf.NewBuffer(WatchBufSize)
+		io.Copy(output, resp.Body)
+
+		// Get the output, add a message about truncation
+		outputStr := string(output.Bytes())
+		if output.TotalWritten() > output.Size() {
+			outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
+				output.Size(), output.TotalWritten(), outputStr)
+		}
+
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			// Log the output
+			logger.Printf("[DEBUG] agent: http watch handler '%s' output: %s", httpUrl, outputStr)
+		} else {
+			logger.Printf("[ERR] agent: http watch handler '%s' got '%s' with output: %s",
+				httpUrl, resp.Status, outputStr)
+		}
 	}
 	return fn
 }
