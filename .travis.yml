@@ -25,7 +25,7 @@ env:
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
 # is needed to have access to sudo in the test environment. Sudo is
 # needed to have docker in the test environment. Docker is needed to
-# launch a kubernetes instance in the test environment.
+# launch a Kubernetes instance in the test environment.
 # (Dependencies are fun! :) )
 before_install:
   - cat /proc/net/if_inet6
@@ -50,6 +50,7 @@ before_script:
 
 script:
   - make TEST_TYPE=$TEST_TYPE travis
+
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

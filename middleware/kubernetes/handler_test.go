@@ -235,19 +235,8 @@ func runServeDNSTests(ctx context.Context, t *testing.T, dnsTestCases map[string
 		}
 
 		// Before sorting, make sure that CNAMES do not appear after their target records
-		for i, c := range resp.Answer {
-			if c.Header().Rrtype != dns.TypeCNAME {
-				continue
-			}
-			for _, a := range resp.Answer[:i] {
-				if a.Header().Name != c.(*dns.CNAME).Target {
-					continue
-				}
-				t.Errorf("%v: CNAME found after target record\n", testname)
-				t.Logf("%v Received:\n %v\n", testname, resp)
+		test.CNAMEOrder(t, resp)
 
-			}
-		}
 		test.SortAndCheck(t, resp, tc)
 	}
 }

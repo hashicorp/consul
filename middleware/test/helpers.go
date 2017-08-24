@@ -13,7 +13,7 @@ type sect int
 const (
 	// Answer is the answer section in an Msg.
 	Answer sect = iota
-	// Ns is the authrotitative section in an Msg.
+	// Ns is the authoritative section in an Msg.
 	Ns
 	// Extra is the additional section in an Msg.
 	Extra
@@ -262,6 +262,23 @@ func Section(t *testing.T, tc Case, sec sect, rr []dns.RR) bool {
 		}
 	}
 	return true
+}
+
+// CNAMEOrder makes sure that CNAMES do not appear after their target records
+func CNAMEOrder(t *testing.T, res *dns.Msg) {
+	for i, c := range res.Answer {
+		if c.Header().Rrtype != dns.TypeCNAME {
+			continue
+		}
+		for _, a := range res.Answer[:i] {
+			if a.Header().Name != c.(*dns.CNAME).Target {
+				continue
+			}
+			t.Errorf("CNAME found after target record\n")
+			t.Logf("%v\n", res)
+
+		}
+	}
 }
 
 // SortAndCheck sorts resp and the checks the header and three sections against the testcase in tc.
