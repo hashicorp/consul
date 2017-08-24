@@ -465,7 +465,7 @@ func NewClient(config *Config) (*Client, error) {
 	if config.Token == "" {
 		config.Token = defConfig.Token
 	}
-	
+
 	client := &Client{
 		config: *config,
 	}

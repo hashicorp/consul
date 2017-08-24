@@ -856,6 +856,24 @@ func (s *Server) Leave() error {
 	return nil
 }
 
+// LeaveWAN is used to leave and shut down the WAN pool
+// This does not shutdown the agent or affect the LAN gossip pool
+func (s *Server) LeaveWAN() error {
+	s.logger.Printf("[INFO] consul: server starting leave WAN")
+
+	if s.serfWAN != nil {
+		if err := s.serfWAN.Leave(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to leave WAN Serf cluster: %v", err)
+		}
+	}
+
+	if err := s.serfWAN.Shutdown(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to shutdown WAN instance: %v", err)
+	}
+
+	return nil
+}
+
 // numPeers is used to check on the number of known peers, including the local
 // node.
 func (s *Server) numPeers() (int, error) {

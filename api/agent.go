@@ -432,6 +432,18 @@ func (a *Agent) Leave() error {
 	return nil
 }
 
+// Leave is used to have the agent leave its WAN pool
+// Will not shutdown the agent
+func (a *Agent) LeaveWAN() error {
+	r := a.c.newRequest("PUT", "/v1/agent/leave-wan")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)

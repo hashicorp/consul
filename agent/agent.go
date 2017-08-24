@@ -982,6 +982,15 @@ func (a *Agent) Leave() error {
 	return a.delegate.Leave()
 }
 
+// Leave is used to prepare the agent for a graceful shutdown
+func (a *Agent) LeaveWAN() error {
+	if srv, ok := a.delegate.(*consul.Server); ok {
+		return srv.LeaveWAN()
+	} else {
+		return fmt.Errorf("Must be a server to leave WAN")
+	}
+}
+
 // ShutdownAgent is used to hard stop the agent. Should be preceded by
 // Leave to do it gracefully. Should be followed by ShutdownEndpoints to
 // terminate the HTTP and DNS servers as well.
