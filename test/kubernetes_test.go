@@ -660,6 +660,16 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 }
 
+var dnsTestCasesAPIProxy = []test.Case{
+	{
+		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+		},
+	},
+}
+
 func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
 	server, udp, _, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
@@ -747,7 +757,7 @@ func TestKubernetesIntegrationAPIProxy(t *testing.T) {
         drop 0
     }
 `
-	doIntegrationTests(t, corefile, dnsTestCases)
+	doIntegrationTests(t, corefile, dnsTestCasesAPIProxy)
 }
 
 func TestKubernetesIntegrationPodsInsecure(t *testing.T) {
