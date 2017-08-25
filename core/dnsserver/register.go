@@ -127,12 +127,12 @@ func (c *Config) AddMiddleware(m middleware.Middleware) {
 // registerHandler adds a handler to a site's handler registration. Handlers
 //  use this to announce that they exist to other middleware.
 func (c *Config) registerHandler(h middleware.Handler) {
-	if c.Registry == nil {
-		c.Registry = make(map[string]middleware.Handler)
+	if c.registry == nil {
+		c.registry = make(map[string]middleware.Handler)
 	}
 
 	// Just overwrite...
-	c.Registry[h.Name()] = h
+	c.registry[h.Name()] = h
 }
 
 // Handler returns the middleware handler that has been added to the config under its name.
@@ -140,10 +140,10 @@ func (c *Config) registerHandler(h middleware.Handler) {
 // Note that this is order dependent and the order is defined in directives.go, i.e. if your middleware
 // comes before the middleware you are checking; it will not be there (yet).
 func (c *Config) Handler(name string) middleware.Handler {
-	if c.Registry == nil {
+	if c.registry == nil {
 		return nil
 	}
-	if h, ok := c.Registry[name]; ok {
+	if h, ok := c.registry[name]; ok {
 		return h
 	}
 	return nil

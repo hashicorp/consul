@@ -2,7 +2,6 @@
 package file
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -32,9 +31,6 @@ type (
 func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 
-	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, middleware.Error(f.Name(), errors.New("can only deal with ClassINET"))
-	}
 	qname := state.Name()
 	// TODO(miek): match the qname better in the map
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)

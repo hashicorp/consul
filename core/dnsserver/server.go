@@ -37,9 +37,11 @@ type Server struct {
 	connTimeout time.Duration      // the maximum duration of a graceful shutdown
 	trace       trace.Trace        // the trace middleware for the server
 	debug       bool               // disable recover()
+	classChaos  bool               // allow non-INET class queries
 }
 
-// NewServer returns a new CoreDNS server and compiles all middleware in to it.
+// NewServer returns a new CoreDNS server and compiles all middleware in to it. By default CH class
+// queries are blocked unless the chaos or proxy is loaded.
 func NewServer(addr string, group []*Config) (*Server, error) {
 
 	s := &Server{
@@ -76,6 +78,9 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 				if t, ok := stack.(trace.Trace); ok {
 					s.trace = t
 				}
+			}
+			if stack.Name() == "chaos" || stack.Name() == "proxy" {
+				s.classChaos = true
 			}
 		}
 		site.middlewareChain = stack
@@ -182,6 +187,11 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				DefaultErrorFunc(w, r, dns.RcodeServerFailure)
 			}
 		}()
+	}
+
+	if !s.classChaos && r.Question[0].Qclass != dns.ClassINET {
+		DefaultErrorFunc(w, r, dns.RcodeRefused)
+		return
 	}
 
 	if m, err := edns.Version(r); err != nil { // Wrong EDNS version, return at once.

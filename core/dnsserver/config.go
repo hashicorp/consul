@@ -42,7 +42,7 @@ type Config struct {
 	// Middleware interested in announcing that they exist, so other middleware can call methods
 	// on them should register themselves here. The name should be the name as return by the
 	// Handler's Name method.
-	Registry map[string]middleware.Handler
+	registry map[string]middleware.Handler
 }
 
 // GetConfig gets the Config that corresponds to c.

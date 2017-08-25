@@ -2,7 +2,6 @@
 package auto
 
 import (
-	"errors"
 	"regexp"
 	"time"
 
@@ -43,9 +42,6 @@ type (
 // ServeDNS implements the middleware.Handle interface.
 func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, middleware.Error(a.Name(), errors.New("can only deal with ClassINET"))
-	}
 	qname := state.Name()
 
 	// TODO(miek): match the qname better in the map

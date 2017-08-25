@@ -1,8 +1,6 @@
 package kubernetes
 
 import (
-	"errors"
-
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/pkg/dnsutil"
 	"github.com/coredns/coredns/request"
@@ -14,9 +12,6 @@ import (
 // ServeDNS implements the middleware.Handler interface.
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, middleware.Error(k.Name(), errors.New("can only deal with ClassINET"))
-	}
 
 	m := new(dns.Msg)
 	m.SetReply(r)

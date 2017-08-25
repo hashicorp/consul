@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"errors"
-
 	"github.com/coredns/coredns/middleware"
 	"github.com/coredns/coredns/middleware/etcd/msg"
 	"github.com/coredns/coredns/middleware/pkg/debug"
@@ -17,9 +15,7 @@ import (
 func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := middleware.Options{}
 	state := request.Request{W: w, Req: r}
-	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, middleware.Error(e.Name(), errors.New("can only deal with ClassINET"))
-	}
+
 	name := state.Name()
 	if e.Debugging {
 		if bug := debug.IsDebug(name); bug != "" {

@@ -1,7 +1,6 @@
 package hosts
 
 import (
-	"errors"
 	"net"
 
 	"golang.org/x/net/context"
@@ -23,9 +22,6 @@ type Hosts struct {
 // ServeDNS implements the middleware.Handle interface.
 func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
-	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, middleware.Error(h.Name(), errors.New("can only deal with ClassINET"))
-	}
 	qname := state.Name()
 
 	answers := []dns.RR{}
