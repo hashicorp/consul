@@ -11,10 +11,10 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* serf: Updated memberlist library for deadlock fix. [GH-3396]
 * agent: Fixed an issue with consul watches not triggering when ACL is enabled. [GH-3392]
-* agent: Fixed a panic when retrieving NS or SOA records on Consul clients (non-servers). This also changed the Consul server list to come from the catalog and not the agent's local state when serving these requests. [GH-3407]
-* raft: Fixed an issue with consul snapshots not saving on Windows because of errors with the fsync syscall. [GH-3409]
+* agent: Updated memberlist library for deadlock fix. [GH-3396]
+* agent: Fixed a panic when retrieving NS or SOA records on Consul clients (non-servers). This also changed the Consul server list to come from the catalog and not the agent's local state when serving these requests, so the results are consistent across a cluster. [GH-3407]
+* server: Fixed an issue with Consul snapshots not saving on Windows because of errors with the `fsync` syscall. [GH-3409]
 
 ## 0.9.2 (August 9, 2017)
 
