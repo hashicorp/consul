@@ -25,6 +25,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+const (
+	// SegmentLimit is the maximum number of network segments that may be declared.
+	SegmentLimit = 64
+
+	// SegmentNameLimit is the maximum segment name length.
+	SegmentNameLimit = 64
+)
+
 // Ports is used to simplify the configuration by
 // providing default ports, and allowing the addresses
 // to only be specified once
@@ -1453,7 +1461,34 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("Failed to parse node metadata: %v", err)
 	}
 
+	// Validate segment config
+	if err := ValidateSegments(&result); err != nil {
+		return nil, err
+	}
+
 	return &result, nil
+}
+
+func ValidateSegments(conf *Config) error {
+	if conf.Server && conf.Segment != "" {
+		return fmt.Errorf("Segment option can only be set on clients")
+	}
+
+	if !conf.Server && len(conf.Segments) > 0 {
+		return fmt.Errorf("Cannot define segments on clients")
+	}
+
+	if len(conf.Segments) > SegmentLimit {
+		return fmt.Errorf("Cannot exceed network segment limit of %d", SegmentLimit)
+	}
+
+	for _, segment := range conf.Segments {
+		if len(segment.Name) > SegmentNameLimit {
+			return fmt.Errorf("Segment name %q exceeds maximum length of %d", segment.Name, SegmentNameLimit)
+		}
+	}
+
+	return nil
 }
 
 // DecodeServiceDefinition is used to decode a service definition

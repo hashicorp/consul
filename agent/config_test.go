@@ -1309,6 +1309,37 @@ func TestDecodeConfig_VerifyUniqueListeners(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_ValidateSegments(t *testing.T) {
+	t.Parallel()
+	serverWithSegment := &Config{Segment: "asfd", Server: true}
+	if err := ValidateSegments(serverWithSegment); !strings.Contains(err.Error(), "can only be set on clients") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	clientWithSegments := &Config{
+		Segments: []NetworkSegment{{Name: "asdf"}},
+	}
+	if err := ValidateSegments(clientWithSegments); !strings.Contains(err.Error(), "Cannot define segments on clients") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	tooManySegments := &Config{Server: true}
+	for i := 0; i < SegmentLimit+1; i++ {
+		tooManySegments.Segments = append(tooManySegments.Segments, NetworkSegment{})
+	}
+	if err := ValidateSegments(tooManySegments); !strings.Contains(err.Error(), "Cannot exceed network segment limit") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	segmentNameTooLong := &Config{
+		Segments: []NetworkSegment{{Name: strings.Repeat("a", SegmentNameLimit+1)}},
+		Server:   true,
+	}
+	if err := ValidateSegments(segmentNameTooLong); !strings.Contains(err.Error(), "exceeds maximum length") {
+		t.Fatalf("bad: %v", err)
+	}
+}
+
 func TestDefaultConfig(t *testing.T) {
 	t.Parallel()
 
