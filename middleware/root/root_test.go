@@ -18,7 +18,7 @@ func TestRoot(t *testing.T) {
 	log.SetOutput(ioutil.Discard)
 
 	// Predefined error substrings
-	parseErrContent := "Parse error:"
+	parseErrContent := "Error during parsing:"
 	unableToAccessErrContent := "unable to access root path"
 
 	existingDirPath, err := getTempDirPath()
