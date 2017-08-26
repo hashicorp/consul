@@ -24,6 +24,8 @@ Usage: consul leave [options]
 
 func (c *LeaveCommand) Run(args []string) int {
 	f := c.BaseCommand.NewFlagSet(c)
+	var wan bool
+	f.BoolVar(&wan, "wan", false, "Joins a server to another server in the WAN pool.")
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
@@ -40,7 +42,7 @@ func (c *LeaveCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := client.Agent().Leave(); err != nil {
+	if err := client.Agent().Leave(wan); err != nil {
 		c.UI.Error(fmt.Sprintf("Error leaving: %s", err))
 		return 1
 	}
@@ -50,5 +52,5 @@ func (c *LeaveCommand) Run(args []string) int {
 }
 
 func (c *LeaveCommand) Synopsis() string {
-	return "Gracefully leaves the Consul cluster and shuts down"
+	return "Gracefully leaves the Consul cluster. If -wan is specified, it leaves the WAN pool without shutting down the agent"
 }

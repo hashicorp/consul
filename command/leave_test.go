@@ -41,6 +41,24 @@ func TestLeaveCommandRun(t *testing.T) {
 	}
 }
 
+func TestLeaveCommandWAN(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+
+	ui, c := testLeaveCommand(t)
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-wan"}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	if !strings.Contains(ui.OutputWriter.String(), "leave complete") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
 func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), nil)

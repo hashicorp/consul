@@ -499,8 +499,8 @@ func TestAgent_Leave_WAN(t *testing.T) {
 	})
 
 	//test leave wan http end point
-	req, _ = http.NewRequest("PUT", "/v1/agent/leave-wan", nil)
-	obj, err = a2.srv.AgentLeaveWAN(nil, req)
+	req, _ = http.NewRequest("PUT", "/v1/agent/leave?wan", nil)
+	obj, err = a2.srv.AgentLeave(nil, req)
 	if err != nil {
 		t.Fatalf("Unexpected Err: %v", err)
 	}

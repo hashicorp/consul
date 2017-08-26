@@ -205,15 +205,6 @@ func init() {
 			}, nil
 		},
 
-		"leave wan": func() (cli.Command, error) {
-			return &LeaveWANCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
-		},
-
 		"lock": func() (cli.Command, error) {
 			return &LockCommand{
 				ShutdownCh: makeShutdownCh(),

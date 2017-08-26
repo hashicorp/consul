@@ -867,10 +867,6 @@ func (s *Server) LeaveWAN() error {
 		}
 	}
 
-	if err := s.serfWAN.Shutdown(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to shutdown WAN instance: %v", err)
-	}
-
 	return nil
 }
 
