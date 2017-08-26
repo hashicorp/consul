@@ -228,7 +228,9 @@ will exit with an error at startup.
     [go-discover](https://github.com/hashicorp/go-discover) library for doing
     automatic cluster joining using cloud metadata. To use retry-join with a
     supported cloud provider, specify the configuration on the command line or
-    configuration file.
+    configuration file as a `key=value key=value ...` string. The values need to
+	be URL encoded but for most practical purposes you need to replace spaces
+	with `+` signs.
 
     ```sh
     $ consul agent -retry-join "provider=my-cloud config=val ..."
