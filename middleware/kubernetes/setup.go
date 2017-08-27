@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -174,6 +175,19 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 					return nil, opts, err
 				}
 				k8s.Proxy = proxy.NewLookup(ups)
+			case "ttl":
+				args := c.RemainingArgs()
+				if len(args) == 0 {
+					return nil, opts, c.ArgErr()
+				}
+				t, err := strconv.Atoi(args[0])
+				if err != nil {
+					return nil, opts, err
+				}
+				if t < 5 || t > 3600 {
+					return nil, opts, c.Errf("ttl must be in range [5, 3600]: %d", t)
+				}
+				k8s.ttl = uint32(t)
 			default:
 				return nil, opts, c.Errf("unknown property '%s'", c.Val())
 			}

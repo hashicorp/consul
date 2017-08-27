@@ -28,6 +28,7 @@ kubernetes [ZONES...] {
     labels EXPRESSION
     pods POD-MODE
     upstream ADDRESS...
+    ttl TTL
     fallthrough
 }
 ```
@@ -62,6 +63,8 @@ kubernetes [ZONES...] {
 * `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
   that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path
   to a file structured like resolv.conf.
+* `ttl` allows you to set a custom TTL for responses. The default (and allowed minimum) is to use
+  5 seconds, the maximum is capped at 3600 seconds.
 * `fallthrough`  If a query for a record in the cluster zone results in NXDOMAIN, normally that is
   what the response will be. However, if you specify this option, the query will instead be passed
   on down the middleware chain, which can include another middleware to handle the query.

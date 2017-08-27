@@ -40,6 +40,7 @@ type Kubernetes struct {
 	Namespaces    map[string]bool
 	podMode       string
 	Fallthrough   bool
+	ttl           uint32
 
 	primaryZoneIndex   int
 	interfaceAddrsFunc func() net.IP
@@ -55,6 +56,7 @@ func New(zones []string) *Kubernetes {
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("127.0.0.1") }
 	k.podMode = podModeDisabled
 	k.Proxy = proxy.Proxy{}
+	k.ttl = defaultTTL
 
 	return k
 }
@@ -382,7 +384,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 							if !(match(r.port, p.Name) && match(r.protocol, string(p.Protocol))) {
 								continue
 							}
-							s := msg.Service{Host: addr.IP, Port: int(p.Port)}
+							s := msg.Service{Host: addr.IP, Port: int(p.Port), TTL: k.ttl}
 							s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name, endpointHostname(addr)}, "/")
 
 							err = nil
@@ -397,7 +399,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 		// External service
 		if svc.Spec.ExternalName != "" {
-			s := msg.Service{Key: strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/"), Host: svc.Spec.ExternalName}
+			s := msg.Service{Key: strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/"), Host: svc.Spec.ExternalName, TTL: k.ttl}
 			if t, _ := s.HostType(); t == dns.TypeCNAME {
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
 				services = append(services, s)
@@ -416,7 +418,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 			err = nil
 
-			s := msg.Service{Host: svc.Spec.ClusterIP, Port: int(p.Port)}
+			s := msg.Service{Host: svc.Spec.ClusterIP, Port: int(p.Port), TTL: k.ttl}
 			s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
 
 			services = append(services, s)
@@ -455,4 +457,6 @@ const (
 	Svc = "svc"
 	// Pod is the DNS schema for kubernetes pods
 	Pod = "pod"
+	// defaultTTL to apply to all answers.
+	defaultTTL = 5
 )

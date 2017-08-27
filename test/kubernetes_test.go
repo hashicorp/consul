@@ -30,7 +30,7 @@ var dnsTestCases = []test.Case{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
+			test.A("svc-1-a.test-1.svc.cluster.local.      5    IN      A       10.0.0.100"),
 		},
 	},
 	{
@@ -535,9 +535,7 @@ var dnsTestCasesFallthrough = []test.Case{
 		Rcode: dns.RcodeSuccess,
 		Answer: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeSRV", "headless-svc", "test-1"),
 			[]dns.RR{
-				test.SRV("_c-port._UDP.*.test-1.svc.cluster.local.      303    IN    SRV 0 33 1234 svc-c.test-1.svc.cluster.local."),
-			}...),
-
+				test.SRV("_c-port._UDP.*.test-1.svc.cluster.local.      303    IN    SRV 0 33 1234 svc-c.test-1.svc.cluster.local.")}...),
 		Extra: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeA", "headless-svc", "test-1"),
 			[]dns.RR{
 				test.A("svc-c.test-1.svc.cluster.local.	303	IN	A	10.0.0.115"),
@@ -626,14 +624,14 @@ var dnsTestCasesFallthrough = []test.Case{
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.A("example.net.		303	IN	A	13.14.15.16"),
-			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 303 IN	CNAME	example.net."),
 		},
 	},
 	{
 		Qname: "ext-svc.test-1.svc.cluster.local.", Qtype: dns.TypeCNAME,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.CNAME("ext-svc.test-1.svc.cluster.local. 0 IN	CNAME	example.net."),
+			test.CNAME("ext-svc.test-1.svc.cluster.local. 303 IN	CNAME	example.net."),
 		},
 	},
 	{
@@ -855,7 +853,7 @@ func srvResponse(qname, responsetype, namespace, name string) []dns.RR {
 		ip := strings.Replace(result[i], ".", "-", -1)
 		t := strconv.Itoa(100 / (lr + 1))
 		if responsetype == "TypeA" {
-			rr = append(rr, test.A(ip+"."+namespace+"."+name+".svc.cluster.local.	0	IN	A	"+result[i]))
+			rr = append(rr, test.A(ip+"."+namespace+"."+name+".svc.cluster.local.	303	IN	A	"+result[i]))
 		}
 		if responsetype == "TypeSRV" && namespace == "headless-svc" {
 			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 1234  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
@@ -864,7 +862,6 @@ func srvResponse(qname, responsetype, namespace, name string) []dns.RR {
 			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 443  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
 			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 80  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
 		}
-
 	}
 	return rr
 }
