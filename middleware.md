@@ -40,7 +40,8 @@ See a couple of blog posts on how to write and add middleware to CoreDNS:
 
 When exporting metrics the *Namespace* should be `middleware.Namespace` (="coredns"), and the
 *Subsystem* should be the name of the middleware. The README.md for the middleware should then
-also contain a *Metrics* section detailing the metrics.
+also contain a *Metrics* section detailing the metrics. If the middleware supports dynamic health
+reporting it should also have *Health* section detailing on its inner workings.
 
 ## Documentation
 

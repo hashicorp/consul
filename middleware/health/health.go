@@ -16,6 +16,11 @@ type health struct {
 
 	ln  net.Listener
 	mux *http.ServeMux
+
+	// A slice of Healthers that the health middleware will poll every second for their health status.
+	h []Healther
+	sync.RWMutex
+	ok bool // ok is the global boolean indicating an all healthy middleware stack
 }
 
 func (h *health) Startup() error {
@@ -35,7 +40,12 @@ func (h *health) Startup() error {
 		h.mux = http.NewServeMux()
 
 		h.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			io.WriteString(w, ok)
+			if h.Ok() {
+				w.WriteHeader(http.StatusOK)
+				io.WriteString(w, ok)
+				return
+			}
+			w.WriteHeader(http.StatusServiceUnavailable)
 		})
 
 		go func() {
