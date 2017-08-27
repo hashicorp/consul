@@ -118,7 +118,7 @@ func (f *Federation) Name() string { return "federation" }
 // label is always the 2nd to last once the zone is chopped of. For instance
 // "nginx.mynamespace.myfederation.svc.example.com" has "myfederation" as the federation label.
 // IsNameFederation returns a new qname with the federation label and the label itself or two
-// emtpy strings if there wasn't a hit.
+// empty strings if there wasn't a hit.
 func (f *Federation) isNameFederation(name, zone string) (string, string) {
 	base, _ := dnsutil.TrimZone(name, zone)
 

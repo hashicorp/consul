@@ -234,11 +234,11 @@ func (rule *edns0VariableRule) ruleData(w dns.ResponseWriter, r *dns.Msg) ([]byt
 		return []byte(req.Proto()), nil
 
 	case serverIP:
-		serverIp, _, err := net.SplitHostPort(w.LocalAddr().String())
+		ip, _, err := net.SplitHostPort(w.LocalAddr().String())
 		if err != nil {
-			serverIp = w.RemoteAddr().String()
+			ip = w.RemoteAddr().String()
 		}
-		return rule.ipToWire(rule.family(w.RemoteAddr()), serverIp)
+		return rule.ipToWire(rule.family(w.RemoteAddr()), ip)
 
 	case serverPort:
 		_, port, err := net.SplitHostPort(w.LocalAddr().String())

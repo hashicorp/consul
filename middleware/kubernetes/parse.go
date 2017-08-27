@@ -74,7 +74,7 @@ func parseRequest(state request.Request) (r recordRequest, err error) {
 		return r, nil
 	}
 
-	// Becuase of ambiquity we check the labels left: 1: an endpoint. 2: port and protocol.
+	// Because of ambiquity we check the labels left: 1: an endpoint. 2: port and protocol.
 	// Anything else is a query that is too long to answer and can safely be delegated to return an nxdomain.
 	switch last {
 
