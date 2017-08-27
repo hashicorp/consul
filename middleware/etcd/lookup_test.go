@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
+	ctxt = context.TODO()
 }
 
 // Note the key is encoded as DNS name, while in "reality" it is a etcd path.
