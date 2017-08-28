@@ -911,7 +911,7 @@ func TestAgent_PersistService(t *testing.T) {
 	if got, want := restored.Token, "mytoken"; got != want {
 		t.Fatalf("got token %q want %q", got, want)
 	}
-	if got, want := restored.Service.Port, 8081; got != want {
+	if got, want := restored.Service.Port, 8001; got != want {
 		t.Fatalf("got port %d want %d", got, want)
 	}
 }
