@@ -246,6 +246,9 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: true,
 	}
 	a.State.AddService(srv1, "")
+	if err := a.State.SyncChanges(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	srv1_mod := new(structs.NodeService)
 	*srv1_mod = *srv1
 	srv1_mod.Port = 7100
