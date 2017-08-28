@@ -19,15 +19,10 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 	"github.com/pascaldekloe/goe/verify"
 )
-
-func init() {
-	version.Version = "0.8.0"
-}
 
 func externalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
