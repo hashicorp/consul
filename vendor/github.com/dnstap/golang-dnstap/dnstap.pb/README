@@ -1,5 +1,0 @@
-dnstap: flexible, structured event replication format for DNS software
-----------------------------------------------------------------------
-
-This directory contains only the protobuf schemas for dnstap, and is the root of
-a repository named "dnstap.pb".

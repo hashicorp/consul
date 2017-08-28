@@ -59,7 +59,12 @@ func TestSpanPropagator(t *testing.T) {
 		t.Fatalf("Unable to create Tracer: %+v", err)
 	}
 
-	sp := tracer.StartSpan(op)
+	// create root span so propagation test will include parentSpanID
+	ps := tracer.StartSpan("root")
+	defer ps.Finish()
+
+	// client side span with parent span 'ps'
+	sp := tracer.StartSpan(op, opentracing.ChildOf(ps.Context()))
 	sp.SetBaggageItem("foo", "bar")
 	tmc := opentracing.HTTPHeadersCarrier(http.Header{})
 	tests := []struct {
@@ -108,6 +113,12 @@ func TestSpanPropagator(t *testing.T) {
 		}
 		if a, e := sp.Context.TraceID, exp.Context.TraceID; a != e {
 			t.Fatalf("%d: TraceID changed from %d to %d", i, e, a)
+		}
+		if exp.Context.ParentSpanID == nil {
+			t.Fatalf("%d: Expected a ParentSpanID, got nil", i)
+		}
+		if p, c := sp.Context.ParentSpanID, exp.Context.ParentSpanID; p != c {
+			t.Fatalf("%d: ParentSpanID changed from %d to %d", i, p, c)
 		}
 		if !reflect.DeepEqual(exp, sp) {
 			t.Fatalf("%d: wanted %+v, got %+v", i, spew.Sdump(exp), spew.Sdump(sp))

@@ -1,44 +1,33 @@
 /*
  *
- * Copyright 2014, Google Inc.
- * All rights reserved.
+ * Copyright 2014 gRPC authors.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *     * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *     * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
 package transport
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -82,6 +71,9 @@ const (
 	misbehaved
 	encodingRequiredStatus
 	invalidHeaderField
+	delayRead
+	delayWrite
+	pingpong
 )
 
 func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
@@ -92,7 +84,7 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
 		resp = expectedResponseLarge
 	}
 	p := make([]byte, len(req))
-	_, err := io.ReadFull(s, p)
+	_, err := s.Read(p)
 	if err != nil {
 		return
 	}
@@ -103,6 +95,25 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *Stream) {
 	h.t.Write(s, resp, &Options{})
 	// send the trailer to end the stream.
 	h.t.WriteStatus(s, status.New(codes.OK, ""))
+}
+
+func (h *testStreamHandler) handleStreamPingPong(t *testing.T, s *Stream) {
+	header := make([]byte, 5)
+	for i := 0; i < 10; i++ {
+		if _, err := s.Read(header); err != nil {
+			t.Fatalf("Error on server while reading data header: %v", err)
+		}
+		sz := binary.BigEndian.Uint32(header[1:])
+		msg := make([]byte, int(sz))
+		if _, err := s.Read(msg); err != nil {
+			t.Fatalf("Error on server while reading message: %v", err)
+		}
+		buf := make([]byte, sz+5)
+		buf[0] = byte(0)
+		binary.BigEndian.PutUint32(buf[1:], uint32(sz))
+		copy(buf[5:], msg)
+		h.t.Write(s, buf, &Options{})
+	}
 }
 
 // handleStreamSuspension blocks until s.ctx is canceled.
@@ -155,6 +166,58 @@ func (h *testStreamHandler) handleStreamInvalidHeaderField(t *testing.T, s *Stre
 		t.Fatalf("Failed to write headers: %v", err)
 	}
 	h.t.writableChan <- 0
+}
+
+func (h *testStreamHandler) handleStreamDelayRead(t *testing.T, s *Stream) {
+	req := expectedRequest
+	resp := expectedResponse
+	if s.Method() == "foo.Large" {
+		req = expectedRequestLarge
+		resp = expectedResponseLarge
+	}
+	p := make([]byte, len(req))
+
+	// Wait before reading. Give time to client to start sending
+	// before server starts reading.
+	time.Sleep(2 * time.Second)
+	_, err := s.Read(p)
+	if err != nil {
+		t.Fatalf("s.Read(_) = _, %v, want _, <nil>", err)
+		return
+	}
+
+	if !bytes.Equal(p, req) {
+		t.Fatalf("handleStream got %v, want %v", p, req)
+	}
+	// send a response back to the client.
+	h.t.Write(s, resp, &Options{})
+	// send the trailer to end the stream.
+	h.t.WriteStatus(s, status.New(codes.OK, ""))
+}
+
+func (h *testStreamHandler) handleStreamDelayWrite(t *testing.T, s *Stream) {
+	req := expectedRequest
+	resp := expectedResponse
+	if s.Method() == "foo.Large" {
+		req = expectedRequestLarge
+		resp = expectedResponseLarge
+	}
+	p := make([]byte, len(req))
+	_, err := s.Read(p)
+	if err != nil {
+		t.Fatalf("s.Read(_) = _, %v, want _, <nil>", err)
+		return
+	}
+	if !bytes.Equal(p, req) {
+		t.Fatalf("handleStream got %v, want %v", p, req)
+	}
+
+	// Wait before sending. Give time to client to start reading
+	// before server starts sending.
+	time.Sleep(2 * time.Second)
+	h.t.Write(s, resp, &Options{})
+	// send the trailer to end the stream.
+	h.t.WriteStatus(s, status.New(codes.OK, ""))
 }
 
 // start starts server. Other goroutines should block on s.readyChan for further operations.
@@ -216,6 +279,24 @@ func (s *server) start(t *testing.T, port int, serverConfig *ServerConfig, ht hT
 		case invalidHeaderField:
 			go transport.HandleStreams(func(s *Stream) {
 				go h.handleStreamInvalidHeaderField(t, s)
+			}, func(ctx context.Context, method string) context.Context {
+				return ctx
+			})
+		case delayRead:
+			go transport.HandleStreams(func(s *Stream) {
+				go h.handleStreamDelayRead(t, s)
+			}, func(ctx context.Context, method string) context.Context {
+				return ctx
+			})
+		case delayWrite:
+			go transport.HandleStreams(func(s *Stream) {
+				go h.handleStreamDelayWrite(t, s)
+			}, func(ctx context.Context, method string) context.Context {
+				return ctx
+			})
+		case pingpong:
+			go transport.HandleStreams(func(s *Stream) {
+				go h.handleStreamPingPong(t, s)
 			}, func(ctx context.Context, method string) context.Context {
 				return ctx
 			})
@@ -299,6 +380,43 @@ func setUpWithNoPingServer(t *testing.T, copts ConnectOptions, done chan net.Con
 		t.Fatalf("Failed to dial: %v", err)
 	}
 	return tr
+}
+
+// TestInflightStreamClosing ensures that closing in-flight stream
+// sends StreamError to concurrent stream reader.
+func TestInflightStreamClosing(t *testing.T) {
+	serverConfig := &ServerConfig{}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+
+	stream, err := client.NewStream(context.Background(), &CallHdr{})
+	if err != nil {
+		t.Fatalf("Client failed to create RPC request: %v", err)
+	}
+
+	donec := make(chan struct{})
+	serr := StreamError{Desc: "client connection is closing"}
+	go func() {
+		defer close(donec)
+		if _, err := stream.Read(make([]byte, defaultWindowSize)); err != serr {
+			t.Errorf("unexpected Stream error %v, expected %v", err, serr)
+		}
+	}()
+
+	// should unblock concurrent stream.Read
+	client.CloseStream(stream, serr)
+
+	// wait for stream.Read error
+	timeout := time.NewTimer(5 * time.Second)
+	select {
+	case <-donec:
+		if !timeout.Stop() {
+			<-timeout.C
+		}
+	case <-timeout.C:
+		t.Fatalf("Test timed out, expected a StreamError.")
+	}
 }
 
 // TestMaxConnectionIdle tests that a server will send GoAway to a idle client.
@@ -385,7 +503,7 @@ func TestMaxConnectionAge(t *testing.T) {
 	}
 }
 
-// TestKeepaliveServer tests that a server closes conneciton with a client that doesn't respond to keepalive pings.
+// TestKeepaliveServer tests that a server closes connection with a client that doesn't respond to keepalive pings.
 func TestKeepaliveServer(t *testing.T) {
 	serverConfig := &ServerConfig{
 		KeepaliveParams: keepalive.ServerParameters{
@@ -694,11 +812,11 @@ func TestClientSendAndReceive(t *testing.T) {
 		t.Fatalf("failed to send data: %v", err)
 	}
 	p := make([]byte, len(expectedResponse))
-	_, recvErr := io.ReadFull(s1, p)
+	_, recvErr := s1.Read(p)
 	if recvErr != nil || !bytes.Equal(p, expectedResponse) {
 		t.Fatalf("Error: %v, want <nil>; Result: %v, want %v", recvErr, p, expectedResponse)
 	}
-	_, recvErr = io.ReadFull(s1, p)
+	_, recvErr = s1.Read(p)
 	if recvErr != io.EOF {
 		t.Fatalf("Error: %v; want <EOF>", recvErr)
 	}
@@ -734,9 +852,9 @@ func performOneRPC(ct ClientTransport) {
 		//
 		// Read response
 		p := make([]byte, len(expectedResponse))
-		io.ReadFull(s, p)
+		s.Read(p)
 		// Read io.EOF
-		io.ReadFull(s, p)
+		s.Read(p)
 	}
 }
 
@@ -775,10 +893,80 @@ func TestLargeMessage(t *testing.T) {
 				t.Errorf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
 			}
 			p := make([]byte, len(expectedResponseLarge))
-			if _, err := io.ReadFull(s, p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
-				t.Errorf("io.ReadFull(_, %v) = _, %v, want %v, <nil>", err, p, expectedResponse)
+			if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
+				t.Errorf("s.Read(%v) = _, %v, want %v, <nil>", err, p, expectedResponse)
 			}
-			if _, err = io.ReadFull(s, p); err != io.EOF {
+			if _, err = s.Read(p); err != io.EOF {
+				t.Errorf("Failed to complete the stream %v; want <EOF>", err)
+			}
+		}()
+	}
+	wg.Wait()
+	ct.Close()
+	server.stop()
+}
+
+func TestLargeMessageWithDelayRead(t *testing.T) {
+	server, ct := setUp(t, 0, math.MaxUint32, delayRead)
+	callHdr := &CallHdr{
+		Host:   "localhost",
+		Method: "foo.Large",
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s, err := ct.NewStream(context.Background(), callHdr)
+			if err != nil {
+				t.Errorf("%v.NewStream(_, _) = _, %v, want _, <nil>", ct, err)
+			}
+			if err := ct.Write(s, expectedRequestLarge, &Options{Last: true, Delay: false}); err != nil && err != io.EOF {
+				t.Errorf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
+			}
+			p := make([]byte, len(expectedResponseLarge))
+
+			// Give time to server to begin sending before client starts reading.
+			time.Sleep(2 * time.Second)
+			if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
+				t.Errorf("s.Read(_) = _, %v, want _, <nil>", err)
+			}
+			if _, err = s.Read(p); err != io.EOF {
+				t.Errorf("Failed to complete the stream %v; want <EOF>", err)
+			}
+		}()
+	}
+	wg.Wait()
+	ct.Close()
+	server.stop()
+}
+
+func TestLargeMessageDelayWrite(t *testing.T) {
+	server, ct := setUp(t, 0, math.MaxUint32, delayWrite)
+	callHdr := &CallHdr{
+		Host:   "localhost",
+		Method: "foo.Large",
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s, err := ct.NewStream(context.Background(), callHdr)
+			if err != nil {
+				t.Errorf("%v.NewStream(_, _) = _, %v, want _, <nil>", ct, err)
+			}
+
+			// Give time to server to start reading before client starts sending.
+			time.Sleep(2 * time.Second)
+			if err := ct.Write(s, expectedRequestLarge, &Options{Last: true, Delay: false}); err != nil && err != io.EOF {
+				t.Errorf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
+			}
+			p := make([]byte, len(expectedResponseLarge))
+			if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
+				t.Errorf("io.ReadFull(%v) = _, %v, want %v, <nil>", err, p, expectedResponse)
+			}
+			if _, err = s.Read(p); err != io.EOF {
 				t.Errorf("Failed to complete the stream %v; want <EOF>", err)
 			}
 		}()
@@ -821,10 +1009,10 @@ func TestGracefulClose(t *testing.T) {
 		t.Fatalf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
 	}
 	p := make([]byte, len(expectedResponse))
-	if _, err := io.ReadFull(s, p); err != nil || !bytes.Equal(p, expectedResponse) {
-		t.Fatalf("io.ReadFull(_, %v) = _, %v, want %v, <nil>", err, p, expectedResponse)
+	if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponse) {
+		t.Fatalf("s.Read(%v) = _, %v, want %v, <nil>", err, p, expectedResponse)
 	}
-	if _, err = io.ReadFull(s, p); err != io.EOF {
+	if _, err = s.Read(p); err != io.EOF {
 		t.Fatalf("Failed to complete the stream %v; want <EOF>", err)
 	}
 	wg.Wait()
@@ -845,7 +1033,8 @@ func TestLargeMessageSuspension(t *testing.T) {
 		t.Fatalf("failed to open stream: %v", err)
 	}
 	// Write should not be done successfully due to flow control.
-	err = ct.Write(s, expectedRequestLarge, &Options{Last: true, Delay: false})
+	msg := make([]byte, initialWindowSize*8)
+	err = ct.Write(s, msg, &Options{Last: true, Delay: false})
 	expectedErr := streamErrorf(codes.DeadlineExceeded, "%v", context.DeadlineExceeded)
 	if err != expectedErr {
 		t.Fatalf("Write got %v, want %v", err, expectedErr)
@@ -998,6 +1187,186 @@ func TestServerContextCanceledOnClosedConnection(t *testing.T) {
 	server.stop()
 }
 
+func TestClientConnDecoupledFromApplicationRead(t *testing.T) {
+	connectOptions := ConnectOptions{
+		InitialWindowSize:     defaultWindowSize,
+		InitialConnWindowSize: defaultWindowSize,
+	}
+	server, client := setUpWithOptions(t, 0, &ServerConfig{}, suspended, connectOptions)
+	defer server.stop()
+	defer client.Close()
+
+	waitWhileTrue(t, func() (bool, error) {
+		server.mu.Lock()
+		defer server.mu.Unlock()
+
+		if len(server.conns) == 0 {
+			return true, fmt.Errorf("timed-out while waiting for connection to be created on the server")
+		}
+		return false, nil
+	})
+
+	var st *http2Server
+	server.mu.Lock()
+	for k := range server.conns {
+		st = k.(*http2Server)
+	}
+	server.mu.Unlock()
+	cstream1, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Client failed to create first stream. Err: %v", err)
+	}
+
+	var sstream1 *Stream
+	// Access stream on the server.
+	waitWhileTrue(t, func() (bool, error) {
+		st.mu.Lock()
+		defer st.mu.Unlock()
+
+		if len(st.activeStreams) != 1 {
+			return true, fmt.Errorf("timed-out while waiting for server to have created a stream")
+		}
+		for _, v := range st.activeStreams {
+			sstream1 = v
+		}
+		return false, nil
+	})
+
+	// Exhaust client's connection window.
+	<-st.writableChan
+	if err := st.framer.writeData(true, sstream1.id, true, make([]byte, defaultWindowSize)); err != nil {
+		st.writableChan <- 0
+		t.Fatalf("Server failed to write data. Err: %v", err)
+	}
+	st.writableChan <- 0
+	// Create another stream on client.
+	cstream2, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Client failed to create second stream. Err: %v", err)
+	}
+
+	var sstream2 *Stream
+	waitWhileTrue(t, func() (bool, error) {
+		st.mu.Lock()
+		defer st.mu.Unlock()
+
+		if len(st.activeStreams) != 2 {
+			return true, fmt.Errorf("timed-out while waiting for server to have created the second stream")
+		}
+		for _, v := range st.activeStreams {
+			if v.id == cstream2.id {
+				sstream2 = v
+			}
+		}
+		if sstream2 == nil {
+			return true, fmt.Errorf("didn't find stream corresponding to client cstream.id: %v on the server", cstream2.id)
+		}
+		return false, nil
+	})
+
+	// Server should be able to send data on the new stream, even though the client hasn't read anything on the first stream.
+	<-st.writableChan
+	if err := st.framer.writeData(true, sstream2.id, true, make([]byte, defaultWindowSize)); err != nil {
+		st.writableChan <- 0
+		t.Fatalf("Server failed to write data. Err: %v", err)
+	}
+	st.writableChan <- 0
+
+	// Client should be able to read data on second stream.
+	if _, err := cstream2.Read(make([]byte, defaultWindowSize)); err != nil {
+		t.Fatalf("_.Read(_) = _, %v, want _, <nil>", err)
+	}
+
+	// Client should be able to read data on first stream.
+	if _, err := cstream1.Read(make([]byte, defaultWindowSize)); err != nil {
+		t.Fatalf("_.Read(_) = _, %v, want _, <nil>", err)
+	}
+}
+
+func TestServerConnDecoupledFromApplicationRead(t *testing.T) {
+	serverConfig := &ServerConfig{
+		InitialWindowSize:     defaultWindowSize,
+		InitialConnWindowSize: defaultWindowSize,
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, ConnectOptions{})
+	defer server.stop()
+	defer client.Close()
+	waitWhileTrue(t, func() (bool, error) {
+		server.mu.Lock()
+		defer server.mu.Unlock()
+
+		if len(server.conns) == 0 {
+			return true, fmt.Errorf("timed-out while waiting for connection to be created on the server")
+		}
+		return false, nil
+	})
+	var st *http2Server
+	server.mu.Lock()
+	for k := range server.conns {
+		st = k.(*http2Server)
+	}
+	server.mu.Unlock()
+	cstream1, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Failed to create 1st stream. Err: %v", err)
+	}
+	// Exhaust server's connection window.
+	if err := client.Write(cstream1, make([]byte, defaultWindowSize), &Options{Last: true}); err != nil {
+		t.Fatalf("Client failed to write data. Err: %v", err)
+	}
+	//Client should be able to create another stream and send data on it.
+	cstream2, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Failed to create 2nd stream. Err: %v", err)
+	}
+	if err := client.Write(cstream2, make([]byte, defaultWindowSize), &Options{}); err != nil {
+		t.Fatalf("Client failed to write data. Err: %v", err)
+	}
+	// Get the streams on server.
+	waitWhileTrue(t, func() (bool, error) {
+		st.mu.Lock()
+		defer st.mu.Unlock()
+
+		if len(st.activeStreams) != 2 {
+			return true, fmt.Errorf("timed-out while waiting for server to have created the streams")
+		}
+		return false, nil
+	})
+	var sstream1 *Stream
+	st.mu.Lock()
+	for _, v := range st.activeStreams {
+		if v.id == 1 {
+			sstream1 = v
+		}
+	}
+	st.mu.Unlock()
+	// Trying to write more on a max-ed out stream should result in a RST_STREAM from the server.
+	ct := client.(*http2Client)
+	<-ct.writableChan
+	if err := ct.framer.writeData(true, cstream2.id, true, make([]byte, 1)); err != nil {
+		t.Fatalf("Client failed to write. Err: %v", err)
+	}
+	ct.writableChan <- 0
+	code := http2ErrConvTab[http2.ErrCodeFlowControl]
+	waitWhileTrue(t, func() (bool, error) {
+		cstream2.mu.Lock()
+		defer cstream2.mu.Unlock()
+		if cstream2.status.Code() != code {
+			return true, fmt.Errorf("want code = %v, got %v", code, cstream2.status.Code())
+		}
+		return false, nil
+	})
+	// Reading from the stream on server should succeed.
+	if _, err := sstream1.Read(make([]byte, defaultWindowSize)); err != nil {
+		t.Fatalf("_.Read(_) = %v, want <nil>", err)
+	}
+
+	if _, err := sstream1.Read(make([]byte, 1)); err != io.EOF {
+		t.Fatalf("_.Read(_) = %v, want io.EOF", err)
+	}
+
+}
+
 func TestServerWithMisbehavedClient(t *testing.T) {
 	server, ct := setUp(t, 0, math.MaxUint32, suspended)
 	callHdr := &CallHdr{
@@ -1058,8 +1427,8 @@ func TestServerWithMisbehavedClient(t *testing.T) {
 		}
 		ss.fc.mu.Unlock()
 	}
-	if ss.fc.pendingData != http2MaxFrameLen || ss.fc.pendingUpdate != 0 || sc.fc.pendingData != http2MaxFrameLen || sc.fc.pendingUpdate != 0 {
-		t.Fatalf("Server mistakenly updates inbound flow control params: got %d, %d, %d, %d; want %d, %d, %d, %d", ss.fc.pendingData, ss.fc.pendingUpdate, sc.fc.pendingData, sc.fc.pendingUpdate, http2MaxFrameLen, 0, http2MaxFrameLen, 0)
+	if ss.fc.pendingData != http2MaxFrameLen || ss.fc.pendingUpdate != 0 || sc.fc.pendingData != 0 || sc.fc.pendingUpdate != 0 {
+		t.Fatalf("Server mistakenly updates inbound flow control params: got %d, %d, %d, %d; want %d, %d, %d, %d", ss.fc.pendingData, ss.fc.pendingUpdate, sc.fc.pendingData, sc.fc.pendingUpdate, http2MaxFrameLen, 0, 0, 0)
 	}
 	// Keep sending until the server inbound window is drained for that stream.
 	for sent <= initialWindowSize {
@@ -1072,37 +1441,25 @@ func TestServerWithMisbehavedClient(t *testing.T) {
 	}
 	// Server sent a resetStream for s already.
 	code := http2ErrConvTab[http2.ErrCodeFlowControl]
-	if _, err := io.ReadFull(s, make([]byte, 1)); err != io.EOF {
+	if _, err := s.Read(make([]byte, 1)); err != io.EOF {
 		t.Fatalf("%v got err %v want <EOF>", s, err)
 	}
 	if s.status.Code() != code {
 		t.Fatalf("%v got status %v; want Code=%v", s, s.status, code)
 	}
 
-	if ss.fc.pendingData != 0 || ss.fc.pendingUpdate != 0 || sc.fc.pendingData != 0 || sc.fc.pendingUpdate <= initialWindowSize {
-		t.Fatalf("Server mistakenly resets inbound flow control params: got %d, %d, %d, %d; want 0, 0, 0, >%d", ss.fc.pendingData, ss.fc.pendingUpdate, sc.fc.pendingData, sc.fc.pendingUpdate, initialWindowSize)
-	}
 	ct.CloseStream(s, nil)
-	// Test server behavior for violation of connection flow control window size restriction.
-	//
-	// Keep creating new streams until the connection window is drained on the server and
-	// the server tears down the connection.
-	for {
-		s, err := ct.NewStream(context.Background(), callHdr)
-		if err != nil {
-			// The server tears down the connection.
-			break
-		}
-		<-cc.writableChan
-		cc.framer.writeData(true, s.id, true, make([]byte, http2MaxFrameLen))
-		cc.writableChan <- 0
-	}
 	ct.Close()
 	server.stop()
 }
 
 func TestClientWithMisbehavedServer(t *testing.T) {
-	server, ct := setUp(t, 0, math.MaxUint32, misbehaved)
+	// Turn off BDP estimation so that the server can
+	// violate stream window.
+	connectOptions := ConnectOptions{
+		InitialWindowSize: initialWindowSize,
+	}
+	server, ct := setUpWithOptions(t, 0, &ServerConfig{}, misbehaved, connectOptions)
 	callHdr := &CallHdr{
 		Host:   "localhost",
 		Method: "foo.Stream",
@@ -1123,12 +1480,12 @@ func TestClientWithMisbehavedServer(t *testing.T) {
 	// Read without window update.
 	for {
 		p := make([]byte, http2MaxFrameLen)
-		if _, err = s.dec.Read(p); err != nil {
+		if _, err = s.trReader.(*transportReader).reader.Read(p); err != nil {
 			break
 		}
 	}
-	if s.fc.pendingData <= initialWindowSize || s.fc.pendingUpdate != 0 || conn.fc.pendingData <= initialWindowSize || conn.fc.pendingUpdate != 0 {
-		t.Fatalf("Client mistakenly updates inbound flow control params: got %d, %d, %d, %d; want >%d, %d, >%d, %d", s.fc.pendingData, s.fc.pendingUpdate, conn.fc.pendingData, conn.fc.pendingUpdate, initialWindowSize, 0, initialWindowSize, 0)
+	if s.fc.pendingData <= initialWindowSize || s.fc.pendingUpdate != 0 || conn.fc.pendingData != 0 || conn.fc.pendingUpdate != 0 {
+		t.Fatalf("Client mistakenly updates inbound flow control params: got %d, %d, %d, %d; want >%d, %d, %d, >%d", s.fc.pendingData, s.fc.pendingUpdate, conn.fc.pendingData, conn.fc.pendingUpdate, initialWindowSize, 0, 0, 0)
 	}
 
 	if err != io.EOF {
@@ -1139,25 +1496,6 @@ func TestClientWithMisbehavedServer(t *testing.T) {
 	}
 
 	conn.CloseStream(s, err)
-	if s.fc.pendingData != 0 || s.fc.pendingUpdate != 0 || conn.fc.pendingData != 0 || conn.fc.pendingUpdate <= initialWindowSize {
-		t.Fatalf("Client mistakenly resets inbound flow control params: got %d, %d, %d, %d; want 0, 0, 0, >%d", s.fc.pendingData, s.fc.pendingUpdate, conn.fc.pendingData, conn.fc.pendingUpdate, initialWindowSize)
-	}
-	// Test the logic for the violation of the connection flow control window size restriction.
-	//
-	// Generate enough streams to drain the connection window. Make the server flood the traffic
-	// to violate flow control window size of the connection.
-	callHdr.Method = "foo.Connection"
-	for i := 0; i < int(initialConnWindowSize/initialWindowSize+10); i++ {
-		s, err := ct.NewStream(context.Background(), callHdr)
-		if err != nil {
-			break
-		}
-		if err := ct.Write(s, d, &Options{Last: true, Delay: false}); err != nil {
-			break
-		}
-	}
-	// http2Client.errChan is closed due to connection flow control window size violation.
-	<-conn.Error()
 	ct.Close()
 	server.stop()
 }
@@ -1182,7 +1520,7 @@ func TestEncodingRequiredStatus(t *testing.T) {
 		t.Fatalf("Failed to write the request: %v", err)
 	}
 	p := make([]byte, http2MaxFrameLen)
-	if _, err := s.dec.Read(p); err != io.EOF {
+	if _, err := s.trReader.(*transportReader).Read(p); err != io.EOF {
 		t.Fatalf("Read got error %v, want %v", err, io.EOF)
 	}
 	if !reflect.DeepEqual(s.Status(), encodingTestStatus) {
@@ -1210,7 +1548,7 @@ func TestInvalidHeaderField(t *testing.T) {
 		t.Fatalf("Failed to write the request: %v", err)
 	}
 	p := make([]byte, http2MaxFrameLen)
-	_, err = s.dec.Read(p)
+	_, err = s.trReader.(*transportReader).Read(p)
 	if se, ok := err.(StreamError); !ok || se.Code != codes.FailedPrecondition || !strings.Contains(err.Error(), expectedInvalidHeaderField) {
 		t.Fatalf("Read got error %v, want error with code %s and contains %q", err, codes.FailedPrecondition, expectedInvalidHeaderField)
 	}
@@ -1263,6 +1601,576 @@ func TestContextErr(t *testing.T) {
 		err := ContextErr(test.errIn)
 		if err != test.errOut {
 			t.Fatalf("ContextErr{%v} = %v \nwant %v", test.errIn, err, test.errOut)
+		}
+	}
+}
+
+func max(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+type windowSizeConfig struct {
+	serverStream int32
+	serverConn   int32
+	clientStream int32
+	clientConn   int32
+}
+
+func TestAccountCheckWindowSizeWithLargeWindow(t *testing.T) {
+	wc := windowSizeConfig{
+		serverStream: 10 * 1024 * 1024,
+		serverConn:   12 * 1024 * 1024,
+		clientStream: 6 * 1024 * 1024,
+		clientConn:   8 * 1024 * 1024,
+	}
+	testAccountCheckWindowSize(t, wc)
+}
+
+func TestAccountCheckWindowSizeWithSmallWindow(t *testing.T) {
+	wc := windowSizeConfig{
+		serverStream: defaultWindowSize,
+		// Note this is smaller than initialConnWindowSize which is the current default.
+		serverConn:   defaultWindowSize,
+		clientStream: defaultWindowSize,
+		clientConn:   defaultWindowSize,
+	}
+	testAccountCheckWindowSize(t, wc)
+}
+
+func testAccountCheckWindowSize(t *testing.T, wc windowSizeConfig) {
+	serverConfig := &ServerConfig{
+		InitialWindowSize:     wc.serverStream,
+		InitialConnWindowSize: wc.serverConn,
+	}
+	connectOptions := ConnectOptions{
+		InitialWindowSize:     wc.clientStream,
+		InitialConnWindowSize: wc.clientConn,
+	}
+	server, client := setUpWithOptions(t, 0, serverConfig, suspended, connectOptions)
+	defer server.stop()
+	defer client.Close()
+
+	// Wait for server conns to be populated with new server transport.
+	waitWhileTrue(t, func() (bool, error) {
+		server.mu.Lock()
+		defer server.mu.Unlock()
+		if len(server.conns) == 0 {
+			return true, fmt.Errorf("timed out waiting for server transport to be created")
+		}
+		return false, nil
+	})
+	var st *http2Server
+	server.mu.Lock()
+	for k := range server.conns {
+		st = k.(*http2Server)
+	}
+	server.mu.Unlock()
+	ct := client.(*http2Client)
+	cstream, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Failed to create stream. Err: %v", err)
+	}
+	// Wait for server to receive headers.
+	waitWhileTrue(t, func() (bool, error) {
+		st.mu.Lock()
+		defer st.mu.Unlock()
+		if len(st.activeStreams) == 0 {
+			return true, fmt.Errorf("timed out waiting for server to receive headers")
+		}
+		return false, nil
+	})
+	// Sleeping to make sure the settings are applied in case of negative test.
+	time.Sleep(time.Second)
+
+	waitWhileTrue(t, func() (bool, error) {
+		st.fc.mu.Lock()
+		lim := st.fc.limit
+		st.fc.mu.Unlock()
+		if lim != uint32(serverConfig.InitialConnWindowSize) {
+			return true, fmt.Errorf("Server transport flow control window size: got %v, want %v", lim, serverConfig.InitialConnWindowSize)
+		}
+		return false, nil
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	serverSendQuota, err := wait(ctx, nil, nil, nil, st.sendQuotaPool.acquire())
+	if err != nil {
+		t.Fatalf("Error while acquiring sendQuota on server. Err: %v", err)
+	}
+	cancel()
+	st.sendQuotaPool.add(serverSendQuota)
+	if serverSendQuota != int(connectOptions.InitialConnWindowSize) {
+		t.Fatalf("Server send quota(%v) not equal to client's window size(%v) on conn.", serverSendQuota, connectOptions.InitialConnWindowSize)
+	}
+	st.mu.Lock()
+	ssq := st.streamSendQuota
+	st.mu.Unlock()
+	if ssq != uint32(connectOptions.InitialWindowSize) {
+		t.Fatalf("Server stream send quota(%v) not equal to client's window size(%v) on stream.", ssq, connectOptions.InitialWindowSize)
+	}
+	ct.fc.mu.Lock()
+	limit := ct.fc.limit
+	ct.fc.mu.Unlock()
+	if limit != uint32(connectOptions.InitialConnWindowSize) {
+		t.Fatalf("Client transport flow control window size is %v, want %v", limit, connectOptions.InitialConnWindowSize)
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	clientSendQuota, err := wait(ctx, nil, nil, nil, ct.sendQuotaPool.acquire())
+	if err != nil {
+		t.Fatalf("Error while acquiring sendQuota on client. Err: %v", err)
+	}
+	cancel()
+	ct.sendQuotaPool.add(clientSendQuota)
+	if clientSendQuota != int(serverConfig.InitialConnWindowSize) {
+		t.Fatalf("Client send quota(%v) not equal to server's window size(%v) on conn.", clientSendQuota, serverConfig.InitialConnWindowSize)
+	}
+	ct.mu.Lock()
+	ssq = ct.streamSendQuota
+	ct.mu.Unlock()
+	if ssq != uint32(serverConfig.InitialWindowSize) {
+		t.Fatalf("Client stream send quota(%v) not equal to server's window size(%v) on stream.", ssq, serverConfig.InitialWindowSize)
+	}
+	cstream.fc.mu.Lock()
+	limit = cstream.fc.limit
+	cstream.fc.mu.Unlock()
+	if limit != uint32(connectOptions.InitialWindowSize) {
+		t.Fatalf("Client stream flow control window size is %v, want %v", limit, connectOptions.InitialWindowSize)
+	}
+	var sstream *Stream
+	st.mu.Lock()
+	for _, v := range st.activeStreams {
+		sstream = v
+	}
+	st.mu.Unlock()
+	sstream.fc.mu.Lock()
+	limit = sstream.fc.limit
+	sstream.fc.mu.Unlock()
+	if limit != uint32(serverConfig.InitialWindowSize) {
+		t.Fatalf("Server stream flow control window size is %v, want %v", limit, serverConfig.InitialWindowSize)
+	}
+}
+
+// Check accounting on both sides after sending and receiving large messages.
+func TestAccountCheckExpandingWindow(t *testing.T) {
+	server, client := setUp(t, 0, 0, pingpong)
+	defer server.stop()
+	defer client.Close()
+	waitWhileTrue(t, func() (bool, error) {
+		server.mu.Lock()
+		defer server.mu.Unlock()
+		if len(server.conns) == 0 {
+			return true, fmt.Errorf("timed out while waiting for server transport to be created")
+		}
+		return false, nil
+	})
+	var st *http2Server
+	server.mu.Lock()
+	for k := range server.conns {
+		st = k.(*http2Server)
+	}
+	server.mu.Unlock()
+	ct := client.(*http2Client)
+	cstream, err := client.NewStream(context.Background(), &CallHdr{Flush: true})
+	if err != nil {
+		t.Fatalf("Failed to create stream. Err: %v", err)
+	}
+
+	msgSize := 65535 * 16 * 2
+	msg := make([]byte, msgSize)
+	buf := make([]byte, msgSize+5)
+	buf[0] = byte(0)
+	binary.BigEndian.PutUint32(buf[1:], uint32(msgSize))
+	copy(buf[5:], msg)
+	opts := Options{}
+	header := make([]byte, 5)
+	for i := 1; i <= 10; i++ {
+		if err := ct.Write(cstream, buf, &opts); err != nil {
+			t.Fatalf("Error on client while writing message: %v", err)
+		}
+		if _, err := cstream.Read(header); err != nil {
+			t.Fatalf("Error on client while reading data frame header: %v", err)
+		}
+		sz := binary.BigEndian.Uint32(header[1:])
+		recvMsg := make([]byte, int(sz))
+		if _, err := cstream.Read(recvMsg); err != nil {
+			t.Fatalf("Error on client while reading data: %v", err)
+		}
+		if len(recvMsg) != len(msg) {
+			t.Fatalf("Length of message received by client: %v, want: %v", len(recvMsg), len(msg))
+		}
+	}
+	var sstream *Stream
+	st.mu.Lock()
+	for _, v := range st.activeStreams {
+		sstream = v
+	}
+	st.mu.Unlock()
+
+	waitWhileTrue(t, func() (bool, error) {
+		// Check that pendingData and delta on flow control windows on both sides are 0.
+		cstream.fc.mu.Lock()
+		if cstream.fc.delta != 0 {
+			cstream.fc.mu.Unlock()
+			return true, fmt.Errorf("delta on flow control window of client stream is non-zero")
+		}
+		if cstream.fc.pendingData != 0 {
+			cstream.fc.mu.Unlock()
+			return true, fmt.Errorf("pendingData on flow control window of client stream is non-zero")
+		}
+		cstream.fc.mu.Unlock()
+		sstream.fc.mu.Lock()
+		if sstream.fc.delta != 0 {
+			sstream.fc.mu.Unlock()
+			return true, fmt.Errorf("delta on flow control window of server stream is non-zero")
+		}
+		if sstream.fc.pendingData != 0 {
+			sstream.fc.mu.Unlock()
+			return true, fmt.Errorf("pendingData on flow control window of sercer stream is non-zero")
+		}
+		sstream.fc.mu.Unlock()
+		ct.fc.mu.Lock()
+		if ct.fc.delta != 0 {
+			ct.fc.mu.Unlock()
+			return true, fmt.Errorf("delta on flow control window of client transport is non-zero")
+		}
+		if ct.fc.pendingData != 0 {
+			ct.fc.mu.Unlock()
+			return true, fmt.Errorf("pendingData on flow control window of client transport is non-zero")
+		}
+		ct.fc.mu.Unlock()
+		st.fc.mu.Lock()
+		if st.fc.delta != 0 {
+			st.fc.mu.Unlock()
+			return true, fmt.Errorf("delta on flow control window of server transport is non-zero")
+		}
+		if st.fc.pendingData != 0 {
+			st.fc.mu.Unlock()
+			return true, fmt.Errorf("pendingData on flow control window of server transport is non-zero")
+		}
+		st.fc.mu.Unlock()
+
+		// Check flow conrtrol window on client stream is equal to out flow on server stream.
+		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+		serverStreamSendQuota, err := wait(ctx, nil, nil, nil, sstream.sendQuotaPool.acquire())
+		if err != nil {
+			return true, fmt.Errorf("error while acquiring server stream send quota. Err: %v", err)
+		}
+		sstream.sendQuotaPool.add(serverStreamSendQuota)
+		cstream.fc.mu.Lock()
+		clientEst := cstream.fc.limit - cstream.fc.pendingUpdate
+		cstream.fc.mu.Unlock()
+		if uint32(serverStreamSendQuota) != clientEst {
+			return true, fmt.Errorf("server stream outflow: %v, estimated by client: %v", serverStreamSendQuota, clientEst)
+		}
+
+		// Check flow control window on server stream is equal to out flow on client stream.
+		ctx, _ = context.WithTimeout(context.Background(), time.Second)
+		clientStreamSendQuota, err := wait(ctx, nil, nil, nil, cstream.sendQuotaPool.acquire())
+		if err != nil {
+			return true, fmt.Errorf("error while acquiring client stream send quota. Err: %v", err)
+		}
+		cstream.sendQuotaPool.add(clientStreamSendQuota)
+		sstream.fc.mu.Lock()
+		serverEst := sstream.fc.limit - sstream.fc.pendingUpdate
+		sstream.fc.mu.Unlock()
+		if uint32(clientStreamSendQuota) != serverEst {
+			return true, fmt.Errorf("client stream outflow: %v. estimated by server: %v", clientStreamSendQuota, serverEst)
+		}
+
+		// Check flow control window on client transport is equal to out flow of server transport.
+		ctx, _ = context.WithTimeout(context.Background(), time.Second)
+		serverTrSendQuota, err := wait(ctx, nil, nil, nil, st.sendQuotaPool.acquire())
+		if err != nil {
+			return true, fmt.Errorf("error while acquring server transport send quota. Err: %v", err)
+		}
+		st.sendQuotaPool.add(serverTrSendQuota)
+		ct.fc.mu.Lock()
+		clientEst = ct.fc.limit - ct.fc.pendingUpdate
+		ct.fc.mu.Unlock()
+		if uint32(serverTrSendQuota) != clientEst {
+			return true, fmt.Errorf("server transport outflow: %v, estimated by client: %v", serverTrSendQuota, clientEst)
+		}
+
+		// Check flow control window on server transport is equal to out flow of client transport.
+		ctx, _ = context.WithTimeout(context.Background(), time.Second)
+		clientTrSendQuota, err := wait(ctx, nil, nil, nil, ct.sendQuotaPool.acquire())
+		if err != nil {
+			return true, fmt.Errorf("error while acquiring client transport send quota. Err: %v", err)
+		}
+		ct.sendQuotaPool.add(clientTrSendQuota)
+		st.fc.mu.Lock()
+		serverEst = st.fc.limit - st.fc.pendingUpdate
+		st.fc.mu.Unlock()
+		if uint32(clientTrSendQuota) != serverEst {
+			return true, fmt.Errorf("client transport outflow: %v, estimated by client: %v", clientTrSendQuota, serverEst)
+		}
+
+		return false, nil
+	})
+
+}
+
+func waitWhileTrue(t *testing.T, condition func() (bool, error)) {
+	var (
+		wait bool
+		err  error
+	)
+	timer := time.NewTimer(time.Second * 5)
+	for {
+		wait, err = condition()
+		if wait {
+			select {
+			case <-timer.C:
+				t.Fatalf(err.Error())
+			default:
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
+		}
+		if !timer.Stop() {
+			<-timer.C
+		}
+		break
+	}
+}
+
+// A function of type writeHeaders writes out
+// http status with the given stream ID using the given framer.
+type writeHeaders func(*http2.Framer, uint32, int) error
+
+func writeOneHeader(framer *http2.Framer, sid uint32, httpStatus int) error {
+	var buf bytes.Buffer
+	henc := hpack.NewEncoder(&buf)
+	henc.WriteField(hpack.HeaderField{Name: ":status", Value: fmt.Sprint(httpStatus)})
+	if err := framer.WriteHeaders(http2.HeadersFrameParam{
+		StreamID:      sid,
+		BlockFragment: buf.Bytes(),
+		EndStream:     true,
+		EndHeaders:    true,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeTwoHeaders(framer *http2.Framer, sid uint32, httpStatus int) error {
+	var buf bytes.Buffer
+	henc := hpack.NewEncoder(&buf)
+	henc.WriteField(hpack.HeaderField{
+		Name:  ":status",
+		Value: fmt.Sprint(http.StatusOK),
+	})
+	if err := framer.WriteHeaders(http2.HeadersFrameParam{
+		StreamID:      sid,
+		BlockFragment: buf.Bytes(),
+		EndHeaders:    true,
+	}); err != nil {
+		return err
+	}
+	buf.Reset()
+	henc.WriteField(hpack.HeaderField{
+		Name:  ":status",
+		Value: fmt.Sprint(httpStatus),
+	})
+	if err := framer.WriteHeaders(http2.HeadersFrameParam{
+		StreamID:      sid,
+		BlockFragment: buf.Bytes(),
+		EndStream:     true,
+		EndHeaders:    true,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+type httpServer struct {
+	conn       net.Conn
+	httpStatus int
+	wh         writeHeaders
+}
+
+func (s *httpServer) start(t *testing.T, lis net.Listener) {
+	// Launch an HTTP server to send back header with httpStatus.
+	go func() {
+		var err error
+		s.conn, err = lis.Accept()
+		if err != nil {
+			t.Errorf("Error accepting connection: %v", err)
+			return
+		}
+		defer s.conn.Close()
+		// Read preface sent by client.
+		if _, err = io.ReadFull(s.conn, make([]byte, len(http2.ClientPreface))); err != nil {
+			t.Errorf("Error at server-side while reading preface from cleint. Err: %v", err)
+			return
+		}
+		reader := bufio.NewReaderSize(s.conn, http2IOBufSize)
+		writer := bufio.NewWriterSize(s.conn, http2IOBufSize)
+		framer := http2.NewFramer(writer, reader)
+		if err = framer.WriteSettingsAck(); err != nil {
+			t.Errorf("Error at server-side while sending Settings ack. Err: %v", err)
+			return
+		}
+		var sid uint32
+		// Read frames until a header is received.
+		for {
+			frame, err := framer.ReadFrame()
+			if err != nil {
+				t.Errorf("Error at server-side while reading frame. Err: %v", err)
+				return
+			}
+			if hframe, ok := frame.(*http2.HeadersFrame); ok {
+				sid = hframe.Header().StreamID
+				break
+			}
+		}
+		if err = s.wh(framer, sid, s.httpStatus); err != nil {
+			t.Errorf("Error at server-side while writing headers. Err: %v", err)
+			return
+		}
+		writer.Flush()
+	}()
+}
+
+func (s *httpServer) cleanUp() {
+	if s.conn != nil {
+		s.conn.Close()
+	}
+}
+
+func setUpHTTPStatusTest(t *testing.T, httpStatus int, wh writeHeaders) (stream *Stream, cleanUp func()) {
+	var (
+		err    error
+		lis    net.Listener
+		server *httpServer
+		client ClientTransport
+	)
+	cleanUp = func() {
+		if lis != nil {
+			lis.Close()
+		}
+		if server != nil {
+			server.cleanUp()
+		}
+		if client != nil {
+			client.Close()
+		}
+	}
+	defer func() {
+		if err != nil {
+			cleanUp()
+		}
+	}()
+	lis, err = net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("Failed to listen. Err: %v", err)
+	}
+	server = &httpServer{
+		httpStatus: httpStatus,
+		wh:         wh,
+	}
+	server.start(t, lis)
+	client, err = newHTTP2Client(context.Background(), TargetInfo{Addr: lis.Addr().String()}, ConnectOptions{})
+	if err != nil {
+		t.Fatalf("Error creating client. Err: %v", err)
+	}
+	stream, err = client.NewStream(context.Background(), &CallHdr{Method: "bogus/method", Flush: true})
+	if err != nil {
+		t.Fatalf("Error creating stream at client-side. Err: %v", err)
+	}
+	return
+}
+
+func TestHTTPToGRPCStatusMapping(t *testing.T) {
+	for k := range httpStatusConvTab {
+		testHTTPToGRPCStatusMapping(t, k, writeOneHeader)
+	}
+}
+
+func testHTTPToGRPCStatusMapping(t *testing.T, httpStatus int, wh writeHeaders) {
+	stream, cleanUp := setUpHTTPStatusTest(t, httpStatus, wh)
+	defer cleanUp()
+	want := httpStatusConvTab[httpStatus]
+	buf := make([]byte, 8)
+	_, err := stream.Read(buf)
+	if err == nil {
+		t.Fatalf("Stream.Read(_) unexpectedly returned no error. Expected stream error with code %v", want)
+	}
+	serr, ok := err.(StreamError)
+	if !ok {
+		t.Fatalf("err.(Type) = %T, want StreamError", err)
+	}
+	if want != serr.Code {
+		t.Fatalf("Want error code: %v, got: %v", want, serr.Code)
+	}
+}
+
+func TestHTTPStatusOKAndMissingGRPCStatus(t *testing.T) {
+	stream, cleanUp := setUpHTTPStatusTest(t, http.StatusOK, writeOneHeader)
+	defer cleanUp()
+	buf := make([]byte, 8)
+	_, err := stream.Read(buf)
+	if err != io.EOF {
+		t.Fatalf("stream.Read(_) = _, %v, want _, io.EOF", err)
+	}
+	want := codes.Unknown
+	stream.mu.Lock()
+	defer stream.mu.Unlock()
+	if stream.status.Code() != want {
+		t.Fatalf("Status code of stream: %v, want: %v", stream.status.Code(), want)
+	}
+}
+
+func TestHTTPStatusNottOKAndMissingGRPCStatusInSecondHeader(t *testing.T) {
+	testHTTPToGRPCStatusMapping(t, http.StatusUnauthorized, writeTwoHeaders)
+}
+
+// If any error occurs on a call to Stream.Read, future calls
+// should continue to return that same error.
+func TestReadGivesSameErrorAfterAnyErrorOccurs(t *testing.T) {
+	testRecvBuffer := newRecvBuffer()
+	s := &Stream{
+		ctx:         context.Background(),
+		goAway:      make(chan struct{}),
+		buf:         testRecvBuffer,
+		requestRead: func(int) {},
+	}
+	s.trReader = &transportReader{
+		reader: &recvBufferReader{
+			ctx:    s.ctx,
+			goAway: s.goAway,
+			recv:   s.buf,
+		},
+		windowHandler: func(int) {},
+	}
+	testData := make([]byte, 1)
+	testData[0] = 5
+	testErr := errors.New("test error")
+	s.write(recvMsg{data: testData, err: testErr})
+
+	inBuf := make([]byte, 1)
+	actualCount, actualErr := s.Read(inBuf)
+	if actualCount != 0 {
+		t.Errorf("actualCount, _ := s.Read(_) differs; want 0; got %v", actualCount)
+	}
+	if actualErr.Error() != testErr.Error() {
+		t.Errorf("_ , actualErr := s.Read(_) differs; want actualErr.Error() to be %v; got %v", testErr.Error(), actualErr.Error())
+	}
+
+	s.write(recvMsg{data: testData, err: nil})
+	s.write(recvMsg{data: testData, err: errors.New("different error from first")})
+
+	for i := 0; i < 2; i++ {
+		inBuf := make([]byte, 1)
+		actualCount, actualErr := s.Read(inBuf)
+		if actualCount != 0 {
+			t.Errorf("actualCount, _ := s.Read(_) differs; want %v; got %v", 0, actualCount)
+		}
+		if actualErr.Error() != testErr.Error() {
+			t.Errorf("_ , actualErr := s.Read(_) differs; want actualErr.Error() to be %v; got %v", testErr.Error(), actualErr.Error())
 		}
 	}
 }

@@ -49,6 +49,8 @@ Usage of easyjson:
     	process the whole package instead of just the given file
   -snake_case
     	use snake_case names instead of CamelCase by default
+  -lower_camel_case
+        use lowerCamelCase instead of CamelCase by default
   -stubs
     	only generate stubs for marshaler/unmarshaler funcs
 ```
@@ -60,7 +62,7 @@ generated. For example:
 
 ```go
 //easyjson:json
-struct A{}
+type A struct {}
 ```
 
 Additional option notes:

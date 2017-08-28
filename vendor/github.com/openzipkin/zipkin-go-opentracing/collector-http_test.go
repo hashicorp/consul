@@ -1,15 +1,15 @@
 package zipkintracer
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-
-	"fmt"
 
 	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/zipkincore"
 )
@@ -194,7 +194,7 @@ func TestHttpCollector_MaxBatchSize(t *testing.T) {
 		batchSize  = maxBacklog * 2 // make backsize bigger than backlog enable testing backlog disposal
 	)
 
-	c, err := NewHTTPCollector(fmt.Sprintf("http://localhost:%d/api/v1/span", port),
+	c, err := NewHTTPCollector(fmt.Sprintf("http://localhost:%d/api/v1/spans", port),
 		HTTPMaxBacklog(maxBacklog),
 		HTTPBatchSize(batchSize),
 	)
@@ -215,10 +215,53 @@ func TestHttpCollector_MaxBatchSize(t *testing.T) {
 
 }
 
+func TestHTTPCollector_RequestCallback(t *testing.T) {
+	t.Parallel()
+
+	var (
+		err      error
+		port     = 10005
+		server   = newHTTPServer(t, port)
+		hdrKey   = "test-key"
+		hdrValue = "test-value"
+	)
+
+	c, err := NewHTTPCollector(
+		fmt.Sprintf("http://localhost:%d/api/v1/spans", port),
+		HTTPRequestCallback(func(r *http.Request) {
+			r.Header.Add(hdrKey, hdrValue)
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Collect(&zipkincore.Span{}); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if want, have := 1, len(server.spans()); want != have {
+		t.Fatal("never received a span")
+	}
+
+	headers := server.headers()
+	if len(headers) == 0 {
+		t.Fatalf("Collect request was not handled")
+	}
+	testHeader := headers.Get(hdrKey)
+	if !strings.EqualFold(testHeader, hdrValue) {
+		t.Errorf("Custom header not received. want %s, have %s", testHeader, hdrValue)
+	}
+	server.clearHeaders()
+}
+
 type httpServer struct {
-	t           *testing.T
-	zipkinSpans []*zipkincore.Span
-	mutex       sync.RWMutex
+	t            *testing.T
+	zipkinSpans  []*zipkincore.Span
+	zipkinHeader http.Header
+	mutex        sync.RWMutex
 }
 
 func (s *httpServer) spans() []*zipkincore.Span {
@@ -231,6 +274,18 @@ func (s *httpServer) clearSpans() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.zipkinSpans = s.zipkinSpans[:0]
+}
+
+func (s *httpServer) headers() http.Header {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.zipkinHeader
+}
+
+func (s *httpServer) clearHeaders() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.zipkinHeader = make(http.Header, 0)
 }
 
 func newHTTPServer(t *testing.T, port int) *httpServer {
@@ -248,6 +303,14 @@ func newHTTPServer(t *testing.T, port int) *httpServer {
 			t.Fatalf(
 				"except Content-Type should be application/x-thrift, but is %s",
 				contextType)
+		}
+
+		// clone headers from request
+		headers := make(http.Header, len(r.Header))
+		for k, vv := range r.Header {
+			vv2 := make([]string, len(vv))
+			copy(vv2, vv)
+			headers[k] = vv2
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
@@ -282,6 +345,7 @@ func newHTTPServer(t *testing.T, port int) *httpServer {
 		server.mutex.Lock()
 		defer server.mutex.Unlock()
 		server.zipkinSpans = append(server.zipkinSpans, spans...)
+		server.zipkinHeader = headers
 	})
 
 	handler.HandleFunc("/api/v1/sleep", func(w http.ResponseWriter, r *http.Request) {

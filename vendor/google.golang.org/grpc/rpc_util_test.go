@@ -1,33 +1,18 @@
 /*
  *
- * Copyright 2014, Google Inc.
- * All rights reserved.
+ * Copyright 2014 gRPC authors.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *     * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *     * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
@@ -47,6 +32,16 @@ import (
 	"google.golang.org/grpc/transport"
 )
 
+type fullReader struct {
+	reader io.Reader
+}
+
+func (f fullReader) Read(p []byte) (int, error) {
+	return io.ReadFull(f.reader, p)
+}
+
+var _ CallOption = EmptyCallOption{} // ensure EmptyCallOption implements the interface
+
 func TestSimpleParsing(t *testing.T) {
 	bigMsg := bytes.Repeat([]byte{'x'}, 1<<24)
 	for _, test := range []struct {
@@ -65,7 +60,7 @@ func TestSimpleParsing(t *testing.T) {
 		// Check that messages with length >= 2^24 are parsed.
 		{append([]byte{0, 1, 0, 0, 0}, bigMsg...), nil, bigMsg, compressionNone},
 	} {
-		buf := bytes.NewReader(test.p)
+		buf := fullReader{bytes.NewReader(test.p)}
 		parser := &parser{r: buf}
 		pt, b, err := parser.recvMsg(math.MaxInt32)
 		if err != test.err || !bytes.Equal(b, test.b) || pt != test.pt {
@@ -77,7 +72,7 @@ func TestSimpleParsing(t *testing.T) {
 func TestMultipleParsing(t *testing.T) {
 	// Set a byte stream consists of 3 messages with their headers.
 	p := []byte{0, 0, 0, 0, 1, 'a', 0, 0, 0, 0, 2, 'b', 'c', 0, 0, 0, 0, 1, 'd'}
-	b := bytes.NewReader(p)
+	b := fullReader{bytes.NewReader(p)}
 	parser := &parser{r: b}
 
 	wantRecvs := []struct {
@@ -130,7 +125,7 @@ func TestCompress(t *testing.T) {
 		// outputs
 		err error
 	}{
-		{make([]byte, 1024), &gzipCompressor{}, &gzipDecompressor{}, nil},
+		{make([]byte, 1024), NewGZIPCompressor(), NewGZIPDecompressor(), nil},
 	} {
 		b := new(bytes.Buffer)
 		if err := test.cp.Do(b, test.data); err != test.err {
@@ -153,7 +148,7 @@ func TestToRPCErr(t *testing.T) {
 		errOut error
 	}{
 		{transport.StreamError{Code: codes.Unknown, Desc: ""}, status.Error(codes.Unknown, "")},
-		{transport.ErrConnClosing, status.Error(codes.Internal, transport.ErrConnClosing.Desc)},
+		{transport.ErrConnClosing, status.Error(codes.Unavailable, transport.ErrConnClosing.Desc)},
 	} {
 		err := toRPCErr(test.errIn)
 		if _, ok := status.FromError(err); !ok {
@@ -201,4 +196,41 @@ func BenchmarkEncode512KiB(b *testing.B) {
 
 func BenchmarkEncode1MiB(b *testing.B) {
 	bmEncode(b, 1024*1024)
+}
+
+// bmCompressor benchmarks a compressor of a Protocol Buffer message containing
+// mSize bytes.
+func bmCompressor(b *testing.B, mSize int, cp Compressor) {
+	payload := make([]byte, mSize)
+	cBuf := bytes.NewBuffer(make([]byte, mSize))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cp.Do(cBuf, payload)
+		cBuf.Reset()
+	}
+}
+
+func BenchmarkGZIPCompressor1B(b *testing.B) {
+	bmCompressor(b, 1, NewGZIPCompressor())
+}
+
+func BenchmarkGZIPCompressor1KiB(b *testing.B) {
+	bmCompressor(b, 1024, NewGZIPCompressor())
+}
+
+func BenchmarkGZIPCompressor8KiB(b *testing.B) {
+	bmCompressor(b, 8*1024, NewGZIPCompressor())
+}
+
+func BenchmarkGZIPCompressor64KiB(b *testing.B) {
+	bmCompressor(b, 64*1024, NewGZIPCompressor())
+}
+
+func BenchmarkGZIPCompressor512KiB(b *testing.B) {
+	bmCompressor(b, 512*1024, NewGZIPCompressor())
+}
+
+func BenchmarkGZIPCompressor1MiB(b *testing.B) {
+	bmCompressor(b, 1024*1024, NewGZIPCompressor())
 }

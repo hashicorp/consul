@@ -134,7 +134,7 @@ const string HTTP_METHOD = "http.method"
  * "/resource/{resource_id}". In systems where only equals queries are available, searching for
  * http/path=/resource won't match if the actual request was /resource/abcd-ff.
  *
- * Historical note: This was commonly expressed as "http.uri" in zipkin, eventhough it was most
+ * Historical note: This was commonly expressed as "http.uri" in zipkin, even though it was most
  * often just a path.
  */
 const string HTTP_PATH = "http.path"
@@ -286,7 +286,7 @@ struct Annotation {
    * Microseconds from epoch.
    *
    * This value should use the most precise value possible. For example,
-   * gettimeofday or syncing nanoTime against a tick of currentTimeMillis.
+   * gettimeofday or multiplying currentTimeMillis by 1000.
    */
   1: i64 timestamp
   /**
@@ -420,7 +420,7 @@ struct Span {
    * precise value possible. For example, gettimeofday or syncing nanoTime
    * against a tick of currentTimeMillis.
    *
-   * For compatibilty with instrumentation that precede this field, collectors
+   * For compatibility with instrumentation that precede this field, collectors
    * or span stores can derive this via Annotation.timestamp.
    * For example, SERVER_RECV.timestamp or CLIENT_SEND.timestamp.
    *

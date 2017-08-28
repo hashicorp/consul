@@ -1,50 +1,88 @@
 /*
  *
- * Copyright 2014, Google Inc.
- * All rights reserved.
+ * Copyright 2014 gRPC authors.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *     * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *     * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  */
 
 package grpc
 
 import (
+	"math"
 	"net"
 	"testing"
 	"time"
 
 	"golang.org/x/net/context"
 
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/naming"
 )
 
 const tlsDir = "testdata/"
+
+func assertState(wantState connectivity.State, cc *ClientConn) (connectivity.State, bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	var state connectivity.State
+	for state = cc.GetState(); state != wantState && cc.WaitForStateChange(ctx, state); state = cc.GetState() {
+	}
+	return state, state == wantState
+}
+
+func TestConnectivityStates(t *testing.T) {
+	servers, resolver := startServers(t, 2, math.MaxUint32)
+	defer func() {
+		for i := 0; i < 2; i++ {
+			servers[i].stop()
+		}
+	}()
+
+	cc, err := Dial("foo.bar.com", WithBalancer(RoundRobin(resolver)), WithInsecure())
+	if err != nil {
+		t.Fatalf("Dial(\"foo.bar.com\", WithBalancer(_)) = _, %v, want _ <nil>", err)
+	}
+	defer cc.Close()
+	wantState := connectivity.Ready
+	if state, ok := assertState(wantState, cc); !ok {
+		t.Fatalf("asserState(%s) = %s, false, want %s, true", wantState, state, wantState)
+	}
+	// Send an update to delete the server connection (tearDown addrConn).
+	update := []*naming.Update{
+		{
+			Op:   naming.Delete,
+			Addr: "localhost:" + servers[0].port,
+		},
+	}
+	resolver.w.inject(update)
+	wantState = connectivity.TransientFailure
+	if state, ok := assertState(wantState, cc); !ok {
+		t.Fatalf("asserState(%s) = %s, false, want %s, true", wantState, state, wantState)
+	}
+	update[0] = &naming.Update{
+		Op:   naming.Add,
+		Addr: "localhost:" + servers[1].port,
+	}
+	resolver.w.inject(update)
+	wantState = connectivity.Ready
+	if state, ok := assertState(wantState, cc); !ok {
+		t.Fatalf("asserState(%s) = %s, false, want %s, true", wantState, state, wantState)
+	}
+
+}
 
 func TestDialTimeout(t *testing.T) {
 	conn, err := Dial("Non-Existent.Server:80", WithTimeout(time.Millisecond), WithBlock(), WithInsecure())
@@ -295,17 +333,20 @@ func (b *emptyBalancer) Close() error {
 
 func TestNonblockingDialWithEmptyBalancer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	dialDone := make(chan struct{})
+	defer cancel()
+	dialDone := make(chan error)
 	go func() {
-		conn, err := DialContext(ctx, "Non-Existent.Server:80", WithInsecure(), WithBalancer(newEmptyBalancer()))
-		if err != nil {
-			t.Fatalf("unexpected error dialing connection: %v", err)
-		}
-		conn.Close()
-		close(dialDone)
+		dialDone <- func() error {
+			conn, err := DialContext(ctx, "Non-Existent.Server:80", WithInsecure(), WithBalancer(newEmptyBalancer()))
+			if err != nil {
+				return err
+			}
+			return conn.Close()
+		}()
 	}()
-	<-dialDone
-	cancel()
+	if err := <-dialDone; err != nil {
+		t.Fatalf("unexpected error dialing connection: %s", err)
+	}
 }
 
 func TestClientUpdatesParamsAfterGoAway(t *testing.T) {

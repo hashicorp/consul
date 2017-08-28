@@ -2,7 +2,6 @@ package oidc
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -182,14 +181,16 @@ func (r *remoteKeySet) updateKeys() ([]jose.JSONWebKey, time.Time, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, time.Time{}, fmt.Errorf("oidc: read response body: %v", err)
+		return nil, time.Time{}, fmt.Errorf("unable to read response body: %v", err)
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, time.Time{}, fmt.Errorf("oidc: get keys failed: %s %s", resp.Status, body)
 	}
 
 	var keySet jose.JSONWebKeySet
-	if err := json.Unmarshal(body, &keySet); err != nil {
+	err = unmarshalResp(resp, body, &keySet)
+	if err != nil {
 		return nil, time.Time{}, fmt.Errorf("oidc: failed to decode keys: %v %s", err, body)
 	}
 

@@ -30,7 +30,7 @@ func (t TraceID) ToHex() string {
 		return strconv.FormatUint(t.Low, 16)
 	}
 	return fmt.Sprintf(
-		"%s%016s", strconv.FormatUint(t.High, 16), strconv.FormatUint(t.Low, 16),
+		"%016s%016s", strconv.FormatUint(t.High, 16), strconv.FormatUint(t.Low, 16),
 	)
 }
 

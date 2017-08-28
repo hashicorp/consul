@@ -201,8 +201,8 @@ func (r *SchemaURL) UnmarshalJSON(data []byte) error {
 
 type SchemaProps struct {
 	ID                   string            `json:"id,omitempty"`
-	Ref                  Ref               `json:"-,omitempty"`
-	Schema               SchemaURL         `json:"-,omitempty"`
+	Ref                  Ref               `json:"-"`
+	Schema               SchemaURL         `json:"-"`
 	Description          string            `json:"description,omitempty"`
 	Type                 StringOrArray     `json:"type,omitempty"`
 	Format               string            `json:"format,omitempty"`

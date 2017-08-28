@@ -177,6 +177,13 @@ func TestExpiresPass(t *testing.T) {
 			wantTTL: 0,
 			wantOK:  false,
 		},
+		// Expires set to false
+		{
+			date:    "Thu, 01 Dec 1983 22:00:00 GMT",
+			exp:     "0",
+			wantTTL: 0,
+			wantOK:  false,
+		},
 		// Expires < Date
 		{
 			date:    "Fri, 02 Dec 1983 01:00:00 GMT",
