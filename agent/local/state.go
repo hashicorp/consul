@@ -348,7 +348,7 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
 	if check.ServiceID != "" && l.services[check.ServiceID] == nil {
-		return fmt.Errorf("Check %q refers to non-existent service %q does not exist", check.CheckID, check.ServiceID)
+		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
 
 	// hard-set the node name
