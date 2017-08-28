@@ -538,9 +538,9 @@ func (l *State) Metadata() map[string]string {
 	return m
 }
 
-// UpdateSyncState does a read of the server state, and updates
+// updateSyncState does a read of the server state, and updates
 // the local sync status as appropriate
-func (l *State) UpdateSyncState() error {
+func (l *State) updateSyncState() error {
 	// 1. get all checks and services from the master
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
@@ -631,7 +631,6 @@ func (l *State) UpdateSyncState() error {
 	}
 
 	for id, rc := range remoteChecks {
-
 		lc := l.checks[id]
 
 		// If we don't have the check locally, deregister it
@@ -639,7 +638,7 @@ func (l *State) UpdateSyncState() error {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
 			if id == structs.SerfCheckID {
-				l.logger.Printf("Skipping remote check %q since it is managed automatically", id)
+				l.logger.Printf("[DEBUG] Skipping remote check %q since it is managed automatically", id)
 				continue
 			}
 
@@ -681,6 +680,21 @@ func (l *State) UpdateSyncState() error {
 		lc.InSync = lcCopy.IsSame(rcCopy)
 	}
 	return nil
+}
+
+// SyncFull determines the delta between the local and remote state
+// and synchronizes the changes.
+func (l *State) SyncFull() error {
+	// note that we do not acquire the lock here since the methods
+	// we are calling will do that themself.
+
+	// todo(fs): is it an issue that we do not hold the lock for the entire time?
+	// todo(fs): IMO, this doesn't matter since SyncChanges will sync whatever
+	// todo(fs): was determined in the update step.
+	if err := l.updateSyncState(); err != nil {
+		return err
+	}
+	return l.SyncChanges()
 }
 
 // SyncChanges is used to scan the status our local services and checks
