@@ -51,8 +51,8 @@ type StateSyncer struct {
 
 	// State contains the data that needs to be synchronized.
 	State interface {
-		UpdateSyncState() error
 		SyncChanges() error
+		SyncFull() error
 	}
 
 	// Interval is the time between two regular sync runs.
@@ -91,15 +91,15 @@ func (s *StateSyncer) Run() {
 		return lib.RandomStagger(time.Duration(f) * d)
 	}
 
-Sync:
+FullSync:
 	for {
-		switch err := s.State.UpdateSyncState(); {
+		switch err := s.State.SyncFull(); {
 
-		// update sync status failed
+		// full sync failed
 		case err != nil:
 			s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
 
-			// retry updating sync status after some time or when a consul
+			// retry full sync after some time or when a consul
 			// server was added.
 			select {
 
@@ -121,10 +121,8 @@ Sync:
 				return
 			}
 
-		// update sync status OK
+		// full sync OK
 		default:
-			// force-trigger sync to pickup any changes
-			s.triggerSync()
 
 			// do partial syncs until it is time for a full sync again
 			for {
@@ -140,7 +138,7 @@ Sync:
 				// 	}
 
 				case <-time.After(s.Interval + stagger(s.Interval)):
-					continue Sync
+					continue FullSync
 
 				case <-s.TriggerCh:
 					if s.Paused() {
