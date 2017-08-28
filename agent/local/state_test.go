@@ -237,7 +237,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	}
 	var out struct{}
 
-	// EnableTagOverride = true
+	// register a local service with tag override enabled
 	srv1 := &structs.NodeService{
 		ID:                "svc_id1",
 		Service:           "svc1",
@@ -246,19 +246,8 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: true,
 	}
 	a.State.AddService(srv1, "")
-	if err := a.State.SyncChanges(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	srv1_mod := new(structs.NodeService)
-	*srv1_mod = *srv1
-	srv1_mod.Port = 7100
-	srv1_mod.Tags = []string{"tag1_mod"}
-	args.Service = srv1_mod
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	// EnableTagOverride = false
+	// register a local service with tag override disabled
 	srv2 := &structs.NodeService{
 		ID:                "svc_id2",
 		Service:           "svc2",
@@ -267,15 +256,38 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: false,
 	}
 	a.State.AddService(srv2, "")
-	srv2_mod := new(structs.NodeService)
-	*srv2_mod = *srv2
-	srv2_mod.Port = 7200
-	srv2_mod.Tags = []string{"tag2_mod"}
-	args.Service = srv2_mod
+
+	// make sure they are both in the catalog
+	if err := a.State.SyncChanges(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// update the services in the catalog and change the tags and port.
+	// Only tag changes should be propagated for services where tag
+	// override is enabled.
+	args.Service = &structs.NodeService{
+		ID:                srv1.ID,
+		Service:           srv1.Service,
+		Tags:              []string{"tag1_mod"},
+		Port:              7100,
+		EnableTagOverride: true,
+	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	args.Service = &structs.NodeService{
+		ID:                srv2.ID,
+		Service:           srv2.Service,
+		Tags:              []string{"tag2_mod"},
+		Port:              7200,
+		EnableTagOverride: false,
+	}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// sync catalog and local state
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -286,44 +298,42 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	}
 	var services structs.IndexedNodeServices
 
-	retry.Run(t, func(r *retry.R) {
-		//	runtime.Gosched()
-		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
-			r.Fatalf("err: %v", err)
-		}
+	if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		a.State.RLock()
-		defer a.State.RUnlock()
-
-		// All the services should match
-		for id, serv := range services.NodeServices.Services {
-			serv.CreateIndex, serv.ModifyIndex = 0, 0
-			switch id {
-			case "svc_id1":
-				if serv.ID != "svc_id1" ||
-					serv.Service != "svc1" ||
-					serv.Port != 6100 ||
-					!reflect.DeepEqual(serv.Tags, []string{"tag1_mod"}) {
-					r.Fatalf("bad: %v %v", serv, srv1)
-				}
-			case "svc_id2":
-				if serv.ID != "svc_id2" ||
-					serv.Service != "svc2" ||
-					serv.Port != 6200 ||
-					!reflect.DeepEqual(serv.Tags, []string{"tag2"}) {
-					r.Fatalf("bad: %v %v", serv, srv2)
-				}
-			case structs.ConsulServiceID:
-				// ignore
-			default:
-				r.Fatalf("unexpected service: %v", id)
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		switch id {
+		case "svc_id1":
+			// tags should be modified but not the port
+			got := serv
+			want := &structs.NodeService{
+				ID:                "svc_id1",
+				Service:           "svc1",
+				Tags:              []string{"tag1_mod"},
+				Port:              6100,
+				EnableTagOverride: true,
 			}
+			if !verify.Values(t, "", got, want) {
+				t.FailNow()
+			}
+		case "svc_id2":
+			got, want := serv, srv2
+			if !verify.Values(t, "", got, want) {
+				t.FailNow()
+			}
+		case structs.ConsulServiceID:
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
 		}
+	}
 
-		if err := servicesInSync(a.State, 2); err != nil {
-			r.Fatal(err)
-		}
-	})
+	if err := servicesInSync(a.State, 2); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
