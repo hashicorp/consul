@@ -57,7 +57,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 		Tags:    []string{"test", "foo", "bar", "master"},
 		Port:    5000,
 	}
-	a.state.AddService(srv1, "")
+	a.State.AddService(srv1, "")
 
 	p := &UserEvent{}
 	if !a.shouldProcessUserEvent(p) {
@@ -157,7 +157,7 @@ func TestFireReceiveEvent(t *testing.T) {
 		Tags:    []string{"test", "foo", "bar", "master"},
 		Port:    5000,
 	}
-	a.state.AddService(srv1, "")
+	a.State.AddService(srv1, "")
 
 	p1 := &UserEvent{Name: "deploy", ServiceFilter: "web"}
 	err := a.UserEvent("dc1", "root", p1)
