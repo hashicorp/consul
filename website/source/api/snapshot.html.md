@@ -63,11 +63,7 @@ With a custom datacenter:
 $ curl https://consul.rocks/v1/snapshot?dc=my-datacenter -o snapshot.tgz
 ```
 
-### Sample Response
-
-```text
-<gzipped tarball ...>
-```
+The above example results in a tarball named `snapshot.tgz` in the current working directory.
 
 In addition to the Consul standard stale-related headers, the `X-Consul-Index`
 header will contain the index at which the snapshot took place.
