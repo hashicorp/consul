@@ -15,7 +15,7 @@ func TestSnapshot(t *testing.T) {
 	t.Parallel()
 	var snap io.Reader
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -41,7 +41,7 @@ func TestSnapshot(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("PUT", "/v1/snapshot?token=root", snap)
@@ -105,7 +105,7 @@ func TestSnapshot_Options(t *testing.T) {
 func TestSnapshot_BadMethods(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -121,7 +121,7 @@ func TestSnapshot_BadMethods(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)

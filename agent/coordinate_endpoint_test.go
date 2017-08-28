@@ -12,7 +12,7 @@ import (
 
 func TestCoordinate_Datacenters(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/coordinate/datacenters", nil)
@@ -33,7 +33,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 
 func TestCoordinate_Nodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.

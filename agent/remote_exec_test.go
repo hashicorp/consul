@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -95,40 +96,40 @@ func TestRexecWriter(t *testing.T) {
 
 func TestRemoteExecGetSpec(t *testing.T) {
 	t.Parallel()
-	testRemoteExecGetSpec(t, nil, "", true)
+	testRemoteExecGetSpec(t, "", "", true)
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, cfg, "root", true)
+	testRemoteExecGetSpec(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_token = "root"
+		acl_default_policy = "deny"
+	`, "root", true)
 }
 
 func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLAgentToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, cfg, "root", true)
+	testRemoteExecGetSpec(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_agent_token = "root"
+		acl_default_policy = "deny"
+	`, "root", true)
 }
 
 func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecGetSpec(t, cfg, "root", false)
+	testRemoteExecGetSpec(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_default_policy = "deny"
+	`, "root", false)
 }
 
-func testRemoteExecGetSpec(t *testing.T, c *Config, token string, shouldSucceed bool) {
-	a := NewTestAgent(t.Name(), c)
+func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed bool) {
+	a := NewTestAgent(t.Name(), hcl)
 	defer a.Shutdown()
 
 	event := &remoteExecEvent{
@@ -160,40 +161,40 @@ func testRemoteExecGetSpec(t *testing.T, c *Config, token string, shouldSucceed 
 
 func TestRemoteExecWrites(t *testing.T) {
 	t.Parallel()
-	testRemoteExecWrites(t, nil, "", true)
+	testRemoteExecWrites(t, "", "", true)
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, cfg, "root", true)
+	testRemoteExecWrites(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_token = "root"
+		acl_default_policy = "deny"
+	`, "root", true)
 }
 
 func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLAgentToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, cfg, "root", true)
+	testRemoteExecWrites(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_agent_token = "root"
+		acl_default_policy = "deny"
+	`, "root", true)
 }
 
 func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	testRemoteExecWrites(t, cfg, "root", false)
+	testRemoteExecWrites(t, `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_default_policy = "deny"
+	`, "root", false)
 }
 
-func testRemoteExecWrites(t *testing.T, c *Config, token string, shouldSucceed bool) {
-	a := NewTestAgent(t.Name(), c)
+func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed bool) {
+	a := NewTestAgent(t.Name(), hcl)
 	defer a.Shutdown()
 
 	event := &remoteExecEvent{
@@ -250,7 +251,7 @@ func testRemoteExecWrites(t *testing.T, c *Config, token string, shouldSucceed b
 }
 
 func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	event := &remoteExecEvent{

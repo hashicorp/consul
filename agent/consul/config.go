@@ -438,7 +438,7 @@ func DefaultConfig() *Config {
 	// Use a transitional version of the raft protocol to interoperate with
 	// versions 1 and 3
 	conf.RaftConfig.ProtocolVersion = 2
-	conf.ScaleRaft(DefaultRaftMultiplier)
+	//conf.ScaleRaft(DefaultRaftMultiplier)
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
@@ -453,7 +453,7 @@ func DefaultConfig() *Config {
 // performance multiplier. This is done in an idempotent way so it's not tricky
 // to call this when composing configurations and potentially calling this
 // multiple times on the same structure.
-func (c *Config) ScaleRaft(raftMultRaw uint) {
+func (c *Config) ScaleRaft(raftMultRaw int) {
 	raftMult := time.Duration(raftMultRaw)
 
 	def := raft.DefaultConfig()

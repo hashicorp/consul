@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -630,7 +631,9 @@ func TestAPI_AgentJoin(t *testing.T) {
 	}
 
 	// Join ourself
-	addr := info["Config"]["AdvertiseAddr"].(string)
+	ip := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["IP"].(string)
+	port := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["Port"].(float64)
+	addr := fmt.Sprintf("%s:%d", ip, int(port))
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)

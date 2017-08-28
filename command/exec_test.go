@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -29,9 +28,9 @@ func TestExecCommand_implements(t *testing.T) {
 
 func TestExecCommandRun(t *testing.T) {
 	t.Parallel()
-	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
-	a := agent.NewTestAgent(t.Name(), cfg)
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a.Shutdown()
 
 	ui, c := testExecCommand(t)
@@ -49,20 +48,19 @@ func TestExecCommandRun(t *testing.T) {
 
 func TestExecCommandRun_CrossDC(t *testing.T) {
 	t.Parallel()
-	cfg1 := agent.TestConfig()
-	cfg1.DisableRemoteExec = agent.Bool(false)
-	a1 := agent.NewTestAgent(t.Name(), cfg1)
+	a1 := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a1.Shutdown()
 
-	cfg2 := agent.TestConfig()
-	cfg2.Datacenter = "dc2"
-	cfg2.DisableRemoteExec = agent.Bool(false)
-	a2 := agent.NewTestAgent(t.Name(), cfg2)
-	defer a1.Shutdown()
+	a2 := agent.NewTestAgent(t.Name(), `
+		datacenter = "dc2"
+		disable_remote_exec = false
+	`)
+	defer a2.Shutdown()
 
 	// Join over the WAN
-	wanAddr := fmt.Sprintf("%s:%d", a1.Config.BindAddr, a1.Config.Ports.SerfWan)
-	_, err := a2.JoinWAN([]string{wanAddr})
+	_, err := a2.JoinWAN([]string{a1.Config.SerfBindAddrWAN.String()})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -127,9 +125,9 @@ func TestExecCommand_Validate(t *testing.T) {
 
 func TestExecCommand_Sessions(t *testing.T) {
 	t.Parallel()
-	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
-	a := agent.NewTestAgent(t.Name(), cfg)
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a.Shutdown()
 
 	client := a.Client()
@@ -166,9 +164,9 @@ func TestExecCommand_Sessions(t *testing.T) {
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	t.Parallel()
-	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
-	a := agent.NewTestAgent(t.Name(), cfg)
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a.Shutdown()
 
 	client := a.Client()
@@ -216,9 +214,9 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
 	t.Parallel()
-	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
-	a := agent.NewTestAgent(t.Name(), cfg)
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a.Shutdown()
 
 	client := a.Client()
@@ -271,9 +269,9 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 
 func TestExecCommand_StreamResults(t *testing.T) {
 	t.Parallel()
-	cfg := agent.TestConfig()
-	cfg.DisableRemoteExec = agent.Bool(false)
-	a := agent.NewTestAgent(t.Name(), cfg)
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
 	defer a.Shutdown()
 
 	client := a.Client()

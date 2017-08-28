@@ -83,7 +83,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 
 func TestKVDeleteCommand_Run(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -119,7 +119,7 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -162,7 +162,7 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

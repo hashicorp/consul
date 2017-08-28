@@ -15,7 +15,7 @@ func TestWatchCommand_implements(t *testing.T) {
 
 func TestWatchCommandRun(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

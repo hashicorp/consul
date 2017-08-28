@@ -70,7 +70,7 @@ func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 
 func TestPreparedQuery_Create(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	m := MockPreparedQuery{
@@ -155,7 +155,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 func TestPreparedQuery_List(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -188,7 +188,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -238,7 +238,7 @@ func TestPreparedQuery_List(t *testing.T) {
 func TestPreparedQuery_Execute(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -271,7 +271,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -327,7 +327,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Ensure the proper params are set when no special args are passed
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -358,10 +358,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Ensure WAN translation occurs for a response outside of the local DC.
 	t.Run("", func(t *testing.T) {
-		cfg := TestConfig()
-		cfg.Datacenter = "dc1"
-		cfg.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			datacenter = "dc1"
+			translate_wan_addrs = true
+		`)
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -408,10 +408,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Ensure WAN translation doesn't occur for the local DC.
 	t.Run("", func(t *testing.T) {
-		cfg := TestConfig()
-		cfg.Datacenter = "dc1"
-		cfg.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			datacenter = "dc1"
+			translate_wan_addrs = true
+		`)
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -457,7 +457,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -475,7 +475,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 func TestPreparedQuery_Explain(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -530,7 +530,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -548,7 +548,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 func TestPreparedQuery_Get(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		m := MockPreparedQuery{
@@ -596,7 +596,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -613,7 +613,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 
 func TestPreparedQuery_Update(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	m := MockPreparedQuery{
@@ -691,7 +691,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 
 func TestPreparedQuery_Delete(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	m := MockPreparedQuery{
@@ -740,7 +740,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 func TestPreparedQuery_BadMethods(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -755,7 +755,7 @@ func TestPreparedQuery_BadMethods(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -801,7 +801,7 @@ func TestPreparedQuery_parseLimit(t *testing.T) {
 // correctly when calling through to the real endpoints.
 func TestPreparedQuery_Integration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register a node and a service.

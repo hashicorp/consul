@@ -33,14 +33,16 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	cfg.UnixSockets = UnixSocketConfig{}
-	cfg.UnixSockets.Perms = "0777"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+		unix_sockets {
+			mode = "0777"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the socket was created
@@ -58,10 +60,9 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	// Ensure we can get a response from the socket.
-	path := socketPath(a.Config.Addresses.HTTP)
 	trans := cleanhttp.DefaultTransport()
 	trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-		return net.Dial("unix", path)
+		return net.Dial("unix", socket)
 	}
 	client := &http.Client{
 		Transport: trans,
@@ -103,9 +104,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Fatalf("not a regular file: %s", socket)
 	}
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the file was replaced by the socket
@@ -198,12 +201,11 @@ func TestSetMeta(t *testing.T) {
 func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	t.Parallel()
 
-	cfg := TestConfig()
-	cfg.HTTPConfig.BlockEndpoints = []string{
-		"/v1/agent/self",
-	}
-
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			block_endpoints = ["/v1/agent/self"]
+		}
+	`)
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -235,7 +237,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -254,9 +256,9 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 	// Header should be set to true if it's turned on.
 	{
-		cfg := TestConfig()
-		cfg.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			translate_wan_addrs = true
+		`)
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -276,12 +278,14 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.HTTPConfig.ResponseHeaders = map[string]string{
-		"Access-Control-Allow-Origin": "*",
-		"X-XSS-Protection":            "1; mode=block",
-	}
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-XSS-Protection" = "1; mode=block"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -305,7 +309,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 
 func TestContentTypeIsJSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -389,7 +393,7 @@ func TestPrettyPrintBare(t *testing.T) {
 }
 
 func testPrettyPrint(pretty string, t *testing.T) {
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	r := &structs.DirEntry{Key: "key"}
@@ -417,7 +421,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Default is agent's DC and no node (since the user didn't care, then
@@ -565,7 +569,7 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Check when no token is set
@@ -603,9 +607,9 @@ func TestACLResolution(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.EnableUI = true
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		enable_ui = true
+	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)

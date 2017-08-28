@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -16,7 +15,7 @@ import (
 
 func TestOperator_RaftConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -43,7 +42,7 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 func TestOperator_RaftPeer(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -59,7 +58,7 @@ func TestOperator_RaftPeer(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -79,9 +78,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	cfg := TestConfig()
-	cfg.EncryptKey = oldKey
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		encrypt = "`+oldKey+`"
+	`)
 	defer a.Shutdown()
 
 	body := bytes.NewBufferString(fmt.Sprintf("{\"Key\":\"%s\"}", newKey))
@@ -114,9 +113,9 @@ func TestOperator_KeyringInstall(t *testing.T) {
 func TestOperator_KeyringList(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	cfg := TestConfig()
-	cfg.EncryptKey = key
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		encrypt = "`+key+`"
+	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/operator/keyring", nil)
@@ -163,9 +162,9 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
-	cfg := TestConfig()
-	cfg.EncryptKey = key
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		encrypt = "`+key+`"
+	`)
 	defer a.Shutdown()
 
 	_, err := a.InstallKey(tempKey, "", 0)
@@ -221,9 +220,9 @@ func TestOperator_KeyringUse(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	cfg := TestConfig()
-	cfg.EncryptKey = oldKey
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		encrypt = "`+oldKey+`"
+	`)
 	defer a.Shutdown()
 
 	if _, err := a.InstallKey(newKey, "", 0); err != nil {
@@ -264,9 +263,9 @@ func TestOperator_KeyringUse(t *testing.T) {
 func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	cfg := TestConfig()
-	cfg.EncryptKey = key
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		encrypt = "`+key+`"
+	`)
 	defer a.Shutdown()
 
 	cases := map[string]string{
@@ -289,7 +288,7 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 
 func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -313,7 +312,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
@@ -341,7 +340,7 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
@@ -408,9 +407,9 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 
 func TestOperator_ServerHealth(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.RaftProtocol = 3
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		raft_protocol = 3
+	`)
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -440,11 +439,12 @@ func TestOperator_ServerHealth(t *testing.T) {
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.RaftProtocol = 3
-	threshold := time.Duration(-1)
-	cfg.Autopilot.LastContactThreshold = &threshold
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		raft_protocol = 3
+		autopilot {
+			last_contact_threshold = "-1s"
+		}
+	`)
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)

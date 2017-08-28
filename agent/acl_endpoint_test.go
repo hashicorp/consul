@@ -33,10 +33,12 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 
 func TestACL_Bootstrap(t *testing.T) {
 	t.Parallel()
-	cfg := TestACLConfig()
-	cfg.ACLMasterToken = ""
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_master_token = ""
+	`)
 	defer a.Shutdown()
+
+	t.Logf("%v", a.config.ACLDatacenter)
 
 	tests := []struct {
 		name   string
@@ -278,7 +280,7 @@ func TestACL_List(t *testing.T) {
 
 func TestACLReplicationStatus(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)

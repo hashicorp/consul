@@ -26,7 +26,7 @@ func TestMembersCommand_implements(t *testing.T) {
 
 func TestMembersCommandRun(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMembersCommand(t)
@@ -55,7 +55,7 @@ func TestMembersCommandRun(t *testing.T) {
 
 func TestMembersCommandRun_WAN(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMembersCommand(t)
@@ -66,14 +66,14 @@ func TestMembersCommandRun_WAN(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	if !strings.Contains(ui.OutputWriter.String(), fmt.Sprintf("%d", a.Config.Ports.SerfWan)) {
+	if !strings.Contains(ui.OutputWriter.String(), fmt.Sprintf("%d", a.Config.SerfPortWAN)) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }
 
 func TestMembersCommandRun_statusFilter(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMembersCommand(t)
@@ -94,7 +94,7 @@ func TestMembersCommandRun_statusFilter(t *testing.T) {
 
 func TestMembersCommandRun_statusFilter_failed(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMembersCommand(t)

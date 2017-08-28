@@ -25,7 +25,7 @@ func TestLeaveCommand_implements(t *testing.T) {
 
 func TestLeaveCommandRun(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLeaveCommand(t)
@@ -43,7 +43,7 @@ func TestLeaveCommandRun(t *testing.T) {
 
 func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	_, c := testLeaveCommand(t)

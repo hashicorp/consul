@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -20,7 +21,7 @@ import (
 )
 
 type Self struct {
-	Config *Config
+	Config config.RuntimeConfig
 	Coord  *coordinate.Coordinate
 	Member serf.Member
 	Stats  map[string]map[string]string
@@ -48,8 +49,8 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}
 
 	return Self{
-		Config: s.agent.config,
-		Coord:  cs[s.agent.config.Segment],
+		Config: s.agent.config.Sanitized(),
+		Coord:  cs[s.agent.config.SegmentName],
 		Member: s.agent.LocalMember(),
 		Stats:  s.agent.Stats(),
 		Meta:   s.agent.state.Metadata(),

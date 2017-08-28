@@ -10,7 +10,7 @@ import (
 // depending on how the agent and the other node are configured. The dc
 // parameter is the dc the datacenter this node is from.
 func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[string]string) string {
-	if a.config.TranslateWanAddrs && (a.config.Datacenter != dc) {
+	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
 		wanAddr := taggedAddresses["wan"]
 		if wanAddr != "" {
 			addr = wanAddr
@@ -34,7 +34,7 @@ func (a *Agent) TranslateAddresses(dc string, subj interface{}) {
 	// done. This also happens to skip looking at any of the incoming
 	// structure for the common case of not needing to translate, so it will
 	// skip a lot of work if no translation needs to be done.
-	if !a.config.TranslateWanAddrs || (a.config.Datacenter == dc) {
+	if !a.config.TranslateWANAddrs || (a.config.Datacenter == dc) {
 		return
 	}
 
