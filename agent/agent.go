@@ -248,7 +248,7 @@ func (a *Agent) Start() error {
 
 	// create a notif channel to trigger state sychronizations
 	// when a consul server was added to the cluster.
-	consulCh := make(chan struct{}, 1)
+	serverUpCh := make(chan struct{}, 1)
 
 	// create a notif channel to trigger state synchronizations
 	// when the state has changed.
@@ -263,7 +263,7 @@ func (a *Agent) Start() error {
 		State:      a.state,
 		Interval:   c.AEInterval,
 		ShutdownCh: a.shutdownCh,
-		ConsulCh:   consulCh,
+		ServerUpCh: serverUpCh,
 		TriggerCh:  triggerCh,
 		Logger:     a.logger,
 	}
@@ -280,7 +280,7 @@ func (a *Agent) Start() error {
 	// todo(fs): IMO, the non-blocking nature of this call should be hidden in the syncer
 	consulCfg.ServerUp = func() {
 		select {
-		case consulCh <- struct{}{}:
+		case serverUpCh <- struct{}{}:
 		default:
 		}
 	}
