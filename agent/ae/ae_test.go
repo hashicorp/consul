@@ -1,24 +1,27 @@
 package ae
 
 import (
+	"fmt"
 	"testing"
-	"time"
 )
 
-func TestAE_scale(t *testing.T) {
+func TestAE_scaleFactor(t *testing.T) {
 	t.Parallel()
-	intv := time.Minute
-	if v := aeScale(intv, 100); v != intv {
-		t.Fatalf("Bad: %v", v)
+	tests := []struct {
+		nodes int
+		scale int
+	}{
+		{100, 1},
+		{200, 2},
+		{1000, 4},
+		{10000, 8},
 	}
-	if v := aeScale(intv, 200); v != 2*intv {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := aeScale(intv, 1000); v != 4*intv {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := aeScale(intv, 10000); v != 8*intv {
-		t.Fatalf("Bad: %v", v)
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%d nodes", tt.nodes), func(t *testing.T) {
+			if got, want := scaleFactor(tt.nodes), tt.scale; got != want {
+				t.Fatalf("got scale factor %d want %d", got, want)
+			}
+		})
 	}
 }
 
