@@ -1,4 +1,4 @@
-package agent
+package local
 
 import (
 	"reflect"
