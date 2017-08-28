@@ -13,7 +13,12 @@ var (
 
 	// Release versions of the build. These will be filled in by one of the
 	// build tag-specific files.
-	Version           = "unknown"
+	//
+	// Version must conform to the format expected by github.com/hashicorp/go-version
+	// for tests to work. Otherwise, the metadata server will not be able to detect
+	// the agent to be a server. The value must be >= '0.8.0' for autopilot to work.
+	// todo(fs): This still feels like a hack but at least the magic values are gone.
+	Version           = "9.9.9"
 	VersionPrerelease = "unknown"
 )
 

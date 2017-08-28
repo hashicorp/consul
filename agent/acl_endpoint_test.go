@@ -34,7 +34,6 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 func TestACL_Bootstrap(t *testing.T) {
 	t.Parallel()
 	cfg := TestACLConfig()
-	cfg.Version = "0.9.1"
 	cfg.ACLMasterToken = ""
 	a := NewTestAgent(t.Name(), cfg)
 	defer a.Shutdown()
