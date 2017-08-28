@@ -20,6 +20,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -108,6 +109,10 @@ type Agent struct {
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	state *localState
+
+	// sync manages the synchronization of the local
+	// and the remote state.
+	sync *ae.StateSyncer
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -241,8 +246,27 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
+	// create a notif channel to trigger state sychronizations
+	// when a consul server was added to the cluster.
+	consulCh := make(chan struct{}, 1)
+
+	// create a notif channel to trigger state synchronizations
+	// when the state has changed.
+	triggerCh := make(chan struct{}, 1)
+
 	// create the local state
-	a.state = NewLocalState(c, a.logger, a.tokens)
+	a.state = NewLocalState(c, a.logger, a.tokens, triggerCh)
+
+	// create the state synchronization manager which performs
+	// regular and on-demand state synchronizations (anti-entropy).
+	a.sync = &ae.StateSyncer{
+		State:      a.state,
+		Interval:   c.AEInterval,
+		ShutdownCh: a.shutdownCh,
+		ConsulCh:   consulCh,
+		TriggerCh:  triggerCh,
+		Logger:     a.logger,
+	}
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -250,8 +274,16 @@ func (a *Agent) Start() error {
 		return err
 	}
 
-	// link consul client/server with the state
-	consulCfg.ServerUp = a.state.ConsulServerUp
+	// ServerUp is used to inform that a new consul server is now
+	// up. This can be used to speed up the sync process if we are blocking
+	// waiting to discover a consul server
+	// todo(fs): IMO, the non-blocking nature of this call should be hidden in the syncer
+	consulCfg.ServerUp = func() {
+		select {
+		case consulCh <- struct{}{}:
+		default:
+		}
+	}
 
 	// Setup either the client or the server.
 	if c.ServerMode {
@@ -262,6 +294,7 @@ func (a *Agent) Start() error {
 
 		a.delegate = server
 		a.state.delegate = server
+		a.sync.ClusterSize = func() int { return len(server.LANMembers()) }
 	} else {
 		client, err := consul.NewClientLogger(consulCfg, a.logger)
 		if err != nil {
@@ -270,6 +303,7 @@ func (a *Agent) Start() error {
 
 		a.delegate = client
 		a.state.delegate = client
+		a.sync.ClusterSize = func() int { return len(client.LANMembers()) }
 	}
 
 	// Load checks/services/metadata.
@@ -1264,18 +1298,18 @@ func (a *Agent) WANMembers() []serf.Member {
 // StartSync is called once Services and Checks are registered.
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
-	// Start the anti entropy routine
-	go a.state.antiEntropy(a.shutdownCh)
+	go a.sync.Run()
+	a.logger.Printf("[INFO] agent: starting state syncer")
 }
 
 // PauseSync is used to pause anti-entropy while bulk changes are make
 func (a *Agent) PauseSync() {
-	a.state.Pause()
+	a.sync.Pause()
 }
 
 // ResumeSync is used to unpause anti-entropy after bulk changes are make
 func (a *Agent) ResumeSync() {
-	a.state.Resume()
+	a.sync.Resume()
 }
 
 // GetLANCoordinate returns the coordinates of this node in the local pools
