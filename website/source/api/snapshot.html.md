@@ -60,7 +60,7 @@ The table below shows this endpoint's support for
 With a custom datacenter:
 
 ```text
-$ curl https://consul.rocks/v1/snapshot?dc=my-datacenter
+$ curl https://consul.rocks/v1/snapshot?dc=my-datacenter -o snapshot.tgz
 ```
 
 ### Sample Response
