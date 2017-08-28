@@ -1620,8 +1620,8 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	// Deregister any associated health checks
-	for checkID, health := range a.state.Checks() {
-		if health.ServiceID != serviceID {
+	for checkID, check := range a.state.Checks() {
+		if check.ServiceID != serviceID {
 			continue
 		}
 		if err := a.RemoveCheck(checkID, persist); err != nil {
@@ -1653,11 +1653,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	if check.ServiceID != "" {
-		svc, ok := a.state.Services()[check.ServiceID]
-		if !ok {
+		s := a.state.Services()[check.ServiceID]
+		if s == nil {
 			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
 		}
-		check.ServiceName = svc.Service
+		check.ServiceName = s.Service
 	}
 
 	a.checkLock.Lock()
@@ -2159,12 +2159,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 // unloadServices will deregister all services other than the 'consul' service
 // known to the local agent.
 func (a *Agent) unloadServices() error {
-	for _, service := range a.state.Services() {
-		if err := a.RemoveService(service.ID, false); err != nil {
-			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
+	for id := range a.state.Services() {
+		if err := a.RemoveService(id, false); err != nil {
+			return fmt.Errorf("Failed deregistering service '%s': %v", id, err)
 		}
 	}
-
 	return nil
 }
 
@@ -2247,12 +2246,11 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for _, check := range a.state.Checks() {
-		if err := a.RemoveCheck(check.CheckID, false); err != nil {
-			return fmt.Errorf("Failed deregistering check '%s': %s", check.CheckID, err)
+	for id := range a.state.Checks() {
+		if err := a.RemoveCheck(id, false); err != nil {
+			return fmt.Errorf("Failed deregistering check '%s': %s", id, err)
 		}
 	}
-
 	return nil
 }
 
