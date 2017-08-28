@@ -1298,7 +1298,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	}
 }
 
-func TestAgent_serviceTokens(t *testing.T) {
+func TestAgent_ServiceTokens(t *testing.T) {
 	t.Parallel()
 
 	tokens := new(token.Store)
@@ -1326,7 +1326,7 @@ func TestAgent_serviceTokens(t *testing.T) {
 	}
 }
 
-func TestAgent_checkTokens(t *testing.T) {
+func TestAgent_CheckTokens(t *testing.T) {
 	t.Parallel()
 
 	tokens := new(token.Store)
@@ -1353,7 +1353,7 @@ func TestAgent_checkTokens(t *testing.T) {
 	}
 }
 
-func TestAgent_checkCriticalTime(t *testing.T) {
+func TestAgent_CheckCriticalTime(t *testing.T) {
 	t.Parallel()
 	lcfg := agent.LocalConfig(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`))
 	l := local.NewState(lcfg, nil, new(token.Store), make(chan struct{}, 1))
