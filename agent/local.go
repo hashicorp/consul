@@ -18,11 +18,6 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-const (
-	syncStaggerIntv = 3 * time.Second
-	syncRetryIntv   = 15 * time.Second
-)
-
 // syncStatus is used to represent the difference between
 // the local and remote state, and if action needs to be taken
 type syncStatus struct {
@@ -33,7 +28,6 @@ type syncStatus struct {
 // populated during NewLocalAgent from the agent configuration to avoid
 // race conditions with the agent configuration.
 type localStateConfig struct {
-	AEInterval          time.Duration
 	AdvertiseAddr       string
 	CheckUpdateInterval time.Duration
 	Datacenter          string
@@ -47,10 +41,6 @@ type localStateConfig struct {
 // and checks. We used it to perform anti-entropy with the
 // catalog representation
 type localState struct {
-	// paused is used to check if we are paused. Must be the first
-	// element due to a go bug.
-	paused int32
-
 	sync.RWMutex
 	logger *log.Logger
 
@@ -81,10 +71,6 @@ type localState struct {
 	// metadata tracks the local metadata fields
 	metadata map[string]string
 
-	// consulCh is used to inform of a change to the known
-	// consul nodes. This may be used to retry a sync run
-	consulCh chan struct{}
-
 	// triggerCh is used to inform of a change to local state
 	// that requires anti-entropy with the server
 	triggerCh chan struct{}
@@ -95,9 +81,8 @@ type localState struct {
 }
 
 // NewLocalState creates a  is used to initialize the local state
-func NewLocalState(c *config.RuntimeConfig, lg *log.Logger, tokens *token.Store) *localState {
+func NewLocalState(c *config.RuntimeConfig, lg *log.Logger, tokens *token.Store, triggerCh chan struct{}) *localState {
 	lc := localStateConfig{
-		AEInterval:          c.AEInterval,
 		AdvertiseAddr:       c.AdvertiseAddrLAN.String(),
 		CheckUpdateInterval: c.CheckUpdateInterval,
 		Datacenter:          c.Datacenter,
@@ -122,8 +107,7 @@ func NewLocalState(c *config.RuntimeConfig, lg *log.Logger, tokens *token.Store)
 		checkCriticalTime: make(map[types.CheckID]time.Time),
 		deferCheck:        make(map[types.CheckID]*time.Timer),
 		metadata:          make(map[string]string),
-		consulCh:          make(chan struct{}, 1),
-		triggerCh:         make(chan struct{}, 1),
+		triggerCh:         triggerCh,
 	}
 	l.discardCheckOutput.Store(c.DiscardCheckOutput)
 	return l
@@ -131,40 +115,11 @@ func NewLocalState(c *config.RuntimeConfig, lg *log.Logger, tokens *token.Store)
 
 // changeMade is used to trigger an anti-entropy run
 func (l *localState) changeMade() {
+	// todo(fs): IMO, the non-blocking nature of this call should be hidden in the syncer
 	select {
 	case l.triggerCh <- struct{}{}:
 	default:
 	}
-}
-
-// ConsulServerUp is used to inform that a new consul server is now
-// up. This can be used to speed up the sync process if we are blocking
-// waiting to discover a consul server
-func (l *localState) ConsulServerUp() {
-	select {
-	case l.consulCh <- struct{}{}:
-	default:
-	}
-}
-
-// Pause is used to pause state synchronization, this can be
-// used to make batch changes
-func (l *localState) Pause() {
-	atomic.AddInt32(&l.paused, 1)
-}
-
-// Resume is used to resume state synchronization
-func (l *localState) Resume() {
-	paused := atomic.AddInt32(&l.paused, -1)
-	if paused < 0 {
-		panic("unbalanced localState.Resume() detected")
-	}
-	l.changeMade()
-}
-
-// isPaused is used to check if we are paused
-func (l *localState) isPaused() bool {
-	return atomic.LoadInt32(&l.paused) > 0
 }
 
 func (l *localState) SetDiscardCheckOutput(b bool) {
@@ -412,61 +367,12 @@ func (l *localState) Metadata() map[string]string {
 	return metadata
 }
 
-// antiEntropy is a long running method used to perform anti-entropy
-// between local and remote state.
-func (l *localState) antiEntropy(shutdownCh chan struct{}) {
-SYNC:
-	// Sync our state with the servers
-	for {
-		err := l.setSyncState()
-		if err == nil {
-			break
-		}
-		l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
-		select {
-		case <-l.consulCh:
-			// Stagger the retry on leader election, avoid a thundering heard
-			select {
-			case <-time.After(lib.RandomStagger(aeScale(syncStaggerIntv, len(l.delegate.LANMembers())))):
-			case <-shutdownCh:
-				return
-			}
-		case <-time.After(syncRetryIntv + lib.RandomStagger(aeScale(syncRetryIntv, len(l.delegate.LANMembers())))):
-		case <-shutdownCh:
-			return
-		}
+// UpdateSyncState does a read of the server state, and updates
+// the local sync status as appropriate
+func (l *localState) UpdateSyncState() error {
+	if l == nil {
+		panic("config == nil")
 	}
-
-	// Force-trigger AE to pickup any changes
-	l.changeMade()
-
-	// Schedule the next full sync, with a random stagger
-	aeIntv := aeScale(l.config.AEInterval, len(l.delegate.LANMembers()))
-	aeIntv = aeIntv + lib.RandomStagger(aeIntv)
-	aeTimer := time.After(aeIntv)
-
-	// Wait for sync events
-	for {
-		select {
-		case <-aeTimer:
-			goto SYNC
-		case <-l.triggerCh:
-			// Skip the sync if we are paused
-			if l.isPaused() {
-				continue
-			}
-			if err := l.syncChanges(); err != nil {
-				l.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
-			}
-		case <-shutdownCh:
-			return
-		}
-	}
-}
-
-// setSyncState does a read of the server state, and updates
-// the local syncStatus as appropriate
-func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
@@ -590,9 +496,9 @@ func (l *localState) setSyncState() error {
 	return nil
 }
 
-// syncChanges is used to scan the status our local services and checks
+// SyncChanges is used to scan the status our local services and checks
 // and update any that are out of sync with the server
-func (l *localState) syncChanges() error {
+func (l *localState) SyncChanges() error {
 	l.Lock()
 	defer l.Unlock()
 
