@@ -1049,16 +1049,15 @@ func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }
 
-func (s *Server) ServerAddr(id raft.ServerID) raft.ServerAddress {
+func (s *Server) ServerAddr(id raft.ServerID) (raft.ServerAddress, error) {
 	if string(id) == string(s.config.NodeID) {
-		return raft.ServerAddress(s.config.RPCAddr.String())
+		return raft.ServerAddress(s.config.RPCAddr.String()), nil
 	}
 	addr, err := s.router.GetServerAddressByID(s.config.Datacenter, string(id))
 	if err != nil {
-		s.logger.Println("[WARN] Unable to find address for raft server id %v", id)
-		return raft.ServerAddress("")
+		return "", err
 	}
-	return raft.ServerAddress(addr)
+	return raft.ServerAddress(addr), nil
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
