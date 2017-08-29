@@ -46,10 +46,10 @@ const (
 )
 
 // listen is used to listen for incoming RPC connections
-func (s *Server) listen() {
+func (s *Server) listen(listener net.Listener) {
 	for {
 		// Accept a connection
-		conn, err := s.Listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			if s.shutdown {
 				return

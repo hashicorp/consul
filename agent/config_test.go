@@ -597,8 +597,15 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Segment: "thing"},
 		},
 		{
-			in: `{"segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "advertise": "1.1.1.1"}]}`,
-			c:  &Config{Segments: []NetworkSegment{{Name: "alpha", Bind: "127.0.0.1", Port: 1234, Advertise: "1.1.1.1"}}},
+			in: `{"server": true, "segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "rpc_listener": true, "advertise": "1.1.1.1"}]}`,
+			c: &Config{Server: true, Segments: []NetworkSegment{{
+				Name:        "alpha",
+				Bind:        "127.0.0.1",
+				BindAddrs:   []string{"127.0.0.1"},
+				Port:        1234,
+				RPCListener: true,
+				Advertise:   "1.1.1.1",
+			}}},
 		},
 		{
 			in: `{"serf_lan_bind":"1.2.3.4"}`,
@@ -1311,18 +1318,6 @@ func TestDecodeConfig_VerifyUniqueListeners(t *testing.T) {
 
 func TestDecodeConfig_ValidateSegments(t *testing.T) {
 	t.Parallel()
-	serverWithSegment := &Config{Segment: "asfd", Server: true}
-	if err := ValidateSegments(serverWithSegment); !strings.Contains(err.Error(), "can only be set on clients") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	clientWithSegments := &Config{
-		Segments: []NetworkSegment{{Name: "asdf"}},
-	}
-	if err := ValidateSegments(clientWithSegments); !strings.Contains(err.Error(), "Cannot define segments on clients") {
-		t.Fatalf("bad: %v", err)
-	}
-
 	tooManySegments := &Config{Server: true}
 	for i := 0; i < SegmentLimit+1; i++ {
 		tooManySegments.Segments = append(tooManySegments.Segments, NetworkSegment{})
@@ -1336,6 +1331,17 @@ func TestDecodeConfig_ValidateSegments(t *testing.T) {
 		Server:   true,
 	}
 	if err := ValidateSegments(segmentNameTooLong); !strings.Contains(err.Error(), "exceeds maximum length") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	duplicatePorts := &Config{
+		Segments: []NetworkSegment{
+			{Name: "asdf", Port: 1234},
+			{Name: "qwer", Port: 1234},
+		},
+		Server: true,
+	}
+	if err := ValidateSegments(duplicatePorts); !strings.Contains(err.Error(), "port 1234 overlaps with segment \"asdf\"") {
 		t.Fatalf("bad: %v", err)
 	}
 }

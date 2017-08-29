@@ -53,6 +53,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
 	conf.Tags["build"] = s.config.Build
 	addr := s.Listener.Addr().(*net.TCPAddr)
+	if listener, ok := s.segmentListeners[segment]; ok {
+		addr = listener.Addr().(*net.TCPAddr)
+	}
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"

@@ -394,6 +394,16 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		return nil
 	}
 
+	if cfg.Server && cfg.Segment != "" {
+		cmd.UI.Error("Segment option can only be set on clients")
+		return nil
+	}
+
+	if !cfg.Server && len(cfg.Segments) > 0 {
+		cmd.UI.Error("Cannot define segments on clients")
+		return nil
+	}
+
 	// patch deprecated retry-join-{gce,azure,ec2)-* parameters
 	// into -retry-join and issue warning.
 	// todo(fs): this should really be in DecodeConfig where it can be tested

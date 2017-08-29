@@ -55,6 +55,7 @@ type NetworkSegment struct {
 	Bind       string
 	Port       int
 	Advertise  string
+	RPCAddr    *net.TCPAddr
 	SerfConfig *serf.Config
 }
 

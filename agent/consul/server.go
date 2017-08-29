@@ -167,6 +167,9 @@ type Server struct {
 	segmentLAN  map[string]*serf.Serf
 	segmentLock sync.RWMutex
 
+	// segmentListeners holds the RPC listener for any segment with a separate listener.
+	segmentListeners map[string]net.Listener
+
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
@@ -306,6 +309,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
 		segmentLAN:            make(map[string]*serf.Serf, len(config.Segments)),
+		segmentListeners:      make(map[string]net.Listener),
 		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
 		serverLookup:          NewServerLookup(),
@@ -418,7 +422,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	}
 
 	// Start listening for RPC requests.
-	go s.listen()
+	go s.listen(s.Listener)
+
+	// Start listeners for any segments with separate RPC listeners.
+	for _, listener := range s.segmentListeners {
+		go s.listen(listener)
+	}
 
 	// Start the metrics handlers.
 	go s.sessionStats()
@@ -643,6 +652,19 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	if s.config.RPCAdvertise.IP.IsUnspecified() {
 		ln.Close()
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
+	}
+
+	for _, segment := range s.config.Segments {
+		if segment.RPCAddr == nil {
+			continue
+		}
+
+		segmentListener, err := net.ListenTCP("tcp", segment.RPCAddr)
+		if err != nil {
+			return err
+		}
+
+		s.segmentListeners[segment.Name] = segmentListener
 	}
 
 	// Provide a DC specific wrapper. Raft replication is only

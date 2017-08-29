@@ -648,30 +648,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
 	}
 	base.Segment = a.config.Segment
-	for _, segment := range a.config.Segments {
-		config := consul.DefaultConfig().SerfLANConfig
-
-		config.MemberlistConfig.AdvertiseAddr = segment.Advertise
-		config.MemberlistConfig.AdvertisePort = segment.Port
-		config.MemberlistConfig.BindAddr = segment.Bind
-		config.MemberlistConfig.BindPort = segment.Port
-		if a.config.ReconnectTimeoutLan != 0 {
-			config.ReconnectTimeout = a.config.ReconnectTimeoutLan
+	if len(a.config.Segments) > 0 {
+		segments, err := a.segmentConfig()
+		if err != nil {
+			return nil, err
 		}
-		if a.config.EncryptVerifyIncoming != nil {
-			config.MemberlistConfig.GossipVerifyIncoming = *a.config.EncryptVerifyIncoming
-		}
-		if a.config.EncryptVerifyOutgoing != nil {
-			config.MemberlistConfig.GossipVerifyOutgoing = *a.config.EncryptVerifyOutgoing
-		}
-
-		base.Segments = append(base.Segments, consul.NetworkSegment{
-			Name:       segment.Name,
-			Bind:       segment.Bind,
-			Port:       segment.Port,
-			Advertise:  segment.Advertise,
-			SerfConfig: config,
-		})
+		base.Segments = segments
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
@@ -787,6 +769,49 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	return base, nil
+}
+
+// Setup the serf and memberlist config for any defined network segments.
+func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+	var segments []consul.NetworkSegment
+	config := a.config
+
+	for _, segment := range config.Segments {
+		serfConf := consul.DefaultConfig().SerfLANConfig
+
+		serfConf.MemberlistConfig.AdvertiseAddr = segment.Advertise
+		serfConf.MemberlistConfig.AdvertisePort = segment.Port
+		serfConf.MemberlistConfig.BindAddr = segment.Bind
+		serfConf.MemberlistConfig.BindPort = segment.Port
+		if config.ReconnectTimeoutLan != 0 {
+			serfConf.ReconnectTimeout = config.ReconnectTimeoutLan
+		}
+		if config.EncryptVerifyIncoming != nil {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = *config.EncryptVerifyIncoming
+		}
+		if config.EncryptVerifyOutgoing != nil {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = *config.EncryptVerifyOutgoing
+		}
+
+		var rpcAddr *net.TCPAddr
+		if segment.RPCListener {
+			rpcAddr = &net.TCPAddr{
+				IP:   net.ParseIP(segment.Bind),
+				Port: a.config.Ports.Server,
+			}
+		}
+
+		segments = append(segments, consul.NetworkSegment{
+			Name:       segment.Name,
+			Bind:       segment.Bind,
+			Port:       segment.Port,
+			Advertise:  segment.Advertise,
+			RPCAddr:    rpcAddr,
+			SerfConfig: serfConf,
+		})
+	}
+
+	return segments, nil
 }
 
 // makeRandomID will generate a random UUID for a node.

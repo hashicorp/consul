@@ -357,10 +357,15 @@ type NetworkSegment struct {
 	Name string `mapstructure:"name"`
 
 	// Bind is the bind address for this segment.
-	Bind string `mapstructure:"bind"`
+	Bind      string   `mapstructure:"bind"`
+	BindAddrs []string `mapstructure:"-"`
 
 	// Port is the port for this segment.
 	Port int `mapstructure:"port"`
+
+	// RPCListener is whether to bind a separate RPC listener on the bind address
+	// for this segment.
+	RPCListener bool `mapstructure:"rpc_listener"`
 
 	// Advertise is the advertise address of this segment.
 	Advertise string `mapstructure:"advertise"`
@@ -1408,6 +1413,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.AdvertiseAddrs.RPC = addr
 	}
 
+	// Validate segment config.
+	if err := ValidateSegments(&result); err != nil {
+		return nil, err
+	}
+
 	// Enforce the max Raft multiplier.
 	if result.Performance.RaftMultiplier > consul.MaxRaftMultiplier {
 		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
@@ -1461,31 +1471,25 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("Failed to parse node metadata: %v", err)
 	}
 
-	// Validate segment config
-	if err := ValidateSegments(&result); err != nil {
-		return nil, err
-	}
-
 	return &result, nil
 }
 
 func ValidateSegments(conf *Config) error {
-	if conf.Server && conf.Segment != "" {
-		return fmt.Errorf("Segment option can only be set on clients")
-	}
-
-	if !conf.Server && len(conf.Segments) > 0 {
-		return fmt.Errorf("Cannot define segments on clients")
-	}
-
 	if len(conf.Segments) > SegmentLimit {
 		return fmt.Errorf("Cannot exceed network segment limit of %d", SegmentLimit)
 	}
 
+	takenPorts := make(map[int]string, len(conf.Segments))
 	for _, segment := range conf.Segments {
 		if len(segment.Name) > SegmentNameLimit {
 			return fmt.Errorf("Segment name %q exceeds maximum length of %d", segment.Name, SegmentNameLimit)
 		}
+
+		previous, ok := takenPorts[segment.Port]
+		if ok {
+			return fmt.Errorf("Segment %q port %d overlaps with segment %q", segment.Name, segment.Port, previous)
+		}
+		takenPorts[segment.Port] = segment.Name
 	}
 
 	return nil
@@ -2275,7 +2279,6 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 	for i, segment := range c.Segments {
 		parse(&c.Segments[i].Bind, false, fmt.Sprintf("Segment %q bind address", segment.Name))
 		parse(&c.Segments[i].Advertise, false, fmt.Sprintf("Segment %q advertise address", segment.Name))
-
 	}
 
 	return
