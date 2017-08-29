@@ -1,6 +1,6 @@
 FROM ubuntu:trusty
 
-ENV GOVERSION 1.8.3
+ENV GOVERSION 1.9
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q \
