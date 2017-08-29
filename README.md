@@ -1,4 +1,5 @@
 # Consul [![Build Status](https://travis-ci.org/hashicorp/consul.svg?branch=master)](https://travis-ci.org/hashicorp/consul) [![Join the chat at https://gitter.im/hashicorp-consul/Lobby](https://badges.gitter.im/hashicorp-consul/Lobby.svg)](https://gitter.im/hashicorp-consul/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul?ref=badge_shield)
 
 * Website: https://www.consul.io
 * Chat: [Gitter](https://gitter.im/hashicorp-consul/Lobby)
@@ -68,3 +69,7 @@ format the code according to Go standards.
 
 Consul currently uses [govendor](https://github.com/kardianos/govendor) for
 vendoring.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul.svg?type=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul?ref=badge_large)
