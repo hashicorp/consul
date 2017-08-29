@@ -47,7 +47,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnStartup(h.Startup)
-	c.OnShutdown(h.Shutdown)
+	c.OnFinalShutdown(h.Shutdown)
 
 	// Don't do AddMiddleware, as health is not *really* a middleware just a separate webserver running.
 	return nil
