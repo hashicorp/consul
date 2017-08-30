@@ -12,40 +12,6 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 )
 
-func TestCatalogRegister(t *testing.T) {
-	t.Skip("skipping since it is not clear what this test is supposed to verify")
-
-	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
-	defer a.Shutdown()
-
-	// Register node
-	args := &structs.RegisterRequest{
-		Node:    "foo",
-		Address: "127.0.0.1",
-	}
-	req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
-	obj, err := a.srv.CatalogRegister(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	res := obj.(bool)
-	if res != true {
-		t.Fatalf("bad: %v", res)
-	}
-
-	if err := a.State.SyncChanges(); err != nil {
-		t.Fatal("sync failed: ", err)
-	}
-	s := a.State.ServiceState("foo")
-	if s == nil {
-		t.Fatal("service 'foo' missing")
-	}
-	if !s.InSync {
-		t.Fatalf("service 'foo' should be in sync")
-	}
-}
-
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
