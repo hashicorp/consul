@@ -36,8 +36,8 @@ func TestServerLookup(t *testing.T) {
 		t.Fatalf("Expected %v but got %v", addr, got)
 	}
 
-	server, ok := lookup.GetServer(raft.ServerAddress(addr))
-	if !ok {
+	server := lookup.Server(raft.ServerAddress(addr))
+	if server == nil {
 		t.Fatalf("Expected lookup to return true")
 	}
 	if server.Addr.String() != addr {

@@ -238,7 +238,7 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 	}
 
 	// Lookup the server
-	server, _ := s.serverLookup.GetServer(leader)
+	server := s.serverLookup.Server(leader)
 
 	// Server could be nil
 	return false, server

@@ -261,13 +261,13 @@ func (s *Server) maybeBootstrap() {
 // lanNodeFailed is used to handle fail events on the LAN pool.
 func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
+		ok, serverMeta := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Removing LAN server %s", parts)
+		s.logger.Printf("[INFO] consul: Removing LAN server %s", serverMeta)
 
 		// Update id to address map
-		s.serverLookup.RemoveServer(parts)
+		s.serverLookup.RemoveServer(serverMeta)
 	}
 }

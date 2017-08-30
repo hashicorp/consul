@@ -700,9 +700,9 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 			return true
 		}
 
-		server, ok := s.serverLookup.GetServer(address)
+		server := s.serverLookup.Server(address)
 
-		if !ok {
+		if server == nil {
 			return false
 		}
 
