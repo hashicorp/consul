@@ -779,10 +779,19 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 	for _, segment := range config.Segments {
 		serfConf := consul.DefaultConfig().SerfLANConfig
 
-		serfConf.MemberlistConfig.AdvertiseAddr = segment.Advertise
+		if segment.Advertise != "" {
+			serfConf.MemberlistConfig.AdvertiseAddr = segment.Advertise
+		} else {
+			serfConf.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		}
+		if segment.Bind != "" {
+			serfConf.MemberlistConfig.BindAddr = segment.Bind
+		} else {
+			serfConf.MemberlistConfig.BindAddr = a.config.BindAddr
+		}
 		serfConf.MemberlistConfig.AdvertisePort = segment.Port
-		serfConf.MemberlistConfig.BindAddr = segment.Bind
 		serfConf.MemberlistConfig.BindPort = segment.Port
+
 		if config.ReconnectTimeoutLan != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLan
 		}
