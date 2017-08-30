@@ -318,7 +318,7 @@ will exit with an error at startup.
     project which have the given `tag_value`.
 
     ```sh
-    $ consul agent -retry-join provider=gce project_name=xxx tag_value=xxx
+    $ consul agent -retry-join "provider=gce project_name=xxx tag_value=xxx"
     ```
 
     ```json
