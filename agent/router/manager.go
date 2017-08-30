@@ -229,14 +229,6 @@ func (m *Manager) saveServerList(l serverList) {
 	m.listValue.Store(l)
 }
 
-func makeIdAddrMap(list serverList) map[string]string {
-	ret := make(map[string]string)
-	for _, server := range list.servers {
-		ret[server.ID] = server.Addr.String()
-	}
-	return ret
-}
-
 // New is the only way to safely create a new Manager struct.
 func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
 	m = new(Manager)
