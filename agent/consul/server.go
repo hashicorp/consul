@@ -492,12 +492,17 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
+	var serverAddressProvider raft.ServerAddressProvider = nil
+	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
+		serverAddressProvider = s.serverLookup
+	}
+
 	// Create a transport layer.
 	transConfig := &raft.NetworkTransportConfig{
 		Stream:                s.raftLayer,
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
-		ServerAddressProvider: s.serverLookup,
+		ServerAddressProvider: serverAddressProvider,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
