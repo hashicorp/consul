@@ -33,6 +33,7 @@ type Server struct {
 	Datacenter   string
 	Segment      string
 	Port         int
+	SegmentAddrs map[string]string
 	SegmentPorts map[string]int
 	WanJoinPort  int
 	Bootstrap    bool
@@ -96,8 +97,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
+	segment_addrs := make(map[string]string)
 	segment_ports := make(map[string]int)
 	for name, value := range m.Tags {
+		if strings.HasPrefix(name, "segment_addr_") {
+			segment_addrs[strings.TrimPrefix(name, "segment_addr_")] = value
+		}
+
 		if strings.HasPrefix(name, "segment_port_") {
 			segment_port, err := strconv.Atoi(value)
 			if err != nil {
@@ -146,6 +152,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Datacenter:   datacenter,
 		Segment:      segment,
 		Port:         port,
+		SegmentAddrs: segment_addrs,
 		SegmentPorts: segment_ports,
 		WanJoinPort:  wan_join_port,
 		Bootstrap:    bootstrap,

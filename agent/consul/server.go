@@ -410,7 +410,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		}
 		return 0, false
 	}
-	go s.Flood(portFn, s.serfWAN)
+	go s.Flood(nil, portFn, s.serfWAN)
 
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.

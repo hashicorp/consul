@@ -43,6 +43,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["segment"] = segment
 	if segment == "" {
 		for _, s := range s.config.Segments {
+			conf.Tags["segment_addr_"+s.Name] = s.Advertise
 			conf.Tags["segment_port_"+s.Name] = fmt.Sprintf("%d", s.Port)
 		}
 	}
