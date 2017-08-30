@@ -75,7 +75,7 @@ func (i *InmemTransport) LocalAddr() ServerAddress {
 
 // AppendEntriesPipeline returns an interface that can be used to pipeline
 // AppendEntries requests.
-func (i *InmemTransport) AppendEntriesPipeline(target ServerAddress) (AppendPipeline, error) {
+func (i *InmemTransport) AppendEntriesPipeline(id ServerID, target ServerAddress) (AppendPipeline, error) {
 	i.RLock()
 	peer, ok := i.peers[target]
 	i.RUnlock()
@@ -90,7 +90,7 @@ func (i *InmemTransport) AppendEntriesPipeline(target ServerAddress) (AppendPipe
 }
 
 // AppendEntries implements the Transport interface.
-func (i *InmemTransport) AppendEntries(target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
+func (i *InmemTransport) AppendEntries(id ServerID, target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
 	rpcResp, err := i.makeRPC(target, args, nil, i.timeout)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (i *InmemTransport) AppendEntries(target ServerAddress, args *AppendEntries
 }
 
 // RequestVote implements the Transport interface.
-func (i *InmemTransport) RequestVote(target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
+func (i *InmemTransport) RequestVote(id ServerID, target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
 	rpcResp, err := i.makeRPC(target, args, nil, i.timeout)
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func (i *InmemTransport) RequestVote(target ServerAddress, args *RequestVoteRequ
 }
 
 // InstallSnapshot implements the Transport interface.
-func (i *InmemTransport) InstallSnapshot(target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
+func (i *InmemTransport) InstallSnapshot(id ServerID, target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
 	rpcResp, err := i.makeRPC(target, args, data, 10*i.timeout)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (i *InmemTransport) makeRPC(target ServerAddress, args interface{}, r io.Re
 }
 
 // EncodePeer implements the Transport interface.
-func (i *InmemTransport) EncodePeer(p ServerAddress) []byte {
+func (i *InmemTransport) EncodePeer(id ServerID, p ServerAddress) []byte {
 	return []byte(p)
 }
 

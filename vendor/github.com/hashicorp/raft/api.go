@@ -492,6 +492,7 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		}
 		r.processConfigurationLogEntry(&entry)
 	}
+
 	r.logger.Printf("[INFO] raft: Initial configuration (index=%d): %+v",
 		r.configurations.latestIndex, r.configurations.latest.Servers)
 
