@@ -17,8 +17,8 @@ var (
 )
 
 // LANSegmentMembers is used to return the members of the given LAN segment.
-func (s *Server) LANSegmentMembers(name string) ([]serf.Member, error) {
-	if name == "" {
+func (s *Server) LANSegmentMembers(segment string) ([]serf.Member, error) {
+	if segment == "" {
 		return s.LANMembers(), nil
 	}
 

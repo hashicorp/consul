@@ -196,12 +196,12 @@ func (c *Client) LANMembers() []serf.Member {
 
 // LANSegmentMembers only returns our own segment's members, because clients
 // can't be in multiple segments.
-func (c *Client) LANSegmentMembers(name string) ([]serf.Member, error) {
-	if name == c.config.Segment {
+func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
+	if segment == c.config.Segment {
 		return c.LANMembers(), nil
 	}
 
-	return nil, fmt.Errorf("segment %q not found", name)
+	return nil, fmt.Errorf("segment %q not found", segment)
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster

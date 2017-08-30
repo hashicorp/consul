@@ -493,10 +493,11 @@ type Config struct {
 	// Address configurations
 	Addresses AddressConfig
 
-	// (Enterprise-only) NetworkSegment is the network segment for this client to join
+	// (Enterprise-only) NetworkSegment is the network segment for this client to join.
 	Segment string `mapstructure:"segment"`
 
-	// Segments
+	// (Enterprise-only) Segments is the list of network segments for this server to
+	// initialize.
 	Segments []NetworkSegment `mapstructure:"segments"`
 
 	// Tagged addresses. These are used to publish a set of addresses for
@@ -1480,6 +1481,10 @@ func ValidateSegments(conf *Config) error {
 
 	takenPorts := make(map[int]string, len(conf.Segments))
 	for _, segment := range conf.Segments {
+		if segment.Name == "" {
+			return fmt.Errorf("Segment name cannot be blank")
+		}
+
 		if len(segment.Name) > SegmentNameLimit {
 			return fmt.Errorf("Segment name %q exceeds maximum length of %d", segment.Name, SegmentNameLimit)
 		}

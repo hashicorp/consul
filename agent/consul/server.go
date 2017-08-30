@@ -913,7 +913,8 @@ func (s *Server) LANSegments() map[string]*serf.Serf {
 	s.segmentLock.RLock()
 	defer s.segmentLock.RUnlock()
 
-	segments := make(map[string]*serf.Serf, len(s.segmentLAN))
+	segments := make(map[string]*serf.Serf, len(s.segmentLAN)+1)
+	segments[""] = s.serfLAN
 	for name, segment := range s.segmentLAN {
 		segments[name] = segment
 	}

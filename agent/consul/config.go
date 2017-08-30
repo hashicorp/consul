@@ -49,7 +49,8 @@ func init() {
 	}
 }
 
-// (Enterprise-only)
+// (Enterprise-only) NetworkSegment is the address and port configuration
+// for a network segment.
 type NetworkSegment struct {
 	Name       string
 	Bind       string

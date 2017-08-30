@@ -400,7 +400,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	}
 
 	if !cfg.Server && len(cfg.Segments) > 0 {
-		cmd.UI.Error("Cannot define segments on clients")
+		cmd.UI.Error("Segments can only be configured on servers")
 		return nil
 	}
 

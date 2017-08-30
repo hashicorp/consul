@@ -63,9 +63,6 @@ func (s *Server) monitorLeadership() {
 func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
-	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
-		s.logger.Printf("[WARN] consul: failed to broadcast new leader event on default segment: %v", err)
-	}
 	for name, segment := range s.LANSegments() {
 		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
 			s.logger.Printf("[WARN] consul: failed to broadcast new leader event on segment %q: %v", name, err)

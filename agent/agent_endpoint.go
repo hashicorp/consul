@@ -166,9 +166,13 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
-	} else if segment == "" {
-		members = s.agent.LANMembers()
 	} else {
+		// If the segment is blank when querying a client, use the agent's
+		// segment instead of the empty string.
+		if !s.agent.config.Server && segment == "" {
+			segment = s.agent.config.Segment
+		}
+
 		var err error
 		members, err = s.agent.delegate.LANSegmentMembers(segment)
 		if err != nil {

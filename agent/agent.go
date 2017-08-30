@@ -58,7 +58,7 @@ type delegate interface {
 	GetLANCoordinate() (lib.CoordinateSet, error)
 	Leave() error
 	LANMembers() []serf.Member
-	LANSegmentMembers(name string) ([]serf.Member, error)
+	LANSegmentMembers(segment string) ([]serf.Member, error)
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
@@ -812,9 +812,9 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 
 		segments = append(segments, consul.NetworkSegment{
 			Name:       segment.Name,
-			Bind:       segment.Bind,
+			Bind:       serfConf.MemberlistConfig.BindAddr,
 			Port:       segment.Port,
-			Advertise:  segment.Advertise,
+			Advertise:  serfConf.MemberlistConfig.AdvertiseAddr,
 			RPCAddr:    rpcAddr,
 			SerfConfig: serfConf,
 		})
@@ -2169,10 +2169,7 @@ func (a *Agent) loadMetadata(conf *Config) error {
 		a.state.metadata[key] = value
 	}
 
-	// The segment isn't reloadable so we only add it once.
-	if _, ok := a.state.metadata[structs.MetaSegmentKey]; !ok {
-		a.state.metadata[structs.MetaSegmentKey] = conf.Segment
-	}
+	a.state.metadata[structs.MetaSegmentKey] = conf.Segment
 
 	a.state.changeMade()
 

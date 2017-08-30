@@ -1325,6 +1325,13 @@ func TestDecodeConfig_ValidateSegments(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
+	if err := ValidateSegments(&Config{
+		Segments: []NetworkSegment{{Name: ""}},
+		Server:   true,
+	}); !strings.Contains(err.Error(), "Segment name cannot be blank") {
+		t.Fatalf("bad: %v", err)
+	}
+
 	segmentNameTooLong := &Config{
 		Segments: []NetworkSegment{{Name: strings.Repeat("a", SegmentNameLimit+1)}},
 		Server:   true,

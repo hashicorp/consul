@@ -89,11 +89,6 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	// Fire the event on all LAN segments
 	segments := m.srv.LANSegments()
 	var errs error
-	err = m.srv.serfLAN.UserEvent(eventName, args.Payload, false)
-	if err != nil {
-		err = fmt.Errorf("error broadcasting event to default segment: %v", err)
-		errs = multierror.Append(errs, err)
-	}
 	for name, segment := range segments {
 		err := segment.UserEvent(eventName, args.Payload, false)
 		if err != nil {
@@ -157,7 +152,6 @@ func (m *Internal) executeKeyringOp(
 		m.executeKeyringOpMgr(mgr, args, reply, wan)
 	} else {
 		segments := m.srv.LANSegments()
-		m.executeKeyringOpMgr(m.srv.KeyManagerLAN(), args, reply, wan)
 		for _, segment := range segments {
 			mgr := segment.KeyManager()
 			m.executeKeyringOpMgr(mgr, args, reply, wan)
