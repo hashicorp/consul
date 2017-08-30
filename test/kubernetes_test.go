@@ -23,8 +23,6 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
-// Test data
-
 var dnsTestCases = []test.Case{
 	{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
@@ -35,24 +33,21 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "bogusendpoint.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "bogusendpoint.headless-svc.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -73,16 +68,14 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "bogusservice.*.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "bogusservice.any.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -111,16 +104,14 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "any.test-2.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "*.test-2.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -154,8 +145,7 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "*.*.bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -184,16 +174,14 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "*.*.bogusservice.*.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "*.*.bogusservice.any.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -201,10 +189,10 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "_c-port._UDP.*.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
-		Answer: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeSRV", "headless-svc", "test-1"),
+		Answer: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", dns.TypeSRV, "headless-svc", "test-1"),
 			[]dns.RR{
 				test.SRV("_c-port._UDP.*.test-1.svc.cluster.local.      303    IN    SRV 0 33 1234 svc-c.test-1.svc.cluster.local.")}...),
-		Extra: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeA", "headless-svc", "test-1"),
+		Extra: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", dns.TypeA, "headless-svc", "test-1"),
 			[]dns.RR{
 				test.A("svc-c.test-1.svc.cluster.local.	303	IN	A	10.0.0.115")}...),
 	},
@@ -223,16 +211,14 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "*.*.any.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
 	},
 	{
 		Qname: "*.*.*.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -252,13 +238,12 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeSuccess,
-		Answer: srvResponse("*.svc-1-a.test-1.svc.cluster.local.", "TypeSRV", "svc-1-a", "test-1"),
-		Extra:  srvResponse("*.svc-1-a.test-1.svc.cluster.local.", "TypeA", "svc-1-a", "test-1"),
+		Answer: srvResponse("*.svc-1-a.test-1.svc.cluster.local.", dns.TypeSRV, "svc-1-a", "test-1"),
+		Extra:  srvResponse("*.svc-1-a.test-1.svc.cluster.local.", dns.TypeA, "svc-1-a", "test-1"),
 	},
 	{
 		Qname: "*._not-udp-or-tcp.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502313310 7200 1800 86400 60"),
 		},
@@ -276,8 +261,7 @@ var dnsTestCases = []test.Case{
 	},
 	{
 		Qname: "10-20-0-101.test-1.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeServerFailure,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeServerFailure,
 	},
 	{
 		Qname: "dns-version.cluster.local.", Qtype: dns.TypeTXT,
@@ -303,60 +287,6 @@ var dnsTestCases = []test.Case{
 	},
 }
 
-var dnsTestCasesPodsInsecure = []test.Case{
-	{
-		Qname: "10-20-0-101.test-1.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("10-20-0-101.test-1.pod.cluster.local. 303 IN A    10.20.0.101"),
-		},
-	},
-	{
-		Qname: "10-20-0-101.test-X.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502307903 7200 1800 86400 60"),
-		},
-	},
-}
-
-var dnsTestCasesPodsVerified = []test.Case{
-	{
-		Qname: "10-20-0-101.test-1.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502308197 7200 1800 86400 60"),
-		},
-	},
-	{
-		Qname: "10-20-0-101.test-X.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
-		Ns: []dns.RR{
-			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1502307960 7200 1800 86400 60"),
-		},
-	},
-}
-
-var dnsTestCasesAllNSExposed = []test.Case{
-	{
-		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
-		},
-	},
-	{
-		Qname: "svc-c.test-2.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("svc-c.test-2.svc.cluster.local.      303    IN      A       10.0.0.120"),
-		},
-	},
-}
-
 var dnsTestCasesFallthrough = []test.Case{
 	{
 		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
@@ -367,24 +297,21 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	 303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "bogusendpoint.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "bogusendpoint.headless-svc.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -405,16 +332,14 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "bogusservice.*.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "bogusservice.any.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -443,16 +368,14 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "any.test-2.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "*.test-2.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -486,8 +409,7 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "*.*.bogusservice.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -516,16 +438,14 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "*.*.bogusservice.*.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "*.*.bogusservice.any.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -533,10 +453,10 @@ var dnsTestCasesFallthrough = []test.Case{
 	{
 		Qname: "_c-port._UDP.*.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
-		Answer: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeSRV", "headless-svc", "test-1"),
+		Answer: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", dns.TypeSRV, "headless-svc", "test-1"),
 			[]dns.RR{
 				test.SRV("_c-port._UDP.*.test-1.svc.cluster.local.      303    IN    SRV 0 33 1234 svc-c.test-1.svc.cluster.local.")}...),
-		Extra: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", "TypeA", "headless-svc", "test-1"),
+		Extra: append(srvResponse("_c-port._UDP.*.test-1.svc.cluster.local.", dns.TypeA, "headless-svc", "test-1"),
 			[]dns.RR{
 				test.A("svc-c.test-1.svc.cluster.local.	303	IN	A	10.0.0.115"),
 			}...),
@@ -556,16 +476,14 @@ var dnsTestCasesFallthrough = []test.Case{
 	},
 	{
 		Qname: "*.*.any.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
 	},
 	{
 		Qname: "*.*.*.test-2.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -585,13 +503,12 @@ var dnsTestCasesFallthrough = []test.Case{
 	{
 		Qname: "*.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode:  dns.RcodeSuccess,
-		Answer: srvResponse("*.svc-1-a.test-1.svc.cluster.local.", "TypeSRV", "svc-1-a", "test-1"),
-		Extra:  srvResponse("*.svc-1-a.test-1.svc.cluster.local.", "TypeA", "svc-1-a", "test-1"),
+		Answer: srvResponse("*.svc-1-a.test-1.svc.cluster.local.", dns.TypeSRV, "svc-1-a", "test-1"),
+		Extra:  srvResponse("*.svc-1-a.test-1.svc.cluster.local.", dns.TypeA, "svc-1-a", "test-1"),
 	},
 	{
 		Qname: "*._not-udp-or-tcp.svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeSRV,
-		Rcode:  dns.RcodeNameError,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	303	IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600"),
 		},
@@ -654,16 +571,6 @@ var dnsTestCasesFallthrough = []test.Case{
 		Ns: []dns.RR{
 			test.NS("cluster.local.	303	IN	NS	a.iana-servers.net."),
 			test.NS("cluster.local.	303	IN	NS	b.iana-servers.net."),
-		},
-	},
-}
-
-var dnsTestCasesAPIProxy = []test.Case{
-	{
-		Qname: "svc-1-a.test-1.svc.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("svc-1-a.test-1.svc.cluster.local.      303    IN      A       10.0.0.100"),
 		},
 	},
 }
@@ -737,61 +644,6 @@ func TestKubernetesIntegration(t *testing.T) {
 	doIntegrationTests(t, corefile, dnsTestCases)
 }
 
-func TestKubernetesIntegrationAPIProxy(t *testing.T) {
-
-	removeUpstreamConfig, upstreamServer, udp := createUpstreamServer(t)
-	defer upstreamServer.Stop()
-	defer removeUpstreamConfig()
-
-	corefile :=
-		`.:0 {
-    kubernetes cluster.local 0.0.10.in-addr.arpa {
-        endpoint http://nonexistance:8080,http://invalidip:8080,http://localhost:8080
-        namespaces test-1
-        pods disabled
-        upstream ` + udp + `
-    }
-    erratic . {
-        drop 0
-    }
-`
-	doIntegrationTests(t, corefile, dnsTestCasesAPIProxy)
-}
-
-func TestKubernetesIntegrationPodsInsecure(t *testing.T) {
-	corefile :=
-		`.:0 {
-    kubernetes cluster.local 0.0.10.in-addr.arpa {
-                endpoint http://localhost:8080
-		namespaces test-1
-		pods insecure
-    }
-`
-	doIntegrationTests(t, corefile, dnsTestCasesPodsInsecure)
-}
-
-func TestKubernetesIntegrationPodsVerified(t *testing.T) {
-	corefile :=
-		`.:0 {
-    kubernetes cluster.local 0.0.10.in-addr.arpa {
-                endpoint http://localhost:8080
-                namespaces test-1
-                pods verified
-    }
-`
-	doIntegrationTests(t, corefile, dnsTestCasesPodsVerified)
-}
-
-func TestKubernetesIntegrationAllNSExposed(t *testing.T) {
-	corefile :=
-		`.:0 {
-    kubernetes cluster.local {
-                endpoint http://localhost:8080
-    }
-`
-	doIntegrationTests(t, corefile, dnsTestCasesAllNSExposed)
-}
-
 func TestKubernetesIntegrationFallthrough(t *testing.T) {
 	dbfile, rmFunc, err := TempFile(os.TempDir(), clusterLocal)
 	if err != nil {
@@ -819,7 +671,7 @@ func TestKubernetesIntegrationFallthrough(t *testing.T) {
 	doIntegrationTests(t, corefile, dnsTestCasesFallthrough)
 }
 
-//headlessAResponse returns the answer to an A request for the specific name and namespace
+// headlessAResponse returns the answer to an A request for the specific name and namespace.
 func headlessAResponse(qname, namespace, name string) []dns.RR {
 	rr := []dns.RR{}
 
@@ -837,8 +689,8 @@ func headlessAResponse(qname, namespace, name string) []dns.RR {
 }
 
 // srvResponse returns the answer to a SRV request for the specific name and namespace
-// responsetype is the type of answer to generate, eg: TypeSRV ( for answer section) or TypeA (for extra section)
-func srvResponse(qname, responsetype, namespace, name string) []dns.RR {
+// qtype is the type of answer to generate, eg: TypeSRV (for answer section) or TypeA (for extra section).
+func srvResponse(qname string, qtype uint16, namespace, name string) []dns.RR {
 	rr := []dns.RR{}
 
 	str, err := endpointIPs(name, namespace)
@@ -852,15 +704,17 @@ func srvResponse(qname, responsetype, namespace, name string) []dns.RR {
 	for i := 0; i < lr; i++ {
 		ip := strings.Replace(result[i], ".", "-", -1)
 		t := strconv.Itoa(100 / (lr + 1))
-		if responsetype == "TypeA" {
+
+		switch qtype {
+		case dns.TypeA:
 			rr = append(rr, test.A(ip+"."+namespace+"."+name+".svc.cluster.local.	303	IN	A	"+result[i]))
-		}
-		if responsetype == "TypeSRV" && namespace == "headless-svc" {
-			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 1234  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
-		}
-		if responsetype == "TypeSRV" && namespace != "headless-svc" {
-			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 443  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
-			rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 80  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
+		case dns.TypeSRV:
+			if namespace == "headless-svc" {
+				rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 1234  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
+			} else {
+				rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 443  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
+				rr = append(rr, test.SRV(qname+"   303    IN    SRV 0 "+t+" 80  "+ip+"."+namespace+"."+name+".svc.cluster.local."))
+			}
 		}
 	}
 	return rr
