@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 * agent: Switched to using a read lock for the agent's RPC dispatcher, which prevents RPC calls from getting serialized. [GH-3376]
 * build: Upgraded Go version to 1.9. [GH-3428]
+* server: Consul servers can re-establish quorum after all of them change their IP addresses upon a restart. [GH-1580] 
 
 BUG FIXES:
 
