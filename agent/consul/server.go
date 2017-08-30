@@ -171,6 +171,9 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
+	// fast lookup from id to server address to provide to the raft transport layer
+	serverAddressLookup *ServerAddressLookup
+
 	// floodLock controls access to floodCh.
 	floodLock sync.RWMutex
 	floodCh   []chan struct{}
@@ -286,6 +289,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
+	//serverAddrLookup = NewServerAddressLookup()
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
@@ -304,6 +308,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		reassertLeaderCh:      make(chan chan error),
 		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
+		serverAddressLookup:   NewServerAddressLookup(),
 		shutdownCh:            shutdownCh,
 	}
 
@@ -494,7 +499,12 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer.
-	transConfig := &raft.NetworkTransportConfig{Stream: s.raftLayer, MaxPool: 3, Timeout: 10 * time.Second, ServerAddressProvider: s}
+	transConfig := &raft.NetworkTransportConfig{
+		Stream:                s.raftLayer,
+		MaxPool:               3,
+		Timeout:               10 * time.Second,
+		ServerAddressProvider: s.serverAddressLookup,
+	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
 	s.raftTransport = trans
@@ -1047,17 +1057,6 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
-}
-
-func (s *Server) ServerAddr(id raft.ServerID) (raft.ServerAddress, error) {
-	if string(id) == string(s.config.NodeID) {
-		return raft.ServerAddress(s.config.RPCAddr.String()), nil
-	}
-	addr, err := s.router.GetServerAddressByID(s.config.Datacenter, string(id))
-	if err != nil {
-		return "", err
-	}
-	return raft.ServerAddress(addr), nil
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write

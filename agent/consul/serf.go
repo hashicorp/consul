@@ -143,6 +143,9 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 			s.maybeBootstrap()
 		}
 
+		// Update id to address map
+		s.serverAddressLookup.AddServer(parts.ID, parts.Addr.String())
+
 		// Kick the join flooders.
 		s.FloodNotify()
 	}
@@ -274,5 +277,8 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 		s.localLock.Lock()
 		delete(s.localConsuls, raft.ServerAddress(parts.Addr.String()))
 		s.localLock.Unlock()
+
+		// Update id to address map
+		s.serverAddressLookup.RemoveServer(parts.ID)
 	}
 }
