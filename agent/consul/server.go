@@ -166,7 +166,8 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
-	// serverLookup provides fast and thread-safe lookup by id and address
+	// serverLookup tracks server consuls in the local datacenter.
+	// Used to do leader forwarding and provide fast lookup by server id and address
 	serverLookup *ServerLookup
 
 	// floodLock controls access to floodCh.

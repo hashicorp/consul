@@ -139,9 +139,6 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 			s.maybeBootstrap()
 		}
 
-		// Update id to address map
-		s.serverLookup.AddServer(serverMeta)
-
 		// Kick the join flooders.
 		s.FloodNotify()
 	}
