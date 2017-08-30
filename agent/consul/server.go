@@ -123,11 +123,6 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
-	// localConsuls is used to track the known consuls
-	// in the local datacenter. Used to do leader forwarding.
-	localConsuls map[raft.ServerAddress]*metadata.Server
-	localLock    sync.RWMutex
-
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
@@ -171,8 +166,8 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
-	// fast lookup from id to server address to provide to the raft transport layer
-	serverAddressLookup *ServerAddressLookup
+	// serverLookup provides fast and thread-safe lookup by id and address
+	serverLookup *ServerLookup
 
 	// floodLock controls access to floodCh.
 	floodLock sync.RWMutex
@@ -298,7 +293,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		connPool:              connPool,
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
-		localConsuls:          make(map[raft.ServerAddress]*metadata.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
@@ -307,7 +301,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		reassertLeaderCh:      make(chan chan error),
 		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
-		serverAddressLookup:   NewServerAddressLookup(),
+		serverLookup:          NewServerLookup(),
 		shutdownCh:            shutdownCh,
 	}
 
@@ -502,7 +496,7 @@ func (s *Server) setupRaft() error {
 		Stream:                s.raftLayer,
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
-		ServerAddressProvider: s.serverAddressLookup,
+		ServerAddressProvider: s.serverLookup,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
@@ -705,9 +699,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 			return true
 		}
 
-		s.localLock.RLock()
-		server, ok := s.localConsuls[address]
-		s.localLock.RUnlock()
+		server, ok := s.serverLookup.GetServer(address)
 
 		if !ok {
 			return false

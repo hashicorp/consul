@@ -125,18 +125,14 @@ func (s *Server) localEvent(event serf.UserEvent) {
 // lanNodeJoin is used to handle join events on the LAN pool.
 func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
+		ok, serverMeta := metadata.IsConsulServer(m)
 		if !ok {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Adding LAN server %s", parts)
+		s.logger.Printf("[INFO] consul: Adding LAN server %s", serverMeta)
 
-		// See if it's configured as part of our DC.
-		if parts.Datacenter == s.config.Datacenter {
-			s.localLock.Lock()
-			s.localConsuls[raft.ServerAddress(parts.Addr.String())] = parts
-			s.localLock.Unlock()
-		}
+		// Update server lookup
+		s.serverLookup.AddServer(serverMeta)
 
 		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
@@ -144,7 +140,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 		}
 
 		// Update id to address map
-		s.serverAddressLookup.AddServer(parts.ID, parts.Addr.String())
+		s.serverLookup.AddServer(serverMeta)
 
 		// Kick the join flooders.
 		s.FloodNotify()
@@ -274,11 +270,7 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 		}
 		s.logger.Printf("[INFO] consul: Removing LAN server %s", parts)
 
-		s.localLock.Lock()
-		delete(s.localConsuls, raft.ServerAddress(parts.Addr.String()))
-		s.localLock.Unlock()
-
 		// Update id to address map
-		s.serverAddressLookup.RemoveServer(parts.ID)
+		s.serverLookup.RemoveServer(parts)
 	}
 }

@@ -4,31 +4,53 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/raft"
 )
 
-// serverIdToAddress is a map from id to address for servers in the LAN pool.
-// used for fast lookup to satisfy the ServerAddressProvider interface
-type ServerAddressLookup struct {
-	serverIdToAddress sync.Map
+// ServerLookup encapsulates looking up servers by id and address
+type ServerLookup struct {
+	lock            sync.RWMutex
+	addressToServer map[raft.ServerAddress]*metadata.Server
+	IdToServer      map[raft.ServerID]*metadata.Server
 }
 
-func NewServerAddressLookup() *ServerAddressLookup {
-	return &ServerAddressLookup{}
+func NewServerLookup() *ServerLookup {
+	return &ServerLookup{addressToServer: make(map[raft.ServerAddress]*metadata.Server), IdToServer: make(map[raft.ServerID]*metadata.Server)}
 }
 
-func (sa *ServerAddressLookup) AddServer(id string, address string) {
-	sa.serverIdToAddress.Store(id, address)
+func (sa *ServerLookup) AddServer(server *metadata.Server) {
+	sa.lock.Lock()
+	defer sa.lock.Unlock()
+	sa.addressToServer[raft.ServerAddress(server.Addr.String())] = server
+	sa.IdToServer[raft.ServerID(server.ID)] = server
 }
 
-func (sa *ServerAddressLookup) RemoveServer(id string) {
-	sa.serverIdToAddress.Delete(id)
+func (sa *ServerLookup) RemoveServer(server *metadata.Server) {
+	sa.lock.Lock()
+	defer sa.lock.Unlock()
+	delete(sa.addressToServer, raft.ServerAddress(server.Addr.String()))
+	delete(sa.IdToServer, raft.ServerID(server.ID))
 }
 
-func (sa *ServerAddressLookup) ServerAddr(id raft.ServerID) (raft.ServerAddress, error) {
-	val, ok := sa.serverIdToAddress.Load(string(id))
+// Implements the ServerAddressProvider interface
+func (sa *ServerLookup) ServerAddr(id raft.ServerID) (raft.ServerAddress, error) {
+	sa.lock.RLock()
+	defer sa.lock.RUnlock()
+	svr, ok := sa.IdToServer[id]
 	if !ok {
 		return "", fmt.Errorf("Could not find address for server id %v", id)
 	}
-	return raft.ServerAddress(val.(string)), nil
+	return raft.ServerAddress(svr.Addr.String()), nil
+}
+
+// GetServer looks up the server by address, returns a boolean if not found
+func (sa *ServerLookup) GetServer(addr raft.ServerAddress) (*metadata.Server, bool) {
+	sa.lock.RLock()
+	defer sa.lock.RUnlock()
+	svr, ok := sa.addressToServer[addr]
+	if !ok {
+		return nil, false
+	}
+	return svr, true
 }

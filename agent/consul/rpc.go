@@ -238,9 +238,7 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 	}
 
 	// Lookup the server
-	s.localLock.RLock()
-	server := s.localConsuls[leader]
-	s.localLock.RUnlock()
+	server, _ := s.serverLookup.GetServer(leader)
 
 	// Server could be nil
 	return false, server

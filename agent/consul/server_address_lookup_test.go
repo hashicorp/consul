@@ -3,14 +3,32 @@ package consul
 import (
 	"fmt"
 	"testing"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/raft"
 )
 
-func TestServerAddressLookup(t *testing.T) {
-	lookup := NewServerAddressLookup()
-	addr := "72.0.0.17:8300"
-	lookup.AddServer("1", addr)
+type testAddr struct {
+	addr string
+}
 
-	got, err := lookup.ServerAddr("1")
+func (ta *testAddr) Network() string {
+	return "tcp"
+}
+
+func (ta *testAddr) String() string {
+	return ta.addr
+}
+
+func TestServerLookup(t *testing.T) {
+	lookup := NewServerLookup()
+	addr := "72.0.0.17:8300"
+	id := "1"
+
+	svr := &metadata.Server{ID: id, Addr: &testAddr{addr}}
+	lookup.AddServer(svr)
+
+	got, err := lookup.ServerAddr(raft.ServerID(id))
 	if err != nil {
 		t.Fatalf("Unexpected error:%v", err)
 	}
@@ -18,7 +36,15 @@ func TestServerAddressLookup(t *testing.T) {
 		t.Fatalf("Expected %v but got %v", addr, got)
 	}
 
-	lookup.RemoveServer("1")
+	server, ok := lookup.GetServer(raft.ServerAddress(addr))
+	if !ok {
+		t.Fatalf("Expected lookup to return true")
+	}
+	if server.Addr.String() != addr {
+		t.Fatalf("Expected lookup to return address %v but got %v", addr, server.Addr)
+	}
+
+	lookup.RemoveServer(svr)
 
 	got, err = lookup.ServerAddr("1")
 	expectedErr := fmt.Errorf("Could not find address for server id 1")
@@ -26,5 +52,7 @@ func TestServerAddressLookup(t *testing.T) {
 		t.Fatalf("Unexpected error, got %v wanted %v", err, expectedErr)
 	}
 
-	lookup.RemoveServer("3")
+	svr2 := &metadata.Server{ID: "2", Addr: &testAddr{"123.4.5.6"}}
+	lookup.RemoveServer(svr2)
+
 }
