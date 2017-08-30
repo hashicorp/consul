@@ -83,7 +83,8 @@
 		{"checksumSHA1":"t24KnvC9jRxiANVhpw2pqFpmEu8=","path":"github.com/tonnerre/golang-text","revision":"048ed3d792f7104850acbc8cfc01e5a6070f4c04","revisionTime":"2013-09-25T19:58:46Z"},
 		{"checksumSHA1":"9jjO5GjLa0XF/nfWihF02RoH4qc=","path":"golang.org/x/net/context","revision":"075e191f18186a8ff2becaf64478e30f4545cdad","revisionTime":"2016-08-05T06:12:51Z"},
 		{"checksumSHA1":"WHc3uByvGaMcnSoI21fhzYgbOgg=","path":"golang.org/x/net/context/ctxhttp","revision":"075e191f18186a8ff2becaf64478e30f4545cdad","revisionTime":"2016-08-05T06:12:51Z"},
-		{"checksumSHA1":"vlicYp+fe4ECQ+5QqpAk36VRA3s=","path":"golang.org/x/sys/unix","revision":"cd2c276457edda6df7fb04895d3fd6a6add42926","revisionTime":"2017-07-17T10:05:24Z"}
+		{"checksumSHA1":"vlicYp+fe4ECQ+5QqpAk36VRA3s=","path":"golang.org/x/sys/unix","revision":"cd2c276457edda6df7fb04895d3fd6a6add42926","revisionTime":"2017-07-17T10:05:24Z"},
+		{"checksumSHA1":"vGfePfr0+weQUeTM/71mu+LCFuE=","path":"golang.org/x/time/rate","revision":"8be79e1e0910c292df4e79c241bb7e8f7e725959","revisionTime":"2017-04-24T23:28:54Z"}
 	],
 	"rootPath": "github.com/hashicorp/consul"
 }

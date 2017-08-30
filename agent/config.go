@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/time/rate"
 )
 
 // Ports is used to simplify the configuration by
@@ -785,6 +786,14 @@ type Config struct {
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 
+	// Rate limiter controls how frequently rpc calls are allowed to happen.
+	// In any large enough time interval, rate limiter limits the rate to RPCRate tokens per second,
+	// with a maximum burst size of RPCMaxBurst events.
+	// As a special case, if RPCRate == Inf (the infinite rate), RPCMaxBurst is ignored.
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token buckets.
+	RPCRate     rate.Limit `mapstructure:"rpc_rate"`
+	RPCMaxBurst int        `mapstructure:"rpc_max_burst"`
+
 	// deprecated fields
 	// keep them exported since otherwise the error messages don't show up
 	DeprecatedAtlasInfrastructure    string            `mapstructure:"atlas_infrastructure" json:"-"`
@@ -971,6 +980,9 @@ func DefaultConfig() *Config {
 		DisableRemoteExec:  Bool(true),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
+
+		RPCRate:     rate.Inf,
+		RPCMaxBurst: 1000,
 
 		TLSMinVersion: "tls10",
 
@@ -2046,6 +2058,13 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
+	}
+
+	if b.RPCRate > 0 {
+		result.RPCRate = b.RPCRate
+	}
+	if b.RPCMaxBurst > 0 {
+		result.RPCMaxBurst = b.RPCMaxBurst
 	}
 
 	result.HTTPConfig.BlockEndpoints = append(a.HTTPConfig.BlockEndpoints,

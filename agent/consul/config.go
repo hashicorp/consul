@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -294,6 +295,14 @@ type Config struct {
 	// place, and a small jitter is applied to avoid a thundering herd.
 	RPCHoldTimeout time.Duration
 
+	// Rate limiter controls how frequently rpc calls are allowed to happen.
+	// In any large enough time interval, rate limiter limits the rate to RPCRate tokens per second,
+	// with a maximum burst size of RPCMaxBurst events.
+	// As a special case, if RPCRate == Inf (the infinite rate), RPCMaxBurst is ignored.
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token buckets.
+	RPCRate     rate.Limit
+	RPCMaxBurst int
+
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
@@ -376,6 +385,9 @@ func DefaultConfig() *Config {
 		// bit longer to try to cover that period. This should be more
 		// than enough when running in the high performance mode.
 		RPCHoldTimeout: 7 * time.Second,
+
+		RPCRate:     rate.Inf,
+		RPCMaxBurst: 1000,
 
 		TLSMinVersion: "tls10",
 
