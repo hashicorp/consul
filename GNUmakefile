@@ -9,7 +9,7 @@ GOTOOLS = \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html
 
-GOTAGS ?= consul
+GOTAGS ?=
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
