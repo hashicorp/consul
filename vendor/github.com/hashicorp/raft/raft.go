@@ -1379,7 +1379,7 @@ func (r *Raft) electSelf() <-chan *voteResult {
 	req := &RequestVoteRequest{
 		RPCHeader:    r.getRPCHeader(),
 		Term:         r.getCurrentTerm(),
-		Candidate:    r.trans.EncodePeer(r.localAddr),
+		Candidate:    r.trans.EncodePeer(r.localID, r.localAddr),
 		LastLogIndex: lastIdx,
 		LastLogTerm:  lastTerm,
 	}
@@ -1389,7 +1389,7 @@ func (r *Raft) electSelf() <-chan *voteResult {
 		r.goFunc(func() {
 			defer metrics.MeasureSince([]string{"raft", "candidate", "electSelf"}, time.Now())
 			resp := &voteResult{voterID: peer.ID}
-			err := r.trans.RequestVote(peer.Address, req, &resp.RequestVoteResponse)
+			err := r.trans.RequestVote(peer.ID, peer.Address, req, &resp.RequestVoteResponse)
 			if err != nil {
 				r.logger.Printf("[ERR] raft: Failed to make RequestVote RPC to %v: %v", peer, err)
 				resp.Term = req.Term

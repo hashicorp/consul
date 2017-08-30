@@ -123,11 +123,6 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
-	// localConsuls is used to track the known consuls
-	// in the local datacenter. Used to do leader forwarding.
-	localConsuls map[raft.ServerAddress]*metadata.Server
-	localLock    sync.RWMutex
-
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
@@ -170,6 +165,10 @@ type Server struct {
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
+
+	// serverLookup tracks server consuls in the local datacenter.
+	// Used to do leader forwarding and provide fast lookup by server id and address
+	serverLookup *ServerLookup
 
 	// floodLock controls access to floodCh.
 	floodLock sync.RWMutex
@@ -295,7 +294,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		connPool:              connPool,
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
-		localConsuls:          make(map[raft.ServerAddress]*metadata.Server),
 		logger:                logger,
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
@@ -304,6 +302,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		reassertLeaderCh:      make(chan chan error),
 		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
+		serverLookup:          NewServerLookup(),
 		shutdownCh:            shutdownCh,
 	}
 
@@ -494,7 +493,14 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer.
-	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
+	transConfig := &raft.NetworkTransportConfig{
+		Stream:                s.raftLayer,
+		MaxPool:               3,
+		Timeout:               10 * time.Second,
+		ServerAddressProvider: s.serverLookup,
+	}
+
+	trans := raft.NewNetworkTransportWithConfig(transConfig)
 	s.raftTransport = trans
 
 	// Make sure we set the LogOutput.
@@ -694,11 +700,9 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 			return true
 		}
 
-		s.localLock.RLock()
-		server, ok := s.localConsuls[address]
-		s.localLock.RUnlock()
+		server := s.serverLookup.Server(address)
 
-		if !ok {
+		if server == nil {
 			return false
 		}
 
