@@ -36,6 +36,11 @@ func scaleFactor(nodes int) int {
 	return int(math.Ceil(math.Log2(float64(nodes))-math.Log2(float64(scaleThreshold))) + 1.0)
 }
 
+type State interface {
+	SyncChanges() error
+	SyncFull() error
+}
+
 // StateSyncer manages background synchronization of the given state.
 //
 // The state is synchronized on a regular basis or on demand when either
@@ -44,34 +49,45 @@ func scaleFactor(nodes int) int {
 // The regular state sychronization provides a self-healing mechanism
 // for the cluster which is also called anti-entropy.
 type StateSyncer struct {
-	// paused flags whether sync runs are temporarily disabled.
-	// Must be the first element due to a go bug.
-	// todo(fs): which bug? Is this still relevant?
-	paused int32
-
 	// State contains the data that needs to be synchronized.
-	State interface {
-		SyncChanges() error
-		SyncFull() error
-	}
+	State State
 
 	// Interval is the time between two regular sync runs.
 	Interval time.Duration
 
-	// ClusterSize returns the number of members in the cluster to
-	// allow staggering the sync runs based on cluster size.
-	ClusterSize func() int
-
 	// ShutdownCh is closed when the application is shutting down.
 	ShutdownCh chan struct{}
 
-	// ServerUpCh contains data when a new consul server has been added to the cluster.
-	ServerUpCh chan struct{}
-
-	// TriggerCh contains data when a sync should run immediately.
-	TriggerCh chan struct{}
-
+	// Logger is the logger.
 	Logger *log.Logger
+
+	// ClusterSize returns the number of members in the cluster to
+	// allow staggering the sync runs based on cluster size.
+	// This needs to be set before Run() is called.
+	ClusterSize func() int
+
+	// SyncFull allows triggering an immediate but staggered full sync
+	// in a non-blocking way.
+	SyncFull *Trigger
+
+	// SyncChanges allows triggering an immediate partial sync
+	// in a non-blocking way.
+	SyncChanges *Trigger
+
+	// paused stores whether sync runs are temporarily disabled.
+	paused *toggle
+}
+
+func NewStateSyner(state State, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+	return &StateSyncer{
+		State:       state,
+		Interval:    intv,
+		ShutdownCh:  shutdownCh,
+		Logger:      logger,
+		SyncFull:    NewTrigger(),
+		SyncChanges: NewTrigger(),
+		paused:      new(toggle),
+	}
 }
 
 const (
@@ -86,6 +102,10 @@ const (
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
+	if s.ClusterSize == nil {
+		panic("ClusterSize not set")
+	}
+
 	stagger := func(d time.Duration) time.Duration {
 		f := scaleFactor(s.ClusterSize())
 		return lib.RandomStagger(time.Duration(f) * d)
@@ -93,20 +113,18 @@ func (s *StateSyncer) Run() {
 
 FullSync:
 	for {
-		switch err := s.State.SyncFull(); {
-
-		// full sync failed
-		case err != nil:
+		// attempt a full sync
+		if err := s.State.SyncFull(); err != nil {
 			s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
 
 			// retry full sync after some time or when a consul
 			// server was added.
 			select {
 
-			// consul server added to cluster.
-			// retry sooner than retryFailIntv to converge cluster sooner
-			// but stagger delay to avoid thundering herd
-			case <-s.ServerUpCh:
+			// trigger a full sync immediately.
+			// this is usually called when a consul server was added to the cluster.
+			// stagger the delay to avoid a thundering herd.
+			case <-s.SyncFull.Notif():
 				select {
 				case <-time.After(stagger(serverUpIntv)):
 				case <-s.ShutdownCh:
@@ -121,36 +139,38 @@ FullSync:
 				return
 			}
 
-		// full sync OK
-		default:
+			continue
+		}
 
-			// do partial syncs until it is time for a full sync again
-			for {
+		// do partial syncs until it is time for a full sync again
+		for {
+			select {
+			// trigger a full sync immediately
+			// this is usually called when a consul server was added to the cluster.
+			// stagger the delay to avoid a thundering herd.
+			case <-s.SyncFull.Notif():
 				select {
-				// todo(fs): why don't we honor the ServerUpCh here as well?
-				// todo(fs): by default, s.Interval is 60s which is >> 3s (serverUpIntv)
-				// case <-s.ServerUpCh:
-				// 	select {
-				// 	case <-time.After(stagger(serverUpIntv)):
-				// 		continue Sync
-				// 	case <-s.ShutdownCh:
-				// 		return
-				// 	}
-
-				case <-time.After(s.Interval + stagger(s.Interval)):
+				case <-time.After(stagger(serverUpIntv)):
 					continue FullSync
-
-				case <-s.TriggerCh:
-					if s.Paused() {
-						continue
-					}
-					if err := s.State.SyncChanges(); err != nil {
-						s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
-					}
-
 				case <-s.ShutdownCh:
 					return
 				}
+
+			// time for a full sync again
+			case <-time.After(s.Interval + stagger(s.Interval)):
+				continue FullSync
+
+			// do partial syncs on demand
+			case <-s.SyncChanges.Notif():
+				if s.Paused() {
+					continue
+				}
+				if err := s.State.SyncChanges(); err != nil {
+					s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+				}
+
+			case <-s.ShutdownCh:
+				return
 			}
 		}
 	}
@@ -158,27 +178,38 @@ FullSync:
 
 // Pause temporarily disables sync runs.
 func (s *StateSyncer) Pause() {
-	atomic.AddInt32(&s.paused, 1)
+	s.paused.On()
 }
 
 // Paused returns whether sync runs are temporarily disabled.
 func (s *StateSyncer) Paused() bool {
-	return atomic.LoadInt32(&s.paused) > 0
+	return s.paused.IsOn()
 }
 
 // Resume re-enables sync runs.
 func (s *StateSyncer) Resume() {
-	paused := atomic.AddInt32(&s.paused, -1)
-	if paused < 0 {
-		panic("unbalanced StateSyncer.Resume() detected")
-	}
-	s.triggerSync()
+	s.paused.Off()
+	s.SyncChanges.Trigger()
 }
 
-// triggerSync queues a sync run if one has not been triggered already.
-func (s *StateSyncer) triggerSync() {
-	select {
-	case s.TriggerCh <- struct{}{}:
-	default:
+// toggle implements an on/off switch using methods from the atomic
+// package. Since fields in structs that are accessed via
+// atomic.Load/Add methods need to be aligned properly on some platforms
+// we move that code into a separate struct.
+//
+// See https://golang.org/pkg/sync/atomic/#pkg-note-BUG for details
+type toggle int32
+
+func (p *toggle) On() {
+	atomic.AddInt32((*int32)(p), 1)
+}
+
+func (p *toggle) Off() {
+	if atomic.AddInt32((*int32)(p), -1) < 0 {
+		panic("toggle not on")
 	}
+}
+
+func (p *toggle) IsOn() bool {
+	return atomic.LoadInt32((*int32)(p)) > 0
 }

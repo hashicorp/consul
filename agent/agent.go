@@ -263,27 +263,12 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
-	// create a notif channel to trigger state sychronizations
-	// when a consul server was added to the cluster.
-	serverUpCh := make(chan struct{}, 1)
-
-	// create a notif channel to trigger state synchronizations
-	// when the state has changed.
-	triggerCh := make(chan struct{}, 1)
-
 	// create the local state
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens, triggerCh)
+	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
-	a.sync = &ae.StateSyncer{
-		State:      a.State,
-		Interval:   c.AEInterval,
-		ShutdownCh: a.shutdownCh,
-		ServerUpCh: serverUpCh,
-		TriggerCh:  triggerCh,
-		Logger:     a.logger,
-	}
+	a.sync = ae.NewStateSyner(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -294,13 +279,7 @@ func (a *Agent) Start() error {
 	// ServerUp is used to inform that a new consul server is now
 	// up. This can be used to speed up the sync process if we are blocking
 	// waiting to discover a consul server
-	// todo(fs): IMO, the non-blocking nature of this call should be hidden in the syncer
-	consulCfg.ServerUp = func() {
-		select {
-		case serverUpCh <- struct{}{}:
-		default:
-		}
-	}
+	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
 	// Setup either the client or the server.
 	if c.ServerMode {
@@ -308,20 +287,24 @@ func (a *Agent) Start() error {
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
-
 		a.delegate = server
-		a.State.SetDelegate(server)
-		a.sync.ClusterSize = func() int { return len(server.LANMembers()) }
 	} else {
 		client, err := consul.NewClientLogger(consulCfg, a.logger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
-
 		a.delegate = client
-		a.State.SetDelegate(client)
-		a.sync.ClusterSize = func() int { return len(client.LANMembers()) }
 	}
+
+	// the staggering of the state syncing depends on the cluster size.
+	a.sync.ClusterSize = func() int { return len(a.delegate.LANMembers()) }
+
+	// link the state with the consul server/client and the state syncer
+	// via callbacks. After several attempts this was easier than using
+	// channels since the event notification needs to be non-blocking
+	// and that should be hidden in the state syncer implementation.
+	a.State.Delegate = a.delegate
+	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
@@ -1316,7 +1299,7 @@ func (a *Agent) WANMembers() []serf.Member {
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
 	go a.sync.Run()
-	a.logger.Printf("[INFO] agent: starting state syncer")
+	a.logger.Printf("[INFO] agent: started state syncer")
 }
 
 // PauseSync is used to pause anti-entropy while bulk changes are make
@@ -2173,8 +2156,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 	return nil
 }
 
-// unloadServices will deregister all services other than the 'consul' service
-// known to the local agent.
+// unloadServices will deregister all services.
 func (a *Agent) unloadServices() error {
 	for id := range a.State.Services() {
 		if err := a.RemoveService(id, false); err != nil {
