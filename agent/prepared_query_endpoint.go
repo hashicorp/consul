@@ -96,6 +96,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		Agent: structs.QuerySource{
 			Node:       s.agent.config.NodeName,
 			Datacenter: s.agent.config.Datacenter,
+			Segment:    s.agent.config.Segment,
 		},
 	}
 	s.parseSource(req, &args.Source)
@@ -140,6 +141,7 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 		Agent: structs.QuerySource{
 			Node:       s.agent.config.NodeName,
 			Datacenter: s.agent.config.Datacenter,
+			Segment:    s.agent.config.Segment,
 		},
 	}
 	s.parseSource(req, &args.Source)

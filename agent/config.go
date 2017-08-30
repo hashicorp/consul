@@ -357,8 +357,7 @@ type NetworkSegment struct {
 	Name string `mapstructure:"name"`
 
 	// Bind is the bind address for this segment.
-	Bind      string   `mapstructure:"bind"`
-	BindAddrs []string `mapstructure:"-"`
+	Bind string `mapstructure:"bind"`
 
 	// Port is the port for this segment.
 	Port int `mapstructure:"port"`
@@ -1467,7 +1466,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	}
 
 	// Validate node meta fields
-	if err := structs.ValidateMetadata(result.Meta); err != nil {
+	if err := structs.ValidateMetadata(result.Meta, false); err != nil {
 		return nil, fmt.Errorf("Failed to parse node metadata: %v", err)
 	}
 

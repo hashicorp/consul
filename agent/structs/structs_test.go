@@ -482,7 +482,7 @@ func TestStructs_ValidateMetadata(t *testing.T) {
 		"key2": "value2",
 	}
 	// Should succeed
-	if err := ValidateMetadata(meta); err != nil {
+	if err := ValidateMetadata(meta, false); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -490,7 +490,7 @@ func TestStructs_ValidateMetadata(t *testing.T) {
 	meta = map[string]string{
 		"": "value1",
 	}
-	if err := ValidateMetadata(meta); !strings.Contains(err.Error(), "Couldn't load metadata pair") {
+	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "Couldn't load metadata pair") {
 		t.Fatalf("should have failed")
 	}
 
@@ -499,7 +499,7 @@ func TestStructs_ValidateMetadata(t *testing.T) {
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
 		meta[string(i)] = "value"
 	}
-	if err := ValidateMetadata(meta); !strings.Contains(err.Error(), "cannot contain more than") {
+	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "cannot contain more than") {
 		t.Fatalf("should have failed")
 	}
 }
@@ -529,7 +529,7 @@ func TestStructs_validateMetaPair(t *testing.T) {
 	}
 
 	for _, pair := range pairs {
-		err := validateMetaPair(pair.Key, pair.Value)
+		err := validateMetaPair(pair.Key, pair.Value, false)
 		if pair.Error == "" && err != nil {
 			t.Fatalf("should have succeeded: %v, %v", pair, err)
 		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {

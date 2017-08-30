@@ -225,7 +225,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 			key, value := agent.ParseMetaPair(entry)
 			cmdCfg.Meta[key] = value
 		}
-		if err := structs.ValidateMetadata(cmdCfg.Meta); err != nil {
+		if err := structs.ValidateMetadata(cmdCfg.Meta, false); err != nil {
 			cmd.UI.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
 			return nil
 		}

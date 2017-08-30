@@ -597,11 +597,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Segment: "thing"},
 		},
 		{
-			in: `{"server": true, "segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "rpc_listener": true, "advertise": "1.1.1.1"}]}`,
-			c: &Config{Server: true, Segments: []NetworkSegment{{
+			in: `{"segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "rpc_listener": true, "advertise": "1.1.1.1"}]}`,
+			c: &Config{Segments: []NetworkSegment{{
 				Name:        "alpha",
 				Bind:        "127.0.0.1",
-				BindAddrs:   []string{"127.0.0.1"},
 				Port:        1234,
 				RPCListener: true,
 				Advertise:   "1.1.1.1",
