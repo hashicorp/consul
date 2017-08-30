@@ -44,12 +44,12 @@ type AgentMember struct {
 	DelegateCur uint8
 }
 
-// MemberOpts is used for querying member information.
-type MemberOpts struct {
+// MembersOpts is used for querying member information.
+type MembersOpts struct {
 	// Wan is whether to show members from the LAN.
 	Wan bool
 
-	// Segment is the LAN segment to show members
+	// Segment is the LAN segment to show members.
 	Segment string
 }
 
@@ -265,12 +265,12 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	return out, nil
 }
 
-// Members returns the known gossip members. The WAN
-// flag can be used to query a server for WAN members.
-func (a *Agent) MembersOpts(wan bool, segment string) ([]*AgentMember, error) {
+// MembersOpts returns the known gossip members and can be passed
+// additional options for WAN/segment filtering.
+func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 	r := a.c.newRequest("GET", "/v1/agent/members")
-	r.params.Set("segment", segment)
-	if wan {
+	r.params.Set("segment", opts.Segment)
+	if opts.Wan {
 		r.params.Set("wan", "1")
 	}
 

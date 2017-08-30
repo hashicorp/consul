@@ -65,7 +65,10 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	members, err := client.Agent().MembersOpts(wan, segment)
+	members, err := client.Agent().MembersOpts(consulapi.MembersOpts{
+		Wan:     wan,
+		Segment: segment,
+	})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
 		return 1
