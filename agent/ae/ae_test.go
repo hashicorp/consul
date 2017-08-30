@@ -27,7 +27,7 @@ func TestAE_scaleFactor(t *testing.T) {
 
 func TestAE_nestedPauseResume(t *testing.T) {
 	t.Parallel()
-	l := new(StateSyncer)
+	l := NewStateSyner(nil, 0, nil, nil)
 	if l.Paused() != false {
 		t.Fatal("syncer should be unPaused after init")
 	}
