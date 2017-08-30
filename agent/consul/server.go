@@ -289,7 +289,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
-	//serverAddrLookup = NewServerAddressLookup()
 	// Create server.
 	s := &Server{
 		autopilotRemoveDeadCh: make(chan struct{}),
