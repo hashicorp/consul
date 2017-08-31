@@ -289,12 +289,6 @@ func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rc int) {
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rc)
 
-	if r == nil {
-		log.Printf("[WARNING] DefaultErrorFunc called with nil *dns.Msg (Remote: %s)", w.RemoteAddr().String())
-		w.WriteMsg(answer)
-		return
-	}
-
 	state.SizeAndDo(answer)
 
 	vars.Report(state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())

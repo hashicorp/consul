@@ -205,31 +205,93 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 	return reply, ScrubDone
 }
 
-// Type returns the type of the question as a string.
-func (r *Request) Type() string { return dns.Type(r.Req.Question[0].Qtype).String() }
+// Type returns the type of the question as a string. If the request is malformed
+// the empty string is returned.
+func (r *Request) Type() string {
+	if r.Req == nil {
+		return ""
+	}
+	if len(r.Req.Question) == 0 {
+		return ""
+	}
 
-// QType returns the type of the question as an uint16.
-func (r *Request) QType() uint16 { return r.Req.Question[0].Qtype }
+	return dns.Type(r.Req.Question[0].Qtype).String()
+}
+
+// QType returns the type of the question as an uint16. If the request is malformed
+// 0 is returned.
+func (r *Request) QType() uint16 {
+	if r.Req == nil {
+		return 0
+	}
+	if len(r.Req.Question) == 0 {
+		return 0
+	}
+
+	return r.Req.Question[0].Qtype
+}
 
 // Name returns the name of the question in the request. Note
 // this name will always have a closing dot and will be lower cased. After a call Name
 // the value will be cached. To clear this caching call Clear.
+// If the request is malformed the root zone is returned.
 func (r *Request) Name() string {
 	if r.name != "" {
 		return r.name
 	}
+	if r.Req == nil {
+		r.name = "."
+		return "."
+	}
+	if len(r.Req.Question) == 0 {
+		r.name = "."
+		return "."
+	}
+
 	r.name = strings.ToLower(dns.Name(r.Req.Question[0].Name).String())
 	return r.name
 }
 
 // QName returns the name of the question in the request.
-func (r *Request) QName() string { return dns.Name(r.Req.Question[0].Name).String() }
+// If the request is malformed the root zone is returned.
+func (r *Request) QName() string {
+	if r.Req == nil {
+		return "."
+	}
+	if len(r.Req.Question) == 0 {
+		return "."
+	}
+
+	return dns.Name(r.Req.Question[0].Name).String()
+}
 
 // Class returns the class of the question in the request.
-func (r *Request) Class() string { return dns.Class(r.Req.Question[0].Qclass).String() }
+// If the request is malformed the empty string is returned.
+func (r *Request) Class() string {
+	if r.Req == nil {
+		return ""
+	}
+	if len(r.Req.Question) == 0 {
+		return ""
+	}
+
+	return dns.Class(r.Req.Question[0].Qclass).String()
+
+}
 
 // QClass returns the class of the question in the request.
-func (r *Request) QClass() uint16 { return r.Req.Question[0].Qclass }
+// If the request is malformed 0 returned.
+func (r *Request) QClass() uint16 {
+	if r.Req == nil {
+		return 0
+	}
+	if len(r.Req.Question) == 0 {
+		return 0
+	}
+
+	return r.Req.Question[0].Qclass
+
+}
 
 // ErrorMessage returns an error message suitable for sending
 // back to the client.
