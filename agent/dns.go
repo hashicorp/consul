@@ -778,6 +778,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		// relative to ourself on the server side.
 		Agent: structs.QuerySource{
 			Datacenter: d.agent.config.Datacenter,
+			Segment:    d.agent.config.Segment,
 			Node:       d.agent.config.NodeName,
 		},
 	}
