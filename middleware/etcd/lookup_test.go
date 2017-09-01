@@ -222,7 +222,7 @@ var dnsTestCases = []test.Case{
 }
 
 func newEtcdMiddleware() *Etcd {
-	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
+	ctxt = context.TODO()
 
 	endpoints := []string{"http://localhost:2379"}
 	tlsc, _ := tls.NewTLSConfigFromArgs()
