@@ -54,6 +54,10 @@ type Client struct {
 	// Consul servers this agent uses for RPC requests
 	routers *router.Manager
 
+	// rpcLimiter is used to rate limit the total number of RPCs initiated
+	// from an agent.
+	rpcLimiter *rate.Limiter
+
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
 	eventCh chan serf.Event
@@ -68,8 +72,6 @@ type Client struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
-
-	rpcLimiter *rate.Limiter
 }
 
 // NewClient is used to construct a new Consul client from the
@@ -119,10 +121,11 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
-	// Create server
+	// Create client
 	c := &Client{
 		config:     config,
 		connPool:   connPool,
+		rpcLimiter: rate.NewLimiter(config.RPCRate, config.RPCMaxBurst),
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
