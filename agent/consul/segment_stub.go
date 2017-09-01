@@ -35,7 +35,7 @@ func (s *Server) setupSegmentRPC() (map[string]net.Listener, error) {
 
 // setupSegments returns an error if any segments are defined since the OSS
 // version of Consul doesn't support them.
-func (s *Server) setupSegments(config *Config, port int) error {
+func (s *Server) setupSegments(config *Config, port int, rpcListeners map[string]net.Listener) error {
 	if len(config.Segments) > 0 {
 		return structs.ErrSegmentsNotSupported
 	}

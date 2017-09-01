@@ -381,7 +381,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Initialize the LAN segments before the default LAN Serf so we have
 	// updated port information to publish there.
-	if err := s.setupSegments(config, serfBindPortWAN); err != nil {
+	if err := s.setupSegments(config, serfBindPortWAN, segmentListeners); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to setup network segments: %v", err)
 	}
