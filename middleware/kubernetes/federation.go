@@ -30,6 +30,9 @@ func (k *Kubernetes) Federations(state request.Request, fname, fzone string) (ms
 		return msg.Service{}, err
 	}
 	r, err := parseRequest(state)
+	if err != nil {
+		return msg.Service{}, err
+	}
 
 	lz := node.Labels[LabelZone]
 	lr := node.Labels[LabelRegion]

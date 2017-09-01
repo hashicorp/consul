@@ -42,6 +42,9 @@ func TestHealthReload(t *testing.T) {
 		t.Fatalf("Could not get health: %s", err)
 	}
 	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Could not get resp.Body: %s", err)
+	}
 	if x := string(body); x != "OK" {
 		t.Fatalf("Expect OK, got %s", x)
 	}

@@ -65,9 +65,8 @@ func (d *Data) HostPort(addr string) error {
 			d.SocketFam = tap.SocketFamily_INET6
 		}
 		return nil
-	} else {
-		return errors.New("not an ip address")
 	}
+	return errors.New("not an ip address")
 }
 
 // RemoteAddr parses the information about the remote address into Data.

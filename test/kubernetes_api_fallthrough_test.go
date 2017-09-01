@@ -1,3 +1,5 @@
+// +build k8s
+
 package test
 
 import (
