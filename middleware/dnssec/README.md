@@ -21,8 +21,6 @@ A single signing key can be specified by using the `key` directive.
 
 NOTE: Key generation has not been implemented yet.
 
-TODO(miek): think about key rollovers, and how to do them automatically.
-
 ~~~
 dnssec [ZONES... ] {
     key file KEY...
@@ -34,8 +32,8 @@ dnssec [ZONES... ] {
   will be signed with all keys. Generating a key can be done with `dnssec-keygen`: `dnssec-keygen -a
   ECDSAP256SHA256 <zonename>`. A key created for zone *A* can be safely used for zone *B*.
 
-* `cache_capacity` indicates the capacity of the LRU cache. The dnssec middleware uses LRU cache to manage
-  objects and the default capacity is 10000.
+* `cache_capacity` indicates the capacity of the cache. The dnssec middleware uses a cache to store
+  RRSIGs. The default capacity is 10000.
 
 ## Metrics
 
@@ -47,3 +45,32 @@ If monitoring is enabled (via the *prometheus* directive) then the following met
 * coredns_dnssec_cache_misses_total - Counter of cache misses.
 
 ## Examples
+
+Sign responses for `example.org` with the key "Kexample.org.+013+45330.key".
+
+~~~
+example.org:53 {
+    dnssec {
+        key file /etc/coredns/Kexample.org.+013+45330.key
+    }
+    whoami
+}
+~~~
+
+## Bugs
+
+Multiple *dnssec* middlewares inside one server stanza will silently overwrite earlier ones, here
+`example.local` will overwrite the one for `cluster.local`.
+
+~~~
+.:53 {
+    kubernetes cluster.local
+    dnssec cluster.local {
+      key file /etc/coredns/cluster.local
+    }
+    dnssec example.local {
+      key file /etc/coredns/example.local
+    }
+    whoami
+}
+~~~
