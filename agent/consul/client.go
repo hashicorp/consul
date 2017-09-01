@@ -233,15 +233,14 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 		return structs.ErrNoServers
 	}
 
+	// Enforce the RPC limit.
 	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
-
-	// Check rate
 	if !c.rpcLimiter.Allow() {
 		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
 
-	// Forward to remote Consul
+	// Make the request.
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		c.routers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
@@ -256,18 +255,15 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
 	replyFn structs.SnapshotReplyFn) error {
-
-	// Locate a server to make the request to.
 	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
 
-	metrics.IncrCounter([]string{"consul", "client", "snapshot-rpc"}, 1)
-
-	// Check rate
+	// Enforce the RPC limit.
+	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "snapshot-rpc", "exceeded"}, 1)
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
 
