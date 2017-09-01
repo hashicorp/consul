@@ -14,7 +14,7 @@ import (
 
 func testRequest(t *testing.T, expected Data, r request.Request) {
 	d := Data{}
-	if err := d.FromRequest(r); err != nil {
+	if err := d.RemoteAddr(r.W.RemoteAddr()); err != nil {
 		t.Fail()
 		return
 	}

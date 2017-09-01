@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/middleware/dnstap"
+	"github.com/coredns/coredns/middleware/dnstap/msg"
 	"github.com/coredns/coredns/middleware/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
+	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
@@ -85,22 +88,28 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			}
 
 			atomic.AddInt64(&host.Conns, 1)
+			queryEpoch := msg.Epoch()
 
 			reply, backendErr := upstream.Exchanger().Exchange(ctx, host.Name, state)
 
+			respEpoch := msg.Epoch()
 			atomic.AddInt64(&host.Conns, -1)
 
 			if child != nil {
 				child.Finish()
 			}
 
+			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply,
+				queryEpoch, respEpoch)
+
 			if backendErr == nil {
 				w.WriteMsg(reply)
 
 				RequestDuration.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
-				return 0, nil
+				return 0, taperr
 			}
+
 			timeout := host.FailTimeout
 			if timeout == 0 {
 				timeout = 10 * time.Second
@@ -145,3 +154,40 @@ func (p Proxy) Name() string { return "proxy" }
 
 // defaultTimeout is the default networking timeout for DNS requests.
 const defaultTimeout = 5 * time.Second
+
+func toDnstap(ctx context.Context, host string, ex Exchanger, state request.Request, reply *dns.Msg, queryEpoch, respEpoch uint64) (err error) {
+	if tapper := dnstap.TapperFromContext(ctx); tapper != nil {
+		// Query
+		b := tapper.TapBuilder()
+		b.TimeSec = queryEpoch
+		if err = b.HostPort(host); err != nil {
+			return
+		}
+		t := ex.Transport()
+		if t == "" {
+			t = state.Proto()
+		}
+		if t == "tcp" {
+			b.SocketProto = tap.SocketProtocol_TCP
+		} else {
+			b.SocketProto = tap.SocketProtocol_UDP
+		}
+		if err = b.Msg(state.Req); err != nil {
+			return
+		}
+		err = tapper.TapMessage(b.ToOutsideQuery(tap.Message_FORWARDER_QUERY))
+		if err != nil {
+			return
+		}
+
+		// Response
+		if reply != nil {
+			b.TimeSec = respEpoch
+			if err = b.Msg(reply); err != nil {
+				return
+			}
+			err = tapper.TapMessage(b.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE))
+		}
+	}
+	return
+}

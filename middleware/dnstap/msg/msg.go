@@ -4,18 +4,39 @@ package msg
 import (
 	"errors"
 	"net"
+	"strconv"
 	"time"
-
-	"github.com/coredns/coredns/request"
 
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
 )
 
+// Builder helps to build Data by being aware of the dnstap middleware configuration.
+type Builder struct {
+	Full bool
+	Data
+}
+
+// AddrMsg parses the info of net.Addr and dns.Msg.
+func (b *Builder) AddrMsg(a net.Addr, m *dns.Msg) (err error) {
+	err = b.RemoteAddr(a)
+	if err != nil {
+		return
+	}
+	return b.Msg(m)
+}
+
+// Msg parses the info of dns.Msg.
+func (b *Builder) Msg(m *dns.Msg) (err error) {
+	if b.Full {
+		err = b.Pack(m)
+	}
+	return
+}
+
 // Data helps to build a dnstap Message.
 // It can be transformed into the actual Message using this package.
 type Data struct {
-	Type        tap.Message_Type
 	Packed      []byte
 	SocketProto tap.SocketProtocol
 	SocketFam   tap.SocketFamily
@@ -24,8 +45,34 @@ type Data struct {
 	TimeSec     uint64
 }
 
-func (d *Data) FromRequest(r request.Request) error {
-	switch addr := r.W.RemoteAddr().(type) {
+// HostPort decodes into Data any string returned by dnsutil.ParseHostPortOrFile.
+func (d *Data) HostPort(addr string) error {
+	ip, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+	p, err := strconv.ParseUint(port, 10, 32)
+	if err != nil {
+		return err
+	}
+	d.Port = uint32(p)
+
+	if ip := net.ParseIP(ip); ip != nil {
+		d.Address = []byte(ip)
+		if ip := ip.To4(); ip != nil {
+			d.SocketFam = tap.SocketFamily_INET
+		} else {
+			d.SocketFam = tap.SocketFamily_INET6
+		}
+		return nil
+	} else {
+		return errors.New("not an ip address")
+	}
+}
+
+// RemoteAddr parses the information about the remote address into Data.
+func (d *Data) RemoteAddr(remote net.Addr) error {
+	switch addr := remote.(type) {
 	case *net.TCPAddr:
 		d.Address = addr.IP
 		d.Port = uint32(addr.Port)
@@ -47,6 +94,7 @@ func (d *Data) FromRequest(r request.Request) error {
 	return nil
 }
 
+// Pack encodes the DNS message into Data.
 func (d *Data) Pack(m *dns.Msg) error {
 	packed, err := m.Pack()
 	if err != nil {
@@ -56,15 +104,21 @@ func (d *Data) Pack(m *dns.Msg) error {
 	return nil
 }
 
-func (d *Data) Epoch() {
-	d.TimeSec = uint64(time.Now().Unix())
+// Epoch returns the epoch time in seconds.
+func Epoch() uint64 {
+	return uint64(time.Now().Unix())
 }
 
-// Transform the data into a client response message.
+// Epoch sets the dnstap message epoch.
+func (d *Data) Epoch() {
+	d.TimeSec = Epoch()
+}
+
+// ToClientResponse transforms Data into a client response message.
 func (d *Data) ToClientResponse() *tap.Message {
-	d.Type = tap.Message_CLIENT_RESPONSE
+	t := tap.Message_CLIENT_RESPONSE
 	return &tap.Message{
-		Type:            &d.Type,
+		Type:            &t,
 		SocketFamily:    &d.SocketFam,
 		SocketProtocol:  &d.SocketProto,
 		ResponseTimeSec: &d.TimeSec,
@@ -74,16 +128,42 @@ func (d *Data) ToClientResponse() *tap.Message {
 	}
 }
 
-// Transform the data into a client query message.
+// ToClientQuery transforms Data into a client query message.
 func (d *Data) ToClientQuery() *tap.Message {
-	d.Type = tap.Message_CLIENT_QUERY
+	t := tap.Message_CLIENT_QUERY
 	return &tap.Message{
-		Type:           &d.Type,
+		Type:           &t,
 		SocketFamily:   &d.SocketFam,
 		SocketProtocol: &d.SocketProto,
 		QueryTimeSec:   &d.TimeSec,
 		QueryMessage:   d.Packed,
 		QueryAddress:   d.Address,
 		QueryPort:      &d.Port,
+	}
+}
+
+// ToOutsideQuery transforms the data into a forwarder or resolver query message.
+func (d *Data) ToOutsideQuery(t tap.Message_Type) *tap.Message {
+	return &tap.Message{
+		Type:            &t,
+		SocketFamily:    &d.SocketFam,
+		SocketProtocol:  &d.SocketProto,
+		QueryTimeSec:    &d.TimeSec,
+		QueryMessage:    d.Packed,
+		ResponseAddress: d.Address,
+		ResponsePort:    &d.Port,
+	}
+}
+
+// ToOutsideResponse transforms the data into a forwarder or resolver response message.
+func (d *Data) ToOutsideResponse(t tap.Message_Type) *tap.Message {
+	return &tap.Message{
+		Type:            &t,
+		SocketFamily:    &d.SocketFam,
+		SocketProtocol:  &d.SocketProto,
+		ResponseTimeSec: &d.TimeSec,
+		ResponseMessage: d.Packed,
+		ResponseAddress: d.Address,
+		ResponsePort:    &d.Port,
 	}
 }

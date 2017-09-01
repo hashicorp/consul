@@ -28,6 +28,14 @@ func newDNSExWithOption(opt Options) *dnsEx {
 	return &dnsEx{Timeout: defaultTimeout * time.Second, Options: opt}
 }
 
+func (d *dnsEx) Transport() string {
+	if d.Options.ForceTCP {
+		return "tcp"
+	}
+
+	// The protocol will be determined by `state.Proto()` during Exchange.
+	return ""
+}
 func (d *dnsEx) Protocol() string          { return "dns" }
 func (d *dnsEx) OnShutdown(p *Proxy) error { return nil }
 func (d *dnsEx) OnStartup(p *Proxy) error  { return nil }

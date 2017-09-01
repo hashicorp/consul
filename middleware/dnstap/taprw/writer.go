@@ -6,79 +6,68 @@ import (
 	"fmt"
 
 	"github.com/coredns/coredns/middleware/dnstap/msg"
-	"github.com/coredns/coredns/request"
 
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
 )
 
-type Taper interface {
+// Tapper is what ResponseWriter needs to log to dnstap.
+type Tapper interface {
 	TapMessage(m *tap.Message) error
+	TapBuilder() msg.Builder
 }
 
+// ResponseWriter captures the client response and logs the query to dnstap.
 // Single request use.
 type ResponseWriter struct {
-	queryData msg.Data
-	Query     *dns.Msg
+	queryEpoch uint64
+	Query      *dns.Msg
 	dns.ResponseWriter
-	Taper
-	Pack bool
-	err  error
+	Tapper
+	err error
 }
 
-// Check if a dnstap error occurred.
-// Set during ResponseWriter.Write.
+// DnstapError check if a dnstap error occurred during Write and returns it.
 func (w ResponseWriter) DnstapError() error {
 	return w.err
 }
 
-// To be called as soon as possible.
+// QueryEpoch sets the query epoch as reported by dnstap.
 func (w *ResponseWriter) QueryEpoch() {
-	w.queryData.Epoch()
+	w.queryEpoch = msg.Epoch()
 }
 
-// Write back the response to the client and THEN work on logging the request
+// WriteMsg writes back the response to the client and THEN works on logging the request
 // and response to dnstap.
-// Dnstap errors to be checked by DnstapError.
-func (w *ResponseWriter) WriteMsg(resp *dns.Msg) error {
-	writeErr := w.ResponseWriter.WriteMsg(resp)
+// Dnstap errors are to be checked by DnstapError.
+func (w *ResponseWriter) WriteMsg(resp *dns.Msg) (writeErr error) {
+	writeErr = w.ResponseWriter.WriteMsg(resp)
+	writeEpoch := msg.Epoch()
 
-	if err := tapQuery(w); err != nil {
+	b := w.TapBuilder()
+	b.TimeSec = w.queryEpoch
+	if err := func() (err error) {
+		err = b.AddrMsg(w.ResponseWriter.RemoteAddr(), w.Query)
+		if err != nil {
+			return
+		}
+		return w.TapMessage(b.ToClientQuery())
+	}(); err != nil {
 		w.err = fmt.Errorf("client query: %s", err)
 		// don't forget to call DnstapError later
 	}
 
 	if writeErr == nil {
-		if err := tapResponse(w, resp); err != nil {
+		if err := func() (err error) {
+			b.TimeSec = writeEpoch
+			if err = b.Msg(resp); err != nil {
+				return
+			}
+			return w.TapMessage(b.ToClientResponse())
+		}(); err != nil {
 			w.err = fmt.Errorf("client response: %s", err)
 		}
 	}
 
-	return writeErr
-}
-func tapQuery(w *ResponseWriter) error {
-	req := request.Request{W: w.ResponseWriter, Req: w.Query}
-	if err := w.queryData.FromRequest(req); err != nil {
-		return err
-	}
-	if w.Pack {
-		if err := w.queryData.Pack(w.Query); err != nil {
-			return fmt.Errorf("pack: %s", err)
-		}
-	}
-	return w.Taper.TapMessage(w.queryData.ToClientQuery())
-}
-func tapResponse(w *ResponseWriter, resp *dns.Msg) error {
-	d := &msg.Data{}
-	d.Epoch()
-	req := request.Request{W: w, Req: resp}
-	if err := d.FromRequest(req); err != nil {
-		return err
-	}
-	if w.Pack {
-		if err := d.Pack(resp); err != nil {
-			return fmt.Errorf("pack: %s", err)
-		}
-	}
-	return w.Taper.TapMessage(d.ToClientResponse())
+	return
 }

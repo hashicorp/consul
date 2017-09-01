@@ -112,6 +112,10 @@ func (g *google) exchangeJSON(addr, json string) ([]byte, error) {
 	return buf, nil
 }
 
+func (g *google) Transport() string {
+	return "tcp"
+}
+
 func (g *google) Protocol() string { return "https_google" }
 
 func (g *google) OnShutdown(p *Proxy) error {

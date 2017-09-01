@@ -15,6 +15,7 @@ func wrap(m *lib.Message) *lib.Dnstap {
 	}
 }
 
+// Marshal encodes the message to a binary dnstap payload.
 func Marshal(m *lib.Message) (data []byte, err error) {
 	data, err = proto.Marshal(wrap(m))
 	if err != nil {

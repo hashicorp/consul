@@ -54,6 +54,8 @@ func (g *grpcClient) Exchange(ctx context.Context, addr string, state request.Re
 	return d, nil
 }
 
+func (g *grpcClient) Transport() string { return "tcp" }
+
 func (g *grpcClient) Protocol() string { return "grpc" }
 
 func (g *grpcClient) OnShutdown(p *Proxy) error {

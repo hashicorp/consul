@@ -13,6 +13,10 @@ type Exchanger interface {
 	Exchange(ctx context.Context, addr string, state request.Request) (*dns.Msg, error)
 	Protocol() string
 
+	// Transport returns the only transport protocol used by this Exchanger or "".
+	// If the return value is "", Exchange must use `state.Proto()`.
+	Transport() string
+
 	OnStartup(*Proxy) error
 	OnShutdown(*Proxy) error
 }
