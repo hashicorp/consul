@@ -950,7 +950,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         limiter by setting the maximum request rate that this agent is allowed to make for RPC
         requests to Consul servers, in requests per second. Defaults to infinite, which disables
         rate limiting.
-    *   <a name="rpc_rate"></a><a href="rpc_max_burst">`rpc_max_burst`</a> - The size of the token
+    *   <a name="rpc_rate"></a><a href="#rpc_max_burst">`rpc_max_burst`</a> - The size of the token
         bucket used to recharge the RPC rate limiter. Defaults to 1000 tokens, and each token is
         good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
         for more details about how token bucket rate limiters operate.
