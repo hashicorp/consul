@@ -24,7 +24,13 @@ dnstap /tmp/dnstap.sock
 Log information including the wire-format DNS message about client requests and responses to */tmp/dnstap.sock*.
 
 ~~~ txt
-dnstap /tmp/dnstap.sock full
+dnstap unix:///tmp/dnstap.sock full
+~~~
+
+Log to a remote endpoint.
+
+~~~ txt
+dnstap tcp://127.0.0.1:6000 full
 ~~~
 
 ## Dnstap command line tool
@@ -46,4 +52,10 @@ The following command listens on the given socket and saves message payloads to 
 
 ~~~ sh
 dnstap -u /tmp/dnstap.sock -w /tmp/test.dnstap
+~~~
+
+Listen for dnstap messages on port 6000.
+
+~~~ sh
+dnstap -l 127.0.0.1:6000
 ~~~
