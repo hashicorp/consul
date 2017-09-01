@@ -263,6 +263,14 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 		return structs.ErrNoServers
 	}
 
+	metrics.IncrCounter([]string{"consul", "client", "snapshot-rpc"}, 1)
+
+	// Check rate
+	if !c.rpcLimiter.Allow() {
+		metrics.IncrCounter([]string{"consul", "client", "snapshot-rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
 	// Request the operation.
 	var reply structs.SnapshotResponse
 	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, server.UseTLS, args, in, &reply)
