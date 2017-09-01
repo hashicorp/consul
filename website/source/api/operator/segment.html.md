@@ -28,7 +28,7 @@ This endpoint lists all network areas.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/operator/segment/list`     | `application/json`         |
+| `GET`  | `/operator/segment`     | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
