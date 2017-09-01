@@ -3,13 +3,13 @@ layout: api
 page_title: Network Segments - Operator - HTTP API
 sidebar_current: api-operator-segment
 description: |-
-  The /operator/segments endpoints expose the network segment information via
+  The /operator/segment endpoint exposes the network segment information via
   Consul's HTTP API.
 ---
 
 # Network Areas - Operator HTTP API
 
-The `/operator/segment` endpoints provide tools to manage network segments via
+The `/operator/segment` endpoint provides tools to manage network segments via
 Consul's HTTP API.
 
 ~> **Enterprise-only!** This API endpoint and functionality only exists in
@@ -49,7 +49,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/segment/list
+    https://consul.rocks/v1/operator/segment
 ```
 
 ### Sample Response
