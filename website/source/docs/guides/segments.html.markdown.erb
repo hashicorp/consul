@@ -10,8 +10,9 @@ description: |-
   segment.
 ---
 
-# Partial LAN Connectivity
-## Configuring Network Segments
+# Network Segments
+
+## Partial LAN Connectivity with Network Segments
 
 [//]: # ( ~> The network segment functionality described here is available only in )
 [//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.9.3 and later. )
@@ -34,7 +35,7 @@ This guide will cover the basic configuration for setting up multiple segments, 
 how to configure a prepared query to limit service discovery to the services in the local agent's
 network segment.
 
-## Network Segments
+## Configuring Network Segments
 
 All Consul agents are part of the default network segment, `""`, unless a segment is specified in
 their configuration. In a standard cluster setup all agents will normally be part of this default
@@ -44,10 +45,14 @@ on the servers. Each desired segment must be given a name and port, as well as o
 bind and advertise address for that segment's gossip listener to bind to on the server.
 
 A few things to note:
+
 1. Servers will be a part of all segments they have been configured with. They are the common point
-linking the different segments together.
+linking the different segments together. The configured list of segments is specified by the
+[`segments`](/docs/agent/options.html#segments) option.
+
 2. Client agents can only be part of one segment at a given time, specified by the [`-segment`]
 (/docs/agent/options.html#_segment) option.
+
 3. Clients can only join agents in the same segment as them. If they attempt to join a client in
 another segment, or the listening port of another segment on a server, they will get a segment mismatch error.
 

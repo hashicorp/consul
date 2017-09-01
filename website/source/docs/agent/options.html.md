@@ -1061,7 +1061,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-segment` command-line flag](#_segment).
 
 * <a name="segments"></a><a href="#segments">`segments`</a> (Enterprise-only) This is a list of nested objects that allows setting
-  the bind/advertise information for network segments. This can only be set on servers.
+  the bind/advertise information for network segments. This can only be set on servers. See the
+  [Network Segments Guide](/docs/guides/segments.html) for more details.
     * <a name="segment_name"></a><a href="#segment_name">`name`</a> - The name of the segment. Must be a string between
     1 and 64 characters in length.
     * <a name="segment_bind"></a><a href="#segment_bind">`bind`</a> - The bind address to use for the segment's gossip layer.
