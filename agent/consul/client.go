@@ -5,18 +5,14 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -146,35 +142,6 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	return c, nil
 }
 
-// setupSerf is used to setup and initialize a Serf
-func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
-	conf.Init()
-	conf.NodeName = c.config.NodeName
-	conf.Tags["role"] = "node"
-	conf.Tags["dc"] = c.config.Datacenter
-	conf.Tags["id"] = string(c.config.NodeID)
-	conf.Tags["vsn"] = fmt.Sprintf("%d", c.config.ProtocolVersion)
-	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
-	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
-	conf.Tags["build"] = c.config.Build
-	conf.MemberlistConfig.LogOutput = c.config.LogOutput
-	conf.LogOutput = c.config.LogOutput
-	conf.Logger = c.logger
-	conf.EventCh = ch
-	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
-	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
-	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
-	conf.Merge = &lanMergeDelegate{
-		dc:       c.config.Datacenter,
-		nodeID:   c.config.NodeID,
-		nodeName: c.config.NodeName,
-	}
-	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
-		return nil, err
-	}
-	return serf.Create(conf)
-}
-
 // Shutdown is used to shutdown the client
 func (c *Client) Shutdown() error {
 	c.logger.Printf("[INFO] consul: shutting down client")
@@ -227,6 +194,16 @@ func (c *Client) LANMembers() []serf.Member {
 	return c.serf.Members()
 }
 
+// LANSegmentMembers only returns our own segment's members, because clients
+// can't be in multiple segments.
+func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
+	if segment == c.config.Segment {
+		return c.LANMembers(), nil
+	}
+
+	return nil, fmt.Errorf("segment %q not found", segment)
+}
+
 // RemoveFailedNode is used to remove a failed node from the cluster
 func (c *Client) RemoveFailedNode(node string) error {
 	return c.serf.RemoveFailedNode(node)
@@ -240,98 +217,6 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 // Encrypted determines if gossip is encrypted
 func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()
-}
-
-// lanEventHandler is used to handle events from the lan Serf cluster
-func (c *Client) lanEventHandler() {
-	var numQueuedEvents int
-	for {
-		numQueuedEvents = len(c.eventCh)
-		if numQueuedEvents > serfEventBacklogWarning {
-			c.logger.Printf("[WARN] consul: number of queued serf events above warning threshold: %d/%d", numQueuedEvents, serfEventBacklogWarning)
-		}
-
-		select {
-		case e := <-c.eventCh:
-			switch e.EventType() {
-			case serf.EventMemberJoin:
-				c.nodeJoin(e.(serf.MemberEvent))
-			case serf.EventMemberLeave, serf.EventMemberFailed:
-				c.nodeFail(e.(serf.MemberEvent))
-			case serf.EventUser:
-				c.localEvent(e.(serf.UserEvent))
-			case serf.EventMemberUpdate: // Ignore
-			case serf.EventMemberReap: // Ignore
-			case serf.EventQuery: // Ignore
-			default:
-				c.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
-			}
-		case <-c.shutdownCh:
-			return
-		}
-	}
-}
-
-// nodeJoin is used to handle join events on the serf cluster
-func (c *Client) nodeJoin(me serf.MemberEvent) {
-	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
-		if !ok {
-			continue
-		}
-		if parts.Datacenter != c.config.Datacenter {
-			c.logger.Printf("[WARN] consul: server %s for datacenter %s has joined wrong cluster",
-				m.Name, parts.Datacenter)
-			continue
-		}
-		c.logger.Printf("[INFO] consul: adding server %s", parts)
-		c.routers.AddServer(parts)
-
-		// Trigger the callback
-		if c.config.ServerUp != nil {
-			c.config.ServerUp()
-		}
-	}
-}
-
-// nodeFail is used to handle fail events on the serf cluster
-func (c *Client) nodeFail(me serf.MemberEvent) {
-	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
-		if !ok {
-			continue
-		}
-		c.logger.Printf("[INFO] consul: removing server %s", parts)
-		c.routers.RemoveServer(parts)
-	}
-}
-
-// localEvent is called when we receive an event on the local Serf
-func (c *Client) localEvent(event serf.UserEvent) {
-	// Handle only consul events
-	if !strings.HasPrefix(event.Name, "consul:") {
-		return
-	}
-
-	switch name := event.Name; {
-	case name == newLeaderEvent:
-		c.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
-
-		// Trigger the callback
-		if c.config.ServerUp != nil {
-			c.config.ServerUp()
-		}
-	case isUserEvent(name):
-		event.Name = rawUserEventName(name)
-		c.logger.Printf("[DEBUG] consul: user event: %s", event.Name)
-
-		// Trigger the callback
-		if c.config.UserEventHandler != nil {
-			c.config.UserEventHandler(event)
-		}
-	default:
-		c.logger.Printf("[WARN] consul: Unhandled local event: %v", event)
-	}
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
@@ -413,6 +298,12 @@ func (c *Client) Stats() map[string]map[string]string {
 
 // GetLANCoordinate returns the network coordinate of the current node, as
 // maintained by Serf.
-func (c *Client) GetLANCoordinate() (*coordinate.Coordinate, error) {
-	return c.serf.GetCoordinate()
+func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
+	lan, err := c.serf.GetCoordinate()
+	if err != nil {
+		return nil, err
+	}
+
+	cs := lib.CoordinateSet{c.config.Segment: lan}
+	return cs, nil
 }

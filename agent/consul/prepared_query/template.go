@@ -89,7 +89,7 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 	// prefix it will be expected to run with. The results might not make
 	// sense and create a valid service to lookup, but it should render
 	// without any errors.
-	if _, err = ct.Render(ct.query.Name); err != nil {
+	if _, err = ct.Render(ct.query.Name, structs.QuerySource{}); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +99,7 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 // Render takes a compiled template and renders it for the given name. For
 // example, if the user looks up foobar.query.consul via DNS then we will call
 // this function with "foobar" on the compiled template.
-func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) {
+func (ct *CompiledTemplate) Render(name string, source structs.QuerySource) (*structs.PreparedQuery, error) {
 	// Make it "safe" to render a default structure.
 	if ct == nil {
 		return nil, fmt.Errorf("Cannot render an uncompiled template")
@@ -155,6 +155,10 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 				"name.suffix": ast.Variable{
 					Type:  ast.TypeString,
 					Value: strings.TrimPrefix(name, query.Name),
+				},
+				"agent.segment": ast.Variable{
+					Type:  ast.TypeString,
+					Value: source.Segment,
 				},
 			},
 			FuncMap: map[string]ast.Function{

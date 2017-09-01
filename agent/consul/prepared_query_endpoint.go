@@ -182,7 +182,7 @@ func parseService(svc *structs.ServiceQuery) error {
 	}
 
 	// Make sure the metadata filters are valid
-	if err := structs.ValidateMetadata(svc.NodeMeta); err != nil {
+	if err := structs.ValidateMetadata(svc.NodeMeta, true); err != nil {
 		return err
 	}
 
@@ -298,7 +298,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 
 	// Try to locate the query.
 	state := p.srv.fsm.State()
-	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName)
+	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName, args.Agent)
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// Try to locate the query.
 	state := p.srv.fsm.State()
-	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName)
+	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName, args.Agent)
 	if err != nil {
 		return err
 	}

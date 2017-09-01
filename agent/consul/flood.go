@@ -24,7 +24,7 @@ func (s *Server) FloodNotify() {
 // Flood is a long-running goroutine that floods servers from the LAN to the
 // given global Serf instance, such as the WAN. This will exit once either of
 // the Serf instances are shut down.
-func (s *Server) Flood(portFn router.FloodPortFn, global *serf.Serf) {
+func (s *Server) Flood(addrFn router.FloodAddrFn, portFn router.FloodPortFn, global *serf.Serf) {
 	s.floodLock.Lock()
 	floodCh := make(chan struct{})
 	s.floodCh = append(s.floodCh, floodCh)
@@ -61,6 +61,6 @@ func (s *Server) Flood(portFn router.FloodPortFn, global *serf.Serf) {
 		}
 
 	FLOOD:
-		router.FloodJoins(s.logger, portFn, s.config.Datacenter, s.serfLAN, global)
+		router.FloodJoins(s.logger, addrFn, portFn, s.config.Datacenter, s.serfLAN, global)
 	}
 }

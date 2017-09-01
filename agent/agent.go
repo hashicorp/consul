@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shirou/gopsutil/host"
 )
@@ -56,9 +55,10 @@ const (
 // consul.Client and consul.Server.
 type delegate interface {
 	Encrypted() bool
-	GetLANCoordinate() (*coordinate.Coordinate, error)
+	GetLANCoordinate() (lib.CoordinateSet, error)
 	Leave() error
 	LANMembers() []serf.Member
+	LANSegmentMembers(segment string) ([]serf.Member, error)
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
@@ -647,6 +647,14 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
 	}
+	base.Segment = a.config.Segment
+	if len(a.config.Segments) > 0 {
+		segments, err := a.segmentConfig()
+		if err != nil {
+			return nil, err
+		}
+		base.Segments = segments
+	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
 	}
@@ -761,6 +769,58 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	return base, nil
+}
+
+// Setup the serf and memberlist config for any defined network segments.
+func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+	var segments []consul.NetworkSegment
+	config := a.config
+
+	for _, segment := range config.Segments {
+		serfConf := consul.DefaultConfig().SerfLANConfig
+
+		if segment.Advertise != "" {
+			serfConf.MemberlistConfig.AdvertiseAddr = segment.Advertise
+		} else {
+			serfConf.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		}
+		if segment.Bind != "" {
+			serfConf.MemberlistConfig.BindAddr = segment.Bind
+		} else {
+			serfConf.MemberlistConfig.BindAddr = a.config.BindAddr
+		}
+		serfConf.MemberlistConfig.AdvertisePort = segment.Port
+		serfConf.MemberlistConfig.BindPort = segment.Port
+
+		if config.ReconnectTimeoutLan != 0 {
+			serfConf.ReconnectTimeout = config.ReconnectTimeoutLan
+		}
+		if config.EncryptVerifyIncoming != nil {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = *config.EncryptVerifyIncoming
+		}
+		if config.EncryptVerifyOutgoing != nil {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = *config.EncryptVerifyOutgoing
+		}
+
+		var rpcAddr *net.TCPAddr
+		if segment.RPCListener {
+			rpcAddr = &net.TCPAddr{
+				IP:   net.ParseIP(segment.Bind),
+				Port: a.config.Ports.Server,
+			}
+		}
+
+		segments = append(segments, consul.NetworkSegment{
+			Name:       segment.Name,
+			Bind:       serfConf.MemberlistConfig.BindAddr,
+			Port:       segment.Port,
+			Advertise:  serfConf.MemberlistConfig.AdvertiseAddr,
+			RPCAddr:    rpcAddr,
+			SerfConfig: serfConf,
+		})
+	}
+
+	return segments, nil
 }
 
 // makeRandomID will generate a random UUID for a node.
@@ -1154,15 +1214,16 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// GetLANCoordinate returns the coordinate of this node in the local pool (assumes coordinates
-// are enabled, so check that before calling).
-func (a *Agent) GetLANCoordinate() (*coordinate.Coordinate, error) {
+// GetLANCoordinate returns the coordinates of this node in the local pools
+// (assumes coordinates are enabled, so check that before calling).
+func (a *Agent) GetLANCoordinate() (lib.CoordinateSet, error) {
 	return a.delegate.GetLANCoordinate()
 }
 
 // sendCoordinate is a long-running loop that periodically sends our coordinate
 // to the server. Closing the agent's shutdownChannel will cause this to exit.
 func (a *Agent) sendCoordinate() {
+OUTER:
 	for {
 		rate := a.config.SyncCoordinateRateTarget
 		min := a.config.SyncCoordinateIntervalMin
@@ -1182,26 +1243,29 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
-			c, err := a.GetLANCoordinate()
+			cs, err := a.GetLANCoordinate()
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Failed to get coordinate: %s", err)
 				continue
 			}
 
-			req := structs.CoordinateUpdateRequest{
-				Datacenter:   a.config.Datacenter,
-				Node:         a.config.NodeName,
-				Coord:        c,
-				WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
-			}
-			var reply struct{}
-			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				if acl.IsErrPermissionDenied(err) {
-					a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
-				} else {
-					a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+			for segment, coord := range cs {
+				req := structs.CoordinateUpdateRequest{
+					Datacenter:   a.config.Datacenter,
+					Node:         a.config.NodeName,
+					Segment:      segment,
+					Coord:        coord,
+					WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
 				}
-				continue
+				var reply struct{}
+				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
+					if acl.IsErrPermissionDenied(err) {
+						a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+					} else {
+						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+					}
+					continue OUTER
+				}
 			}
 		case <-a.shutdownCh:
 			return
@@ -2104,6 +2168,8 @@ func (a *Agent) loadMetadata(conf *Config) error {
 	for key, value := range conf.Meta {
 		a.state.metadata[key] = value
 	}
+
+	a.state.metadata[structs.MetaSegmentKey] = conf.Segment
 
 	a.state.changeMade()
 

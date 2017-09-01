@@ -101,6 +101,7 @@ func TestMerge_LAN(t *testing.T) {
 		dc:       "dc1",
 		nodeID:   types.NodeID("ee954a2f-80de-4b34-8780-97b942a50a99"),
 		nodeName: "node0",
+		segment:  "",
 	}
 	for i, c := range cases {
 		if err := delegate.NotifyMerge(c.members); c.expect == "" {

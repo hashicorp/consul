@@ -1401,6 +1401,15 @@ func TestMergeConfig(t *testing.T) {
 			HTTP:  "127.0.0.2",
 			HTTPS: "127.0.0.4",
 		},
+		Segment: "alpha",
+		Segments: []NetworkSegment{
+			{
+				Name:      "alpha",
+				Bind:      "127.0.0.1",
+				Port:      1234,
+				Advertise: "127.0.0.2",
+			},
+		},
 		Server:         true,
 		LeaveOnTerm:    Bool(true),
 		SkipLeaveOnInt: Bool(true),

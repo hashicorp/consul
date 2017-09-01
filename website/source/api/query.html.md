@@ -87,6 +87,25 @@ populate the query before it is executed. All of the string fields inside the
   doesn't match, or an invalid index is given, then `${match(N)}` will return an
   empty string.
 
+- `${agent.segment}` has the network segment (Enterprise-only) of the agent that
+  initiated the query. This can be used with the `NodeMeta` field to limit the results
+  of a query to service instances within its own network segment:
+
+    ```json
+    {
+      "Name": "",
+      "Template": {
+        "Type": "name_prefix_match"
+      },
+      "Service": {
+        "Service": "${name.full}",
+        "NodeMeta": {"consul-network-segment": "${agent.segment}"}
+      }
+    }
+    ```
+  This will map all names of the form "&lt;service&gt;.query.consul" over DNS to a query
+  that will select an instance of the service in the agent's own network segment.
+
 Using templates, it is possible to apply prepared query behaviors to many
 services with a single template. Here's an example template that matches any
 query and applies a failover policy to it:

@@ -15,6 +15,7 @@ type lanMergeDelegate struct {
 	dc       string
 	nodeID   types.NodeID
 	nodeName string
+	segment  string
 }
 
 func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
@@ -52,6 +53,10 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 		if ok && parts.Datacenter != md.dc {
 			return fmt.Errorf("Member '%s' part of wrong datacenter '%s'",
 				m.Name, parts.Datacenter)
+		}
+
+		if segment := m.Tags["segment"]; segment != md.segment {
+			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')", m.Name, segment, md.segment)
 		}
 	}
 	return nil

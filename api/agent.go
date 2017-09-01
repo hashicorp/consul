@@ -44,6 +44,15 @@ type AgentMember struct {
 	DelegateCur uint8
 }
 
+// MembersOpts is used for querying member information.
+type MembersOpts struct {
+	// WAN is whether to show members from the WAN.
+	WAN bool
+
+	// Segment is the LAN segment to show members.
+	Segment string
+}
+
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
 	ID                string   `json:",omitempty"`
@@ -243,6 +252,28 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	if wan {
 		r.params.Set("wan", "1")
 	}
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var out []*AgentMember
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// MembersOpts returns the known gossip members and can be passed
+// additional options for WAN/segment filtering.
+func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
+	r := a.c.newRequest("GET", "/v1/agent/members")
+	r.params.Set("segment", opts.Segment)
+	if opts.WAN {
+		r.params.Set("wan", "1")
+	}
+
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err

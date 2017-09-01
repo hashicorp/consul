@@ -462,6 +462,11 @@ will exit with an error at startup.
   as a permanent intent and does not attempt to join the cluster again when starting. This flag
   allows the previous state to be used to rejoin the cluster.
 
+* <a name="_segment"></a><a href="#_segment">`-segment`</a> - (Enterprise-only) This flag is used to set
+  the name of the network segment the agent belongs to. An agent can only join and communicate with other agents
+  within its network segment. See the [Network Segments Guide](/docs/guides/segments.html) for more details.
+  By default, this is an empty string, which is the default network segment.
+
 * <a name="_server"></a><a href="#_server">`-server`</a> - This flag is used to control if an
   agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server and ideally
@@ -1051,6 +1056,22 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="retry_interval_wan"></a><a href="#retry_interval_wan">`retry_interval_wan`</a> Equivalent to the
   [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
+
+* <a name="segment"></a><a href="#segment">`segment`</a> (Enterprise-only) Equivalent to the
+  [`-segment` command-line flag](#_segment).
+
+* <a name="segments"></a><a href="#segments">`segments`</a> (Enterprise-only) This is a list of nested objects that allows setting
+  the bind/advertise information for network segments. This can only be set on servers.
+    * <a name="segment_name"></a><a href="#segment_name">`name`</a> - The name of the segment. Must be a string between
+    1 and 64 characters in length.
+    * <a name="segment_bind"></a><a href="#segment_bind">`bind`</a> - The bind address to use for the segment's gossip layer.
+    Defaults to the [`-bind`](#_bind) value if not provided.
+    * <a name="segment_port"></a><a href="#segment_port">`port`</a> - The port to use for the segment's gossip layer.
+    * <a name="segment_advertise"></a><a href="#segment_advertise">`advertise`</a> - The advertise address to use for the
+    segment's gossip layer. Defaults to the [`-advertise`](#_advertise) value if not provided.
+    * <a name="segment_rpc_listener"></a><a href="#segment_rpc_listener">`rpc_listener`</a> - If true, a separate RPC listener will
+    be started on this segment's [`-bind`](#_bind) address on the rpc port. Only valid if the segment's bind address differs from the
+    [`-bind`](#_bind) address. Defaults to false.
 
 * <a name="server"></a><a href="#server">`server`</a> Equivalent to the
   [`-server` command-line flag](#_server).

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/logutils"
@@ -27,10 +28,10 @@ type Self struct {
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var c *coordinate.Coordinate
+	var cs lib.CoordinateSet
 	if !s.agent.config.DisableCoordinates {
 		var err error
-		if c, err = s.agent.GetLANCoordinate(); err != nil {
+		if cs, err = s.agent.GetLANCoordinate(); err != nil {
 			return nil, err
 		}
 	}
@@ -48,7 +49,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 
 	return Self{
 		Config: s.agent.config,
-		Coord:  c,
+		Coord:  cs[s.agent.config.Segment],
 		Member: s.agent.LocalMember(),
 		Stats:  s.agent.Stats(),
 		Meta:   s.agent.state.Metadata(),
@@ -155,11 +156,28 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 		wan = true
 	}
 
+	segment := req.URL.Query().Get("segment")
+	if wan && segment != "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Cannot provide a segment with wan=true")
+		return nil, nil
+	}
+
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
 	} else {
-		members = s.agent.LANMembers()
+		// If the segment is blank when querying a client, use the agent's
+		// segment instead of the empty string.
+		if !s.agent.config.Server && segment == "" {
+			segment = s.agent.config.Segment
+		}
+
+		var err error
+		members, err = s.agent.delegate.LANSegmentMembers(segment)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if err := s.agent.filterMembers(token, &members); err != nil {
 		return nil, err

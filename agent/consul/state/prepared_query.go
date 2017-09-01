@@ -256,7 +256,7 @@ func (s *Store) PreparedQueryGet(ws memdb.WatchSet, queryID string) (uint64, *st
 // PreparedQueryResolve returns the given prepared query by looking up an ID or
 // Name. If the query was looked up by name and it's a template, then the
 // template will be rendered before it is returned.
-func (s *Store) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.PreparedQuery, error) {
+func (s *Store) PreparedQueryResolve(queryIDOrName string, source structs.QuerySource) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -293,7 +293,7 @@ func (s *Store) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.Pre
 	prep := func(wrapped interface{}) (uint64, *structs.PreparedQuery, error) {
 		wrapper := wrapped.(*queryWrapper)
 		if prepared_query.IsTemplate(wrapper.PreparedQuery) {
-			render, err := wrapper.ct.Render(queryIDOrName)
+			render, err := wrapper.ct.Render(queryIDOrName, source)
 			if err != nil {
 				return idx, nil, err
 			}

@@ -25,6 +25,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+const (
+	// SegmentLimit is the maximum number of network segments that may be declared.
+	SegmentLimit = 64
+
+	// SegmentNameLimit is the maximum segment name length.
+	SegmentNameLimit = 64
+)
+
 // Ports is used to simplify the configuration by
 // providing default ports, and allowing the addresses
 // to only be specified once
@@ -342,6 +350,26 @@ type Autopilot struct {
 	UpgradeVersionTag string `mapstructure:"upgrade_version_tag"`
 }
 
+// (Enterprise-only) NetworkSegment is the configuration for a network segment, which is an
+// isolated serf group on the LAN.
+type NetworkSegment struct {
+	// Name is the name of the segment.
+	Name string `mapstructure:"name"`
+
+	// Bind is the bind address for this segment.
+	Bind string `mapstructure:"bind"`
+
+	// Port is the port for this segment.
+	Port int `mapstructure:"port"`
+
+	// RPCListener is whether to bind a separate RPC listener on the bind address
+	// for this segment.
+	RPCListener bool `mapstructure:"rpc_listener"`
+
+	// Advertise is the advertise address of this segment.
+	Advertise string `mapstructure:"advertise"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -464,6 +492,13 @@ type Config struct {
 
 	// Address configurations
 	Addresses AddressConfig
+
+	// (Enterprise-only) NetworkSegment is the network segment for this client to join.
+	Segment string `mapstructure:"segment"`
+
+	// (Enterprise-only) Segments is the list of network segments for this server to
+	// initialize.
+	Segments []NetworkSegment `mapstructure:"segments"`
 
 	// Tagged addresses. These are used to publish a set of addresses for
 	// for a node, which can be used by the remote agent. We currently
@@ -1378,6 +1413,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.AdvertiseAddrs.RPC = addr
 	}
 
+	// Validate segment config.
+	if err := ValidateSegments(&result); err != nil {
+		return nil, err
+	}
+
 	// Enforce the max Raft multiplier.
 	if result.Performance.RaftMultiplier > consul.MaxRaftMultiplier {
 		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
@@ -1424,6 +1464,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		default:
 			return nil, fmt.Errorf("Filter rule must begin with either '+' or '-': %q", rule)
 		}
+	}
+
+	// Validate node meta fields
+	if err := structs.ValidateMetadata(result.Meta, false); err != nil {
+		return nil, fmt.Errorf("Failed to parse node metadata: %v", err)
 	}
 
 	return &result, nil
@@ -1861,6 +1906,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
 	}
+	if b.Segment != "" {
+		result.Segment = b.Segment
+	}
+	if len(b.Segments) > 0 {
+		result.Segments = append(result.Segments, b.Segments...)
+	}
 	if b.EnableUI {
 		result.EnableUI = true
 	}
@@ -2204,6 +2255,10 @@ func (c *Config) ResolveTmplAddrs() (err error) {
 	parse(&c.ClientAddr, true, "Client address")
 	parse(&c.SerfLanBindAddr, false, "Serf LAN address")
 	parse(&c.SerfWanBindAddr, false, "Serf WAN address")
+	for i, segment := range c.Segments {
+		parse(&c.Segments[i].Bind, false, fmt.Sprintf("Segment %q bind address", segment.Name))
+		parse(&c.Segments[i].Advertise, false, fmt.Sprintf("Segment %q advertise address", segment.Name))
+	}
 
 	return
 }

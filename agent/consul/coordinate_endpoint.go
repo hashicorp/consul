@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 // Coordinate manages queries and updates for network coordinates.
@@ -18,8 +17,10 @@ type Coordinate struct {
 	// srv is a pointer back to the server.
 	srv *Server
 
-	// updates holds pending coordinate updates for the given nodes.
-	updates map[string]*coordinate.Coordinate
+	// updates holds pending coordinate updates for the given nodes. This is
+	// keyed by node:segment so we can get a coordinate for each segment for
+	// servers, and we only track the latest update per node:segment.
+	updates map[string]*structs.CoordinateUpdateRequest
 
 	// updatesLock synchronizes access to the updates map.
 	updatesLock sync.Mutex
@@ -29,7 +30,7 @@ type Coordinate struct {
 func NewCoordinate(srv *Server) *Coordinate {
 	c := &Coordinate{
 		srv:     srv,
-		updates: make(map[string]*coordinate.Coordinate),
+		updates: make(map[string]*structs.CoordinateUpdateRequest),
 	}
 
 	go c.batchUpdate()
@@ -58,7 +59,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 	// incoming messages.
 	c.updatesLock.Lock()
 	pending := c.updates
-	c.updates = make(map[string]*coordinate.Coordinate)
+	c.updates = make(map[string]*structs.CoordinateUpdateRequest)
 	c.updatesLock.Unlock()
 
 	// Enforce the rate limit.
@@ -73,12 +74,16 @@ func (c *Coordinate) batchApplyUpdates() error {
 	// batches.
 	i := 0
 	updates := make(structs.Coordinates, size)
-	for node, coord := range pending {
+	for _, update := range pending {
 		if !(i < size) {
 			break
 		}
 
-		updates[i] = &structs.Coordinate{Node: node, Coord: coord}
+		updates[i] = &structs.Coordinate{
+			Node:    update.Node,
+			Segment: update.Segment,
+			Coord:   update.Coord,
+		}
 		i++
 	}
 
@@ -140,8 +145,9 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Add the coordinate to the map of pending updates.
+	key := fmt.Sprintf("%s:%s", args.Node, args.Segment)
 	c.updatesLock.Lock()
-	c.updates[args.Node] = args.Coord
+	c.updates[key] = args
 	c.updatesLock.Unlock()
 	return nil
 }
@@ -187,6 +193,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
 			return nil
 		})
 }

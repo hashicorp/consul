@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -85,8 +86,17 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
 
-	// Fire the event
-	return m.srv.serfLAN.UserEvent(eventName, args.Payload, false)
+	// Fire the event on all LAN segments
+	segments := m.srv.LANSegments()
+	var errs error
+	for name, segment := range segments {
+		err := segment.UserEvent(eventName, args.Payload, false)
+		if err != nil {
+			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
+			errs = multierror.Append(errs, err)
+		}
+	}
+	return errs
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -130,23 +140,35 @@ func (m *Internal) KeyringOperation(
 	return nil
 }
 
-// executeKeyringOp executes the appropriate keyring-related function based on
-// the type of keyring operation in the request. It takes the KeyManager as an
-// argument, so it can handle any operation for either LAN or WAN pools.
+// executeKeyringOp executes the keyring-related operation in the request
+// on either the WAN or LAN pools.
 func (m *Internal) executeKeyringOp(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses,
 	wan bool) {
 
+	if wan {
+		mgr := m.srv.KeyManagerWAN()
+		m.executeKeyringOpMgr(mgr, args, reply, wan)
+	} else {
+		segments := m.srv.LANSegments()
+		for _, segment := range segments {
+			mgr := segment.KeyManager()
+			m.executeKeyringOpMgr(mgr, args, reply, wan)
+		}
+	}
+}
+
+// executeKeyringOpMgr executes the appropriate keyring-related function based on
+// the type of keyring operation in the request. It takes the KeyManager as an
+// argument, so it can handle any operation for either LAN or WAN pools.
+func (m *Internal) executeKeyringOpMgr(
+	mgr *serf.KeyManager,
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses,
+	wan bool) {
 	var serfResp *serf.KeyResponse
 	var err error
-	var mgr *serf.KeyManager
-
-	if wan {
-		mgr = m.srv.KeyManagerWAN()
-	} else {
-		mgr = m.srv.KeyManagerLAN()
-	}
 
 	opts := &serf.KeyRequestOptions{RelayFactor: args.RelayFactor}
 	switch args.Operation {

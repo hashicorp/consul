@@ -117,6 +117,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	f.StringVar(&cmdCfg.AdvertiseAddr, "advertise", "", "Sets the advertise address to use.")
 	f.StringVar(&cmdCfg.AdvertiseAddrWan, "advertise-wan", "",
 		"Sets address to advertise on WAN instead of -advertise address.")
+	f.StringVar(&cmdCfg.Segment, "segment", "", "(Enterprise-only) Sets the network segment to join.")
 
 	f.IntVar(&cmdCfg.Protocol, "protocol", -1,
 		"Sets the protocol version. Defaults to latest.")
@@ -223,6 +224,10 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		for _, entry := range nodeMeta {
 			key, value := agent.ParseMetaPair(entry)
 			cmdCfg.Meta[key] = value
+		}
+		if err := structs.ValidateMetadata(cmdCfg.Meta, false); err != nil {
+			cmd.UI.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
+			return nil
 		}
 	}
 
@@ -389,6 +394,16 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		return nil
 	}
 
+	if cfg.Server && cfg.Segment != "" {
+		cmd.UI.Error("Segment option can only be set on clients")
+		return nil
+	}
+
+	if !cfg.Server && len(cfg.Segments) > 0 {
+		cmd.UI.Error("Segments can only be configured on servers")
+		return nil
+	}
+
 	// patch deprecated retry-join-{gce,azure,ec2)-* parameters
 	// into -retry-join and issue warning.
 	// todo(fs): this should really be in DecodeConfig where it can be tested
@@ -506,11 +521,6 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 	// Warn if we are in bootstrap mode
 	if cfg.Bootstrap {
 		cmd.UI.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
-	}
-
-	// Verify the node metadata entries are valid
-	if err := structs.ValidateMetadata(cfg.Meta); err != nil {
-		cmd.UI.Error(fmt.Sprintf("Failed to parse node metadata: %v", err))
 	}
 
 	// It doesn't make sense to include both UI options.
@@ -804,17 +814,22 @@ func (cmd *AgentCommand) run(args []string) int {
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
+	segment := config.Segment
+	if config.Server {
+		segment = "<all>"
+	}
+
 	cmd.UI.Output("Consul agent running!")
 	cmd.UI.Info(fmt.Sprintf("       Version: '%s'", cmd.HumanVersion))
 	cmd.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
 	cmd.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	cmd.UI.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
-	cmd.UI.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
+	cmd.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	cmd.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.Server, config.Bootstrap))
 	cmd.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddr,
 		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS))
 	cmd.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
-	cmd.UI.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
+	cmd.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v",
 		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
