@@ -87,7 +87,7 @@ populate the query before it is executed. All of the string fields inside the
   doesn't match, or an invalid index is given, then `${match(N)}` will return an
   empty string.
 
-- `${agent.segment}` has the network segment (Enterprise only) of the agent that
+- `${agent.segment}` has the network segment (Enterprise-only) of the agent that
   initiated the query. This can be used with the `NodeMeta` field to limit the results
   of a query to service instances within its own network segment:
 

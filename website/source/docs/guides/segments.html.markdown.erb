@@ -13,8 +13,8 @@ description: |-
 # Partial LAN Connectivity
 ## Configuring Network Segments
 
-[//]: # ( ~> The network area functionality described here is available only in )
-[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. )
+[//]: # ( ~> The network segment functionality described here is available only in )
+[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.9.3 and later. )
 
 <%= enterprise_alert :consul %>
 
@@ -53,7 +53,9 @@ another segment, or the listening port of another segment on a server, they will
 
 Once the servers have been configured with the correct segment info, the clients only need to specify
 their own segment in the [Agent Config](/docs/agent/options.html) and join by connecting to another
-agent within the same segment.
+agent within the same segment. If joining to a Consul server, client will need to provide the server's
+port for their segment along with the address of the server when performing the join (for example,
+`consul agent -retry-join "consul.domain.internal:1234"`).
 
 ## Getting Started
 
@@ -140,8 +142,8 @@ Node     ID        Address      DC
 client1  4c29819c  192.168.0.5  dc1
 ```
 
-With this metadata key, we can construct a prepared query that can be used for DNS to return
-only services within the same network segment as the local agent.
+With this metadata key, we can construct a [Prepared Query](/api/query.html) that can be used
+for DNS to return only services within the same network segment as the local agent.
 
 First, register a service on each of the client nodes:
 

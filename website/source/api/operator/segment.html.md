@@ -12,7 +12,7 @@ description: |-
 The `/operator/segment` endpoints provide tools to manage network segments via
 Consul's HTTP API.
 
-~> **Enterprise Only!** This API endpoint and functionality only exists in
+~> **Enterprise-only!** This API endpoint and functionality only exists in
 Consul Enterprise. This is not present in the open source version of Consul.
 
 The network area functionality described here is available only in
