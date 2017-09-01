@@ -2,8 +2,8 @@
 ## 0.9.3 (UNRELEASED)
 
 FEATURES:
-* agent: (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support a segmented LAN topolgies with multiple, distinct gossip pools. [GH-3431]
-* agent: Added WAN support for retry join for cloud proivders via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [GH-3406]
+* **LAN Network Segments:** (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support a segmented LAN topolgies with multiple, distinct gossip pools. [GH-3431]
+* **WAN Join for Cloud Providers:** Added WAN support for retry join for cloud proivders via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [GH-3406]
 
 IMPROVEMENTS:
 
