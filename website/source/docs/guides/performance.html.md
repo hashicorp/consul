@@ -88,6 +88,13 @@ respect them.
 [stale consistency mode](/api/index.html#consistency) available to allow reads to scale
 across all the servers and not just be forwarded to the leader.
 
+* In Consul 0.9.3 and later, a new [`limits`](/docs/agent/options.html#limits) configuration is
+available on Consul clients to limit the RPC request rate they are allowed to make against the
+Consul servers. After hitting the limit, requests will start to return rate limit errors until
+time has passed and more requests are allowed. Configuring this across the cluster can help with
+enforcing a max desired application load level on the servers, and can help mitigate abusive
+applications.
+
 ## Memory Requirements
 
 Consul server agents operate on a working set of data comprised of key/value

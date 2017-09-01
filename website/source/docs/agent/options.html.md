@@ -942,6 +942,19 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   value was unconditionally set to `false`). On agents in client-mode, this defaults to `true`
   and for agents in server-mode, this defaults to `false`.
 
+* <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3 and later, this
+  is a nested object that configures limits that are enforced by the agent. Currently, this only
+  applies to agents in client mode, not Consul servers. The following parameters are available:
+
+    *   <a name="rpc_rate"></a><a href="#rpc_rate">`rpc_rate`</a> - Configures the RPC rate
+        limiter by setting the maximum request rate that this agent is allowed to make for RPC
+        requests to Consul servers, in requests per second. Defaults to infinite, which disables
+        rate limiting.
+    *   <a name="rpc_rate"></a><a href="rpc_max_burst">`rpc_max_burst`</a> - The size of the token
+        bucket used to recharge the RPC rate limiter. Defaults to 1000 tokens, and each token is
+        good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
+        for more details about how token bucket rate limiters operate.
+
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
 

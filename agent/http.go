@@ -236,6 +236,9 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
 				resp.WriteHeader(http.StatusForbidden)
 				fmt.Fprint(resp, err.Error())
+			case structs.IsErrRPCRateExceeded(err):
+				resp.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(resp, err.Error())

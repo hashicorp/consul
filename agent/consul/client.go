@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -51,6 +53,10 @@ type Client struct {
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
 	routers *router.Manager
+
+	// rpcLimiter is used to rate limit the total number of RPCs initiated
+	// from an agent.
+	rpcLimiter *rate.Limiter
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -115,10 +121,11 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
-	// Create server
+	// Create client
 	c := &Client{
 		config:     config,
 		connPool:   connPool,
+		rpcLimiter: rate.NewLimiter(config.RPCRate, config.RPCMaxBurst),
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -226,7 +233,14 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 		return structs.ErrNoServers
 	}
 
-	// Forward to remote Consul
+	// Enforce the RPC limit.
+	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
+	if !c.rpcLimiter.Allow() {
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
+	// Make the request.
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		c.routers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
@@ -241,11 +255,16 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // operation.
 func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
 	replyFn structs.SnapshotReplyFn) error {
-
-	// Locate a server to make the request to.
 	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
+	}
+
+	// Enforce the RPC limit.
+	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
+	if !c.rpcLimiter.Allow() {
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
 	}
 
 	// Request the operation.
