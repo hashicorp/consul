@@ -26,6 +26,12 @@ var dnsTestCases = map[string](test.Case){
 			test.A("svc1.*.svc.cluster.local.  5       IN      A       10.0.0.1"),
 		},
 	},
+	"SRV Service (wildcard, root)": {
+		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{test.SRV("svc1.testns.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
+	},
 	"SRV Service (wildcard)": {
 		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
