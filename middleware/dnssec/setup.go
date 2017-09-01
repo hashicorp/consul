@@ -1,6 +1,7 @@
 package dnssec
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -75,6 +76,22 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 	for i := range zones {
 		zones[i] = middleware.Host(zones[i]).Normalize()
 	}
+
+	// Check if each keys owner name can actually sign the zones we want them to sign
+	for _, k := range keys {
+		kname := middleware.Name(k.K.Header().Name)
+		ok := false
+		for i := range zones {
+			if kname.Matches(zones[i]) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return zones, keys, capacity, fmt.Errorf("key %s (keyid: %d) can not sign any of the zones", string(kname), k.keytag)
+		}
+	}
+
 	return zones, keys, capacity, nil
 }
 
@@ -87,6 +104,10 @@ func keyParse(c *caddy.Controller) ([]*DNSKEY, error) {
 	value := c.Val()
 	if value == "file" {
 		ks := c.RemainingArgs()
+		if len(ks) == 0 {
+			return nil, c.ArgErr()
+		}
+
 		for _, k := range ks {
 			base := k
 			// Kmiek.nl.+013+26205.key, handle .private or without extension: Kmiek.nl.+013+26205

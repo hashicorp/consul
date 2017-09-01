@@ -1,6 +1,8 @@
 package dnssec
 
 import (
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -8,6 +10,15 @@ import (
 )
 
 func TestSetupDnssec(t *testing.T) {
+	if err := ioutil.WriteFile("Kcluster.local.key", []byte(keypub), 0644); err != nil {
+		t.Fatalf("Failed to write pub key file: %s", err)
+	}
+	defer func() { os.Remove("Kcluster.local.key") }()
+	if err := ioutil.WriteFile("Kcluster.local.private", []byte(keypriv), 0644); err != nil {
+		t.Fatalf("Failed to write private key file: %s", err)
+	}
+	defer func() { os.Remove("Kcluster.local.private") }()
+
 	tests := []struct {
 		input              string
 		shouldErr          bool
@@ -16,19 +27,39 @@ func TestSetupDnssec(t *testing.T) {
 		expectedCapacity   int
 		expectedErrContent string
 	}{
-		{
-			`dnssec`, false, nil, nil, defaultCap, "",
-		},
-		{
-			`dnssec example.org`, false, []string{"example.org."}, nil, defaultCap, "",
-		},
-		{
-			`dnssec 10.0.0.0/8`, false, []string{"10.in-addr.arpa."}, nil, defaultCap, "",
-		},
+		{`dnssec`, false, nil, nil, defaultCap, ""},
+		{`dnssec example.org`, false, []string{"example.org."}, nil, defaultCap, ""},
+		{`dnssec 10.0.0.0/8`, false, []string{"10.in-addr.arpa."}, nil, defaultCap, ""},
 		{
 			`dnssec example.org {
 				cache_capacity 100
 			}`, false, []string{"example.org."}, nil, 100, "",
+		},
+		{
+			`dnssec cluster.local {
+				key file Kcluster.local
+			}`, false, []string{"cluster.local."}, nil, defaultCap, "",
+		},
+		{
+			`dnssec example.org cluster.local {
+				key file Kcluster.local
+			}`, false, []string{"example.org.", "cluster.local."}, nil, defaultCap, "",
+		},
+		// fails
+		{
+			`dnssec example.org {
+				key file Kcluster.local
+			}`, true, []string{"example.org."}, nil, defaultCap, "can not sign any",
+		},
+		{
+			`dnssec example.org {
+				key
+			}`, true, []string{"example.org."}, nil, defaultCap, "argument count",
+		},
+		{
+			`dnssec example.org {
+				key file
+			}`, true, []string{"example.org."}, nil, defaultCap, "argument count",
 		},
 	}
 
@@ -66,3 +97,24 @@ func TestSetupDnssec(t *testing.T) {
 		}
 	}
 }
+
+const keypub = `; This is a zone-signing key, keyid 45330, for cluster.local.
+; Created: 20170901060531 (Fri Sep  1 08:05:31 2017)
+; Publish: 20170901060531 (Fri Sep  1 08:05:31 2017)
+; Activate: 20170901060531 (Fri Sep  1 08:05:31 2017)
+cluster.local. IN DNSKEY 256 3 5 AwEAAcFpDv+Cb23kFJowu+VU++b2N1uEHi6Ll9H0BzLasFOdJjEEclCO q/KlD4682vOMXxJNN8ZwOyiCa7Y0TEYqSwWvhHyn3bHCwuy4I6fss4Wd 7Y9dU+6QTgJ8LimGG40Iizjc9zqoU8Q+q81vIukpYWOHioHoY7hsWBvS RSlzDJk3`
+
+const keypriv = `Private-key-format: v1.3
+Algorithm: 5 (RSASHA1)
+Modulus: wWkO/4JvbeQUmjC75VT75vY3W4QeLouX0fQHMtqwU50mMQRyUI6r8qUPjrza84xfEk03xnA7KIJrtjRMRipLBa+EfKfdscLC7Lgjp+yzhZ3tj11T7pBOAnwuKYYbjQiLONz3OqhTxD6rzW8i6SlhY4eKgehjuGxYG9JFKXMMmTc=
+PublicExponent: AQAB
+PrivateExponent: K5XyZFBPrjMVFX5gCZlyPyVDamNGrfSVXSIiMSqpS96BSdCXtmHAjCj4bZFPwkzi6+vs4tJN8p4ZifEVM0a6qwPZyENBrc2qbsweOXE6l8BaPVWFX30xvVRzGXuNtXxlBXE17zoHty5r5mRyRou1bc2HUS5otdkEjE30RiocQVk=
+Prime1: 7RRFUxaZkVNVH1DaT/SV5Sb8kABB389qLwU++argeDCVf+Wm9BBlTrsz2U6bKlfpaUmYZKtCCd+CVxqzMyuu0w==
+Prime2: 0NiY3d7Fa08IGY9L4TaFc02A721YcDNBBf95BP31qGvwnYsLFM/1xZwaEsIjohg8g+m/GpyIlvNMbK6pywIVjQ==
+Exponent1: XjXO8pype9mMmvwrNNix9DTQ6nxfsQugW30PMHGZ78kGr6NX++bEC0xS50jYWjRDGcbYGzD+9iNujSScD3qNZw==
+Exponent2: wkoOhLIfhUIj7etikyUup2Ld5WAbW15DSrotstg0NrgcQ+Q7reP96BXeJ79WeREFE09cyvv/EjdLzPv81/CbbQ==
+Coefficient: ah4LL0KLTO8kSKHK+X9Ud8grYi94QSNdbX11ge/eFcS/41QhDuZRTAFv4y0+IG+VWd+XzojLsQs+jzLe5GzINg==
+Created: 20170901060531
+Publish: 20170901060531
+Activate: 20170901060531
+`
