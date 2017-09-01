@@ -418,6 +418,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{LeaveOnTerm: Bool(true)},
 		},
 		{
+			in: `{"limits": {"rpc_rate": 100, "rpc_max_burst": 50}}}`,
+			c:  &Config{Limits: Limits{RPCRate: 100, RPCMaxBurst: 50}},
+		},
+		{
 			in: `{"log_level":"a"}`,
 			c:  &Config{LogLevel: "a"},
 		},
@@ -591,14 +595,6 @@ func TestDecodeConfig(t *testing.T) {
 		{
 			in: `{"retry_max_wan":123}`,
 			c:  &Config{RetryMaxAttemptsWan: 123},
-		},
-		{
-			in: `{"rpc_rate": 100}`,
-			c:  &Config{RPCRate: 100},
-		},
-		{
-			in: `{"rpc_max_burst": 50}`,
-			c:  &Config{RPCMaxBurst: 50},
 		},
 		{
 			in: `{"serf_lan_bind":"1.2.3.4"}`,
@@ -1367,6 +1363,10 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
+		Limits: Limits{
+			RPCRate:     100,
+			RPCMaxBurst: 50,
+		},
 		Performance: Performance{
 			RaftMultiplier: 99,
 		},

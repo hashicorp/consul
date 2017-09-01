@@ -202,6 +202,20 @@ type RetryJoinAzure struct {
 	SecretAccessKey string `mapstructure:"secret_access_key" json:"-"`
 }
 
+// Limits is used to configure limits enforced by the agent.
+type Limits struct {
+	// RPCRate and RPCMaxBurst control how frequently RPC calls are allowed
+	// to happen. In any large enough time interval, rate limiter limits the
+	// rate to RPCRate tokens per second, with a maximum burst size of
+	// RPCMaxBurst events. As a special case, if RPCRate == Inf (the infinite
+	// rate), RPCMaxBurst is ignored.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	RPCRate     rate.Limit `mapstructure:"rpc_rate"`
+	RPCMaxBurst int        `mapstructure:"rpc_max_burst"`
+}
+
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
@@ -378,6 +392,9 @@ type Config struct {
 	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
 	DevMode bool `mapstructure:"-"`
+
+	// Limits is used to configure limits enforced by the agent.
+	Limits Limits `mapstructure:"limits"`
 
 	// Performance is used to tune the performance of Consul's subsystems.
 	Performance Performance `mapstructure:"performance"`
@@ -821,14 +838,6 @@ type Config struct {
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 
-	// Rate limiter controls how frequently rpc calls are allowed to happen.
-	// In any large enough time interval, rate limiter limits the rate to RPCRate tokens per second,
-	// with a maximum burst size of RPCMaxBurst events.
-	// As a special case, if RPCRate == Inf (the infinite rate), RPCMaxBurst is ignored.
-	// See https://en.wikipedia.org/wiki/Token_bucket for more about token buckets.
-	RPCRate     rate.Limit `mapstructure:"rpc_rate"`
-	RPCMaxBurst int        `mapstructure:"rpc_max_burst"`
-
 	// deprecated fields
 	// keep them exported since otherwise the error messages don't show up
 	DeprecatedAtlasInfrastructure    string            `mapstructure:"atlas_infrastructure" json:"-"`
@@ -965,6 +974,10 @@ type dirEnts []os.FileInfo
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
+		Limits: Limits{
+			RPCRate:     rate.Inf,
+			RPCMaxBurst: 1000,
+		},
 		Bootstrap:       false,
 		BootstrapExpect: 0,
 		Server:          false,
@@ -1015,9 +1028,6 @@ func DefaultConfig() *Config {
 		DisableRemoteExec:  Bool(true),
 		RetryInterval:      30 * time.Second,
 		RetryIntervalWan:   30 * time.Second,
-
-		RPCRate:     rate.Inf,
-		RPCMaxBurst: 1000,
 
 		TLSMinVersion: "tls10",
 
@@ -1651,6 +1661,13 @@ func DecodeCheckDefinition(raw interface{}) (*structs.CheckDefinition, error) {
 func MergeConfig(a, b *Config) *Config {
 	var result Config = *a
 
+	if b.Limits.RPCRate > 0 {
+		result.Limits.RPCRate = b.Limits.RPCRate
+	}
+	if b.Limits.RPCMaxBurst > 0 {
+		result.Limits.RPCMaxBurst = b.Limits.RPCMaxBurst
+	}
+
 	// Propagate non-default performance settings
 	if b.Performance.RaftMultiplier > 0 {
 		result.Performance.RaftMultiplier = b.Performance.RaftMultiplier
@@ -2109,13 +2126,6 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
-	}
-
-	if b.RPCRate > 0 {
-		result.RPCRate = b.RPCRate
-	}
-	if b.RPCMaxBurst > 0 {
-		result.RPCMaxBurst = b.RPCMaxBurst
 	}
 
 	result.HTTPConfig.BlockEndpoints = append(a.HTTPConfig.BlockEndpoints,
