@@ -50,11 +50,10 @@ const (
 )
 
 const (
-	serfLANSnapshot        = "serf/local.snapshot"
-	serfLANSegmentSnapshot = "serf/local-segment-%s.snapshot"
-	serfWANSnapshot        = "serf/remote.snapshot"
-	raftState              = "raft/"
-	snapshotsRetained      = 2
+	serfLANSnapshot   = "serf/local.snapshot"
+	serfWANSnapshot   = "serf/remote.snapshot"
+	raftState         = "raft/"
+	snapshotsRetained = 2
 
 	// serverRPCCache controls how long we keep an idle connection
 	// open to a server
@@ -164,11 +163,7 @@ type Server struct {
 	serfLAN *serf.Serf
 
 	// segmentLAN maps segment names to their Serf cluster
-	segmentLAN  map[string]*serf.Serf
-	segmentLock sync.RWMutex
-
-	// segmentListeners holds the RPC listener for any segment with a separate listener.
-	segmentListeners map[string]net.Listener
+	segmentLAN map[string]*serf.Serf
 
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
@@ -309,7 +304,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		rpcTLS:                incomingTLS,
 		reassertLeaderCh:      make(chan chan error),
 		segmentLAN:            make(map[string]*serf.Serf, len(config.Segments)),
-		segmentListeners:      make(map[string]net.Listener),
 		sessionTimers:         NewSessionTimers(),
 		tombstoneGC:           gc,
 		serverLookup:          NewServerLookup(),
@@ -346,6 +340,13 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
 
+	// Initialize any extra RPC listeners for segments.
+	segmentListeners, err := s.setupSegmentRPC()
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start segment RPC layer: %v", err)
+	}
+
 	// Initialize the Raft server.
 	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
@@ -363,7 +364,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Initialize the WAN Serf.
 	serfBindPortWAN := config.SerfWANConfig.MemberlistConfig.BindPort
-	s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "")
+	s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.Listener)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
@@ -386,7 +387,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	}
 
 	// Initialize the LAN Serf for the default network segment.
-	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN, "")
+	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN, "", s.Listener)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
@@ -425,7 +426,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	go s.listen(s.Listener)
 
 	// Start listeners for any segments with separate RPC listeners.
-	for _, listener := range s.segmentListeners {
+	for _, listener := range segmentListeners {
 		go s.listen(listener)
 	}
 
@@ -652,19 +653,6 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	if s.config.RPCAdvertise.IP.IsUnspecified() {
 		ln.Close()
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
-	}
-
-	for _, segment := range s.config.Segments {
-		if segment.RPCAddr == nil {
-			continue
-		}
-
-		segmentListener, err := net.ListenTCP("tcp", segment.RPCAddr)
-		if err != nil {
-			return err
-		}
-
-		s.segmentListeners[segment.Name] = segmentListener
 	}
 
 	// Provide a DC specific wrapper. Raft replication is only
@@ -910,9 +898,6 @@ func (s *Server) Encrypted() bool {
 
 // LANSegments returns a map of LAN segments by name
 func (s *Server) LANSegments() map[string]*serf.Serf {
-	s.segmentLock.RLock()
-	defer s.segmentLock.RUnlock()
-
 	segments := make(map[string]*serf.Serf, len(s.segmentLAN)+1)
 	segments[""] = s.serfLAN
 	for name, segment := range s.segmentLAN {

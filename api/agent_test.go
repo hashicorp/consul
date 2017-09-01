@@ -91,6 +91,29 @@ func TestAPI_AgentReload(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentMembersOpts(t *testing.T) {
+	t.Parallel()
+	c, s1 := makeClient(t)
+	_, s2 := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Datacenter = "dc2"
+	})
+	defer s1.Stop()
+	defer s2.Stop()
+
+	agent := c.Agent()
+
+	s2.JoinWAN(t, s1.WANAddr)
+
+	members, err := agent.MembersOpts(MembersOpts{WAN: true})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(members) != 2 {
+		t.Fatalf("bad: %v", members)
+	}
+}
+
 func TestAPI_AgentMembers(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

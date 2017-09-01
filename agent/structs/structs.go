@@ -20,6 +20,7 @@ var (
 	ErrNoDCPath                   = fmt.Errorf("No path to datacenter")
 	ErrNoServers                  = fmt.Errorf("No known Consul servers")
 	ErrNotReadyForConsistentReads = fmt.Errorf("Not ready to serve consistent reads")
+	ErrSegmentsNotSupported       = fmt.Errorf("Network segments are not supported in this version of Consul")
 )
 
 type MessageType uint8

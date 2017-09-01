@@ -29,7 +29,8 @@ const (
 )
 
 // setupSerf is used to setup and initialize a Serf
-func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool, wanPort int, segment string) (*serf.Serf, error) {
+func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool, wanPort int,
+	segment string, listener net.Listener) (*serf.Serf, error) {
 	conf.Init()
 
 	if wan {
@@ -43,8 +44,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["segment"] = segment
 	if segment == "" {
 		for _, s := range s.config.Segments {
-			conf.Tags["segment_addr_"+s.Name] = s.Advertise
-			conf.Tags["segment_port_"+s.Name] = fmt.Sprintf("%d", s.Port)
+			conf.Tags["sl_"+s.Name] = net.JoinHostPort(s.Advertise, fmt.Sprintf("%d", s.Port))
 		}
 	}
 	conf.Tags["id"] = string(s.config.NodeID)
@@ -53,10 +53,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
 	conf.Tags["build"] = s.config.Build
-	addr := s.Listener.Addr().(*net.TCPAddr)
-	if listener, ok := s.segmentListeners[segment]; ok {
-		addr = listener.Addr().(*net.TCPAddr)
-	}
+	addr := listener.Addr().(*net.TCPAddr)
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"

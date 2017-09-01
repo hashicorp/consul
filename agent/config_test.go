@@ -593,20 +593,6 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{RetryMaxAttemptsWan: 123},
 		},
 		{
-			in: `{"segment":"thing"}`,
-			c:  &Config{Segment: "thing"},
-		},
-		{
-			in: `{"segments":[{"name": "alpha", "bind": "127.0.0.1", "port": 1234, "rpc_listener": true, "advertise": "1.1.1.1"}]}`,
-			c: &Config{Segments: []NetworkSegment{{
-				Name:        "alpha",
-				Bind:        "127.0.0.1",
-				Port:        1234,
-				RPCListener: true,
-				Advertise:   "1.1.1.1",
-			}}},
-		},
-		{
 			in: `{"serf_lan_bind":"1.2.3.4"}`,
 			c:  &Config{SerfLanBindAddr: "1.2.3.4"},
 		},
@@ -1312,43 +1298,6 @@ func TestDecodeConfig_VerifyUniqueListeners(t *testing.T) {
 				t.Fatalf("got error %v want %v", got, want)
 			}
 		})
-	}
-}
-
-func TestDecodeConfig_ValidateSegments(t *testing.T) {
-	t.Parallel()
-	tooManySegments := &Config{Server: true}
-	for i := 0; i < SegmentLimit+1; i++ {
-		tooManySegments.Segments = append(tooManySegments.Segments, NetworkSegment{})
-	}
-	if err := ValidateSegments(tooManySegments); !strings.Contains(err.Error(), "Cannot exceed network segment limit") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	if err := ValidateSegments(&Config{
-		Segments: []NetworkSegment{{Name: ""}},
-		Server:   true,
-	}); !strings.Contains(err.Error(), "Segment name cannot be blank") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	segmentNameTooLong := &Config{
-		Segments: []NetworkSegment{{Name: strings.Repeat("a", SegmentNameLimit+1)}},
-		Server:   true,
-	}
-	if err := ValidateSegments(segmentNameTooLong); !strings.Contains(err.Error(), "exceeds maximum length") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	duplicatePorts := &Config{
-		Segments: []NetworkSegment{
-			{Name: "asdf", Port: 1234},
-			{Name: "qwer", Port: 1234},
-		},
-		Server: true,
-	}
-	if err := ValidateSegments(duplicatePorts); !strings.Contains(err.Error(), "port 1234 overlaps with segment \"asdf\"") {
-		t.Fatalf("bad: %v", err)
 	}
 }
 

@@ -46,8 +46,8 @@ type AgentMember struct {
 
 // MembersOpts is used for querying member information.
 type MembersOpts struct {
-	// Wan is whether to show members from the LAN.
-	Wan bool
+	// WAN is whether to show members from the WAN.
+	WAN bool
 
 	// Segment is the LAN segment to show members.
 	Segment string
@@ -270,7 +270,7 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 	r := a.c.newRequest("GET", "/v1/agent/members")
 	r.params.Set("segment", opts.Segment)
-	if opts.Wan {
+	if opts.WAN {
 		r.params.Set("wan", "1")
 	}
 

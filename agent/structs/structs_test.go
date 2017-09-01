@@ -502,34 +502,50 @@ func TestStructs_ValidateMetadata(t *testing.T) {
 	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "cannot contain more than") {
 		t.Fatalf("should have failed")
 	}
+
+	// Should not error
+	meta = map[string]string{
+		metaKeyReservedPrefix + "key": "value1",
+	}
+	// Should fail
+	if err := ValidateMetadata(meta, false); err == nil || !strings.Contains(err.Error(), "reserved for internal use") {
+		t.Fatalf("err: %s", err)
+	}
+	// Should succeed
+	if err := ValidateMetadata(meta, true); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 }
 
 func TestStructs_validateMetaPair(t *testing.T) {
 	longKey := strings.Repeat("a", metaKeyMaxLength+1)
 	longValue := strings.Repeat("b", metaValueMaxLength+1)
 	pairs := []struct {
-		Key   string
-		Value string
-		Error string
+		Key               string
+		Value             string
+		Error             string
+		AllowConsulPrefix bool
 	}{
 		// valid pair
-		{"key", "value", ""},
+		{"key", "value", "", false},
 		// invalid, blank key
-		{"", "value", "cannot be blank"},
+		{"", "value", "cannot be blank", false},
 		// allowed special chars in key name
-		{"k_e-y", "value", ""},
+		{"k_e-y", "value", "", false},
 		// disallowed special chars in key name
-		{"(%key&)", "value", "invalid characters"},
+		{"(%key&)", "value", "invalid characters", false},
 		// key too long
-		{longKey, "value", "Key is too long"},
+		{longKey, "value", "Key is too long", false},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use"},
+		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false},
+		// reserved prefix, allowed
+		{metaKeyReservedPrefix + "key", "value", "", true},
 		// value too long
-		{"key", longValue, "Value is too long"},
+		{"key", longValue, "Value is too long", false},
 	}
 
 	for _, pair := range pairs {
-		err := validateMetaPair(pair.Key, pair.Value, false)
+		err := validateMetaPair(pair.Key, pair.Value, pair.AllowConsulPrefix)
 		if pair.Error == "" && err != nil {
 			t.Fatalf("should have succeeded: %v, %v", pair, err)
 		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {

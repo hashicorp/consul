@@ -100,16 +100,19 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	segment_addrs := make(map[string]string)
 	segment_ports := make(map[string]int)
 	for name, value := range m.Tags {
-		if strings.HasPrefix(name, "segment_addr_") {
-			segment_addrs[strings.TrimPrefix(name, "segment_addr_")] = value
-		}
-
-		if strings.HasPrefix(name, "segment_port_") {
-			segment_port, err := strconv.Atoi(value)
+		if strings.HasPrefix(name, "sl_") {
+			addr, port, err := net.SplitHostPort(value)
 			if err != nil {
 				return false, nil
 			}
-			segment_ports[strings.TrimPrefix(name, "segment_port_")] = segment_port
+			segment_port, err := strconv.Atoi(port)
+			if err != nil {
+				return false, nil
+			}
+
+			segment_name := strings.TrimPrefix(name, "sl_")
+			segment_addrs[segment_name] = addr
+			segment_ports[segment_name] = segment_port
 		}
 	}
 

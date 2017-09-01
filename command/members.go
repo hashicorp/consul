@@ -65,16 +65,8 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	members, err := client.Agent().MembersOpts(consulapi.MembersOpts{
-		Wan:     wan,
-		Segment: segment,
-	})
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
-		return 1
-	}
-
 	// Check if we queried a server and need to query for members in all segments.
+	var members []*consulapi.AgentMember
 	if !wan && segment == "" {
 		self, err := client.Agent().Self()
 		if err != nil {
@@ -87,7 +79,17 @@ func (c *MembersCommand) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Error retrieving members in segments: %s", err))
 				return 1
 			}
-			members = append(members, segmentMembers...)
+			members = segmentMembers
+		}
+	} else {
+		var err error
+		members, err = client.Agent().MembersOpts(consulapi.MembersOpts{
+			WAN:     wan,
+			Segment: segment,
+		})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
+			return 1
 		}
 	}
 

@@ -1474,31 +1474,6 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	return &result, nil
 }
 
-func ValidateSegments(conf *Config) error {
-	if len(conf.Segments) > SegmentLimit {
-		return fmt.Errorf("Cannot exceed network segment limit of %d", SegmentLimit)
-	}
-
-	takenPorts := make(map[int]string, len(conf.Segments))
-	for _, segment := range conf.Segments {
-		if segment.Name == "" {
-			return fmt.Errorf("Segment name cannot be blank")
-		}
-
-		if len(segment.Name) > SegmentNameLimit {
-			return fmt.Errorf("Segment name %q exceeds maximum length of %d", segment.Name, SegmentNameLimit)
-		}
-
-		previous, ok := takenPorts[segment.Port]
-		if ok {
-			return fmt.Errorf("Segment %q port %d overlaps with segment %q", segment.Name, segment.Port, previous)
-		}
-		takenPorts[segment.Port] = segment.Name
-	}
-
-	return nil
-}
-
 // DecodeServiceDefinition is used to decode a service definition
 func DecodeServiceDefinition(raw interface{}) (*structs.ServiceDefinition, error) {
 	rawMap, ok := raw.(map[string]interface{})
