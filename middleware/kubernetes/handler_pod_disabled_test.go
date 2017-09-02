@@ -10,23 +10,19 @@ import (
 	"golang.org/x/net/context"
 )
 
-var podModeDisabledCases = map[string](test.Case){
-
-	"A Record Pod mode = Case 1": {
+var podModeDisabledCases = []test.Case{
+	{
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Error:  errPodsDisabled,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
+		Error: errPodsDisabled,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-
-	"A Record Pod mode = Case 2": {
+	{
 		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode:  dns.RcodeNameError,
-		Error:  errPodsDisabled,
-		Answer: []dns.RR{},
+		Rcode: dns.RcodeNameError,
+		Error: errPodsDisabled,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
@@ -41,14 +37,14 @@ func TestServeDNSModeDisabled(t *testing.T) {
 	k.podMode = podModeDisabled
 	ctx := context.TODO()
 
-	for testname, tc := range podModeDisabledCases {
+	for i, tc := range podModeDisabledCases {
 		r := tc.Msg()
 
 		w := dnsrecorder.New(&test.ResponseWriter{})
 
 		_, err := k.ServeDNS(ctx, w, r)
 		if err != tc.Error {
-			t.Errorf("%v expected no error, got %v\n", testname, err)
+			t.Errorf("Test %d expected no error, got %v", i, err)
 			return
 		}
 		if tc.Error != nil {
@@ -57,7 +53,7 @@ func TestServeDNSModeDisabled(t *testing.T) {
 
 		resp := w.Msg
 		if resp == nil {
-			t.Fatalf("got nil message and no error for %q: %s %d", testname, r.Question[0].Name, r.Question[0].Qtype)
+			t.Fatalf("Test %d, got nil message and no error for %q", i, r.Question[0].Name)
 		}
 
 		test.SortAndCheck(t, resp, tc)

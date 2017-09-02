@@ -11,54 +11,61 @@ import (
 	"k8s.io/client-go/1.5/pkg/api"
 )
 
-var dnsTestCases = map[string](test.Case){
-	"A Service": {
+var dnsTestCases = []test.Case{
+	// A Service
+	{
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.A("svc1.testns.svc.cluster.local.	5	IN	A	10.0.0.1"),
 		},
 	},
-	"A Service (wildcard)": {
+	// A Service (wildcard)
+	{
 		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.A("svc1.*.svc.cluster.local.  5       IN      A       10.0.0.1"),
 		},
 	},
-	"SRV Service (wildcard, root)": {
+	{
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{test.SRV("svc1.testns.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
 		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
 	},
-	"SRV Service (wildcard)": {
+	// SRV Service (wildcard)
+	{
 		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{test.SRV("svc1.*.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
 		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
 	},
-	"SRV Service (wildcards)": {
+	// SRV Service (wildcards)
+	{
 		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{test.SRV("*.any.svc1.*.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
 		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
 	},
-	"A Service (wildcards)": {
+	// A Service (wildcards)
+	{
 		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.A("*.any.svc1.*.svc.cluster.local.  303       IN      A       10.0.0.1"),
 		},
 	},
-	"SRV Service Not udp/tcp": {
+	// SRV Service Not udp/tcp
+	{
 		Qname: "*._not-udp-or-tcp.svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-	"SRV Service": {
+	// SRV Service
+	{
 		Qname: "_http._tcp.svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
@@ -68,7 +75,8 @@ var dnsTestCases = map[string](test.Case){
 			test.A("svc1.testns.svc.cluster.local.	303	IN	A	10.0.0.1"),
 		},
 	},
-	"A Service (Headless)": {
+	// A Service (Headless)
+	{
 		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
@@ -76,7 +84,8 @@ var dnsTestCases = map[string](test.Case){
 			test.A("hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.3"),
 		},
 	},
-	"SRV Service (Headless)": {
+	// SRV Service (Headless)
+	{
 		Qname: "_http._tcp.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
@@ -88,49 +97,56 @@ var dnsTestCases = map[string](test.Case){
 			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.3"),
 		},
 	},
-	"CNAME External": {
+	// CNAME External
+	{
 		Qname: "external.testns.svc.cluster.local.", Qtype: dns.TypeCNAME,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.CNAME("external.testns.svc.cluster.local.	303	IN	CNAME	ext.interwebs.test."),
 		},
 	},
-	"AAAA Service (existing service)": {
+	// AAAA Service (existing service)
+	{
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeSuccess,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-	"AAAA Service (non-existing service)": {
+	// AAAA Service (non-existing service)
+	{
 		Qname: "svc0.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-	"A Service (non-existing service)": {
+	// A Service (non-existing service)
+	{
 		Qname: "svc0.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-	"TXT Schema": {
+	// TXT Schema
+	{
 		Qname: "dns-version.cluster.local.", Qtype: dns.TypeTXT,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
 			test.TXT("dns-version.cluster.local 28800 IN TXT 1.0.1"),
 		},
 	},
-	"A Service (Headless) does not exist": {
+	// A Service (Headless) does not exist
+	{
 		Qname: "bogusendpoint.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
-	"A Service does not exist": {
+	// A Service does not exist
+	{
 		Qname: "bogusendpoint.svc0.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
@@ -146,14 +162,14 @@ func TestServeDNS(t *testing.T) {
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
 	ctx := context.TODO()
 
-	for testname, tc := range dnsTestCases {
+	for i, tc := range dnsTestCases {
 		r := tc.Msg()
 
 		w := dnsrecorder.New(&test.ResponseWriter{})
 
 		_, err := k.ServeDNS(ctx, w, r)
 		if err != tc.Error {
-			t.Errorf("%v expected no error, got %v\n", testname, err)
+			t.Errorf("Test %d expected no error, got %v", i, err)
 			return
 		}
 		if tc.Error != nil {
@@ -162,7 +178,7 @@ func TestServeDNS(t *testing.T) {
 
 		resp := w.Msg
 		if resp == nil {
-			t.Fatalf("got nil message and no error for %q: %s %d", testname, r.Question[0].Name, r.Question[0].Qtype)
+			t.Fatalf("Test %d, got nil message and no error for %q", i, r.Question[0].Name)
 		}
 
 		// Before sorting, make sure that CNAMES do not appear after their target records
