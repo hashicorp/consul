@@ -30,7 +30,8 @@ func setup(c *caddy.Controller) error {
 
 	c.OnStartup(OnStartupMetrics)
 
-	for _, u := range upstreams {
+	for i := range upstreams {
+		u := upstreams[i]
 		c.OnStartup(func() error {
 			return u.Exchanger().OnStartup(P)
 		})

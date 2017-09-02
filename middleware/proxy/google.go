@@ -112,11 +112,8 @@ func (g *google) exchangeJSON(addr, json string) ([]byte, error) {
 	return buf, nil
 }
 
-func (g *google) Transport() string {
-	return "tcp"
-}
-
-func (g *google) Protocol() string { return "https_google" }
+func (g *google) Transport() string { return "tcp" }
+func (g *google) Protocol() string  { return "https_google" }
 
 func (g *google) OnShutdown(p *Proxy) error {
 	g.quit <- true
@@ -130,51 +127,55 @@ func (g *google) OnStartup(p *Proxy) error {
 	req.SetQuestion(g.endpoint, dns.TypeA)
 	state := request.Request{W: new(fakeBootWriter), Req: req}
 
+	if len(*p.Upstreams) == 0 {
+		return fmt.Errorf("no upstreams defined")
+	}
+
+	oldUpstream := (*p.Upstreams)[0]
+
+	log.Printf("[INFO] Bootstrapping A records %q", g.endpoint)
+
 	new, err := g.bootstrapProxy.Lookup(state, g.endpoint, dns.TypeA)
-
-	var oldUpstream Upstream
-
-	// ignore errors here, as we want to keep on trying.
 	if err != nil {
 		log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
 	} else {
 		addrs, err1 := extractAnswer(new)
 		if err1 != nil {
-			log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
-		}
+			log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err1)
+		} else {
 
-		if len(*p.Upstreams) > 0 {
-			oldUpstream = (*p.Upstreams)[0]
 			up := newUpstream(addrs, oldUpstream.(*staticUpstream))
 			p.Upstreams = &[]Upstream{up}
-		} else {
-			log.Printf("[WARNING] Failed to bootstrap upstreams %q", g.endpoint)
+
+			log.Printf("[INFO] Bootstrapping A records %q found: %v", g.endpoint, addrs)
 		}
 	}
 
 	go func() {
-		tick := time.NewTicker(300 * time.Second)
+		tick := time.NewTicker(120 * time.Second)
 
 		for {
 			select {
 			case <-tick.C:
 
+				log.Printf("[INFO] Resolving A records %q", g.endpoint)
+
 				new, err := g.bootstrapProxy.Lookup(state, g.endpoint, dns.TypeA)
 				if err != nil {
-					log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
-				} else {
-					addrs, err1 := extractAnswer(new)
-					if err1 != nil {
-						log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
-						continue
-					}
-
-					// TODO(miek): can this actually happen?
-					if oldUpstream != nil {
-						up := newUpstream(addrs, oldUpstream.(*staticUpstream))
-						p.Upstreams = &[]Upstream{up}
-					}
+					log.Printf("[WARNING] Failed to resolve A records %q: %s", g.endpoint, err)
+					continue
 				}
+
+				addrs, err1 := extractAnswer(new)
+				if err1 != nil {
+					log.Printf("[WARNING] Failed to resolve A records %q: %s", g.endpoint, err1)
+					continue
+				}
+
+				up := newUpstream(addrs, oldUpstream.(*staticUpstream))
+				p.Upstreams = &[]Upstream{up}
+
+				log.Printf("[INFO] Resolving A records %q found: %v", g.endpoint, addrs)
 
 			case <-g.quit:
 				return

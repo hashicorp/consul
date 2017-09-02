@@ -3,6 +3,7 @@ package proxy
 
 import (
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -70,6 +71,8 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	for {
 		start := time.Now()
+		reply := new(dns.Msg)
+		var backendErr error
 
 		// Since Select() should give us "up" hosts, keep retrying
 		// hosts until timeout (or until we get a nil host).
@@ -79,7 +82,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 				RequestDuration.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
-				return dns.RcodeServerFailure, errUnreachable
+				return dns.RcodeServerFailure, fmt.Errorf("%s: %s", errUnreachable, "no upstream host")
 			}
 
 			if span != nil {
@@ -90,7 +93,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			atomic.AddInt64(&host.Conns, 1)
 			queryEpoch := msg.Epoch()
 
-			reply, backendErr := upstream.Exchanger().Exchange(ctx, host.Name, state)
+			reply, backendErr = upstream.Exchanger().Exchange(ctx, host.Name, state)
 
 			respEpoch := msg.Epoch()
 			atomic.AddInt64(&host.Conns, -1)
@@ -99,8 +102,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				child.Finish()
 			}
 
-			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply,
-				queryEpoch, respEpoch)
+			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply, queryEpoch, respEpoch)
 
 			if backendErr == nil {
 				w.WriteMsg(reply)
@@ -123,7 +125,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 		RequestDuration.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), upstream.From()).Observe(float64(time.Since(start) / time.Millisecond))
 
-		return dns.RcodeServerFailure, errUnreachable
+		return dns.RcodeServerFailure, fmt.Errorf("%s: %s", errUnreachable, backendErr)
 	}
 }
 

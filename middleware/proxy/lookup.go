@@ -4,6 +4,7 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -14,9 +15,7 @@ import (
 )
 
 // NewLookup create a new proxy with the hosts in host and a Random policy.
-func NewLookup(hosts []string) Proxy {
-	return NewLookupWithOption(hosts, Options{})
-}
+func NewLookup(hosts []string) Proxy { return NewLookupWithOption(hosts, Options{}) }
 
 // NewLookupWithOption process creates a simple round robin forward with potentially forced proto for upstream.
 func NewLookupWithOption(hosts []string, opts Options) Proxy {
@@ -95,13 +94,15 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 	}
 	for {
 		start := time.Now()
+		reply := new(dns.Msg)
+		var backendErr error
 
 		// Since Select() should give us "up" hosts, keep retrying
 		// hosts until timeout (or until we get a nil host).
 		for time.Since(start) < tryDuration {
 			host := upstream.Select()
 			if host == nil {
-				return nil, errUnreachable
+				return nil, fmt.Errorf("%s: %s", errUnreachable, "no upstream host")
 			}
 
 			// duplicated from proxy.go, but with a twist, we don't write the
@@ -109,7 +110,7 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			reply, backendErr := upstream.Exchanger().Exchange(context.TODO(), host.Name, state)
+			reply, backendErr = upstream.Exchanger().Exchange(context.TODO(), host.Name, state)
 
 			atomic.AddInt64(&host.Conns, -1)
 
@@ -126,6 +127,6 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 				atomic.AddInt32(&host.Fails, -1)
 			}(host, timeout)
 		}
-		return nil, errUnreachable
+		return nil, fmt.Errorf("%s: %s", errUnreachable, backendErr)
 	}
 }

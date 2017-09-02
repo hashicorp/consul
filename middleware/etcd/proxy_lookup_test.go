@@ -50,8 +50,8 @@ var dnsTestCasesProxy = []test.Case{
 		},
 		Extra: []dns.RR{
 			test.TXT("a.dom.skydns.test.	300	CH	TXT	\"www.example.org:0(10,0,,false)[0,]\""),
-			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN A: unreachable backend,false)[0,]\""),
-			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN AAAA: unreachable backend,false)[0,]\""),
+			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN A: unreachable backend: no upstream host,false)[0,]\""),
+			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN AAAA: unreachable backend: no upstream host,false)[0,]\""),
 		},
 	},
 }
