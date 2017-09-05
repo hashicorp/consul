@@ -157,10 +157,17 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	segment := req.URL.Query().Get("segment")
-	if wan && segment != "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Cannot provide a segment with wan=true")
-		return nil, nil
+	if wan {
+		switch segment {
+		case "", api.AllSegments:
+			// The zero value and the special "give me all members"
+			// key are ok, otherwise the argument doesn't apply to
+			// the WAN.
+		default:
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Cannot provide a segment with wan=true")
+			return nil, nil
+		}
 	}
 
 	var members []serf.Member
