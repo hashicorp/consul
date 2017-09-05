@@ -65,32 +65,15 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if we queried a server and need to query for members in all segments.
-	var members []*consulapi.AgentMember
-	if !wan && segment == "" {
-		self, err := client.Agent().Self()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error retrieving agent info: %s", err))
-			return 1
-		}
-		if self["Config"]["Server"].(bool) {
-			segmentMembers, err := getSegmentMembers(client)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Error retrieving members in segments: %s", err))
-				return 1
-			}
-			members = segmentMembers
-		}
-	} else {
-		var err error
-		members, err = client.Agent().MembersOpts(consulapi.MembersOpts{
-			WAN:     wan,
-			Segment: segment,
-		})
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
-			return 1
-		}
+	// Make the request.
+	opts := consulapi.MembersOpts{
+		Segment: segment,
+		WAN:     wan,
+	}
+	members, err := client.Agent().MembersOpts(opts)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error retrieving members: %s", err))
+		return 1
 	}
 
 	// Filter the results
@@ -99,9 +82,9 @@ func (c *MembersCommand) Run(args []string) int {
 		member := members[i]
 		if member.Tags["segment"] == "" {
 			member.Tags["segment"] = "<default>"
-			if member.Tags["role"] == "consul" {
-				member.Tags["segment"] = "<all>"
-			}
+		}
+		if member.Tags["role"] == "consul" {
+			member.Tags["segment"] = "<all>"
 		}
 		statusString := serf.MemberStatus(member.Status).String()
 		if !statusRe.MatchString(statusString) {
