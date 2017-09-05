@@ -83,7 +83,7 @@ func (c *MembersCommand) Run(args []string) int {
 		if member.Tags["segment"] == "" {
 			member.Tags["segment"] = "<default>"
 		}
-		if member.Tags["role"] == "consul" {
+		if segment == consulapi.AllSegments && member.Tags["role"] == "consul" {
 			member.Tags["segment"] = "<all>"
 		}
 		statusString := serf.MemberStatus(member.Status).String()
