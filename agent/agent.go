@@ -58,6 +58,7 @@ type delegate interface {
 	GetLANCoordinate() (lib.CoordinateSet, error)
 	Leave() error
 	LANMembers() []serf.Member
+	LANMembersAllSegments() ([]serf.Member, error)
 	LANSegmentMembers(segment string) ([]serf.Member, error)
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)

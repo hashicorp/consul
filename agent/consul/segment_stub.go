@@ -9,6 +9,11 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// LANMembersAllSegments returns members from all segments.
+func (s *Server) LANMembersAllSegments() ([]serf.Member, error) {
+	return s.LANMembers(), nil
+}
+
 // LANSegmentMembers is used to return the members of the given LAN segment.
 func (s *Server) LANSegmentMembers(segment string) ([]serf.Member, error) {
 	if segment == "" {

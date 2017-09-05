@@ -44,12 +44,16 @@ type AgentMember struct {
 	DelegateCur uint8
 }
 
+// AllSegments is used to select for all segments in MembersOpts.
+const AllSegments = "_all"
+
 // MembersOpts is used for querying member information.
 type MembersOpts struct {
 	// WAN is whether to show members from the WAN.
 	WAN bool
 
-	// Segment is the LAN segment to show members.
+	// Segment is the LAN segment to show members for. Setting this to the
+	// AllSegments value above will show members in all segments.
 	Segment string
 }
 
