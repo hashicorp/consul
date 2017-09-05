@@ -44,7 +44,7 @@ func (c *MembersCommand) Run(args []string) int {
 	f.StringVar(&statusFilter, "status", ".*",
 		"If provided, output is filtered to only nodes matching the regular "+
 			"expression for status.")
-	f.StringVar(&segment, "segment", "",
+	f.StringVar(&segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
 

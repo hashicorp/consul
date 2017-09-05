@@ -201,6 +201,11 @@ func (c *Client) LANMembers() []serf.Member {
 	return c.serf.Members()
 }
 
+// LANMembersAllSegments returns members from all segments.
+func (c *Client) LANMembersAllSegments() ([]serf.Member, error) {
+	return c.serf.Members(), nil
+}
+
 // LANSegmentMembers only returns our own segment's members, because clients
 // can't be in multiple segments.
 func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
