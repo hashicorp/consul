@@ -43,7 +43,7 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 					m.Name, nodeID, other)
 			}
 
-			// Only map nodes with a version that's newer than when
+			// Only map nodes with a version that's >= than when
 			// we made host-based IDs opt-in, which helps prevent
 			// chaos when upgrading older clusters. See #3070 for
 			// more details.
