@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -17,6 +18,10 @@ type lanMergeDelegate struct {
 	nodeName string
 	segment  string
 }
+
+// uniqueIDMinVersion is the lowest version where we insist that nodes
+// have a unique ID.
+var uniqueIDMinVersion = version.Must(version.NewVersion("0.8.5"))
 
 func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 	nodeMap := make(map[types.NodeID]string)
@@ -37,7 +42,16 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 				return fmt.Errorf("Member '%s' has conflicting node ID '%s' with member '%s'",
 					m.Name, nodeID, other)
 			}
-			nodeMap[nodeID] = m.Name
+
+			// Only map nodes with a version that's >= than when
+			// we made host-based IDs opt-in, which helps prevent
+			// chaos when upgrading older clusters. See #3070 for
+			// more details.
+			if ver, err := metadata.Build(m); err == nil {
+				if ver.Compare(uniqueIDMinVersion) >= 0 {
+					nodeMap[nodeID] = m.Name
+				}
+			}
 		}
 
 		ok, dc := isConsulNode(*m)
