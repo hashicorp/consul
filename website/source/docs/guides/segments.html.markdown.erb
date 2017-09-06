@@ -57,7 +57,7 @@ linking the different segments together. The configured list of segments is spec
 another segment, or the listening port of another segment on a server, they will get a segment mismatch error.
 
 Once the servers have been configured with the correct segment info, the clients only need to specify
-their own segment in the [Agent Config](/docs/agent/options.html) and join by connecting to another
+their own segment in the [Agent Config](/docs/agent/options.html#_segment) and join by connecting to another
 agent within the same segment. If joining to a Consul server, client will need to provide the server's
 port for their segment along with the address of the server when performing the join (for example,
 `consul agent -retry-join "consul.domain.internal:1234"`).
