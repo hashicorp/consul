@@ -626,11 +626,6 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 // joinConsulServer is used to try to join another consul server
 func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
-	// Do not join ourself if we are the only member
-	if m.Name == s.config.NodeName && len(s.serfLAN.Members()) == 1 {
-		return nil
-	}
-
 	// Check for possibility of multiple bootstrap nodes
 	if parts.Bootstrap {
 		members := s.serfLAN.Members()
@@ -650,15 +645,25 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 		return err
 	}
 
-	// See if it's already in the configuration. It's harmless to re-add it
-	// but we want to avoid doing that if possible to prevent useless Raft
-	// log entries. If the address is the same but the ID changed, remove the
-	// old server before adding the new one.
+	// Processing ourselves could result in trying to remove ourselves to
+	// fix up our address, which would make us step down. This is only
+	// safe to attempt if there are multiple servers available.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
 		return err
 	}
+	if m.Name == s.config.NodeName {
+		if l := len(configFuture.Configuration().Servers); l < 3 {
+			s.logger.Printf("[DEBUG] consul: Skipping self join check for %q since the cluster is too small", m.Name)
+			return nil
+		}
+	}
+
+	// See if it's already in the configuration. It's harmless to re-add it
+	// but we want to avoid doing that if possible to prevent useless Raft
+	// log entries. If the address is the same but the ID changed, remove the
+	// old server before adding the new one.
 	for _, server := range configFuture.Configuration().Servers {
 		// No-op if the raft version is too low
 		if server.Address == raft.ServerAddress(addr) && (minRaftProtocol < 2 || parts.RaftVersion < 3) {
