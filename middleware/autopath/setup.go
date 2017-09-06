@@ -28,12 +28,11 @@ func setup(c *caddy.Controller) error {
 
 	// Do this in OnStartup, so all middleware has been initialized.
 	c.OnStartup(func() error {
-		// TODO(miek): fabricate test to proof this is not thread safe.
 		m := dnsserver.GetConfig(c).Handler(mw)
 		if m == nil {
 			return nil
 		}
-		if x, ok := m.(kubernetes.Kubernetes); ok {
+		if x, ok := m.(*kubernetes.Kubernetes); ok {
 			ap.searchFunc = x.AutoPath
 		}
 		if x, ok := m.(*erratic.Erratic); ok {

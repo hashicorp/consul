@@ -30,7 +30,7 @@ func setup(c *caddy.Controller) error {
 		if m == nil {
 			return nil
 		}
-		if x, ok := m.(kubernetes.Kubernetes); ok {
+		if x, ok := m.(*kubernetes.Kubernetes); ok {
 			fed.Federations = x.Federations
 		}
 		return nil
@@ -38,7 +38,7 @@ func setup(c *caddy.Controller) error {
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		fed.Next = next
-		return nil
+		return fed
 	})
 
 	return nil
