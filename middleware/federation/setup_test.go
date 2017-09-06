@@ -13,6 +13,7 @@ func TestSetup(t *testing.T) {
 		expectedLen      int
 		expectedNameZone []string // contains only entry for now
 	}{
+		// ok
 		{`federation {
 			prod prod.example.org
 		}`, false, 1, []string{"prod", "prod.example.org."}},
@@ -25,11 +26,15 @@ func TestSetup(t *testing.T) {
 			staging staging.example.org
 			prod prod.example.org
 		}`, false, 2, []string{"staging", "staging.example.org."}},
+		{`federation example.com {
+			staging staging.example.org
+			prod prod.example.org
+		}`, false, 2, []string{"staging", "staging.example.org."}},
 		// errors
 		{`federation {
 		}`, true, 0, []string{}},
 		{`federation {
-			staging 
+			staging
 		}`, true, 0, []string{}},
 	}
 	for i, test := range tests {

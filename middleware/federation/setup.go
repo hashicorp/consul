@@ -49,17 +49,25 @@ func federationParse(c *caddy.Controller) (*Federation, error) {
 
 	for c.Next() {
 		// federation [zones..]
-		origins := make([]string, len(c.ServerBlockKeys))
-		copy(origins, c.ServerBlockKeys)
+		zones := c.RemainingArgs()
+		origins := []string{}
+		if len(zones) > 0 {
+			origins = make([]string, len(zones))
+			copy(origins, zones)
+		} else {
+			origins = make([]string, len(c.ServerBlockKeys))
+			copy(origins, c.ServerBlockKeys)
+		}
 
 		for c.NextBlock() {
 			x := c.Val()
-			switch c.Val() {
+			switch x {
 			default:
 				args := c.RemainingArgs()
-				if len(args) != 1 {
-					return fed, fmt.Errorf("need two arguments for federation: %q", args)
+				if x := len(args); x != 1 {
+					return fed, fmt.Errorf("need two arguments for federation, got %d", x)
 				}
+
 				fed.f[x] = dns.Fqdn(args[0])
 			}
 		}
