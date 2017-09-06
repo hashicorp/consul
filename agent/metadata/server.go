@@ -1,8 +1,3 @@
-// Package agent provides a logical endpoint for Consul agents in the
-// network.  agent data originates from Serf gossip and is primarily used to
-// communicate Consul server information.  Gossiped information that ends up
-// in Server contains the necessary metadata required for servers.Manager to
-// select which server an RPC request should be routed to.
 package metadata
 
 import (
@@ -116,7 +111,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
-	build_version, err := version.NewVersion(versionFormat.FindString(m.Tags["build"]))
+	build_version, err := Build(&m)
 	if err != nil {
 		return false, nil
 	}
