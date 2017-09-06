@@ -638,13 +638,6 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 		}
 	}
 
-	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
-
-	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
-	if err != nil {
-		return err
-	}
-
 	// Processing ourselves could result in trying to remove ourselves to
 	// fix up our address, which would make us step down. This is only
 	// safe to attempt if there are multiple servers available.
@@ -664,6 +657,11 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	// but we want to avoid doing that if possible to prevent useless Raft
 	// log entries. If the address is the same but the ID changed, remove the
 	// old server before adding the new one.
+	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
+	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+	if err != nil {
+		return err
+	}
 	for _, server := range configFuture.Configuration().Servers {
 		// No-op if the raft version is too low
 		if server.Address == raft.ServerAddress(addr) && (minRaftProtocol < 2 || parts.RaftVersion < 3) {
