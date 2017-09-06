@@ -626,8 +626,8 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 // joinConsulServer is used to try to join another consul server
 func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
-	// Do not join ourself
-	if m.Name == s.config.NodeName {
+	// Do not join ourself if we are the only member
+	if m.Name == s.config.NodeName && len(s.serfLAN.Members()) == 1 {
 		return nil
 	}
 
