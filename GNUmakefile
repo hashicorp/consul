@@ -59,7 +59,7 @@ cov:
 test: dev-build vet
 	go test -tags '$(GOTAGS)' -i ./...
 	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m -v ./... 2>&1 >test.log ; echo $$? > exit-code
-	@echo "Exit code: `cat exit-code`" >> test$(GOTEST_FLAGS).log
+	@echo "Exit code: `cat exit-code`" >> test.log
 	@echo "----"
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
