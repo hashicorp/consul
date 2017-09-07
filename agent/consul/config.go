@@ -122,7 +122,7 @@ type Config struct {
 
 	// (Enterprise-only) Segments is a list of network segments for a server to
 	// bind on.
-	Segments []*NetworkSegment
+	Segments []NetworkSegment
 
 	// SerfLANConfig is the configuration for the intra-dc serf
 	SerfLANConfig *serf.Config
