@@ -4,7 +4,9 @@ package consul
 
 import (
 	"net"
+	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/serf/serf"
 )
@@ -50,4 +52,24 @@ func (s *Server) setupSegments(config *Config, port int, rpcListeners map[string
 
 // floodSegments is a NOP in the OSS version of Consul.
 func (s *Server) floodSegments(config *Config) {
+}
+
+// reconcile is used to reconcile the differences between Serf membership and
+// what is reflected in our strongly consistent store. Mainly we need to ensure
+// all live nodes are registered, all failed nodes are marked as such, and all
+// left nodes are de-registered.
+func (s *Server) reconcile() (err error) {
+	defer metrics.MeasureSince([]string{"consul", "leader", "reconcile"}, time.Now())
+	members := s.serfLAN.Members()
+	knownMembers := make(map[string]struct{})
+	for _, member := range members {
+		if err := s.reconcileMember(member); err != nil {
+			return err
+		}
+		knownMembers[member.Name] = struct{}{}
+	}
+
+	// Reconcile any members that have been reaped while we were not the
+	// leader.
+	return s.reconcileReaped(knownMembers)
 }
