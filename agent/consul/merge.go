@@ -54,23 +54,23 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			}
 		}
 
-		ok, dc := isConsulNode(*m)
-		if ok {
+		if ok, dc := isConsulNode(*m); ok {
 			if dc != md.dc {
 				return fmt.Errorf("Member '%s' part of wrong datacenter '%s'",
 					m.Name, dc)
 			}
-			continue
 		}
 
-		ok, parts := metadata.IsConsulServer(*m)
-		if ok && parts.Datacenter != md.dc {
-			return fmt.Errorf("Member '%s' part of wrong datacenter '%s'",
-				m.Name, parts.Datacenter)
+		if ok, parts := metadata.IsConsulServer(*m); ok {
+			if parts.Datacenter != md.dc {
+				return fmt.Errorf("Member '%s' part of wrong datacenter '%s'",
+					m.Name, parts.Datacenter)
+			}
 		}
 
 		if segment := m.Tags["segment"]; segment != md.segment {
-			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')", m.Name, segment, md.segment)
+			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')",
+				m.Name, segment, md.segment)
 		}
 	}
 	return nil
