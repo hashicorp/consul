@@ -55,6 +55,7 @@ $ curl \
   {
     "WAN": true,
     "Datacenter": "dc1",
+    "Segment": "",
     "Keys": {
       "0eK8RjnsGC/+I1fJErQsBA==": 1,
       "G/3/L4yOw3e5T7NTvuRi9g==": 1,
@@ -65,6 +66,7 @@ $ curl \
   {
     "WAN": false,
     "Datacenter": "dc1",
+    "Segment": "",
     "Keys": {
       "0eK8RjnsGC/+I1fJErQsBA==": 1,
       "G/3/L4yOw3e5T7NTvuRi9g==": 1,
@@ -79,6 +81,8 @@ $ curl \
    than LAN).
 
 - `Datacenter` is the datacenter the block refers to.
+
+- `Segment` is the network segment the block refers to.
 
 - `Keys` is a map of each gossip key to the number of nodes it's currently
   installed on.

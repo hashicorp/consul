@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shirou/gopsutil/host"
@@ -772,7 +773,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Setup the loggers
 	base.LogOutput = a.LogOutput
 
-	// This will set up the LAN keyring, as well as the WAN for servers.
+	// This will set up the LAN keyring, as well as the WAN and any segments
+	// for servers.
 	if err := a.setupKeyrings(base); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
@@ -946,8 +948,8 @@ func (a *Agent) setupNodeID(config *Config) error {
 	return nil
 }
 
-// setupKeyrings is used to initialize and load keyrings during agent startup
-func (a *Agent) setupKeyrings(config *consul.Config) error {
+// setupBaseKeyrings configures the LAN and WAN keyrings.
+func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
 	if a.config.DisableKeyringFile {
@@ -1003,6 +1005,34 @@ LOAD:
 		}
 	}
 
+	return nil
+}
+
+// setupKeyrings is used to initialize and load keyrings during agent startup.
+func (a *Agent) setupKeyrings(config *consul.Config) error {
+	// First set up the LAN and WAN keyrings.
+	if err := a.setupBaseKeyrings(config); err != nil {
+		return err
+	}
+
+	// If there's no LAN keyring then there's nothing else to set up for
+	// any segments.
+	lanKeyring := config.SerfLANConfig.MemberlistConfig.Keyring
+	if lanKeyring == nil {
+		return nil
+	}
+
+	// Copy the initial state of the LAN keyring into each segment config.
+	// Segments don't have their own keyring file, they rely on the LAN
+	// holding the state so things can't get out of sync.
+	k, pk := lanKeyring.GetKeys(), lanKeyring.GetPrimaryKey()
+	for _, segment := range config.Segments {
+		keyring, err := memberlist.NewKeyring(k, pk)
+		if err != nil {
+			return err
+		}
+		segment.SerfConfig.MemberlistConfig.Keyring = keyring
+	}
 	return nil
 }
 
