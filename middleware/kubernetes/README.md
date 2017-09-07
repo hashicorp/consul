@@ -8,6 +8,9 @@ CoreDNS running the kubernetes middleware can be used as a replacement of kube-d
 cluster.  See the [deployment](https://github.com/coredns/deployment) repository for details on [how
 to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/master/kubernetes).
 
+[stubDomains](http://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
+are implemented via the *proxy* middleware.
+
 ## Syntax
 
 ~~~
@@ -16,7 +19,7 @@ kubernetes [ZONES...]
 
 With only the directive specified, the *kubernetes* middleware will default to the zone specified in
 the server's block. It will handle all queries in that zone and connect to Kubernetes in-cluster. It
-will not provide PTR records for services, or A records for pods. If **ZONES** is used is specifies
+will not provide PTR records for services, or A records for pods. If **ZONES** is used it specifies
 all the zones the middleware should be authoritative for.
 
 ```
@@ -76,25 +79,49 @@ Also handle all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods 
 requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block
 here:
 
-    10.0.0.0/16 cluster.local {
-        kubernetes {
-            pods verified
-            upstream 10.102.3.10:53
-        }
+~~~ txt
+10.0.0.0/16 cluster.local {
+    kubernetes {
+        pods verified
+        upstream 10.102.3.10:53
     }
+}
+~~~
 
 Or you can selectively expose some namespaces:
 
-    kubernetes cluster.local {
-        namespaces test staging
-    }
+~~~ txt
+kubernetes cluster.local {
+    namespaces test staging
+}
+~~~
 
-And finally we can connect to Kubernetes from outside the cluster:
+Connect to Kubernetes with CoreDNS running outside the cluster:
 
-    kubernetes cluster.local {
+~~~ txt
+kubernetes cluster.local {
+    endpoint https://k8s-endpoint:8443
+    tls cert key cacert
+}
+~~~
+
+Here we use the *proxy* middleware to implement stubDomains that forwards `example.org` and
+`example.com` to another nameserver.
+
+~~~ txt
+cluster.local {
+    kubernetes {
         endpoint https://k8s-endpoint:8443
         tls cert key cacert
     }
+}
+example.org {
+    proxy . 8.8.8.8:53
+}
+example.com {
+    proxy . 8.8.8.8:53
+}
+~~~
 
 ## AutoPath
 
