@@ -887,6 +887,7 @@ func (r *KeyringRequest) RequestDatacenter() string {
 type KeyringResponse struct {
 	WAN        bool
 	Datacenter string
+	Segment    string
 	Messages   map[string]string `json:",omitempty"`
 	Keys       map[string]int
 	NumNodes   int

@@ -149,12 +149,12 @@ func (m *Internal) executeKeyringOp(
 
 	if wan {
 		mgr := m.srv.KeyManagerWAN()
-		m.executeKeyringOpMgr(mgr, args, reply, wan)
+		m.executeKeyringOpMgr(mgr, args, reply, wan, "")
 	} else {
 		segments := m.srv.LANSegments()
-		for _, segment := range segments {
+		for name, segment := range segments {
 			mgr := segment.KeyManager()
-			m.executeKeyringOpMgr(mgr, args, reply, wan)
+			m.executeKeyringOpMgr(mgr, args, reply, wan, name)
 		}
 	}
 }
@@ -166,7 +166,7 @@ func (m *Internal) executeKeyringOpMgr(
 	mgr *serf.KeyManager,
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses,
-	wan bool) {
+	wan bool, segment string) {
 	var serfResp *serf.KeyResponse
 	var err error
 
@@ -190,6 +190,7 @@ func (m *Internal) executeKeyringOpMgr(
 	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
 		WAN:        wan,
 		Datacenter: m.srv.config.Datacenter,
+		Segment:    segment,
 		Messages:   serfResp.Messages,
 		Keys:       serfResp.Keys,
 		NumNodes:   serfResp.NumNodes,
