@@ -42,10 +42,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		if opt.Debug != "" {
 			r.Question[0].Name = opt.Debug
 		}
-		if e.Fallthrough {
-			return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
-		}
-		return dns.RcodeServerFailure, nil
+		return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
 	}
 
 	var (
@@ -88,6 +85,9 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 
 	if e.IsNameError(err) {
+		if e.Fallthrough {
+			return middleware.NextOrFailure(e.Name(), e.Next, ctx, w, r)
+		}
 		// Make err nil when returning here, so we don't log spam for NXDOMAIN.
 		return middleware.BackendError(e, zone, dns.RcodeNameError, state, debug, nil /* err */, opt)
 	}

@@ -19,10 +19,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
-		if k.Fallthrough {
-			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
-		}
-		return dns.RcodeServerFailure, nil
+		return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 	}
 
 	state.Zone = zone
