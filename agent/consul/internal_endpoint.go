@@ -166,7 +166,8 @@ func (m *Internal) executeKeyringOpMgr(
 	mgr *serf.KeyManager,
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses,
-	wan bool, segment string) {
+	wan bool,
+	segment string) {
 	var serfResp *serf.KeyResponse
 	var err error
 
