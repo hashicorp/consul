@@ -73,12 +73,13 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 
 	if !middleware.ClientWrite(ret) {
 		// something went wrong
+		r.Question[0].Name = qname
 		return ret, err
 	}
 
 	if m := nw.Msg; m.Rcode != dns.RcodeNameError {
-		// If positive answer we need to substitute the orinal qname in question and answer.
-		r.Question[0].Name = qname
+		// If positive answer we need to substitute the original qname in the answer.
+		m.Question[0].Name = qname
 		for _, a := range m.Answer {
 			a.Header().Name = qname
 		}
@@ -93,6 +94,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	// Still here, we've seen NXDOMAIN and need to perform federation.
 	service, err := f.Federations(state, label, f.f[label]) // state references Req which has updated qname
 	if err != nil {
+		r.Question[0].Name = qname
 		return dns.RcodeServerFailure, err
 	}
 
