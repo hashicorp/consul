@@ -783,10 +783,10 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 }
 
 // Setup the serf and memberlist config for any defined network segments.
-func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
-	var segments []consul.NetworkSegment
+func (a *Agent) segmentConfig() ([]*consul.NetworkSegment, error) {
 	config := a.config
 
+	var segments []*consul.NetworkSegment
 	for _, segment := range config.Segments {
 		serfConf := consul.DefaultConfig().SerfLANConfig
 
@@ -821,7 +821,7 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 			}
 		}
 
-		segments = append(segments, consul.NetworkSegment{
+		segments = append(segments, &consul.NetworkSegment{
 			Name:       segment.Name,
 			Bind:       serfConf.MemberlistConfig.BindAddr,
 			Port:       segment.Port,
