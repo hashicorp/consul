@@ -42,7 +42,7 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if string(body) != `["foo","bar","baz"]\n` {
+		if string(body) != `["foo","bar","baz"]` {
 			t.Fatalf("bad: %s", body)
 		}
 		w.Write([]byte("Ok, i see"))
