@@ -53,23 +53,6 @@ func TestParse_httpExempt(t *testing.T) {
 	}
 }
 
-func TestParse_exempt_NoHandler(t *testing.T) {
-	params := makeParams(t, `{"type":"key", "key":"foo"}`)
-	p, err := ParseExempt(params, []string{"handler", "http"})
-	print(p)
-	if err == nil {
-		t.Fatalf("Expected ParseExempt to fail")
-	}
-}
-
-func TestParse_exempt_TooManyHandlers(t *testing.T) {
-	params := makeParams(t, `{"type":"key", "key":"foo", "handler": "foobar", "http": "barfoo"}`)
-	_, err := ParseExempt(params, []string{"handler", "http"})
-	if err == nil {
-		t.Fatalf("Expected ParseExempt to fail")
-	}
-}
-
 func makeParams(t *testing.T, s string) map[string]interface{} {
 	var out map[string]interface{}
 	dec := json.NewDecoder(bytes.NewReader([]byte(s)))
