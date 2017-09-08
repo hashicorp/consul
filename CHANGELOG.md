@@ -1,5 +1,5 @@
 
-## 0.9.3 (UNRELEASED)
+## 0.9.3 (September 8, 2017)
 
 FEATURES:
 * **LAN Network Segments:** (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support segmented LAN topologies with multiple, distinct gossip pools. [GH-3431]
