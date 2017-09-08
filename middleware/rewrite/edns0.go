@@ -133,6 +133,11 @@ func newEdns0Rule(args ...string) (Rule, error) {
 			return nil, fmt.Errorf("EDNS0 NSID rules do not accept args")
 		}
 		return &edns0NsidRule{action: action}, nil
+	case "subnet":
+		if len(args) != 4 {
+			return nil, fmt.Errorf("EDNS0 subnet rules require exactly three args")
+		}
+		return newEdns0SubnetRule(action, args[2], args[3])
 	default:
 		return nil, fmt.Errorf("invalid rule type %q", ruleType)
 	}
@@ -304,6 +309,97 @@ func isValidVariable(variable string) bool {
 	return false
 }
 
+// ends0SubnetRule is a rewrite rule for EDNS0 subnet options
+type edns0SubnetRule struct {
+	v4BitMaskLen uint8
+	v6BitMaskLen uint8
+	action       string
+}
+
+func newEdns0SubnetRule(action, v4BitMaskLen, v6BitMaskLen string) (*edns0SubnetRule, error) {
+	v4Len, err := strconv.ParseUint(v4BitMaskLen, 0, 16)
+	if err != nil {
+		return nil, err
+	}
+	// Validate V4 length
+	if v4Len > maxV4BitMaskLen {
+		return nil, fmt.Errorf("invalid IPv4 bit mask length %d", v4Len)
+	}
+
+	v6Len, err := strconv.ParseUint(v6BitMaskLen, 0, 16)
+	if err != nil {
+		return nil, err
+	}
+	//Validate V6 length
+	if v6Len > maxV6BitMaskLen {
+		return nil, fmt.Errorf("invalid IPv6 bit mask length %d", v6Len)
+	}
+
+	return &edns0SubnetRule{action: action,
+		v4BitMaskLen: uint8(v4Len), v6BitMaskLen: uint8(v6Len)}, nil
+}
+
+// fillEcsData sets the subnet data into the ecs option
+func (rule *edns0SubnetRule) fillEcsData(w dns.ResponseWriter, r *dns.Msg,
+	ecs *dns.EDNS0_SUBNET) error {
+
+	req := request.Request{W: w, Req: r}
+	family := req.Family()
+	if (family != 1) && (family != 2) {
+		return fmt.Errorf("unable to fill data for EDNS0 subnet due to invalid IP family")
+	}
+
+	ecs.DraftOption = false
+	ecs.Family = uint16(family)
+	ecs.SourceScope = 0
+
+	ipAddr := req.IP()
+	switch family {
+	case 1:
+		ipv4Mask := net.CIDRMask(int(rule.v4BitMaskLen), 32)
+		ipv4Addr := net.ParseIP(ipAddr)
+		ecs.SourceNetmask = rule.v4BitMaskLen
+		ecs.Address = ipv4Addr.Mask(ipv4Mask).To4()
+	case 2:
+		ipv6Mask := net.CIDRMask(int(rule.v6BitMaskLen), 128)
+		ipv6Addr := net.ParseIP(ipAddr)
+		ecs.SourceNetmask = rule.v6BitMaskLen
+		ecs.Address = ipv6Addr.Mask(ipv6Mask).To16()
+	}
+	return nil
+}
+
+// Rewrite will alter the request EDNS0 subnet option
+func (rule *edns0SubnetRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+	result := RewriteIgnored
+	o := setupEdns0Opt(r)
+	found := false
+	for _, s := range o.Option {
+		switch e := s.(type) {
+		case *dns.EDNS0_SUBNET:
+			if rule.action == Replace || rule.action == Set {
+				if rule.fillEcsData(w, r, e) == nil {
+					result = RewriteDone
+				}
+			}
+			found = true
+			break
+		}
+	}
+
+	// add option if not found
+	if !found && (rule.action == Append || rule.action == Set) {
+		o.SetDo()
+		opt := dns.EDNS0_SUBNET{Code: dns.EDNS0SUBNET}
+		if rule.fillEcsData(w, r, &opt) == nil {
+			o.Option = append(o.Option, &opt)
+			result = RewriteDone
+		}
+	}
+
+	return result
+}
+
 // These are all defined actions.
 const (
 	Replace = "replace"
@@ -320,4 +416,10 @@ const (
 	protocol   = "{protocol}"
 	serverIP   = "{server_ip}"
 	serverPort = "{server_port}"
+)
+
+// Subnet maximum bit mask length
+const (
+	maxV4BitMaskLen = 32
+	maxV6BitMaskLen = 128
 )

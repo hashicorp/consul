@@ -81,6 +81,13 @@ func TestNewRule(t *testing.T) {
 		{[]string{"edns0", "local", "replace", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
 		{[]string{"edns0", "local", "replace", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
 		{[]string{"edns0", "local", "replace", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"edns0", "subnet", "set", "-1", "56"}, true, nil},
+		{[]string{"edns0", "subnet", "set", "24", "-56"}, true, nil},
+		{[]string{"edns0", "subnet", "set", "33", "56"}, true, nil},
+		{[]string{"edns0", "subnet", "set", "24", "129"}, true, nil},
+		{[]string{"edns0", "subnet", "set", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"edns0", "subnet", "append", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"edns0", "subnet", "replace", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
 	}
 
 	for i, tc := range tests {
@@ -303,6 +310,30 @@ func optsEqual(a, b []dns.EDNS0) bool {
 			} else {
 				return false
 			}
+		case *dns.EDNS0_SUBNET:
+			if bb, ok := b[i].(*dns.EDNS0_SUBNET); ok {
+				if aa.Code != bb.Code {
+					return false
+				}
+				if aa.Family != bb.Family {
+					return false
+				}
+				if aa.SourceNetmask != bb.SourceNetmask {
+					return false
+				}
+				if aa.SourceScope != bb.SourceScope {
+					return false
+				}
+				if !bytes.Equal(aa.Address, bb.Address) {
+					return false
+				}
+				if aa.DraftOption != bb.DraftOption {
+					return false
+				}
+			} else {
+				return false
+			}
+
 		default:
 			return false
 		}
@@ -376,6 +407,116 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		rw.Rules = []Rule{r}
 
 		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rw.ServeDNS(ctx, rec, m)
+
+		resp := rec.Msg
+		o := resp.IsEdns0()
+		if o == nil {
+			t.Errorf("Test %d: EDNS0 options not set", i)
+			continue
+		}
+		if !optsEqual(o.Option, tc.toOpts) {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.toOpts, o)
+		}
+	}
+}
+
+func TestRewriteEDNS0Subnet(t *testing.T) {
+	rw := Rewrite{
+		Next:     middleware.HandlerFunc(msgPrinter),
+		noRevert: true,
+	}
+
+	tests := []struct {
+		writer   dns.ResponseWriter
+		fromOpts []dns.EDNS0
+		args     []string
+		toOpts   []dns.EDNS0
+	}{
+		{
+			&test.ResponseWriter{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "24", "56"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x1,
+				SourceNetmask: 0x18,
+				SourceScope:   0x0,
+				Address:       []byte{0x0A, 0xF0, 0x00, 0x00},
+				DraftOption:   false}},
+		},
+		{
+			&test.ResponseWriter{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "32", "56"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x1,
+				SourceNetmask: 0x20,
+				SourceScope:   0x0,
+				Address:       []byte{0x0A, 0xF0, 0x00, 0x01},
+				DraftOption:   false}},
+		},
+		{
+			&test.ResponseWriter{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "0", "56"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x1,
+				SourceNetmask: 0x0,
+				SourceScope:   0x0,
+				Address:       []byte{0x00, 0x00, 0x00, 0x00},
+				DraftOption:   false}},
+		},
+		{
+			&test.ResponseWriter6{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "24", "56"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x2,
+				SourceNetmask: 0x38,
+				SourceScope:   0x0,
+				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+				DraftOption: false}},
+		},
+		{
+			&test.ResponseWriter6{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "24", "128"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x2,
+				SourceNetmask: 0x80,
+				SourceScope:   0x0,
+				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x42, 0x00, 0xff, 0xfe, 0xca, 0x4c, 0x65},
+				DraftOption: false}},
+		},
+		{
+			&test.ResponseWriter6{},
+			[]dns.EDNS0{},
+			[]string{"subnet", "set", "24", "0"},
+			[]dns.EDNS0{&dns.EDNS0_SUBNET{Code: 0x8,
+				Family:        0x2,
+				SourceNetmask: 0x0,
+				SourceScope:   0x0,
+				Address: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+				DraftOption: false}},
+		},
+	}
+
+	ctx := context.TODO()
+	for i, tc := range tests {
+		m := new(dns.Msg)
+		m.SetQuestion("example.com.", dns.TypeA)
+		m.Question[0].Qclass = dns.ClassINET
+
+		r, err := newEdns0Rule(tc.args...)
+		if err != nil {
+			t.Errorf("Error creating test rule: %s", err)
+			continue
+		}
+		rw.Rules = []Rule{r}
+		rec := dnsrecorder.New(tc.writer)
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
