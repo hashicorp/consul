@@ -1,14 +1,18 @@
 # whoami
 
-*whoami* returns your local IP address, port and transport used. Your local IP address is returned in
-the additional section as either an A or AAAA record.
+*whoami* returns your resolver's local IP address, port and transport. Your IP address is returned
+ in the additional section as either an A or AAAA record.
 
-The port and transport are included in the additional section as a SRV record, transport can be
-"tcp" or "udp".
+The reply always has an empty answer section. The port and transport are included in the additional
+section as a SRV record, transport can be "tcp" or "udp".
 
 ~~~ txt
 ._<transport>.qname. 0 IN SRV 0 0 <port> .
 ~~~
+
+If CoreDNS can't find a Corefile on startup this is the *default* middleware that gets loaded. As
+such it can be used to check that CoreDNS is responding to queries. Other than that this middleware
+is of limited use in production.
 
 The *whoami* middleware will respond to every A or AAAA query, regardless of the query name.
 
@@ -20,8 +24,10 @@ whoami
 
 ## Examples
 
-~~~ txt
-.:53 {
+Start a server on the default port and load the *whoami* middleware.
+
+~~~ corefile
+. {
     whoami
 }
 ~~~
