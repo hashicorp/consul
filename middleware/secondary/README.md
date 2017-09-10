@@ -31,9 +31,24 @@ secondary [zones...] {
 
 ## Examples
 
+Transfer `example.org` from 10.0.1.1, and if that fails try 10.1.2.1.
+
+~~~ corefile
+example.org {
+    secondary {
+        transfer from 10.0.1.1
+        transfer from 10.1.2.1
+    }
+}
 ~~~
-secondary example.org {
-    transfer from 10.0.1.1
-    transfer from 10.1.2.1
+
+Or re-export the retrieved zone to other secondaries.
+
+~~~ corefile
+. {
+    secondary example.net {
+        transfer from 10.1.2.1
+        transfer to *
+    }
 }
 ~~~
