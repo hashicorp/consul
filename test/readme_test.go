@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -23,9 +24,10 @@ import (
 // ~~~
 
 func TestReadme(t *testing.T) {
+	port := 30053
 	caddy.Quiet = true
 	dnsserver.Quiet = true
-	dnsserver.Port = "10053"
+
 	log.SetOutput(ioutil.Discard)
 
 	middle := filepath.Join("..", "middleware")
@@ -48,11 +50,13 @@ func TestReadme(t *testing.T) {
 		// Test each snippet.
 		for _, in := range inputs {
 			t.Logf("Testing %s, with %d byte snippet", readme, len(in.Body()))
+			dnsserver.Port = strconv.Itoa(port)
 			server, err := caddy.Start(in)
 			if err != nil {
 				t.Errorf("Failed to start server for input %q:\n%s", err, in.Body())
 			}
 			server.Stop()
+			port++
 		}
 	}
 }
