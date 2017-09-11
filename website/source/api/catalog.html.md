@@ -409,7 +409,7 @@ $ curl \
       "wan": "10.0.10.10"
     },
     "NodeMeta": {
-      "instance_type": "t2.medium"
+      "somekey": "somevalue"
     },
     "CreateIndex": 51,
     "ModifyIndex": 51,
