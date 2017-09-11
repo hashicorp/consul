@@ -2,26 +2,21 @@
 
 *errors* enables error logging.
 
-Any errors encountered during the query processing will be printed on standard output.
+Any errors encountered during the query processing will be printed to standard output.
 
 ## Syntax
-
-~~~
-errors [FILE]
-~~~
-
-* **FILE** is the log file to create (or append to). The *only* valid name for **FILE** is *stdout*
-
-## Examples
-
-Log errors to *stdout*.
 
 ~~~
 errors
 ~~~
 
-Log errors to *stdout*.
+## Examples
 
-~~~
-errors stdout
+Use the *whoami* to respond to queries and Log errors to standard output.
+
+~~~ corefile
+. {
+    whoami
+    errors
+}
 ~~~
