@@ -408,7 +408,7 @@ $ curl \
       "lan": "192.168.10.10",
       "wan": "10.0.10.10"
     },
-    "Meta": {
+    "NodeMeta": {
       "instance_type": "t2.medium"
     },
     "CreateIndex": 51,
@@ -434,7 +434,7 @@ $ curl \
 - `TaggedAddresses` is the list of explicit LAN and WAN IP addresses for the
   agent
 
-- `Meta` is a list of user-defined metadata key/value pairs for the node
+- `NodeMeta` is a list of user-defined metadata key/value pairs for the node
 
 - `CreateIndex` is an internal index value representing when the service was
   created
