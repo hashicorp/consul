@@ -5,6 +5,7 @@
 [![Code Coverage](https://img.shields.io/codecov/c/github/coredns/coredns/master.svg)](https://codecov.io/github/coredns/coredns?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/coredns/coredns)](https://goreportcard.com/report/coredns/coredns)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fcoredns%2Fcoredns.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fcoredns%2Fcoredns?ref=badge_shield)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has
 the same model: it chains middleware. In fact it's so similar that CoreDNS is now a server type
