@@ -32,44 +32,44 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	switch state.Type() {
 	case "A":
-		records, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
+		records, err = middleware.A(&k, zone, state, nil, middleware.Options{})
 	case "AAAA":
-		records, _, err = middleware.AAAA(&k, zone, state, nil, middleware.Options{})
+		records, err = middleware.AAAA(&k, zone, state, nil, middleware.Options{})
 	case "TXT":
-		records, _, err = middleware.TXT(&k, zone, state, middleware.Options{})
+		records, err = middleware.TXT(&k, zone, state, middleware.Options{})
 	case "CNAME":
-		records, _, err = middleware.CNAME(&k, zone, state, middleware.Options{})
+		records, err = middleware.CNAME(&k, zone, state, middleware.Options{})
 	case "PTR":
-		records, _, err = middleware.PTR(&k, zone, state, middleware.Options{})
+		records, err = middleware.PTR(&k, zone, state, middleware.Options{})
 	case "MX":
-		records, extra, _, err = middleware.MX(&k, zone, state, middleware.Options{})
+		records, extra, err = middleware.MX(&k, zone, state, middleware.Options{})
 	case "SRV":
-		records, extra, _, err = middleware.SRV(&k, zone, state, middleware.Options{})
+		records, extra, err = middleware.SRV(&k, zone, state, middleware.Options{})
 	case "SOA":
-		records, _, err = middleware.SOA(&k, zone, state, middleware.Options{})
+		records, err = middleware.SOA(&k, zone, state, middleware.Options{})
 	case "NS":
 		if state.Name() == zone {
-			records, extra, _, err = middleware.NS(&k, zone, state, middleware.Options{})
+			records, extra, err = middleware.NS(&k, zone, state, middleware.Options{})
 			break
 		}
 		fallthrough
 	default:
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, _, err = middleware.A(&k, zone, state, nil, middleware.Options{})
+		_, err = middleware.A(&k, zone, state, nil, middleware.Options{})
 	}
 
 	if k.IsNameError(err) {
 		if k.Fallthrough {
 			return middleware.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
-		return middleware.BackendError(&k, zone, dns.RcodeNameError, state, nil /*debug*/, nil /* err */, middleware.Options{})
+		return middleware.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, middleware.Options{})
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
 
 	if len(records) == 0 {
-		return middleware.BackendError(&k, zone, dns.RcodeSuccess, state, nil /*debug*/, nil, middleware.Options{})
+		return middleware.BackendError(&k, zone, dns.RcodeSuccess, state, nil, middleware.Options{})
 	}
 
 	m.Answer = append(m.Answer, records...)

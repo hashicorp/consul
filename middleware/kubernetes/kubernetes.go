@@ -81,7 +81,7 @@ var (
 )
 
 // Services implements the ServiceBackend interface.
-func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) (svcs []msg.Service, debug []msg.Service, err error) {
+func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.Options) (svcs []msg.Service, err error) {
 
 	// We're looking again at types, which we've already done in ServeDNS, but there are some types k8s just can't answer.
 	switch state.QType() {
@@ -92,19 +92,19 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 
 		segs := dns.SplitDomainName(t)
 		if len(segs) != 1 {
-			return nil, nil, fmt.Errorf("kubernetes: TXT query can only be for dns-version: %s", state.QName())
+			return nil, fmt.Errorf("kubernetes: TXT query can only be for dns-version: %s", state.QName())
 		}
 		if segs[0] != "dns-version" {
-			return nil, nil, nil
+			return nil, nil
 		}
 		svc := msg.Service{Text: DNSSchemaVersion, TTL: 28800, Key: msg.Path(state.QName(), "coredns")}
-		return []msg.Service{svc}, nil, nil
+		return []msg.Service{svc}, nil
 
 	case dns.TypeNS:
 		// We can only get here if the qname equal the zone, see ServeDNS in handler.go.
 		ns := k.nsAddr()
 		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
-		return []msg.Service{svc}, nil, nil
+		return []msg.Service{svc}, nil
 	}
 
 	if state.QType() == dns.TypeA && isDefaultNS(state.Name(), state.Zone) {
@@ -112,7 +112,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		// SOA records always use this hardcoded name
 		ns := k.nsAddr()
 		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
-		return []msg.Service{svc}, nil, nil
+		return []msg.Service{svc}, nil
 	}
 
 	s, e := k.Records(state, false)
@@ -120,7 +120,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 	// SRV for external services is not yet implemented, so remove those records.
 
 	if state.QType() != dns.TypeSRV {
-		return s, nil, e
+		return s, e
 	}
 
 	internal := []msg.Service{}
@@ -130,13 +130,11 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt middleware.
 		}
 	}
 
-	return internal, nil, e
+	return internal, e
 }
 
 // primaryZone will return the first non-reverse zone being handled by this middleware
-func (k *Kubernetes) primaryZone() string {
-	return k.Zones[k.primaryZoneIndex]
-}
+func (k *Kubernetes) primaryZone() string { return k.Zones[k.primaryZoneIndex] }
 
 // Lookup implements the ServiceBackend interface.
 func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
@@ -147,9 +145,6 @@ func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dn
 func (k *Kubernetes) IsNameError(err error) bool {
 	return err == errNoItems || err == errNsNotExposed || err == errInvalidRequest
 }
-
-// Debug implements the ServiceBackend interface.
-func (k *Kubernetes) Debug() string { return "debug" }
 
 func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}

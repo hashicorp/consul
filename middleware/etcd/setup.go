@@ -77,7 +77,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				case "fallthrough":
 					etc.Fallthrough = true
 				case "debug":
-					etc.Debugging = true
+					/* it is a noop now */
 				case "path":
 					if !c.NextArg() {
 						return &Etcd{}, false, c.ArgErr()

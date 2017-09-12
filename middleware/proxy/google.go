@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/coredns/coredns/middleware/pkg/debug"
 	"github.com/coredns/coredns/middleware/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
@@ -50,12 +49,6 @@ func (g *google) Exchange(ctx context.Context, addr string, state request.Reques
 	v.Set("name", state.Name())
 	v.Set("type", fmt.Sprintf("%d", state.QType()))
 
-	optDebug := false
-	if bug := debug.IsDebug(state.Name()); bug != "" {
-		optDebug = true
-		v.Set("name", bug)
-	}
-
 	buf, backendErr := g.exchangeJSON(addr, v.Encode())
 
 	if backendErr == nil {
@@ -64,17 +57,9 @@ func (g *google) Exchange(ctx context.Context, addr string, state request.Reques
 			return nil, err
 		}
 
-		m, debug, err := toMsg(gm)
+		m, err := toMsg(gm)
 		if err != nil {
 			return nil, err
-		}
-
-		if optDebug {
-			// reset question
-			m.Question[0].Name = state.QName()
-			// prepend debug RR to the additional section
-			m.Extra = append([]dns.RR{debug}, m.Extra...)
-
 		}
 
 		m.Id = state.Req.Id

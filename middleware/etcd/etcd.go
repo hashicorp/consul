@@ -30,26 +30,23 @@ type Etcd struct {
 	Ctx         context.Context
 	Inflight    *singleflight.Group
 	Stubmap     *map[string]proxy.Proxy // list of proxies for stub resolving.
-	Debugging   bool                    // Do we allow debug queries.
 
 	endpoints []string // Stored here as well, to aid in testing.
 }
 
 // Services implements the ServiceBackend interface.
-func (e *Etcd) Services(state request.Request, exact bool, opt middleware.Options) (services, debug []msg.Service, err error) {
+func (e *Etcd) Services(state request.Request, exact bool, opt middleware.Options) (services []msg.Service, err error) {
 	services, err = e.Records(state, exact)
 	if err != nil {
 		return
 	}
-	if opt.Debug != "" {
-		debug = services
-	}
+
 	services = msg.Group(services)
 	return
 }
 
 // Reverse implements the ServiceBackend interface.
-func (e *Etcd) Reverse(state request.Request, exact bool, opt middleware.Options) (services, debug []msg.Service, err error) {
+func (e *Etcd) Reverse(state request.Request, exact bool, opt middleware.Options) (services []msg.Service, err error) {
 	return e.Services(state, exact, opt)
 }
 
@@ -64,11 +61,6 @@ func (e *Etcd) IsNameError(err error) bool {
 		return true
 	}
 	return false
-}
-
-// Debug implements the ServiceBackend interface.
-func (e *Etcd) Debug() string {
-	return e.PathPrefix
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just this

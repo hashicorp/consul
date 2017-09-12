@@ -6,8 +6,8 @@ import (
 	"github.com/miekg/dns"
 )
 
-// toMsg converts a googleMsg into the dns message. The returned RR is the comment disquised as a TXT record.
-func toMsg(g *googleMsg) (*dns.Msg, dns.RR, error) {
+// toMsg converts a googleMsg into the dns message.
+func toMsg(g *googleMsg) (*dns.Msg, error) {
 	m := new(dns.Msg)
 	m.Response = true
 	m.Rcode = g.Status
@@ -28,24 +28,23 @@ func toMsg(g *googleMsg) (*dns.Msg, dns.RR, error) {
 	for i := 0; i < len(m.Answer); i++ {
 		m.Answer[i], err = toRR(g.Answer[i])
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	for i := 0; i < len(m.Ns); i++ {
 		m.Ns[i], err = toRR(g.Authority[i])
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	for i := 0; i < len(m.Extra); i++ {
 		m.Extra[i], err = toRR(g.Additional[i])
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
-	txt, _ := dns.NewRR(". 0 CH TXT " + g.Comment)
-	return m, txt, nil
+	return m, nil
 }
 
 // toRR transforms a "google" RR to a dns.RR.

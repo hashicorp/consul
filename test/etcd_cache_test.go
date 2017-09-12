@@ -18,11 +18,10 @@ import (
 
 // uses some stuff from etcd_tests.go
 
-func TestEtcdCacheAndDebug(t *testing.T) {
+func TestEtcdCache(t *testing.T) {
 	corefile := `.:0 {
     etcd skydns.test {
         path /skydns
-	debug
     }
     cache skydns.test
 }`
@@ -50,15 +49,6 @@ func TestEtcdCacheAndDebug(t *testing.T) {
 		t.Errorf("Expected to receive reply, but didn't: %s", err)
 	}
 	checkResponse(t, resp)
-
-	resp, err = p.Lookup(state, "o-o.debug.b.example.skydns.test.", dns.TypeA)
-	if err != nil {
-		t.Errorf("Expected to receive reply, but didn't: %s", err)
-	}
-	checkResponse(t, resp)
-	if len(resp.Extra) != 1 {
-		t.Errorf("Expected one RR in additional section, got: %d", len(resp.Extra))
-	}
 
 	resp, err = p.Lookup(state, "b.example.skydns.test.", dns.TypeA)
 	if err != nil {

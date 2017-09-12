@@ -222,7 +222,7 @@ func TestServices(t *testing.T) {
 			Req:  &dns.Msg{Question: []dns.Question{{Name: test.qname, Qtype: test.qtype}}},
 			Zone: "interwebs.test.", // must match from k.Zones[0]
 		}
-		svcs, _, e := k.Services(state, false, middleware.Options{})
+		svcs, e := k.Services(state, false, middleware.Options{})
 		if e != nil {
 			t.Errorf("Test %d: got error '%v'", i, e)
 			continue

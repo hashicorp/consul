@@ -10,15 +10,15 @@ import (
 )
 
 // Reverse implements the ServiceBackend interface.
-func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, []msg.Service, error) {
+func (k *Kubernetes) Reverse(state request.Request, exact bool, opt middleware.Options) ([]msg.Service, error) {
 
 	ip := dnsutil.ExtractAddressFromReverse(state.Name())
 	if ip == "" {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	records := k.serviceRecordForIP(ip, state.Name())
-	return records, nil, nil
+	return records, nil
 }
 
 // serviceRecordForIP gets a service record with a cluster ip matching the ip argument
