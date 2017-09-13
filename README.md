@@ -65,15 +65,20 @@ Caddyfile when forked).
 ## Compilation
 
 CoreDNS (as a servertype plugin for Caddy) has a dependency on Caddy, but this is not different than
-any other Go dependency. If you have the source of CoreDNS, get all dependencies:
+any other Go dependency. If you have the source of CoreDNS checked out in the appropriate place in
+your `GOPATH`, get all dependencies:
 
     go get ./...
+
+(You can do the checkout and dependency resolution as a single step with: `go get github.com/coredns/coredns`.)
 
 And then `go build` as you would normally do:
 
     go build
 
 This should yield a `coredns` binary.
+
+Note that CoreDNS currently requires at least Go 1.9 to build.
 
 ## Examples
 
