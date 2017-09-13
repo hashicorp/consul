@@ -78,8 +78,6 @@ And then `go build` as you would normally do:
 
 This should yield a `coredns` binary.
 
-Note that CoreDNS currently requires at least Go 1.9 to build.
-
 ## Examples
 
 When starting CoreDNS without any configuration, it loads the `whoami` middleware and starts
