@@ -78,6 +78,18 @@ And then `go build` as you would normally do:
 
 This should yield a `coredns` binary.
 
+## Compilation with docker
+
+CoreDNS requires golang to compile. However, if you already have docker installed and prefer not to setup
+golang environment, you could build coredns easily:
+
+```
+$ docker run --rm -i -t -v $PWD:/go/src/github.com/coredns/coredns \
+      -w /go/src/github.com/coredns/coredns golang:1.9 make
+```
+
+The above command alone will have `coredns` binary generated.
+
 ## Examples
 
 When starting CoreDNS without any configuration, it loads the `whoami` middleware and starts
