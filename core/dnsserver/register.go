@@ -124,12 +124,6 @@ func (c *Config) AddPlugin(m plugin.Plugin) {
 	c.Plugin = append(c.Plugin, m)
 }
 
-// AddMiddleware adds a plugin to a site's plugin stack. This method is deprecated, use AddPlugin.
-func (c *Config) AddMiddleware(m plugin.Plugin) {
-	println("deprecated: use AddPlugin")
-	c.AddPlugin(m)
-}
-
 // registerHandler adds a handler to a site's handler registration. Handlers
 //  use this to announce that they exist to other plugin.
 func (c *Config) registerHandler(h plugin.Handler) {
