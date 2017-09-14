@@ -588,8 +588,6 @@ func (s *Server) setupRaft() error {
 			return err
 		}
 		if !hasState {
-			// TODO (slackpad) - This will need to be updated when
-			// we add support for node IDs.
 			configuration := raft.Configuration{
 				Servers: []raft.Server{
 					raft.Server{
@@ -835,15 +833,22 @@ func (s *Server) Leave() error {
 	return nil
 }
 
-// numPeers is used to check on the number of known peers, including the local
-// node.
+// numPeers is used to check on the number of known peers, including potentially
+// the local node. We count only voters, since others can't actually become
+// leader, so aren't considered peers.
 func (s *Server) numPeers() (int, error) {
 	future := s.raft.GetConfiguration()
 	if err := future.Error(); err != nil {
 		return 0, err
 	}
-	configuration := future.Configuration()
-	return len(configuration.Servers), nil
+
+	var numPeers int
+	for _, server := range future.Configuration().Servers {
+		if server.Suffrage == raft.Voter {
+			numPeers++
+		}
+	}
+	return numPeers, nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
