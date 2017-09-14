@@ -14,7 +14,7 @@ import (
 	"github.com/mholt/caddy"
 )
 
-// Pasrse all README.md's of the middleware and check if every example Corefile
+// Pasrse all README.md's of the plugin and check if every example Corefile
 // actually works. Each corefile is only used if:
 //
 // ~~~ corefile
@@ -30,7 +30,7 @@ func TestReadme(t *testing.T) {
 
 	log.SetOutput(ioutil.Discard)
 
-	middle := filepath.Join("..", "middleware")
+	middle := filepath.Join("..", "plugin")
 	dirs, err := ioutil.ReadDir(middle)
 	if err != nil {
 		t.Fatalf("Could not read %s: %q", middle, err)

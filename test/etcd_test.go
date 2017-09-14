@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/middleware/etcd"
-	"github.com/coredns/coredns/middleware/etcd/msg"
-	"github.com/coredns/coredns/middleware/proxy"
-	"github.com/coredns/coredns/middleware/test"
+	"github.com/coredns/coredns/plugin/etcd"
+	"github.com/coredns/coredns/plugin/etcd/msg"
+	"github.com/coredns/coredns/plugin/proxy"
+	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
 	etcdc "github.com/coreos/etcd/client"
@@ -87,7 +87,7 @@ var servicesStub = []*msg.Service{
 	{Host: "199.43.132.53", Key: "a.example.net.stub.dns.skydns.test."},
 }
 
-// Copied from middleware/etcd/setup_test.go
+// Copied from plugin/etcd/setup_test.go
 func set(ctx context.Context, t *testing.T, e *etcd.Etcd, k string, ttl time.Duration, m *msg.Service) {
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -97,7 +97,7 @@ func set(ctx context.Context, t *testing.T, e *etcd.Etcd, k string, ttl time.Dur
 	e.Client.Set(ctx, path, string(b), &etcdc.SetOptions{TTL: ttl})
 }
 
-// Copied from middleware/etcd/setup_test.go
+// Copied from plugin/etcd/setup_test.go
 func delete(ctx context.Context, t *testing.T, e *etcd.Etcd, k string) {
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
 	e.Client.Delete(ctx, path, &etcdc.DeleteOptions{Recursive: false})

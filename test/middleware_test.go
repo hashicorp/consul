@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/coredns/coredns/middleware/test"
+	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
 )

@@ -7,9 +7,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/coredns/coredns/middleware/etcd/msg"
-	"github.com/coredns/coredns/middleware/proxy"
-	"github.com/coredns/coredns/middleware/test"
+	"github.com/coredns/coredns/plugin/etcd/msg"
+	"github.com/coredns/coredns/plugin/proxy"
+	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"

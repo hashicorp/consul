@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/middleware/test"
+	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"

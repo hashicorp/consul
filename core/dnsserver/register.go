@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/plugin"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
@@ -119,27 +119,33 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 	return servers, nil
 }
 
-// AddMiddleware adds a middleware to a site's middleware stack.
-func (c *Config) AddMiddleware(m middleware.Middleware) {
-	c.Middleware = append(c.Middleware, m)
+// AddPlugin adds a plugin to a site's plugin stack.
+func (c *Config) AddPlugin(m plugin.Plugin) {
+	c.Plugin = append(c.Plugin, m)
+}
+
+// AddMiddleware adds a plugin to a site's plugin stack. This method is deprecated, use AddPlugin.
+func (c *Config) AddMiddleware(m plugin.Plugin) {
+	println("deprecated: use AddPlugin")
+	c.AddPlugin(m)
 }
 
 // registerHandler adds a handler to a site's handler registration. Handlers
-//  use this to announce that they exist to other middleware.
-func (c *Config) registerHandler(h middleware.Handler) {
+//  use this to announce that they exist to other plugin.
+func (c *Config) registerHandler(h plugin.Handler) {
 	if c.registry == nil {
-		c.registry = make(map[string]middleware.Handler)
+		c.registry = make(map[string]plugin.Handler)
 	}
 
 	// Just overwrite...
 	c.registry[h.Name()] = h
 }
 
-// Handler returns the middleware handler that has been added to the config under its name.
-// This is useful to inspect if a certain middleware is active in this server.
-// Note that this is order dependent and the order is defined in directives.go, i.e. if your middleware
-// comes before the middleware you are checking; it will not be there (yet).
-func (c *Config) Handler(name string) middleware.Handler {
+// Handler returns the plugin handler that has been added to the config under its name.
+// This is useful to inspect if a certain plugin is active in this server.
+// Note that this is order dependent and the order is defined in directives.go, i.e. if your plugin
+// comes before the plugin you are checking; it will not be there (yet).
+func (c *Config) Handler(name string) plugin.Handler {
 	if c.registry == nil {
 		return nil
 	}

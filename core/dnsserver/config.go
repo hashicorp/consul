@@ -3,8 +3,7 @@ package dnsserver
 import (
 	"crypto/tls"
 
-	"github.com/coredns/coredns/middleware"
-
+	"github.com/coredns/coredns/plugin"
 	"github.com/mholt/caddy"
 )
 
@@ -20,7 +19,7 @@ type Config struct {
 	Port string
 
 	// Root points to a base directory we we find user defined "things".
-	// First consumer is the file middleware to looks for zone files in this place.
+	// First consumer is the file plugin to looks for zone files in this place.
 	Root string
 
 	// Debug controls the panic/recover mechanism that is enabled by default.
@@ -33,16 +32,16 @@ type Config struct {
 	// TLSConfig when listening for encrypted connections (gRPC, DNS-over-TLS).
 	TLSConfig *tls.Config
 
-	// Middleware stack.
-	Middleware []middleware.Middleware
+	// Plugin stack.
+	Plugin []plugin.Plugin
 
-	// Compiled middleware stack.
-	middlewareChain middleware.Handler
+	// Compiled plugin stack.
+	pluginChain plugin.Handler
 
-	// Middleware interested in announcing that they exist, so other middleware can call methods
+	// Plugin interested in announcing that they exist, so other plugin can call methods
 	// on them should register themselves here. The name should be the name as return by the
 	// Handler's Name method.
-	registry map[string]middleware.Handler
+	registry map[string]plugin.Handler
 }
 
 // GetConfig gets the Config that corresponds to c.

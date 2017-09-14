@@ -1,4 +1,4 @@
-// Package request abstracts a client's request so that all middleware
+// Package request abstracts a client's request so that all plugin
 // will handle them in an unified way.
 package request
 
@@ -6,12 +6,12 @@ import (
 	"net"
 	"strings"
 
-	"github.com/coredns/coredns/middleware/pkg/edns"
+	"github.com/coredns/coredns/plugin/pkg/edns"
 
 	"github.com/miekg/dns"
 )
 
-// Request contains some connection state and is useful in middleware.
+// Request contains some connection state and is useful in plugin.
 type Request struct {
 	Req *dns.Msg
 	W   dns.ResponseWriter

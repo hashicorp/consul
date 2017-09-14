@@ -24,7 +24,7 @@ type ServergRPC struct {
 	listenAddr net.Addr
 }
 
-// NewServergRPC returns a new CoreDNS GRPC server and compiles all middleware in to it.
+// NewServergRPC returns a new CoreDNS GRPC server and compiles all plugin in to it.
 func NewServergRPC(addr string, group []*Config) (*ServergRPC, error) {
 
 	s, err := NewServer(addr, group)
@@ -62,7 +62,7 @@ func (s *ServergRPC) ServePacket(p net.PacketConn) error { return nil }
 // Listen implements caddy.TCPServer interface.
 func (s *ServergRPC) Listen() (net.Listener, error) {
 
-	// The *tls* middleware must make sure that multiple conflicting
+	// The *tls* plugin must make sure that multiple conflicting
 	// TLS configuration return an error: it can only be specified once.
 	tlsConfig := new(tls.Config)
 	for _, conf := range s.zones {

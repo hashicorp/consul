@@ -8,7 +8,7 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has
-the same model: it chains middleware. In fact it's so similar that CoreDNS is now a server type
+the same model: it chains plugins. In fact it's so similar that CoreDNS is now a server type
 plugin for Caddy.
 
 CoreDNS is also a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
@@ -18,7 +18,7 @@ layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and 
 server that can talk to multiple backends (etcd, kubernetes, etc.).
 
 CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
-are able to do what you want with your DNS data. And if not: write some middleware!
+are able to do what you want with your DNS data. And if not: write some plugin!
 
 CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RFC
 7858](https://tools.ietf.org/html/rfc7858)) and gRPC (not a standard).
@@ -44,7 +44,7 @@ Currently CoreDNS is able to:
 * Rewrite queries (qtype, qclass and qname) (*rewrite*).
 * Echo back the IP address, transport and port number used (*whoami*).
 
-Each of the middlewares has a README.md of its own.
+Each of the plugins has a README.md of its own.
 
 ## Status
 
@@ -92,7 +92,7 @@ The above command alone will have `coredns` binary generated.
 
 ## Examples
 
-When starting CoreDNS without any configuration, it loads the `whoami` middleware and starts
+When starting CoreDNS without any configuration, it loads the `whoami` plugin and starts
 listening on port 53 (override with `-dns.port`), it should show the following:
 
 ~~~ txt

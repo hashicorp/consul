@@ -3,7 +3,7 @@ package dnsserver
 import (
 	"strings"
 
-	"github.com/coredns/coredns/middleware"
+	"github.com/coredns/coredns/plugin"
 
 	"github.com/miekg/dns"
 )
@@ -50,7 +50,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 		str = str[len(TransportGRPC+"://"):]
 	}
 
-	host, port, err := middleware.SplitHostPort(str)
+	host, port, err := plugin.SplitHostPort(str)
 	if err != nil {
 		return zoneAddr{}, err
 	}

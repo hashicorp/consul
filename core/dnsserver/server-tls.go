@@ -14,7 +14,7 @@ type ServerTLS struct {
 	*Server
 }
 
-// NewServerTLS returns a new CoreDNS TLS server and compiles all middleware in to it.
+// NewServerTLS returns a new CoreDNS TLS server and compiles all plugin in to it.
 func NewServerTLS(addr string, group []*Config) (*ServerTLS, error) {
 	s, err := NewServer(addr, group)
 	if err != nil {
@@ -43,7 +43,7 @@ func (s *ServerTLS) ServePacket(p net.PacketConn) error { return nil }
 
 // Listen implements caddy.TCPServer interface.
 func (s *ServerTLS) Listen() (net.Listener, error) {
-	// The *tls* middleware must make sure that multiple conflicting
+	// The *tls* plugin must make sure that multiple conflicting
 	// TLS configuration return an error: it can only be specified once.
 	tlsConfig := new(tls.Config)
 	for _, conf := range s.zones {
