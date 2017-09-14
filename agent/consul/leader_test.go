@@ -703,6 +703,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -715,7 +716,11 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 2
+	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
