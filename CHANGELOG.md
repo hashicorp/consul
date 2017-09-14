@@ -2,6 +2,8 @@
 
 BREAKING CHANGES:
 
+* **Raft Protocol Defaults to 3:** The [`-raft-protocol`](https://www.consul.io/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all Autopilot features by default. Version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](https://www.consul.io/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format.
+
 FEATURES:
 
 IMPROVEMENTS:
@@ -22,7 +24,7 @@ IMPROVEMENTS:
 * agent: Switched to using a read lock for the agent's RPC dispatcher, which prevents RPC calls from getting serialized. [GH-3376]
 * agent: When joining a cluster, Consul now skips the unique node ID constraint for Consul members running Consul older than 0.8.5. This makes it easier to upgrade to newer versions of Consul in an existing cluster with non-unique node IDs. [GH-3070]
 * build: Upgraded Go version to 1.9. [GH-3428]
-* server: Consul servers can re-establish quorum after all of them change their IP addresses upon a restart. [GH-1580] 
+* server: Consul servers can re-establish quorum after all of them change their IP addresses upon a restart. [GH-1580]
 
 BUG FIXES:
 

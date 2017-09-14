@@ -434,10 +434,9 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
-	// TODO: default to 3 in Consul 0.9
-	// Use a transitional version of the raft protocol to interoperate with
-	// versions 1 and 3
-	conf.RaftConfig.ProtocolVersion = 2
+	// Raft protocol version 3 only works with other Consul servers running
+	// 0.8.0 or later.
+	conf.RaftConfig.ProtocolVersion = 3
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
