@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -22,6 +23,7 @@ type KVS struct {
 // must only be done on the leader.
 func kvsPreApply(srv *Server, rule acl.ACL, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
+
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")
 	}
@@ -46,7 +48,10 @@ func kvsPreApply(srv *Server, rule acl.ACL, op api.KVOp, dirEnt *structs.DirEntr
 			}
 
 		default:
-			if !rule.KeyWrite(dirEnt.Key) {
+			scope := func() map[string]interface{} {
+				return sentinel.ScopeKVUpsert(dirEnt.Key, dirEnt.Value, dirEnt.Flags)
+			}
+			if !rule.KeyWrite(dirEnt.Key, scope) {
 				return false, acl.ErrPermissionDenied
 			}
 		}
@@ -115,11 +120,10 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		return err
 	}
 
-	acl, err := k.srv.resolveToken(args.Token)
+	aclRule, err := k.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-
 	return k.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -128,9 +132,10 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if acl != nil && !acl.KeyRead(args.Key) {
+			if aclRule != nil && !aclRule.KeyRead(args.Key) {
 				ent = nil
 			}
+
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
 				// Index 1 is impossible anyways (due to Raft internals)

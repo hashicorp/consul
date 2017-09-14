@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 
+	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/golang-lru"
 )
 
@@ -24,10 +25,11 @@ type Cache struct {
 	aclCache    *lru.TwoQueueCache // Cache id -> acl
 	policyCache *lru.TwoQueueCache // Cache policy -> acl
 	ruleCache   *lru.TwoQueueCache // Cache rules -> policy
+	sentinel    sentinel.Evaluator
 }
 
 // NewCache constructs a new policy and ACL cache of a given size
-func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
+func NewCache(size int, faultfn FaultFunc, sentinel sentinel.Evaluator) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
 	}
@@ -52,6 +54,7 @@ func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 		aclCache:    ac,
 		policyCache: pc,
 		ruleCache:   rc,
+		sentinel:    sentinel,
 	}
 	return c, nil
 }
@@ -69,7 +72,7 @@ func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
 	if ok {
 		return raw.(*Policy), nil
 	}
-	policy, err := Parse(rules)
+	policy, err := Parse(rules, c.sentinel)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +152,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 		}
 
 		// Compile the ACL
-		acl, err := New(parent, policy)
+		acl, err := New(parent, policy, c.sentinel)
 		if err != nil {
 			return nil, err
 		}

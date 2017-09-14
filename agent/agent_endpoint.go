@@ -637,7 +637,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.NodeWrite(s.agent.config.NodeName) {
+	if rule != nil && !rule.NodeWrite(s.agent.config.NodeName, nil) {
 		return nil, acl.ErrPermissionDenied
 	}
 

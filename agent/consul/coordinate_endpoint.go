@@ -139,7 +139,10 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		if !rule.NodeWrite(args.Node) {
+		// We don't enforce the sentinel policy here, since at this time
+		// sentinel only applies to creating or updating node or service
+		// info, not updating coordinates.
+		if !rule.NodeWrite(args.Node, nil) {
 			return acl.ErrPermissionDenied
 		}
 	}
