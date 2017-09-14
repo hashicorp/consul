@@ -809,7 +809,8 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 		QueryOptions: structs.QueryOptions{RequireConsistent: true},
 	}
 	var out structs.IndexedNodes
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); !strings.HasPrefix(err.Error(), "leadership lost") {
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	if err == nil || !strings.HasPrefix(err.Error(), "leadership lost") {
 		t.Fatalf("err: %v", err)
 	}
 
