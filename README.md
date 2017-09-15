@@ -8,17 +8,16 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has
-the same model: it chains plugins. In fact it's so similar that CoreDNS is now a server type
-plugin for Caddy.
+the same model: it chains plugins.
 
-CoreDNS is also a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
+CoreDNS is a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
 
 CoreDNS is the successor to [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
 layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
 server that can talk to multiple backends (etcd, kubernetes, etc.).
 
 CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
-are able to do what you want with your DNS data. And if not: write some plugin!
+are able to do what you want with your DNS data. And if not: write a plugin!
 
 CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RFC
 7858](https://tools.ietf.org/html/rfc7858)) and gRPC (not a standard).
@@ -48,19 +47,10 @@ Each of the plugins has a README.md of its own.
 
 ## Status
 
-CoreDNS can be used as an authoritative nameserver for your domains, and should be stable enough to
-provide you with good DNS(SEC) service.
-
-There are still a few known [issues](https://github.com/coredns/coredns/issues), and work is ongoing
-on making things fast and to reduce the memory usage.
-
-All in all, CoreDNS should be able to provide you with enough functionality to replace parts of BIND
-9, Knot, NSD or PowerDNS and SkyDNS. Most documentation is in the source and some blog articles can
-be [found here](https://blog.coredns.io). If you do want to use CoreDNS in production, please
-let us know and how we can help.
-
-<https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
-Caddyfile when forked).
+CoreDNS can be used as an authoritative nameserver for your domains. All in all, CoreDNS should be
+able to provide you with enough functionality to replace parts of BIND 9, Knot, NSD or PowerDNS and
+SkyDNS. Most documentation is in the source and blog articles can be [found
+here](https://coredns.io). If you do want to use CoreDNS in production, please let us know.
 
 ## Compilation
 
@@ -78,10 +68,10 @@ And then `go build` as you would normally do:
 
 This should yield a `coredns` binary.
 
-## Compilation with docker
+## Compilation with Docker
 
-CoreDNS requires golang to compile. However, if you already have docker installed and prefer not to setup
-golang environment, you could build coredns easily:
+CoreDNS requires Go to compile. However, if you already have docker installed and prefer not to setup
+a Go environment, you could build coredns easily:
 
 ```
 $ docker run --rm -i -t -v $PWD:/go/src/github.com/coredns/coredns \
@@ -116,13 +106,12 @@ Start a simple proxy, you'll need to be root to start listening on port 53.
 ~~~ txt
 .:53 {
     proxy . 8.8.8.8:53
-    log stdout
+    log
 }
 ~~~
 
-Just start CoreDNS: `./coredns`.
-And then just query on that port (53). The query should be forwarded to 8.8.8.8 and the response
-will be returned. Each query should also show up in the log.
+Just start CoreDNS: `./coredns`. Then just query on that port (53). The query should be forwarded to
+8.8.8.8 and the response will be returned. Each query should also show up in the log.
 
 Serve the (NSEC) DNSSEC-signed `example.org` on port 1053, with errors and logging sent to stdout.
 Allow zone transfers to everybody, but specifically mention 1 IP address so that CoreDNS can send
@@ -134,8 +123,8 @@ example.org:1053 {
         transfer to *
         transfer to 2001:500:8f::53
     }
-    errors stdout
-    log stdout
+    errors
+    log
 }
 ~~~
 
@@ -151,36 +140,8 @@ nameserver *and* rewrite ANY queries to HINFO.
         transfer to *
         transfer to 2001:500:8f::53
     }
-    errors stdout
-    log stdout
-}
-~~~
-
-### Zone Specification
-
-The following Corefile fragment is legal, but does not explicitly define a zone to listen on:
-
-~~~ txt
-{
-   # ...
-}
-~~~
-
-This defaults to `.:53` (or whatever `-dns.port` is).
-
-The next one only defines a port:
-~~~ txt
-:123 {
-    # ...
-}
-~~~
-This defaults to the root zone `.`, but can't be overruled with the `-dns.port` flag.
-
-Just specifying a zone, default to listening on port 53 (can still be overridden with `-dns.port`):
-
-~~~ txt
-example.org {
-    # ...
+    errors
+    log
 }
 ~~~
 
@@ -191,7 +152,7 @@ IP addresses are also allowed. They are automatically converted to reverse zones
     # ...
 }
 ~~~
-Means you are authoritative for `0.0.10.in-addr.arpa.`. 
+Means you are authoritative for `0.0.10.in-addr.arpa.`.
 
 The netmask must be dividable by 8, if it is not the reverse conversion is not done. This also works
 for IPv6 addresses. If for some reason you want to serve a zone named `10.0.0.0/24` add the closing
