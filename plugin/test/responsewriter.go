@@ -43,7 +43,7 @@ func (t *ResponseWriter) TsigTimersOnly(bool) { return }
 // Hijack implement dns.ResponseWriter interface.
 func (t *ResponseWriter) Hijack() { return }
 
-// RepsponseWrite6 returns fixed client and remote address in IPv6.  The remote
+// ResponseWriter6 returns fixed client and remote address in IPv6.  The remote
 // address is always fe80::42:ff:feca:4c65 and port 40212. The local address
 // is always ::1 and port 53.
 type ResponseWriter6 struct {
