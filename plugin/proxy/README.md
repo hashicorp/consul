@@ -113,55 +113,67 @@ proxy example.org 127.0.0.1:9005
 
 Load-balance all requests between three backends (using random policy):
 
-~~~
-proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12
+~~~ corefile
+. {
+    proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12
+}
 ~~~
 
 Same as above, but round-robin style:
 
-~~~
-proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12 {
-	policy round_robin
+~~~ corefile
+. {
+    proxy . 10.0.0.10:53 10.0.0.11:1053 10.0.0.12 {
+        policy round_robin
+    }
 }
 ~~~
 
 With health checks and proxy headers to pass hostname, IP, and scheme upstream:
 
-~~~
-proxy . 10.0.0.11:53 10.0.0.11:53 10.0.0.12:53 {
-	policy round_robin
-	health_check /health:8080
+~~~ corefile
+. {
+    proxy . 10.0.0.11:53 10.0.0.11:53 10.0.0.12:53 {
+        policy round_robin
+        health_check /health:8080
+    }
 }
 ~~~
 
 Proxy everything except requests to miek.nl or example.org
 
 ~~~
-proxy . 10.0.0.10:1234 {
-	except miek.nl example.org
+. {
+    proxy . 10.0.0.10:1234 {
+        except miek.nl example.org
+    }
 }
 ~~~
 
-Proxy everything except example.org using the host resolv.conf nameservers:
+Proxy everything except `example.org` using the host's `resolv.conf`'s nameservers:
 
-~~~
-proxy . /etc/resolv.conf {
-	except miek.nl example.org
+~~~ corefile
+. {
+    proxy . /etc/resolv.conf {
+        except miek.nl example.org
+    }
 }
 ~~~
 
-Proxy all requests within example.org to Google's dns.google.com.
+Proxy all requests within `example.org` to Google's `dns.google.com`.
 
-~~~
-proxy example.org 1.2.3.4:53 {
-    protocol https_google
+~~~ corefile
+. {
+    proxy example.org 1.2.3.4:53 {
+        protocol https_google
+    }
 }
 ~~~
 
 Proxy everything with HTTPS to `dns.google.com`, except `example.org`. Then have another proxy in
 another stanza that uses plain DNS to resolve names under `example.org`.
 
-~~~
+~~~ corefile
 . {
     proxy . 1.2.3.4:53 {
         except example.org
