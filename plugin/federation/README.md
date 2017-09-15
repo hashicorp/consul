@@ -1,6 +1,6 @@
 # federation
 
-The *federation* plugin enables
+*federation* enables
 [federated](https://kubernetes.io/docs/tasks/federation/federation-service-discovery/) queries to be
 resolved via the kubernetes plugin.
 

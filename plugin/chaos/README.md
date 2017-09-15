@@ -1,6 +1,6 @@
 # chaos
 
-The *chaos* plugin allows CoreDNS to respond to TXT queries in the CH class.
+*chaos* allows CoreDNS to respond to TXT queries in the CH class.
 
 This is useful for retrieving version or author information from the server.
 

@@ -1,7 +1,8 @@
 # kubernetes
 
-The *kubernetes* plugin enables the reading zone data from a Kubernetes cluster.  It implements
-the [Kubernetes DNS-Based Service Discovery
+The *kubernetes* plugin enables the reading zone data from a Kubernetes cluster.
+
+It implements the [Kubernetes DNS-Based Service Discovery
 Specification](https://github.com/kubernetes/dns/blob/master/docs/specification.md).
 
 CoreDNS running the kubernetes plugin can be used as a replacement of kube-dns in a kubernetes

@@ -1,6 +1,6 @@
 # reverse
 
-The *reverse* plugin allows CoreDNS to respond dynamically to a PTR request and the related A/AAAA request.
+*reverse* allows CoreDNS to respond dynamically to a PTR request and the related A/AAAA request.
 
 ## Syntax
 
@@ -38,7 +38,7 @@ The zone will be matched by the zones listed in *this* configuration stanza.
 
 ## Examples
 
-~~~ txt
+~~~ corefile
 arpa compute.internal {
     # proxy unmatched requests
     proxy . 8.8.8.8
@@ -63,7 +63,7 @@ arpa compute.internal {
 ~~~
 
 
-~~~ txt
+~~~ corefile
 32.10.in-addr.arpa.arpa arpa.company.org {
 
     reverse 10.32.0.0/16 {

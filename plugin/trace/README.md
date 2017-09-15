@@ -1,7 +1,6 @@
 # trace
 
-This module enables OpenTracing-based tracing of DNS requests as they go through the
-plugin chain.
+*trace* enables OpenTracing-based tracing of DNS requests as they go through the plugin chain.
 
 ## Syntax
 

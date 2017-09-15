@@ -1,6 +1,6 @@
 # health
 
-This module enables a simple health check endpoint. By default it will listen on port 8080.
+*health* enabless a simple health check endpoint. By default it will listen on port 8080.
 
 ## Syntax
 
