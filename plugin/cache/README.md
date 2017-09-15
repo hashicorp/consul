@@ -62,7 +62,9 @@ cache 10
 
 Proxy to Google Public DNS and only cache responses for example.org (or below).
 
-~~~
-proxy . 8.8.8.8:53
-cache example.org
+~~~ corefile
+. {
+    proxy . 8.8.8.8:53
+    cache example.org
+}
 ~~~

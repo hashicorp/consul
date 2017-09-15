@@ -51,8 +51,10 @@ trace tracinghost:9253
 
 or
 
-~~~
-trace zipkin tracinghost:9253
+~~~ corefile
+. {
+    trace zipkin tracinghost:9253
+}
 ~~~
 
 If for some reason you are using an API reverse proxy or something and need to remap

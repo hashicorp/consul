@@ -17,6 +17,8 @@ root PATH
 
 Serve zone data (when the *file* plugin is used) from `/etc/coredns/zones`:
 
-~~~ txt
-root /etc/coredns/zones
+~~~ corefile
+. {
+    root /etc/coredns/zones
+}
 ~~~

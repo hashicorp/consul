@@ -20,9 +20,9 @@ federation [ZONES...] {
 
 Here we handle all service requests in the `prod` and `stage` federations.
 
-~~~ txt
+~~~
 . {
-    kubernetes cluster.local 
+    kubernetes cluster.local
     federation cluster.local {
         prod prod.feddomain.com
         staging staging.feddomain.com
@@ -32,7 +32,7 @@ Here we handle all service requests in the `prod` and `stage` federations.
 
 Or slightly shorter:
 
-~~~ txt
+~~~
 cluster.local {
     kubernetes
     federation {

@@ -50,19 +50,23 @@ directive only is authoritative for `example.ORG`.
 Load `org` domains from `/etc/coredns/zones/org` and allow transfers to the internet, but send
 notifies to 10.240.1.1
 
-~~~
-auto org {
-    directory /etc/coredns/zones/org
-    transfer to *
-    transfer to 10.240.1.1
+~~~ corefile
+. {
+    auto org {
+        directory /etc/coredns/zones/org
+        transfer to *
+        transfer to 10.240.1.1
+    }
 }
 ~~~
 
 Load `org` domains from `/etc/coredns/zones/org` and looks for file names as `www.db.example.org`,
 where `example.org` is the origin. Scan every 45 seconds.
 
-~~~
-auto org {
-    directory /etc/coredns/zones/org www\.db\.(.*) {1} 45
+~~~ corefile
+org {
+    auto {
+        directory /etc/coredns/zones/org www\.db\.(.*) {1} 45
+    }
 }
 ~~~

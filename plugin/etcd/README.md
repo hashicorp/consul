@@ -50,8 +50,8 @@ etcd [ZONES...] {
 
 This is the default SkyDNS setup, with everying specified in full:
 
-~~~
-.:53 {
+~~~ corefile
+. {
     etcd skydns.local {
         stubzones
         path /skydns
@@ -68,8 +68,8 @@ This is the default SkyDNS setup, with everying specified in full:
 Or a setup where we use `/etc/resolv.conf` as the basis for the proxy and the upstream
 when resolving external pointing CNAMEs.
 
-~~~
-.:53 {
+~~~ corefile
+. {
     etcd skydns.local {
         path /skydns
         upstream /etc/resolv.conf
@@ -88,9 +88,9 @@ need to add the zone `0.0.10.in-addr.arpa` to the list of zones. (The fun starts
 in the ip6.arpa domain.) Showing a snippet of a Corefile:
 
 ~~~
-    etcd skydns.local 0.0.10.in-addr.arpa {
-        stubzones
-    ...
+etcd skydns.local 0.0.10.in-addr.arpa {
+    stubzones
+...
 ~~~
 
 Next you'll need to populate the zone with reverse records, here we add a reverse for

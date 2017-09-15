@@ -17,6 +17,8 @@ bind ADDRESS
 
 To make your socket accessible only to that machine, bind to IP 127.0.0.1 (localhost):
 
-~~~ txt
-bind 127.0.0.1
+~~~
+. {
+    bind 127.0.0.1
+}
 ~~~

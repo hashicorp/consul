@@ -27,8 +27,8 @@ erratic {
 
 ## Examples
 
-~~~ txt
-.:53 {
+~~~ corefile
+. {
     erratic {
         drop 3
     }
@@ -37,7 +37,7 @@ erratic {
 
 Or even shorter if the defaults suits you. Note this only drops queries, it does not delay them.
 
-~~~ txt
+~~~ corefile
 . {
     erratic
 }
@@ -45,7 +45,7 @@ Or even shorter if the defaults suits you. Note this only drops queries, it does
 
 Delay 1 in 3 queries for 50ms
 
-~~~ txt
+~~~ corefile
 . {
     erratic {
         delay 3 50ms
@@ -55,7 +55,7 @@ Delay 1 in 3 queries for 50ms
 
 Delay 1 in 3 and truncate 1 in 5.
 
-~~~ txt
+~~~ corefile
 . {
     erratic {
         delay 3 5ms
@@ -66,7 +66,7 @@ Delay 1 in 3 and truncate 1 in 5.
 
 Drop every second query.
 
-~~~ txt
+~~~ corefile
 . {
     erratic {
         drop 2

@@ -15,6 +15,8 @@ debug
 
 Disable CoreDNS' ability to recover from crashes:
 
-~~~ txt
-debug
+~~~ corefile
+. {
+    debug
+}
 ~~~

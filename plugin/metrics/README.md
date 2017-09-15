@@ -43,8 +43,10 @@ is `localhost:9153`. The metrics path is fixed to `/metrics`.
 
 Use an alternative address:
 
-~~~
-prometheus localhost:9253
+~~~ corefile
+. {
+    prometheus localhost:9253
+}
 ~~~
 
 # Bugs

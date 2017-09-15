@@ -31,7 +31,9 @@ pprof
 Listen on an alternate address:
 
 ~~~
-pprof 10.9.8.7:6060
+. {
+    pprof 10.9.8.7:6060
+}
 ~~~
 
 Listen on an all addresses on port 6060:
