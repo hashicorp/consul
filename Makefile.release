@@ -39,6 +39,10 @@
 #
 # Docker push should happen after you make the new release and uploaded it to Github.
 
+ifeq (, $(shell which gh-release))
+     $(error "No gh-release in $$PATH, install with `go get progrium/gh-release`")
+endif
+
 NAME:=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 ARCH:=$(shell uname -m)
