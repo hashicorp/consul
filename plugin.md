@@ -1,6 +1,6 @@
-# Middleware
+# Plugins
 
-## Writing Middleware
+## Writing Plugins
 
 From the Caddy docs:
 
@@ -136,7 +136,7 @@ compute.internal.	3600	IN	MX	10 mx.compute.internal.
 
 ## Qualifying for main repo
 
-Middleware for CoreDNS can live out-of-tree, `plugin.cfg` defaults to CoreDNS' repo but other
+Plugins for CoreDNS can live out-of-tree, `plugin.cfg` defaults to CoreDNS' repo but other
 repos work just as well. So when do we consider the inclusion of a new plugin in the main repo?
 
 * First, the plugin should be useful for other people. "Useful" is a subjective term. We will

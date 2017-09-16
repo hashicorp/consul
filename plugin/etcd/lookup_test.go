@@ -221,7 +221,7 @@ var dnsTestCases = []test.Case{
 	},
 }
 
-func newEtcdMiddleware() *Etcd {
+func newEtcdPlugin() *Etcd {
 	ctxt = context.TODO()
 
 	endpoints := []string{"http://localhost:2379"}
@@ -253,7 +253,7 @@ func delete(t *testing.T, e *Etcd, k string) {
 }
 
 func TestLookup(t *testing.T) {
-	etc := newEtcdMiddleware()
+	etc := newEtcdPlugin()
 	for _, serv := range services {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)

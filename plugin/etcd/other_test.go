@@ -17,7 +17,7 @@ import (
 )
 
 func TestOtherLookup(t *testing.T) {
-	etc := newEtcdMiddleware()
+	etc := newEtcdPlugin()
 
 	for _, serv := range servicesOther {
 		set(t, etc, serv.Key, 0, serv)

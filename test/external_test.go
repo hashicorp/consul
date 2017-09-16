@@ -12,8 +12,8 @@ import (
 // and check if it is really there, but running coredns -plugins.
 
 // Dangerous test as it messes with your git tree, maybe use tag?
-func testExternalMiddlewareCompile(t *testing.T) {
-	if err := addExampleMiddleware(); err != nil {
+func testExternalPluginCompile(t *testing.T) {
+	if err := addExamplePlugin(); err != nil {
 		t.Fatal(err)
 	}
 	defer run(t, gitReset)
@@ -50,7 +50,7 @@ func run(t *testing.T, c *exec.Cmd) ([]byte, error) {
 
 }
 
-func addExampleMiddleware() error {
+func addExamplePlugin() error {
 	f, err := os.OpenFile("../plugin.cfg", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		return err

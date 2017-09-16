@@ -49,7 +49,7 @@ func setup(c *caddy.Controller) error {
 	c.OnStartup(h.Startup)
 	c.OnFinalShutdown(h.Shutdown)
 
-	// Don't do AddMiddleware, as health is not *really* a plugin just a separate webserver running.
+	// Don't do AddPlugin, as health is not *really* a plugin just a separate webserver running.
 	return nil
 }
 

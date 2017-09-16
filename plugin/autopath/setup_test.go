@@ -55,7 +55,7 @@ func TestSetupAutoPath(t *testing.T) {
 		}
 
 		if !test.shouldErr && mw != test.expectedMw {
-			t.Errorf("Test %d, Middleware not correctly set for input %s. Expected: %s, actual: %s", i, test.input, test.expectedMw, mw)
+			t.Errorf("Test %d, Plugin not correctly set for input %s. Expected: %s, actual: %s", i, test.input, test.expectedMw, mw)
 		}
 		if !test.shouldErr && ap.search != nil {
 			if !reflect.DeepEqual(test.expectedSearch, ap.search) {

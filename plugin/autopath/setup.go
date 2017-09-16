@@ -49,8 +49,8 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-// allowedMiddleware has a list of plugin that can be used by autopath.
-var allowedMiddleware = map[string]bool{
+// allowedPlugins has a list of plugin that can be used by autopath.
+var allowedPlugins = map[string]bool{
 	"@kubernetes": true,
 	"@erratic":    true,
 }
@@ -66,7 +66,7 @@ func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
 		}
 		resolv := zoneAndresolv[len(zoneAndresolv)-1]
 		if resolv[0] == '@' {
-			_, ok := allowedMiddleware[resolv]
+			_, ok := allowedPlugins[resolv]
 			if ok {
 				mw = resolv[1:]
 			}

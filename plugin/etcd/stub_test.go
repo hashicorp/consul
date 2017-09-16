@@ -39,7 +39,7 @@ func TestStubLookup(t *testing.T) {
 	exampleNetStub := &msg.Service{Host: host, Port: port, Key: "a.example.net.stub.dns.skydns.test."}
 	servicesStub = append(servicesStub, exampleNetStub)
 
-	etc := newEtcdMiddleware()
+	etc := newEtcdPlugin()
 
 	for _, serv := range servicesStub {
 		set(t, etc, serv.Key, 0, serv)

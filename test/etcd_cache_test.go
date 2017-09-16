@@ -32,7 +32,7 @@ func TestEtcdCache(t *testing.T) {
 	}
 	defer ex.Stop()
 
-	etc := etcdMiddleware()
+	etc := etcdPlugin()
 	log.SetOutput(ioutil.Discard)
 
 	var ctx = context.TODO()

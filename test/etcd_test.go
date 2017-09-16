@@ -20,7 +20,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func etcdMiddleware() *etcd.Etcd {
+func etcdPlugin() *etcd.Etcd {
 	etcdCfg := etcdc.Config{
 		Endpoints: []string{"http://localhost:2379"},
 	}
@@ -53,7 +53,7 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 	}
 	defer ex.Stop()
 
-	etc := etcdMiddleware()
+	etc := etcdPlugin()
 	log.SetOutput(ioutil.Discard)
 
 	var ctx = context.TODO()

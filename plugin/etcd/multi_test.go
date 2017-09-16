@@ -13,7 +13,7 @@ import (
 )
 
 func TestMultiLookup(t *testing.T) {
-	etc := newEtcdMiddleware()
+	etc := newEtcdPlugin()
 	etc.Zones = []string{"skydns.test.", "miek.nl."}
 	etc.Fallthrough = true
 	etc.Next = test.ErrorHandler()

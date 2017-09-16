@@ -25,7 +25,7 @@ autopath.Func. Note the searchpath must be ending with the empty string.
 
 I.e:
 
-func (m Middleware ) AutoPath(state request.Request) []string {
+func (m Plugins ) AutoPath(state request.Request) []string {
 	return []string{"first", "second", "last", ""}
 }
 */
