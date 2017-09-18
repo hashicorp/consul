@@ -492,18 +492,10 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
-			r.Fatalf("got %d s1 LAN members want %d", got, want)
-		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
-			r.Fatalf("got %d s2 LAN members want %d", got, want)
-		}
-	})
+
 	// Verify Raft has established a peer
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 2))
-		r.Check(wantPeers(s2, 2))
+		r.Check(wantRaft([]*Server{s1, s2}))
 	})
 }
 
@@ -555,10 +547,7 @@ func TestServer_Expect(t *testing.T) {
 
 	// Wait for the new server to see itself added to the cluster.
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 4))
-		r.Check(wantPeers(s2, 4))
-		r.Check(wantPeers(s3, 4))
-		r.Check(wantPeers(s4, 4))
+		r.Check(wantRaft([]*Server{s1, s2, s3, s4}))
 	})
 
 	// Make sure there's still a leader and that the term didn't change,
@@ -661,16 +650,10 @@ func TestServer_Encrypted(t *testing.T) {
 }
 
 func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
-	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// make sure both servers know about each other
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s2, 2)) })
+	joinLAN(t, s1, s2)
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
 
 	// Have s2 make an RPC call to s1
 	var leader *metadata.Server
