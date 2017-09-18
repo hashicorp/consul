@@ -808,10 +808,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	servers := []*Server{s1, s2, s3}
 
-	// Try to join
+	// Try to join and wait for all servers to get promoted
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
-
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
@@ -846,10 +845,21 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	joinLAN(t, s4, s1)
 	servers[2] = s4
 
+	// While integrating #3327 it uncovered that this test was flaky. The
+	// connection pool would use the same TCP connection to the old server
+	// which would give EOF errors to the autopilot health check RPC call.
+	// To make this more reliable we changed the connection pool to throw
+	// away the connection if it sees an EOF error, since there's no way
+	// that connection is going to work again. This made this test reliable
+	// since it will make a new connection to s4.
+
 	// Make sure the dead server is removed and we're back to 3 total peers
-	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
-	}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
 }
 
 func TestLeader_ACL_Initialization(t *testing.T) {
