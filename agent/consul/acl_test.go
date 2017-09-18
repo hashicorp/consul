@@ -235,7 +235,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	client := rpcClient(t, s1)
 	defer client.Close()
@@ -278,7 +278,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -346,7 +346,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -395,7 +395,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -461,7 +461,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -529,7 +529,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
