@@ -89,6 +89,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
 	}
+
 	dir2, s2 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -101,24 +102,35 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
 
-	servers := []*Server{s1, s2, s3, s4}
+	dir5, s5 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir5)
+	defer s5.Shutdown()
 
-	// Join the servers to s1
+	servers := []*Server{s1, s2, s3, s4, s5}
+
+	// Join the servers to s1, and wait until they are all promoted to
+	// voters.
 	for _, s := range servers[1:] {
 		joinLAN(t, s, s1)
 	}
-
-	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 4)) })
-	}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 5))
+		}
+	})
 
 	// Kill a non-leader server
 	s4.Shutdown()
 
 	// Should be removed from the peers automatically
-	for _, s := range []*Server{s1, s2, s3} {
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
-	}
+	servers = []*Server{s1, s2, s3, s5}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 4))
+		}
+	})
 }
 
 func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
