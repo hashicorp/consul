@@ -46,7 +46,7 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 			t.Fatalf("bad: %s", body)
 		}
 		w.Write([]byte("Ok, i see"))
-		t.Log("goood")
+		t.Log("goood") // TODO: Clean
 	}))
 	defer server.Close()
 	t.Log("ww")
