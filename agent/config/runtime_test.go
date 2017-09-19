@@ -233,16 +233,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "-data-dir does not exist",
-			flags: []string{
-				`-data-dir=a`,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "a"
-			},
-			err: `data_dir "a" does not exist`,
-		},
-		{
 			desc: "-data-dir empty",
 			flags: []string{
 				`-data-dir=`,

@@ -851,8 +851,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		switch {
 		case err != nil && !os.IsNotExist(err):
 			return fmt.Errorf("Error getting info on data_dir: %s", err)
-		case err != nil && os.IsNotExist(err):
-			return fmt.Errorf("data_dir %q does not exist", rt.DataDir)
 		case err == nil && !fi.IsDir():
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
