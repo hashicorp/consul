@@ -671,6 +671,23 @@ the example above, the rules allow read-only access to any key name with the emp
 read-write access to any key name that starts with "foo", and deny all access to any key name that
 starts with "bar".
 
+Consul Enterprise supports additional optional fields for key write policies for
+[Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example key rule with a
+Sentinel code policy looks like this:
+
+```text
+key "foo" {
+  policy = "write"
+  sentinel {
+      code = " import \"strings\"
+               main = rule { strings.has_suffix(value, \"bar\") } "
+      enforcementlevel = "hard-mandatory"
+  }
+}
+```
+
+For more detailed documentation, see the [Consul Sentinel Guide](/docs/guides/sentinel.html).
+
 #### Keyring Rules
 
 The `keyring` policy controls access to keyring operations in the
@@ -928,6 +945,23 @@ to use for registration events:
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
 script checks.
+
+Consul Enterprise supports additional optional fields for key write policies for
+[Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example service
+rule with a Sentinel code policy looks like this:
+
+```text
+service "foo" {
+  policy = "write"
+  sentinel {
+      code = " import \"strings\"
+               main = rule { strings.has_suffix(service, \"Service\") } "
+      enforcementlevel = "hard-mandatory"
+  }
+}
+```
+
+For more detailed documentation, see the [Consul Sentinel Guide](/docs/guides/sentinel.html).
 
 #### Session Rules
 
