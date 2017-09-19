@@ -904,6 +904,23 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.PerformanceRaftMultiplier < 1 || uint(rt.PerformanceRaftMultiplier) > consul.MaxRaftMultiplier {
 		return fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", rt.PerformanceRaftMultiplier, consul.MaxRaftMultiplier)
 	}
+	// Check the data dir for signs of an un-migrated Consul 0.5.x or older
+	// server. Consul refuses to start if this is present to protect a server
+	// with existing data from starting on a fresh data set.
+	if rt.ServerMode {
+		mdbPath := filepath.Join(rt.DataDir, "mdb")
+		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
+			if os.IsPermission(err) {
+				return fmt.Errorf(
+					"CRITICAL: Permission denied for data folder at %q!\n"+
+						"Consul will refuse to boot without access to this directory.\n"+
+						"Please correct permissions and try starting again.", mdbPath)
+			}
+			return fmt.Errorf("CRITICAL: Deprecated data folder found at %q!\n"+
+				"Consul will refuse to boot with this directory present.\n"+
+				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
+		}
+	}
 
 	// ----------------------------------------------------------------
 	// warnings
@@ -932,20 +949,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			}
 		} else if !finfo.IsDir() {
 			b.warn(fmt.Sprintf("data_dir: not a directory: %s", rt.DataDir))
-		}
-	}
-
-	if rt.ServerMode {
-		mdbPath := filepath.Join(rt.DataDir, "mdb")
-		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
-			if os.IsPermission(err) {
-				b.warn(fmt.Sprintf("CRITICAL: Permission denied for data folder at %q!", mdbPath))
-				b.warn("Consul will refuse to boot without access to this directory.")
-				b.warn("Please correct permissions and try starting again.")
-			}
-			b.warn(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
-			b.warn("Consul will refuse to boot with this directory present.")
-			b.warn("See https://www.consul.io/docs/upgrade-specific.html for more information.")
 		}
 	}
 
