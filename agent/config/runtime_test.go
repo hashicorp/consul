@@ -2853,6 +2853,8 @@ func TestFullConfig(t *testing.T) {
 				{
 					"consul": {
 						"coordinate": {
+							"update_batch_size": 9244,
+							"update_max_batches": 15164,
 							"update_period": "25093s"
 						},
 						"raft": {
@@ -2902,6 +2904,8 @@ func TestFullConfig(t *testing.T) {
 				Data: `
 					consul = {
 						coordinate = {
+							update_batch_size = 9244
+							update_max_batches = 15164
 							update_period = "25093s"
 						}
 						raft = {
@@ -2948,19 +2952,21 @@ func TestFullConfig(t *testing.T) {
 		VersionPrerelease: "ZT1JOQLn",
 
 		// consul configuration
-		ConsulCoordinateUpdatePeriod: 25093 * time.Second,
-		ConsulRaftElectionTimeout:    31947 * time.Second,
-		ConsulRaftHeartbeatTimeout:   25699 * time.Second,
-		ConsulRaftLeaderLeaseTimeout: 15351 * time.Second,
-		ConsulSerfLANGossipInterval:  25252 * time.Second,
-		ConsulSerfLANProbeInterval:   5105 * time.Second,
-		ConsulSerfLANProbeTimeout:    29179 * time.Second,
-		ConsulSerfLANSuspicionMult:   8263,
-		ConsulSerfWANGossipInterval:  6966 * time.Second,
-		ConsulSerfWANProbeInterval:   20148 * time.Second,
-		ConsulSerfWANProbeTimeout:    3007 * time.Second,
-		ConsulSerfWANSuspicionMult:   32096,
-		ConsulServerHealthInterval:   17455 * time.Second,
+		ConsulCoordinateUpdateBatchSize:  9244,
+		ConsulCoordinateUpdateMaxBatches: 15164,
+		ConsulCoordinateUpdatePeriod:     25093 * time.Second,
+		ConsulRaftElectionTimeout:        31947 * time.Second,
+		ConsulRaftHeartbeatTimeout:       25699 * time.Second,
+		ConsulRaftLeaderLeaseTimeout:     15351 * time.Second,
+		ConsulSerfLANGossipInterval:      25252 * time.Second,
+		ConsulSerfLANProbeInterval:       5105 * time.Second,
+		ConsulSerfLANProbeTimeout:        29179 * time.Second,
+		ConsulSerfLANSuspicionMult:       8263,
+		ConsulSerfWANGossipInterval:      6966 * time.Second,
+		ConsulSerfWANProbeInterval:       20148 * time.Second,
+		ConsulSerfWANProbeTimeout:        3007 * time.Second,
+		ConsulSerfWANSuspicionMult:       32096,
+		ConsulServerHealthInterval:       17455 * time.Second,
 
 		// user configurable values
 

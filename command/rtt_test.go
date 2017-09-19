@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
@@ -55,11 +54,10 @@ func TestRTTCommand_Run_BadArgs(t *testing.T) {
 
 func TestRTTCommand_Run_LAN(t *testing.T) {
 	t.Parallel()
-	updatePeriod := 10 * time.Millisecond
 	a := agent.NewTestAgent(t.Name(), `
 		consul = {
 			coordinate = {
-				update_period = "`+updatePeriod.String()+`"
+				update_period = "10ms"
 			}
 		}
 	`)

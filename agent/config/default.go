@@ -148,8 +148,8 @@ func DefaultConsulSource() Source {
 		Data: `
 		consul = {
 			coordinate = {
-				batch_size = "` + strconv.Itoa(cfg.CoordinateUpdateBatchSize) + `"
-				max_batches = "` + strconv.Itoa(cfg.CoordinateUpdateMaxBatches) + `"
+				update_batch_size = ` + strconv.Itoa(cfg.CoordinateUpdateBatchSize) + `
+				update_max_batches = ` + strconv.Itoa(cfg.CoordinateUpdateMaxBatches) + `
 				update_period = "` + cfg.CoordinateUpdatePeriod.String() + `"
 			}
 			raft = {
@@ -190,8 +190,6 @@ func DevConsulSource() Source {
 		Data: `
 		consul = {
 			coordinate = {
-				batch_size = 128
-				max_batches = 5
 				update_period = "100ms"
 			}
 			raft = {

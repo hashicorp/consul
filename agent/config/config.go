@@ -179,20 +179,20 @@ type Config struct {
 }
 
 type Consul struct {
-	Coordinate *struct {
-		BatchSize    *int    `json:"batch_size,omitempty" hcl:"batch_size"`
-		MaxBatches   *int    `json:"max_batches,omitempty" hcl:"max_batches"`
-		UpdatePeriod *string `json:"update_period,omitempty" hcl:"update_period"`
+	Coordinate struct {
+		UpdateBatchSize  *int    `json:"update_batch_size,omitempty" hcl:"update_batch_size"`
+		UpdateMaxBatches *int    `json:"update_max_batches,omitempty" hcl:"update_max_batches"`
+		UpdatePeriod     *string `json:"update_period,omitempty" hcl:"update_period"`
 	} `json:"coordinate,omitempty" hcl:"coordinate"`
 
-	Raft *struct {
+	Raft struct {
 		ElectionTimeout    *string `json:"election_timeout,omitempty" hcl:"election_timeout"`
 		HeartbeatTimeout   *string `json:"heartbeat_timeout,omitempty" hcl:"heartbeat_timeout"`
 		LeaderLeaseTimeout *string `json:"leader_lease_timeout,omitempty" hcl:"leader_lease_timeout"`
 	} `json:"raft,omitempty" hcl:"raft"`
 
-	SerfLAN *struct {
-		Memberlist *struct {
+	SerfLAN struct {
+		Memberlist struct {
 			GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval"`
 			ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval"`
 			ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout"`
@@ -200,8 +200,8 @@ type Consul struct {
 		} `json:"memberlist,omitempty" hcl:"memberlist"`
 	} `json:"serf_lan,omitempty" hcl:"serf_lan"`
 
-	SerfWAN *struct {
-		Memberlist *struct {
+	SerfWAN struct {
+		Memberlist struct {
 			GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval"`
 			ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval"`
 			ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout"`
@@ -209,7 +209,7 @@ type Consul struct {
 		} `json:"memberlist,omitempty" hcl:"memberlist"`
 	} `json:"serf_wan,omitempty" hcl:"serf_wan"`
 
-	Server *struct {
+	Server struct {
 		HealthInterval *string `json:"health_interval,omitempty" hcl:"health_interval"`
 	} `json:"server,omitempty" hcl:"server"`
 }

@@ -28,21 +28,21 @@ type RuntimeConfig struct {
 	VersionPrerelease          string
 
 	// consul config
-	ConsulCoordinateBatchSize    int
-	ConsulCoordinateMaxBatches   int
-	ConsulCoordinateUpdatePeriod time.Duration
-	ConsulRaftElectionTimeout    time.Duration
-	ConsulRaftHeartbeatTimeout   time.Duration
-	ConsulRaftLeaderLeaseTimeout time.Duration
-	ConsulSerfLANGossipInterval  time.Duration
-	ConsulSerfLANProbeInterval   time.Duration
-	ConsulSerfLANProbeTimeout    time.Duration
-	ConsulSerfLANSuspicionMult   int
-	ConsulSerfWANGossipInterval  time.Duration
-	ConsulSerfWANProbeInterval   time.Duration
-	ConsulSerfWANProbeTimeout    time.Duration
-	ConsulSerfWANSuspicionMult   int
-	ConsulServerHealthInterval   time.Duration
+	ConsulCoordinateUpdateMaxBatches int
+	ConsulCoordinateUpdateBatchSize  int
+	ConsulCoordinateUpdatePeriod     time.Duration
+	ConsulRaftElectionTimeout        time.Duration
+	ConsulRaftHeartbeatTimeout       time.Duration
+	ConsulRaftLeaderLeaseTimeout     time.Duration
+	ConsulSerfLANGossipInterval      time.Duration
+	ConsulSerfLANProbeInterval       time.Duration
+	ConsulSerfLANProbeTimeout        time.Duration
+	ConsulSerfLANSuspicionMult       int
+	ConsulSerfWANGossipInterval      time.Duration
+	ConsulSerfWANProbeInterval       time.Duration
+	ConsulSerfWANProbeTimeout        time.Duration
+	ConsulSerfWANSuspicionMult       int
+	ConsulServerHealthInterval       time.Duration
 
 	ACLAgentMasterToken string
 	ACLAgentToken       string

@@ -581,9 +581,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.DataDir = a.config.DataDir
 	base.NodeName = a.config.NodeName
 
+	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
+	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
 	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
-	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateBatchSize
-	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateMaxBatches
 
 	// todo(fs): ScaleRaft will scale the default values and not the overwrites
 	// todo(fs): using tuned values used to work because PerformanceRaftMultiplier was zero
