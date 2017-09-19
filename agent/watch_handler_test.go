@@ -20,7 +20,7 @@ func TestMakeWatchHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if string(raw) != `["foo","bar","baz"]\n` {
+	if string(raw) != "[\"foo\",\"bar\",\"baz\"]\n" {
 		t.Fatalf("bad: %s", raw)
 	}
 	raw, err = ioutil.ReadFile("handler_index_out")
@@ -34,7 +34,6 @@ func TestMakeWatchHandler(t *testing.T) {
 
 func TestMakeHTTPWatchHandler(t *testing.T) {
 	t.Parallel()
-	finishedRequest := make(chan bool)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idx := r.Header.Get("X-Consul-Index")
 		if idx != "100" {
@@ -48,11 +47,8 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 			t.Fatalf("bad: %s", body)
 		}
 		w.Write([]byte("Ok, i see"))
-		finishedRequest <- true
 	}))
 	defer server.Close()
-	t.Log("ww")
-	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, nil, time.Minute)
+	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, nil, time.Minute, false)
 	handler(100, []string{"foo", "bar", "baz"})
-	<-finishedRequest
 }

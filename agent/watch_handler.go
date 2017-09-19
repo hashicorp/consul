@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"net/http"
 	"time"
+	"crypto/tls"
 )
 
 const (
@@ -91,14 +92,20 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	return fn
 }
 
-func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, headers map[string][]string, timeout time.Duration) watch.HandlerFunc {
+func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, headers map[string][]string, timeout time.Duration, tlsSkipVerify bool) watch.HandlerFunc {
 	logger := log.New(logOutput, "", log.LstdFlags)
 
 	fn := func(idx uint64, data interface{}) {
-		// Create the transport. We disable HTTP Keep-Alive's to prevent
-		// failing checks due to the keepalive interval.
 		trans := cleanhttp.DefaultTransport()
-		trans.DisableKeepAlives = true
+
+		// Skip SSL certificate verification if TLSSkipVerify is true
+		if trans.TLSClientConfig == nil {
+			trans.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: tlsSkipVerify,
+			}
+		} else {
+			trans.TLSClientConfig.InsecureSkipVerify = tlsSkipVerify
+		}
 
 		// TODO: put in outer scope
 		// Create the HTTP client.
