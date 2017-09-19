@@ -32,7 +32,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	_, err := a1.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
+	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
