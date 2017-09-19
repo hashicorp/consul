@@ -47,7 +47,7 @@ func TestConfigTestCommandSucceedOnMinimalConfigFile(t *testing.T) {
 	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "config.json")
-	err := ioutil.WriteFile(fp, []byte(`{"data_dir": "data"}`), 0644)
+	err := ioutil.WriteFile(fp, []byte(`{"data_dir": "`+td+`"}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -68,7 +68,7 @@ func TestConfigTestCommandSucceedOnMinimalConfigDir(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
-	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"data_dir": "data"}`), 0644)
+	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"data_dir": "`+td+`"}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

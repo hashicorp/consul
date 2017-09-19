@@ -55,6 +55,10 @@ func TestValidDatacenter(t *testing.T) {
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
 	t.Parallel()
+
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
 	tests := []struct {
 		args []string
 		out  string
@@ -68,27 +72,27 @@ func TestConfigFail(t *testing.T) {
 			out:  "==> data_dir cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "0.0.0.0"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "::"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "[::]"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "0.0.0.0"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "::"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "[::]"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 	}

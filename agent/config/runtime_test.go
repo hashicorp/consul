@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"bytes"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 )
@@ -60,6 +62,9 @@ func unixAddr(addr string) *net.UnixAddr {
 }
 
 func TestConfigFlagsAndEdgecases(t *testing.T) {
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
 	randomString := func(n int) string {
 		s := ""
 		for ; n > 0; n-- {
@@ -108,7 +113,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-advertise",
 			flags: []string{
 				`-advertise=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.AdvertiseAddrLAN = ipAddr("1.2.3.4")
@@ -120,14 +125,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "1.2.3.4",
 					"wan": "1.2.3.4",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-advertise-wan",
 			flags: []string{
 				`-advertise-wan=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
@@ -136,7 +141,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "10.0.0.1",
 					"wan": "1.2.3.4",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -144,7 +149,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-advertise=1.2.3.4`,
 				`-advertise-wan=5.6.7.8`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.AdvertiseAddrLAN = ipAddr("1.2.3.4")
@@ -156,14 +161,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "1.2.3.4",
 					"wan": "5.6.7.8",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-bind",
 			flags: []string{
 				`-bind=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.BindAddr = ipAddr("1.2.3.4")
@@ -179,7 +184,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "1.2.3.4",
 					"wan": "1.2.3.4",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -187,14 +192,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-bootstrap`,
 				`-server`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Bootstrap = true
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{"bootstrap = true: do not enable unless necessary"},
 		},
@@ -203,14 +208,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-bootstrap-expect=3`,
 				`-server`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.BootstrapExpect = 3
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{"bootstrap_expect > 0: expecting 3 servers"},
 		},
@@ -218,23 +223,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-client",
 			flags: []string{
 				`-client=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4")}
 				rt.DNSAddrs = []net.Addr{tcpAddr("1.2.3.4:8600"), udpAddr("1.2.3.4:8600")}
 				rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:8500")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
-			desc: "-data-dir",
+			desc: "-data-dir does not exist",
 			flags: []string{
 				`-data-dir=a`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = "a"
 			},
+			err: `data_dir "a" does not exist`,
 		},
 		{
 			desc: "-data-dir empty",
@@ -244,31 +250,31 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "data_dir cannot be empty",
 		},
 		{
-			desc: "-data-dir given non-directory",
+			desc: "-data-dir non-directory",
 			flags: []string{
 				`-data-dir=runtime_test.go`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = "runtime_test.go"
 			},
-			warns: []string{`data_dir: not a directory: runtime_test.go`},
+			err: `data_dir "runtime_test.go" is not a directory`,
 		},
 		{
 			desc: "-datacenter",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-datacenter empty",
 			flags: []string{
 				`-datacenter=`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			err: "datacenter cannot be empty",
 		},
@@ -316,79 +322,79 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-disable-host-node-id",
 			flags: []string{
 				`-disable-host-node-id`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DisableHostNodeID = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-disable-keyring-file",
 			flags: []string{
 				`-disable-keyring-file`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DisableKeyringFile = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-dns-port",
 			flags: []string{
 				`-dns-port=123`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DNSPort = 123
 				rt.DNSAddrs = []net.Addr{tcpAddr("127.0.0.1:123"), udpAddr("127.0.0.1:123")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-domain",
 			flags: []string{
 				`-domain=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DNSDomain = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-enable-script-checks",
 			flags: []string{
 				`-enable-script-checks`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.EnableScriptChecks = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{ // todo(fs): shouldn't this be '-encrypt-key'?
 			desc: "-encrypt",
 			flags: []string{
 				`-encrypt=i0P+gFTkLPg0h53eNYjydg==`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-http-port",
 			flags: []string{
 				`-http-port=123`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.HTTPPort = 123
 				rt.HTTPAddrs = []net.Addr{tcpAddr("127.0.0.1:123")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -396,11 +402,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-join=a`,
 				`-join=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.StartJoinAddrsLAN = []string{"a", "b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -408,44 +414,44 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-join-wan=a`,
 				`-join-wan=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.StartJoinAddrsWAN = []string{"a", "b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-log-level",
 			flags: []string{
 				`-log-level=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.LogLevel = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{ // todo(fs): shouldn't this be '-node-name'?
 			desc: "-node",
 			flags: []string{
 				`-node=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.NodeName = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-node-id",
 			flags: []string{
 				`-node-id=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.NodeID = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -453,55 +459,55 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-node-meta=a:b`,
 				`-node-meta=c:d`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.NodeMeta = map[string]string{"a": "b", "c": "d"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-non-voting-server",
 			flags: []string{
 				`-non-voting-server`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.NonVotingServer = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-pid-file",
 			flags: []string{
 				`-pid-file=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.PidFile = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-protocol",
 			flags: []string{
 				`-protocol=1`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RPCProtocol = 1
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-raft-protocol",
 			flags: []string{
 				`-raft-protocol=1`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RaftProtocol = 1
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -509,44 +515,44 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-recursor=a`,
 				`-recursor=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DNSRecursors = []string{"a", "b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-rejoin",
 			flags: []string{
 				`-rejoin`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RejoinAfterLeave = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-retry-interval",
 			flags: []string{
 				`-retry-interval=5s`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinIntervalLAN = 5 * time.Second
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-retry-interval-wan",
 			flags: []string{
 				`-retry-interval-wan=5s`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinIntervalWAN = 5 * time.Second
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -554,11 +560,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-retry-join=a`,
 				`-retry-join=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"a", "b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -566,101 +572,101 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-retry-join-wan=a`,
 				`-retry-join-wan=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinWAN = []string{"a", "b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-retry-max",
 			flags: []string{
 				`-retry-max=1`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinMaxAttemptsLAN = 1
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-retry-max-wan",
 			flags: []string{
 				`-retry-max-wan=1`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinMaxAttemptsWAN = 1
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-serf-lan-bind",
 			flags: []string{
 				`-serf-lan-bind=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfBindAddrLAN = tcpAddr("1.2.3.4:8301")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-serf-wan-bind",
 			flags: []string{
 				`-serf-wan-bind=1.2.3.4`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfBindAddrWAN = tcpAddr("1.2.3.4:8302")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-server",
 			flags: []string{
 				`-server`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-syslog",
 			flags: []string{
 				`-syslog`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.EnableSyslog = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-ui",
 			flags: []string{
 				`-ui`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.EnableUI = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-ui-dir",
 			flags: []string{
 				`-ui-dir=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.UIDir = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 
@@ -672,10 +678,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-atlas",
 			flags: []string{
 				`-atlas=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "-atlas" is deprecated. Please remove it from your configuration`},
 		},
@@ -683,10 +689,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-atlas-endpoint",
 			flags: []string{
 				`-atlas-endpoint=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "-atlas-endpoint" is deprecated. Please remove it from your configuration`},
 		},
@@ -694,10 +700,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-atlas-join",
 			flags: []string{
 				`-atlas-join`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "-atlas-join" is deprecated. Please remove it from your configuration`},
 		},
@@ -705,10 +711,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-atlas-token",
 			flags: []string{
 				`-atlas-token=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "-atlas-token" is deprecated. Please remove it from your configuration`},
 		},
@@ -716,23 +722,23 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-dc",
 			flags: []string{
 				`-dc=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			warns: []string{`==> DEPRECATION: "-dc" is deprecated. Use "-datacenter" instead`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc: "-retry-join-azure-tag-name",
 			flags: []string{
 				`-retry-join-azure-tag-name=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=azure tag_name=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_azure" is deprecated. Please add "provider=azure tag_name=a" to "retry_join".`},
 		},
@@ -740,11 +746,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-azure-tag-value",
 			flags: []string{
 				`-retry-join-azure-tag-value=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=azure tag_value=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_azure" is deprecated. Please add "provider=azure tag_value=a" to "retry_join".`},
 		},
@@ -752,11 +758,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-ec2-region",
 			flags: []string{
 				`-retry-join-ec2-region=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=aws region=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_ec2" is deprecated. Please add "provider=aws region=a" to "retry_join".`},
 		},
@@ -764,11 +770,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-ec2-tag-key",
 			flags: []string{
 				`-retry-join-ec2-tag-key=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=aws tag_key=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_ec2" is deprecated. Please add "provider=aws tag_key=a" to "retry_join".`},
 		},
@@ -776,11 +782,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-ec2-tag-value",
 			flags: []string{
 				`-retry-join-ec2-tag-value=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=aws tag_value=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_ec2" is deprecated. Please add "provider=aws tag_value=a" to "retry_join".`},
 		},
@@ -788,11 +794,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-gce-credentials-file",
 			flags: []string{
 				`-retry-join-gce-credentials-file=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=gce credentials_file=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_gce" is deprecated. Please add "provider=gce credentials_file=hidden" to "retry_join".`},
 		},
@@ -800,11 +806,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-gce-project-name",
 			flags: []string{
 				`-retry-join-gce-project-name=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=gce project_name=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_gce" is deprecated. Please add "provider=gce project_name=a" to "retry_join".`},
 		},
@@ -812,11 +818,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-gce-tag-value",
 			flags: []string{
 				`-retry-join-gce-tag-value=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=gce tag_value=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_gce" is deprecated. Please add "provider=gce tag_value=a" to "retry_join".`},
 		},
@@ -824,11 +830,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "-retry-join-gce-zone-pattern",
 			flags: []string{
 				`-retry-join-gce-zone-pattern=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=gce zone_pattern=a"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_gce" is deprecated. Please add "provider=gce zone_pattern=a" to "retry_join".`},
 		},
@@ -839,82 +845,82 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			desc:  "addresses.rpc",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"addresses":{ "rpc": "a" }}`},
 			hcl:   []string{`addresses = { rpc = "a" }`},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "addresses.rpc" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc:  "ports.rpc",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"ports":{ "rpc": 123 }}`},
 			hcl:   []string{`ports = { rpc = 123 }`},
 			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "ports.rpc" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc:  "check.service_id alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"check":{ "service_id":"d", "serviceid":"dd" }}`},
 			hcl:   []string{`check = { service_id="d" serviceid="dd" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{{ServiceID: "dd"}}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "serviceid" is deprecated in check definitions. Please use "service_id" instead.`},
 		},
 		{
 			desc:  "check.docker_container_id alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"check":{ "docker_container_id":"k", "dockercontainerid":"kk" }}`},
 			hcl:   []string{`check = { docker_container_id="k" dockercontainerid="kk" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{{DockerContainerID: "kk"}}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "dockercontainerid" is deprecated in check definitions. Please use "docker_container_id" instead.`},
 		},
 		{
 			desc:  "check.tls_skip_verify alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"check":{ "tls_skip_verify":true, "tlsskipverify":false }}`},
 			hcl:   []string{`check = { tls_skip_verify=true tlsskipverify=false }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{{TLSSkipVerify: false}}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "tlsskipverify" is deprecated in check definitions. Please use "tls_skip_verify" instead.`},
 		},
 		{
 			desc:  "check.deregister_critical_service_after alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"check":{ "deregister_critical_service_after":"5s", "deregistercriticalserviceafter": "10s" }}`},
 			hcl:   []string{`check = { deregister_critical_service_after="5s" deregistercriticalserviceafter="10s"}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{{DeregisterCriticalServiceAfter: 10 * time.Second}}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "deregistercriticalserviceafter" is deprecated in check definitions. Please use "deregister_critical_service_after" instead.`},
 		},
 		{
 			desc:  "http_api_response_headers",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"http_api_response_headers":{"a":"b","c":"d"}}`},
 			hcl:   []string{`http_api_response_headers = {"a"="b" "c"="d"}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.HTTPResponseHeaders = map[string]string{"a": "b", "c": "d"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "http_api_response_headers" is deprecated. Please use "http_config.response_headers" instead.`},
 		},
 		{
 			desc:  "retry_join_azure",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"retry_join_azure":{
 						"tag_name": "a",
@@ -937,13 +943,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=azure client_id=e secret_access_key=f subscription_id=c tag_name=a tag_value=b tenant_id=d"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_azure" is deprecated. Please add "provider=azure client_id=hidden secret_access_key=hidden subscription_id=hidden tag_name=a tag_value=b tenant_id=hidden" to "retry_join".`},
 		},
 		{
 			desc:  "retry_join_ec2",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"retry_join_ec2":{
 						"tag_key": "a",
@@ -964,13 +970,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=aws access_key_id=d region=c secret_access_key=e tag_key=a tag_value=b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_ec2" is deprecated. Please add "provider=aws access_key_id=hidden region=c secret_access_key=hidden tag_key=a tag_value=b" to "retry_join".`},
 		},
 		{
 			desc:  "retry_join_gce",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"retry_join_gce":{
 						"project_name": "a",
@@ -989,63 +995,63 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.RetryJoinLAN = []string{"provider=gce credentials_file=d project_name=a tag_value=c zone_pattern=b"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "retry_join_gce" is deprecated. Please add "provider=gce credentials_file=hidden project_name=a tag_value=c zone_pattern=b" to "retry_join".`},
 		},
 
 		{
 			desc:  "telemetry.dogstatsd_addr alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"dogstatsd_addr":"a", "telemetry":{"dogstatsd_addr": "b"}}`},
 			hcl:   []string{`dogstatsd_addr = "a" telemetry = { dogstatsd_addr = "b"}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.TelemetryDogstatsdAddr = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "dogstatsd_addr" is deprecated. Please use "telemetry.dogstatsd_addr" instead.`},
 		},
 		{
 			desc:  "telemetry.dogstatsd_tags alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"dogstatsd_tags":["a", "b"], "telemetry": { "dogstatsd_tags": ["c", "d"]}}`},
 			hcl:   []string{`dogstatsd_tags = ["a", "b"] telemetry = { dogstatsd_tags = ["c", "d"] }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.TelemetryDogstatsdTags = []string{"a", "b", "c", "d"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "dogstatsd_tags" is deprecated. Please use "telemetry.dogstatsd_tags" instead.`},
 		},
 		{
 			desc:  "telemetry.statsd_addr alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"statsd_addr":"a", "telemetry":{"statsd_addr": "b"}}`},
 			hcl:   []string{`statsd_addr = "a" telemetry = { statsd_addr = "b" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.TelemetryStatsdAddr = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "statsd_addr" is deprecated. Please use "telemetry.statsd_addr" instead.`},
 		},
 		{
 			desc:  "telemetry.statsite_addr alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"statsite_addr":"a", "telemetry":{ "statsite_addr": "b" }}`},
 			hcl:   []string{`statsite_addr = "a" telemetry = { statsite_addr = "b"}`},
 			patch: func(rt *RuntimeConfig) {
 				rt.TelemetryStatsiteAddr = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "statsite_addr" is deprecated. Please use "telemetry.statsite_addr" instead.`},
 		},
 		{
 			desc:  "telemetry.statsite_prefix alias",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{"statsite_prefix":"a", "telemetry":{ "statsite_prefix": "b" }}`},
 			hcl:   []string{`statsite_prefix = "a" telemetry = { statsite_prefix = "b" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.TelemetryStatsitePrefix = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "statsite_prefix" is deprecated. Please use "telemetry.statsite_prefix" instead.`},
 		},
@@ -1056,7 +1062,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			desc:  "client addr and ports == 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"ports":{}
@@ -1069,12 +1075,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
 				rt.DNSAddrs = []net.Addr{tcpAddr("0.0.0.0:8600"), udpAddr("0.0.0.0:8600")}
 				rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:8500")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client addr and ports < 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"ports": { "dns":-1, "http":-2, "https":-3 }
@@ -1089,12 +1095,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client addr and ports < 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"ports": { "dns":-1, "http":-2, "https":-3 }
@@ -1109,12 +1115,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client addr and ports > 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"ports":{ "dns": 1, "http": 2, "https": 3 }
@@ -1131,13 +1137,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 
 		{
 			desc:  "client addr, addresses and ports == 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
@@ -1152,12 +1158,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
 				rt.DNSAddrs = []net.Addr{tcpAddr("1.1.1.1:8600"), udpAddr("1.1.1.1:8600")}
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:8500")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client addr, addresses and ports < 0",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
 					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
@@ -1174,12 +1180,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client addr, addresses and ports",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "0.0.0.0",
 					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
@@ -1198,12 +1204,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client template and ports",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "{{ printf \"1.2.3.4 2001:db8::1\" }}",
 					"ports":{ "dns":1, "http":2, "https":3 }
@@ -1220,12 +1226,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "client, address template and ports",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "{{ printf \"1.2.3.4 2001:db8::1\" }}",
 					"addresses": {
@@ -1252,12 +1258,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "advertise address lan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "advertise_addr": "{{ printf \"1.2.3.4\" }}" }`},
 			hcl:   []string{`advertise_addr = "{{ printf \"1.2.3.4\" }}"`},
 			patch: func(rt *RuntimeConfig) {
@@ -1270,12 +1276,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "1.2.3.4",
 					"wan": "1.2.3.4",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "advertise address wan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "advertise_addr_wan": "{{ printf \"1.2.3.4\" }}" }`},
 			hcl:   []string{`advertise_addr_wan = "{{ printf \"1.2.3.4\" }}"`},
 			patch: func(rt *RuntimeConfig) {
@@ -1285,47 +1291,47 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "10.0.0.1",
 					"wan": "1.2.3.4",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "serf advertise address lan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "advertise_addrs": { "serf_lan": "{{ printf \"1.2.3.4\" }}" } }`},
 			hcl:   []string{`advertise_addrs = { serf_lan = "{{ printf \"1.2.3.4\" }}" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "serf advertise address wan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "advertise_addrs": { "serf_wan": "{{ printf \"1.2.3.4\" }}" } }`},
 			hcl:   []string{`advertise_addrs = { serf_wan = "{{ printf \"1.2.3.4\" }}" }`},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "serf bind address lan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "serf_lan": "{{ printf \"1.2.3.4\" }}" }`},
 			hcl:   []string{`serf_lan = "{{ printf \"1.2.3.4\" }}"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfBindAddrLAN = tcpAddr("1.2.3.4:8301")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "serf bind address wan template",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "serf_wan": "{{ printf \"1.2.3.4\" }}" }`},
 			hcl:   []string{`serf_wan = "{{ printf \"1.2.3.4\" }}"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfBindAddrWAN = tcpAddr("1.2.3.4:8302")
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 
@@ -1335,7 +1341,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			desc:  "precedence: merge order",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json: []string{
 				`{
 						"bootstrap": true,
@@ -1374,7 +1380,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Datacenter = "b"
 				rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 				rt.NodeMeta = map[string]string{"c": "d"}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
@@ -1413,7 +1419,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-bootstrap=false`,
 				`-bootstrap-expect=0`,
 				`-datacenter=b`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 				`-join`, `c`, `-join=d`,
 				`-node-meta=c:d`,
 				`-recursor`, `c`, `-recursor=d`,
@@ -1436,7 +1442,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"lan": "1.1.1.1",
 					"wan": "2.2.2.2",
 				}
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 
@@ -1446,52 +1452,52 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			desc:  "datacenter is lower-cased",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "datacenter": "A" }`},
 			hcl:   []string{`datacenter = "A"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "acl_datacenter is lower-cased",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "acl_datacenter": "A" }`},
 			hcl:   []string{`acl_datacenter = "A"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ACLDatacenter = "a"
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:  "acl_replication_token enables acl replication",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "acl_replication_token": "a" }`},
 			hcl:   []string{`acl_replication_token = "a"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ACLReplicationToken = "a"
 				rt.EnableACLReplication = true
-				rt.DataDir = "data"
+				rt.DataDir = dataDir
 			},
 		},
 		{
 			desc:     "ae_interval invalid == 0",
-			flags:    []string{`-data-dir=data`},
+			flags:    []string{`-data-dir=` + dataDir},
 			jsontail: []string{`{ "ae_interval": "0s" }`},
 			hcltail:  []string{`ae_interval = "0s"`},
 			err:      `ae_interval cannot be 0s. Must be positive`,
 		},
 		{
 			desc:     "ae_interval invalid < 0",
-			flags:    []string{`-data-dir=data`},
+			flags:    []string{`-data-dir=` + dataDir},
 			jsontail: []string{`{ "ae_interval": "-1s" }`},
 			hcltail:  []string{`ae_interval = "-1s"`},
 			err:      `ae_interval cannot be -1s. Must be positive`,
 		},
 		{
 			desc:  "datacenter invalid",
-			flags: []string{`-data-dir=data`},
+			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "datacenter": "%" }`},
 			hcl:   []string{`datacenter = "%"`},
 			err:   `datacenter cannot be "%". Please use only [a-z0-9-_]`,
@@ -1500,7 +1506,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "acl_datacenter invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "acl_datacenter": "%" }`},
 			hcl:  []string{`acl_datacenter = "%"`},
@@ -1510,7 +1516,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "autopilot.max_trailing_logs invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "autopilot": { "max_trailing_logs": -1 } }`},
 			hcl:  []string{`autopilot = { max_trailing_logs = -1 }`},
@@ -1520,7 +1526,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "bind does not allow socket",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bind_addr": "unix:///foo" }`},
 			hcl:  []string{`bind_addr = "unix:///foo"`},
@@ -1530,7 +1536,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "bootstrap without server",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bootstrap": true }`},
 			hcl:  []string{`bootstrap = true`},
@@ -1540,7 +1546,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "bootstrap-expect without server",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bootstrap_expect": 3 }`},
 			hcl:  []string{`bootstrap_expect = 3`},
@@ -1550,7 +1556,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "bootstrap-expect invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bootstrap_expect": -1 }`},
 			hcl:  []string{`bootstrap_expect = -1`},
@@ -1561,7 +1567,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-dev`,
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bootstrap_expect": 3, "server": true }`},
 			hcl:  []string{`bootstrap_expect = 3 server = true`},
@@ -1571,7 +1577,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "bootstrap-expect and boostrap",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "bootstrap": true, "bootstrap_expect": 3, "server": true }`},
 			hcl:  []string{`bootstrap = true bootstrap_expect = 3 server = true`},
@@ -1581,7 +1587,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "client does not allow socket",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "client_addr": "unix:///foo" }`},
 			hcl:  []string{`client_addr = "unix:///foo"`},
@@ -1591,7 +1597,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "enable_ui and ui_dir",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "enable_ui": true, "ui_dir": "a" }`},
 			hcl:  []string{`enable_ui = true ui_dir = "a"`},
@@ -1606,7 +1612,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "advertise_addr any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addr": "0.0.0.0" }`},
 			hcl:  []string{`advertise_addr = "0.0.0.0"`},
@@ -1616,7 +1622,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "advertise_addr_wan any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addr_wan": "::" }`},
 			hcl:  []string{`advertise_addr_wan = "::"`},
@@ -1626,7 +1632,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "advertise_addrs.rpc any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "rpc": "[::]" } }`},
 			hcl:  []string{`advertise_addrs = { rpc = "[::]" }`},
@@ -1636,7 +1642,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "advertise_addrs.serf_lan any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_lan": "[::]" } }`},
 			hcl:  []string{`advertise_addrs = { serf_lan = "[::]" }`},
@@ -1646,7 +1652,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "advertise_addrs.serf_wan any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_wan": "0.0.0.0" } }`},
 			hcl:  []string{`advertise_addrs = { serf_wan = "0.0.0.0" }`},
@@ -1656,7 +1662,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "segments.advertise any",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 				`-server=true`,
 			},
 			json: []string{`{ "segments":[{ "name":"x", "advertise": "::", "port": 123 }] }`},
@@ -1667,7 +1673,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "segments.advertise socket",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 				`-server=true`,
 			},
 			json: []string{`{ "segments":[{ "name":"x", "advertise": "unix:///foo" }] }`},
@@ -1678,7 +1684,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
 			hcl:  []string{`dns_config = { udp_answer_limit = 0 }`},
@@ -1688,7 +1694,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
 			hcl:  []string{`dns_config = { udp_answer_limit = 0 }`},
@@ -1698,7 +1704,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "performance.raft_multiplier < 0",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": -1 } }`},
 			hcl:  []string{`performance = { raft_multiplier = -1 }`},
@@ -1708,7 +1714,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "performance.raft_multiplier == 0",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 0 } }`},
 			hcl:  []string{`performance = { raft_multiplier = 0 }`},
@@ -1718,7 +1724,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "performance.raft_multiplier > 10",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 20 } }`},
 			hcl:  []string{`performance = { raft_multiplier = 20 }`},
@@ -1728,7 +1734,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "node_name invalid",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 				`-node=`,
 			},
 			hostname: func() (string, error) { return "", nil },
@@ -1738,7 +1744,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "node_meta key too long",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{
 				`{ "dns_config": { "udp_answer_limit": 1 } }`,
@@ -1754,7 +1760,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "node_meta value too long",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{
 				`{ "dns_config": { "udp_answer_limit": 1 } }`,
@@ -1770,7 +1776,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "node_meta too many keys",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{
 				`{ "dns_config": { "udp_answer_limit": 1 } }`,
@@ -1786,7 +1792,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "unique listeners dns vs http",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
@@ -1804,7 +1810,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "unique listeners dns vs https",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
@@ -1822,7 +1828,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			desc: "unique listeners http vs https",
 			flags: []string{
 				`-datacenter=a`,
-				`-data-dir=data`,
+				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
@@ -1984,6 +1990,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 //   random-string 8
 //
 func TestFullConfig(t *testing.T) {
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
 	flagSrc := []string{`-dev`}
 	src := map[string]string{
 		"json": `{
@@ -2098,7 +2107,7 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
-			"data_dir": "oTOOIoV9",
+			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
 			"disable_anonymous_signature": true,
 			"disable_coordinates": true,
@@ -2521,7 +2530,7 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
-			data_dir = "oTOOIoV9"
+			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
 			disable_anonymous_signature = true
 			disable_coordinates = true
@@ -3081,7 +3090,7 @@ func TestFullConfig(t *testing.T) {
 		DNSRecursors:              []string{"EZX7MOYF", "FtFhoUHl", "UYkwck1k"},
 		DNSServiceTTL:             map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:         29909,
-		DataDir:                   "oTOOIoV9",
+		DataDir:                   dataDir,
 		Datacenter:                "rzo029wg",
 		DevMode:                   true,
 		DisableAnonymousSignature: true,

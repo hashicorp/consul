@@ -830,20 +830,32 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 // Validate performs semantical validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
-	// validDatacenter is used to validate a datacenter
-	var validDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
+	// reDatacenter defines a regexp for a valid datacenter name
+	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
+
 	if rt.Datacenter == "" {
 		return fmt.Errorf("datacenter cannot be empty")
 	}
-	if !validDatacenter.MatchString(rt.Datacenter) {
+	if !reDatacenter.MatchString(rt.Datacenter) {
 		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_].", rt.Datacenter)
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
+	}
+	if !rt.DevMode {
+		fi, err := os.Stat(rt.DataDir)
+		switch {
+		case err != nil && !os.IsNotExist(err):
+			return fmt.Errorf("Error getting info on data_dir: %s", err)
+		case err != nil && os.IsNotExist(err):
+			return fmt.Errorf("data_dir %q does not exist", rt.DataDir)
+		case err == nil && !fi.IsDir():
+			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
+		}
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")
@@ -889,7 +901,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if rt.ACLDatacenter != "" && !validDatacenter.MatchString(rt.ACLDatacenter) {
+	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
 		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_].", rt.ACLDatacenter)
 	}
 	if rt.EnableUI && rt.UIDir != "" {
@@ -904,6 +916,31 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.PerformanceRaftMultiplier < 1 || uint(rt.PerformanceRaftMultiplier) > consul.MaxRaftMultiplier {
 		return fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", rt.PerformanceRaftMultiplier, consul.MaxRaftMultiplier)
 	}
+	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
+		return fmt.Errorf("node_meta invalid: %v", err)
+	}
+	if rt.ServerMode && rt.SegmentName != "" {
+		return fmt.Errorf("segment: Segment name can only be set on clients (server = false)")
+	}
+	if !rt.ServerMode && len(rt.Segments) > 0 {
+		return fmt.Errorf("segments: Segments can only be configured on servers (server = true)")
+	}
+	if rt.EncryptKey != "" {
+		if _, err := decodeBytes(rt.EncryptKey); err != nil {
+			return fmt.Errorf("encrypt has invalid key: %s", err)
+		}
+		keyfileLAN := filepath.Join(rt.DataDir, SerfLANKeyring)
+		if _, err := os.Stat(keyfileLAN); err == nil {
+			b.warn("WARNING: LAN keyring exists but -encrypt given, using keyring")
+		}
+		if rt.ServerMode {
+			keyfileWAN := filepath.Join(rt.DataDir, SerfWANKeyring)
+			if _, err := os.Stat(keyfileWAN); err == nil {
+				b.warn("WARNING: WAN keyring exists but -encrypt given, using keyring")
+			}
+		}
+	}
+
 	// Check the data dir for signs of an un-migrated Consul 0.5.x or older
 	// server. Consul refuses to start if this is present to protect a server
 	// with existing data from starting on a fresh data set.
@@ -920,6 +957,29 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 				"Consul will refuse to boot with this directory present.\n"+
 				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
 		}
+	}
+
+	inuse := map[string]string{}
+	if err := addrsUnique(inuse, "DNS", rt.DNSAddrs); err != nil {
+		return err
+	}
+	if err := addrsUnique(inuse, "HTTP", rt.HTTPAddrs); err != nil {
+		return err
+	}
+	if err := addrsUnique(inuse, "HTTPS", rt.HTTPSAddrs); err != nil {
+		return err
+	}
+	if err := addrUnique(inuse, "RPC Advertise", rt.RPCAdvertiseAddr); err != nil {
+		return err
+	}
+	if err := addrUnique(inuse, "Serf Advertise LAN", rt.SerfAdvertiseAddrLAN); err != nil {
+		return err
+	}
+	if err := addrUnique(inuse, "Serf Advertise WAN", rt.SerfAdvertiseAddrWAN); err != nil {
+		return err
+	}
+	if b.err != nil {
+		return b.err
 	}
 
 	// ----------------------------------------------------------------
@@ -942,86 +1002,29 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		b.warn(`bootstrap = true: do not enable unless necessary`)
 	}
 
-	if !rt.DevMode {
-		if finfo, err := os.Stat(rt.DataDir); err != nil {
-			if !os.IsNotExist(err) {
-				b.warn(fmt.Sprintf("data_dir: stat failed: %s", err))
-			}
-		} else if !finfo.IsDir() {
-			b.warn(fmt.Sprintf("data_dir: not a directory: %s", rt.DataDir))
+	return nil
+}
+
+// addrUnique checks if the given address is already in use for another
+// protocol.
+func addrUnique(inuse map[string]string, name string, addr net.Addr) error {
+	key := addr.Network() + ":" + addr.String()
+	if other, ok := inuse[key]; ok {
+		return fmt.Errorf("%s address %s already configured for %s", name, addr.String(), other)
+	}
+	inuse[key] = name
+	return nil
+}
+
+// addrsUnique checks if any of the give addresses is already in use for
+// another protocol.
+func addrsUnique(inuse map[string]string, name string, addrs []net.Addr) error {
+	for _, a := range addrs {
+		if err := addrUnique(inuse, name, a); err != nil {
+			return err
 		}
 	}
-
-	if rt.EncryptKey != "" {
-		if _, err := decodeBytes(rt.EncryptKey); err != nil {
-			b.warn(fmt.Sprintf("encrypt: invalid key: %s", err))
-		}
-		keyfileLAN := filepath.Join(rt.DataDir, SerfLANKeyring)
-		if _, err := os.Stat(keyfileLAN); err == nil {
-			b.warn("WARNING: LAN keyring exists but -encrypt given, using keyring")
-		}
-		if rt.ServerMode {
-			keyfileWAN := filepath.Join(rt.DataDir, SerfWANKeyring)
-			if _, err := os.Stat(keyfileWAN); err == nil {
-				b.warn("WARNING: WAN keyring exists but -encrypt given, using keyring")
-			}
-		}
-	}
-
-	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("node_meta: failed to parse: %v", err))
-	}
-
-	// todo(fs): does it need to be < 0 or < 1???
-
-	// make sure listener addresses are unique
-	// todo(fs): check serf and rpc advertise/bind addresses for uniqueness as well
-	usage := map[string]string{}
-	uniqueAddr := func(name string, addr net.Addr) error {
-		key := addr.Network() + ":" + addr.String()
-		if other, inuse := usage[key]; inuse {
-			b.err = multierror.Append(b.err, fmt.Errorf("%s address %s already configured for %s", name, addr.String(), other))
-		}
-		usage[key] = name
-		return nil
-	}
-	uniqueAddrs := func(name string, addrs []net.Addr) error {
-		for _, a := range addrs {
-			if err := uniqueAddr(name, a); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	if err := uniqueAddrs("DNS", rt.DNSAddrs); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-	if err := uniqueAddrs("HTTP", rt.HTTPAddrs); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-	if err := uniqueAddrs("HTTPS", rt.HTTPSAddrs); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-	if err := uniqueAddr("RPC Advertise", rt.RPCAdvertiseAddr); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-	if err := uniqueAddr("Serf Advertise LAN", rt.SerfAdvertiseAddrLAN); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-	if err := uniqueAddr("Serf Advertise WAN", rt.SerfAdvertiseAddrWAN); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
-
-	if rt.ServerMode && rt.SegmentName != "" {
-		b.err = multierror.Append(b.err, fmt.Errorf("segment: Segment name can only be set on clients (server = false)"))
-	}
-
-	if !rt.ServerMode && len(rt.Segments) > 0 {
-		b.err = multierror.Append(b.err, fmt.Errorf("segments: Segments can only be configured on servers (server = true)"))
-	}
-
-	return b.err
+	return nil
 }
 
 // splitSlicesAndValues moves all slice values defined in c to 'slices'
