@@ -241,7 +241,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-data-dir=`,
 			},
-			err: "data_dir: cannot be empty",
+			err: "data_dir cannot be empty",
 		},
 		{
 			desc: "-data-dir given non-directory",
@@ -270,7 +270,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-datacenter=`,
 				`-data-dir=data`,
 			},
-			err: "datacenter: cannot be empty",
+			err: "datacenter cannot be empty",
 		},
 		{
 			desc: "-dev",
@@ -1480,21 +1480,21 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags:    []string{`-data-dir=data`},
 			jsontail: []string{`{ "ae_interval": "0s" }`},
 			hcltail:  []string{`ae_interval = "0s"`},
-			err:      `ae_interval: must be positive: 0s`,
+			err:      `ae_interval cannot be 0s. Must be positive`,
 		},
 		{
 			desc:     "ae_interval invalid < 0",
 			flags:    []string{`-data-dir=data`},
 			jsontail: []string{`{ "ae_interval": "-1s" }`},
 			hcltail:  []string{`ae_interval = "-1s"`},
-			err:      `ae_interval: must be positive: -1s`,
+			err:      `ae_interval cannot be -1s. Must be positive`,
 		},
 		{
 			desc:  "datacenter invalid",
 			flags: []string{`-data-dir=data`},
 			json:  []string{`{ "datacenter": "%" }`},
 			hcl:   []string{`datacenter = "%"`},
-			err:   `datacenter: invalid value "%". Please use only [a-z0-9-_]`,
+			err:   `datacenter cannot be "%". Please use only [a-z0-9-_]`,
 		},
 		{
 			desc: "acl_datacenter invalid",
@@ -1504,7 +1504,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "acl_datacenter": "%" }`},
 			hcl:  []string{`acl_datacenter = "%"`},
-			err:  `acl_datacenter: invalid value "%". Please use only [a-z0-9-_]`,
+			err:  `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
 		},
 		{
 			desc: "autopilot.max_trailing_logs invalid",
@@ -1514,7 +1514,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "autopilot": { "max_trailing_logs": -1 } }`},
 			hcl:  []string{`autopilot = { max_trailing_logs = -1 }`},
-			err:  "autopilot.max_trailing_logs: cannot be negative: -1",
+			err:  "autopilot.max_trailing_logs cannot be -1. Must be greater than or equal to zero",
 		},
 		{
 			desc: "bind does not allow socket",
@@ -1524,7 +1524,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "bind_addr": "unix:///foo" }`},
 			hcl:  []string{`bind_addr = "unix:///foo"`},
-			err:  "bind_addr: cannot use a unix socket: /foo",
+			err:  "bind_addr cannot be a unix socket",
 		},
 		{
 			desc: "bootstrap without server",
@@ -1554,7 +1554,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "bootstrap_expect": -1 }`},
 			hcl:  []string{`bootstrap_expect = -1`},
-			err:  "bootstrap_expect: cannot be negative",
+			err:  "bootstrap_expect cannot be -1. Must be greater than or equal to zero",
 		},
 		{
 			desc: "bootstrap-expect and dev mode",
@@ -1585,7 +1585,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "client_addr": "unix:///foo" }`},
 			hcl:  []string{`client_addr = "unix:///foo"`},
-			err:  "client_addr: cannot use a unix socket: /foo",
+			err:  "client_addr cannot be a unix socket",
 		},
 		{
 			desc: "enable_ui and ui_dir",
@@ -1610,7 +1610,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "advertise_addr": "0.0.0.0" }`},
 			hcl:  []string{`advertise_addr = "0.0.0.0"`},
-			err:  "advertise_addr: cannot be 0.0.0.0, :: or [::]",
+			err:  "Advertise address cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "advertise_addr_wan any",
@@ -1620,7 +1620,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "advertise_addr_wan": "::" }`},
 			hcl:  []string{`advertise_addr_wan = "::"`},
-			err:  "advertise_addr_wan: cannot be 0.0.0.0, :: or [::]",
+			err:  "Advertise WAN address cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "advertise_addrs.rpc any",
@@ -1630,7 +1630,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "advertise_addrs":{ "rpc": "[::]" } }`},
 			hcl:  []string{`advertise_addrs = { rpc = "[::]" }`},
-			err:  "advertise_addrs.rpc: cannot be 0.0.0.0, :: or [::]",
+			err:  "advertise_addrs.rpc cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "advertise_addrs.serf_lan any",
@@ -1640,7 +1640,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_lan": "[::]" } }`},
 			hcl:  []string{`advertise_addrs = { serf_lan = "[::]" }`},
-			err:  "advertise_addrs.serf_lan: cannot be 0.0.0.0, :: or [::]",
+			err:  "advertise_addrs.serf_lan cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "advertise_addrs.serf_wan any",
@@ -1650,27 +1650,29 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_wan": "0.0.0.0" } }`},
 			hcl:  []string{`advertise_addrs = { serf_wan = "0.0.0.0" }`},
-			err:  "advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]",
+			err:  "advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "segments.advertise any",
 			flags: []string{
-				`-datacenter`, `a=-server=true`,
+				`-datacenter=a`,
 				`-data-dir=data`,
+				`-server=true`,
 			},
 			json: []string{`{ "segments":[{ "name":"x", "advertise": "::", "port": 123 }] }`},
 			hcl:  []string{`segments = [{ name = "x" advertise = "::" port = 123 }]`},
-			err:  `segments[x].advertise: cannot be 0.0.0.0, :: or [::]`,
+			err:  `segments[x].advertise cannot be 0.0.0.0, :: or [::]`,
 		},
 		{
 			desc: "segments.advertise socket",
 			flags: []string{
-				`-datacenter`, `a=-server=true`,
+				`-datacenter=a`,
 				`-data-dir=data`,
+				`-server=true`,
 			},
 			json: []string{`{ "segments":[{ "name":"x", "advertise": "unix:///foo" }] }`},
 			hcl:  []string{`segments = [{ name = "x" advertise = "unix:///foo" }]`},
-			err:  `segments[x].advertise: cannot use a unix socket: /foo`,
+			err:  `segments[x].advertise cannot be a unix socket`,
 		},
 		{
 			desc: "dns_config.udp_answer_limit invalid",
@@ -1680,7 +1682,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
 			hcl:  []string{`dns_config = { udp_answer_limit = 0 }`},
-			err:  "dns_config.udp_answer_limit: must be positive: 0",
+			err:  "dns_config.udp_answer_limit cannot be 0. Must be positive",
 		},
 		{
 			desc: "dns_config.udp_answer_limit invalid",
@@ -1690,7 +1692,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
 			hcl:  []string{`dns_config = { udp_answer_limit = 0 }`},
-			err:  "dns_config.udp_answer_limit: must be positive: 0",
+			err:  "dns_config.udp_answer_limit cannot be 0. Must be positive",
 		},
 		{
 			desc: "performance.raft_multiplier < 0",
@@ -1700,7 +1702,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "performance": { "raft_multiplier": -1 } }`},
 			hcl:  []string{`performance = { raft_multiplier = -1 }`},
-			err:  `performance.raft_multiplier: value -1 not between 1 and 10`,
+			err:  `performance.raft_multiplier cannot be -1. Must be between 1 and 10`,
 		},
 		{
 			desc: "performance.raft_multiplier == 0",
@@ -1710,7 +1712,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 0 } }`},
 			hcl:  []string{`performance = { raft_multiplier = 0 }`},
-			err:  `performance.raft_multiplier: value 0 not between 1 and 10`,
+			err:  `performance.raft_multiplier cannot be 0. Must be between 1 and 10`,
 		},
 		{
 			desc: "performance.raft_multiplier > 10",
@@ -1720,13 +1722,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 20 } }`},
 			hcl:  []string{`performance = { raft_multiplier = 20 }`},
-			err:  `performance.raft_multiplier: value 20 not between 1 and 10`,
+			err:  `performance.raft_multiplier cannot be 20. Must be between 1 and 10`,
 		},
 		{
-			desc:     "node_name invalid",
-			flags:    []string{`-datacenter`, `a`},
+			desc: "node_name invalid",
+			flags: []string{
+				`-datacenter=a`,
+				`-data-dir=data`,
+				`-node=`,
+			},
 			hostname: func() (string, error) { return "", nil },
-			err:      "node_name: cannot be empty",
+			err:      "node_name cannot be empty",
 		},
 		{
 			desc: "node_meta key too long",

@@ -53,7 +53,6 @@ func TestValidDatacenter(t *testing.T) {
 }
 
 // TestConfigFail should test command line flags that lead to an immediate error.
-// todo(fs): making tests pass but the output should be cleaned up. These errors contain too much useless detail and obscure the root cause.
 func TestConfigFail(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -61,67 +60,36 @@ func TestConfigFail(t *testing.T) {
 		out  string
 	}{
 		{
+			args: []string{"agent", "-server", "-datacenter="},
+			out:  "==> datacenter cannot be empty\n",
+		},
+		{
+			args: []string{"agent", "-server"},
+			out:  "==> data_dir cannot be empty\n",
+		},
+		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "0.0.0.0"},
-			// out:  "==> Advertise address cannot be 0.0.0.0\n",
-			out: `==> 5 error(s) occurred:
-
-* advertise_addr: cannot be 0.0.0.0, :: or [::]
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.rpc: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_lan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "::"},
-			// out:  "==> Advertise address cannot be ::\n",
-			out: `==> 5 error(s) occurred:
-
-* advertise_addr: cannot be 0.0.0.0, :: or [::]
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.rpc: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_lan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "[::]"},
-			// out:  "==> Advertise address cannot be [::]\n",
-			out: `==> 5 error(s) occurred:
-
-* advertise_addr: cannot be 0.0.0.0, :: or [::]
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.rpc: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_lan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "0.0.0.0"},
-			// out:  "==> Advertise WAN address cannot be 0.0.0.0\n",
-			out: `==> 2 error(s) occurred:
-
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "::"},
-			// out:  "==> Advertise WAN address cannot be ::\n",
-			out: `==> 2 error(s) occurred:
-
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "[::]"},
-			// out:  "==> Advertise WAN address cannot be [::]\n",
-			out: `==> 2 error(s) occurred:
-
-* advertise_addr_wan: cannot be 0.0.0.0, :: or [::]
-* advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]
-`,
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 	}
 

@@ -830,46 +830,84 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 // Validate performs semantical validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
-	if rt.AEInterval <= 0 {
-		b.err = multierror.Append(b.err, fmt.Errorf("ae_interval: must be positive: %s", rt.AEInterval))
-	}
-
-	if rt.AutopilotMaxTrailingLogs < 0 {
-		b.err = multierror.Append(b.err, fmt.Errorf("autopilot.max_trailing_logs: cannot be negative: %d", rt.AutopilotMaxTrailingLogs))
-	}
-
 	// validDatacenter is used to validate a datacenter
 	var validDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
+	// ----------------------------------------------------------------
+	// check required params we cannot recover from first
+	//
 	if rt.Datacenter == "" {
-		b.err = multierror.Append(b.err, fmt.Errorf("datacenter: cannot be empty"))
-	} else if !validDatacenter.MatchString(rt.Datacenter) {
-		b.err = multierror.Append(b.err, fmt.Errorf("datacenter: invalid value %q. Please use only [a-z0-9-_].", rt.Datacenter))
+		return fmt.Errorf("datacenter cannot be empty")
 	}
-
-	if rt.ACLDatacenter != "" && !validDatacenter.MatchString(rt.ACLDatacenter) {
-		b.err = multierror.Append(b.err, fmt.Errorf("acl_datacenter: invalid value %q. Please use only [a-z0-9-_].", rt.ACLDatacenter))
+	if !validDatacenter.MatchString(rt.Datacenter) {
+		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_].", rt.Datacenter)
 	}
-
+	if rt.DataDir == "" && !rt.DevMode {
+		return fmt.Errorf("data_dir cannot be empty")
+	}
+	if rt.NodeName == "" {
+		return fmt.Errorf("node_name cannot be empty")
+	}
+	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
+		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
+	}
+	if ipaddr.IsAny(rt.AdvertiseAddrWAN.IP) {
+		return fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
+	}
+	if ipaddr.IsAny(rt.RPCAdvertiseAddr) {
+		return fmt.Errorf("advertise_addrs.rpc cannot be 0.0.0.0, :: or [::]")
+	}
+	if ipaddr.IsAny(rt.SerfAdvertiseAddrLAN) {
+		return fmt.Errorf("advertise_addrs.serf_lan cannot be 0.0.0.0, :: or [::]")
+	}
+	if ipaddr.IsAny(rt.SerfAdvertiseAddrWAN) {
+		return fmt.Errorf("advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]")
+	}
+	for _, s := range rt.Segments {
+		if ipaddr.IsAny(s.Advertise) {
+			return fmt.Errorf("segments[%s].advertise cannot be 0.0.0.0, :: or [::]", s.Name)
+		}
+	}
 	if rt.Bootstrap && !rt.ServerMode {
-		b.err = multierror.Append(b.err, fmt.Errorf("'bootstrap = true' requires 'server = true'"))
+		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
 	}
-
 	if rt.BootstrapExpect < 0 {
-		b.err = multierror.Append(b.err, fmt.Errorf("bootstrap_expect: cannot be negative"))
+		return fmt.Errorf("bootstrap_expect cannot be %d. Must be greater than or equal to zero", rt.BootstrapExpect)
 	}
-
 	if rt.BootstrapExpect > 0 && !rt.ServerMode {
-		b.err = multierror.Append(b.err, fmt.Errorf("'bootstrap_expect > 0' requires 'server = true'"))
+		return fmt.Errorf("'bootstrap_expect > 0' requires 'server = true'")
 	}
-
 	if rt.BootstrapExpect > 0 && rt.DevMode {
-		b.err = multierror.Append(b.err, fmt.Errorf("'bootstrap_expect > 0' not allowed in dev mode"))
+		return fmt.Errorf("'bootstrap_expect > 0' not allowed in dev mode")
+	}
+	if rt.BootstrapExpect > 0 && rt.Bootstrap {
+		return fmt.Errorf("'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive")
+	}
+	if rt.AEInterval <= 0 {
+		return fmt.Errorf("ae_interval cannot be %s. Must be positive", rt.AEInterval)
+	}
+	if rt.AutopilotMaxTrailingLogs < 0 {
+		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
+	}
+	if rt.ACLDatacenter != "" && !validDatacenter.MatchString(rt.ACLDatacenter) {
+		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_].", rt.ACLDatacenter)
+	}
+	if rt.EnableUI && rt.UIDir != "" {
+		return fmt.Errorf(
+			"Both the ui and ui-dir flags were specified, please provide only one.\n" +
+				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
+				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
+	}
+	if rt.DNSUDPAnswerLimit <= 0 {
+		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be positive", rt.DNSUDPAnswerLimit)
+	}
+	if rt.PerformanceRaftMultiplier < 1 || uint(rt.PerformanceRaftMultiplier) > consul.MaxRaftMultiplier {
+		return fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", rt.PerformanceRaftMultiplier, consul.MaxRaftMultiplier)
 	}
 
-	if rt.BootstrapExpect > 0 && rt.Bootstrap {
-		b.err = multierror.Append(b.err, fmt.Errorf("'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive"))
-	}
+	// ----------------------------------------------------------------
+	// warnings
+	//
 
 	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect > 1 {
 		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
@@ -888,10 +926,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 
 	if !rt.DevMode {
-		if rt.DataDir == "" {
-			b.err = multierror.Append(b.err, fmt.Errorf("data_dir: cannot be empty"))
-		}
-
 		if finfo, err := os.Stat(rt.DataDir); err != nil {
 			if !os.IsNotExist(err) {
 				b.warn(fmt.Sprintf("data_dir: stat failed: %s", err))
@@ -931,55 +965,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
-	if rt.EnableUI && rt.UIDir != "" {
-		b.err = multierror.Append(b.err, fmt.Errorf(
-			"Both the ui and ui-dir flags were specified, please provide only one.\n"+
-				"If trying to use your own web UI resources, use the ui-dir flag.\n"+
-				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it"))
-	}
-
-	if ipaddr.IsAny(rt.AdvertiseAddrLAN) {
-		b.err = multierror.Append(b.err, fmt.Errorf("advertise_addr: cannot be 0.0.0.0, :: or [::]"))
-	}
-
-	if ipaddr.IsAny(rt.AdvertiseAddrWAN) {
-		b.err = multierror.Append(b.err, fmt.Errorf("advertise_addr_wan: cannot be 0.0.0.0, :: or [::]"))
-	}
-
-	if ipaddr.IsAny(rt.RPCAdvertiseAddr) {
-		b.err = multierror.Append(b.err, fmt.Errorf("advertise_addrs.rpc: cannot be 0.0.0.0, :: or [::]"))
-	}
-
-	if ipaddr.IsAny(rt.SerfAdvertiseAddrLAN) {
-		b.err = multierror.Append(b.err, fmt.Errorf("advertise_addrs.serf_lan: cannot be 0.0.0.0, :: or [::]"))
-	}
-
-	if ipaddr.IsAny(rt.SerfAdvertiseAddrWAN) {
-		b.err = multierror.Append(b.err, fmt.Errorf("advertise_addrs.serf_wan: cannot be 0.0.0.0, :: or [::]"))
-	}
-
-	for _, s := range rt.Segments {
-		if ipaddr.IsAny(s.Advertise) {
-			b.err = multierror.Append(b.err, fmt.Errorf("segments[%s].advertise: cannot be 0.0.0.0, :: or [::]", s.Name))
-		}
-	}
-
-	if rt.DNSUDPAnswerLimit <= 0 {
-		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.udp_answer_limit: must be positive: %d", rt.DNSUDPAnswerLimit))
-	}
-
-	if rt.NodeName == "" {
-		b.err = multierror.Append(b.err, fmt.Errorf("node_name: cannot be empty"))
-	}
-
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("node_meta: failed to parse: %v", err))
 	}
 
 	// todo(fs): does it need to be < 0 or < 1???
-	if rt.PerformanceRaftMultiplier < 1 || uint(rt.PerformanceRaftMultiplier) > consul.MaxRaftMultiplier {
-		b.err = multierror.Append(b.err, fmt.Errorf("performance.raft_multiplier: value %d not between 1 and %d", rt.PerformanceRaftMultiplier, consul.MaxRaftMultiplier))
-	}
 
 	// make sure listener addresses are unique
 	// todo(fs): check serf and rpc advertise/bind addresses for uniqueness as well
@@ -1277,10 +1267,10 @@ func (b *Builder) expandIPs(name string, s *string) []*net.IPAddr {
 		case *net.IPAddr:
 			x = append(x, a)
 		case *net.UnixAddr:
-			b.err = multierror.Append(b.err, fmt.Errorf("%s: cannot use a unix socket: %s", name, a))
+			b.err = multierror.Append(b.err, fmt.Errorf("%s cannot be a unix socket", name))
 			return nil
 		default:
-			b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid address type %T", name, a))
+			b.err = multierror.Append(b.err, fmt.Errorf("%s has invalid address type %T", name, a))
 			return nil
 		}
 	}
@@ -1327,10 +1317,10 @@ func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {
 	case *net.IPAddr:
 		return a
 	case *net.UnixAddr:
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: cannot use a unix socket: %s", name, addr))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s cannot be a unix socket", name))
 		return nil
 	default:
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid address type %T", name, a))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s has invalid address type %T", name, a))
 		return nil
 	}
 }
