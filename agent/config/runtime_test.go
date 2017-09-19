@@ -294,8 +294,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SkipLeaveOnInt = true
 				rt.TaggedAddresses = map[string]string{"lan": "127.0.0.1", "wan": "127.0.0.1"}
 				rt.ConsulCoordinateUpdatePeriod = 100 * time.Millisecond
-				rt.ConsulRaftElectionTimeout = 40 * time.Millisecond
-				rt.ConsulRaftHeartbeatTimeout = 40 * time.Millisecond
+				rt.ConsulRaftElectionTimeout = 52 * time.Millisecond
+				rt.ConsulRaftHeartbeatTimeout = 35 * time.Millisecond
 				rt.ConsulRaftLeaderLeaseTimeout = 20 * time.Millisecond
 				rt.ConsulSerfLANGossipInterval = 100 * time.Millisecond
 				rt.ConsulSerfLANProbeInterval = 100 * time.Millisecond

@@ -193,8 +193,8 @@ func DevConsulSource() Source {
 				update_period = "100ms"
 			}
 			raft = {
-				election_timeout = "40ms"
-				heartbeat_timeout = "40ms"
+				election_timeout = "52ms"
+				heartbeat_timeout = "35ms"
 				leader_lease_timeout = "20ms"
 			}
 			serf_lan = {
