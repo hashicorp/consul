@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMakeWatchHandler(t *testing.T) {
@@ -33,6 +34,7 @@ func TestMakeWatchHandler(t *testing.T) {
 
 func TestMakeHTTPWatchHandler(t *testing.T) {
 	t.Parallel()
+	finishedRequest := make(chan bool)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idx := r.Header.Get("X-Consul-Index")
 		if idx != "100" {
@@ -46,11 +48,11 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 			t.Fatalf("bad: %s", body)
 		}
 		w.Write([]byte("Ok, i see"))
-		t.Log("goood") // TODO: Clean
+		finishedRequest <- true
 	}))
 	defer server.Close()
 	t.Log("ww")
-	handler := makeHTTPWatchHandler(os.Stderr, server.URL)
+	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, nil, time.Minute)
 	handler(100, []string{"foo", "bar", "baz"})
-	t.Log("uu")
+	<-finishedRequest
 }
