@@ -91,7 +91,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	return fn
 }
 
-func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, headers map[string]string, timeout time.Duration) watch.HandlerFunc {
+func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, headers map[string][]string, timeout time.Duration) watch.HandlerFunc {
 	logger := log.New(logOutput, "", log.LstdFlags)
 
 	fn := func(idx uint64, data interface{}) {
@@ -120,8 +120,10 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
 			return
 		}
-		for key, val := range headers {
-			req.Header.Add(key, val)
+		for key, values := range headers {
+			for _, val := range values {
+				req.Header.Add(key, val)
+			}
 		}
 		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
 		resp, err := httpClient.Do(req)
