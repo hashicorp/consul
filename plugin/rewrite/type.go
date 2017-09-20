@@ -35,3 +35,8 @@ func (rule *typeRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	}
 	return RewriteIgnored
 }
+
+// Mode returns the processing mode
+func (rule *typeRule) Mode() string {
+	return Stop
+}

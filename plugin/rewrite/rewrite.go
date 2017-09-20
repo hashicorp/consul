@@ -24,6 +24,14 @@ const (
 	RewriteStatus
 )
 
+// These are defined processing mode.
+const (
+	// Processing should stop after completing this rule
+	Stop = "stop"
+	// Processing should continue to next rule
+	Continue = "continue"
+)
+
 // Rewrite is plugin to rewrite requests internally before being handled.
 type Rewrite struct {
 	Next     plugin.Handler
@@ -37,10 +45,12 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(w, r); result {
 		case RewriteDone:
-			if rw.noRevert {
-				return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
+			if rule.Mode() == Stop {
+				if rw.noRevert {
+					return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
+				}
+				return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, wr, r)
 			}
-			return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, wr, r)
 		case RewriteIgnored:
 			break
 		case RewriteStatus:
@@ -60,6 +70,8 @@ func (rw Rewrite) Name() string { return "rewrite" }
 type Rule interface {
 	// Rewrite rewrites the current request.
 	Rewrite(dns.ResponseWriter, *dns.Msg) Result
+	// Mode returns the processing mode stop or continue
+	Mode() string
 }
 
 func newRule(args ...string) (Rule, error) {
@@ -67,19 +79,39 @@ func newRule(args ...string) (Rule, error) {
 		return nil, fmt.Errorf("no rule type specified for rewrite")
 	}
 
-	ruleType := strings.ToLower(args[0])
-	if ruleType != "edns0" && len(args) != 3 {
+	arg0 := strings.ToLower(args[0])
+	var ruleType string
+	var expectNumArgs, startArg int
+	mode := Stop
+	switch arg0 {
+	case Continue:
+		mode = arg0
+		ruleType = strings.ToLower(args[1])
+		expectNumArgs = len(args) - 1
+		startArg = 2
+	case Stop:
+		ruleType = strings.ToLower(args[1])
+		expectNumArgs = len(args) - 1
+		startArg = 2
+	default:
+		// for backward compability
+		ruleType = arg0
+		expectNumArgs = len(args)
+		startArg = 1
+	}
+
+	if ruleType != "edns0" && expectNumArgs != 3 {
 		return nil, fmt.Errorf("%s rules must have exactly two arguments", ruleType)
 	}
 	switch ruleType {
 	case "name":
-		return newNameRule(args[1], args[2])
+		return newNameRule(args[startArg], args[startArg+1])
 	case "class":
-		return newClassRule(args[1], args[2])
+		return newClassRule(args[startArg], args[startArg+1])
 	case "type":
-		return newTypeRule(args[1], args[2])
+		return newTypeRule(args[startArg], args[startArg+1])
 	case "edns0":
-		return newEdns0Rule(args[1:]...)
+		return newEdns0Rule(mode, args[startArg:]...)
 	default:
 		return nil, fmt.Errorf("invalid rule type %q", args[0])
 	}

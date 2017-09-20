@@ -88,6 +88,43 @@ func TestNewRule(t *testing.T) {
 		{[]string{"edns0", "subnet", "set", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
 		{[]string{"edns0", "subnet", "append", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
 		{[]string{"edns0", "subnet", "replace", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"unknown-action", "name", "a.com", "b.com"}, true, nil},
+		{[]string{"stop", "name", "a.com", "b.com"}, false, reflect.TypeOf(&nameRule{})},
+		{[]string{"continue", "name", "a.com", "b.com"}, false, reflect.TypeOf(&nameRule{})},
+		{[]string{"unknown-action", "type", "any", "a"}, true, nil},
+		{[]string{"stop", "type", "any", "a"}, false, reflect.TypeOf(&typeRule{})},
+		{[]string{"continue", "type", "any", "a"}, false, reflect.TypeOf(&typeRule{})},
+		{[]string{"unknown-action", "class", "ch", "in"}, true, nil},
+		{[]string{"stop", "class", "ch", "in"}, false, reflect.TypeOf(&classRule{})},
+		{[]string{"continue", "class", "ch", "in"}, false, reflect.TypeOf(&classRule{})},
+		{[]string{"unknown-action", "edns0", "local", "set", "0xffee", "abcedef"}, true, nil},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "abcdefg"}, false, reflect.TypeOf(&edns0LocalRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "abcdefg"}, false, reflect.TypeOf(&edns0LocalRule{})},
+		{[]string{"unknown-action", "edns0", "nsid", "set"}, true, nil},
+		{[]string{"stop", "edns0", "nsid", "set"}, false, reflect.TypeOf(&edns0NsidRule{})},
+		{[]string{"continue", "edns0", "nsid", "set"}, false, reflect.TypeOf(&edns0NsidRule{})},
+		{[]string{"unknown-action", "edns0", "local", "set", "0xffee", "{qname}"}, true, nil},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{qname}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{qtype}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{client_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{client_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"stop", "edns0", "local", "set", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{qname}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{qtype}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{client_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{client_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{protocol}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{server_ip}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"continue", "edns0", "local", "set", "0xffee", "{server_port}"}, false, reflect.TypeOf(&edns0VariableRule{})},
+		{[]string{"unknown-action", "edns0", "subnet", "set", "24", "64"}, true, nil},
+		{[]string{"stop", "edns0", "subnet", "set", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"stop", "edns0", "subnet", "append", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"stop", "edns0", "subnet", "replace", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"continue", "edns0", "subnet", "set", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"continue", "edns0", "subnet", "append", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
+		{[]string{"continue", "edns0", "subnet", "replace", "24", "56"}, false, reflect.TypeOf(&edns0SubnetRule{})},
 	}
 
 	for i, tc := range tests {
@@ -208,7 +245,7 @@ func TestRewriteEDNS0Local(t *testing.T) {
 		m.SetQuestion("example.com.", dns.TypeA)
 		m.Question[0].Qclass = dns.ClassINET
 
-		r, err := newEdns0Rule(tc.args...)
+		r, err := newEdns0Rule("stop", tc.args...)
 		if err != nil {
 			t.Errorf("Error creating test rule: %s", err)
 			continue
@@ -232,9 +269,9 @@ func TestRewriteEDNS0Local(t *testing.T) {
 
 func TestEdns0LocalMultiRule(t *testing.T) {
 	rules := []Rule{}
-	r, _ := newEdns0Rule("local", "replace", "0xffee", "abcdef")
+	r, _ := newEdns0Rule("stop", "local", "replace", "0xffee", "abcdef")
 	rules = append(rules, r)
-	r, _ = newEdns0Rule("local", "set", "0xffee", "fedcba")
+	r, _ = newEdns0Rule("stop", "local", "set", "0xffee", "fedcba")
 	rules = append(rules, r)
 
 	rw := Rewrite{
@@ -399,7 +436,7 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		m.SetQuestion("example.com.", dns.TypeA)
 		m.Question[0].Qclass = dns.ClassINET
 
-		r, err := newEdns0Rule(tc.args...)
+		r, err := newEdns0Rule("stop", tc.args...)
 		if err != nil {
 			t.Errorf("Error creating test rule: %s", err)
 			continue
@@ -510,7 +547,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 		m.SetQuestion("example.com.", dns.TypeA)
 		m.Question[0].Qclass = dns.ClassINET
 
-		r, err := newEdns0Rule(tc.args...)
+		r, err := newEdns0Rule("stop", tc.args...)
 		if err != nil {
 			t.Errorf("Error creating test rule: %s", err)
 			continue

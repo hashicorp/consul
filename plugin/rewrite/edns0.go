@@ -15,6 +15,7 @@ import (
 
 // edns0LocalRule is a rewrite rule for EDNS0_LOCAL options
 type edns0LocalRule struct {
+	mode   string
 	action string
 	code   uint16
 	data   []byte
@@ -22,6 +23,7 @@ type edns0LocalRule struct {
 
 // edns0VariableRule is a rewrite rule for EDNS0_LOCAL options with variable
 type edns0VariableRule struct {
+	mode     string
 	action   string
 	code     uint16
 	variable string
@@ -29,6 +31,7 @@ type edns0VariableRule struct {
 
 // ends0NsidRule is a rewrite rule for EDNS0_NSID options
 type edns0NsidRule struct {
+	mode   string
 	action string
 }
 
@@ -70,6 +73,11 @@ Option:
 	return result
 }
 
+// Mode returns the processing mode
+func (rule *edns0NsidRule) Mode() string {
+	return rule.mode
+}
+
 // Rewrite will alter the request EDNS0 local options
 func (rule *edns0LocalRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	result := RewriteIgnored
@@ -102,8 +110,13 @@ func (rule *edns0LocalRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	return result
 }
 
+// Mode returns the processing mode
+func (rule *edns0LocalRule) Mode() string {
+	return rule.mode
+}
+
 // newEdns0Rule creates an EDNS0 rule of the appropriate type based on the args
-func newEdns0Rule(args ...string) (Rule, error) {
+func newEdns0Rule(mode string, args ...string) (Rule, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("too few arguments for an EDNS0 rule")
 	}
@@ -125,25 +138,25 @@ func newEdns0Rule(args ...string) (Rule, error) {
 		}
 		//Check for variable option
 		if strings.HasPrefix(args[3], "{") && strings.HasSuffix(args[3], "}") {
-			return newEdns0VariableRule(action, args[2], args[3])
+			return newEdns0VariableRule(mode, action, args[2], args[3])
 		}
-		return newEdns0LocalRule(action, args[2], args[3])
+		return newEdns0LocalRule(mode, action, args[2], args[3])
 	case "nsid":
 		if len(args) != 2 {
 			return nil, fmt.Errorf("EDNS0 NSID rules do not accept args")
 		}
-		return &edns0NsidRule{action: action}, nil
+		return &edns0NsidRule{mode: mode, action: action}, nil
 	case "subnet":
 		if len(args) != 4 {
 			return nil, fmt.Errorf("EDNS0 subnet rules require exactly three args")
 		}
-		return newEdns0SubnetRule(action, args[2], args[3])
+		return newEdns0SubnetRule(mode, action, args[2], args[3])
 	default:
 		return nil, fmt.Errorf("invalid rule type %q", ruleType)
 	}
 }
 
-func newEdns0LocalRule(action, code, data string) (*edns0LocalRule, error) {
+func newEdns0LocalRule(mode, action, code, data string) (*edns0LocalRule, error) {
 	c, err := strconv.ParseUint(code, 0, 16)
 	if err != nil {
 		return nil, err
@@ -156,11 +169,11 @@ func newEdns0LocalRule(action, code, data string) (*edns0LocalRule, error) {
 			return nil, err
 		}
 	}
-	return &edns0LocalRule{action: action, code: uint16(c), data: decoded}, nil
+	return &edns0LocalRule{mode: mode, action: action, code: uint16(c), data: decoded}, nil
 }
 
 // newEdns0VariableRule creates an EDNS0 rule that handles variable substitution
-func newEdns0VariableRule(action, code, variable string) (*edns0VariableRule, error) {
+func newEdns0VariableRule(mode, action, code, variable string) (*edns0VariableRule, error) {
 	c, err := strconv.ParseUint(code, 0, 16)
 	if err != nil {
 		return nil, err
@@ -169,7 +182,7 @@ func newEdns0VariableRule(action, code, variable string) (*edns0VariableRule, er
 	if !isValidVariable(variable) {
 		return nil, fmt.Errorf("unsupported variable name %q", variable)
 	}
-	return &edns0VariableRule{action: action, code: uint16(c), variable: variable}, nil
+	return &edns0VariableRule{mode: mode, action: action, code: uint16(c), variable: variable}, nil
 }
 
 // ipToWire writes IP address to wire/binary format, 4 or 16 bytes depends on IPV4 or IPV6.
@@ -294,6 +307,11 @@ func (rule *edns0VariableRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result 
 	return result
 }
 
+// Mode returns the processing mode
+func (rule *edns0VariableRule) Mode() string {
+	return rule.mode
+}
+
 func isValidVariable(variable string) bool {
 	switch variable {
 	case
@@ -311,12 +329,13 @@ func isValidVariable(variable string) bool {
 
 // ends0SubnetRule is a rewrite rule for EDNS0 subnet options
 type edns0SubnetRule struct {
+	mode         string
 	v4BitMaskLen uint8
 	v6BitMaskLen uint8
 	action       string
 }
 
-func newEdns0SubnetRule(action, v4BitMaskLen, v6BitMaskLen string) (*edns0SubnetRule, error) {
+func newEdns0SubnetRule(mode, action, v4BitMaskLen, v6BitMaskLen string) (*edns0SubnetRule, error) {
 	v4Len, err := strconv.ParseUint(v4BitMaskLen, 0, 16)
 	if err != nil {
 		return nil, err
@@ -335,7 +354,7 @@ func newEdns0SubnetRule(action, v4BitMaskLen, v6BitMaskLen string) (*edns0Subnet
 		return nil, fmt.Errorf("invalid IPv6 bit mask length %d", v6Len)
 	}
 
-	return &edns0SubnetRule{action: action,
+	return &edns0SubnetRule{mode: mode, action: action,
 		v4BitMaskLen: uint8(v4Len), v6BitMaskLen: uint8(v6Len)}, nil
 }
 
@@ -398,6 +417,11 @@ func (rule *edns0SubnetRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 	}
 
 	return result
+}
+
+// Mode returns the processing mode
+func (rule *edns0SubnetRule) Mode() string {
+	return rule.mode
 }
 
 // These are all defined actions.
