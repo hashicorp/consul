@@ -174,7 +174,7 @@ The table below shows this endpoint's support for
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the list of tags to filter the list. This is
+- `tag` `(string: "")` - Specifies the tag to filter the list. This is
   specifies as part of the URL as a query parameter.
 
 - `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
