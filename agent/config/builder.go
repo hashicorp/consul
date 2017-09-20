@@ -431,13 +431,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			port,
 		)
 
-		// check the port after the addresses since bind/advertise might contain
-		// a unix socket which we want to report first.
-		if port <= 0 {
-			b.err = multierror.Append(b.err, fmt.Errorf("segment[%s].port must be > 0", name))
-			continue
-		}
-
 		segments = append(segments, structs.NetworkSegment{
 			Name:        name,
 			Bind:        bind,
@@ -614,6 +607,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
 		Revision:                   b.stringVal(c.Revision),
+		SegmentLimit:               b.intVal(c.SegmentLimit),
+		SegmentNameLimit:           b.intVal(c.SegmentNameLimit),
 		SyncCoordinateIntervalMin:  b.durationVal("sync_coordinate_interval_min", c.SyncCoordinateIntervalMin),
 		SyncCoordinateRateTarget:   b.float64Val(c.SyncCoordinateRateTarget),
 		Version:                    b.stringVal(c.Version),
@@ -851,7 +846,22 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if ipaddr.IsAny(rt.SerfAdvertiseAddrWAN) {
 		return fmt.Errorf("advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]")
 	}
+	if rt.ServerMode && rt.SegmentName != "" {
+		return fmt.Errorf("Segment name can only be set on agents (server = false)")
+	}
+	if !rt.ServerMode && len(rt.Segments) > 0 {
+		return fmt.Errorf("Segments can only be configured on servers (server = true)")
+	}
+	if rt.ServerMode && len(rt.Segments) > rt.SegmentLimit {
+		return fmt.Errorf("cannot configure more than %d segments", rt.SegmentLimit)
+	}
 	for _, s := range rt.Segments {
+		if len(s.Name) > rt.SegmentNameLimit {
+			return fmt.Errorf("segment[%s].name is too long. Please use %d characters or less", s.Name, rt.SegmentNameLimit)
+		}
+		if s.Bind != nil && s.Bind.Port <= 0 {
+			return fmt.Errorf("segment[%s].port must be > 0", s.Name)
+		}
 		if ipaddr.IsAny(s.Advertise) {
 			return fmt.Errorf("segments[%s].advertise cannot be 0.0.0.0, :: or [::]", s.Name)
 		}
@@ -899,12 +909,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
-	}
-	if rt.ServerMode && rt.SegmentName != "" {
-		return fmt.Errorf("Segment name can only be set on agents (server = false)")
-	}
-	if !rt.ServerMode && len(rt.Segments) > 0 {
-		return fmt.Errorf("segments: Segments can only be configured on servers (server = true)")
 	}
 	if rt.EncryptKey != "" {
 		if _, err := decodeBytes(rt.EncryptKey); err != nil {

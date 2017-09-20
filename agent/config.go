@@ -7,20 +7,6 @@ import (
 	"time"
 )
 
-const (
-	// SegmentLimit is the maximum number of network segments that may be declared.
-	SegmentLimit = 64
-
-	// SegmentNameLimit is the maximum segment name length.
-	SegmentNameLimit = 64
-)
-
-func socketPath(addr string) string {
-	if !strings.HasPrefix(addr, "unix://") {
-		return ""
-	}
-	return strings.TrimPrefix(addr, "unix://")
-}
 
 var errInvalidHeaderFormat = errors.New("agent: invalid format of 'header' field")
 

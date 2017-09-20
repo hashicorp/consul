@@ -33,27 +33,4 @@
 // value to avoid accidental or malicious runtime configuration changes.
 // Runtime updates need to be handled through a new configuration
 // instances.
-//
-// This code is work in progress and will first attempt to cover all edge
-// cases before building the fully fledged configuration.
 package config
-
-// func doit() (c RuntimeConfig, warns []string, err error) {
-// 	var flags Flags
-// 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-// 	AddFlags(fs, &flags)
-// 	if err = fs.Parse(os.Args); err != nil {
-// 		return
-// 	}
-//
-// 	b, err := NewBuilder(flags, defaultConfig)
-// 	if err != nil {
-// 		return RuntimeConfig{}, nil, err
-// 	}
-// 	for _, name := range flags.ConfigFiles {
-// 		if err := b.readFile(name); err != nil {
-// 			return RuntimeConfig{}, nil, err
-// 		}
-// 	}
-// 	return b.Build()
-// }

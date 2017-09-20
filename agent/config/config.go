@@ -156,6 +156,8 @@ type Config struct {
 	CheckReapInterval          *string  `json:"check_reap_interval,omitempty" hcl:"check_reap_interval"`
 	Consul                     Consul   `json:"consul,omitempty" hcl:"consul"`
 	Revision                   *string  `json:"revision,omitempty" hcl:"revision"`
+	SegmentLimit               *int     `json:"segment_limit,omitempty" hcl:"segment_limit"`
+	SegmentNameLimit           *int     `json:"segment_name_limit,omitempty" hcl:"segment_name_limit"`
 	SyncCoordinateIntervalMin  *string  `json:"sync_coordinate_interval_min,omitempty" hcl:"sync_coordinate_interval_min"`
 	SyncCoordinateRateTarget   *float64 `json:"sync_coordinate_rate_target,omitempty" hcl:"sync_coordinate_rate_target"`
 	Version                    *string  `json:"version,omitempty" hcl:"version"`

@@ -3,10 +3,12 @@ package structs
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/gofuzz"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/reflectwalk"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {
@@ -69,4 +71,45 @@ func TestCheckDefinition_CheckType(t *testing.T) {
 			t.Fatalf("copy skipped field %q", f)
 		}
 	}
+}
+
+func TestCheckDefinitionToCheckType(t *testing.T) {
+	t.Parallel()
+	got := &CheckDefinition{
+		ID:     "id",
+		Name:   "name",
+		Status: "green",
+		Notes:  "notes",
+
+		ServiceID:         "svcid",
+		Token:             "tok",
+		Script:            "/bin/foo",
+		HTTP:              "someurl",
+		TCP:               "host:port",
+		Interval:          1 * time.Second,
+		DockerContainerID: "abc123",
+		Shell:             "/bin/ksh",
+		TLSSkipVerify:     true,
+		Timeout:           2 * time.Second,
+		TTL:               3 * time.Second,
+		DeregisterCriticalServiceAfter: 4 * time.Second,
+	}
+	want := &CheckType{
+		CheckID: "id",
+		Name:    "name",
+		Status:  "green",
+		Notes:   "notes",
+
+		Script:            "/bin/foo",
+		HTTP:              "someurl",
+		TCP:               "host:port",
+		Interval:          1 * time.Second,
+		DockerContainerID: "abc123",
+		Shell:             "/bin/ksh",
+		TLSSkipVerify:     true,
+		Timeout:           2 * time.Second,
+		TTL:               3 * time.Second,
+		DeregisterCriticalServiceAfter: 4 * time.Second,
+	}
+	verify.Values(t, "", got.CheckType(), want)
 }

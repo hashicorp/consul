@@ -21,6 +21,8 @@ type RuntimeConfig struct {
 	ACLDisabledTTL             time.Duration
 	CheckDeregisterIntervalMin time.Duration
 	CheckReapInterval          time.Duration
+	SegmentLimit               int
+	SegmentNameLimit           int
 	SyncCoordinateRateTarget   float64
 	SyncCoordinateIntervalMin  time.Duration
 	Revision                   string

@@ -3192,11 +3192,13 @@ func TestFullConfig(t *testing.T) {
 				Data: `
 				{
 					"acl_disabled_ttl": "957s",
+					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
-					"ae_interval": "10003s",
-					"sync_coordinate_rate_target": 137.81,
-					"sync_coordinate_interval_min": "27983s"
+					"segment_limit": 24705,
+					"segment_name_limit": 27046,
+					"sync_coordinate_interval_min": "27983s",
+					"sync_coordinate_rate_target": 137.81
 				}`,
 			},
 			{
@@ -3244,11 +3246,13 @@ func TestFullConfig(t *testing.T) {
 				Format: "hcl",
 				Data: `
 					acl_disabled_ttl = "957s"
+					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
-					ae_interval = "10003s"
-					sync_coordinate_rate_target = 137.81
+					segment_limit = 24705
+					segment_name_limit = 27046
 					sync_coordinate_interval_min = "27983s"
+					sync_coordinate_rate_target = 137.81
 				`,
 			},
 			{
@@ -3294,11 +3298,13 @@ func TestFullConfig(t *testing.T) {
 	want := RuntimeConfig{
 		// non-user configurable values
 		ACLDisabledTTL:             957 * time.Second,
+		AEInterval:                 10003 * time.Second,
 		CheckDeregisterIntervalMin: 27870 * time.Second,
 		CheckReapInterval:          10662 * time.Second,
-		AEInterval:                 10003 * time.Second,
-		SyncCoordinateRateTarget:   137.81,
+		SegmentLimit:               24705,
+		SegmentNameLimit:           27046,
 		SyncCoordinateIntervalMin:  27983 * time.Second,
+		SyncCoordinateRateTarget:   137.81,
 
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
