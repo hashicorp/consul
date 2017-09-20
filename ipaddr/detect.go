@@ -7,13 +7,13 @@ import (
 
 // GetPrivateIPv4 returns the list of private network IPv4 addresses on
 // all active interfaces.
-func GetPrivateIPv4() ([]net.IP, error) {
+func GetPrivateIPv4() ([]*net.IPAddr, error) {
 	addresses, err := activeInterfaceAddresses()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
 
-	var addrs []net.IP
+	var addrs []*net.IPAddr
 	for _, rawAddr := range addresses {
 		var ip net.IP
 		switch addr := rawAddr.(type) {
@@ -30,20 +30,20 @@ func GetPrivateIPv4() ([]net.IP, error) {
 		if !isPrivate(ip) {
 			continue
 		}
-		addrs = append(addrs, ip)
+		addrs = append(addrs, &net.IPAddr{IP: ip})
 	}
 	return addrs, nil
 }
 
 // GetPublicIPv6 returns the list of all public IPv6 addresses
 // on all active interfaces.
-func GetPublicIPv6() ([]net.IP, error) {
+func GetPublicIPv6() ([]*net.IPAddr, error) {
 	addresses, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
 
-	var addrs []net.IP
+	var addrs []*net.IPAddr
 	for _, rawAddr := range addresses {
 		var ip net.IP
 		switch addr := rawAddr.(type) {
@@ -60,7 +60,7 @@ func GetPublicIPv6() ([]net.IP, error) {
 		if isPrivate(ip) {
 			continue
 		}
-		addrs = append(addrs, ip)
+		addrs = append(addrs, &net.IPAddr{IP: ip})
 	}
 	return addrs, nil
 }

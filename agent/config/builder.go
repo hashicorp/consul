@@ -66,11 +66,8 @@ type Builder struct {
 	// is called.
 	Hostname func() (string, error)
 
-	// DetectIP returns a single ip address of the given type.
-	// If there are multiple addresses of the same type an error
-	// is returned. Valid types are 'private_v4' and 'public_v6'.
-	// If the type is invalid the function panics.
-	DetectIP func(typ string) (*net.IPAddr, error)
+	GetPrivateIPv4 func() ([]*net.IPAddr, error)
+	GetPublicIPv6  func() ([]*net.IPAddr, error)
 
 	// err contains the first error that occurred during
 	// building the runtime configuration.
@@ -200,25 +197,6 @@ func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
 		return RuntimeConfig{}, err
 	}
 	return rt, nil
-}
-
-func detectIP(typ string) (*net.IPAddr, error) {
-	switch typ {
-	case "private_v4":
-		ip, err := consul.GetPrivateIP()
-		if err != nil {
-			return nil, err
-		}
-		return &net.IPAddr{IP: ip}, nil
-	case "public_v6":
-		ip, err := consul.GetPublicIPv6()
-		if err != nil {
-			return nil, err
-		}
-		return &net.IPAddr{IP: ip}, nil
-	default:
-		panic("invalid address type: " + typ)
-	}
 }
 
 // Build constructs the runtime configuration from the config sources
@@ -355,54 +333,53 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// traffic but cannot advertise it as the address on which the
 	// server can be reached.
 
-	var bindAddr *net.IPAddr
-	var anyAddr string
+	bindAddrs := b.expandAddrs("bind_addr", c.BindAddr)
+	if len(bindAddrs) == 0 {
+		return RuntimeConfig{}, fmt.Errorf("bind_addr cannot be empty")
+	}
+	if len(bindAddrs) > 1 {
+		return RuntimeConfig{}, fmt.Errorf("bind_addr cannot contain multiple addresses. Use 'addresses.{dns,http,https}' instead.")
+	}
+	if isUnixAddr(bindAddrs[0]) {
+		return RuntimeConfig{}, fmt.Errorf("bind_addr cannot be a unix socket")
+	}
+	if !isIPAddr(bindAddrs[0]) {
+		return RuntimeConfig{}, fmt.Errorf("bind_addr must be an ip address")
+	}
+
+	bindAddr := bindAddrs[0].(*net.IPAddr)
+
+	var addrtyp string
+	var detect func() ([]*net.IPAddr, error)
 	switch {
-	case ipaddr.IsAnyV4(b.stringVal(c.BindAddr)):
-		bindAddr = b.expandFirstIP("bind_addr", c.BindAddr)
-		anyAddr = "0.0.0.0"
+	case ipaddr.IsAnyV4(c.BindAddr) || ipaddr.IsAnyV4(bindAddr):
+		addrtyp = "private IPv4"
+		detect = b.GetPrivateIPv4
+		if detect == nil {
+			detect = ipaddr.GetPrivateIPv4
+		}
 
-	case ipaddr.IsAnyV6(b.stringVal(c.BindAddr)):
-		bindAddr = b.expandFirstIP("bind_addr", c.BindAddr)
-		anyAddr = "::"
-
-	default:
-		bindAddr = b.expandFirstIP("bind_addr", c.BindAddr)
-		switch {
-		case ipaddr.IsAnyV4(bindAddr):
-			anyAddr = "0.0.0.0"
-		case ipaddr.IsAnyV6(bindAddr):
-			anyAddr = "::"
+	case ipaddr.IsAnyV6(c.BindAddr) || ipaddr.IsAnyV6(bindAddr):
+		addrtyp = "public IPv6"
+		detect = b.GetPublicIPv6
+		if detect == nil {
+			detect = ipaddr.GetPublicIPv6
 		}
 	}
 
-	// if the bind_addr is nil because of an error we set it to 127.99.99.99
-	// so that the process can continue and we find other errors.
-	if bindAddr == nil {
-		bindAddr = &net.IPAddr{IP: net.ParseIP("127.99.99.99")}
-	}
-
-	detect := detectIP
-	if b.DetectIP != nil {
-		detect = b.DetectIP
-	}
-
-	var advertiseAddr *net.IPAddr
-	switch anyAddr {
-	case "0.0.0.0":
-		advertiseAddr, err = detect("private_v4")
-	case "::":
-		advertiseAddr, err = detect("public_v6")
-	default:
-		advertiseAddr = bindAddr
-	}
-	if err != nil {
-		// show "bind_addr" as the root cause of the error since we
-		// cannot derive a proper advertise address from the configured
-		// bind address. Hence, the bind address configuration is the
-		// main issue.
-		b.err = multierror.Append(b.err, fmt.Errorf("bind_addr: %s", err))
-		advertiseAddr = &net.IPAddr{IP: net.ParseIP("127.98.98.98")}
+	advertiseAddr := bindAddr
+	if detect != nil {
+		advertiseAddrs, err := detect()
+		if err != nil {
+			return RuntimeConfig{}, fmt.Errorf("Error detecting %s address: %s", addrtyp, err)
+		}
+		if len(advertiseAddrs) == 0 {
+			return RuntimeConfig{}, fmt.Errorf("No %s address found", addrtyp)
+		}
+		if len(advertiseAddrs) > 1 {
+			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one", addrtyp)
+		}
+		advertiseAddr = advertiseAddrs[0]
 	}
 
 	// derive other bind addresses from the bindAddr
@@ -1411,4 +1388,14 @@ func (b *Builder) isUnixAddr(a net.Addr) bool {
 // decodeBytes returns the encryption key decoded.
 func decodeBytes(key string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(key)
+}
+
+func isIPAddr(a net.Addr) bool {
+	_, ok := a.(*net.IPAddr)
+	return ok
+}
+
+func isUnixAddr(a net.Addr) bool {
+	_, ok := a.(*net.UnixAddr)
+	return ok
 }

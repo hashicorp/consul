@@ -100,6 +100,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		flags          []string
 		json, jsontail []string
 		hcl, hcltail   []string
+		privatev4      func() ([]*net.IPAddr, error)
+		publicv6       func() ([]*net.IPAddr, error)
 		patch          func(rt *RuntimeConfig)
 		err            string
 		warns          []string
@@ -142,6 +144,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"wan": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
+			},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
 			},
 		},
 		{
@@ -1051,6 +1056,56 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		//
 
 		{
+			desc:  "bind addr any v4",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr":"0.0.0.0" }`},
+			hcl:   []string{`bind_addr = "0.0.0.0"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrLAN = ipAddr("10.0.0.1")
+				rt.AdvertiseAddrWAN = ipAddr("10.0.0.1")
+				rt.BindAddr = ipAddr("0.0.0.0")
+				rt.RPCAdvertiseAddr = tcpAddr("10.0.0.1:8300")
+				rt.RPCBindAddr = tcpAddr("0.0.0.0:8300")
+				rt.SerfAdvertiseAddrLAN = tcpAddr("10.0.0.1:8301")
+				rt.SerfAdvertiseAddrWAN = tcpAddr("10.0.0.1:8302")
+				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
+				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "10.0.0.1",
+				}
+				rt.DataDir = dataDir
+			},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
+		},
+		{
+			desc:  "bind addr any v6",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr":"::" }`},
+			hcl:   []string{`bind_addr = "::"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrLAN = ipAddr("dead:beef::1")
+				rt.AdvertiseAddrWAN = ipAddr("dead:beef::1")
+				rt.BindAddr = ipAddr("::")
+				rt.RPCAdvertiseAddr = tcpAddr("[dead:beef::1]:8300")
+				rt.RPCBindAddr = tcpAddr("[::]:8300")
+				rt.SerfAdvertiseAddrLAN = tcpAddr("[dead:beef::1]:8301")
+				rt.SerfAdvertiseAddrWAN = tcpAddr("[dead:beef::1]:8302")
+				rt.SerfBindAddrLAN = tcpAddr("[::]:8301")
+				rt.SerfBindAddrWAN = tcpAddr("[::]:8302")
+				rt.TaggedAddresses = map[string]string{
+					"lan": "dead:beef::1",
+					"wan": "dead:beef::1",
+				}
+				rt.DataDir = dataDir
+			},
+			publicv6: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+			},
+		},
+		{
 			desc:  "client addr and ports == 0",
 			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
@@ -1283,6 +1338,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				rt.DataDir = dataDir
 			},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
 		},
 		{
 			desc:  "serf advertise address lan template",
@@ -1472,6 +1530,46 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc:  "advertise address detect fails v4",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "0.0.0.0"}`},
+			hcl:   []string{`bind_addr = "0.0.0.0"`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return nil, errors.New("some error")
+			},
+			err: "Error detecting private IPv4 address: some error",
+		},
+		{
+			desc:  "advertise address detect multiple v4",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "0.0.0.0"}`},
+			hcl:   []string{`bind_addr = "0.0.0.0"`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("1.1.1.1"), ipAddr("2.2.2.2")}, nil
+			},
+			err: "Multiple private IPv4 addresses found. Please configure one",
+		},
+		{
+			desc:  "advertise address detect fails v6",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "::"}`},
+			hcl:   []string{`bind_addr = "::"`},
+			publicv6: func() ([]*net.IPAddr, error) {
+				return nil, errors.New("some error")
+			},
+			err: "Error detecting public IPv6 address: some error",
+		},
+		{
+			desc:  "advertise address detect multiple v6",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "::"}`},
+			hcl:   []string{`bind_addr = "::"`},
+			publicv6: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("dead:beef::1"), ipAddr("dead:beef::2")}, nil
+			},
+			err: "Multiple public IPv6 addresses found. Please configure one",
+		},
+		{
 			desc:     "ae_interval invalid == 0",
 			flags:    []string{`-data-dir=` + dataDir},
 			jsontail: []string{`{ "ae_interval": "0s" }`},
@@ -1484,13 +1582,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			jsontail: []string{`{ "ae_interval": "-1s" }`},
 			hcltail:  []string{`ae_interval = "-1s"`},
 			err:      `ae_interval cannot be -1s. Must be positive`,
-		},
-		{
-			desc:  "datacenter invalid",
-			flags: []string{`-data-dir=` + dataDir},
-			json:  []string{`{ "datacenter": "%" }`},
-			hcl:   []string{`datacenter = "%"`},
-			err:   `datacenter cannot be "%". Please use only [a-z0-9-_]`,
 		},
 		{
 			desc: "acl_datacenter invalid",
@@ -1513,14 +1604,25 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "autopilot.max_trailing_logs cannot be -1. Must be greater than or equal to zero",
 		},
 		{
-			desc: "bind does not allow socket",
-			flags: []string{
-				`-datacenter=a`,
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "bind_addr": "unix:///foo" }`},
-			hcl:  []string{`bind_addr = "unix:///foo"`},
-			err:  "bind_addr cannot be a unix socket",
+			desc:  "bind_addr cannot be empty",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "" }`},
+			hcl:   []string{`bind_addr = ""`},
+			err:   "bind_addr cannot be empty",
+		},
+		{
+			desc:  "bind_addr does not allow multiple addresses",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "1.1.1.1 2.2.2.2" }`},
+			hcl:   []string{`bind_addr = "1.1.1.1 2.2.2.2"`},
+			err:   "bind_addr cannot contain multiple addresses",
+		},
+		{
+			desc:  "bind_addr cannot be a unix socket",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "unix:///foo" }`},
+			hcl:   []string{`bind_addr = "unix:///foo"`},
+			err:   "bind_addr cannot be a unix socket",
 		},
 		{
 			desc: "bootstrap without server",
@@ -1582,6 +1684,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "client_addr": "unix:///foo" }`},
 			hcl:  []string{`client_addr = "unix:///foo"`},
 			err:  "client_addr cannot be a unix socket",
+		},
+		{
+			desc:  "datacenter invalid",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "datacenter": "%" }`},
+			hcl:   []string{`datacenter = "%"`},
+			err:   `datacenter cannot be "%". Please use only [a-z0-9-_]`,
 		},
 		{
 			desc: "dns does not allow socket",
@@ -1895,16 +2004,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 
 				// mock the ip address detection
-				b.DetectIP = func(typ string) (*net.IPAddr, error) {
-					switch typ {
-					case "private_v4":
-						return ipAddr("10.0.0.1"), nil
-					case "private_v6":
-						return ipAddr("2001:db8::1000"), nil
-					default:
-						panic("invalid type: " + typ)
-					}
-				}
+				b.GetPrivateIPv4 = tt.privatev4
+				b.GetPublicIPv6 = tt.publicv6
 
 				// read the source fragements
 				for i, data := range srcs {
@@ -1955,7 +2056,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					t.Fatal(err)
 				}
 				x.Hostname = b.Hostname
-				x.DetectIP = b.DetectIP
+				x.GetPrivateIPv4 = b.GetPrivateIPv4
+				x.GetPublicIPv6 = b.GetPublicIPv6
 				wantRT, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)

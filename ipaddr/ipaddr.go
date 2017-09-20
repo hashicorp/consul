@@ -32,6 +32,11 @@ func iptos(ip interface{}) string {
 	switch x := ip.(type) {
 	case string:
 		return x
+	case *string:
+		if x == nil {
+			return ""
+		}
+		return *x
 	case net.IP:
 		return x.String()
 	case *net.IP:
