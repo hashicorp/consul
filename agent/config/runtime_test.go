@@ -1225,7 +1225,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{
 					"client_addr": "{{ printf \"1.2.3.4 2001:db8::1\" }}",
 					"addresses": {
-						"dns": "{{ printf \"1.1.1.1 unix://dns 2001:db8::10 \" }}",
+						"dns": "{{ printf \"1.1.1.1 2001:db8::10 \" }}",
 						"http": "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}",
 						"https": "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
 					},
@@ -1234,7 +1234,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 					client_addr = "{{ printf \"1.2.3.4 2001:db8::1\" }}"
 					addresses = {
-						dns = "{{ printf \"1.1.1.1 unix://dns 2001:db8::10 \" }}"
+						dns = "{{ printf \"1.1.1.1 2001:db8::10 \" }}"
 						http = "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}"
 						https = "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
 					}
@@ -1243,7 +1243,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4"), ipAddr("2001:db8::1")}
 				rt.DNSPort = 1
-				rt.DNSAddrs = []net.Addr{tcpAddr("1.1.1.1:1"), unixAddr("unix://dns"), tcpAddr("[2001:db8::10]:1"), udpAddr("1.1.1.1:1"), udpAddr("[2001:db8::10]:1")}
+				rt.DNSAddrs = []net.Addr{tcpAddr("1.1.1.1:1"), tcpAddr("[2001:db8::10]:1"), udpAddr("1.1.1.1:1"), udpAddr("[2001:db8::10]:1")}
 				rt.HTTPPort = 2
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 				rt.HTTPSPort = 3
@@ -1582,6 +1582,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "client_addr": "unix:///foo" }`},
 			hcl:  []string{`client_addr = "unix:///foo"`},
 			err:  "client_addr cannot be a unix socket",
+		},
+		{
+			desc: "dns does not allow socket",
+			flags: []string{
+				`-datacenter=a`,
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "addresses": {"dns": "unix:///foo" } }`},
+			hcl:  []string{`addresses = { dns = "unix:///foo" }`},
+			err:  "DNS address cannot be a unix socket",
 		},
 		{
 			desc: "enable_ui and ui_dir",

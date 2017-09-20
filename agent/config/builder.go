@@ -878,6 +878,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("segments[%s].advertise cannot be 0.0.0.0, :: or [::]", s.Name)
 		}
 	}
+	for _, a := range rt.DNSAddrs {
+		if _, ok := a.(*net.UnixAddr); ok {
+			return fmt.Errorf("DNS address cannot be a unix socket")
+		}
+	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
 	}
