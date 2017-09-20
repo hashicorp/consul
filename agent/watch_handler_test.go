@@ -39,16 +39,22 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		if idx != "100" {
 			t.Fatalf("bad: %s", idx)
 		}
+		// Get the first one
+		customHeader := r.Header.Get("X-Custom")
+		if customHeader != "abc" {
+			t.Fatalf("bad: %s", idx)
+		}
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if string(body) != `["foo","bar","baz"]` {
+		if string(body) != "[\"foo\",\"bar\",\"baz\"]\n" {
 			t.Fatalf("bad: %s", body)
 		}
 		w.Write([]byte("Ok, i see"))
 	}))
 	defer server.Close()
-	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, nil, time.Minute, false)
+	headers := map[string][]string{"X-Custom": {"abc", "def"}}
+	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, headers, time.Minute, false)
 	handler(100, []string{"foo", "bar", "baz"})
 }
