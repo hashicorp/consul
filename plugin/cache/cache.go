@@ -117,6 +117,19 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		return nil
 	}
 
+	// Apply capped TTL to this reply to avoid jarring TTL experience 1799 -> 8 (e.g.)
+	ttl := uint32(duration.Seconds())
+	for i := range res.Answer {
+		res.Answer[i].Header().Ttl = ttl
+	}
+	for i := range res.Ns {
+		res.Ns[i].Header().Ttl = ttl
+	}
+	for i := range res.Extra {
+		if res.Extra[i].Header().Rrtype != dns.TypeOPT {
+			res.Extra[i].Header().Ttl = ttl
+		}
+	}
 	return w.ResponseWriter.WriteMsg(res)
 }
 

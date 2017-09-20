@@ -19,7 +19,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	qtype := state.QType()
 	zone := plugin.Zones(c.Zones).Matches(qname)
 	if zone == "" {
-		return c.Next.ServeDNS(ctx, w, r)
+		return plugin.NextOrFailure(c.Name(), c.Next, ctx, w, r)
 	}
 
 	do := state.Do() // TODO(): might need more from OPT record? Like the actual bufsize?
