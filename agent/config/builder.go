@@ -942,6 +942,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	inuse := map[string]string{}
 	if err := addrsUnique(inuse, "DNS", rt.DNSAddrs); err != nil {
+		// cannot happen since this is the first address
+		// we leave this for consistency
 		return err
 	}
 	if err := addrsUnique(inuse, "HTTP", rt.HTTPAddrs); err != nil {
@@ -967,10 +969,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// warnings
 	//
 
-	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect > 1 {
-		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
-	}
-
 	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect == 2 {
 		b.warn(`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`)
 	}
@@ -981,6 +979,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if rt.ServerMode && rt.Bootstrap && rt.BootstrapExpect == 0 {
 		b.warn(`bootstrap = true: do not enable unless necessary`)
+	}
+
+	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect > 1 {
+		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
 	}
 
 	return nil

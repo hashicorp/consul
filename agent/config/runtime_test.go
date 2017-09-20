@@ -6,8 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -65,6 +67,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 	tests := []struct {
 		desc           string
 		flags          []string
+		pre, post      func()
 		json, jsontail []string
 		hcl, hcltail   []string
 		privatev4      func() ([]*net.IPAddr, error)
@@ -1737,6 +1740,44 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			warns: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 		},
 		{
+			desc: "bootstrap-expect=2 warning",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "bootstrap_expect": 2, "server": true }`},
+			hcl:  []string{`bootstrap_expect = 2 server = true`},
+			patch: func(rt *RuntimeConfig) {
+				rt.BootstrapExpect = 2
+				rt.LeaveOnTerm = false
+				rt.ServerMode = true
+				rt.SkipLeaveOnInt = true
+				rt.DataDir = dataDir
+			},
+			warns: []string{
+				`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+				`bootstrap_expect > 0: expecting 2 servers`,
+			},
+		},
+		{
+			desc: "bootstrap-expect > 2 but even warning",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "bootstrap_expect": 4, "server": true }`},
+			hcl:  []string{`bootstrap_expect = 4 server = true`},
+			patch: func(rt *RuntimeConfig) {
+				rt.BootstrapExpect = 4
+				rt.LeaveOnTerm = false
+				rt.ServerMode = true
+				rt.SkipLeaveOnInt = true
+				rt.DataDir = dataDir
+			},
+			warns: []string{
+				`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+				`bootstrap_expect > 0: expecting 4 servers`,
+			},
+		},
+		{
 			desc: "client does not allow socket",
 			flags: []string{
 				`-datacenter=a`,
@@ -1949,13 +1990,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
-					"ports": { "dns": 1000, "http": 1000 },
-					"dns_config": { "udp_answer_limit": 1 }
+					"ports": { "dns": 1000, "http": 1000 }
 				}`},
 			hcl: []string{`
 					client_addr = "1.2.3.4"
 					ports = { dns = 1000 http = 1000 }
-					dns_config = { udp_answer_limit = 1 }
 				`},
 			err: "HTTP address 1.2.3.4:1000 already configured for DNS",
 		},
@@ -1966,13 +2005,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
-					"ports": { "dns": 1000, "https": 1000 },
-					"dns_config": { "udp_answer_limit": 1 }
+					"ports": { "dns": 1000, "https": 1000 }
 				}`},
 			hcl: []string{`
 					client_addr = "1.2.3.4"
 					ports = { dns = 1000 https = 1000 }
-					dns_config = { udp_answer_limit = 1 }
 				`},
 			err: "HTTPS address 1.2.3.4:1000 already configured for DNS",
 		},
@@ -1983,15 +2020,63 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{`{
 					"client_addr": "1.2.3.4",
-					"ports": { "http": 1000, "https": 1000 },
-					"dns_config": { "udp_answer_limit": 1 }
+					"ports": { "http": 1000, "https": 1000 }
 				}`},
 			hcl: []string{`
 					client_addr = "1.2.3.4"
 					ports = { http = 1000 https = 1000 }
-					dns_config = { udp_answer_limit = 1 }
 				`},
 			err: "HTTPS address 1.2.3.4:1000 already configured for HTTP",
+		},
+		{
+			desc: "unique advertise addresses HTTP vs RPC",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"addresses": { "http": "10.0.0.1" },
+					"ports": { "http": 1000, "server": 1000 }
+				}`},
+			hcl: []string{`
+					addresses = { http = "10.0.0.1" }
+					ports = { http = 1000 server = 1000 }
+				`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
+			err: "RPC Advertise address 10.0.0.1:1000 already configured for HTTP",
+		},
+		{
+			desc: "unique advertise addresses RPC vs Serf LAN",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"ports": { "server": 1000, "serf_lan": 1000 }
+				}`},
+			hcl: []string{`
+					ports = { server = 1000 serf_lan = 1000 }
+				`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
+			err: "Serf Advertise LAN address 10.0.0.1:1000 already configured for RPC Advertise",
+		},
+		{
+			desc: "unique advertise addresses RPC vs Serf WAN",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"ports": { "server": 1000, "serf_wan": 1000 }
+				}`},
+			hcl: []string{`
+					ports = { server = 1000 serf_wan = 1000 }
+				`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
+			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
 			desc: "telemetry.prefix_filter cannot be empty",
@@ -2028,15 +2113,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
 		{
-			desc: "segment name only on agents",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "server": true, "segment": "a" }`},
-			hcl:  []string{` server = true segment = "a" `},
-			err:  "Segment name can only be set on agents (server = false)",
-		},
-		{
 			desc: "encrypt has invalid key",
 			flags: []string{
 				`-data-dir=` + dataDir,
@@ -2044,6 +2120,56 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "encrypt": "this is not a valid key" }`},
 			hcl:  []string{` encrypt = "this is not a valid key" `},
 			err:  "encrypt has invalid key: illegal base64 data at input byte 4",
+		},
+		{
+			desc: "encrypt given but LAN keyring exists",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==" }`},
+			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" `},
+			patch: func(rt *RuntimeConfig) {
+				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+			},
+			post: func() {
+				os.Remove(filepath.Join(filepath.Join(dataDir, SerfLANKeyring)))
+			},
+			warns: []string{`WARNING: LAN keyring exists but -encrypt given, using keyring`},
+		},
+		{
+			desc: "encrypt given but WAN keyring exists",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==", "server": true }`},
+			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" server = true `},
+			patch: func(rt *RuntimeConfig) {
+				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+			},
+			post: func() {
+				os.Remove(filepath.Join(filepath.Join(dataDir, SerfWANKeyring)))
+			},
+			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
+		},
+		{
+			desc: "segment name only on agents",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "server": true, "segment": "a" }`},
+			hcl:  []string{` server = true segment = "a" `},
+			err:  "Segment name can only be set on agents (server = false)",
 		},
 		{
 			desc: "segments only on servers",
@@ -2132,6 +2258,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 
 				// build/merge the config fragments
+				if tt.pre != nil {
+					tt.pre()
+				}
+				defer func() {
+					if tt.post != nil {
+						tt.post()
+					}
+				}()
 				rt, err := b.BuildAndValidate()
 				if err == nil && tt.err != "" {
 					t.Fatalf("got no error want %q", tt.err)
@@ -3872,4 +4006,13 @@ func unixAddr(addr string) *net.UnixAddr {
 		panic("not a unix socket addr: " + addr)
 	}
 	return &net.UnixAddr{Net: "unix", Name: addr[len("unix://"):]}
+}
+
+func writeFile(path string, data []byte) {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		panic(err)
+	}
+	if err := ioutil.WriteFile(path, data, 0640); err != nil {
+		panic(err)
+	}
 }
