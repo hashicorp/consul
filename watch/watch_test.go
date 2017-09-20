@@ -38,21 +38,6 @@ func TestParse_exempt(t *testing.T) {
 	}
 }
 
-func TestParse_httpExempt(t *testing.T) {
-	params := makeParams(t, `{"type":"key", "key":"foo", "http": "foobar"}`)
-	p, err := ParseExempt(params, []string{"handler", "http"})
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if p.Type != "key" {
-		t.Fatalf("Bad: %#v", p)
-	}
-	ex := p.Exempt["http"]
-	if ex != "foobar" {
-		t.Fatalf("bad: %v", ex)
-	}
-}
-
 func makeParams(t *testing.T, s string) map[string]interface{} {
 	var out map[string]interface{}
 	dec := json.NewDecoder(bytes.NewReader([]byte(s)))
