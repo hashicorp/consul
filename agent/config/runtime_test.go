@@ -678,7 +678,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 			},
-			warns: []string{`==> DEPRECATION: "-atlas" is deprecated. Please remove it from your configuration`},
+			warns: []string{`==> DEPRECATION: "-atlas" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc: "-atlas-endpoint",
@@ -689,7 +689,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 			},
-			warns: []string{`==> DEPRECATION: "-atlas-endpoint" is deprecated. Please remove it from your configuration`},
+			warns: []string{`==> DEPRECATION: "-atlas-endpoint" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc: "-atlas-join",
@@ -700,7 +700,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 			},
-			warns: []string{`==> DEPRECATION: "-atlas-join" is deprecated. Please remove it from your configuration`},
+			warns: []string{`==> DEPRECATION: "-atlas-join" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc: "-atlas-token",
@@ -711,7 +711,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 			},
-			warns: []string{`==> DEPRECATION: "-atlas-token" is deprecated. Please remove it from your configuration`},
+			warns: []string{`==> DEPRECATION: "-atlas-token" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc: "-dc",
@@ -847,6 +847,56 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 			warns: []string{`==> DEPRECATION: "addresses.rpc" is deprecated and is no longer used. Please remove it from your configuration.`},
+		},
+		{
+			desc:  "atlas_acl_token",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{"atlas_acl_token": "a"}`},
+			hcl:   []string{`atlas_acl_token = "a"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`==> DEPRECATION: "atlas_acl_token" is deprecated and is no longer used. Please remove it from your configuration.`},
+		},
+		{
+			desc:  "atlas_endpoint",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{"atlas_endpoint": "a"}`},
+			hcl:   []string{`atlas_endpoint = "a"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`==> DEPRECATION: "atlas_endpoint" is deprecated and is no longer used. Please remove it from your configuration.`},
+		},
+		{
+			desc:  "atlas_infrastructure",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{"atlas_infrastructure": "a"}`},
+			hcl:   []string{`atlas_infrastructure = "a"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`==> DEPRECATION: "atlas_infrastructure" is deprecated and is no longer used. Please remove it from your configuration.`},
+		},
+		{
+			desc:  "atlas_join",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{"atlas_join": true}`},
+			hcl:   []string{`atlas_join = true`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`==> DEPRECATION: "atlas_join" is deprecated and is no longer used. Please remove it from your configuration.`},
+		},
+		{
+			desc:  "atlas_token",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{"atlas_token": "a"}`},
+			hcl:   []string{`atlas_token = "a"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{`==> DEPRECATION: "atlas_token" is deprecated and is no longer used. Please remove it from your configuration.`},
 		},
 		{
 			desc:  "ports.rpc",
@@ -1499,6 +1549,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		//
 
 		{
+			desc:  "invalid input",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`this is not JSON`},
+			hcl:   []string{`*** 0123 this is not HCL`},
+			err:   "Error parsing",
+		},
+		{
 			desc:  "datacenter is lower-cased",
 			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "datacenter": "A" }`},
@@ -1540,6 +1597,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "Error detecting private IPv4 address: some error",
 		},
 		{
+			desc:  "advertise address detect none v4",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "0.0.0.0"}`},
+			hcl:   []string{`bind_addr = "0.0.0.0"`},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return nil, nil
+			},
+			err: "No private IPv4 address found",
+		},
+		{
 			desc:  "advertise address detect multiple v4",
 			flags: []string{`-data-dir=` + dataDir},
 			json:  []string{`{ "bind_addr": "0.0.0.0"}`},
@@ -1558,6 +1625,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				return nil, errors.New("some error")
 			},
 			err: "Error detecting public IPv6 address: some error",
+		},
+		{
+			desc:  "advertise address detect none v6",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr": "::"}`},
+			hcl:   []string{`bind_addr = "::"`},
+			publicv6: func() ([]*net.IPAddr, error) {
+				return nil, nil
+			},
+			err: "No public IPv6 address found",
 		},
 		{
 			desc:  "advertise address detect multiple v6",
@@ -1676,6 +1753,23 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive",
 		},
 		{
+			desc: "bootstrap-expect=1 equals boostrap",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "bootstrap_expect": 1, "server": true }`},
+			hcl:  []string{`bootstrap_expect = 1 server = true`},
+			patch: func(rt *RuntimeConfig) {
+				rt.Bootstrap = true
+				rt.BootstrapExpect = 0
+				rt.LeaveOnTerm = false
+				rt.ServerMode = true
+				rt.SkipLeaveOnInt = true
+				rt.DataDir = dataDir
+			},
+			warns: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
+		},
+		{
 			desc: "client does not allow socket",
 			flags: []string{
 				`-datacenter=a`,
@@ -1720,7 +1814,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "advertise_addr any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addr": "0.0.0.0" }`},
@@ -1730,7 +1823,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "advertise_addr_wan any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addr_wan": "::" }`},
@@ -1740,7 +1832,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "advertise_addrs.rpc any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "rpc": "[::]" } }`},
@@ -1750,7 +1841,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "advertise_addrs.serf_lan any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_lan": "[::]" } }`},
@@ -1760,7 +1850,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "advertise_addrs.serf_wan any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "advertise_addrs":{ "serf_wan": "0.0.0.0" } }`},
@@ -1770,7 +1859,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "segments.advertise any",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 				`-server=true`,
 			},
@@ -1781,7 +1869,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "segments.advertise socket",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 				`-server=true`,
 			},
@@ -1792,7 +1879,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
@@ -1802,7 +1888,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
@@ -1812,7 +1897,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "performance.raft_multiplier < 0",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": -1 } }`},
@@ -1822,7 +1906,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "performance.raft_multiplier == 0",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 0 } }`},
@@ -1832,7 +1915,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "performance.raft_multiplier > 10",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "performance": { "raft_multiplier": 20 } }`},
@@ -1842,7 +1924,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "node_name invalid",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 				`-node=`,
 			},
@@ -1852,7 +1933,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "node_meta key too long",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
@@ -1868,7 +1948,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "node_meta value too long",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
@@ -1884,7 +1963,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "node_meta too many keys",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
@@ -1900,7 +1978,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "unique listeners dns vs http",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
@@ -1918,7 +1995,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "unique listeners dns vs https",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
@@ -1936,7 +2012,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "unique listeners http vs https",
 			flags: []string{
-				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{
@@ -1950,6 +2025,40 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					dns_config = { udp_answer_limit = 1 }
 				`},
 			err: "HTTPS address 1.2.3.4:1000 already configured for HTTP",
+		},
+		{
+			desc: "telemetry.prefix_filter cannot be empty",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"telemetry": { "prefix_filter": [""] }
+				}`},
+			hcl: []string{`
+					telemetry = { prefix_filter = [""] }
+				`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+			},
+			warns: []string{"Cannot have empty filter rule in prefix_filter"},
+		},
+		{
+			desc: "telemetry.prefix_filter must start with + or -",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"telemetry": { "prefix_filter": ["+foo", "-bar", "nix"] }
+				}`},
+			hcl: []string{`
+					telemetry = { prefix_filter = ["+foo", "-bar", "nix"] }
+				`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.TelemetryAllowedPrefixes = []string{"foo"}
+				rt.TelemetryBlockedPrefixes = []string{"bar"}
+			},
+			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
 	}
 
@@ -2058,17 +2167,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				x.Hostname = b.Hostname
 				x.GetPrivateIPv4 = b.GetPrivateIPv4
 				x.GetPublicIPv6 = b.GetPublicIPv6
-				wantRT, err := x.Build()
+				patchedRT, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)
 				}
 				if tt.patch != nil {
-					tt.patch(&wantRT)
+					tt.patch(&patchedRT)
 				}
 				// if err := x.Validate(wantRT); err != nil {
 				// 	t.Fatalf("validate default failed: %s", err)
 				// }
-				if got, want := rt, wantRT; !verify.Values(t, "", got, want) {
+				if got, want := patchedRT, rt; !verify.Values(t, "", got, want) {
 					t.FailNow()
 				}
 			})

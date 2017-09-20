@@ -216,16 +216,16 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	//
 
 	if b.Flags.DeprecatedAtlasInfrastructure != nil {
-		b.warn(`==> DEPRECATION: "-atlas" is deprecated. Please remove it from your configuration`)
+		b.warn(`==> DEPRECATION: "-atlas" is deprecated and is no longer used. Please remove it from your configuration.`)
 	}
 	if b.Flags.DeprecatedAtlasToken != nil {
-		b.warn(`==> DEPRECATION: "-atlas-token" is deprecated. Please remove it from your configuration`)
+		b.warn(`==> DEPRECATION: "-atlas-token" is deprecated and is no longer used. Please remove it from your configuration.`)
 	}
 	if b.Flags.DeprecatedAtlasJoin != nil {
-		b.warn(`==> DEPRECATION: "-atlas-join" is deprecated. Please remove it from your configuration`)
+		b.warn(`==> DEPRECATION: "-atlas-join" is deprecated and is no longer used. Please remove it from your configuration.`)
 	}
 	if b.Flags.DeprecatedAtlasEndpoint != nil {
-		b.warn(`==> DEPRECATION: "-atlas-endpoint" is deprecated. Please remove it from your configuration`)
+		b.warn(`==> DEPRECATION: "-atlas-endpoint" is deprecated and is no longer used. Please remove it from your configuration.`)
 	}
 	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" {
 		b.warn(`==> DEPRECATION: "-dc" is deprecated. Use "-datacenter" instead`)
@@ -262,7 +262,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		// fmt.Println(toJson(c2))
 
 		if err != nil {
-			b.err = multierror.Append(b.err, fmt.Errorf("Error parsing %s: %s", s.Name, err))
+			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
 		c = Merge(c, c2)
 	}
@@ -518,6 +518,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	for _, rule := range c.Telemetry.PrefixFilter {
 		if rule == "" {
 			b.warn("Cannot have empty filter rule in prefix_filter")
+			continue
 		}
 		switch rule[0] {
 		case '+':
