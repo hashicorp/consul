@@ -20,9 +20,6 @@ file DBFILE [ZONES...]
 
 If you want to round robin A and AAAA responses look at the *loadbalance* plugin.
 
-TSIG key configuration is TODO; directive format for transfer will probably be extended with
-TSIG key information, something like `transfer out [ADDRESS...] key [NAME[:ALG]] [BASE64]`
-
 ~~~
 file DBFILE [ZONES... ] {
     transfer to ADDRESS...
@@ -35,8 +32,8 @@ file DBFILE [ZONES... ] {
   the direction. **ADDRESS** must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
   addresses. The special wildcard `*` means: the entire internet (only valid for 'transfer to').
   When an address is specified a notify message will be send whenever the zone is reloaded.
-* `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
-  file. This option disables that behavior.
+* `no_reload` by default CoreDNS will try to reload a zone every minute and reloads if the
+  SOA's serial has changed. This option disables that behavior.
 * `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
   pointing to external names. This is only really useful when CoreDNS is configured as a proxy, for
   normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP

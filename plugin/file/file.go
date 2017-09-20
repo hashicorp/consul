@@ -105,6 +105,17 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 // Name implements the Handler interface.
 func (f File) Name() string { return "file" }
 
+type serialErr struct {
+	err    string
+	zone   string
+	origin string
+	serial int64
+}
+
+func (s *serialErr) Error() string {
+	return fmt.Sprintf("%s for origin %s in file %s, with serial %d", s.err, s.zone, s.serial)
+}
+
 // Parse parses the zone in filename and returns a new Zone or an error.
 // If serial >= 0 it will reload the zone, if the SOA hasn't changed
 // it returns an error indicating nothing was read.
@@ -119,8 +130,8 @@ func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
 
 		if !seenSOA && serial >= 0 {
 			if s, ok := x.RR.(*dns.SOA); ok {
-				if s.Serial == uint32(serial) { // same zone
-					return nil, fmt.Errorf("no change in serial: %d", serial)
+				if s.Serial == uint32(serial) { // same serial
+					return nil, &serialErr{err: "no change in SOA serial", origin: origin, zone: fileName, serial: serial}
 				}
 				seenSOA = true
 			}

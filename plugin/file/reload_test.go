@@ -31,7 +31,9 @@ func TestZoneReload(t *testing.T) {
 		t.Fatalf("failed to parse zone: %s", err)
 	}
 
+	TickTime = 500 * time.Millisecond
 	z.Reload()
+	time.Sleep(time.Second)
 
 	r := new(dns.Msg)
 	r.SetQuestion("miek.nl", dns.TypeSOA)

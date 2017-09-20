@@ -2,10 +2,10 @@ package test
 
 import (
 	"io/ioutil"
-	"log"
 	"testing"
 	"time"
 
+	"github.com/coredns/coredns/plugin/file"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
@@ -14,8 +14,7 @@ import (
 )
 
 func TestZoneReload(t *testing.T) {
-	t.Parallel()
-	log.SetOutput(ioutil.Discard)
+	file.TickTime = 1 * time.Second
 
 	name, rm, err := TempFile(".", exampleOrg)
 	if err != nil {
@@ -52,7 +51,7 @@ example.net:0 {
 	// Remove RR from the Apex
 	ioutil.WriteFile(name, []byte(exampleOrgUpdated), 0644)
 
-	time.Sleep(1 * time.Second) // fsnotify
+	time.Sleep(2 * time.Second) // reload time
 
 	resp, err = p.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
