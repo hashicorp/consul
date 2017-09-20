@@ -901,7 +901,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("node_meta invalid: %v", err)
 	}
 	if rt.ServerMode && rt.SegmentName != "" {
-		return fmt.Errorf("segment: Segment name can only be set on clients (server = false)")
+		return fmt.Errorf("Segment name can only be set on agents (server = false)")
 	}
 	if !rt.ServerMode && len(rt.Segments) > 0 {
 		return fmt.Errorf("segments: Segments can only be configured on servers (server = true)")

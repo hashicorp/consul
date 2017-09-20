@@ -28,39 +28,6 @@ import (
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func splitIPPort(hostport string) (net.IP, int) {
-	h, p, err := net.SplitHostPort(hostport)
-	if err != nil {
-		panic(err)
-	}
-	port, err := strconv.Atoi(p)
-	if err != nil {
-		panic(err)
-	}
-	return net.ParseIP(h), port
-}
-
-func ipAddr(addr string) *net.IPAddr {
-	return &net.IPAddr{IP: net.ParseIP(addr)}
-}
-
-func tcpAddr(addr string) *net.TCPAddr {
-	ip, port := splitIPPort(addr)
-	return &net.TCPAddr{IP: ip, Port: port}
-}
-
-func udpAddr(addr string) *net.UDPAddr {
-	ip, port := splitIPPort(addr)
-	return &net.UDPAddr{IP: ip, Port: port}
-}
-
-func unixAddr(addr string) *net.UnixAddr {
-	if !strings.HasPrefix(addr, "unix://") {
-		panic("not a unix socket addr: " + addr)
-	}
-	return &net.UnixAddr{Net: "unix", Name: addr[len("unix://"):]}
-}
-
 func TestConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
@@ -2060,6 +2027,38 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
+		{
+			desc: "segment name only on agents",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "server": true, "segment": "a" }`},
+			hcl:  []string{` server = true segment = "a" `},
+			err:  "Segment name can only be set on agents (server = false)",
+		},
+		{
+			desc: "encrypt has invalid key",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "encrypt": "this is not a valid key" }`},
+			hcl:  []string{` encrypt = "this is not a valid key" `},
+			err:  "encrypt has invalid key: illegal base64 data at input byte 4",
+		},
+		{
+			desc: "segments only on servers",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"server": false,
+				"segments": [ { "name:":"a", "port": 123 } ]
+			}`},
+			hcl: []string{`
+				server = false
+				segments = [ { name = "a" port = 123 } ]`},
+			err: "Segments can only be configured on servers (server = true)",
+		},
 	}
 
 	for _, tt := range tests {
@@ -3840,4 +3839,37 @@ func TestConfigDecodeBytes(t *testing.T) {
 	if len(result) > 0 {
 		t.Fatalf("bad: %#v", result)
 	}
+}
+
+func splitIPPort(hostport string) (net.IP, int) {
+	h, p, err := net.SplitHostPort(hostport)
+	if err != nil {
+		panic(err)
+	}
+	port, err := strconv.Atoi(p)
+	if err != nil {
+		panic(err)
+	}
+	return net.ParseIP(h), port
+}
+
+func ipAddr(addr string) *net.IPAddr {
+	return &net.IPAddr{IP: net.ParseIP(addr)}
+}
+
+func tcpAddr(addr string) *net.TCPAddr {
+	ip, port := splitIPPort(addr)
+	return &net.TCPAddr{IP: ip, Port: port}
+}
+
+func udpAddr(addr string) *net.UDPAddr {
+	ip, port := splitIPPort(addr)
+	return &net.UDPAddr{IP: ip, Port: port}
+}
+
+func unixAddr(addr string) *net.UnixAddr {
+	if !strings.HasPrefix(addr, "unix://") {
+		panic("not a unix socket addr: " + addr)
+	}
+	return &net.UnixAddr{Net: "unix", Name: addr[len("unix://"):]}
 }
