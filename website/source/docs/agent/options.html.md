@@ -19,13 +19,16 @@ Configuration precedence is evaluated in the following order:
 2. Environment Variables
 3. Configuration files
 
-When loading configuration, Consul loads the configuration from files
-and directories in lexical order. For example, configuration file `basic_config.json`
-will be processed before `extra_config.json`. Configuration specified later
-will be merged into configuration specified earlier. In most cases,
-"merge" means that the later version will override the earlier. In
-some cases, such as event handlers, merging appends the handlers to the
-existing configuration. The exact merging behavior is specified for each
+When loading configuration, Consul loads the configuration from files and
+directories in lexical order. For example, configuration file
+`basic_config.json` will be processed before `extra_config.json`. Configuration
+can be in either HCL or JSON format. Files with an `.hcl` extension are assumed
+to be in HCL format. All other files are considered to be in JSON format
+however you should append a `.json` suffix to JSON config files for clarity.
+Configuration specified later will be merged into configuration specified
+earlier. In most cases, "merge" means that the later version will override the
+earlier. In some cases, such as event handlers, merging appends the handlers to
+the existing configuration. The exact merging behavior is specified for each
 option below.
 
 Consul also supports reloading configuration when it receives the
@@ -176,6 +179,11 @@ will exit with an error at startup.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
+
+* <a name="_hcl"></a><a href="#_hcl">`-hcl`</a> - A HCL configuration fragment.
+  This HCL configuration fragment is appended to the configuration and allows
+  to specify the full range of options of a config file on the command line.
+  This option can be specified multiple times. This was added in Consul 1.0.
 
 * <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
   This overrides the default port 8500. This option is very useful when deploying Consul
