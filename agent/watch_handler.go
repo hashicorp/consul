@@ -10,12 +10,12 @@ import (
 	"os/exec"
 	"strconv"
 
+	"crypto/tls"
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-cleanhttp"
 	"net/http"
 	"time"
-	"crypto/tls"
 )
 
 const (
@@ -107,7 +107,6 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 			trans.TLSClientConfig.InsecureSkipVerify = tlsSkipVerify
 		}
 
-		// TODO: put in outer scope
 		// Create the HTTP client.
 		httpClient := &http.Client{
 			Timeout:   timeout,
@@ -127,12 +126,12 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
 			return
 		}
+		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
 		for key, values := range headers {
 			for _, val := range values {
 				req.Header.Add(key, val)
 			}
 		}
-		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
 		resp, err := httpClient.Do(req)
 		if err != nil {
 			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", httpUrl, err)
