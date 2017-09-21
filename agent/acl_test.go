@@ -51,25 +51,53 @@ func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.AC
 
 func TestACL_Version8(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+
+	t.Run("version 8 disabled", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), TestACLConfig()+`
+ 		acl_enforce_version_8 = false
+ 	`)
+		defer a.Shutdown()
+
+		m := MockServer{
+			getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+				t.Fatalf("should not have called to server")
+				return nil
+			},
+		}
+		if err := a.registerEndpoint("ACL", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if token, err := a.resolveToken("nope"); token != nil || err != nil {
+			t.Fatalf("bad: %v err: %v", token, err)
+		}
+	})
+
+	t.Run("version 8 enabled", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = true
  	`)
-	defer a.Shutdown()
+		defer a.Shutdown()
 
-	m := MockServer{
-		// With version 8 enforcement off, this should not get called.
-		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-			t.Fatalf("should not have called to server")
-			return nil
-		},
-	}
-	if err := a.registerEndpoint("ACL", &m); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		var called bool
+		m := MockServer{
+			getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+				called = true
+				return fmt.Errorf("token not found")
+			},
+		}
+		if err := a.registerEndpoint("ACL", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if token, err := a.resolveToken("nope"); token != nil || err != nil {
-		t.Fatalf("bad: %v err: %v", token, err)
-	}
+		if _, err := a.resolveToken("nope"); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if !called {
+			t.Fatalf("bad")
+		}
+	})
 }
 
 func TestACL_Disabled(t *testing.T) {
