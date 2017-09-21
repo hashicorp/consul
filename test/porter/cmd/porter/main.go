@@ -22,6 +22,7 @@ var (
 	addr      string
 	firstPort int
 	lastPort  int
+	verbose   bool
 
 	mu   sync.Mutex
 	port int
@@ -33,6 +34,7 @@ func main() {
 	flag.StringVar(&addr, "addr", porter.DefaultAddr, "host:port")
 	flag.IntVar(&firstPort, "first-port", 10000, "first port to allocate")
 	flag.IntVar(&lastPort, "last-port", 20000, "last port to allocate")
+	flag.BoolVar(&verbose, "verbose", false, "log port allocations")
 	flag.Parse()
 
 	// check if there is an instance running
@@ -125,5 +127,7 @@ func servePort(w http.ResponseWriter, r *http.Request) {
 		// this shouldn't happen so we panic since we can't recover
 		panic(err)
 	}
-	log.Printf("porter: allocated ports %d-%d (%d)", from, to, count)
+	if verbose {
+		log.Printf("porter: allocated ports %d-%d (%d)", from, to, count)
+	}
 }
