@@ -61,9 +61,10 @@ func (o *ObjectList) Filter(keys ...string) *ObjectList {
 		}
 
 		match := true
-		for i, key := range item.Keys[:len(keys)] {
-			key := key.Token.Value().(string)
-			if key != keys[i] && !strings.EqualFold(key, keys[i]) {
+		for i, k := range item.Keys[:len(keys)] {
+			keyi := keys[i]
+			key := k.Token.Value().(string)
+			if key != keyi && !strings.EqualFold(key, keyi) {
 				match = false
 				break
 			}
