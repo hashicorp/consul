@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -59,7 +59,7 @@ func TestChaos(t *testing.T) {
 		req.Question[0].Qclass = dns.ClassCHAOS
 		em.Next = tc.next
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != tc.expectedErr {

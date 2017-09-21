@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -79,7 +79,7 @@ func TestLoadBalance(t *testing.T) {
 		},
 	}
 
-	rec := dnsrecorder.New(&test.ResponseWriter{})
+	rec := dnstest.NewRecorder(&test.ResponseWriter{})
 
 	for i, test := range tests {
 		req := new(dns.Msg)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/plugin/pkg/replacer"
 	"github.com/coredns/coredns/plugin/pkg/response"
@@ -32,7 +32,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			continue
 		}
 
-		rrw := dnsrecorder.New(w)
+		rrw := dnstest.NewRecorder(w)
 		rc, err := plugin.NextOrFailure(l.Name(), l.Next, ctx, rrw, r)
 
 		if rc > 0 {

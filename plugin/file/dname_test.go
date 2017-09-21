@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -101,7 +101,7 @@ func TestLookupDNAME(t *testing.T) {
 	for _, tc := range dnameTestCases {
 		m := tc.Msg()
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("Expected no error, got %v\n", err)
@@ -154,7 +154,7 @@ func TestLookupDNAMEDNSSEC(t *testing.T) {
 	for _, tc := range dnameDnssecTestCases {
 		m := tc.Msg()
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("Expected no error, got %v\n", err)

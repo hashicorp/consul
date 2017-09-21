@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/singleflight"
 	"github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/proxy"
@@ -262,7 +262,7 @@ func TestLookup(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		etc.ServeDNS(ctxt, rec, m)
 
 		resp := rec.Msg

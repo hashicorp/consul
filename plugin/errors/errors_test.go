@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -48,7 +48,7 @@ func TestErrors(t *testing.T) {
 	for i, tc := range tests {
 		em.Next = tc.next
 		buf.Reset()
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != tc.expectedErr {

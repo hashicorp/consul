@@ -3,14 +3,14 @@ package replacer
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
 )
 
 func TestNewReplacer(t *testing.T) {
-	w := dnsrecorder.New(&test.ResponseWriter{})
+	w := dnstest.NewRecorder(&test.ResponseWriter{})
 
 	r := new(dns.Msg)
 	r.SetQuestion("example.org.", dns.TypeHINFO)
@@ -37,7 +37,7 @@ func TestNewReplacer(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	w := dnsrecorder.New(&test.ResponseWriter{})
+	w := dnstest.NewRecorder(&test.ResponseWriter{})
 
 	r := new(dns.Msg)
 	r.SetQuestion("example.org.", dns.TypeHINFO)

@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -38,7 +38,7 @@ func TestServeDNSModeInsecure(t *testing.T) {
 	for i, tc := range podModeInsecureCases {
 		r := tc.Msg()
 
-		w := dnsrecorder.New(&test.ResponseWriter{})
+		w := dnstest.NewRecorder(&test.ResponseWriter{})
 
 		_, err := k.ServeDNS(ctx, w, r)
 		if err != tc.Error {

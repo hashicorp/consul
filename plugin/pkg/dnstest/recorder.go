@@ -1,5 +1,5 @@
-// Package dnsrecorder allows you to record a DNS response when it is send to the client.
-package dnsrecorder
+// Package dnstest allows for easy testing of DNS client against a test server.
+package dnstest
 
 import (
 	"time"
@@ -24,7 +24,7 @@ type Recorder struct {
 // New makes and returns a new Recorder,
 // which captures the DNS rcode from the ResponseWriter
 // and also the length of the response message written through it.
-func New(w dns.ResponseWriter) *Recorder {
+func NewRecorder(w dns.ResponseWriter) *Recorder {
 	return &Recorder{
 		ResponseWriter: w,
 		Rcode:          0,
@@ -52,7 +52,3 @@ func (r *Recorder) Write(buf []byte) (int, error) {
 	}
 	return n, err
 }
-
-// Hijack implements dns.Hijacker. It simply wraps the underlying
-// ResponseWriter's Hijack method if there is one, or returns an error.
-func (r *Recorder) Hijack() { r.ResponseWriter.Hijack(); return }

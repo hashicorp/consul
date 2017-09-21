@@ -5,7 +5,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	mtest "github.com/coredns/coredns/plugin/metrics/test"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -65,7 +65,7 @@ func TestMetrics(t *testing.T) {
 		req.SetQuestion(dns.Fqdn(tc.qname), tc.qtype)
 		met.Next = tc.next
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := met.ServeDNS(ctx, rec, req)
 		if err != nil {
 			t.Fatalf("Test %d: Expected no error, but got %s", i, err)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -31,7 +31,7 @@ type replacer struct {
 // values into the replacer. rr may be nil if it is not
 // available. emptyValue should be the string that is used
 // in place of empty string (can still be empty string).
-func New(r *dns.Msg, rr *dnsrecorder.Recorder, emptyValue string) Replacer {
+func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 	req := request.Request{W: rr, Req: r}
 	rep := replacer{
 		replacements: map[string]string{

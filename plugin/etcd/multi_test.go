@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -25,7 +25,7 @@ func TestMultiLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesMulti {
 		m := tc.Msg()
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)

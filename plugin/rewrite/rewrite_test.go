@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -180,7 +180,7 @@ func TestRewrite(t *testing.T) {
 		m.SetQuestion(tc.from, tc.fromT)
 		m.Question[0].Qclass = tc.fromC
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
@@ -252,7 +252,7 @@ func TestRewriteEDNS0Local(t *testing.T) {
 		}
 		rw.Rules = []Rule{r}
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
@@ -307,7 +307,7 @@ func TestEdns0LocalMultiRule(t *testing.T) {
 			}
 			o.Option = append(o.Option, tc.fromOpts...)
 		}
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
@@ -443,7 +443,7 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		}
 		rw.Rules = []Rule{r}
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
@@ -553,7 +553,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 			continue
 		}
 		rw.Rules = []Rule{r}
-		rec := dnsrecorder.New(tc.writer)
+		rec := dnstest.NewRecorder(tc.writer)
 		rw.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg

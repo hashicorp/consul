@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsrecorder"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -52,7 +52,7 @@ func TestReverse(t *testing.T) {
 		tr.qtype = dns.TypeA
 		req.SetQuestion(dns.Fqdn(tr.qname), tr.qtype)
 
-		rec := dnsrecorder.New(&test.ResponseWriter{})
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != tr.expectedErr {
