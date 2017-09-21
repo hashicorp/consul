@@ -84,3 +84,77 @@ func TestHostsParse(t *testing.T) {
 		}
 	}
 }
+
+func TestHostsInlineParse(t *testing.T) {
+	tests := []struct {
+		inputFileRules      string
+		shouldErr           bool
+		expectedbyAddr      map[string][]string
+		expectedFallthrough bool
+	}{
+		{
+			`hosts highly_unlikely_to_exist_hosts_file example.org {
+                                10.0.0.1 example.org
+                                fallthrough
+                        }`,
+			false,
+			map[string][]string{
+				`10.0.0.1`: {
+					`example.org.`,
+				},
+			},
+			true,
+		},
+		{
+			`hosts highly_unlikely_to_exist_hosts_file example.org {
+                                10.0.0.1 example.org
+                        }`,
+			false,
+			map[string][]string{
+				`10.0.0.1`: {
+					`example.org.`,
+				},
+			},
+			false,
+		},
+		{
+			`hosts highly_unlikely_to_exist_hosts_file example.org {
+                                fallthrough
+                                10.0.0.1 example.org
+                        }`,
+			true,
+			map[string][]string{},
+			true,
+		},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.inputFileRules)
+		h, err := hostsParse(c)
+
+		if err == nil && test.shouldErr {
+			t.Fatalf("Test %d expected errors, but got no error", i)
+		} else if err != nil && !test.shouldErr {
+			t.Fatalf("Test %d expected no errors, but got '%v'", i, err)
+		} else if !test.shouldErr {
+			if h.Fallthrough != test.expectedFallthrough {
+				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fallthrough)
+			}
+			for k, expectedVal := range test.expectedbyAddr {
+				if val, ok := h.byAddr[k]; !ok {
+					t.Fatalf("Test %d expected %v, got no entry", i, k)
+				} else {
+					if len(expectedVal) != len(val) {
+						t.Fatalf("Test %d expected %v records for %v, got %v", i, len(expectedVal), k, len(val))
+					}
+					for j := range expectedVal {
+						if expectedVal[j] != val[j] {
+							t.Fatalf("Test %d expected %v for %v, got %v", i, expectedVal[j], j, val[j])
+						}
+					}
+				}
+			}
+		}
+	}
+
+}

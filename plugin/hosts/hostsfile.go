@@ -53,6 +53,11 @@ type Hostsfile struct {
 	// We don't support old-classful IP address notation.
 	byAddr map[string][]string
 
+	// inline saves the hosts file is inlined in Corefile
+	// We need a copy here as we want to use inline to override
+	// the default /etc/hosts
+	inline []string
+
 	expire time.Time
 	path   string
 	mtime  time.Time
@@ -74,6 +79,10 @@ func (h *Hostsfile) ReadHosts() {
 
 	var file *os.File
 	if file, _ = os.Open(h.path); file == nil {
+		// If this is the first time then we will try to parse inline
+		if len(h.byAddr) == 0 && len(h.inline) > 0 {
+			h.Parse(nil)
+		}
 		return
 	}
 	defer file.Close()
@@ -92,7 +101,12 @@ func (h *Hostsfile) Parse(file io.Reader) {
 	hsv6 := make(map[string][]net.IP)
 	is := make(map[string][]string)
 
-	scanner := bufio.NewScanner(file)
+	var readers []io.Reader
+	if file != nil {
+		readers = append(readers, file)
+	}
+	readers = append(readers, strings.NewReader(strings.Join(h.inline, "\n")))
+	scanner := bufio.NewScanner(io.MultiReader(readers...))
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if i := bytes.Index(line, []byte{'#'}); i >= 0 {

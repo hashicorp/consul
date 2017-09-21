@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -80,6 +81,11 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 				}
 				return h, c.ArgErr()
 			default:
+				if !h.Fallthrough {
+					line := strings.Join(append([]string{c.Val()}, c.RemainingArgs()...), " ")
+					h.inline = append(h.inline, line)
+					continue
+				}
 				return h, c.Errf("unknown property '%s'", c.Val())
 			}
 		}
