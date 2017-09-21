@@ -1,6 +1,6 @@
 # health
 
-*health* enabless a simple health check endpoint. By default it will listen on port 8080.
+*health* enables a simple health check endpoint. By default, it listens on port 8080.
 
 ## Syntax
 
