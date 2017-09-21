@@ -368,6 +368,9 @@ func (dns *dnsControl) ServiceList() []*api.Service {
 }
 
 func (dns *dnsControl) PodIndex(ip string) []interface{} {
+	if dns.podLister.Indexer == nil {
+		return nil
+	}
 	pods, err := dns.podLister.Indexer.ByIndex(podIPIndex, ip)
 	if err != nil {
 		return nil
