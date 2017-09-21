@@ -156,6 +156,7 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 }
 
 func TestAPI_SetupTLSConfig(t *testing.T) {
+	t.Parallel()
 	// A default config should result in a clean default client config.
 	tlsConfig := &TLSConfig{}
 	cc, err := SetupTLSConfig(tlsConfig)
@@ -510,6 +511,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 }
 
 func TestAPI_durToMsec(t *testing.T) {
+	t.Parallel()
 	if ms := durToMsec(0); ms != "0ms" {
 		t.Fatalf("bad: %s", ms)
 	}
@@ -528,6 +530,7 @@ func TestAPI_durToMsec(t *testing.T) {
 }
 
 func TestAPI_IsServerError(t *testing.T) {
+	t.Parallel()
 	if IsServerError(nil) {
 		t.Fatalf("should not be a server error")
 	}
