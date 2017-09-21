@@ -264,7 +264,7 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 func (cmd *AgentCommand) Run(args []string) int {
 	code := cmd.run(args)
 	if cmd.logger != nil {
-		cmd.logger.Println("[INFO] Exit code: ", code)
+		cmd.logger.Println("[INFO] Exit code:", code)
 	}
 	return code
 }

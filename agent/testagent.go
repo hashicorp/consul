@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/test/porter"
 	"github.com/hashicorp/consul/testutil/retry"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -285,12 +286,6 @@ func UniqueID() string {
 	return id
 }
 
-// TenPorts returns the first port number of a block of
-// ten random ports.
-func TenPorts() int {
-	return 1030 + int(rand.Int31n(6440))*10
-}
-
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significanltly with little overhead. Furthermore, asking
@@ -300,18 +295,21 @@ func TenPorts() int {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource() config.Source {
-	port := TenPorts()
+	ports, err := porter.RandomPorts(5)
+	if err != nil {
+		panic(err)
+	}
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",
 		Data: `
 			ports = {
-				dns = ` + strconv.Itoa(port+2) + `
-				http = ` + strconv.Itoa(port+3) + `
+				dns = ` + strconv.Itoa(ports[0]) + `
+				http = ` + strconv.Itoa(ports[1]) + `
 				https = -1
-				serf_lan = ` + strconv.Itoa(port+4) + `
-				serf_wan = ` + strconv.Itoa(port+5) + `
-				server = ` + strconv.Itoa(port+6) + `
+				serf_lan = ` + strconv.Itoa(ports[2]) + `
+				serf_wan = ` + strconv.Itoa(ports[3]) + `
+				server = ` + strconv.Itoa(ports[4]) + `
 			}
 		`,
 	}

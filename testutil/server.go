@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/test/porter"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
@@ -110,8 +111,12 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
+	ports, err := porter.RandomPorts(6)
+	if err != nil {
+		panic(err)
+	}
 	return &TestServerConfig{
-		NodeName:          fmt.Sprintf("node%d", randomPort()),
+		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
 		DisableCheckpoint: true,
 		Performance: &TestPerformanceConfig{
@@ -123,25 +128,15 @@ func defaultServerConfig() *TestServerConfig {
 		Bind:      "127.0.0.1",
 		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
-			DNS:     randomPort(),
-			HTTP:    randomPort(),
-			HTTPS:   randomPort(),
-			SerfLan: randomPort(),
-			SerfWan: randomPort(),
-			Server:  randomPort(),
+			DNS:     ports[0],
+			HTTP:    ports[1],
+			HTTPS:   ports[2],
+			SerfLan: ports[3],
+			SerfWan: ports[4],
+			Server:  ports[5],
 		},
 		ReadyTimeout: 10 * time.Second,
 	}
-}
-
-// randomPort asks the kernel for a random port to use.
-func randomPort() int {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
 }
 
 // TestService is used to serialize a service definition.
