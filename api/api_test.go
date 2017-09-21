@@ -52,6 +52,7 @@ func makeClientWithConfig(
 	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
+		server.Stop()
 		t.Fatalf("err: %v", err)
 	}
 
