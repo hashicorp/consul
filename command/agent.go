@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"flag"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
@@ -52,10 +50,10 @@ type AgentCommand struct {
 // the command line and any file configs
 func (cmd *AgentCommand) readConfig() *config.RuntimeConfig {
 	var flags config.Flags
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs := cmd.BaseCommand.NewFlagSet(cmd)
 	config.AddFlags(fs, &flags)
 
-	if err := fs.Parse(cmd.args); err != nil {
+	if err := cmd.BaseCommand.Parse(cmd.args); err != nil {
 		cmd.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
 		return nil
 	}
