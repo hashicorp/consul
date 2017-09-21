@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
 	"time"
 
 	rawacl "github.com/hashicorp/consul/acl"
