@@ -62,7 +62,7 @@ test: other-consul porter dev-build vet
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
 	go test -tags '$(GOTAGS)' -i ./...
-	porter go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 2m -v ./... >test.log 2>&1 ; echo $$? > exit-code
+	porter go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
 	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
