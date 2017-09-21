@@ -38,8 +38,6 @@ func TestACL_Bootstrap(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	t.Logf("%v", a.config.ACLDatacenter)
-
 	tests := []struct {
 		name   string
 		method string
