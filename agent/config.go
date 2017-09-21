@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-
 var errInvalidHeaderFormat = errors.New("agent: invalid format of 'header' field")
 
 func FixupCheckType(raw interface{}) error {
