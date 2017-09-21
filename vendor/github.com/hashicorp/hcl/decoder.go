@@ -56,7 +56,7 @@ func DecodeObject(out interface{}, n ast.Node) error {
 		n = f.Node
 	}
 
-	var d decoder
+	d := &decoder{}
 	return d.decode("root", n, val.Elem())
 }
 
@@ -573,7 +573,12 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 
 	// Compile the list of all the fields that we're going to be decoding
 	// from all the structs.
-	fields := make(map[*reflect.StructField]reflect.Value)
+	// fields := make(map[*reflect.StructField]reflect.Value)
+	type x struct {
+		t reflect.StructField
+		v reflect.Value
+	}
+	fields := []x{}
 	for len(structs) > 0 {
 		structVal := structs[0]
 		structs = structs[1:]
@@ -616,7 +621,8 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 			}
 
 			// Normal struct field, store it away
-			fields[&fieldType] = structVal.Field(i)
+			fields = append(fields, x{fieldType, structVal.Field(i)})
+			// fields[&fieldType] = structVal.Field(i)
 		}
 	}
 
@@ -624,7 +630,9 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 	decodedFields := make([]string, 0, len(fields))
 	decodedFieldsVal := make([]reflect.Value, 0)
 	unusedKeysVal := make([]reflect.Value, 0)
-	for fieldType, field := range fields {
+	// for fieldType, field := range fields {
+	for _, x := range fields {
+		fieldType, field := x.t, x.v
 		if !field.IsValid() {
 			// This should never happen
 			panic("field is not valid")
@@ -669,7 +677,9 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		// Determine the element we'll use to decode. If it is a single
 		// match (only object with the field), then we decode it exactly.
 		// If it is a prefix match, then we decode the matches.
+		// d.mu.Lock()
 		filter := list.Filter(fieldName)
+		// d.mu.Unlock()
 
 		prefixMatches := filter.Children()
 		matches := filter.Elem()
