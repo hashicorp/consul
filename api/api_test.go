@@ -74,7 +74,11 @@ func testKey() string {
 }
 
 func TestAPI_DefaultConfig_env(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // DO NOT ENABLE !!!
+	// do not enable t.Parallel for this test since it modifies global state
+	// (environment) which has non-deterministic effects on the other tests
+	// which derive their default configuration from the environment
+
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
 	auth := "username:password"
