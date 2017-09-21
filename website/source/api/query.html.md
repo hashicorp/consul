@@ -356,7 +356,7 @@ The table below shows this endpoint's support for
 The body is the same as is used to create a prepared query. Please see above for
 more information.
 
-### Sample Response
+### Sample Request
 
 ```text
 $ curl \
