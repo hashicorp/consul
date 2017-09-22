@@ -2,17 +2,15 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
-
-	"fmt"
-	"reflect"
-
 	"time"
 
 	"github.com/hashicorp/consul/acl"
