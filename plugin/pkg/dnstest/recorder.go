@@ -21,7 +21,7 @@ type Recorder struct {
 	Start time.Time
 }
 
-// New makes and returns a new Recorder,
+// NewRecorder makes and returns a new Recorder,
 // which captures the DNS rcode from the ResponseWriter
 // and also the length of the response message written through it.
 func NewRecorder(w dns.ResponseWriter) *Recorder {

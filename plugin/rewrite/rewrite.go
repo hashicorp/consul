@@ -94,7 +94,7 @@ func newRule(args ...string) (Rule, error) {
 		expectNumArgs = len(args) - 1
 		startArg = 2
 	default:
-		// for backward compability
+		// for backward compatibility
 		ruleType = arg0
 		expectNumArgs = len(args)
 		startArg = 1

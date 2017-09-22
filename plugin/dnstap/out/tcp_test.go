@@ -9,11 +9,9 @@ func sendOneTCP(tcp *TCP) error {
 	if _, err := tcp.Write([]byte("frame")); err != nil {
 		return err
 	}
-	if err := tcp.Flush(); err != nil {
-		return err
-	}
-	return nil
+	return tcp.Flush()
 }
+
 func TestTCP(t *testing.T) {
 	tcp := NewTCP("localhost:14000")
 

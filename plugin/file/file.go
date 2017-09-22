@@ -113,7 +113,7 @@ type serialErr struct {
 }
 
 func (s *serialErr) Error() string {
-	return fmt.Sprintf("%s for origin %s in file %s, with serial %d", s.err, s.zone, s.serial)
+	return fmt.Sprintf("%s for origin %s in file %s, with serial %d", s.err, s.origin, s.zone, s.serial)
 }
 
 // Parse parses the zone in filename and returns a new Zone or an error.

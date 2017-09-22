@@ -78,9 +78,5 @@ func (s *Socket) Close() error {
 	if err := s.enc.Flush(); err != nil {
 		return fmt.Errorf("flush: %s", err)
 	}
-	if err := s.enc.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.enc.Close()
 }
