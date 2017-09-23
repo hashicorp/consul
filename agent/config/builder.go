@@ -52,11 +52,13 @@ type Builder struct {
 	// Flags contains the parsed command line arguments.
 	Flags Flags
 
+	// Head, Sources, and Tail are used to manage the order of the
+	// config sources, as described in the comments above.
 	Head    []Source
 	Sources []Source
 	Tail    []Source
 
-	// Warnings contains the warnigns encountered when
+	// Warnings contains the warnings encountered when
 	// parsing the configuration.
 	Warnings []string
 
@@ -64,6 +66,8 @@ type Builder struct {
 	// is called.
 	Hostname func() (string, error)
 
+	// GetPrivateIPv4 and GetPublicIPv6 return suitable default addresses
+	// for cases when the user doesn't supply them.
 	GetPrivateIPv4 func() ([]*net.IPAddr, error)
 	GetPublicIPv6  func() ([]*net.IPAddr, error)
 
@@ -72,6 +76,8 @@ type Builder struct {
 	err error
 }
 
+// NewBuilder returns a new configuration builder based on the given command
+// line flags.
 func NewBuilder(flags Flags) (*Builder, error) {
 	newSource := func(name string, v interface{}) Source {
 		b, err := json.MarshalIndent(v, "", "    ")
@@ -197,7 +203,7 @@ func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
 // and the command line flags. The config sources are processed in the
 // order they were added with the flags being processed last to give
 // precedence over the other sources. If the error is nil then
-// warnings can still contain deprecation or format warnigns that should
+// warnings can still contain deprecation or format warnings that should
 // be presented to the user.
 func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	b.err = nil
@@ -1052,7 +1058,7 @@ func (b *Builder) expandIPs(name string, s *string) []*net.IPAddr {
 
 // expandFirstAddr expands the go-sockaddr template in s and returns the
 // first address which is either a *net.IPAddr or a *net.UnixAddr. If
-// the template expands to multiple addresses and error is set and nil
+// the template expands to multiple addresses an error is set and nil
 // is returned.
 func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
 	if s == nil || *s == "" {
@@ -1076,7 +1082,7 @@ func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
 
 // expandFirstIP exapnds the go-sockaddr template in s and returns the
 // first address if it is not a unix socket address. If the template
-// expands to multiple addresses and error is set and nil is returned.
+// expands to multiple addresses an error is set and nil is returned.
 func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {
 	if s == nil || *s == "" {
 		return nil
