@@ -1,10 +1,9 @@
 package config
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
-
-	"crypto/tls"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"

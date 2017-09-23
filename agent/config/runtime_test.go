@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
@@ -15,8 +16,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"bytes"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil"
