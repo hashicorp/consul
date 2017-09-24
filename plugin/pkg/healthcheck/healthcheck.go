@@ -17,17 +17,15 @@ type UpstreamHostDownFunc func(*UpstreamHost) bool
 
 // UpstreamHost represents a single proxy upstream
 type UpstreamHost struct {
-	Conns             int64  // must be first field to be 64-bit aligned on 32-bit systems
-	Name              string // IP address (and port) of this upstream host
-	Network           string // Network (tcp, unix, etc) of the host, default "" is "tcp"
-	Fails             int32
-	FailTimeout       time.Duration
-	OkUntil           time.Time
-	CheckDown         UpstreamHostDownFunc
-	CheckURL          string
-	WithoutPathPrefix string
-	Checking          bool
-	CheckMu           sync.Mutex
+	Conns       int64  // must be first field to be 64-bit aligned on 32-bit systems
+	Name        string // IP address (and port) of this upstream host
+	Fails       int32
+	FailTimeout time.Duration
+	OkUntil     time.Time
+	CheckDown   UpstreamHostDownFunc
+	CheckURL    string
+	Checking    bool
+	sync.Mutex
 }
 
 // Down checks whether the upstream host is down or not.
@@ -39,9 +37,9 @@ func (uh *UpstreamHost) Down() bool {
 		fails := atomic.LoadInt32(&uh.Fails)
 		after := false
 
-		uh.CheckMu.Lock()
+		uh.Lock()
 		until := uh.OkUntil
-		uh.CheckMu.Unlock()
+		uh.Unlock()
 
 		if !until.IsZero() && time.Now().After(until) {
 			after = true
@@ -106,45 +104,45 @@ func (u *HealthCheck) Stop() error {
 // otherwise checks will back up, potentially a lot of them if a host is
 // absent for a long time.  This arrangement makes checks quickly see if
 // they are the only one running and abort otherwise.
-func healthCheckURL(nextTs time.Time, host *UpstreamHost) {
+func (uh *UpstreamHost) healthCheckURL(nextTs time.Time) {
 
 	// lock for our bool check.  We don't just defer the unlock because
 	// we don't want the lock held while http.Get runs
-	host.CheckMu.Lock()
+	uh.Lock()
 
 	// are we mid check?  Don't run another one
-	if host.Checking {
-		host.CheckMu.Unlock()
+	if uh.Checking {
+		uh.Unlock()
 		return
 	}
 
-	host.Checking = true
-	host.CheckMu.Unlock()
-
-	//log.Printf("[DEBUG] Healthchecking %s, nextTs is %s\n", url, nextTs.Local())
+	uh.Checking = true
+	uh.Unlock()
 
 	// fetch that url.  This has been moved into a go func because
 	// when the remote host is not merely not serving, but actually
 	// absent, then tcp syn timeouts can be very long, and so one
 	// fetch could last several check intervals
-	if r, err := http.Get(host.CheckURL); err == nil {
+	if r, err := http.Get(uh.CheckURL); err == nil {
 		io.Copy(ioutil.Discard, r.Body)
 		r.Body.Close()
 
 		if r.StatusCode < 200 || r.StatusCode >= 400 {
-			log.Printf("[WARNING] Host %s health check returned HTTP code %d\n",
-				host.Name, r.StatusCode)
+			log.Printf("[WARNING] Host %s health check returned HTTP code %d", uh.Name, r.StatusCode)
 			nextTs = time.Unix(0, 0)
+		} else {
+			// We are healthy again, reset fails
+			atomic.StoreInt32(&uh.Fails, 0)
 		}
 	} else {
-		log.Printf("[WARNING] Host %s health check probe failed: %v\n", host.Name, err)
+		log.Printf("[WARNING] Host %s health check probe failed: %v", uh.Name, err)
 		nextTs = time.Unix(0, 0)
 	}
 
-	host.CheckMu.Lock()
-	host.Checking = false
-	host.OkUntil = nextTs
-	host.CheckMu.Unlock()
+	uh.Lock()
+	uh.Checking = false
+	uh.OkUntil = nextTs
+	uh.Unlock()
 }
 
 func (u *HealthCheck) healthCheck() {
@@ -174,11 +172,11 @@ func (u *HealthCheck) healthCheck() {
 			host.CheckURL = "http://" + net.JoinHostPort(checkHostName, checkPort) + u.Path
 		}
 
-		// calculate this before the get
+		// calculate next timestamp before the get
 		nextTs := time.Now().Add(u.Future)
 
 		// locks/bools should prevent requests backing up
-		go healthCheckURL(nextTs, host)
+		go host.healthCheckURL(nextTs)
 	}
 }
 

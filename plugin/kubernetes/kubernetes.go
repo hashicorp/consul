@@ -190,9 +190,9 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 
 						down := false
 
-						uh.CheckMu.Lock()
+						uh.Lock()
 						until := uh.OkUntil
-						uh.CheckMu.Unlock()
+						uh.Unlock()
 
 						if !until.IsZero() && time.Now().After(until) {
 							down = true

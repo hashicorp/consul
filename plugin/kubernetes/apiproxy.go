@@ -23,10 +23,8 @@ type apiProxy struct {
 func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	upstream := p.Select()
 	network := "tcp"
-	if upstream.Network != "" {
-		network = upstream.Network
-	}
 	address := upstream.Name
+
 	d, err := net.Dial(network, address)
 	if err != nil {
 		log.Printf("[ERROR] Unable to establish connection to upstream %s://%s: %s", network, address, err)

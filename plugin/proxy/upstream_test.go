@@ -85,13 +85,6 @@ proxy . 8.8.8.8:53 {
 		{
 			`
 proxy . 8.8.8.8:53 {
-    without without
-}`,
-			false,
-		},
-		{
-			`
-proxy . 8.8.8.8:53 {
     except miek.nl example.org 10.0.0.0/24
 }`,
 			false,

@@ -40,28 +40,7 @@ func NewLookupWithOption(hosts []string, opts Options) Proxy {
 			Conns:       0,
 			Fails:       0,
 			FailTimeout: upstream.FailTimeout,
-
-			CheckDown: func(upstream *staticUpstream) healthcheck.UpstreamHostDownFunc {
-				return func(uh *healthcheck.UpstreamHost) bool {
-
-					down := false
-
-					uh.CheckMu.Lock()
-					until := uh.OkUntil
-					uh.CheckMu.Unlock()
-
-					if !until.IsZero() && time.Now().After(until) {
-						down = true
-					}
-
-					fails := atomic.LoadInt32(&uh.Fails)
-					if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-						down = true
-					}
-					return down
-				}
-			}(upstream),
-			WithoutPathPrefix: upstream.WithoutPathPrefix,
+			CheckDown:   checkDownFunc(upstream),
 		}
 
 		upstream.Hosts[i] = uh
