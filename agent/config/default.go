@@ -32,7 +32,7 @@ func DefaultSource() Source {
 		Data: `
 		acl_default_policy = "allow"
 		acl_down_policy = "extend-cache"
-		acl_enforce_version8 = true
+		acl_enforce_version_8 = true
 		acl_ttl = "30s"
 		bind_addr = "0.0.0.0"
 		bootstrap = false
