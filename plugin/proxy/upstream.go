@@ -31,9 +31,9 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		upstream := &staticUpstream{
 			from: ".",
 			HealthCheck: healthcheck.HealthCheck{
-				FailTimeout: 10 * time.Second,
-				MaxFails:    1,
-				Future:      60 * time.Second,
+				FailTimeout: 5 * time.Second,
+				MaxFails:    3,
+				Future:      12 * time.Second,
 			},
 			ex: newDNSEx(),
 		}
@@ -121,7 +121,7 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 		if err != nil {
 			return err
 		}
-		u.HealthCheck.Interval = 30 * time.Second
+		u.HealthCheck.Interval = 4 * time.Second
 		if c.NextArg() {
 			dur, err := time.ParseDuration(c.Val())
 			if err != nil {

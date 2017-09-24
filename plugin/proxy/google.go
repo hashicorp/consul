@@ -192,9 +192,9 @@ func newUpstream(hosts []string, old *staticUpstream) Upstream {
 	upstream := &staticUpstream{
 		from: old.from,
 		HealthCheck: healthcheck.HealthCheck{
-			FailTimeout: 10 * time.Second,
+			FailTimeout: 5 * time.Second,
 			MaxFails:    3,
-			Future:      60 * time.Second,
+			Future:      12 * time.Second,
 		},
 		ex:                old.ex,
 		IgnoredSubDomains: old.IgnoredSubDomains,

@@ -4,6 +4,7 @@ package proxy
 import (
 	"errors"
 	"fmt"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -56,7 +57,7 @@ type Upstream interface {
 
 // tryDuration is how long to try upstream hosts; failures result in
 // immediate retries until this duration ends or we get a nil host.
-var tryDuration = 60 * time.Second
+var tryDuration = 16 * time.Second
 
 // ServeDNS satisfies the plugin.Handler interface.
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -112,11 +113,26 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				return 0, taperr
 			}
 
+			// A "ANY isc.org" query is being dropped by ISC's nameserver, we see this as a i/o timeout, but
+			// would then mark our upstream is being broken. We should not do this if we consider the error temporary.
+			// Of course it could really be that our upstream is broken
+			if oe, ok := backendErr.(*net.OpError); ok {
+				// Note this keeps looping and trying until tryDuration is hit, at which point our client
+				// might be long gone...
+				if oe.Timeout() {
+					// Our upstream's upstream is problably messing up, continue with next selected
+					// host - which my be the *same* one as we don't set any uh.Fails.
+					continue
+				}
+			}
+
 			timeout := host.FailTimeout
 			if timeout == 0 {
-				timeout = 10 * time.Second
+				timeout = 2 * time.Second
 			}
+
 			atomic.AddInt32(&host.Fails, 1)
+
 			go func(host *healthcheck.UpstreamHost, timeout time.Duration) {
 				time.Sleep(timeout)
 				atomic.AddInt32(&host.Fails, -1)
