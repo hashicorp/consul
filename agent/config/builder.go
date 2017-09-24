@@ -88,10 +88,6 @@ func NewBuilder(flags Flags) (*Builder, error) {
 		Head:  []Source{DefaultSource()},
 	}
 
-	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" && b.stringVal(b.Flags.Config.Datacenter) == "" {
-		b.Flags.Config.Datacenter = b.Flags.DeprecatedDatacenter
-	}
-
 	if b.boolVal(b.Flags.DevMode) {
 		b.Head = append(b.Head, DevSource())
 	}
@@ -229,7 +225,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" {
 		b.warn(`==> DEPRECATION: "-dc" is deprecated. Use "-datacenter" instead`)
-		b.Flags.Config.Datacenter = b.Flags.DeprecatedDatacenter
 	}
 
 	// ----------------------------------------------------------------
@@ -463,6 +458,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 	if c.DeprecatedAtlasEndpoint != nil {
 		b.warn(`==> DEPRECATION: "atlas_endpoint" is deprecated and is no longer used. Please remove it from your configuration.`)
+	}
+	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" && b.stringVal(b.Flags.Config.Datacenter) == "" {
+		c.Datacenter = b.Flags.DeprecatedDatacenter
 	}
 
 	httpResponseHeaders := c.HTTPConfig.ResponseHeaders
