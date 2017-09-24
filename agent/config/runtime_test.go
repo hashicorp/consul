@@ -339,7 +339,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
-		{ // todo(fs): shouldn't this be '-encrypt-key'?
+		{
 			desc: "-encrypt",
 			flags: []string{
 				`-encrypt=i0P+gFTkLPg0h53eNYjydg==`,
@@ -397,7 +397,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
-		{ // todo(fs): shouldn't this be '-node-name'?
+		{
 			desc: "-node",
 			flags: []string{
 				`-node=a`,
