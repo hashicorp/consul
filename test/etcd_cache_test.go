@@ -68,7 +68,7 @@ func checkResponse(t *testing.T, resp *dns.Msg) {
 		t.Errorf("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
 	}
 	if resp.Answer[0].(*dns.A).A.String() != "127.0.0.1" {
-		t.Errorf("Expected 127.0.0.1, got: %d", resp.Answer[0].(*dns.A).A.String())
+		t.Errorf("Expected 127.0.0.1, got: %s", resp.Answer[0].(*dns.A).A.String())
 	}
 }
 

@@ -49,6 +49,6 @@ func send(t *testing.T, server string) {
 		t.Fatalf("Expected successful reply, got %s", dns.RcodeToString[r.Rcode])
 	}
 	if len(r.Extra) != 2 {
-		t.Fatalf("Expected 2 RRs in additional, got %s", len(r.Extra))
+		t.Fatalf("Expected 2 RRs in additional, got %d", len(r.Extra))
 	}
 }

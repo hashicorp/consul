@@ -69,7 +69,7 @@ func Error(name string, err error) error { return fmt.Errorf("%s/%s: %s", "plugi
 
 // NextOrFailure calls next.ServeDNS when next is not nill, otherwise it will return, a ServerFailure
 // and a nil error.
-func NextOrFailure(name string, next Handler, ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func NextOrFailure(name string, next Handler, ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) { // nolint: golint
 	if next != nil {
 		if span := ot.SpanFromContext(ctx); span != nil {
 			child := span.Tracer().StartSpan(next.Name(), ot.ChildOf(span.Context()))

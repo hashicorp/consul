@@ -11,7 +11,7 @@ coredns: check godeps
 	CGO_ENABLED=0 $(SYSTEM) go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: fmt core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: linter core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
@@ -62,17 +62,11 @@ core/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
 gen:
 	go generate coredns.go
 
-.PHONY: fmt
-fmt:
-	## run go fmt
-	@test -z "$$(find . -type d | grep -vE '(/vendor|^\.$$|/.git|/.travis)' | xargs gofmt -s -l  | tee /dev/stderr)" || \
-		(echo "please format Go code with 'gofmt -s -w'" && false)
-
-.PHONY: lint
-lint:
-	go get -u github.com/golang/lint/golint
-	@test -z "$$(find . -type d | grep -vE '(/vendor|^\.$$|/.git|/.travis)' | grep -vE '(^\./pb)' | xargs golint \
-		| grep -vE "context\.Context should be the first parameter of a function" | tee /dev/stderr)"
+.PHONY: linter
+linter:
+	go get -u github.com/alecthomas/gometalinter
+	gometalinter --install golint
+	gometalinter --deadline=1m --disable-all --enable=gofmt --enable=golint --enable=vet --exclude=^vendor/ --exclude=^pb/ ./...
 
 .PHONY: clean
 clean:
