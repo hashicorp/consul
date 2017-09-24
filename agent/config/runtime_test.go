@@ -1164,26 +1164,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc:  "client addr and ports < 0",
-			flags: []string{`-data-dir=` + dataDir},
-			json: []string{`{
-					"client_addr":"0.0.0.0",
-					"ports": { "dns":-1, "http":-2, "https":-3 }
-				}`},
-			hcl: []string{`
-					client_addr = "0.0.0.0"
-					ports { dns = -1 http = -2 https = -3 }
-				`},
-			patch: func(rt *RuntimeConfig) {
-				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
-				rt.DNSPort = -1
-				rt.DNSAddrs = nil
-				rt.HTTPPort = -1
-				rt.HTTPAddrs = nil
-				rt.DataDir = dataDir
-			},
-		},
-		{
 			desc:  "client addr and ports > 0",
 			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
