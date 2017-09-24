@@ -347,7 +347,6 @@ func (a *Agent) listenAndServeDNS() error {
 		a.wgServers.Add(1)
 		go func(addr net.Addr) {
 			defer a.wgServers.Done()
-			// todo(fs): does this also work for unix sockets?
 			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
 				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", addr.String(), addr.Network(), err)
