@@ -1149,20 +1149,6 @@ func (b *Builder) portVal(name string, v *int) int {
 	return *v
 }
 
-func (b *Builder) int64Val(v *int64) int64 {
-	if v == nil {
-		return 0
-	}
-	return int64(*v)
-}
-
-func (b *Builder) uint64Val(v *uint64) uint64 {
-	if v == nil {
-		return 0
-	}
-	return *v
-}
-
 func (b *Builder) stringVal(v *string) string {
 	if v == nil {
 		return ""
