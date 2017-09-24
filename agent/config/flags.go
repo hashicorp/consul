@@ -22,17 +22,6 @@ type Flags struct {
 
 	// HCL contains an arbitrary config in hcl format.
 	HCL []string
-
-	// DeprecatedDatacenter holds the value for the `-dc` flag which is an alias
-	// for -datacenter.
-	DeprecatedDatacenter *string
-
-	// The DeprecatedAtlas* fields hold the values for deprecated flags.
-	// Setting them only leads to warnings but has no other effect.
-	DeprecatedAtlasInfrastructure *string
-	DeprecatedAtlasJoin           *bool
-	DeprecatedAtlasToken          *string
-	DeprecatedAtlasEndpoint       *string
 }
 
 // ParseFlag parses the arguments into a Flags struct.
@@ -112,20 +101,4 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.EnableUI, "ui", "Enables the built-in static web UI server.")
 	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
-
-	// deprecated flags orderd by flag name
-	add(&f.DeprecatedAtlasInfrastructure, "atlas", "(deprecated) Sets the Atlas infrastructure name, enables SCADA.")
-	add(&f.DeprecatedAtlasEndpoint, "atlas-endpoint", "(deprecated) The address of the endpoint for Atlas integration.")
-	add(&f.DeprecatedAtlasJoin, "atlas-join", "(deprecated) Enables auto-joining the Atlas cluster.")
-	add(&f.DeprecatedAtlasToken, "atlas-token", "(deprecated) Provides the Atlas API token.")
-	add(&f.DeprecatedDatacenter, "dc", "(deprecated) Datacenter of the agent (use 'datacenter' instead).")
-	add(&f.Config.DeprecatedRetryJoinAzure.TagName, "retry-join-azure-tag-name", "Azure tag name to filter on for server discovery.")
-	add(&f.Config.DeprecatedRetryJoinAzure.TagValue, "retry-join-azure-tag-value", "Azure tag value to filter on for server discovery.")
-	add(&f.Config.DeprecatedRetryJoinEC2.Region, "retry-join-ec2-region", "EC2 Region to discover servers in.")
-	add(&f.Config.DeprecatedRetryJoinEC2.TagKey, "retry-join-ec2-tag-key", "EC2 tag key to filter on for server discovery.")
-	add(&f.Config.DeprecatedRetryJoinEC2.TagValue, "retry-join-ec2-tag-value", "EC2 tag value to filter on for server discovery.")
-	add(&f.Config.DeprecatedRetryJoinGCE.CredentialsFile, "retry-join-gce-credentials-file", "Path to credentials JSON file to use with Google Compute Engine.")
-	add(&f.Config.DeprecatedRetryJoinGCE.ProjectName, "retry-join-gce-project-name", "Google Compute Engine project to discover servers in.")
-	add(&f.Config.DeprecatedRetryJoinGCE.TagValue, "retry-join-gce-tag-value", "Google Compute Engine tag value to filter on for server discovery.")
-	add(&f.Config.DeprecatedRetryJoinGCE.ZonePattern, "retry-join-gce-zone-pattern", "Google Compute Engine region or zone to discover servers in (regex pattern).")
 }

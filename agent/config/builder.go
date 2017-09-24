@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	discover "github.com/hashicorp/go-discover"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"golang.org/x/time/rate"
@@ -206,28 +205,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	b.Warnings = nil
 
 	// ----------------------------------------------------------------
-	// deprecated flags
-	//
-	// needs to come before merging because of -dc flag
-	//
-
-	if b.Flags.DeprecatedAtlasInfrastructure != nil {
-		b.warn(`==> DEPRECATION: "-atlas" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if b.Flags.DeprecatedAtlasToken != nil {
-		b.warn(`==> DEPRECATION: "-atlas-token" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if b.Flags.DeprecatedAtlasJoin != nil {
-		b.warn(`==> DEPRECATION: "-atlas-join" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if b.Flags.DeprecatedAtlasEndpoint != nil {
-		b.warn(`==> DEPRECATION: "-atlas-endpoint" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" {
-		b.warn(`==> DEPRECATION: "-dc" is deprecated. Use "-datacenter" instead`)
-	}
-
-	// ----------------------------------------------------------------
 	// merge config sources as follows
 	//
 
@@ -237,14 +214,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	srcs = append(srcs, b.Sources...)
 	srcs = append(srcs, b.Tail...)
 
-	// toJson := func(v interface{}) string {
-	// 	b, err := json.Marshal(v)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	return string(b)
-	// }
-
 	// parse the config sources into a configuration
 	var c Config
 	for _, s := range srcs {
@@ -252,10 +221,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			continue
 		}
 		c2, err := Parse(s.Data, s.Format)
-		// fmt.Println("-------------------------------------------------------")
-		// fmt.Println("Parse", s.Name)
-		// fmt.Println(toJson(c2))
-
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
@@ -434,76 +399,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
-	// ----------------------------------------------------------------
-	// deprecated fields
-	//
-
-	if c.Addresses.DeprecatedRPC != nil {
-		b.warn(`==> DEPRECATION: "addresses.rpc" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.Ports.DeprecatedRPC != nil {
-		b.warn(`==> DEPRECATION: "ports.rpc" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.DeprecatedAtlasInfrastructure != nil {
-		b.warn(`==> DEPRECATION: "atlas_infrastructure" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.DeprecatedAtlasToken != nil {
-		b.warn(`==> DEPRECATION: "atlas_token" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.DeprecatedAtlasACLToken != nil {
-		b.warn(`==> DEPRECATION: "atlas_acl_token" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.DeprecatedAtlasJoin != nil {
-		b.warn(`==> DEPRECATION: "atlas_join" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if c.DeprecatedAtlasEndpoint != nil {
-		b.warn(`==> DEPRECATION: "atlas_endpoint" is deprecated and is no longer used. Please remove it from your configuration.`)
-	}
-	if b.stringVal(b.Flags.DeprecatedDatacenter) != "" && b.stringVal(b.Flags.Config.Datacenter) == "" {
-		c.Datacenter = b.Flags.DeprecatedDatacenter
-	}
-
-	httpResponseHeaders := c.HTTPConfig.ResponseHeaders
-	if len(c.DeprecatedHTTPAPIResponseHeaders) > 0 {
-		b.warn(`==> DEPRECATION: "http_api_response_headers" is deprecated. Please use "http_config.response_headers" instead.`)
-		if httpResponseHeaders == nil {
-			httpResponseHeaders = map[string]string{}
-		}
-		for k, v := range c.DeprecatedHTTPAPIResponseHeaders {
-			httpResponseHeaders[k] = v
-		}
-	}
-
-	dogstatsdAddr := b.stringVal(c.Telemetry.DogstatsdAddr)
-	if c.DeprecatedDogstatsdAddr != nil {
-		b.warn(`==> DEPRECATION: "dogstatsd_addr" is deprecated. Please use "telemetry.dogstatsd_addr" instead.`)
-		dogstatsdAddr = b.stringVal(c.DeprecatedDogstatsdAddr)
-	}
-
-	dogstatsdTags := c.Telemetry.DogstatsdTags
-	if len(c.DeprecatedDogstatsdTags) > 0 {
-		b.warn(`==> DEPRECATION: "dogstatsd_tags" is deprecated. Please use "telemetry.dogstatsd_tags" instead.`)
-		dogstatsdTags = append(c.DeprecatedDogstatsdTags, dogstatsdTags...)
-	}
-
-	statsdAddr := b.stringVal(c.Telemetry.StatsdAddr)
-	if c.DeprecatedStatsdAddr != nil {
-		b.warn(`==> DEPRECATION: "statsd_addr" is deprecated. Please use "telemetry.statsd_addr" instead.`)
-		statsdAddr = b.stringVal(c.DeprecatedStatsdAddr)
-	}
-
-	statsiteAddr := b.stringVal(c.Telemetry.StatsiteAddr)
-	if c.DeprecatedStatsiteAddr != nil {
-		b.warn(`==> DEPRECATION: "statsite_addr" is deprecated. Please use "telemetry.statsite_addr" instead.`)
-		statsiteAddr = b.stringVal(c.DeprecatedStatsiteAddr)
-	}
-
-	statsitePrefix := b.stringVal(c.Telemetry.StatsitePrefix)
-	if c.DeprecatedStatsitePrefix != nil {
-		b.warn(`==> DEPRECATION: "statsite_prefix" is deprecated. Please use "telemetry.statsite_prefix" instead.`)
-		statsitePrefix = b.stringVal(c.DeprecatedStatsitePrefix)
-	}
-
 	// Parse the metric filters
 	var telemetryAllowedPrefixes, telemetryBlockedPrefixes []string
 	for _, rule := range c.Telemetry.PrefixFilter {
@@ -519,80 +414,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		default:
 			b.warn("Filter rule must begin with either '+' or '-': %q", rule)
 		}
-	}
-
-	// patch deprecated retry-join-{gce,azure,ec2)-* parameters
-	// into -retry-join and issue warning.
-	if !reflect.DeepEqual(c.DeprecatedRetryJoinEC2, RetryJoinEC2{}) {
-		m := discover.Config{
-			"provider":          "aws",
-			"region":            b.stringVal(c.DeprecatedRetryJoinEC2.Region),
-			"tag_key":           b.stringVal(c.DeprecatedRetryJoinEC2.TagKey),
-			"tag_value":         b.stringVal(c.DeprecatedRetryJoinEC2.TagValue),
-			"access_key_id":     b.stringVal(c.DeprecatedRetryJoinEC2.AccessKeyID),
-			"secret_access_key": b.stringVal(c.DeprecatedRetryJoinEC2.SecretAccessKey),
-		}
-		c.RetryJoinLAN = append(c.RetryJoinLAN, m.String())
-		c.DeprecatedRetryJoinEC2 = RetryJoinEC2{}
-
-		// redact m before output
-		if m["access_key_id"] != "" {
-			m["access_key_id"] = "hidden"
-		}
-		if m["secret_access_key"] != "" {
-			m["secret_access_key"] = "hidden"
-		}
-
-		b.warn(`==> DEPRECATION: "retry_join_ec2" is deprecated. Please add %q to "retry_join".`, m)
-	}
-
-	if !reflect.DeepEqual(c.DeprecatedRetryJoinAzure, RetryJoinAzure{}) {
-		m := discover.Config{
-			"provider":          "azure",
-			"tag_name":          b.stringVal(c.DeprecatedRetryJoinAzure.TagName),
-			"tag_value":         b.stringVal(c.DeprecatedRetryJoinAzure.TagValue),
-			"subscription_id":   b.stringVal(c.DeprecatedRetryJoinAzure.SubscriptionID),
-			"tenant_id":         b.stringVal(c.DeprecatedRetryJoinAzure.TenantID),
-			"client_id":         b.stringVal(c.DeprecatedRetryJoinAzure.ClientID),
-			"secret_access_key": b.stringVal(c.DeprecatedRetryJoinAzure.SecretAccessKey),
-		}
-		c.RetryJoinLAN = append(c.RetryJoinLAN, m.String())
-		c.DeprecatedRetryJoinAzure = RetryJoinAzure{}
-
-		// redact m before output
-		if m["subscription_id"] != "" {
-			m["subscription_id"] = "hidden"
-		}
-		if m["tenant_id"] != "" {
-			m["tenant_id"] = "hidden"
-		}
-		if m["client_id"] != "" {
-			m["client_id"] = "hidden"
-		}
-		if m["secret_access_key"] != "" {
-			m["secret_access_key"] = "hidden"
-		}
-
-		b.warn(`==> DEPRECATION: "retry_join_azure" is deprecated. Please add %q to "retry_join".`, m)
-	}
-
-	if !reflect.DeepEqual(c.DeprecatedRetryJoinGCE, RetryJoinGCE{}) {
-		m := discover.Config{
-			"provider":         "gce",
-			"project_name":     b.stringVal(c.DeprecatedRetryJoinGCE.ProjectName),
-			"zone_pattern":     b.stringVal(c.DeprecatedRetryJoinGCE.ZonePattern),
-			"tag_value":        b.stringVal(c.DeprecatedRetryJoinGCE.TagValue),
-			"credentials_file": b.stringVal(c.DeprecatedRetryJoinGCE.CredentialsFile),
-		}
-		c.RetryJoinLAN = append(c.RetryJoinLAN, m.String())
-		c.DeprecatedRetryJoinGCE = RetryJoinGCE{}
-
-		// redact m before output
-		if m["credentials_file"] != "" {
-			m["credentials_file"] = "hidden"
-		}
-
-		b.warn(`==> DEPRECATION: "retry_join_gce" is deprecated. Please add %q to "retry_join".`, m)
 	}
 
 	// ----------------------------------------------------------------
@@ -672,7 +493,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPAddrs:           httpAddrs,
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
-		HTTPResponseHeaders: httpResponseHeaders,
+		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
 
 		// Performance
 		PerformanceRaftMultiplier: b.intVal(c.Performance.RaftMultiplier),
@@ -692,14 +513,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryCirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
 		TelemetryCirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
 		TelemetryDisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
-		TelemetryDogstatsdAddr:                      dogstatsdAddr,
-		TelemetryDogstatsdTags:                      dogstatsdTags,
+		TelemetryDogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
+		TelemetryDogstatsdTags:                      c.Telemetry.DogstatsdTags,
 		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
 		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,
-		TelemetryStatsdAddr:                         statsdAddr,
-		TelemetryStatsiteAddr:                       statsiteAddr,
-		TelemetryStatsitePrefix:                     statsitePrefix,
+		TelemetryStatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
+		TelemetryStatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+		TelemetryStatsitePrefix:                     b.stringVal(c.Telemetry.StatsitePrefix),
 
 		// Agent
 		AdvertiseAddrLAN:            advertiseAddrLAN,
@@ -1043,35 +864,11 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		id = types.CheckID(b.stringVal(v.CheckID))
 	}
 
-	serviceID := v.ServiceID
-	if v.AliasServiceID != nil {
-		b.warn(`==> DEPRECATION: "serviceid" is deprecated in check definitions. Please use "service_id" instead.`)
-		serviceID = v.AliasServiceID
-	}
-
-	dockerContainerID := v.DockerContainerID
-	if v.AliasDockerContainerID != nil {
-		b.warn(`==> DEPRECATION: "dockercontainerid" is deprecated in check definitions. Please use "docker_container_id" instead.`)
-		dockerContainerID = v.AliasDockerContainerID
-	}
-
-	tlsSkipVerify := v.TLSSkipVerify
-	if v.AliasTLSSkipVerify != nil {
-		b.warn(`==> DEPRECATION: "tlsskipverify" is deprecated in check definitions. Please use "tls_skip_verify" instead.`)
-		tlsSkipVerify = v.AliasTLSSkipVerify
-	}
-
-	deregisterCriticalServiceAfter := v.DeregisterCriticalServiceAfter
-	if v.AliasDeregisterCriticalServiceAfter != nil {
-		b.warn(`==> DEPRECATION: "deregistercriticalserviceafter" is deprecated in check definitions. Please use "deregister_critical_service_after" instead.`)
-		deregisterCriticalServiceAfter = v.AliasDeregisterCriticalServiceAfter
-	}
-
 	return &structs.CheckDefinition{
 		ID:                id,
 		Name:              b.stringVal(v.Name),
 		Notes:             b.stringVal(v.Notes),
-		ServiceID:         b.stringVal(serviceID),
+		ServiceID:         b.stringVal(v.ServiceID),
 		Token:             b.stringVal(v.Token),
 		Status:            b.stringVal(v.Status),
 		Script:            b.stringVal(v.Script),
@@ -1080,12 +877,12 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Method:            b.stringVal(v.Method),
 		TCP:               b.stringVal(v.TCP),
 		Interval:          b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
-		DockerContainerID: b.stringVal(dockerContainerID),
+		DockerContainerID: b.stringVal(v.DockerContainerID),
 		Shell:             b.stringVal(v.Shell),
-		TLSSkipVerify:     b.boolVal(tlsSkipVerify),
+		TLSSkipVerify:     b.boolVal(v.TLSSkipVerify),
 		Timeout:           b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:               b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
-		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), deregisterCriticalServiceAfter),
+		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 	}
 }
 

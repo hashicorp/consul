@@ -162,22 +162,6 @@ type Config struct {
 	SyncCoordinateRateTarget   *float64 `json:"sync_coordinate_rate_target,omitempty" hcl:"sync_coordinate_rate_target"`
 	Version                    *string  `json:"version,omitempty" hcl:"version"`
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease"`
-
-	// deprecated values
-	DeprecatedAtlasACLToken          *string           `json:"atlas_acl_token,omitempty" hcl:"atlas_acl_token"`
-	DeprecatedAtlasEndpoint          *string           `json:"atlas_endpoint,omitempty" hcl:"atlas_endpoint"`
-	DeprecatedAtlasInfrastructure    *string           `json:"atlas_infrastructure,omitempty" hcl:"atlas_infrastructure"`
-	DeprecatedAtlasJoin              *bool             `json:"atlas_join,omitempty" hcl:"atlas_join"`
-	DeprecatedAtlasToken             *string           `json:"atlas_token,omitempty" hcl:"atlas_token"`
-	DeprecatedDogstatsdAddr          *string           `json:"dogstatsd_addr,omitempty" hcl:"dogstatsd_addr"`
-	DeprecatedDogstatsdTags          []string          `json:"dogstatsd_tags,omitempty" hcl:"dogstatsd_tags"`
-	DeprecatedHTTPAPIResponseHeaders map[string]string `json:"http_api_response_headers,omitempty" hcl:"http_api_response_headers"`
-	DeprecatedRetryJoinAzure         RetryJoinAzure    `json:"retry_join_azure,omitempty" hcl:"retry_join_azure"`
-	DeprecatedRetryJoinEC2           RetryJoinEC2      `json:"retry_join_ec2,omitempty" hcl:"retry_join_ec2"`
-	DeprecatedRetryJoinGCE           RetryJoinGCE      `json:"retry_join_gce,omitempty" hcl:"retry_join_gce"`
-	DeprecatedStatsdAddr             *string           `json:"statsd_addr,omitempty" hcl:"statsd_addr"`
-	DeprecatedStatsiteAddr           *string           `json:"statsite_addr,omitempty" hcl:"statsite_addr"`
-	DeprecatedStatsitePrefix         *string           `json:"statsite_prefix,omitempty" hcl:"statsite_prefix"`
 }
 
 type Consul struct {
@@ -220,8 +204,6 @@ type Addresses struct {
 	DNS   *string `json:"dns,omitempty" hcl:"dns"`
 	HTTP  *string `json:"http,omitempty" hcl:"http"`
 	HTTPS *string `json:"https,omitempty" hcl:"https"`
-
-	DeprecatedRPC *string `json:"rpc,omitempty" hcl:"rpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -272,12 +254,6 @@ type CheckDefinition struct {
 	Timeout                        *string             `json:"timeout,omitempty" hcl:"timeout"`
 	TTL                            *string             `json:"ttl,omitempty" hcl:"ttl"`
 	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after"`
-
-	// alias fields with different names
-	AliasDeregisterCriticalServiceAfter *string `json:"deregistercriticalserviceafter,omitempty" hcl:"deregistercriticalserviceafter"`
-	AliasDockerContainerID              *string `json:"dockercontainerid,omitempty" hcl:"dockercontainerid"`
-	AliasServiceID                      *string `json:"serviceid,omitempty" hcl:"serviceid"`
-	AliasTLSSkipVerify                  *bool   `json:"tlsskipverify,omitempty" hcl:"tlsskipverify"`
 }
 
 type DNS struct {
@@ -332,8 +308,6 @@ type Ports struct {
 	SerfLAN *int `json:"serf_lan,omitempty" hcl:"serf_lan"`
 	SerfWAN *int `json:"serf_wan,omitempty" hcl:"serf_wan"`
 	Server  *int `json:"server,omitempty" hcl:"server"`
-
-	DeprecatedRPC *int `json:"rpc,omitempty" hcl:"rpc"`
 }
 
 type RetryJoinAzure struct {
