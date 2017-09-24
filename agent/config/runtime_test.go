@@ -2290,7 +2290,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				// if err := x.Validate(wantRT); err != nil {
 				// 	t.Fatalf("validate default failed: %s", err)
 				// }
-				if got, want := patchedRT, rt; !verify.Values(t, "", got, want) {
+				if got, want := rt, patchedRT; !verify.Values(t, "", got, want) {
 					t.FailNow()
 				}
 			})
