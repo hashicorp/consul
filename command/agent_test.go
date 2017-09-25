@@ -64,35 +64,35 @@ func TestConfigFail(t *testing.T) {
 		out  string
 	}{
 		{
-			args: []string{"agent", "-server", "-datacenter="},
+			args: []string{"agent", "-server", "-bind=10.0.0.1",  "-datacenter="},
 			out:  "==> datacenter cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server"},
+			args: []string{"agent", "-server", "-bind=10.0.0.1"},
 			out:  "==> data_dir cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0", "-bind","10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::", "-bind","10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]", "-bind","10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0", "-bind","10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::", "-bind","10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]", "-bind","10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 	}
@@ -232,7 +232,7 @@ func TestProtectDataDir(t *testing.T) {
 	cfgFile := testutil.TempFile(t, "consul")
 	defer os.Remove(cfgFile.Name())
 
-	content := fmt.Sprintf(`{"server": true, "data_dir": "%s"}`, dir)
+	content := fmt.Sprintf(`{"server": true, "bind_addr" : "10.0.0.1", "data_dir": "%s"}`, dir)
 	_, err := cfgFile.Write([]byte(content))
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -265,7 +265,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 	ui := cli.NewMockUi()
 	cmd := &AgentCommand{
 		BaseCommand: baseCommand(ui),
-		args:        []string{"-data-dir=" + dataDir, "-server=true"},
+		args:        []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"},
 	}
 	if conf := cmd.readConfig(); conf != nil {
 		t.Fatalf("Should fail with bad data directory permissions")
