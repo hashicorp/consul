@@ -458,9 +458,11 @@ will exit with an error at startup.
   You can view the protocol versions supported by Consul by running `consul -v`.
 
 * <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
-  version of the Raft consensus protocol used for server communications. This defaults to 2 but must
-  be set to 3 in order to gain access to Autopilot features, with the exception of
-  [`cleanup_dead_servers`](#cleanup_dead_servers).
+  version of the Raft consensus protocol used for server communications. This must be set to 3 in order to
+  gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](#cleanup_dead_servers).
+  Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See
+  [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility)
+  for more details.
 
 * <a name="_recursor"></a><a href="#_recursor">`-recursor`</a> - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally

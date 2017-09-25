@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -37,6 +38,42 @@ func wantPeers(s *Server, peers int) error {
 	}
 	if got, want := n, peers; got != want {
 		return fmt.Errorf("got %d peers want %d", got, want)
+	}
+	return nil
+}
+
+// wantRaft determines if the servers have all of each other in their
+// Raft configurations,
+func wantRaft(servers []*Server) error {
+	// Make sure all the servers are represented in the Raft config,
+	// and that there are no extras.
+	verifyRaft := func(c raft.Configuration) error {
+		want := make(map[raft.ServerID]bool)
+		for _, s := range servers {
+			want[s.config.RaftConfig.LocalID] = true
+		}
+
+		for _, s := range c.Servers {
+			if !want[s.ID] {
+				return fmt.Errorf("don't want %q", s.ID)
+			}
+			delete(want, s.ID)
+		}
+
+		if len(want) > 0 {
+			return fmt.Errorf("didn't find %v", want)
+		}
+		return nil
+	}
+
+	for _, s := range servers {
+		future := s.raft.GetConfiguration()
+		if err := future.Error(); err != nil {
+			return err
+		}
+		if err := verifyRaft(future.Configuration()); err != nil {
+			return err
+		}
 	}
 	return nil
 }

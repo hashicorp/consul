@@ -779,29 +779,38 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
-	// Try to join
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join and wait for all servers to get promoted to voters.
 	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s2)
+	servers := []*Server{s1, s2, s3}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-
-	// Use the leader as the client, kill the follower
+	// Use the leader as the client, kill the followers.
 	var codec rpc.ClientCodec
-	if s1.IsLeader() {
-		codec = codec1
-		s2.Shutdown()
-	} else {
-		codec = codec2
-		s1.Shutdown()
+	for _, s := range servers {
+		if s.IsLeader() {
+			codec = rpcClient(t, s)
+			defer codec.Close()
+		} else {
+			s.Shutdown()
+		}
+	}
+	if codec == nil {
+		t.Fatalf("no leader")
 	}
 
 	args := structs.DCSpecificRequest{
@@ -813,7 +822,6 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	if err == nil || !strings.HasPrefix(err.Error(), "leadership lost") {
 		t.Fatalf("err: %v", err)
 	}
-
 	if out.QueryMeta.LastContact != 0 {
 		t.Fatalf("should not have a last contact time")
 	}

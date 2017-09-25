@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -157,7 +158,8 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 
 	// Add it manually to Raft.
 	{
-		future := s1.raft.AddPeer(arg.Address)
+		id := raft.ServerID("fake-node-id")
+		future := s1.raft.AddVoter(id, arg.Address, 0, time.Second)
 		if err := future.Error(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
