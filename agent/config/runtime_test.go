@@ -86,9 +86,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				rt.DataDir = dataDir
 			},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-			},
 		},
 		{
 			desc: "-advertise and -advertise-wan",
@@ -628,9 +625,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				rt.DataDir = dataDir
 			},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-			},
 		},
 		{
 			desc:  "bind addr any v6",
@@ -869,9 +863,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"wan": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
-			},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
 			},
 		},
 		{
@@ -1538,9 +1529,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					addresses = { http = "10.0.0.1" }
 					ports = { http = 1000 server = 1000 }
 				`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-			},
 			err: "RPC Advertise address 10.0.0.1:1000 already configured for HTTP",
 		},
 		{
@@ -1554,9 +1542,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 					ports = { server = 1000 serf_lan = 1000 }
 				`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-			},
 			err: "Serf Advertise LAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
@@ -1570,9 +1555,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 					ports = { server = 1000 serf_wan = 1000 }
 				`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
-			},
 			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
@@ -1716,7 +1698,13 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 
 				// mock the ip address detection
-				b.GetPrivateIPv4 = tt.privatev4
+				privatev4 := tt.privatev4
+				if privatev4 == nil {
+					privatev4 = func() ([]*net.IPAddr, error) {
+						return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+					}
+				}
+				b.GetPrivateIPv4 = privatev4
 				b.GetPublicIPv6 = tt.publicv6
 
 				// read the source fragements

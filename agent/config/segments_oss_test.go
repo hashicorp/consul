@@ -3,6 +3,7 @@
 package config
 
 import (
+	"net"
 	"os"
 	"testing"
 
@@ -22,6 +23,9 @@ func TestSegments(t *testing.T) {
 			json: []string{`{ "server": true, "segment": "a" }`},
 			hcl:  []string{` server = true segment = "a" `},
 			err:  `Network segments are not supported in this version of Consul`,
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
 		},
 		{
 			desc: "segments not in OSS",
@@ -31,6 +35,9 @@ func TestSegments(t *testing.T) {
 			json: []string{`{ "segments":[{ "name":"x", "advertise": "unix:///foo" }] }`},
 			hcl:  []string{`segments = [{ name = "x" advertise = "unix:///foo" }]`},
 			err:  `Network segments are not supported in this version of Consul`,
+			privatev4: func() ([]*net.IPAddr, error) {
+				return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+			},
 		},
 	}
 
