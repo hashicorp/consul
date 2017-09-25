@@ -33,10 +33,10 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t.Name(), nil)
+		a1 := NewTestAgent(t.Name(), "")
 		defer a1.Shutdown()
 
-		c1 := a1.Config.ConsulConfig
+		c1 := a1.consulConfig()
 		if c1.SerfLANConfig.KeyringFile != "" {
 			t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
 		}
@@ -57,7 +57,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 		a2.Start()
 		defer a2.Shutdown()
 
-		c2 := a2.Config.ConsulConfig
+		c2 := a2.consulConfig()
 		if c2.SerfLANConfig.KeyringFile == "" {
 			t.Fatalf("should have keyring file")
 		}
@@ -80,13 +80,14 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring file
 	t.Run("client with keys", func(t *testing.T) {
-		cfg3 := TestConfig()
-		cfg3.Server = false
-		a3 := &TestAgent{Name: t.Name(), Config: cfg3, Key: key}
+		a3 := &TestAgent{Name: t.Name(), HCL: `
+			server = false
+			bootstrap = false
+		`, Key: key}
 		a3.Start()
 		defer a3.Shutdown()
 
-		c3 := a3.Config.ConsulConfig
+		c3 := a3.consulConfig()
 		if c3.SerfLANConfig.KeyringFile == "" {
 			t.Fatalf("should have keyring file")
 		}
@@ -111,10 +112,10 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t.Name(), nil)
+		a1 := NewTestAgent(t.Name(), "")
 		defer a1.Shutdown()
 
-		c1 := a1.Config.ConsulConfig
+		c1 := a1.consulConfig()
 		if c1.SerfLANConfig.KeyringFile != "" {
 			t.Fatalf("bad: %#v", c1.SerfLANConfig.KeyringFile)
 		}
@@ -131,15 +132,14 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring
 	t.Run("server with keys", func(t *testing.T) {
-		cfg2 := TestConfig()
-		cfg2.EncryptKey = key
-		cfg2.DisableKeyringFile = true
-
-		a2 := &TestAgent{Name: t.Name(), Config: cfg2}
+		a2 := &TestAgent{Name: t.Name(), HCL: `
+			encrypt = "` + key + `"
+			disable_keyring_file = true
+		`}
 		a2.Start()
 		defer a2.Shutdown()
 
-		c2 := a2.Config.ConsulConfig
+		c2 := a2.consulConfig()
 		if c2.SerfLANConfig.KeyringFile != "" {
 			t.Fatalf("should not have keyring file")
 		}
@@ -162,15 +162,16 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring
 	t.Run("client with keys", func(t *testing.T) {
-		cfg3 := TestConfig()
-		cfg3.EncryptKey = key
-		cfg3.DisableKeyringFile = true
-		cfg3.Server = false
-		a3 := &TestAgent{Name: t.Name(), Config: cfg3}
+		a3 := &TestAgent{Name: t.Name(), HCL: `
+			encrypt = "` + key + `"
+			server = false
+			bootstrap = false
+			disable_keyring_file = true
+		`}
 		a3.Start()
 		defer a3.Shutdown()
 
-		c3 := a3.Config.ConsulConfig
+		c3 := a3.consulConfig()
 		if c3.SerfLANConfig.KeyringFile != "" {
 			t.Fatalf("should not have keyring file")
 		}
@@ -201,16 +202,15 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		cfg4 := TestConfig()
-		cfg4.EncryptKey = key
-		cfg4.DisableKeyringFile = true
-		cfg4.DataDir = dir
-
-		a4 := &TestAgent{Name: t.Name(), Config: cfg4}
+		a4 := &TestAgent{Name: t.Name(), HCL: `
+			encrypt = "` + key + `"
+			disable_keyring_file = true
+			data_dir = "` + dir + `"
+		`}
 		a4.Start()
 		defer a4.Shutdown()
 
-		c4 := a4.Config.ConsulConfig
+		c4 := a4.consulConfig()
 		if c4.SerfLANConfig.KeyringFile != "" {
 			t.Fatalf("should not have keyring file")
 		}
@@ -276,11 +276,11 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	cfg := TestACLConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	a := &TestAgent{Name: t.Name(), Config: cfg, Key: key1}
+	a := &TestAgent{Name: t.Name(), HCL: TestACLConfig() + `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_default_policy = "deny"
+	`, Key: key1}
 	a.Start()
 	defer a.Shutdown()
 

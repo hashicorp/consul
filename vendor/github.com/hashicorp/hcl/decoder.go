@@ -56,7 +56,7 @@ func DecodeObject(out interface{}, n ast.Node) error {
 		n = f.Node
 	}
 
-	var d decoder
+	d := &decoder{}
 	return d.decode("root", n, val.Elem())
 }
 
@@ -89,9 +89,9 @@ func (d *decoder) decode(name string, node ast.Node, result reflect.Value) error
 	switch k.Kind() {
 	case reflect.Bool:
 		return d.decodeBool(name, node, result)
-	case reflect.Float64:
+	case reflect.Float32, reflect.Float64:
 		return d.decodeFloat(name, node, result)
-	case reflect.Int:
+	case reflect.Int, reflect.Int32, reflect.Int64:
 		return d.decodeInt(name, node, result)
 	case reflect.Interface:
 		// When we see an interface, we make our own thing
@@ -137,13 +137,13 @@ func (d *decoder) decodeBool(name string, node ast.Node, result reflect.Value) e
 func (d *decoder) decodeFloat(name string, node ast.Node, result reflect.Value) error {
 	switch n := node.(type) {
 	case *ast.LiteralType:
-		if n.Token.Type == token.FLOAT {
+		if n.Token.Type == token.FLOAT || n.Token.Type == token.NUMBER {
 			v, err := strconv.ParseFloat(n.Token.Text, 64)
 			if err != nil {
 				return err
 			}
 
-			result.Set(reflect.ValueOf(v))
+			result.Set(reflect.ValueOf(v).Convert(result.Type()))
 			return nil
 		}
 	}
@@ -164,7 +164,11 @@ func (d *decoder) decodeInt(name string, node ast.Node, result reflect.Value) er
 				return err
 			}
 
-			result.Set(reflect.ValueOf(int(v)))
+			if result.Kind() == reflect.Interface {
+				result.Set(reflect.ValueOf(int(v)))
+			} else {
+				result.SetInt(v)
+			}
 			return nil
 		case token.STRING:
 			v, err := strconv.ParseInt(n.Token.Value().(string), 0, 0)
@@ -172,7 +176,11 @@ func (d *decoder) decodeInt(name string, node ast.Node, result reflect.Value) er
 				return err
 			}
 
-			result.Set(reflect.ValueOf(int(v)))
+			if result.Kind() == reflect.Interface {
+				result.Set(reflect.ValueOf(int(v)))
+			} else {
+				result.SetInt(v)
+			}
 			return nil
 		}
 	}
@@ -409,7 +417,6 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 	if result.Kind() == reflect.Interface {
 		result = result.Elem()
 	}
-
 	// Create the slice if it isn't nil
 	resultType := result.Type()
 	resultElemType := resultType.Elem()
@@ -443,6 +450,12 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 
 		// Decode
 		val := reflect.Indirect(reflect.New(resultElemType))
+
+		// if item is an object that was decoded from ambiguous JSON and
+		// flattened, make sure it's expanded if it needs to decode into a
+		// defined structure.
+		item := expandObject(item, val)
+
 		if err := d.decode(fieldName, item, val); err != nil {
 			return err
 		}
@@ -453,6 +466,57 @@ func (d *decoder) decodeSlice(name string, node ast.Node, result reflect.Value) 
 
 	set.Set(result)
 	return nil
+}
+
+// expandObject detects if an ambiguous JSON object was flattened to a List which
+// should be decoded into a struct, and expands the ast to properly deocode.
+func expandObject(node ast.Node, result reflect.Value) ast.Node {
+	item, ok := node.(*ast.ObjectItem)
+	if !ok {
+		return node
+	}
+
+	elemType := result.Type()
+
+	// our target type must be a struct
+	switch elemType.Kind() {
+	case reflect.Ptr:
+		switch elemType.Elem().Kind() {
+		case reflect.Struct:
+			//OK
+		default:
+			return node
+		}
+	case reflect.Struct:
+		//OK
+	default:
+		return node
+	}
+
+	// A list value will have a key and field name. If it had more fields,
+	// it wouldn't have been flattened.
+	if len(item.Keys) != 2 {
+		return node
+	}
+
+	keyToken := item.Keys[0].Token
+	item.Keys = item.Keys[1:]
+
+	// we need to un-flatten the ast enough to decode
+	newNode := &ast.ObjectItem{
+		Keys: []*ast.ObjectKey{
+			&ast.ObjectKey{
+				Token: keyToken,
+			},
+		},
+		Val: &ast.ObjectType{
+			List: &ast.ObjectList{
+				Items: []*ast.ObjectItem{item},
+			},
+		},
+	}
+
+	return newNode
 }
 
 func (d *decoder) decodeString(name string, node ast.Node, result reflect.Value) error {
@@ -489,7 +553,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 	// the yacc parser would always ensure top-level elements were arrays. The new
 	// parser does not make the same guarantees, thus we need to convert any
 	// top-level literal elements into a list.
-	if _, ok := node.(*ast.LiteralType); ok {
+	if _, ok := node.(*ast.LiteralType); ok && item != nil {
 		node = &ast.ObjectList{Items: []*ast.ObjectItem{item}}
 	}
 
@@ -509,7 +573,12 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 
 	// Compile the list of all the fields that we're going to be decoding
 	// from all the structs.
-	fields := make(map[*reflect.StructField]reflect.Value)
+	// fields := make(map[*reflect.StructField]reflect.Value)
+	type x struct {
+		t reflect.StructField
+		v reflect.Value
+	}
+	fields := []x{}
 	for len(structs) > 0 {
 		structVal := structs[0]
 		structs = structs[1:]
@@ -552,7 +621,8 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 			}
 
 			// Normal struct field, store it away
-			fields[&fieldType] = structVal.Field(i)
+			fields = append(fields, x{fieldType, structVal.Field(i)})
+			// fields[&fieldType] = structVal.Field(i)
 		}
 	}
 
@@ -560,7 +630,9 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 	decodedFields := make([]string, 0, len(fields))
 	decodedFieldsVal := make([]reflect.Value, 0)
 	unusedKeysVal := make([]reflect.Value, 0)
-	for fieldType, field := range fields {
+	// for fieldType, field := range fields {
+	for _, x := range fields {
+		fieldType, field := x.t, x.v
 		if !field.IsValid() {
 			// This should never happen
 			panic("field is not valid")
@@ -605,7 +677,10 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		// Determine the element we'll use to decode. If it is a single
 		// match (only object with the field), then we decode it exactly.
 		// If it is a prefix match, then we decode the matches.
+		// d.mu.Lock()
 		filter := list.Filter(fieldName)
+		// d.mu.Unlock()
+
 		prefixMatches := filter.Children()
 		matches := filter.Elem()
 		if len(matches.Items) == 0 && len(prefixMatches.Items) == 0 {

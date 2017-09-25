@@ -47,7 +47,7 @@ func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 
 func TestMaintCommandRun_NoArgs(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service and put it into maintenance mode
@@ -94,7 +94,7 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 
 func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMaintCommand(t)
@@ -116,7 +116,7 @@ func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 
 func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMaintCommand(t)
@@ -137,7 +137,7 @@ func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
 
 func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service
@@ -169,7 +169,7 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 
 func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service
@@ -200,7 +200,7 @@ func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 
 func TestMaintCommandRun_ServiceMaintenance_NoService(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testMaintCommand(t)

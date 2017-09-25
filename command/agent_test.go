@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -56,33 +55,45 @@ func TestValidDatacenter(t *testing.T) {
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
 	t.Parallel()
+
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
 	tests := []struct {
 		args []string
 		out  string
 	}{
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "0.0.0.0"},
-			out:  "==> Advertise address cannot be 0.0.0.0\n",
+			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter="},
+			out:  "==> datacenter cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "::"},
-			out:  "==> Advertise address cannot be ::\n",
+			args: []string{"agent", "-server", "-bind=10.0.0.1"},
+			out:  "==> data_dir cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise", "[::]"},
-			out:  "==> Advertise address cannot be [::]\n",
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0", "-bind", "10.0.0.1"},
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "0.0.0.0"},
-			out:  "==> Advertise WAN address cannot be 0.0.0.0\n",
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::", "-bind", "10.0.0.1"},
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "::"},
-			out:  "==> Advertise WAN address cannot be ::\n",
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]", "-bind", "10.0.0.1"},
+			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", "foo", "-advertise-wan", "[::]"},
-			out:  "==> Advertise WAN address cannot be [::]\n",
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0", "-bind", "10.0.0.1"},
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::", "-bind", "10.0.0.1"},
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
+		},
+		{
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]", "-bind", "10.0.0.1"},
+			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 	}
 
@@ -103,7 +114,7 @@ func TestConfigFail(t *testing.T) {
 func TestRetryJoin(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	cfg2 := agent.TestConfig()
@@ -124,25 +135,15 @@ func TestRetryJoin(t *testing.T) {
 		BaseCommand: baseCommand(cli.NewMockUi()),
 	}
 
-	serfAddr := fmt.Sprintf(
-		"%s:%d",
-		a.Config.BindAddr,
-		a.Config.Ports.SerfLan)
-
-	serfWanAddr := fmt.Sprintf(
-		"%s:%d",
-		a.Config.BindAddr,
-		a.Config.Ports.SerfWan)
-
 	args := []string{
 		"-server",
-		"-bind", a.Config.BindAddr,
+		"-bind", a.Config.BindAddr.String(),
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, cfg2.NodeName),
-		"-advertise", a.Config.BindAddr,
-		"-retry-join", serfAddr,
+		"-advertise", a.Config.BindAddr.String(),
+		"-retry-join", a.Config.SerfBindAddrLAN.String(),
 		"-retry-interval", "1s",
-		"-retry-join-wan", serfWanAddr,
+		"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
 		"-retry-interval-wan", "1s",
 	}
 
@@ -162,181 +163,6 @@ func TestRetryJoin(t *testing.T) {
 	})
 }
 
-func TestReadCliConfig(t *testing.T) {
-	t.Parallel()
-	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
-
-	shutdownCh := make(chan struct{})
-	defer close(shutdownCh)
-
-	// Test config parse
-	{
-		cmd := &AgentCommand{
-			args: []string{
-				"-data-dir", tmpDir,
-				"-node", `"a"`,
-				"-bind", "1.2.3.4",
-				"-advertise-wan", "1.2.3.4",
-				"-serf-wan-bind", "4.3.2.1",
-				"-serf-lan-bind", "4.3.2.2",
-				"-node-meta", "somekey:somevalue",
-			},
-			ShutdownCh:  shutdownCh,
-			BaseCommand: baseCommand(cli.NewMockUi()),
-		}
-
-		config := cmd.readConfig()
-		if config.AdvertiseAddrWan != "1.2.3.4" {
-			t.Fatalf("expected -advertise-addr-wan 1.2.3.4 got %s", config.AdvertiseAddrWan)
-		}
-		if config.SerfWanBindAddr != "4.3.2.1" {
-			t.Fatalf("expected -serf-wan-bind 4.3.2.1 got %s", config.SerfWanBindAddr)
-		}
-		if config.SerfLanBindAddr != "4.3.2.2" {
-			t.Fatalf("expected -serf-lan-bind 4.3.2.2 got %s", config.SerfLanBindAddr)
-		}
-		expected := map[string]string{
-			"somekey": "somevalue",
-		}
-		if !reflect.DeepEqual(config.Meta, expected) {
-			t.Fatalf("bad: %v %v", config.Meta, expected)
-		}
-	}
-
-	// Test multiple node meta flags
-	{
-		cmd := &AgentCommand{
-			args: []string{
-				"-data-dir", tmpDir,
-				"-node-meta", "somekey:somevalue",
-				"-node-meta", "otherkey:othervalue",
-				"-bind", "1.2.3.4",
-			},
-			ShutdownCh:  shutdownCh,
-			BaseCommand: baseCommand(cli.NewMockUi()),
-		}
-		config := cmd.readConfig()
-		expected := map[string]string{
-			"somekey":  "somevalue",
-			"otherkey": "othervalue",
-		}
-		if !reflect.DeepEqual(config.Meta, expected) {
-			t.Fatalf("bad: %v %v", config.Meta, expected)
-		}
-	}
-
-	// Test LeaveOnTerm and SkipLeaveOnInt defaults for server mode
-	{
-		ui := cli.NewMockUi()
-		cmd := &AgentCommand{
-			args: []string{
-				"-node", `"server1"`,
-				"-server",
-				"-data-dir", tmpDir,
-				"-bind", "1.2.3.4",
-			},
-			ShutdownCh:  shutdownCh,
-			BaseCommand: baseCommand(ui),
-		}
-
-		config := cmd.readConfig()
-		if config == nil {
-			t.Fatalf(`Expected non-nil config object: %s`, ui.ErrorWriter.String())
-		}
-		if config.Server != true {
-			t.Errorf(`Expected -server to be true`)
-		}
-		if (*config.LeaveOnTerm) != false {
-			t.Errorf(`Expected LeaveOnTerm to be false in server mode`)
-		}
-		if (*config.SkipLeaveOnInt) != true {
-			t.Errorf(`Expected SkipLeaveOnInt to be true in server mode`)
-		}
-	}
-
-	// Test LeaveOnTerm and SkipLeaveOnInt defaults for client mode
-	{
-		ui := cli.NewMockUi()
-		cmd := &AgentCommand{
-			args: []string{
-				"-data-dir", tmpDir,
-				"-node", `"client"`,
-				"-bind", "1.2.3.4",
-			},
-			ShutdownCh:  shutdownCh,
-			BaseCommand: baseCommand(ui),
-		}
-
-		config := cmd.readConfig()
-		if config == nil {
-			t.Fatalf(`Expected non-nil config object: %s`, ui.ErrorWriter.String())
-		}
-		if config.Server != false {
-			t.Errorf(`Expected server to be false`)
-		}
-		if (*config.LeaveOnTerm) != true {
-			t.Errorf(`Expected LeaveOnTerm to be true in client mode`)
-		}
-		if *config.SkipLeaveOnInt != false {
-			t.Errorf(`Expected SkipLeaveOnInt to be false in client mode`)
-		}
-	}
-
-	// Test empty node name
-	{
-		cmd := &AgentCommand{
-			args:        []string{"-node", `""`},
-			ShutdownCh:  shutdownCh,
-			BaseCommand: baseCommand(cli.NewMockUi()),
-		}
-
-		config := cmd.readConfig()
-		if config != nil {
-			t.Errorf(`Expected -node="" to fail`)
-		}
-	}
-}
-
-func TestAgent_HostBasedIDs(t *testing.T) {
-	t.Parallel()
-	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
-
-	// Host-based IDs are disabled by default.
-	{
-		cmd := &AgentCommand{
-			args: []string{
-				"-data-dir", tmpDir,
-				"-bind", "127.0.0.1",
-			},
-			BaseCommand: baseCommand(cli.NewMockUi()),
-		}
-
-		config := cmd.readConfig()
-		if *config.DisableHostNodeID != true {
-			t.Fatalf("expected host-based node IDs to be disabled")
-		}
-	}
-
-	// Try enabling host-based IDs.
-	{
-		cmd := &AgentCommand{
-			args: []string{
-				"-data-dir", tmpDir,
-				"-disable-host-node-id=false",
-				"-bind", "127.0.0.1",
-			},
-			BaseCommand: baseCommand(cli.NewMockUi()),
-		}
-
-		config := cmd.readConfig()
-		if *config.DisableHostNodeID != false {
-			t.Fatalf("expected host-based node IDs to be enabled")
-		}
-	}
-}
-
 func TestRetryJoinFail(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	t.Parallel()
@@ -352,12 +178,10 @@ func TestRetryJoinFail(t *testing.T) {
 		BaseCommand: baseCommand(cli.NewMockUi()),
 	}
 
-	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfLan)
-
 	args := []string{
-		"-bind", cfg.BindAddr,
+		"-bind", cfg.BindAddr.String(),
 		"-data-dir", tmpDir,
-		"-retry-join", serfAddr,
+		"-retry-join", cfg.SerfBindAddrLAN.String(),
 		"-retry-max", "1",
 		"-retry-interval", "10ms",
 	}
@@ -382,13 +206,11 @@ func TestRetryJoinWanFail(t *testing.T) {
 		BaseCommand: baseCommand(cli.NewMockUi()),
 	}
 
-	serfAddr := fmt.Sprintf("%s:%d", cfg.BindAddr, cfg.Ports.SerfWan)
-
 	args := []string{
 		"-server",
-		"-bind", cfg.BindAddr,
+		"-bind", cfg.BindAddr.String(),
 		"-data-dir", tmpDir,
-		"-retry-join-wan", serfAddr,
+		"-retry-join-wan", cfg.SerfBindAddrWAN.String(),
 		"-retry-max-wan", "1",
 		"-retry-interval-wan", "10ms",
 	}
@@ -410,7 +232,7 @@ func TestProtectDataDir(t *testing.T) {
 	cfgFile := testutil.TempFile(t, "consul")
 	defer os.Remove(cfgFile.Name())
 
-	content := fmt.Sprintf(`{"server": true, "data_dir": "%s"}`, dir)
+	content := fmt.Sprintf(`{"server": true, "bind_addr" : "10.0.0.1", "data_dir": "%s"}`, dir)
 	_, err := cfgFile.Write([]byte(content))
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -443,7 +265,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 	ui := cli.NewMockUi()
 	cmd := &AgentCommand{
 		BaseCommand: baseCommand(ui),
-		args:        []string{"-data-dir=" + dataDir, "-server=true"},
+		args:        []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"},
 	}
 	if conf := cmd.readConfig(); conf != nil {
 		t.Fatalf("Should fail with bad data directory permissions")

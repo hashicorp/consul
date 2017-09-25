@@ -39,27 +39,12 @@ func TestValidateCommandFailOnEmptyFile(t *testing.T) {
 	}
 }
 
-func TestValidateCommandSucceedOnEmptyDir(t *testing.T) {
-	t.Parallel()
-	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
-
-	ui, cmd := testValidateCommand(t)
-
-	args := []string{td}
-
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d, %s", code, ui.ErrorWriter.String())
-	}
-}
-
 func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
-	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
 	fp := filepath.Join(td, "config.json")
-	err := ioutil.WriteFile(fp, []byte(`{}`), 0644)
+	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -74,30 +59,10 @@ func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
 }
 
 func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
-	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
-	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	_, cmd := testValidateCommand(t)
-
-	args := []string{td}
-
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
-}
-
-func TestValidateCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
-	t.Parallel()
-	td := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(td)
-
-	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte{}, 0644)
+	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -115,6 +80,12 @@ func TestValidateCommandQuiet(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
+
+	fp := filepath.Join(td, "config.json")
+	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	ui, cmd := testValidateCommand(t)
 

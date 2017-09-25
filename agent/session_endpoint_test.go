@@ -15,7 +15,7 @@ import (
 
 func TestSessionCreate(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a health check
@@ -61,7 +61,7 @@ func TestSessionCreate(t *testing.T) {
 
 func TestSessionCreateDelete(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a health check
@@ -190,7 +190,7 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 
 func TestSessionDestroy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	id := makeTestSession(t, a.srv)
@@ -209,10 +209,9 @@ func TestSessionDestroy(t *testing.T) {
 func TestSessionCustomTTL(t *testing.T) {
 	t.Parallel()
 	ttl := 250 * time.Millisecond
-	cfg := TestConfig()
-	cfg.SessionTTLMin = ttl
-	cfg.SessionTTLMinRaw = ttl.String()
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		session_ttl_min = "250ms"
+	`)
 	defer a.Shutdown()
 
 	id := makeTestSessionTTL(t, a.srv, ttl.String())
@@ -251,10 +250,9 @@ func TestSessionCustomTTL(t *testing.T) {
 func TestSessionTTLRenew(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	ttl := 250 * time.Millisecond
-	cfg := TestConfig()
-	cfg.SessionTTLMin = ttl
-	cfg.SessionTTLMinRaw = ttl.String()
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		session_ttl_min = "250ms"
+	`)
 	defer a.Shutdown()
 
 	id := makeTestSessionTTL(t, a.srv, ttl.String())
@@ -331,7 +329,7 @@ func TestSessionTTLRenew(t *testing.T) {
 func TestSessionGet(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
@@ -350,7 +348,7 @@ func TestSessionGet(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		id := makeTestSession(t, a.srv)
@@ -374,7 +372,7 @@ func TestSessionGet(t *testing.T) {
 func TestSessionList(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/session/list", nil)
@@ -393,7 +391,7 @@ func TestSessionList(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		var ids []string
@@ -420,7 +418,7 @@ func TestSessionList(t *testing.T) {
 func TestSessionsForNode(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/session/node/"+a.Config.NodeName, nil)
@@ -439,7 +437,7 @@ func TestSessionsForNode(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		var ids []string
@@ -465,7 +463,7 @@ func TestSessionsForNode(t *testing.T) {
 
 func TestSessionDeleteDestroy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	id := makeTestSessionDelete(t, a.srv)

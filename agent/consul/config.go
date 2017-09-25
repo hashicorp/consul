@@ -438,7 +438,6 @@ func DefaultConfig() *Config {
 	// Use a transitional version of the raft protocol to interoperate with
 	// versions 1 and 3
 	conf.RaftConfig.ProtocolVersion = 2
-	conf.ScaleRaft(DefaultRaftMultiplier)
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
@@ -447,19 +446,6 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotInterval = 5 * time.Second
 
 	return conf
-}
-
-// ScaleRaft sets the config to have Raft timing parameters scaled by the given
-// performance multiplier. This is done in an idempotent way so it's not tricky
-// to call this when composing configurations and potentially calling this
-// multiple times on the same structure.
-func (c *Config) ScaleRaft(raftMultRaw uint) {
-	raftMult := time.Duration(raftMultRaw)
-
-	def := raft.DefaultConfig()
-	c.RaftConfig.HeartbeatTimeout = raftMult * def.HeartbeatTimeout
-	c.RaftConfig.ElectionTimeout = raftMult * def.ElectionTimeout
-	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 
 // tlsConfig maps this config into a tlsutil config.

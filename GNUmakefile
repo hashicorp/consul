@@ -34,12 +34,14 @@ bin: tools
 dev: vendorfmt dev-build
 
 dev-build:
+	@echo "--> Building consul"
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
 vendorfmt:
+	@echo "--> Formatting vendor/vendor.json"
 	test -x $(GOPATH)/bin/vendorfmt || go get -u github.com/magiconair/vendorfmt/cmd/vendorfmt
 	vendorfmt
 
@@ -56,21 +58,33 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: dev-build vet
+test: other-consul porter dev-build vet
+	@echo "--> Running go test"
+	@rm -f test.log exit-code
 	go test -tags '$(GOTAGS)' -i ./...
-	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m -v ./... 2>&1 >test.log ; echo $$? > exit-code
-	@echo "Exit code: `cat exit-code`" >> test.log
-	@echo "----"
+	porter go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
+	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
-	@grep '^PASS' test.log | uniq || true
+	@grep -A1 -- '--- SKIP:' test.log || true
 	@grep -A1 -- '--- FAIL:' test.log || true
 	@grep '^FAIL' test.log || true
 	@test "$$TRAVIS" == "true" && cat test.log || true
-	@exit $$(cat exit-code)
+	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
 
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
+
+other-consul:
+	@echo "--> Checking for other consul instances"
+	@if ps -ef | grep 'consul agent' | grep -v grep ; then \
+		echo "Found other running consul agents. This may affect your tests." ; \
+		exit 1 ; \
+	fi
+
+porter:
+	@echo "--> Building port number service..."
+	go install github.com/hashicorp/consul/test/porter/cmd/porter
 
 cover:
 	go test $(GOFILES) --cover

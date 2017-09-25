@@ -60,7 +60,7 @@ func TestCatalogListNodesCommand_Validation(t *testing.T) {
 
 func TestCatalogListNodesCommand_Run(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	t.Run("simple", func(t *testing.T) {

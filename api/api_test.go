@@ -52,6 +52,7 @@ func makeClientWithConfig(
 	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
+		server.Stop()
 		t.Fatalf("err: %v", err)
 	}
 
@@ -73,7 +74,11 @@ func testKey() string {
 }
 
 func TestAPI_DefaultConfig_env(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // DO NOT ENABLE !!!
+	// do not enable t.Parallel for this test since it modifies global state
+	// (environment) which has non-deterministic effects on the other tests
+	// which derive their default configuration from the environment
+
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
 	auth := "username:password"
@@ -151,6 +156,7 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 }
 
 func TestAPI_SetupTLSConfig(t *testing.T) {
+	t.Parallel()
 	// A default config should result in a clean default client config.
 	tlsConfig := &TLSConfig{}
 	cc, err := SetupTLSConfig(tlsConfig)
@@ -505,6 +511,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 }
 
 func TestAPI_durToMsec(t *testing.T) {
+	t.Parallel()
 	if ms := durToMsec(0); ms != "0ms" {
 		t.Fatalf("bad: %s", ms)
 	}
@@ -523,6 +530,7 @@ func TestAPI_durToMsec(t *testing.T) {
 }
 
 func TestAPI_IsServerError(t *testing.T) {
+	t.Parallel()
 	if IsServerError(nil) {
 		t.Fatalf("should not be a server error")
 	}

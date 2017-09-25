@@ -12,9 +12,9 @@ import (
 func (a *Agent) retryJoinLAN() {
 	r := &retryJoiner{
 		cluster:     "LAN",
-		addrs:       a.config.RetryJoin,
-		maxAttempts: a.config.RetryMaxAttempts,
-		interval:    a.config.RetryInterval,
+		addrs:       a.config.RetryJoinLAN,
+		maxAttempts: a.config.RetryJoinMaxAttemptsLAN,
+		interval:    a.config.RetryJoinIntervalLAN,
 		join:        a.JoinLAN,
 		logger:      a.logger,
 	}
@@ -26,9 +26,9 @@ func (a *Agent) retryJoinLAN() {
 func (a *Agent) retryJoinWAN() {
 	r := &retryJoiner{
 		cluster:     "WAN",
-		addrs:       a.config.RetryJoinWan,
-		maxAttempts: a.config.RetryMaxAttemptsWan,
-		interval:    a.config.RetryIntervalWan,
+		addrs:       a.config.RetryJoinWAN,
+		maxAttempts: a.config.RetryJoinMaxAttemptsWAN,
+		interval:    a.config.RetryJoinIntervalWAN,
 		join:        a.JoinWAN,
 		logger:      a.logger,
 	}

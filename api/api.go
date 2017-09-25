@@ -446,6 +446,7 @@ func NewClient(config *Config) (*Client, error) {
 	if len(parts) == 2 {
 		switch parts[0] {
 		case "http":
+			config.Scheme = "http"
 		case "https":
 			config.Scheme = "https"
 		case "unix":
@@ -466,10 +467,7 @@ func NewClient(config *Config) (*Client, error) {
 		config.Token = defConfig.Token
 	}
 
-	client := &Client{
-		config: *config,
-	}
-	return client, nil
+	return &Client{config: *config}, nil
 }
 
 // NewHttpClient returns an http client configured with the given Transport and TLS

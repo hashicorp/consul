@@ -14,7 +14,7 @@ import (
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("{"))
@@ -33,7 +33,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Method(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("{}"))
@@ -49,20 +49,20 @@ func TestTxnEndpoint_Bad_Method(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
-[
-    {
-        "KV": {
-            "Verb": "set",
-            "Key": "key",
-            "Value": %q
-        }
-    }
-]
-`, strings.Repeat("bad", 2*maxKVSize))))
+ [
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key",
+             "Value": %q
+         }
+     }
+ ]
+ `, strings.Repeat("bad", 2*maxKVSize))))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.Txn(resp, req); err != nil {
@@ -75,35 +75,35 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	value := strings.Repeat("X", maxKVSize/2)
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
-[
-    {
-        "KV": {
-            "Verb": "set",
-            "Key": "key1",
-            "Value": %q
-        }
-    },
-    {
-        "KV": {
-            "Verb": "set",
-            "Key": "key1",
-            "Value": %q
-        }
-    },
-    {
-        "KV": {
-            "Verb": "set",
-            "Key": "key1",
-            "Value": %q
-        }
-    }
-]
-`, value, value, value)))
+ [
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key1",
+             "Value": %q
+         }
+     },
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key1",
+             "Value": %q
+         }
+     },
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key1",
+             "Value": %q
+         }
+     }
+ ]
+ `, value, value, value)))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.Txn(resp, req); err != nil {
@@ -116,21 +116,21 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
-[
-    %s
-    {
-        "KV": {
-            "Verb": "set",
-            "Key": "key",
-            "Value": ""
-        }
-    }
-]
-`, strings.Repeat(`{ "KV": { "Verb": "get", "Key": "key" } },`, 2*maxTxnOps))))
+ [
+     %s
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key",
+             "Value": ""
+         }
+     }
+ ]
+ `, strings.Repeat(`{ "KV": { "Verb": "get", "Key": "key" } },`, 2*maxTxnOps))))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.Txn(resp, req); err != nil {
@@ -144,7 +144,7 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		// Make sure all incoming fields get converted properly to the internal
@@ -153,24 +153,24 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		id := makeTestSession(t, a.srv)
 		{
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
-[
-    {
-        "KV": {
-            "Verb": "lock",
-            "Key": "key",
-            "Value": "aGVsbG8gd29ybGQ=",
-            "Flags": 23,
-            "Session": %q
-        }
-    },
-    {
-        "KV": {
-            "Verb": "get",
-            "Key": "key"
-        }
-    }
-]
-`, id)))
+ [
+     {
+         "KV": {
+             "Verb": "lock",
+             "Key": "key",
+             "Value": "aGVsbG8gd29ybGQ=",
+             "Flags": 23,
+             "Session": %q
+         }
+     },
+     {
+         "KV": {
+             "Verb": "get",
+             "Key": "key"
+         }
+     }
+ ]
+ `, id)))
 			req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.Txn(resp, req)
@@ -228,21 +228,21 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		// fast-path endpoint.
 		{
 			buf := bytes.NewBuffer([]byte(`
-[
-    {
-        "KV": {
-            "Verb": "get",
-            "Key": "key"
-        }
-    },
-    {
-        "KV": {
-            "Verb": "get-tree",
-            "Key": "key"
-        }
-    }
-]
-`))
+ [
+     {
+         "KV": {
+             "Verb": "get",
+             "Key": "key"
+         }
+     },
+     {
+         "KV": {
+             "Verb": "get-tree",
+             "Key": "key"
+         }
+     }
+ ]
+ `))
 			req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.Txn(resp, req)
@@ -310,23 +310,23 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		// index field gets translated to the RPC format.
 		{
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
-[
-    {
-        "KV": {
-            "Verb": "cas",
-            "Key": "key",
-            "Value": "Z29vZGJ5ZSB3b3JsZA==",
-            "Index": %d
-        }
-    },
-    {
-        "KV": {
-            "Verb": "get",
-            "Key": "key"
-        }
-    }
-]
-`, index)))
+ [
+     {
+         "KV": {
+             "Verb": "cas",
+             "Key": "key",
+             "Value": "Z29vZGJ5ZSB3b3JsZA==",
+             "Index": %d
+         }
+     },
+     {
+         "KV": {
+             "Verb": "get",
+             "Key": "key"
+         }
+     }
+ ]
+ `, index)))
 			req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.Txn(resp, req)
@@ -379,27 +379,27 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 
 	// Verify an error inside a transaction.
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		buf := bytes.NewBuffer([]byte(`
-[
-    {
-        "KV": {
-            "Verb": "lock",
-            "Key": "key",
-            "Value": "aGVsbG8gd29ybGQ=",
-            "Session": "nope"
-        }
-    },
-    {
-        "KV": {
-            "Verb": "get",
-            "Key": "key"
-        }
-    }
-]
-`))
+ [
+     {
+         "KV": {
+             "Verb": "lock",
+             "Key": "key",
+             "Value": "aGVsbG8gd29ybGQ=",
+             "Session": "nope"
+         }
+     },
+     {
+         "KV": {
+             "Verb": "get",
+             "Key": "key"
+         }
+     }
+ ]
+ `))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
 		if _, err := a.srv.Txn(resp, req); err != nil {

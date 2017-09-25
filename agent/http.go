@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -25,14 +26,17 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+	addr  net.Addr
 }
 
-func NewHTTPServer(addr string, a *Agent) *HTTPServer {
+func NewHTTPServer(addr net.Addr, a *Agent) *HTTPServer {
 	s := &HTTPServer{
-		Server:    &http.Server{Addr: addr},
+		Server:    &http.Server{Addr: addr.String()},
 		agent:     a,
-		blacklist: NewBlacklist(a.config.HTTPConfig.BlockEndpoints),
+		blacklist: NewBlacklist(a.config.HTTPBlockEndpoints),
+		addr:      addr,
 	}
+
 	s.Server.Handler = s.handler(a.config.EnableDebug)
 	return s
 }
@@ -200,8 +204,8 @@ var (
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		setHeaders(resp, s.agent.config.HTTPConfig.ResponseHeaders)
-		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
+		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
+		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)

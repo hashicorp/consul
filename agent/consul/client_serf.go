@@ -23,8 +23,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["build"] = c.config.Build
-	conf.MemberlistConfig.LogOutput = c.config.LogOutput
-	conf.LogOutput = c.config.LogOutput
+	if c.logger == nil {
+		conf.MemberlistConfig.LogOutput = c.config.LogOutput
+		conf.LogOutput = c.config.LogOutput
+	}
+	conf.MemberlistConfig.Logger = c.logger
 	conf.Logger = c.logger
 	conf.EventCh = ch
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]

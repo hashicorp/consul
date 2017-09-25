@@ -1,12 +1,10 @@
 package agent
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestStatusLeader(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	obj, err := a.srv.StatusLeader(nil, nil)
@@ -21,7 +19,7 @@ func TestStatusLeader(t *testing.T) {
 
 func TestStatusPeers(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	obj, err := a.srv.StatusPeers(nil, nil)

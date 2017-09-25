@@ -18,7 +18,7 @@ import (
 func TestHealthChecksInState(t *testing.T) {
 	t.Parallel()
 	t.Run("warning", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
@@ -41,7 +41,7 @@ func TestHealthChecksInState(t *testing.T) {
 	})
 
 	t.Run("passing", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
@@ -66,7 +66,7 @@ func TestHealthChecksInState(t *testing.T) {
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -106,7 +106,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -180,7 +180,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 
 func TestHealthNodeChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/health/node/nope?dc=dc1", nil)
@@ -214,7 +214,7 @@ func TestHealthNodeChecks(t *testing.T) {
 
 func TestHealthServiceChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
@@ -265,7 +265,7 @@ func TestHealthServiceChecks(t *testing.T) {
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
@@ -317,7 +317,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a service check
@@ -396,7 +396,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
@@ -462,7 +462,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
@@ -514,7 +514,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a service check
@@ -593,7 +593,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a failing service check
@@ -687,22 +687,22 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	cfg1 := TestConfig()
-	cfg1.Datacenter = "dc1"
-	cfg1.TranslateWanAddrs = true
-	cfg1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), cfg1)
+	a1 := NewTestAgent(t.Name(), `
+		datacenter = "dc1"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Datacenter = "dc2"
-	cfg2.TranslateWanAddrs = true
-	cfg2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+		datacenter = "dc2"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	if _, err := a2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}

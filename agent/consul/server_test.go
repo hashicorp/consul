@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/test/porter"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -40,6 +41,10 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
+	ports, err := porter.RandomPorts(3)
+	if err != nil {
+		t.Fatal("RandomPorts:", err)
+	}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -48,7 +53,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
 	// In that case get the address from srv.Listener.Addr().
-	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}}
+	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[0]}
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
@@ -60,14 +65,16 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// memberlist will update the value of BindPort after bind
 	// to the actual value.
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfLANConfig.MemberlistConfig.BindPort = 0
+	config.SerfLANConfig.MemberlistConfig.BindPort = ports[1]
+	config.SerfLANConfig.MemberlistConfig.AdvertisePort = ports[1]
 	config.SerfLANConfig.MemberlistConfig.SuspicionMult = 2
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfWANConfig.MemberlistConfig.BindPort = 0
+	config.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
+	config.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
 	config.SerfWANConfig.MemberlistConfig.SuspicionMult = 2
 	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond

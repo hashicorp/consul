@@ -67,8 +67,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
 	}
-	conf.MemberlistConfig.LogOutput = s.config.LogOutput
-	conf.LogOutput = s.config.LogOutput
+	if s.logger == nil {
+		conf.MemberlistConfig.LogOutput = s.config.LogOutput
+		conf.LogOutput = s.config.LogOutput
+	}
+	conf.MemberlistConfig.Logger = s.logger
 	conf.Logger = s.logger
 	conf.EventCh = ch
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]

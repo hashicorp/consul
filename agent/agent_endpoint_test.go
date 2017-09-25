@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -41,7 +41,7 @@ func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
 
 func TestAgent_Services(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -106,7 +106,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 
 func TestAgent_Checks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk1 := &structs.HealthCheck{
@@ -171,9 +171,11 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 
 func TestAgent_Self(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Meta = map[string]string{"somekey": "somevalue"}
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		node_meta {
+			somekey = "somevalue"
+		}
+	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
@@ -183,11 +185,11 @@ func TestAgent_Self(t *testing.T) {
 	}
 
 	val := obj.(Self)
-	if int(val.Member.Port) != a.Config.Ports.SerfLan {
+	if int(val.Member.Port) != a.Config.SerfPortLAN {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 
-	if int(val.Config.Ports.SerfLan) != a.Config.Ports.SerfLan {
+	if int(val.Config.SerfPortLAN) != a.Config.SerfPortLAN {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 
@@ -195,21 +197,12 @@ func TestAgent_Self(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if c := cs[cfg.Segment]; !reflect.DeepEqual(c, val.Coord) {
+	if c := cs[a.config.SegmentName]; !reflect.DeepEqual(c, val.Coord) {
 		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
 	}
 	delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
-	if !reflect.DeepEqual(cfg.Meta, val.Meta) {
-		t.Fatalf("meta fields are not equal: %v != %v", cfg.Meta, val.Meta)
-	}
-
-	// Make sure there's nothing called "token" that's leaked.
-	raw, err := a.srv.marshalJSON(req, obj)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if bytes.Contains(bytes.ToLower(raw), []byte("token")) {
-		t.Fatalf("bad: %s", raw)
+	if !reflect.DeepEqual(a.config.NodeMeta, val.Meta) {
+		t.Fatalf("meta fields are not equal: %v != %v", a.config.NodeMeta, val.Meta)
 	}
 }
 
@@ -271,36 +264,44 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 
 func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLEnforceVersion8 = Bool(false)
-	cfg.Services = []*structs.ServiceDefinition{
-		&structs.ServiceDefinition{Name: "redis"},
-	}
-
-	params := map[string]interface{}{
-		"datacenter": "dc1",
-		"type":       "key",
-		"key":        "test",
-		"handler":    "true",
-	}
-	wp, err := watch.ParseExempt(params, []string{"handler"})
-	if err != nil {
-		t.Fatalf("Expected watch.Parse to succeed %v", err)
-	}
-	cfg.WatchPlans = append(cfg.WatchPlans, wp)
-
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		acl_enforce_version_8 = false
+		services = [
+			{
+				name = "redis"
+			}
+		]
+		watches = [
+			{
+				datacenter = "dc1"
+				type = "key"
+				key = "test"
+				handler = "true"
+			}
+		]
+	`)
 	defer a.Shutdown()
 
 	if _, ok := a.state.services["redis"]; !ok {
 		t.Fatalf("missing redis service")
 	}
 
-	cfg2 := TestConfig()
-	cfg2.ACLEnforceVersion8 = Bool(false)
-	cfg2.Services = []*structs.ServiceDefinition{
-		&structs.ServiceDefinition{Name: "redis-reloaded"},
-	}
+	cfg2 := TestConfig(config.Source{
+		Name:   "reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			node_id = "` + string(a.Config.NodeID) + `"
+			node_name = "` + a.Config.NodeName + `"
+
+			acl_enforce_version_8 = false
+			services = [
+				{
+					name = "redis-reloaded"
+				}
+			]
+		`,
+	})
 
 	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
@@ -309,7 +310,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatalf("missing redis-reloaded service")
 	}
 
-	for _, wp := range cfg.WatchPlans {
+	for _, wp := range a.watchPlans {
 		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
@@ -344,7 +345,7 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 
 func TestAgent_Members(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
@@ -357,14 +358,14 @@ func TestAgent_Members(t *testing.T) {
 		t.Fatalf("bad members: %v", obj)
 	}
 
-	if int(val[0].Port) != a.Config.Ports.SerfLan {
+	if int(val[0].Port) != a.Config.SerfPortLAN {
 		t.Fatalf("not lan: %v", obj)
 	}
 }
 
 func TestAgent_Members_WAN(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/members?wan=true", nil)
@@ -377,7 +378,7 @@ func TestAgent_Members_WAN(t *testing.T) {
 		t.Fatalf("bad members: %v", obj)
 	}
 
-	if int(val[0].Port) != a.Config.Ports.SerfWan {
+	if int(val[0].Port) != a.Config.SerfPortWAN {
 		t.Fatalf("not wan: %v", obj)
 	}
 }
@@ -414,12 +415,12 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 
 func TestAgent_Join(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), nil)
+	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t.Name(), nil)
+	a2 := NewTestAgent(t.Name(), "")
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
 	obj, err := a1.srv.AgentJoin(nil, req)
 	if err != nil {
@@ -442,12 +443,12 @@ func TestAgent_Join(t *testing.T) {
 
 func TestAgent_Join_WAN(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), nil)
+	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t.Name(), nil)
+	a2 := NewTestAgent(t.Name(), "")
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortWAN)
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s?wan=true", addr), nil)
 	obj, err := a1.srv.AgentJoin(nil, req)
 	if err != nil {
@@ -472,10 +473,10 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t.Name(), TestACLConfig())
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t.Name(), nil)
+	a2 := NewTestAgent(t.Name(), "")
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
@@ -510,19 +511,19 @@ func (n *mockNotifier) Notify(state string) error {
 
 func TestAgent_JoinLANNotify(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), nil)
+	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Server = false
-	cfg2.Bootstrap = false
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+		server = false
+		bootstrap = false
+	`)
 	defer a2.Shutdown()
 
 	notif := &mockNotifier{}
 	a1.joinLANNotifier = notif
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 	_, err := a1.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -535,17 +536,17 @@ func TestAgent_JoinLANNotify(t *testing.T) {
 
 func TestAgent_Leave(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), nil)
+	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Server = false
-	cfg2.Bootstrap = false
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+ 		server = false
+ 		bootstrap = false
+ 	`)
 	defer a2.Shutdown()
 
 	// Join first
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 	_, err := a1.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -600,18 +601,18 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 func TestAgent_ForceLeave(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), nil)
+	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t.Name(), nil)
+	a2 := NewTestAgent(t.Name(), "")
 
 	// Join first
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 	_, err := a1.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// todo(fs): this test probably needs work
+	// this test probably needs work
 	a2.Shutdown()
 
 	// Force leave now
@@ -662,7 +663,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 func TestAgent_RegisterCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -703,7 +704,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -739,7 +740,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 
 func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -785,7 +786,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_DeregisterCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -836,7 +837,7 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 
 func TestAgent_PassCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -889,7 +890,7 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_WarnCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -942,7 +943,7 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_FailCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -995,7 +996,7 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_UpdateCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
@@ -1122,7 +1123,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_RegisterService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.ServiceDefinition{
@@ -1211,7 +1212,7 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
@@ -1239,7 +1240,7 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 
 func TestAgent_DeregisterService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	service := &structs.NodeService{
@@ -1299,7 +1300,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 
 func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	t.Run("not PUT", func(t *testing.T) {
@@ -1349,7 +1350,7 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 
 func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register the service
@@ -1391,7 +1392,7 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 
 func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register the service
@@ -1456,7 +1457,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 
 func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Fails on non-PUT
@@ -1482,7 +1483,7 @@ func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 
 func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Force the node into maintenance mode
@@ -1514,7 +1515,7 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 
 func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Force the node into maintenance mode
@@ -1558,7 +1559,7 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 
 func TestAgent_RegisterCheck_Service(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.ServiceDefinition{
@@ -1687,11 +1688,11 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 
 func TestAgent_Token(t *testing.T) {
 	t.Parallel()
-	cfg := TestACLConfig()
-	cfg.ACLToken = ""
-	cfg.ACLAgentToken = ""
-	cfg.ACLAgentMasterToken = ""
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_token = ""
+		acl_agent_token = ""
+		acl_agent_master_token = ""
+	`)
 	defer a.Shutdown()
 
 	type tokens struct {
