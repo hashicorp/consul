@@ -306,7 +306,7 @@ will exit with an error at startup.
     ```
 
     - `provider` (required) - the name of the provider ("azure" in this case).
-    - `tag_key` (required) - the key of the tag to auto-join on.
+    - `tag_name` (required) - the name of the tag to auto-join on.
     - `tag_value` (required) - the value of the tag to auto-join on.
     - `tenant_id` (required) - the tenant to join machines in.
     - `client_id` (required) - the client to authenticate with.
