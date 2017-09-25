@@ -63,6 +63,7 @@
 // 	* "http_api_response_headers" is deprecated. Please use "http_config.response_headers" instead.
 // 	* "dogstatsd_addr" is deprecated. Please use "telemetry.dogstatsd_addr" instead.
 // 	* "dogstatsd_tags" is deprecated. Please use "telemetry.dogstatsd_tags" instead.
+// 	* "recursor" is deprecated. Please use "recursors" instead.
 // 	* "statsd_addr" is deprecated. Please use "telemetry.statsd_addr" instead.
 // 	* "statsite_addr" is deprecated. Please use "telemetry.statsite_addr" instead.
 // 	* "statsite_prefix" is deprecated. Please use "telemetry.statsite_prefix" instead.

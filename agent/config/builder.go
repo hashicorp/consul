@@ -236,12 +236,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// process/merge some complex values
 	//
 
-	var dnsRecursors []string
-	if c.DNSRecursor != nil {
-		dnsRecursors = append(dnsRecursors, b.stringVal(c.DNSRecursor))
-	}
-	dnsRecursors = append(dnsRecursors, c.DNSRecursors...)
-
 	var dnsServiceTTL = map[string]time.Duration{}
 	for k, v := range c.DNS.ServiceTTL {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
@@ -497,7 +491,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSOnlyPassing:        b.boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
-		DNSRecursors:          dnsRecursors,
+		DNSRecursors:          c.DNSRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
 

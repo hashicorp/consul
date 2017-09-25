@@ -1993,7 +1993,6 @@ func TestFullConfig(t *testing.T) {
 			"raft_protocol": 19016,
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
-			"recursor": "EZX7MOYF",
 			"recursors": [ "FtFhoUHl", "UYkwck1k" ],
 			"rejoin_after_leave": true,
 			"retry_interval": "8067s",
@@ -2414,7 +2413,6 @@ func TestFullConfig(t *testing.T) {
 			raft_protocol = 19016
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
-			recursor = "EZX7MOYF"
 			recursors = [ "FtFhoUHl", "UYkwck1k" ]
 			rejoin_after_leave = true
 			retry_interval = "8067s"
@@ -2911,7 +2909,7 @@ func TestFullConfig(t *testing.T) {
 		DNSOnlyPassing:            true,
 		DNSPort:                   7001,
 		DNSRecursorTimeout:        4427 * time.Second,
-		DNSRecursors:              []string{"EZX7MOYF", "FtFhoUHl", "UYkwck1k"},
+		DNSRecursors:              []string{"FtFhoUHl", "UYkwck1k"},
 		DNSServiceTTL:             map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:         29909,
 		DataDir:                   dataDir,

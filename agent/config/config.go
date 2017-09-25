@@ -150,7 +150,6 @@ type Config struct {
 	ClientAddr                  *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
 	DNS                         DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                   *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
-	DNSRecursor                 *string                  `json:"recursor,omitempty" hcl:"recursor" mapstructure:"recursor"`
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
 	DataDir                     *string                  `json:"data_dir,omitempty" hcl:"data_dir" mapstructure:"data_dir"`
 	Datacenter                  *string                  `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`

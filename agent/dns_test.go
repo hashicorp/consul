@@ -1989,7 +1989,7 @@ func TestDNS_Recurse(t *testing.T) {
 	defer recursor.Shutdown()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+recursor.Addr+`"
+		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
 
@@ -2020,7 +2020,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	defer recursor.Shutdown()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+recursor.Addr+`"
+		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
 
@@ -2060,7 +2060,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	defer resolver.Close()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+resolver.LocalAddr().String()+`" // host must cause a connection|read|write timeout
+		recursors = ["`+resolver.LocalAddr().String()+`"] // host must cause a connection|read|write timeout
 		dns_config {
 			recursor_timeout = "`+serverClientTimeout.String()+`"
 		}
@@ -2910,7 +2910,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	defer recursor.Shutdown()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+recursor.Addr+`"
+		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
 
@@ -3006,7 +3006,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	defer recursor.Shutdown()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+recursor.Addr+`"
+		recursors = ["`+recursor.Addr+`"]
 		dns_config {
 			node_ttl = "10s"
 			allow_stale = true
@@ -4698,7 +4698,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	defer recursor.Shutdown()
 
 	a := NewTestAgent(t.Name(), `
-		recursor = "`+recursor.Addr+`"
+		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
 
