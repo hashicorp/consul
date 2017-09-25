@@ -13,13 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/raft"
 	"github.com/pascaldekloe/goe/verify"
 )
 
