@@ -3,12 +3,11 @@ package api
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
