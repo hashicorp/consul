@@ -3459,7 +3459,7 @@ func TestSanitize(t *testing.T) {
 			"foo=bar key=baz secret=boom bang=bar",
 		},
 		RetryJoinWAN: []string{
-			"foo=bar key=baz secret=boom bang=bar",
+			"wan_foo=bar wan_key=baz wan_secret=boom wan_bang=bar",
 		},
 	}
 
@@ -3476,7 +3476,7 @@ func TestSanitize(t *testing.T) {
 			"foo=bar key=hidden secret=hidden bang=bar",
 		},
 		RetryJoinWAN: []string{
-			"foo=bar key=hidden secret=hidden bang=bar",
+			"wan_foo=bar wan_key=hidden wan_secret=hidden wan_bang=bar",
 		},
 	}
 
