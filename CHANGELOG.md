@@ -1,10 +1,12 @@
-## 0.9.4 (UNRELEASED)
+## 1.0.0beta (UNRELEASED)
 
 BREAKING CHANGES:
 
 FEATURES:
 
 IMPROVEMENTS:
+
+* agent: Add support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
 
 BUG FIXES:
 
