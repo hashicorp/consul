@@ -653,7 +653,7 @@ func TestAPI_AgentLeave(t *testing.T) {
 	}
 
 	// We sometimes see an EOF response to this one, depending on timing.
-	err := c2.Agent().Leave()
+	err := c2.Agent().Leave(false)
 	if err != nil && !strings.Contains(err.Error(), "EOF") {
 		t.Fatalf("err: %v", err)
 	}

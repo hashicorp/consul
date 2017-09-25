@@ -235,10 +235,22 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 		return nil, acl.ErrPermissionDenied
 	}
 
-	if err := s.agent.Leave(); err != nil {
-		return nil, err
+	wan := false
+	params := req.URL.Query()
+	if _, ok := params["wan"]; ok {
+		wan = true
 	}
-	return nil, s.agent.ShutdownAgent()
+	if wan {
+		if err := s.agent.LeaveWAN(); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	} else {
+		if err := s.agent.Leave(); err != nil {
+			return nil, err
+		}
+		return nil, s.agent.ShutdownAgent()
+	}
 }
 
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

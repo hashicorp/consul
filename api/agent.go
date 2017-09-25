@@ -457,8 +457,12 @@ func (a *Agent) Join(addr string, wan bool) error {
 }
 
 // Leave is used to have the agent gracefully leave the cluster and shutdown
-func (a *Agent) Leave() error {
+// If wan=true, this leaves its WAN gossip pool without shutting down the agent
+func (a *Agent) Leave(wan bool) error {
 	r := a.c.newRequest("PUT", "/v1/agent/leave")
+	if wan {
+		r.params.Set("wan", "1")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
