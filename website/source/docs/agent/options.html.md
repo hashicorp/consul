@@ -264,13 +264,14 @@ will exit with an error at startup.
 
     ```json
     {
-      "retry_join": ["provider=aws tag_key=xxx tag_value=xxx"]
+      "retry_join": ["provider=aws tag_key=xxx tag_value=xxx addrtype=public_v6"]
     }
     ```
 
     - `provider` (required) - the name of the provider ("aws" in this case).
     - `tag_key` (required) - the key of the tag to auto-join on.
     - `tag_value` (required) - the value of the tag to auto-join on.
+    - `addrtype` (optional) - option to use `private_v4`,`public_v4` or `public_v6` addresses, defaults to `private_v4`
     - `region` (optional) - the AWS region to authenticate in.
     - `access_key_id` (optional) - the AWS access key for authentication (see below for more information about authenticating).
     - `secret_access_key` (optional) - the AWS secret access key for authentication (see below for more information about authenticating).
