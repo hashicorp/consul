@@ -97,9 +97,14 @@ func setFilePermissions(path string, p FilePermissions) error {
 		if u, err := user.Lookup(p.User()); err == nil {
 			uid, _ = strconv.Atoi(u.Uid)
 			goto GROUP
+		} else {
+			switch err.Error() {
+			case "user: Lookup requires cgo":
+				return fmt.Errorf("compilation issue: %v", err)
+			default:
+				return fmt.Errorf("invalid user specified: %v", p.User())
+			}
 		}
-
-		return fmt.Errorf("invalid user specified: %v", p.User())
 	}
 
 GROUP:
