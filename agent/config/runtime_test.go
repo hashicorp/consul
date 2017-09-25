@@ -1318,6 +1318,20 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "client mode sets LeaveOnTerm and SkipLeaveOnInt correctly",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "server": false }`},
+			hcl:  []string{` server = false`},
+			patch: func(rt *RuntimeConfig) {
+				rt.LeaveOnTerm = true
+				rt.ServerMode = false
+				rt.SkipLeaveOnInt = false
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "client does not allow socket",
 			flags: []string{
 				`-datacenter=a`,
