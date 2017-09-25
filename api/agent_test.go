@@ -41,12 +41,15 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(metrics.Gauges) < 0 {
-		t.Fatalf("bad: %v", metrics)
+	var found bool
+	for _, g := range metrics.Gauges {
+		if g.Name == "consul.runtime.alloc_bytes" {
+			found = true
+			break
+		}
 	}
-
-	if metrics.Gauges[0].Name != "consul.runtime.alloc_bytes" {
-		t.Fatalf("bad: %v", metrics.Gauges[0])
+	if !found {
+		t.Fatalf("missing runtime metrics")
 	}
 }
 
