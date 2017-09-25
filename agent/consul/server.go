@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
@@ -75,6 +76,9 @@ const (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
+	// sentinel is the Sentinel code engine (can be nil).
+	sentinel sentinel.Evaluator
+
 	// aclAuthCache is the authoritative ACL cache.
 	aclAuthCache *acl.Cache
 
@@ -317,7 +321,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	// Initialize the authoritative ACL cache.
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)
+	s.sentinel = sentinel.New(logger)
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault, s.sentinel)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create authoritative ACL cache: %v", err)
@@ -329,7 +334,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	if s.IsACLReplicationEnabled() {
 		local = s.aclLocalFault
 	}
-	if s.aclCache, err = newACLCache(config, logger, s.RPC, local); err != nil {
+	if s.aclCache, err = newACLCache(config, logger, s.RPC, local, s.sentinel); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
 	}

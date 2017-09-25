@@ -107,7 +107,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 		}
 
 		// Validate the rules compile
-		_, err := acl.Parse(args.ACL.Rules)
+		_, err := acl.Parse(args.ACL.Rules, srv.sentinel)
 		if err != nil {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}

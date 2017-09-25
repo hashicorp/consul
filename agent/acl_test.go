@@ -207,7 +207,7 @@ func TestACL_Special_IDs(t *testing.T) {
 	if !acl.NodeRead("hello") {
 		t.Fatalf("should be able to read any node")
 	}
-	if acl.NodeWrite("hello") {
+	if acl.NodeWrite("hello", nil) {
 		t.Fatalf("should not be able to write any node")
 	}
 }

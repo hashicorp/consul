@@ -66,7 +66,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// later if version 0.8 is enabled, so we can eventually just
 		// delete this and do all the ACL checks down there.
 		if args.Service.Service != structs.ConsulServiceName {
-			if rule != nil && !rule.ServiceWrite(args.Service.Service) {
+			if rule != nil && !rule.ServiceWrite(args.Service.Service, nil) {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -149,6 +149,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 		if err := vetDeregisterWithACL(rule, args, ns, nc); err != nil {
 			return err
 		}
+
 	}
 
 	if _, err := c.srv.raftApply(structs.DeregisterRequestType, args); err != nil {
