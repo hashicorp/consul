@@ -218,9 +218,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-data-dir=runtime_test.go`,
 			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = "runtime_test.go"
-			},
 			err: `data_dir "runtime_test.go" is not a directory`,
 		},
 		{
