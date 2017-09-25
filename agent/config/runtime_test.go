@@ -3453,6 +3453,38 @@ func TestConfigDecodeBytes(t *testing.T) {
 	}
 }
 
+func TestSanitize(t *testing.T) {
+	rt := RuntimeConfig{
+		RetryJoinLAN: []string{
+			"foo=bar key=baz secret=boom bang=bar",
+		},
+		RetryJoinWAN: []string{
+			"foo=bar key=baz secret=boom bang=bar",
+		},
+	}
+
+	want := RuntimeConfig{
+		ACLAgentMasterToken:       "hidden",
+		ACLAgentToken:             "hidden",
+		ACLMasterToken:            "hidden",
+		ACLReplicationToken:       "hidden",
+		ACLToken:                  "hidden",
+		EncryptKey:                "hidden",
+		KeyFile:                   "hidden",
+		TelemetryCirconusAPIToken: "hidden",
+		RetryJoinLAN: []string{
+			"foo=bar key=hidden secret=hidden bang=bar",
+		},
+		RetryJoinWAN: []string{
+			"foo=bar key=hidden secret=hidden bang=bar",
+		},
+	}
+
+	if got := rt.Sanitized(); !verify.Values(t, "", got, want) {
+		t.Fail()
+	}
+}
+
 func splitIPPort(hostport string) (net.IP, int) {
 	h, p, err := net.SplitHostPort(hostport)
 	if err != nil {

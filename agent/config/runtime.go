@@ -3,6 +3,8 @@ package config
 import (
 	"crypto/tls"
 	"net"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -213,16 +215,44 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 }
 
 func (c *RuntimeConfig) Sanitized() RuntimeConfig {
-	var rt RuntimeConfig
-	rt = *c
-	rt.ACLMasterToken = "hidden"
-	rt.ACLToken = "hidden"
-	rt.ACLReplicationToken = "hidden"
-	rt.ACLAgentMasterToken = "hidden"
-	rt.ACLAgentToken = "hidden"
-	rt.EncryptKey = "hidden"
-	rt.RetryJoinLAN = []string{"hidden (improve me)"}
-	rt.RetryJoinWAN = []string{"hidden (improve me)"}
-	rt.TelemetryCirconusAPIToken = "hidden"
-	return rt
+	isSecret := func(name string) bool {
+		name = strings.ToLower(name)
+		return strings.Contains(name, "key") || strings.Contains(name, "token") || strings.Contains(name, "secret")
+	}
+
+	cleanRetryJoin := func(a []string) (b []string) {
+		for _, line := range a {
+			var fields []string
+			for _, f := range strings.Fields(line) {
+				if isSecret(f) {
+					kv := strings.SplitN(f, "=", 2)
+					fields = append(fields, kv[0]+"=hidden")
+				} else {
+					fields = append(fields, f)
+				}
+			}
+			b = append(b, strings.Join(fields, " "))
+		}
+		return b
+	}
+
+	// sanitize all fields with secrets
+	typ := reflect.TypeOf(RuntimeConfig{})
+	rawval := reflect.ValueOf(*c)
+	sanval := reflect.New(typ) // *RuntimeConfig
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+		if f.Type.Kind() == reflect.String && isSecret(f.Name) {
+			sanval.Elem().Field(i).Set(reflect.ValueOf("hidden"))
+		} else {
+			sanval.Elem().Field(i).Set(rawval.Field(i))
+		}
+	}
+	san := sanval.Elem().Interface().(RuntimeConfig)
+
+	// sanitize retry-join config strings
+	san.RetryJoinLAN = cleanRetryJoin(san.RetryJoinLAN)
+	san.RetryJoinWAN = cleanRetryJoin(san.RetryJoinWAN)
+
+	return san
 }
