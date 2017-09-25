@@ -781,6 +781,63 @@ func TestPolicyACL_Node(t *testing.T) {
 	}
 }
 
+func TestPolicyACL_KeyReadPrefix(t *testing.T) {
+	all := AllowAll()
+	policy := &Policy{
+		Keys: []*KeyPolicy{
+			&KeyPolicy{
+				Prefix: "",
+				Policy: PolicyDeny,
+			},
+			&KeyPolicy{
+				Prefix: "foo/",
+				Policy: PolicyWrite,
+			},
+			&KeyPolicy{
+				Prefix: "foo/priv/",
+				Policy: PolicyDeny,
+			},
+			&KeyPolicy{
+				Prefix: "bar/",
+				Policy: PolicyDeny,
+			},
+			&KeyPolicy{
+				Prefix: "bar/baz",
+				Policy: PolicyRead,
+			},
+			&KeyPolicy{
+				Prefix: "zip/",
+				Policy: PolicyRead,
+			},
+		},
+	}
+	acl, err := New(all, policy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	type keycase struct {
+		inp        string
+		readPrefix bool
+	}
+	cases := []keycase{
+		{"other", false},
+		{"foo/test", true},
+		{"foo/priv/test", false},
+		{"bar/", true},
+		{"bar/deny", false},
+		{"foo/", true},
+		{"foo/test", true},
+		{"", true},
+	}
+	for _, c := range cases {
+		if got, want := acl.KeyReadPrefix(c.inp), c.readPrefix; got != want {
+			t.Fatalf("Read prefix fail on input %v, expected %v but got %v ", c.inp, c.readPrefix, got)
+		}
+	}
+
+}
+
 func TestPolicyACL_Session(t *testing.T) {
 	deny := DenyAll()
 	policyRoot := &Policy{

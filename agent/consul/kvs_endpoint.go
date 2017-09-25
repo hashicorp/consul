@@ -129,7 +129,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				return err
 			}
 			if acl != nil && !acl.KeyRead(args.Key) {
-				ent = nil
+				return errPermissionDenied
 			}
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
@@ -157,6 +157,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	acl, err := k.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	if acl != nil && !acl.KeyReadPrefix(args.Key) {
+		return errPermissionDenied
 	}
 
 	return k.srv.blockingQuery(
@@ -197,6 +201,10 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 	acl, err := k.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	if acl != nil && !acl.KeyReadPrefix(args.Prefix) {
+		return errPermissionDenied
 	}
 
 	return k.srv.blockingQuery(
