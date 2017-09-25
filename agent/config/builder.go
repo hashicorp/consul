@@ -421,6 +421,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	// raft performance scaling
+	performanceRaftMultiplier := b.intVal(c.Performance.RaftMultiplier)
+	if performanceRaftMultiplier < 1 || uint(performanceRaftMultiplier) > consul.MaxRaftMultiplier {
+		return RuntimeConfig{}, fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", performanceRaftMultiplier, consul.MaxRaftMultiplier)
+	}
+	consulRaftElectionTimeout := b.durationVal("consul.raft.election_timeout", c.Consul.Raft.ElectionTimeout) * time.Duration(performanceRaftMultiplier)
+	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
+	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -442,9 +451,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConsulCoordinateUpdateBatchSize:  b.intVal(c.Consul.Coordinate.UpdateBatchSize),
 		ConsulCoordinateUpdateMaxBatches: b.intVal(c.Consul.Coordinate.UpdateMaxBatches),
 		ConsulCoordinateUpdatePeriod:     b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
-		ConsulRaftElectionTimeout:        b.durationVal("consul.raft.election_timeout", c.Consul.Raft.ElectionTimeout),
-		ConsulRaftHeartbeatTimeout:       b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout),
-		ConsulRaftLeaderLeaseTimeout:     b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout),
+		ConsulRaftElectionTimeout:        consulRaftElectionTimeout,
+		ConsulRaftHeartbeatTimeout:       consulRaftHeartbeatTimeout,
+		ConsulRaftLeaderLeaseTimeout:     consulRaftLeaderLeaseTimeout,
 		ConsulSerfLANGossipInterval:      b.durationVal("consul.serf_lan.gossip_interval", c.Consul.SerfLAN.Memberlist.GossipInterval),
 		ConsulSerfLANProbeInterval:       b.durationVal("consul.serf_lan.probe_interval", c.Consul.SerfLAN.Memberlist.ProbeInterval),
 		ConsulSerfLANProbeTimeout:        b.durationVal("consul.serf_lan.probe_timeout", c.Consul.SerfLAN.Memberlist.ProbeTimeout),
@@ -499,9 +508,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
-
-		// Performance
-		PerformanceRaftMultiplier: b.intVal(c.Performance.RaftMultiplier),
 
 		// Telemetry
 		TelemetryCirconusAPIApp:                     b.stringVal(c.Telemetry.CirconusAPIApp),
@@ -710,9 +716,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if rt.DNSUDPAnswerLimit <= 0 {
 		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be positive", rt.DNSUDPAnswerLimit)
-	}
-	if rt.PerformanceRaftMultiplier < 1 || uint(rt.PerformanceRaftMultiplier) > consul.MaxRaftMultiplier {
-		return fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", rt.PerformanceRaftMultiplier, consul.MaxRaftMultiplier)
 	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)

@@ -79,8 +79,6 @@ type RuntimeConfig struct {
 	HTTPBlockEndpoints  []string
 	HTTPResponseHeaders map[string]string
 
-	PerformanceRaftMultiplier int
-
 	TelemetryCirconusAPIApp                     string
 	TelemetryCirconusAPIToken                   string
 	TelemetryCirconusAPIURL                     string
