@@ -670,25 +670,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if ipaddr.IsAny(rt.SerfAdvertiseAddrWAN) {
 		return fmt.Errorf("advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]")
 	}
-	if rt.ServerMode && rt.SegmentName != "" {
-		return fmt.Errorf("Segment name can only be set on agents (server = false)")
-	}
-	if !rt.ServerMode && len(rt.Segments) > 0 {
-		return fmt.Errorf("Segments can only be configured on servers (server = true)")
-	}
-	if rt.ServerMode && len(rt.Segments) > rt.SegmentLimit {
-		return fmt.Errorf("cannot configure more than %d segments", rt.SegmentLimit)
-	}
-	for _, s := range rt.Segments {
-		if len(s.Name) > rt.SegmentNameLimit {
-			return fmt.Errorf("segment[%s].name is too long. Please use %d characters or less", s.Name, rt.SegmentNameLimit)
-		}
-		if s.Bind != nil && s.Bind.Port <= 0 {
-			return fmt.Errorf("segment[%s].port must be > 0", s.Name)
-		}
-		if ipaddr.IsAny(s.Advertise) {
-			return fmt.Errorf("segments[%s].advertise cannot be 0.0.0.0, :: or [::]", s.Name)
-		}
+	if err := b.validateSegments(rt); err != nil {
+		return err
 	}
 	for _, a := range rt.DNSAddrs {
 		if _, ok := a.(*net.UnixAddr); ok {

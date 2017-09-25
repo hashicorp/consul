@@ -23,6 +23,20 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
+type configTest struct {
+	desc           string
+	flags          []string
+	pre, post      func()
+	json, jsontail []string
+	hcl, hcltail   []string
+	privatev4      func() ([]*net.IPAddr, error)
+	publicv6       func() ([]*net.IPAddr, error)
+	patch          func(rt *RuntimeConfig)
+	err            string
+	warns          []string
+	hostname       func() (string, error)
+}
+
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
 // checks for warnings on deprecated fields and flags.  These tests
@@ -33,49 +47,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 
-	randomString := func(n int) string {
-		s := ""
-		for ; n > 0; n-- {
-			s += "x"
-		}
-		return s
-	}
-
-	metaPairs := func(n int, format string) string {
-		var s []string
-		for i := 0; i < n; i++ {
-			switch format {
-			case "json":
-				s = append(s, fmt.Sprintf(`"%d":"%d"`, i, i))
-			case "hcl":
-				s = append(s, fmt.Sprintf(`"%d"="%d"`, i, i))
-			default:
-				panic("invalid format: " + format)
-			}
-		}
-		switch format {
-		case "json":
-			return strings.Join(s, ",")
-		case "hcl":
-			return strings.Join(s, " ")
-		default:
-			panic("invalid format: " + format)
-		}
-	}
-
-	tests := []struct {
-		desc           string
-		flags          []string
-		pre, post      func()
-		json, jsontail []string
-		hcl, hcltail   []string
-		privatev4      func() ([]*net.IPAddr, error)
-		publicv6       func() ([]*net.IPAddr, error)
-		patch          func(rt *RuntimeConfig)
-		err            string
-		warns          []string
-		hostname       func() (string, error)
-	}{
+	tests := []configTest{
 		// ------------------------------------------------------------
 		// cmd line flags
 		//
@@ -1419,26 +1391,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]",
 		},
 		{
-			desc: "segments.advertise any",
-			flags: []string{
-				`-data-dir=` + dataDir,
-				`-server=true`,
-			},
-			json: []string{`{ "segments":[{ "name":"x", "advertise": "::", "port": 123 }] }`},
-			hcl:  []string{`segments = [{ name = "x" advertise = "::" port = 123 }]`},
-			err:  `segments[x].advertise cannot be 0.0.0.0, :: or [::]`,
-		},
-		{
-			desc: "segments.advertise socket",
-			flags: []string{
-				`-data-dir=` + dataDir,
-				`-server=true`,
-			},
-			json: []string{`{ "segments":[{ "name":"x", "advertise": "unix:///foo" }] }`},
-			hcl:  []string{`segments = [{ name = "x" advertise = "unix:///foo" }]`},
-			err:  `segments[x].advertise cannot be a unix socket`,
-		},
-		{
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
 				`-data-dir=` + dataDir,
@@ -1707,31 +1659,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},
-		{
-			desc: "segment name only on agents",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "server": true, "segment": "a" }`},
-			hcl:  []string{` server = true segment = "a" `},
-			err:  "Segment name can only be set on agents (server = false)",
-		},
-		{
-			desc: "segments only on servers",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{
-				"server": false,
-				"segments": [ { "name:":"a", "port": 123 } ]
-			}`},
-			hcl: []string{`
-				server = false
-				segments = [ { name = "a" port = 123 } ]`},
-			err: "Segments can only be configured on servers (server = true)",
-		},
 	}
 
+	testConfig(t, tests, dataDir)
+}
+
+func testConfig(t *testing.T, tests []configTest, dataDir string) {
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
 			// when we test only flags then there are no JSON or HCL
@@ -3327,6 +3260,7 @@ func TestFullConfig(t *testing.T) {
 			rt.DevMode = false
 			rt.EnableUI = false
 			rt.SegmentName = ""
+			rt.Segments = nil
 
 			// validate the runtime config
 			if err := b.Validate(rt); err != nil {
@@ -3559,5 +3493,35 @@ func writeFile(path string, data []byte) {
 	}
 	if err := ioutil.WriteFile(path, data, 0640); err != nil {
 		panic(err)
+	}
+}
+
+func randomString(n int) string {
+	s := ""
+	for ; n > 0; n-- {
+		s += "x"
+	}
+	return s
+}
+
+func metaPairs(n int, format string) string {
+	var s []string
+	for i := 0; i < n; i++ {
+		switch format {
+		case "json":
+			s = append(s, fmt.Sprintf(`"%d":"%d"`, i, i))
+		case "hcl":
+			s = append(s, fmt.Sprintf(`"%d"="%d"`, i, i))
+		default:
+			panic("invalid format: " + format)
+		}
+	}
+	switch format {
+	case "json":
+		return strings.Join(s, ",")
+	case "hcl":
+		return strings.Join(s, " ")
+	default:
+		panic("invalid format: " + format)
 	}
 }
