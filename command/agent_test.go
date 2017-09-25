@@ -64,7 +64,7 @@ func TestConfigFail(t *testing.T) {
 		out  string
 	}{
 		{
-			args: []string{"agent", "-server", "-bind=10.0.0.1",  "-datacenter="},
+			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter="},
 			out:  "==> datacenter cannot be empty\n",
 		},
 		{
@@ -72,27 +72,27 @@ func TestConfigFail(t *testing.T) {
 			out:  "==> data_dir cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "0.0.0.0", "-bind", "10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "::", "-bind", "10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise", "[::]", "-bind", "10.0.0.1"},
 			out:  "==> Advertise address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "0.0.0.0", "-bind", "10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "::", "-bind", "10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 		{
-			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]", "-bind","10.0.0.1"},
+			args: []string{"agent", "-server", "-data-dir", dataDir, "-advertise-wan", "[::]", "-bind", "10.0.0.1"},
 			out:  "==> Advertise WAN address cannot be 0.0.0.0, :: or [::]\n",
 		},
 	}
