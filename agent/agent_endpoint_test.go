@@ -1222,7 +1222,7 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 				Address: addr,
 				Port:    8000,
 			}
-			req, _ := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", jsonReader(args))
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 			resp := httptest.NewRecorder()
 			_, err := a.srv.AgentRegisterService(resp, req)
 			if err != nil {
