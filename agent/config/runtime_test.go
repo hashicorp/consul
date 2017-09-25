@@ -1395,9 +1395,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			flags: []string{
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "dns_config": { "udp_answer_limit": 0 } }`},
-			hcl:  []string{`dns_config = { udp_answer_limit = 0 }`},
-			err:  "dns_config.udp_answer_limit cannot be 0. Must be positive",
+			json: []string{`{ "dns_config": { "udp_answer_limit": -1 } }`},
+			hcl:  []string{`dns_config = { udp_answer_limit = -1 }`},
+			err:  "dns_config.udp_answer_limit cannot be -1. Must be greater than or equal to zero",
 		},
 		{
 			desc: "performance.raft_multiplier < 0",

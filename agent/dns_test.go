@@ -2858,7 +2858,7 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 		expectedANYQuery    int
 		expectedANYQueryID  int
 	}{
-		//{"0", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{"0", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{"1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{"2", 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
 		{"3", 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},

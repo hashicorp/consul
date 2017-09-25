@@ -708,8 +708,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
 				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it")
 	}
-	if rt.DNSUDPAnswerLimit <= 0 {
-		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be positive", rt.DNSUDPAnswerLimit)
+	if rt.DNSUDPAnswerLimit < 0 {
+		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
 	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
