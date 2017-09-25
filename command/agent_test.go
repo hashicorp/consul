@@ -229,11 +229,17 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	cfgFile := testutil.TempFile(t, "consul")
-	defer os.Remove(cfgFile.Name())
+	cfgDir := testutil.TempDir(t, "consul-config")
+	defer os.RemoveAll(cfgDir)
+
+	cfgFilePath := filepath.Join(cfgDir, "consul.json")
+	cfgFile, err := os.Create(cfgFilePath)
+	if err != nil {
+		t.Fatalf("Unable to create file %v, got error:%v", cfgFilePath, err)
+	}
 
 	content := fmt.Sprintf(`{"server": true, "bind_addr" : "10.0.0.1", "data_dir": "%s"}`, dir)
-	_, err := cfgFile.Write([]byte(content))
+	_, err = cfgFile.Write([]byte(content))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -174,6 +174,9 @@ func (b *Builder) ReadPath(path string) error {
 // ReadFile parses a JSON or HCL config file and appends it to the list of
 // config sources.
 func (b *Builder) ReadFile(path string) error {
+	if !strings.HasSuffix(path, ".json") && !strings.HasSuffix(path, ".hcl") {
+		return fmt.Errorf(`Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, path)
+	}
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
