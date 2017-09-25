@@ -31,22 +31,6 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	}
 }
 
-func TestTxnEndpoint_Bad_Method(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
-	defer a.Shutdown()
-
-	buf := bytes.NewBuffer([]byte("{}"))
-	req, _ := http.NewRequest("GET", "/v1/txn", buf)
-	resp := httptest.NewRecorder()
-	if _, err := a.srv.Txn(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Code != 405 {
-		t.Fatalf("expected 405, got %d", resp.Code)
-	}
-}
-
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
