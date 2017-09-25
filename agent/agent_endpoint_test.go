@@ -294,7 +294,7 @@ func TestAgent_Reload(t *testing.T) {
 			node_id = "` + string(a.Config.NodeID) + `"
 			node_name = "` + a.Config.NodeName + `"
 
-			acl_enforce_version8 = false
+			acl_enforce_version_8 = false
 			services = [
 				{
 					name = "redis-reloaded"

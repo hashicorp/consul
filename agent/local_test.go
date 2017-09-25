@@ -1603,8 +1603,8 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		consul = {
 			coordinate = {
 				update_period = "100ms"
-				batch_size = 10
-				max_batches = 1
+				update_batch_size = 10
+				update_max_batches = 1
 			}
 		}
 	`)
