@@ -272,6 +272,7 @@ will exit with an error at startup.
     - `tag_key` (required) - the key of the tag to auto-join on.
     - `tag_value` (required) - the value of the tag to auto-join on.
     - `region` (optional) - the AWS region to authenticate in.
+	- `addr_type` (optional) - the type of address to discover: `private_v4`, `public_v4`, `public_v6`. Default is `private_v4`. (>= 1.0)
     - `access_key_id` (optional) - the AWS access key for authentication (see below for more information about authenticating).
     - `secret_access_key` (optional) - the AWS secret access key for authentication (see below for more information about authenticating).
 
