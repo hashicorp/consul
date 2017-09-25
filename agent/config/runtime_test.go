@@ -1018,6 +1018,22 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		// ------------------------------------------------------------
+		// transformations
+		//
+		{
+			desc:  "raft performance scaling",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "performance": { "raft_multiplier": 9} }`},
+			hcl:   []string{`performance = { raft_multiplier=9 }`},
+			patch: func(rt *RuntimeConfig) {
+				rt.ConsulRaftElectionTimeout = 9 * 1000 * time.Millisecond
+				rt.ConsulRaftHeartbeatTimeout = 9 * 1000 * time.Millisecond
+				rt.ConsulRaftLeaderLeaseTimeout = 9 * 500 * time.Millisecond
+				rt.DataDir = dataDir
+			},
+		},
+
+		// ------------------------------------------------------------
 		// validations
 		//
 

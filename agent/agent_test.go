@@ -100,54 +100,6 @@ func TestAgent_TokenStore(t *testing.T) {
 	}
 }
 
-func TestAgent_CheckPerformanceSettings(t *testing.T) {
-	t.Skip("this test fails because of the change in agent.consulConfig(). We need to decide what to do")
-	// todo(fs): this ^^
-
-	t.Parallel()
-
-	// Try a config with the default value; we have to insert it because the
-	// tests use raft_multiplier = 1 by default for speed.
-	{
-		a := NewTestAgent(t.Name(), `
-			bootstrap = false
-			performance {
-				raft_multiplier = `+fmt.Sprintf("%d", consul.DefaultRaftMultiplier)+`
-			}
-		`)
-		defer a.Shutdown()
-
-		raftMult := time.Duration(consul.DefaultRaftMultiplier)
-		r := a.consulConfig().RaftConfig
-		def := raft.DefaultConfig()
-		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
-			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
-			t.Fatalf("bad: %#v", *r)
-		}
-	}
-
-	// Try a multiplier.
-	{
-		a := NewTestAgent(t.Name(), `
-			bootstrap = false
-			performance {
-				raft_multiplier = 8
-			}
-		`)
-		defer a.Shutdown()
-
-		const raftMult time.Duration = 8
-		r := a.consulConfig().RaftConfig
-		def := raft.DefaultConfig()
-		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
-			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
-			t.Fatalf("bad: %#v", *r)
-		}
-	}
-}
-
 func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	t.Parallel()
 	func() {
