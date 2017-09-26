@@ -26,6 +26,7 @@ func TestAPI_CatalogDatacenters(t *testing.T) {
 }
 
 func TestAPI_CatalogNodes(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -48,7 +49,9 @@ func TestAPI_CatalogNodes(t *testing.T) {
 					"lan": "127.0.0.1",
 					"wan": "127.0.0.1",
 				},
-				Meta:        map[string]string{},
+				Meta: map[string]string{
+					"consul-network-segment": "",
+				},
 				CreateIndex: meta.LastIndex - 1,
 				ModifyIndex: meta.LastIndex,
 			},
@@ -60,6 +63,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 }
 
 func TestAPI_CatalogNodes_MetaFilter(t *testing.T) {
+	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
@@ -135,6 +139,7 @@ func TestAPI_CatalogServices(t *testing.T) {
 }
 
 func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta

@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -127,11 +129,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != a.Config.NodeID ||
-			!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, a.Config.Meta) {
-			r.Fatalf("bad: %v", services.NodeServices.Node)
-		}
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		verify.Values(r, "node id", id, a.config.NodeID)
+		verify.Values(r, "tagged addrs", addrs, a.config.TaggedAddresses)
+		verify.Values(r, "node meta", meta, a.config.NodeMeta)
 
 		// We should have 6 services (consul included)
 		if len(services.NodeServices.Services) != 6 {
@@ -355,7 +356,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	{
@@ -483,27 +484,27 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 }
 
 var testRegisterRules = `
-node "" {
-	policy = "write"
-}
+ node "" {
+ 	policy = "write"
+ }
 
-service "api" {
-	policy = "write"
-}
+ service "api" {
+ 	policy = "write"
+ }
 
-service "consul" {
-	policy = "write"
-}
-`
+ service "consul" {
+ 	policy = "write"
+ }
+ `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	cfg.ACLEnforceVersion8 = Bool(true)
-	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a := &TestAgent{Name: t.Name(), HCL: `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_default_policy = "deny"
+		acl_enforce_version_8 = true
+	`, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -828,11 +829,10 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != a.Config.NodeID ||
-			!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, a.Config.Meta) {
-			t.Fatalf("bad: %v", services.NodeServices.Node)
-		}
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		verify.Values(t, "node id", id, a.config.NodeID)
+		verify.Values(t, "tagged addrs", addrs, a.config.TaggedAddresses)
+		verify.Values(t, "node meta", meta, a.config.NodeMeta)
 	}
 
 	// Remove one of the checks
@@ -898,12 +898,12 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.ACLDatacenter = "dc1"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLDefaultPolicy = "deny"
-	cfg.ACLEnforceVersion8 = Bool(true)
-	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a := &TestAgent{Name: t.Name(), HCL: `
+		acl_datacenter = "dc1"
+		acl_master_token = "root"
+		acl_default_policy = "deny"
+		acl_enforce_version_8 = true
+	`, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -1153,9 +1153,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.CheckUpdateInterval = 500 * time.Millisecond
-	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	a := &TestAgent{Name: t.Name(), HCL: `
+		check_update_interval = "500ms"
+	`, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -1228,7 +1228,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	reg := structs.RegisterRequest{
 		Datacenter:      a.Config.Datacenter,
 		Node:            a.Config.NodeName,
-		Address:         a.Config.AdvertiseAddr,
+		Address:         a.Config.AdvertiseAddrLAN.IP.String(),
 		TaggedAddresses: a.Config.TaggedAddresses,
 		Check:           eCopy,
 		WriteRequest:    structs.WriteRequest{},
@@ -1327,10 +1327,16 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.NodeID = types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
-	cfg.Meta["somekey"] = "somevalue"
-	a := &TestAgent{Name: t.Name(), Config: cfg, NoInitialSync: true}
+	nodeID := types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
+	nodeMeta := map[string]string{
+		"somekey": "somevalue",
+	}
+	a := &TestAgent{Name: t.Name(), HCL: `
+		node_id = "40e4a748-2192-161a-0510-9bf59fe950b5"
+		node_meta {
+			somekey = "somevalue"
+		}
+	`, NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -1364,9 +1370,10 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != cfg.NodeID ||
-			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, cfg.Meta) {
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		if id != nodeID ||
+			!reflect.DeepEqual(addrs, a.config.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, nodeMeta) {
 			r.Fatalf("bad: %v", services.NodeServices.Node)
 		}
 	})
@@ -1387,9 +1394,10 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		if id != cfg.NodeID ||
-			!reflect.DeepEqual(addrs, cfg.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, cfg.Meta) {
+		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+		if id != nodeID ||
+			!reflect.DeepEqual(addrs, a.config.TaggedAddresses) ||
+			!reflect.DeepEqual(meta, nodeMeta) {
 			r.Fatalf("bad: %v", services.NodeServices.Node)
 		}
 	})
@@ -1424,7 +1432,7 @@ func TestAgent_serviceTokens(t *testing.T) {
 
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
-	l := NewLocalState(TestConfig(), nil, tokens)
+	l := NewLocalState(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`), nil, tokens)
 
 	l.AddService(&structs.NodeService{
 		ID: "redis",
@@ -1453,7 +1461,7 @@ func TestAgent_checkTokens(t *testing.T) {
 
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
-	l := NewLocalState(TestConfig(), nil, tokens)
+	l := NewLocalState(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`), nil, tokens)
 
 	// Returns default when no token is set
 	if token := l.CheckToken("mem"); token != "default" {
@@ -1475,8 +1483,7 @@ func TestAgent_checkTokens(t *testing.T) {
 
 func TestAgent_checkCriticalTime(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	l := NewLocalState(cfg, nil, new(token.Store))
+	l := NewLocalState(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`), nil, new(token.Store))
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
 	l.AddService(svc, "")
@@ -1538,8 +1545,7 @@ func TestAgent_checkCriticalTime(t *testing.T) {
 
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	l := NewLocalState(cfg, nil, new(token.Store))
+	l := NewLocalState(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`), nil, new(token.Store))
 
 	// Add a check for a service that does not exist and verify that it fails
 	checkID := types.CheckID("redis:1")
@@ -1591,14 +1597,21 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.SyncCoordinateRateTarget = 10.0 // updates/sec
-	cfg.SyncCoordinateIntervalMin = 1 * time.Millisecond
-	cfg.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
-	cfg.ConsulConfig.CoordinateUpdateBatchSize = 10
-	cfg.ConsulConfig.CoordinateUpdateMaxBatches = 1
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		sync_coordinate_interval_min = "1ms"
+		sync_coordinate_rate_target = 10.0
+		consul = {
+			coordinate = {
+				update_period = "100ms"
+				update_batch_size = 10
+				update_max_batches = 1
+			}
+		}
+	`)
 	defer a.Shutdown()
+
+	t.Logf("%d %d %s", a.consulConfig().CoordinateUpdateBatchSize, a.consulConfig().CoordinateUpdateMaxBatches,
+		a.consulConfig().CoordinateUpdatePeriod.String())
 
 	// Make sure the coordinate is present.
 	req := structs.DCSpecificRequest{

@@ -3,6 +3,7 @@ package acl
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/hcl"
 )
 
@@ -27,6 +28,12 @@ type Policy struct {
 	Operator        string                 `hcl:"operator"`
 }
 
+// Sentinel defines a snippet of Sentinel code that can be attached to a policy.
+type Sentinel struct {
+	Code             string
+	EnforcementLevel string
+}
+
 // AgentPolicy represents a policy for working with agent endpoints on nodes
 // with specific name prefixes.
 type AgentPolicy struct {
@@ -40,8 +47,9 @@ func (a *AgentPolicy) GoString() string {
 
 // KeyPolicy represents a policy for a key
 type KeyPolicy struct {
-	Prefix string `hcl:",key"`
-	Policy string
+	Prefix   string `hcl:",key"`
+	Policy   string
+	Sentinel Sentinel
 }
 
 func (k *KeyPolicy) GoString() string {
@@ -50,8 +58,9 @@ func (k *KeyPolicy) GoString() string {
 
 // NodePolicy represents a policy for a node
 type NodePolicy struct {
-	Name   string `hcl:",key"`
-	Policy string
+	Name     string `hcl:",key"`
+	Policy   string
+	Sentinel Sentinel
 }
 
 func (n *NodePolicy) GoString() string {
@@ -60,8 +69,9 @@ func (n *NodePolicy) GoString() string {
 
 // ServicePolicy represents a policy for a service
 type ServicePolicy struct {
-	Name   string `hcl:",key"`
-	Policy string
+	Name     string `hcl:",key"`
+	Policy   string
+	Sentinel Sentinel
 }
 
 func (s *ServicePolicy) GoString() string {
@@ -113,10 +123,38 @@ func isPolicyValid(policy string) bool {
 	}
 }
 
+// isSentinelValid makes sure the given sentinel block is valid, and will skip
+// out if the evaluator is nil.
+func isSentinelValid(sentinel sentinel.Evaluator, basicPolicy string, sp Sentinel) error {
+	// TODO (slackpad) - Need a unit test for this.
+
+	// Sentinel not enabled at all, or for this policy.
+	if sentinel == nil {
+		return nil
+	}
+	if sp.Code == "" {
+		return nil
+	}
+
+	// We only allow sentinel code on write policies at this time.
+	if basicPolicy != PolicyWrite {
+		return fmt.Errorf("code is only allowed for write policies")
+	}
+
+	// Validate the sentinel parts.
+	switch sp.EnforcementLevel {
+	case "", "soft-mandatory", "hard-mandatory":
+		// OK
+	default:
+		return fmt.Errorf("unsupported enforcement level %q", sp.EnforcementLevel)
+	}
+	return sentinel.Compile(sp.Code)
+}
+
 // Parse is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
-func Parse(rules string) (*Policy, error) {
+func Parse(rules string, sentinel sentinel.Evaluator) (*Policy, error) {
 	// Decode the rules
 	p := &Policy{}
 	if rules == "" {
@@ -140,6 +178,9 @@ func Parse(rules string) (*Policy, error) {
 		if !isPolicyValid(kp.Policy) {
 			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
 		}
+		if err := isSentinelValid(sentinel, kp.Policy, kp.Sentinel); err != nil {
+			return nil, fmt.Errorf("Invalid key Sentinel policy: %#v, got error:%v", kp, err)
+		}
 	}
 
 	// Validate the node policies
@@ -147,12 +188,18 @@ func Parse(rules string) (*Policy, error) {
 		if !isPolicyValid(np.Policy) {
 			return nil, fmt.Errorf("Invalid node policy: %#v", np)
 		}
+		if err := isSentinelValid(sentinel, np.Policy, np.Sentinel); err != nil {
+			return nil, fmt.Errorf("Invalid node Sentinel policy: %#v, got error:%v", np, err)
+		}
 	}
 
 	// Validate the service policies
 	for _, sp := range p.Services {
 		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+		if err := isSentinelValid(sentinel, sp.Policy, sp.Sentinel); err != nil {
+			return nil, fmt.Errorf("Invalid service Sentinel policy: %#v, got error:%v", sp, err)
 		}
 	}
 

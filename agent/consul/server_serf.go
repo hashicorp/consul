@@ -1,10 +1,14 @@
 package consul
 
 import (
+	"fmt"
+	"net"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -23,6 +27,80 @@ const (
 	// peerRetryBase is a baseline retry time
 	peerRetryBase = 1 * time.Second
 )
+
+// setupSerf is used to setup and initialize a Serf
+func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool, wanPort int,
+	segment string, listener net.Listener) (*serf.Serf, error) {
+	conf.Init()
+
+	if wan {
+		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
+	} else {
+		conf.NodeName = s.config.NodeName
+		conf.Tags["wan_join_port"] = fmt.Sprintf("%d", wanPort)
+	}
+	conf.Tags["role"] = "consul"
+	conf.Tags["dc"] = s.config.Datacenter
+	conf.Tags["segment"] = segment
+	if segment == "" {
+		for _, s := range s.config.Segments {
+			conf.Tags["sl_"+s.Name] = net.JoinHostPort(s.Advertise, fmt.Sprintf("%d", s.Port))
+		}
+	}
+	conf.Tags["id"] = string(s.config.NodeID)
+	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
+	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
+	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
+	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
+	conf.Tags["build"] = s.config.Build
+	addr := listener.Addr().(*net.TCPAddr)
+	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
+	if s.config.Bootstrap {
+		conf.Tags["bootstrap"] = "1"
+	}
+	if s.config.BootstrapExpect != 0 {
+		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
+	}
+	if s.config.NonVoter {
+		conf.Tags["nonvoter"] = "1"
+	}
+	if s.config.UseTLS {
+		conf.Tags["use_tls"] = "1"
+	}
+	if s.logger == nil {
+		conf.MemberlistConfig.LogOutput = s.config.LogOutput
+		conf.LogOutput = s.config.LogOutput
+	}
+	conf.MemberlistConfig.Logger = s.logger
+	conf.Logger = s.logger
+	conf.EventCh = ch
+	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
+	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
+	if wan {
+		conf.Merge = &wanMergeDelegate{}
+	} else {
+		conf.Merge = &lanMergeDelegate{
+			dc:       s.config.Datacenter,
+			nodeID:   s.config.NodeID,
+			nodeName: s.config.NodeName,
+			segment:  segment,
+		}
+	}
+
+	// Until Consul supports this fully, we disable automatic resolution.
+	// When enabled, the Serf gossip may just turn off if we are the minority
+	// node which is rather unexpected.
+	conf.EnableNameConflictResolution = false
+
+	if !s.config.DevMode {
+		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	}
+	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
+		return nil, err
+	}
+
+	return serf.Create(conf)
+}
 
 // userEventName computes the name of a user event
 func userEventName(name string) string {
@@ -125,18 +203,14 @@ func (s *Server) localEvent(event serf.UserEvent) {
 // lanNodeJoin is used to handle join events on the LAN pool.
 func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
-		if !ok {
+		ok, serverMeta := metadata.IsConsulServer(m)
+		if !ok || serverMeta.Segment != "" {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Adding LAN server %s", parts)
+		s.logger.Printf("[INFO] consul: Adding LAN server %s", serverMeta)
 
-		// See if it's configured as part of our DC.
-		if parts.Datacenter == s.config.Datacenter {
-			s.localLock.Lock()
-			s.localConsuls[raft.ServerAddress(parts.Addr.String())] = parts
-			s.localLock.Unlock()
-		}
+		// Update server lookup
+		s.serverLookup.AddServer(serverMeta)
 
 		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
@@ -265,14 +339,13 @@ func (s *Server) maybeBootstrap() {
 // lanNodeFailed is used to handle fail events on the LAN pool.
 func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := metadata.IsConsulServer(m)
-		if !ok {
+		ok, serverMeta := metadata.IsConsulServer(m)
+		if !ok || serverMeta.Segment != "" {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: Removing LAN server %s", parts)
+		s.logger.Printf("[INFO] consul: Removing LAN server %s", serverMeta)
 
-		s.localLock.Lock()
-		delete(s.localConsuls, raft.ServerAddress(parts.Addr.String()))
-		s.localLock.Unlock()
+		// Update id to address map
+		s.serverLookup.RemoveServer(serverMeta)
 	}
 }

@@ -71,7 +71,7 @@ func TestKVGetCommand_Validation(t *testing.T) {
 
 func TestKVGetCommand_Run(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -104,7 +104,7 @@ func TestKVGetCommand_Run(t *testing.T) {
 
 func TestKVGetCommand_Missing(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	_, c := testKVGetCommand(t)
@@ -122,7 +122,7 @@ func TestKVGetCommand_Missing(t *testing.T) {
 
 func TestKVGetCommand_Empty(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -150,7 +150,7 @@ func TestKVGetCommand_Empty(t *testing.T) {
 
 func TestKVGetCommand_Detailed(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -193,7 +193,7 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 
 func TestKVGetCommand_Keys(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -227,7 +227,7 @@ func TestKVGetCommand_Keys(t *testing.T) {
 
 func TestKVGetCommand_Recurse(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -266,7 +266,7 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 
 func TestKVGetCommand_RecurseBase64(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -306,7 +306,7 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 
 func TestKVGetCommand_DetailedBase64(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

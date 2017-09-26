@@ -15,7 +15,7 @@ func TestReloadCommand_implements(t *testing.T) {
 
 func TestReloadCommandRun(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	// Setup a dummy response to errCh to simulate a successful reload

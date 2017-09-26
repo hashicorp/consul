@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -25,9 +25,9 @@ func TestUiIndex(t *testing.T) {
 	defer os.RemoveAll(uiDir)
 
 	// Make the server
-	cfg := TestConfig()
-	cfg.UIDir = uiDir
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		ui_dir = "`+uiDir+`"
+	`)
 	defer a.Shutdown()
 
 	// Create file
@@ -63,7 +63,7 @@ func TestUiIndex(t *testing.T) {
 
 func TestUiNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -100,7 +100,7 @@ func TestUiNodes(t *testing.T) {
 
 func TestUiNodeInfo(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", a.Config.NodeName), nil)

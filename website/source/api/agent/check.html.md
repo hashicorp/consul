@@ -83,7 +83,7 @@ The table below shows this endpoint's support for
 
 - `Name` `(string: <required>)` - Specifies the name of the check.
 
-- `ID` `(string: "")` - Specifies a unique ID for this check in the cluster.
+- `ID` `(string: "")` - Specifies a unique ID for this check on the node.
   This defaults to the `"Name"` parameter, but it may be necessary to provide an
   ID for uniqueness.
 
@@ -120,6 +120,12 @@ The table below shows this endpoint's support for
   is expected. Certificate verification can be controlled using the
   `TLSSkipVerify`.
 
+- `Method` `(string: "")` - Specifies a different HTTP method to be used
+  for an `HTTP` check. When no value is specified, `GET` is used.
+
+- `Header` `(map[string][]string: {})` - Specifies a set of headers that should
+  be set for `HTTP` checks. Each header can have multiple values.
+
 - `TLSSkipVerify` `(bool: false)` - Specifies if the certificate for an HTTPS
   check should not be verified.
 
@@ -150,7 +156,9 @@ The table below shows this endpoint's support for
   "Script": "/usr/local/bin/check_mem.py",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
-  "HTTP": "http://example.com",
+  "HTTP": "https://example.com",
+  "Method": "POST",
+  "Header": {"x-foo":["bar", "baz"]},
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",
@@ -206,7 +214,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/pass/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/pass/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -239,7 +247,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/warn/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/warn/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -272,7 +280,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 
 | Method | Path                          | Produces                   |
 | ------ | ----------------------------- | -------------------------- |
-| `GET`  | `/agent/check/fail/:check_id` | `application/json`         |
+| `PUT`  | `/agent/check/fail/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),

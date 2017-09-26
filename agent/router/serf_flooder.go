@@ -10,6 +10,10 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// FloodAddrFn gets the address to use for a given server when flood-joining. This
+// will return false if it doesn't have one.
+type FloodAddrFn func(*metadata.Server) (string, bool)
+
 // FloodPortFn gets the port to use for a given server when flood-joining. This
 // will return false if it doesn't have one.
 type FloodPortFn func(*metadata.Server) (int, bool)
@@ -19,7 +23,7 @@ type FloodPortFn func(*metadata.Server) (int, bool)
 // local area are of the form <node> and those in the global area are of the
 // form <node>.<dc> as is done for WAN and general network areas in Consul
 // Enterprise.
-func FloodJoins(logger *log.Logger, portFn FloodPortFn,
+func FloodJoins(logger *log.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 	localDatacenter string, localSerf *serf.Serf, globalSerf *serf.Serf) {
 
 	// Names in the global Serf have the datacenter suffixed.
@@ -63,6 +67,11 @@ func FloodJoins(logger *log.Logger, portFn FloodPortFn,
 		if err != nil {
 			logger.Printf("[DEBUG] consul: Failed to flood-join %q (bad address %q): %v",
 				server.Name, server.Addr.String(), err)
+		}
+		if addrFn != nil {
+			if a, ok := addrFn(server); ok {
+				addr = a
+			}
 		}
 
 		// Let the callback see if it can get the port number, otherwise

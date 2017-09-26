@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -145,18 +146,21 @@ func (c *RTTCommand) Run(args []string) int {
 			return 1
 		}
 
-		// See if the requested nodes are in there.
+		// Index all the coordinates by segment.
+		cs1, cs2 := make(lib.CoordinateSet), make(lib.CoordinateSet)
 		for _, entry := range entries {
 			if entry.Node == nodes[0] {
-				coord1 = entry.Coord
+				cs1[entry.Segment] = entry.Coord
 			}
 			if entry.Node == nodes[1] {
-				coord2 = entry.Coord
+				cs2[entry.Segment] = entry.Coord
 			}
+		}
 
-			if coord1 != nil && coord2 != nil {
-				goto SHOW_RTT
-			}
+		// See if there's a compatible set of coordinates.
+		coord1, coord2 = cs1.Intersect(cs2)
+		if coord1 != nil && coord2 != nil {
+			goto SHOW_RTT
 		}
 	}
 

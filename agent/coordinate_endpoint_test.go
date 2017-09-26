@@ -12,7 +12,7 @@ import (
 
 func TestCoordinate_Datacenters(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/coordinate/datacenters", nil)
@@ -33,7 +33,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 
 func TestCoordinate_Nodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
@@ -68,6 +68,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	arg1 := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
+		Segment:    "alpha",
 		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
 	}
 	var out struct{}
@@ -97,6 +98,45 @@ func TestCoordinate_Nodes(t *testing.T) {
 	if len(coordinates) != 2 ||
 		coordinates[0].Node != "bar" ||
 		coordinates[1].Node != "foo" {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
+	// Filter on a nonexistant node segment
+	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?segment=nope", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates = obj.(structs.Coordinates)
+	if len(coordinates) != 0 {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
+	// Filter on a real node segment
+	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?segment=alpha", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates = obj.(structs.Coordinates)
+	if len(coordinates) != 1 || coordinates[0].Node != "foo" {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
+	// Make sure the empty filter works
+	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?segment=", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates = obj.(structs.Coordinates)
+	if len(coordinates) != 1 || coordinates[0].Node != "bar" {
 		t.Fatalf("bad: %v", coordinates)
 	}
 }

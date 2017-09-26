@@ -11,6 +11,10 @@ import (
 )
 
 func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
 	s.parseSource(req, &args.Source)
@@ -22,7 +26,7 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	// Pull out the service name
 	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
 	if args.State == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing check state")
 		return nil, nil
 	}
@@ -47,6 +51,10 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -56,7 +64,7 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	// Pull out the service name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
 	if args.Node == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}
@@ -81,6 +89,10 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 }
 
 func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
@@ -92,7 +104,7 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/checks/")
 	if args.ServiceName == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
@@ -117,6 +129,10 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
@@ -135,7 +151,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/service/")
 	if args.ServiceName == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
@@ -159,7 +175,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 			var err error
 			filter, err = strconv.ParseBool(val)
 			if err != nil {
-				resp.WriteHeader(400)
+				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, "Invalid value for ?passing")
 				return nil, nil
 			}

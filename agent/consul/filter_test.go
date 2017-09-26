@@ -10,8 +10,8 @@ import (
 
 func TestFilter_DirEnt(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.Parse(testFilterRules)
-	aclR, _ := acl.New(acl.DenyAll(), policy)
+	policy, _ := acl.Parse(testFilterRules, nil)
+	aclR, _ := acl.New(acl.DenyAll(), policy, nil)
 
 	type tcase struct {
 		in  []string
@@ -52,8 +52,8 @@ func TestFilter_DirEnt(t *testing.T) {
 
 func TestFilter_Keys(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.Parse(testFilterRules)
-	aclR, _ := acl.New(acl.DenyAll(), policy)
+	policy, _ := acl.Parse(testFilterRules, nil)
+	aclR, _ := acl.New(acl.DenyAll(), policy, nil)
 
 	type tcase struct {
 		in  []string
@@ -84,8 +84,8 @@ func TestFilter_Keys(t *testing.T) {
 
 func TestFilter_TxnResults(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.Parse(testFilterRules)
-	aclR, _ := acl.New(acl.DenyAll(), policy)
+	policy, _ := acl.Parse(testFilterRules, nil)
+	aclR, _ := acl.New(acl.DenyAll(), policy, nil)
 
 	type tcase struct {
 		in  []string

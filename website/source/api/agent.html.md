@@ -44,6 +44,12 @@ The table below shows this endpoint's support for
   members (which is the default). This is only eligible for agents running in
   **server mode**. This is specified as part of the URL as a query parameter.
 
+- `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
+  If left blank, this will query for the default segment when connecting to a server and
+  the agent's own segment when connecting to a client (clients can only be part of one
+  network segment). When querying a server, setting this to the special string `_all`
+  will show members in all segments.
+
 ### Sample Request
 
 ```text
@@ -417,7 +423,7 @@ This endpoint instructs the agent to attempt to connect to a given address.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/join/:address`       | `application/json`         |
+| `PUT`  | `/agent/join/:address`       | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),

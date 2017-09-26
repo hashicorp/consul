@@ -16,11 +16,11 @@ func TestOperator_Raft_ListPeers_Implements(t *testing.T) {
 
 func TestOperator_Raft_ListPeers(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	expected := fmt.Sprintf("%s  127.0.0.1:%d  127.0.0.1:%d  leader  true   2",
-		a.Config.NodeName, a.Config.Ports.Server, a.Config.Ports.Server)
+	expected := fmt.Sprintf("%s  %s  127.0.0.1:%d  leader  true   3",
+		a.Config.NodeName, a.Config.NodeID, a.Config.ServerPort)
 
 	// Test the legacy mode with 'consul operator raft -list-peers'
 	{

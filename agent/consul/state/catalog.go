@@ -370,12 +370,12 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 		}
 	}
 
-	// Delete any coordinate associated with this node.
-	coord, err := tx.First("coordinates", "id", nodeName)
+	// Delete any coordinates associated with this node.
+	coords, err := tx.Get("coordinates", "node", nodeName)
 	if err != nil {
 		return fmt.Errorf("failed coordinate lookup: %s", err)
 	}
-	if coord != nil {
+	for coord := coords.Next(); coord != nil; coord = coords.Next() {
 		if err := tx.Delete("coordinates", coord); err != nil {
 			return fmt.Errorf("failed deleting coordinate: %s", err)
 		}

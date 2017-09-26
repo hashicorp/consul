@@ -283,7 +283,7 @@ func encodePeers(configuration Configuration, trans Transport) []byte {
 	var encPeers [][]byte
 	for _, server := range configuration.Servers {
 		if server.Suffrage == Voter {
-			encPeers = append(encPeers, trans.EncodePeer(server.Address))
+			encPeers = append(encPeers, trans.EncodePeer(server.ID, server.Address))
 		}
 	}
 

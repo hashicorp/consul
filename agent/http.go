@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -12,9 +13,20 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
+
+// MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
+type MethodNotAllowedError struct {
+	Method string
+	Allow  []string
+}
+
+func (e MethodNotAllowedError) Error() string {
+	return fmt.Sprintf("method %s not allowed", e.Method)
+}
 
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
@@ -24,14 +36,17 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+	addr  net.Addr
 }
 
-func NewHTTPServer(addr string, a *Agent) *HTTPServer {
+func NewHTTPServer(addr net.Addr, a *Agent) *HTTPServer {
 	s := &HTTPServer{
-		Server:    &http.Server{Addr: addr},
+		Server:    &http.Server{Addr: addr.String()},
 		agent:     a,
-		blacklist: NewBlacklist(a.config.HTTPConfig.BlockEndpoints),
+		blacklist: NewBlacklist(a.config.HTTPBlockEndpoints),
+		addr:      addr,
 	}
+
 	s.Server.Handler = s.handler(a.config.EnableDebug)
 	return s
 }
@@ -199,14 +214,14 @@ var (
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		setHeaders(resp, s.agent.config.HTTPConfig.ResponseHeaders)
-		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
+		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
+		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
 			s.agent.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
-			resp.WriteHeader(http.StatusInternalServerError) // 500
+			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		logURL := req.URL.String()
@@ -229,15 +244,31 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
+		isMethodNotAllowed := func(err error) bool {
+			_, ok := err.(MethodNotAllowedError)
+			return ok
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
-			code := http.StatusInternalServerError // 500
-			errMsg := err.Error()
-			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
-				code = http.StatusForbidden // 403
+			switch {
+			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
+				resp.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(resp, err.Error())
+			case structs.IsErrRPCRateExceeded(err):
+				resp.WriteHeader(http.StatusTooManyRequests)
+			case isMethodNotAllowed(err):
+				// RFC2616 states that for 405 Method Not Allowed the response
+				// MUST include an Allow header containing the list of valid
+				// methods for the requested resource.
+				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+				resp.Header()["Allow"] = err.(MethodNotAllowedError).Allow
+				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
+			default:
+				resp.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(resp, err.Error())
 			}
-			resp.WriteHeader(code)
-			fmt.Fprint(resp, errMsg)
 		}
 
 		// Invoke the handler
@@ -292,7 +323,7 @@ func (s *HTTPServer) IsUIEnabled() bool {
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
-		resp.WriteHeader(http.StatusNotFound) // 404
+		resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -376,7 +407,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Invalid wait time")
 			return true
 		}
@@ -385,7 +416,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if idx := query.Get("index"); idx != "" {
 		index, err := strconv.ParseUint(idx, 10, 64)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest) // 400
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Invalid index")
 			return true
 		}
@@ -405,7 +436,7 @@ func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.Qu
 		b.RequireConsistent = true
 	}
 	if b.AllowStale && b.RequireConsistent {
-		resp.WriteHeader(http.StatusBadRequest) // 400
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
 		return true
 	}

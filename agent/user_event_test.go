@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 )
@@ -47,7 +48,7 @@ func TestValidateUserEventParams(t *testing.T) {
 
 func TestShouldProcessUserEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -116,7 +117,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 
 func TestIngestUserEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	for i := 0; i < 512; i++ {
@@ -147,7 +148,7 @@ func TestIngestUserEvent(t *testing.T) {
 
 func TestFireReceiveEvent(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	srv1 := &structs.NodeService{
@@ -183,9 +184,9 @@ func TestFireReceiveEvent(t *testing.T) {
 
 func TestUserEventToken(t *testing.T) {
 	t.Parallel()
-	cfg := TestACLConfig()
-	cfg.ACLDefaultPolicy = "deny" // Set the default policies to deny
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_default_policy = "deny"
+	`)
 	defer a.Shutdown()
 
 	// Create an ACL token
@@ -217,10 +218,7 @@ func TestUserEventToken(t *testing.T) {
 	for _, c := range cases {
 		event := &UserEvent{Name: c.name}
 		err := a.UserEvent("dc1", token, event)
-		allowed := false
-		if err == nil || err.Error() != permissionDenied {
-			allowed = true
-		}
+		allowed := !acl.IsErrPermissionDenied(err)
 		if allowed != c.expect {
 			t.Fatalf("bad: %#v result: %v", c, allowed)
 		}

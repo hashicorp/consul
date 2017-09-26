@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 )
@@ -33,14 +34,16 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	cfg.UnixSockets = UnixSocketConfig{}
-	cfg.UnixSockets.Perms = "0777"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+		unix_sockets {
+			mode = "0777"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the socket was created
@@ -58,10 +61,9 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	// Ensure we can get a response from the socket.
-	path := socketPath(a.Config.Addresses.HTTP)
 	trans := cleanhttp.DefaultTransport()
 	trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-		return net.Dial("unix", path)
+		return net.Dial("unix", socket)
 	}
 	client := &http.Client{
 		Transport: trans,
@@ -103,9 +105,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Fatalf("not a regular file: %s", socket)
 	}
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the file was replaced by the socket
@@ -198,12 +202,11 @@ func TestSetMeta(t *testing.T) {
 func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	t.Parallel()
 
-	cfg := TestConfig()
-	cfg.HTTPConfig.BlockEndpoints = []string{
-		"/v1/agent/self",
-	}
-
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			block_endpoints = ["/v1/agent/self"]
+		}
+	`)
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -235,7 +238,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -254,9 +257,9 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 	// Header should be set to true if it's turned on.
 	{
-		cfg := TestConfig()
-		cfg.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			translate_wan_addrs = true
+		`)
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -276,12 +279,14 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.HTTPConfig.ResponseHeaders = map[string]string{
-		"Access-Control-Allow-Origin": "*",
-		"X-XSS-Protection":            "1; mode=block",
-	}
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-XSS-Protection" = "1; mode=block"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -303,9 +308,117 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
+	tests := []struct {
+		methods, uri string
+	}{
+		{"PUT", "/v1/acl/bootstrap"},
+		{"PUT", "/v1/acl/create"},
+		{"PUT", "/v1/acl/update"},
+		{"PUT", "/v1/acl/destroy/"},
+		{"GET", "/v1/acl/info/"},
+		{"PUT", "/v1/acl/clone/"},
+		{"GET", "/v1/acl/list"},
+		{"GET", "/v1/acl/replication"},
+		{"PUT", "/v1/agent/token/"},
+		{"GET", "/v1/agent/self"},
+		{"GET", "/v1/agent/members"},
+		{"PUT", "/v1/agent/check/deregister/"},
+		{"PUT", "/v1/agent/check/fail/"},
+		{"PUT", "/v1/agent/check/pass/"},
+		{"PUT", "/v1/agent/check/register"},
+		{"PUT", "/v1/agent/check/update/"},
+		{"PUT", "/v1/agent/check/warn/"},
+		{"GET", "/v1/agent/checks"},
+		{"PUT", "/v1/agent/force-leave/"},
+		{"PUT", "/v1/agent/join/"},
+		{"PUT", "/v1/agent/leave"},
+		{"PUT", "/v1/agent/maintenance"},
+		{"GET", "/v1/agent/metrics"},
+		// {"GET", "/v1/agent/monitor"}, // requires LogWriter. Hangs if LogWriter is provided
+		{"PUT", "/v1/agent/reload"},
+		{"PUT", "/v1/agent/service/deregister/"},
+		{"PUT", "/v1/agent/service/maintenance/"},
+		{"PUT", "/v1/agent/service/register"},
+		{"GET", "/v1/agent/services"},
+		{"GET", "/v1/catalog/datacenters"},
+		{"PUT", "/v1/catalog/deregister"},
+		{"GET", "/v1/catalog/node/"},
+		{"GET", "/v1/catalog/nodes"},
+		{"PUT", "/v1/catalog/register"},
+		{"GET", "/v1/catalog/service/"},
+		{"GET", "/v1/catalog/services"},
+		{"GET", "/v1/coordinate/datacenters"},
+		{"GET", "/v1/coordinate/nodes"},
+		{"PUT", "/v1/event/fire/"},
+		{"GET", "/v1/event/list"},
+		{"GET", "/v1/health/checks/"},
+		{"GET", "/v1/health/node/"},
+		{"GET", "/v1/health/service/"},
+		{"GET", "/v1/health/state/"},
+		{"GET", "/v1/internal/ui/node/"},
+		{"GET", "/v1/internal/ui/nodes"},
+		{"GET", "/v1/internal/ui/services"},
+		{"GET PUT DELETE", "/v1/kv/"},
+		{"GET PUT", "/v1/operator/autopilot/configuration"},
+		{"GET", "/v1/operator/autopilot/health"},
+		{"GET POST PUT DELETE", "/v1/operator/keyring"},
+		{"GET", "/v1/operator/raft/configuration"},
+		{"DELETE", "/v1/operator/raft/peer"},
+		{"GET POST", "/v1/query"},
+		{"GET PUT DELETE", "/v1/query/"},
+		{"GET", "/v1/query/xxx/execute"},
+		{"GET", "/v1/query/xxx/explain"},
+		{"PUT", "/v1/session/create"},
+		{"PUT", "/v1/session/destroy/"},
+		{"GET", "/v1/session/info/"},
+		{"GET", "/v1/session/list"},
+		{"GET", "/v1/session/node/"},
+		{"PUT", "/v1/session/renew/"},
+		{"GET PUT", "/v1/snapshot"},
+		{"GET", "/v1/status/leader"},
+		// {"GET", "/v1/status/peers"},// hangs
+		{"PUT", "/v1/txn"},
+
+		// enterprise only
+		// {"GET POST", "/v1/operator/area"},
+		// {"GET PUT DELETE", "/v1/operator/area/"},
+		// {"GET", "/v1/operator/area/xxx/members"},
+	}
+
+	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+
+	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD"}
+	client := http.Client{}
+
+	for _, tt := range tests {
+		for _, m := range all {
+
+			t.Run(m+" "+tt.uri, func(t *testing.T) {
+				uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), tt.uri)
+				req, _ := http.NewRequest(m, uri, nil)
+				resp, err := client.Do(req)
+				if err != nil {
+					t.Fatal("client.Do failed: ", err)
+				}
+
+				allowed := strings.Contains(tt.methods, m)
+				if allowed && resp.StatusCode == http.StatusMethodNotAllowed {
+					t.Fatalf("method allowed: got status code %d want any other code", resp.StatusCode)
+				}
+				if !allowed && resp.StatusCode != http.StatusMethodNotAllowed {
+					t.Fatalf("method not allowed: got status code %d want %d", resp.StatusCode, http.StatusMethodNotAllowed)
+				}
+			})
+		}
+	}
+}
+
 func TestContentTypeIsJSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -389,7 +502,7 @@ func TestPrettyPrintBare(t *testing.T) {
 }
 
 func testPrettyPrint(pretty string, t *testing.T) {
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	r := &structs.DirEntry{Key: "key"}
@@ -417,7 +530,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Default is agent's DC and no node (since the user didn't care, then
@@ -565,7 +678,7 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Check when no token is set
@@ -603,9 +716,9 @@ func TestACLResolution(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.EnableUI = true
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		ui = true
+	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
@@ -644,10 +757,6 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 		t.Fatalf("Bad: %v", header)
 	}
 	return uint64(val)
-}
-
-func isPermissionDenied(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
 }
 
 func jsonReader(v interface{}) io.Reader {

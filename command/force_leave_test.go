@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -28,13 +27,12 @@ func TestForceLeaveCommand_implements(t *testing.T) {
 
 func TestForceLeaveCommandRun(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), nil)
-	a2 := agent.NewTestAgent(t.Name(), nil)
+	a1 := agent.NewTestAgent(t.Name(), ``)
+	a2 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

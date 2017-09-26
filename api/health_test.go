@@ -256,6 +256,7 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 }
 
 func TestAPI_HealthService(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -282,6 +283,7 @@ func TestAPI_HealthService(t *testing.T) {
 }
 
 func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta

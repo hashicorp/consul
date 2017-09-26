@@ -36,27 +36,27 @@ const snapshotErrorRecoveryInterval = 30 * time.Second
 // Snapshotter is responsible for ingesting events and persisting
 // them to disk, and providing a recovery mechanism at start time.
 type Snapshotter struct {
-	aliveNodes       map[string]string
-	clock            *LamportClock
-	coordClient      *coordinate.Client
-	fh               *os.File
-	buffered         *bufio.Writer
-	inCh             <-chan Event
-	lastFlush        time.Time
-	lastClock        LamportTime
-	lastEventClock   LamportTime
-	lastQueryClock   LamportTime
-	leaveCh          chan struct{}
-	leaving          bool
-	logger           *log.Logger
-	maxSize          int64
-	path             string
-	offset           int64
-	outCh            chan<- Event
-	rejoinAfterLeave bool
-	shutdownCh       <-chan struct{}
-	waitCh           chan struct{}
-	lastAttemptedCompaction        time.Time
+	aliveNodes              map[string]string
+	clock                   *LamportClock
+	coordClient             *coordinate.Client
+	fh                      *os.File
+	buffered                *bufio.Writer
+	inCh                    <-chan Event
+	lastFlush               time.Time
+	lastClock               LamportTime
+	lastEventClock          LamportTime
+	lastQueryClock          LamportTime
+	leaveCh                 chan struct{}
+	leaving                 bool
+	logger                  *log.Logger
+	maxSize                 int64
+	path                    string
+	offset                  int64
+	outCh                   chan<- Event
+	rejoinAfterLeave        bool
+	shutdownCh              <-chan struct{}
+	waitCh                  chan struct{}
+	lastAttemptedCompaction time.Time
 }
 
 // PreviousNode is used to represent the previously known alive nodes
@@ -423,10 +423,19 @@ func (s *Snapshotter) compact() error {
 
 	// Flush the new snapshot
 	err = buf.Flush()
-	fh.Close()
+
 	if err != nil {
 		return fmt.Errorf("failed to flush new snapshot: %v", err)
 	}
+
+	err = fh.Sync()
+
+	if err != nil {
+		fh.Close()
+		return fmt.Errorf("failed to fsync new snapshot: %v", err)
+	}
+
+	fh.Close()
 
 	// We now need to swap the old snapshot file with the new snapshot.
 	// Turns out, Windows won't let us rename the files if we have

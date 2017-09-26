@@ -1,3 +1,85 @@
+## 1.0.0 (UNRELEASED)
+
+BREAKING CHANGES:
+
+* **Raft Protocol Defaults to 3:** The [`-raft-protocol`](https://www.consul.io/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all Autopilot features by default. Version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](https://www.consul.io/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format. [GH-3477]
+* **HTTP Verb Enforcement:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
+
+    <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
+
+    | Endpoint | Required HTTP Verb |
+    | -------- | ------------------ |
+    | /v1/acl/info | GET |
+    | /v1/acl/list | GET |
+    | /v1/acl/replication | GET |
+    | /v1/agent/check/deregister | PUT |
+    | /v1/agent/check/fail | PUT |
+    | /v1/agent/check/pass | PUT |
+    | /v1/agent/check/register | PUT |
+    | /v1/agent/check/warn | PUT |
+    | /v1/agent/checks | GET |
+    | /v1/agent/force-leave | PUT |
+    | /v1/agent/join | PUT |
+    | /v1/agent/members | GET |
+    | /v1/agent/metrics | GET |
+    | /v1/agent/self | GET |
+    | /v1/agent/service/register | PUT |
+    | /v1/agent/service/deregister | PUT |
+    | /v1/agent/services | GET |
+    | /v1/catalog/datacenters | GET |
+    | /v1/catalog/deregister | PUT |
+    | /v1/catalog/node | GET |
+    | /v1/catalog/nodes | GET |
+    | /v1/catalog/register | PUT |
+    | /v1/catalog/service | GET |
+    | /v1/catalog/services | GET |
+    | /v1/coordinate/datacenters | GET |
+    | /v1/coordinate/nodes | GET |
+    | /v1/health/checks | GET |
+    | /v1/health/node | GET |
+    | /v1/health/service | GET |
+    | /v1/health/state | GET |
+    | /v1/internal/ui/node | GET |
+    | /v1/internal/ui/nodes | GET |
+    | /v1/internal/ui/services | GET |
+    | /v1/session/info | GET |
+    | /v1/session/list | GET |
+    | /v1/session/node | GET |
+    | /v1/status/leader | GET |
+    | /v1/status/peers | GET |
+    
+    </details>
+
+FEATURES:
+
+IMPROVEMENTS:
+
+* agent: Add support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
+
+BUG FIXES:
+
+## 0.9.3 (September 8, 2017)
+
+FEATURES:
+* **LAN Network Segments:** (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support segmented LAN topologies with multiple, distinct gossip pools. [GH-3431]
+* **WAN Join for Cloud Providers:** Added WAN support for retry join for cloud providers via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [GH-3406]
+* **RPC Rate Limiter:** Consul agents in client mode have a new [`limits`](https://www.consul.io/docs/agent/options.html#limits) configuration that enables a rate limit on RPC calls the agent makes to Consul servers. [GH-3140]
+
+IMPROVEMENTS:
+
+* agent: Switched to using a read lock for the agent's RPC dispatcher, which prevents RPC calls from getting serialized. [GH-3376]
+* agent: When joining a cluster, Consul now skips the unique node ID constraint for Consul members running Consul older than 0.8.5. This makes it easier to upgrade to newer versions of Consul in an existing cluster with non-unique node IDs. [GH-3070]
+* build: Upgraded Go version to 1.9. [GH-3428]
+* server: Consul servers can re-establish quorum after all of them change their IP addresses upon a restart. [GH-1580]
+
+BUG FIXES:
+
+* agent: Fixed an issue with consul watches not triggering when ACLs are enabled. [GH-3392]
+* agent: Updated memberlist library for a deadlock fix. [GH-3396]
+* agent: Fixed a panic when retrieving NS or SOA records on Consul clients (non-servers). This also changed the Consul server list to come from the catalog and not the agent's local state when serving these requests, so the results are consistent across a cluster. [GH-3407]
+* cli: Updated the CLI library to pull in a fix that prevents all subcommands from being shown when showing the agent's usage list; now just top-level commands are shown. [GH-3448]
+* server: Fixed an issue with Consul snapshots not saving on Windows because of errors with the `fsync` syscall. [GH-3409]
+
 ## 0.9.2 (August 9, 2017)
 
 BUG FIXES:

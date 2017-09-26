@@ -9,9 +9,13 @@ import (
 )
 
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
+
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
@@ -31,9 +35,13 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
+
 	var args structs.DeregisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
 	}
@@ -53,6 +61,10 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	var out []string
 	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
 		return nil, err
@@ -61,6 +73,10 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
@@ -84,6 +100,10 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 }
 
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.DCSpecificRequest{}
 	args.NodeMetaFilters = s.parseMetaFilter(req)
@@ -105,6 +125,10 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
@@ -123,7 +147,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	// Pull out the service name
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/service/")
 	if args.ServiceName == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
 	}
@@ -149,6 +173,10 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 }
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -158,7 +186,7 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
 	if args.Node == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}

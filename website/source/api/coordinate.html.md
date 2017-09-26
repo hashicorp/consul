@@ -108,6 +108,7 @@ $ curl \
 [
   {
     "Node": "agent-one",
+    "Segment": "",
     "Coord": {
       "Adjustment": 0,
       "Error": 1.5,
@@ -117,3 +118,7 @@ $ curl \
   }
 ]
 ```
+
+In **Consul Enterprise**, this may include multiple coordinates for the same node,
+each marked with a different `Segment`. Coordinates are only compatible within the same
+segment.

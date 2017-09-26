@@ -1,7 +1,10 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -40,12 +43,15 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(metrics.Gauges) < 0 {
-		t.Fatalf("bad: %v", metrics)
+	var found bool
+	for _, g := range metrics.Gauges {
+		if g.Name == "consul.runtime.alloc_bytes" {
+			found = true
+			break
+		}
 	}
-
-	if metrics.Gauges[0].Name != "consul.runtime.alloc_bytes" {
-		t.Fatalf("bad: %v", metrics.Gauges[0])
+	if !found {
+		t.Fatalf("missing runtime metrics")
 	}
 }
 
@@ -53,11 +59,14 @@ func TestAPI_AgentReload(t *testing.T) {
 	t.Parallel()
 
 	// Create our initial empty config file, to be overwritten later
-	configFile := testutil.TempFile(t, "reload")
-	if _, err := configFile.Write([]byte("{}")); err != nil {
-		t.Fatalf("err: %s", err)
+	cfgDir := testutil.TempDir(t, "consul-config")
+	defer os.RemoveAll(cfgDir)
+
+	cfgFilePath := filepath.Join(cfgDir, "reload.json")
+	configFile, err := os.Create(cfgFilePath)
+	if err != nil {
+		t.Fatalf("Unable to create file %v, got error:%v", cfgFilePath, err)
 	}
-	configFile.Close()
 
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.Args = []string{"-config-file", configFile.Name()}
@@ -68,7 +77,7 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234}}`
-	err := ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -88,6 +97,29 @@ func TestAPI_AgentReload(t *testing.T) {
 	}
 	if service.Port != 1234 {
 		t.Fatalf("bad: %v", service.Port)
+	}
+}
+
+func TestAPI_AgentMembersOpts(t *testing.T) {
+	t.Parallel()
+	c, s1 := makeClient(t)
+	_, s2 := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Datacenter = "dc2"
+	})
+	defer s1.Stop()
+	defer s2.Stop()
+
+	agent := c.Agent()
+
+	s2.JoinWAN(t, s1.WANAddr)
+
+	members, err := agent.MembersOpts(MembersOpts{WAN: true})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(members) != 2 {
+		t.Fatalf("bad: %v", members)
 	}
 }
 
@@ -607,7 +639,9 @@ func TestAPI_AgentJoin(t *testing.T) {
 	}
 
 	// Join ourself
-	addr := info["Config"]["AdvertiseAddr"].(string)
+	ip := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["IP"].(string)
+	port := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["Port"].(float64)
+	addr := fmt.Sprintf("%s:%d", ip, int(port))
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)

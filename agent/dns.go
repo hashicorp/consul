@@ -12,6 +12,7 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -34,12 +35,26 @@ const (
 
 var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
+type dnsConfig struct {
+	AllowStale      bool
+	Datacenter      string
+	EnableTruncate  bool
+	MaxStale        time.Duration
+	NodeName        string
+	NodeTTL         time.Duration
+	OnlyPassing     bool
+	RecursorTimeout time.Duration
+	SegmentName     string
+	ServiceTTL      map[string]time.Duration
+	UDPAnswerLimit  int
+}
+
 // DNSServer is used to wrap an Agent and expose various
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	*dns.Server
 	agent     *Agent
-	config    *DNSConfig
+	config    *dnsConfig
 	domain    string
 	recursors []string
 	logger    *log.Logger
@@ -61,18 +76,35 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	}
 
 	// Make sure domain is FQDN, make it case insensitive for ServeMux
-	domain := dns.Fqdn(strings.ToLower(a.config.Domain))
+	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
 
+	dnscfg := GetDNSConfig(a.config)
 	srv := &DNSServer{
 		agent:     a,
-		config:    &a.config.DNSConfig,
+		config:    dnscfg,
 		domain:    domain,
 		logger:    a.logger,
 		recursors: recursors,
 	}
-	srv.disableCompression.Store(a.config.DNSConfig.DisableCompression)
+	srv.disableCompression.Store(a.config.DNSDisableCompression)
 
 	return srv, nil
+}
+
+func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
+	return &dnsConfig{
+		AllowStale:      conf.DNSAllowStale,
+		Datacenter:      conf.Datacenter,
+		EnableTruncate:  conf.DNSEnableTruncate,
+		MaxStale:        conf.DNSMaxStale,
+		NodeName:        conf.NodeName,
+		NodeTTL:         conf.DNSNodeTTL,
+		OnlyPassing:     conf.DNSOnlyPassing,
+		RecursorTimeout: conf.DNSRecursorTimeout,
+		SegmentName:     conf.SegmentName,
+		ServiceTTL:      conf.DNSServiceTTL,
+		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
+	}
 }
 
 func (s *DNSServer) ListenAndServe(network, addr string, notif func()) error {
@@ -150,7 +182,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
-			AllowStale: *d.config.AllowStale,
+			AllowStale: d.config.AllowStale,
 		},
 	}
 	var out structs.IndexedNodes
@@ -272,41 +304,31 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
-	// get server names and store them in a map to randomize the output
-	servers := map[string]net.IP{}
-	for name, addr := range d.agent.delegate.ServerAddrs() {
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			d.logger.Printf("[WARN] Unable to parse address %v, got error: %v", addr, err)
-			continue
-		}
-
-		ip := net.ParseIP(host)
-		if ip == nil {
-			continue
-		}
-
-		// Use "NODENAME.node.DC.DOMAIN" as a unique name for the server
-		// since we use that name in other places as well.
-		// 'name' is "NODENAME.DC" so we need to split it
-		// to construct the server name.
-		lastdot := strings.LastIndexByte(name, '.')
-		nodeName, dc := name[:lastdot], name[lastdot:]
-		if InvalidDnsRe.MatchString(nodeName) {
-			d.logger.Printf("[WARN] dns: Node name %q is not a valid dns host name, will not be added to NS record", nodeName)
-			continue
-		}
-		fqdn := nodeName + ".node" + dc + "." + d.domain
-		fqdn = dns.Fqdn(strings.ToLower(fqdn))
-
-		servers[fqdn] = ip
+	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "")
+	if err != nil {
+		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
+		return nil, nil
 	}
 
-	if len(servers) == 0 {
+	if len(out.Nodes) == 0 {
+		d.logger.Printf("[WARN] dns: no servers found")
 		return
 	}
 
-	for name, ip := range servers {
+	// shuffle the nodes to randomize the output
+	out.Nodes.Shuffle()
+
+	for _, o := range out.Nodes {
+		name, addr, dc := o.Node.Node, o.Node.Address, o.Node.Datacenter
+
+		if InvalidDnsRe.MatchString(name) {
+			d.logger.Printf("[WARN] dns: Skipping invalid node %q for NS records", name)
+			continue
+		}
+
+		fqdn := name + ".node." + dc + "." + d.domain
+		fqdn = dns.Fqdn(strings.ToLower(fqdn))
+
 		// NS record
 		nsrr := &dns.NS{
 			Hdr: dns.RR_Header{
@@ -315,12 +337,12 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 				Class:  dns.ClassINET,
 				Ttl:    uint32(d.config.NodeTTL / time.Second),
 			},
-			Ns: name,
+			Ns: fqdn,
 		}
 		ns = append(ns, nsrr)
 
 		// A or AAAA glue record
-		glue := d.formatNodeRecord(nil, ip.String(), name, dns.TypeANY, d.config.NodeTTL, edns)
+		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
 		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
@@ -476,7 +498,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 		Node:       node,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
-			AllowStale: *d.config.AllowStale,
+			AllowStale: d.config.AllowStale,
 		},
 	}
 	var out structs.IndexedNodeServices
@@ -672,7 +694,7 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes. Any extra
 // records will be trimmed along with answers.
-func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
+func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 	hasExtra := len(resp.Extra) > 0
 	maxSize := defaultMaxUDPSize
@@ -693,7 +715,7 @@ func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
 	}
 
 	// This cuts UDP responses to a useful but limited number of responses.
-	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
+	maxAnswers := lib.MinInt(maxUDPAnswerLimit, udpAnswerLimit)
 	if maxSize == defaultMaxUDPSize && numAnswers > maxAnswers {
 		resp.Answer = resp.Answer[:maxAnswers]
 		if hasExtra {
@@ -720,9 +742,8 @@ func trimUDPResponse(config *DNSConfig, req, resp *dns.Msg) (trimmed bool) {
 	return len(resp.Answer) < numAnswers
 }
 
-// serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
-	// Make an RPC request
+// lookupServiceNodes returns nodes with a given service.
+func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  datacenter,
 		ServiceName: service,
@@ -730,40 +751,42 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		TagFilter:   tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
-			AllowStale: *d.config.AllowStale,
+			AllowStale: d.config.AllowStale,
 		},
 	}
+
 	var out structs.IndexedCheckServiceNodes
-RPC:
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
-		return
+		return structs.IndexedCheckServiceNodes{}, err
 	}
 
-	// Verify that request is not too stale, redo the request
-	if args.AllowStale {
-		if out.LastContact > d.config.MaxStale {
-			args.AllowStale = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-			goto RPC
-		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
-		}
+	if args.AllowStale && out.LastContact > staleCounterThreshold {
+		metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
 	}
 
-	// Determine the TTL
-	var ttl time.Duration
-	if d.config.ServiceTTL != nil {
-		var ok bool
-		ttl, ok = d.config.ServiceTTL[service]
-		if !ok {
-			ttl = d.config.ServiceTTL["*"]
+	// redo the request the response was too stale
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+
+		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
+			return structs.IndexedCheckServiceNodes{}, err
 		}
 	}
 
 	// Filter out any service nodes due to health checks
 	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
+	return out, nil
+}
+
+// serviceLookup is used to handle a service query
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
+	out, err := d.lookupServiceNodes(datacenter, service, tag)
+	if err != nil {
+		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
@@ -775,6 +798,16 @@ RPC:
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
 
+	// Determine the TTL
+	var ttl time.Duration
+	if d.config.ServiceTTL != nil {
+		var ok bool
+		ttl, ok = d.config.ServiceTTL[service]
+		if !ok {
+			ttl = d.config.ServiceTTL["*"]
+		}
+	}
+
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeSRV {
@@ -785,7 +818,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(d.config, req, resp)
+		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -808,7 +841,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
-			AllowStale: *d.config.AllowStale,
+			AllowStale: d.config.AllowStale,
 		},
 
 		// Always pass the local agent through. In the DNS interface, there
@@ -817,6 +850,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		// relative to ourself on the server side.
 		Agent: structs.QuerySource{
 			Datacenter: d.agent.config.Datacenter,
+			Segment:    d.agent.config.SegmentName,
 			Node:       d.agent.config.NodeName,
 		},
 	}
@@ -893,7 +927,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses.
 	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(d.config, req, resp)
+		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {

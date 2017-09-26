@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -33,11 +34,11 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 
 	// Fetch the ACL token, if any, and apply the policy.
-	acl, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && s.srv.config.ACLEnforceVersion8 {
+	if rule != nil && s.srv.config.ACLEnforceVersion8 {
 		switch args.Op {
 		case structs.SessionDestroy:
 			state := s.srv.fsm.State()
@@ -48,13 +49,13 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 			if existing == nil {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
-			if !acl.SessionWrite(existing.Node) {
-				return errPermissionDenied
+			if !rule.SessionWrite(existing.Node) {
+				return acl.ErrPermissionDenied
 			}
 
 		case structs.SessionCreate:
-			if !acl.SessionWrite(args.Session.Node) {
-				return errPermissionDenied
+			if !rule.SessionWrite(args.Session.Node) {
+				return acl.ErrPermissionDenied
 			}
 
 		default:
@@ -235,13 +236,13 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	}
 
 	// Fetch the ACL token, if any, and apply the policy.
-	acl, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && s.srv.config.ACLEnforceVersion8 {
-		if !acl.SessionWrite(session.Node) {
-			return errPermissionDenied
+	if rule != nil && s.srv.config.ACLEnforceVersion8 {
+		if !rule.SessionWrite(session.Node) {
+			return acl.ErrPermissionDenied
 		}
 	}
 

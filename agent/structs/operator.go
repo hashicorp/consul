@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"net"
 	"time"
 
 	"github.com/hashicorp/raft"
@@ -222,4 +223,21 @@ type OperatorHealthReply struct {
 
 	// Servers holds the health of each server.
 	Servers []ServerHealth
+}
+
+// (Enterprise-only) NetworkSegment is the configuration for a network segment, which is an
+// isolated serf group on the LAN.
+type NetworkSegment struct {
+	// Name is the name of the segment.
+	Name string
+
+	// Bind is the bind address for this segment.
+	Bind *net.TCPAddr
+
+	// Advertise is the advertise address of this segment.
+	Advertise *net.TCPAddr
+
+	// RPCListener is whether to bind a separate RPC listener on the bind address
+	// for this segment.
+	RPCListener bool
 }

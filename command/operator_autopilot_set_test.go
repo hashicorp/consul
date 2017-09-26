@@ -17,7 +17,7 @@ func TestOperator_Autopilot_Set_Implements(t *testing.T) {
 
 func TestOperator_Autopilot_Set(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

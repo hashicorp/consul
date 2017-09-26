@@ -14,7 +14,7 @@ import (
 
 func TestCatalogRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -22,7 +22,7 @@ func TestCatalogRegister(t *testing.T) {
 		Node:    "foo",
 		Address: "127.0.0.1",
 	}
-	req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 	obj, err := a.srv.CatalogRegister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -33,7 +33,7 @@ func TestCatalogRegister(t *testing.T) {
 		t.Fatalf("bad: %v", res)
 	}
 
-	// todo(fs): data race
+	// data race
 	func() {
 		a.state.Lock()
 		defer a.state.Unlock()
@@ -53,7 +53,7 @@ func TestCatalogRegister(t *testing.T) {
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
@@ -67,7 +67,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 					Port:    8080,
 				},
 			}
-			req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
+			req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 			_, err := a.srv.CatalogRegister(nil, req)
 			if err == nil || err.Error() != "Invalid service address" {
 				t.Fatalf("err: %v", err)
@@ -78,12 +78,12 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 
 func TestCatalogDeregister(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
 	args := &structs.DeregisterRequest{Node: "foo"}
-	req, _ := http.NewRequest("GET", "/v1/catalog/deregister", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/catalog/deregister", jsonReader(args))
 	obj, err := a.srv.CatalogDeregister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -97,11 +97,12 @@ func TestCatalogDeregister(t *testing.T) {
 
 func TestCatalogDatacenters(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		obj, err := a.srv.CatalogDatacenters(nil, nil)
+		req, _ := http.NewRequest("GET", "/v1/catalog/datacenters", nil)
+		obj, err := a.srv.CatalogDatacenters(nil, req)
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -115,7 +116,7 @@ func TestCatalogDatacenters(t *testing.T) {
 
 func TestCatalogNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -148,7 +149,7 @@ func TestCatalogNodes(t *testing.T) {
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register a node with a meta field
@@ -188,22 +189,22 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	cfg1 := TestConfig()
-	cfg1.Datacenter = "dc1"
-	cfg1.TranslateWanAddrs = true
-	cfg1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), cfg1)
+	a1 := NewTestAgent(t.Name(), `
+		datacenter = "dc1"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Datacenter = "dc2"
-	cfg2.TranslateWanAddrs = true
-	cfg2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+		datacenter = "dc2"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	if _, err := a2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -282,7 +283,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 
 func TestCatalogNodes_Blocking(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -350,7 +351,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register nodes.
@@ -434,7 +435,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 
 func TestCatalogServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -469,7 +470,7 @@ func TestCatalogServices(t *testing.T) {
 
 func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -510,7 +511,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 
 func TestCatalogServiceNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is returned, not a nil
@@ -563,7 +564,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is returned, not a nil
@@ -618,22 +619,22 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	cfg1 := TestConfig()
-	cfg1.Datacenter = "dc1"
-	cfg1.TranslateWanAddrs = true
-	cfg1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), cfg1)
+	a1 := NewTestAgent(t.Name(), `
+		datacenter = "dc1"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Datacenter = "dc2"
-	cfg2.TranslateWanAddrs = true
-	cfg2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+		datacenter = "dc2"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -703,7 +704,7 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register nodes.
@@ -790,7 +791,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 
 func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Register node
@@ -825,22 +826,22 @@ func TestCatalogNodeServices(t *testing.T) {
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	t.Parallel()
-	cfg1 := TestConfig()
-	cfg1.Datacenter = "dc1"
-	cfg1.TranslateWanAddrs = true
-	cfg1.ACLDatacenter = ""
-	a1 := NewTestAgent(t.Name(), cfg1)
+	a1 := NewTestAgent(t.Name(), `
+		datacenter = "dc1"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a1.Shutdown()
 
-	cfg2 := TestConfig()
-	cfg2.Datacenter = "dc2"
-	cfg2.TranslateWanAddrs = true
-	cfg2.ACLDatacenter = ""
-	a2 := NewTestAgent(t.Name(), cfg2)
+	a2 := NewTestAgent(t.Name(), `
+		datacenter = "dc2"
+		translate_wan_addrs = true
+		acl_datacenter = ""
+	`)
 	defer a2.Shutdown()
 
 	// Wait for the WAN join.
-	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.Ports.SerfWan)
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}

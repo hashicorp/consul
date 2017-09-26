@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/test/porter"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -40,6 +41,10 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
+	ports, err := porter.RandomPorts(3)
+	if err != nil {
+		t.Fatal("RandomPorts:", err)
+	}
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -48,7 +53,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
 	// In that case get the address from srv.Listener.Addr().
-	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}}
+	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[0]}
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
@@ -60,14 +65,16 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// memberlist will update the value of BindPort after bind
 	// to the actual value.
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfLANConfig.MemberlistConfig.BindPort = 0
+	config.SerfLANConfig.MemberlistConfig.BindPort = ports[1]
+	config.SerfLANConfig.MemberlistConfig.AdvertisePort = ports[1]
 	config.SerfLANConfig.MemberlistConfig.SuspicionMult = 2
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfWANConfig.MemberlistConfig.BindPort = 0
+	config.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
+	config.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
 	config.SerfWANConfig.MemberlistConfig.SuspicionMult = 2
 	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
@@ -342,7 +349,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		if len(s2.router.GetDatacenters()) != 2 {
 			r.Fatalf("remote consul missing")
 		}
-		if len(s2.localConsuls) != 2 {
+		if len(s2.serverLookup.Servers()) != 2 {
 			r.Fatalf("local consul fellow s3 for s2 missing")
 		}
 	})
@@ -485,18 +492,10 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
-			r.Fatalf("got %d s1 LAN members want %d", got, want)
-		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
-			r.Fatalf("got %d s2 LAN members want %d", got, want)
-		}
-	})
+
 	// Verify Raft has established a peer
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 2))
-		r.Check(wantPeers(s2, 2))
+		r.Check(wantRaft([]*Server{s1, s2}))
 	})
 }
 
@@ -548,10 +547,7 @@ func TestServer_Expect(t *testing.T) {
 
 	// Wait for the new server to see itself added to the cluster.
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 4))
-		r.Check(wantPeers(s2, 4))
-		r.Check(wantPeers(s3, 4))
-		r.Check(wantPeers(s4, 4))
+		r.Check(wantRaft([]*Server{s1, s2, s3, s4}))
 	})
 
 	// Make sure there's still a leader and that the term didn't change,
@@ -654,26 +650,18 @@ func TestServer_Encrypted(t *testing.T) {
 }
 
 func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
-	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// make sure both servers know about each other
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s1, 2)) })
-	retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s2, 2)) })
+	joinLAN(t, s1, s2)
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
 
 	// Have s2 make an RPC call to s1
-	s2.localLock.RLock()
 	var leader *metadata.Server
-	for _, server := range s2.localConsuls {
+	for _, server := range s2.serverLookup.Servers() {
 		if server.Name == s1.config.NodeName {
 			leader = server
 		}
 	}
-	s2.localLock.RUnlock()
 	if leader == nil {
 		t.Fatal("no leader")
 	}

@@ -36,8 +36,12 @@ The following guides are available:
 
 * [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
+* [Network Segments](/docs/guides/segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
+
 * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
+
+* [Sentinel](/docs/guides/sentinel.html) - This guide covers using Sentinel for policy enforcement in Consul.
 
 * [Server Performance](/docs/guides/performance.html) - This guide covers minumum requirements for Consul servers as well as guidelines for running Consul servers in production.

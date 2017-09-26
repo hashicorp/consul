@@ -15,13 +15,6 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 )
 
-var (
-	ErrNoLeader                   = fmt.Errorf("No cluster leader")
-	ErrNoDCPath                   = fmt.Errorf("No path to datacenter")
-	ErrNoServers                  = fmt.Errorf("No known Consul servers")
-	ErrNotReadyForConsistentReads = fmt.Errorf("Not ready to serve consistent reads")
-)
-
 type MessageType uint8
 
 // RaftIndex is used to track the index used while creating
@@ -73,6 +66,9 @@ const (
 
 	// metaValueMaxLength is the maximum allowed length of a metadata value
 	metaValueMaxLength = 512
+
+	// MetaSegmentKey is the node metadata key used to store the node's network segment
+	MetaSegmentKey = "consul-network-segment"
 
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
@@ -239,6 +235,7 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 // coordinates.
 type QuerySource struct {
 	Datacenter string
+	Segment    string
 	Node       string
 }
 
@@ -307,13 +304,13 @@ type Node struct {
 type Nodes []*Node
 
 // ValidateMeta validates a set of key/value pairs from the agent config
-func ValidateMetadata(meta map[string]string) error {
+func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
 	if len(meta) > metaMaxKeyPairs {
 		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
 	}
 
 	for key, value := range meta {
-		if err := validateMetaPair(key, value); err != nil {
+		if err := validateMetaPair(key, value, allowConsulPrefix); err != nil {
 			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
 		}
 	}
@@ -322,7 +319,7 @@ func ValidateMetadata(meta map[string]string) error {
 }
 
 // validateMetaPair checks that the given key/value pair is in a valid format
-func validateMetaPair(key, value string) error {
+func validateMetaPair(key, value string, allowConsulPrefix bool) error {
 	if key == "" {
 		return fmt.Errorf("Key cannot be blank")
 	}
@@ -332,7 +329,7 @@ func validateMetaPair(key, value string) error {
 	if len(key) > metaKeyMaxLength {
 		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
 	}
-	if strings.HasPrefix(key, metaKeyReservedPrefix) {
+	if strings.HasPrefix(key, metaKeyReservedPrefix) && !allowConsulPrefix {
 		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
 	}
 	if len(value) > metaValueMaxLength {
@@ -747,8 +744,9 @@ type IndexedSessions struct {
 
 // Coordinate stores a node name with its associated network coordinate.
 type Coordinate struct {
-	Node  string
-	Coord *coordinate.Coordinate
+	Node    string
+	Segment string
+	Coord   *coordinate.Coordinate
 }
 
 type Coordinates []*Coordinate
@@ -781,6 +779,7 @@ type DatacenterMap struct {
 type CoordinateUpdateRequest struct {
 	Datacenter string
 	Node       string
+	Segment    string
 	Coord      *coordinate.Coordinate
 	WriteRequest
 }
@@ -888,6 +887,7 @@ func (r *KeyringRequest) RequestDatacenter() string {
 type KeyringResponse struct {
 	WAN        bool
 	Datacenter string
+	Segment    string
 	Messages   map[string]string `json:",omitempty"`
 	Keys       map[string]int
 	NumNodes   int

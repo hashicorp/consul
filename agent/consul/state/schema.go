@@ -374,6 +374,26 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					// AllowMissing is required since we allow
+					// Segment to be an empty string.
+					AllowMissing: true,
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "Segment",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "Node",
 					Lowercase: true,

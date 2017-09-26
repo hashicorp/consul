@@ -15,7 +15,7 @@ func TestEventCommand_implements(t *testing.T) {
 
 func TestEventCommandRun(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), nil)
+	a1 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
 
 	ui := cli.NewMockUi()

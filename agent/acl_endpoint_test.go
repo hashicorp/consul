@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -32,10 +33,9 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 
 func TestACL_Bootstrap(t *testing.T) {
 	t.Parallel()
-	cfg := TestACLConfig()
-	cfg.Version = "0.9.1"
-	cfg.ACLMasterToken = ""
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_master_token = ""
+	`)
 	defer a.Shutdown()
 
 	tests := []struct {
@@ -44,7 +44,6 @@ func TestACL_Bootstrap(t *testing.T) {
 		code   int
 		token  bool
 	}{
-		{"bad method", "GET", http.StatusMethodNotAllowed, false},
 		{"bootstrap", "PUT", http.StatusOK, true},
 		{"not again", "PUT", http.StatusForbidden, false},
 	}
@@ -173,7 +172,7 @@ func TestACL_Clone(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id, nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ACLClone(resp, req)
-	if !isPermissionDenied(err) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -278,7 +277,7 @@ func TestACL_List(t *testing.T) {
 
 func TestACLReplicationStatus(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)

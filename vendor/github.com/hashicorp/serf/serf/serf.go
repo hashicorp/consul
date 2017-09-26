@@ -1654,19 +1654,23 @@ func (s *Serf) Stats() map[string]string {
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
+	s.memberLock.RLock()
+	defer s.memberLock.RUnlock()
 	stats := map[string]string{
-		"members":           toString(uint64(len(s.members))),
-		"failed":            toString(uint64(len(s.failedMembers))),
-		"left":              toString(uint64(len(s.leftMembers))),
-		"health_score":      toString(uint64(s.memberlist.GetHealthScore())),
-		"member_time":       toString(uint64(s.clock.Time())),
-		"event_time":        toString(uint64(s.eventClock.Time())),
-		"query_time":        toString(uint64(s.queryClock.Time())),
-		"intent_queue":      toString(uint64(s.broadcasts.NumQueued())),
-		"event_queue":       toString(uint64(s.eventBroadcasts.NumQueued())),
-		"query_queue":       toString(uint64(s.queryBroadcasts.NumQueued())),
-		"encrypted":         fmt.Sprintf("%v", s.EncryptionEnabled()),
-		"coordinate_resets": toString(uint64(s.coordClient.Stats().Resets)),
+		"members":      toString(uint64(len(s.members))),
+		"failed":       toString(uint64(len(s.failedMembers))),
+		"left":         toString(uint64(len(s.leftMembers))),
+		"health_score": toString(uint64(s.memberlist.GetHealthScore())),
+		"member_time":  toString(uint64(s.clock.Time())),
+		"event_time":   toString(uint64(s.eventClock.Time())),
+		"query_time":   toString(uint64(s.queryClock.Time())),
+		"intent_queue": toString(uint64(s.broadcasts.NumQueued())),
+		"event_queue":  toString(uint64(s.eventBroadcasts.NumQueued())),
+		"query_queue":  toString(uint64(s.queryBroadcasts.NumQueued())),
+		"encrypted":    fmt.Sprintf("%v", s.EncryptionEnabled()),
+	}
+	if !s.config.DisableCoordinates {
+		stats["coordinate_resets"] = toString(uint64(s.coordClient.Stats().Resets))
 	}
 	return stats
 }

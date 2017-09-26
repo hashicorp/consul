@@ -48,7 +48,7 @@ func TestLockCommand_BadArgs(t *testing.T) {
 
 func TestLockCommand_Run(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -70,7 +70,7 @@ func TestLockCommand_Run(t *testing.T) {
 
 func TestLockCommand_Try_Lock(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -101,7 +101,7 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 
 func TestLockCommand_Try_Semaphore(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -132,7 +132,7 @@ func TestLockCommand_Try_Semaphore(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -164,7 +164,7 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -196,7 +196,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -228,7 +228,7 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui, c := testLockCommand(t)
@@ -260,7 +260,7 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 
 func TestLockCommand_ChildExitCode(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), nil)
+	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	t.Run("clean exit", func(t *testing.T) {

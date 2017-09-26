@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -89,10 +91,10 @@ type localState struct {
 }
 
 // NewLocalState creates a  is used to initialize the local state
-func NewLocalState(c *Config, lg *log.Logger, tokens *token.Store) *localState {
+func NewLocalState(c *config.RuntimeConfig, lg *log.Logger, tokens *token.Store) *localState {
 	lc := localStateConfig{
 		AEInterval:          c.AEInterval,
-		AdvertiseAddr:       c.AdvertiseAddr,
+		AdvertiseAddr:       c.AdvertiseAddrLAN.String(),
 		CheckUpdateInterval: c.CheckUpdateInterval,
 		Datacenter:          c.Datacenter,
 		NodeID:              c.NodeID,
@@ -339,12 +341,14 @@ func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
 func (l *localState) Checks() map[types.CheckID]*structs.HealthCheck {
-	checks := make(map[types.CheckID]*structs.HealthCheck)
 	l.RLock()
 	defer l.RUnlock()
 
-	for checkID, check := range l.checks {
-		checks[checkID] = check
+	checks := make(map[types.CheckID]*structs.HealthCheck)
+	for id, c := range l.checks {
+		c2 := new(structs.HealthCheck)
+		*c2 = *c
+		checks[id] = c2
 	}
 	return checks
 }
@@ -646,7 +650,7 @@ func (l *localState) deleteService(id string) error {
 		delete(l.serviceTokens, id)
 		l.logger.Printf("[INFO] agent: Deregistered service '%s'", id)
 		return nil
-	} else if strings.Contains(err.Error(), permissionDenied) {
+	} else if acl.IsErrPermissionDenied(err) {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Service '%s' deregistration blocked by ACLs", id)
 		return nil
@@ -673,7 +677,7 @@ func (l *localState) deleteCheck(id types.CheckID) error {
 		delete(l.checkTokens, id)
 		l.logger.Printf("[INFO] agent: Deregistered check '%s'", id)
 		return nil
-	} else if strings.Contains(err.Error(), permissionDenied) {
+	} else if acl.IsErrPermissionDenied(err) {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Check '%s' deregistration blocked by ACLs", id)
 		return nil
@@ -727,7 +731,7 @@ func (l *localState) syncService(id string) error {
 		for _, check := range checks {
 			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
 		}
-	} else if strings.Contains(err.Error(), permissionDenied) {
+	} else if acl.IsErrPermissionDenied(err) {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Service '%s' registration blocked by ACLs", id)
 		for _, check := range checks {
@@ -768,7 +772,7 @@ func (l *localState) syncCheck(id types.CheckID) error {
 		// every time we sync a check.
 		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
-	} else if strings.Contains(err.Error(), permissionDenied) {
+	} else if acl.IsErrPermissionDenied(err) {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Check '%s' registration blocked by ACLs", id)
 		return nil
@@ -791,7 +795,7 @@ func (l *localState) syncNodeInfo() error {
 	if err == nil {
 		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced node info")
-	} else if strings.Contains(err.Error(), permissionDenied) {
+	} else if acl.IsErrPermissionDenied(err) {
 		l.nodeInfoInSync = true
 		l.logger.Printf("[WARN] agent: Node info update blocked by ACLs")
 		return nil

@@ -413,6 +413,15 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, use
 	err = msgpackrpc.CallWithCodec(sc.codec, method, args, reply)
 	if err != nil {
 		sc.Close()
+
+		// See the comment in leader_test.go TestLeader_ChangeServerID
+		// about how we found this. The tldr is that if we see this
+		// error, we know this connection is toast, so we should clear
+		// it and make a new one on the next attempt.
+		if err == io.EOF {
+			p.clearConn(conn)
+		}
+
 		p.releaseConn(conn)
 		return fmt.Errorf("rpc error: %v", err)
 	}
