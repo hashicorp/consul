@@ -44,7 +44,6 @@ func TestACL_Bootstrap(t *testing.T) {
 		code   int
 		token  bool
 	}{
-		{"bad method", "GET", http.StatusMethodNotAllowed, false},
 		{"bootstrap", "PUT", http.StatusOK, true},
 		{"not again", "PUT", http.StatusForbidden, false},
 	}

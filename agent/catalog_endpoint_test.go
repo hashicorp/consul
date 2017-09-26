@@ -22,7 +22,7 @@ func TestCatalogRegister(t *testing.T) {
 		Node:    "foo",
 		Address: "127.0.0.1",
 	}
-	req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 	obj, err := a.srv.CatalogRegister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -67,7 +67,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 					Port:    8080,
 				},
 			}
-			req, _ := http.NewRequest("GET", "/v1/catalog/register", jsonReader(args))
+			req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
 			_, err := a.srv.CatalogRegister(nil, req)
 			if err == nil || err.Error() != "Invalid service address" {
 				t.Fatalf("err: %v", err)
@@ -83,7 +83,7 @@ func TestCatalogDeregister(t *testing.T) {
 
 	// Register node
 	args := &structs.DeregisterRequest{Node: "foo"}
-	req, _ := http.NewRequest("GET", "/v1/catalog/deregister", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/catalog/deregister", jsonReader(args))
 	obj, err := a.srv.CatalogDeregister(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -101,7 +101,8 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer a.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		obj, err := a.srv.CatalogDatacenters(nil, nil)
+		req, _ := http.NewRequest("GET", "/v1/catalog/datacenters", nil)
+		obj, err := a.srv.CatalogDatacenters(nil, req)
 		if err != nil {
 			r.Fatal(err)
 		}

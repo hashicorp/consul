@@ -44,7 +44,6 @@ func (s *HTTPServer) Snapshot(resp http.ResponseWriter, req *http.Request) (inte
 		return nil, nil
 
 	default:
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT"}}
 	}
 }

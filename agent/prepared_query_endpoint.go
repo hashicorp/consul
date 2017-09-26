@@ -10,11 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const (
-	preparedQueryExecuteSuffix = "/execute"
-	preparedQueryExplainSuffix = "/explain"
-)
-
 // preparedQueryCreateResponse is used to wrap the query ID.
 type preparedQueryCreateResponse struct {
 	ID string
@@ -71,8 +66,7 @@ func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Re
 		return s.preparedQueryList(resp, req)
 
 	default:
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
 	}
 }
 
@@ -204,6 +198,10 @@ func (s *HTTPServer) preparedQueryUpdate(id string, resp http.ResponseWriter, re
 		}
 	}
 
+	if args.Query == nil {
+		args.Query = &structs.PreparedQuery{}
+	}
+
 	// Take the ID from the URL, not the embedded one.
 	args.Query.ID = id
 
@@ -235,35 +233,37 @@ func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, re
 // PreparedQuerySpecific handles all the prepared query requests specific to a
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	id := strings.TrimPrefix(req.URL.Path, "/v1/query/")
+	path := req.URL.Path
+	id := strings.TrimPrefix(path, "/v1/query/")
 
-	execute, explain := false, false
-	if strings.HasSuffix(id, preparedQueryExecuteSuffix) {
-		execute = true
-		id = strings.TrimSuffix(id, preparedQueryExecuteSuffix)
-	} else if strings.HasSuffix(id, preparedQueryExplainSuffix) {
-		explain = true
-		id = strings.TrimSuffix(id, preparedQueryExplainSuffix)
-	}
-
-	switch req.Method {
-	case "GET":
-		if execute {
-			return s.preparedQueryExecute(id, resp, req)
-		} else if explain {
-			return s.preparedQueryExplain(id, resp, req)
-		} else {
-			return s.preparedQueryGet(id, resp, req)
+	switch {
+	case strings.HasSuffix(path, "/execute"):
+		if req.Method != "GET" {
+			return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 		}
+		id = strings.TrimSuffix(id, "/execute")
+		return s.preparedQueryExecute(id, resp, req)
 
-	case "PUT":
-		return s.preparedQueryUpdate(id, resp, req)
-
-	case "DELETE":
-		return s.preparedQueryDelete(id, resp, req)
+	case strings.HasSuffix(path, "/explain"):
+		if req.Method != "GET" {
+			return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+		}
+		id = strings.TrimSuffix(id, "/explain")
+		return s.preparedQueryExplain(id, resp, req)
 
 	default:
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
+		switch req.Method {
+		case "GET":
+			return s.preparedQueryGet(id, resp, req)
+
+		case "PUT":
+			return s.preparedQueryUpdate(id, resp, req)
+
+		case "DELETE":
+			return s.preparedQueryDelete(id, resp, req)
+
+		default:
+			return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+		}
 	}
 }
