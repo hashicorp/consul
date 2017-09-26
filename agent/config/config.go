@@ -163,7 +163,6 @@ type Config struct {
 	EnableDebug                 *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`
 	EnableScriptChecks          *bool                    `json:"enable_script_checks,omitempty" hcl:"enable_script_checks" mapstructure:"enable_script_checks"`
 	EnableSyslog                *bool                    `json:"enable_syslog,omitempty" hcl:"enable_syslog" mapstructure:"enable_syslog"`
-	EnableUI                    *bool                    `json:"enable_ui,omitempty" hcl:"enable_ui" mapstructure:"enable_ui"`
 	EncryptKey                  *string                  `json:"encrypt,omitempty" hcl:"encrypt" mapstructure:"encrypt"`
 	EncryptVerifyIncoming       *bool                    `json:"encrypt_verify_incoming,omitempty" hcl:"encrypt_verify_incoming" mapstructure:"encrypt_verify_incoming"`
 	EncryptVerifyOutgoing       *bool                    `json:"encrypt_verify_outgoing,omitempty" hcl:"encrypt_verify_outgoing" mapstructure:"encrypt_verify_outgoing"`
@@ -209,6 +208,7 @@ type Config struct {
 	TaggedAddresses             map[string]string        `json:"tagged_addresses,omitempty" hcl:"tagged_addresses" mapstructure:"tagged_addresses"`
 	Telemetry                   Telemetry                `json:"telemetry,omitempty" hcl:"telemetry" mapstructure:"telemetry"`
 	TranslateWANAddrs           *bool                    `json:"translate_wan_addrs,omitempty" hcl:"translate_wan_addrs" mapstructure:"translate_wan_addrs"`
+	UI                          *bool                    `json:"ui,omitempty" hcl:"ui" mapstructure:"ui"`
 	UIDir                       *string                  `json:"ui_dir,omitempty" hcl:"ui_dir" mapstructure:"ui_dir"`
 	UnixSocket                  UnixSocket               `json:"unix_sockets,omitempty" hcl:"unix_sockets" mapstructure:"unix_sockets"`
 	VerifyIncoming              *bool                    `json:"verify_incoming,omitempty" hcl:"verify_incoming" mapstructure:"verify_incoming"`

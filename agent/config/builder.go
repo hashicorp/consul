@@ -554,7 +554,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EnableDebug:                 b.boolVal(c.EnableDebug),
 		EnableScriptChecks:          b.boolVal(c.EnableScriptChecks),
 		EnableSyslog:                b.boolVal(c.EnableSyslog),
-		EnableUI:                    b.boolVal(c.EnableUI),
+		EnableUI:                    b.boolVal(c.UI),
 		EncryptKey:                  b.stringVal(c.EncryptKey),
 		EncryptVerifyIncoming:       b.boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:       b.boolVal(c.EncryptVerifyOutgoing),

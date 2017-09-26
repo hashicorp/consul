@@ -94,7 +94,7 @@ func DevSource() Source {
 		disable_anonymous_signature = true
 		disable_keyring_file = true
 		enable_debug = true
-		enable_ui = true
+		ui = true
 		log_level = "DEBUG"
 		server = true
 		performance = {
