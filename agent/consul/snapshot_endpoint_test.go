@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -93,27 +94,30 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		}
 	}
 
-	// Read back the before value.
-	{
+	// Read back the before value. We do this with a retry and stale mode so
+	// we can query the server we are working with, which might not be the
+	// leader.
+	retry.Run(t, func(r *retry.R) {
 		getR := structs.KeyRequest{
 			Datacenter: dc,
 			Key:        "test",
 			QueryOptions: structs.QueryOptions{
-				Token: token,
+				Token:      token,
+				AllowStale: true,
 			},
 		}
 		var dirent structs.IndexedDirEntries
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if len(dirent.Entries) != 1 {
-			t.Fatalf("Bad: %v", dirent)
+			r.Fatalf("Bad: %v", dirent)
 		}
 		d := dirent.Entries[0]
 		if string(d.Value) != "goodbye" {
-			t.Fatalf("bad: %v", d)
+			r.Fatalf("bad: %v", d)
 		}
-	}
+	})
 
 	// Restore the snapshot.
 	args.Op = structs.SnapshotRestore
@@ -124,27 +128,29 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 	defer restore.Close()
 
-	// Read back the before value post-snapshot.
-	{
+	// Read back the before value post-snapshot. Similar rationale here; use
+	// stale to query the server we are working with.
+	retry.Run(t, func(r *retry.R) {
 		getR := structs.KeyRequest{
 			Datacenter: dc,
 			Key:        "test",
 			QueryOptions: structs.QueryOptions{
-				Token: token,
+				Token:      token,
+				AllowStale: true,
 			},
 		}
 		var dirent structs.IndexedDirEntries
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if len(dirent.Entries) != 1 {
-			t.Fatalf("Bad: %v", dirent)
+			r.Fatalf("Bad: %v", dirent)
 		}
 		d := dirent.Entries[0]
 		if string(d.Value) != "hello" {
-			t.Fatalf("bad: %v", d)
+			r.Fatalf("bad: %v", d)
 		}
-	}
+	})
 }
 
 func TestSnapshot(t *testing.T) {
@@ -290,6 +296,12 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
+
+		// Since we are doing multiple restores to the same leader,
+		// the default short time for a reconcile can cause the
+		// reconcile to get aborted by our snapshot restore. By
+		// setting it much longer than the test, we avoid this case.
+		c.ReconcileInterval = 60 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -302,15 +314,21 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 
 	// Try to join.
 	joinLAN(t, s2, s1)
-
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
-	// Run against the leader and the follower to ensure we forward.
-	for _, s := range []*Server{s1, s2} {
-		verifySnapshot(t, s, "dc1", "")
-		verifySnapshot(t, s, "dc1", "")
-	}
+	// Run against the leader and the follower to ensure we forward. When
+	// we changed to Raft protocol version 3, since we only have two servers,
+	// the second one isn't a voter, so the snapshot API doesn't wait for
+	// that to replicate before returning success. We added some logic to
+	// verifySnapshot() to poll the server we are working with in stale mode
+	// in order to verify that the snapshot contents are there. Previously,
+	// with Raft protocol version 2, the snapshot API would wait until the
+	// follower got the information as well since it was required to meet
+	// the quorum (2/2 servers), so things were synchronized properly with
+	// no special logic.
+	verifySnapshot(t, s1, "dc1", "")
+	verifySnapshot(t, s2, "dc1", "")
 }
 
 func TestSnapshot_Forward_Datacenter(t *testing.T) {
