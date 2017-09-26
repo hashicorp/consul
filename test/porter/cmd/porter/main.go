@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -97,7 +98,6 @@ func run(args []string) error {
 	return cmd.Run()
 }
 
-// todo(fs): check which ports are currently bound and exclude them
 func servePort(w http.ResponseWriter, r *http.Request) {
 	var count int
 	n, err := strconv.Atoi(r.RequestURI[1:])
@@ -108,26 +108,42 @@ func servePort(w http.ResponseWriter, r *http.Request) {
 		count = 1
 	}
 
-	mu.Lock()
-	if port < firstPort {
-		port = firstPort
+	// getPort assumes the lock is already held and tries to return a port
+	// that's not in use. It will panic if it has to try too many times.
+	getPort := func() int {
+		for i := 0; i < 10; i++ {
+			port++
+			if port < firstPort {
+				port = firstPort
+			}
+			if port >= lastPort {
+				port = firstPort
+			}
+
+			conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return port
+			}
+			conn.Close()
+			if verbose {
+				log.Printf("porter: skipping port %d, already in use", port)
+			}
+		}
+		panic(fmt.Errorf("could not find a free port"))
 	}
-	if port+count >= lastPort {
-		port = firstPort
-	}
-	from, to := port, port+count
-	port = to
-	mu.Unlock()
 
 	p := make([]int, count)
+	mu.Lock()
 	for i := 0; i < count; i++ {
-		p[i] = from + i
+		p[i] = getPort()
 	}
+	mu.Unlock()
+
 	if err := json.NewEncoder(w).Encode(p); err != nil {
 		// this shouldn't happen so we panic since we can't recover
 		panic(err)
 	}
 	if verbose {
-		log.Printf("porter: allocated ports %d-%d (%d)", from, to, count)
+		log.Printf("porter: allocated ports %v", p)
 	}
 }
