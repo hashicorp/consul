@@ -394,8 +394,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_TXT(t *testing.T) {
-	cfg := TestConfig()
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -417,8 +416,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 	m.SetQuestion("google.node.consul.", dns.TypeTXT)
 
 	c := new(dns.Client)
-	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
-	in, _, err := c.Exchange(m, addr.String())
+	in, _, err := c.Exchange(m, a.DNSAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -441,8 +439,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_ANY(t *testing.T) {
-	cfg := TestConfig()
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -463,8 +460,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 	m.SetQuestion("bar.node.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	addr, _ := a.Config.ClientListener("", a.Config.Ports.DNS)
-	in, _, err := c.Exchange(m, addr.String())
+	in, _, err := c.Exchange(m, a.DNSAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
