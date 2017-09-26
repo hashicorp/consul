@@ -54,12 +54,13 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* agent: Add support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
-* agent: Improve list-peers endpoint by avoiding an extra agent RPC call. [GH-3449]
+* agent: Added support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
+* agent: Improved list-peers endpoint by avoiding an extra agent RPC call. [GH-3449]
+* server: Updated BoltDB to final version 1.3.1. [GH-3502]
 
 BUG FIXES:
 
-* agent: Fixed an issue where disabling both the http and https interfaces would cause an error on agent startup. [GH-3425]
+* agent: Fixed an issue where disabling both the http and https interfaces would cause a watch-related error on agent startup, even when no watches were defined. [GH-3425]
 
 ## 0.9.3 (September 8, 2017)
 
