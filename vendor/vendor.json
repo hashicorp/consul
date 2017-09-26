@@ -12,7 +12,7 @@
 		{"path":"github.com/armon/go-radix","checksumSHA1":"gNO0JNpLzYOdInGeq7HqMZUzx9M=","revision":"4239b77079c7b5d1243b7b4736304ce8ddb6f0f2","revisionTime":"2016-01-15T23:47:25Z"},
 		{"path":"github.com/bgentry/speakeasy","checksumSHA1":"dvd7Su+WNmHRP1+w1HezrPUCDsc=","revision":"e1439544d8ecd0f3e9373a636d447668096a8f81","revisionTime":"2016-05-20T23:26:10Z"},
 		{"path":"github.com/bgentry/speakeasy/example","checksumSHA1":"twtRfb6484vfr2qqjiFkLThTjcQ=","revision":"e1439544d8ecd0f3e9373a636d447668096a8f81","revisionTime":"2016-05-20T23:26:10Z"},
-		{"path":"github.com/boltdb/bolt","checksumSHA1":"C1BwfmTAUmldO4V3++tvYWzT49Y=","comment":"v1.2.1","revision":"dfb21201d9270c1082d5fb0f07f500311ff72f18","revisionTime":"2016-05-16T15:40:46Z","version":"v1.2.1","versionExact":"v1.2.1"},
+		{"path":"github.com/boltdb/bolt","checksumSHA1":"R1Q34Pfnt197F/nCOO9kG8c+Z90=","revision":"2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8","revisionTime":"2017-07-17T17:11:48Z"},
 		{"path":"github.com/circonus-labs/circonus-gometrics","checksumSHA1":"szvY4u7TlXkrQ3PW8wmyJaIFy0U=","revision":"d17a8420c36e800fcb46bbd4d2a15b93c68605ea","revisionTime":"2016-11-09T19:23:37Z"},
 		{"path":"github.com/circonus-labs/circonus-gometrics/api","checksumSHA1":"WUE6oF152uN5FcLmmq+nO3Yl7pU=","revision":"d17a8420c36e800fcb46bbd4d2a15b93c68605ea","revisionTime":"2016-11-09T19:23:37Z"},
 		{"path":"github.com/circonus-labs/circonus-gometrics/checkmgr","checksumSHA1":"beRBHHy2+V6Ht4cACIMmZOCnzgg=","revision":"d17a8420c36e800fcb46bbd4d2a15b93c68605ea","revisionTime":"2016-11-09T19:23:37Z"},
