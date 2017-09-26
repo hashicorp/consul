@@ -362,9 +362,12 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 				serverPort = service.Port
 				_, node, err := state.GetNode(check.Node)
 				if err != nil {
+					s.logger.Printf("[ERR] Unable to look up node with name %v, got error:%v", check.Node, err)
+				} else {
 					serverAddr = node.Address
-				} //TODO do we care if we get an error, given that this is inside a reconcile loop?
-				svr := s.serverLookup.Server(raft.ServerAddress(serverAddr))
+				}
+				lookupAddr := net.JoinHostPort(serverAddr, strconv.Itoa(serverPort))
+				svr := s.serverLookup.Server(raft.ServerAddress(lookupAddr))
 				if svr != nil {
 					serverID = svr.ID
 				}

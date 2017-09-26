@@ -250,6 +250,94 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 }
 
+func TestLeader_ReapServer(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+		c.ACLEnforceVersion8 = true
+		c.Bootstrap = false
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	joinLAN(t, s1, s2)
+	joinLAN(t, s1, s3)
+
+	state := s1.fsm.State()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Should be registered
+	retry.Run(t, func(r *retry.R) {
+		_, node, err := state.GetNode(s2.config.NodeName)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if node == nil {
+			r.Fatal("client not registered")
+		}
+	})
+
+	// Make a failed healthcheck for s2
+	state.EnsureCheck(6, &structs.HealthCheck{
+		Node:    s2.config.NodeName,
+		CheckID: "web",
+		Status:  api.HealthCritical,
+	})
+
+	// call reconcileReaped with a map that does not contain s2
+	knownMembers := make(map[string]struct{})
+	knownMembers[s1.config.NodeName] = struct{}{}
+	knownMembers[s2.config.NodeName] = struct{}{}
+
+	err := s1.reconcileReaped(knownMembers)
+
+	if err != nil {
+		t.Fatalf("Unexpected error :%v", err)
+	}
+
+	// Should be deregistered; we have to poll quickly here because
+	// anti-entropy will put it back.
+	reaped := false
+	for start := time.Now(); time.Since(start) < 5*time.Second; {
+		_, node, err := state.GetNode(s3.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if node == nil {
+			reaped = true
+			break
+		}
+	}
+	if !reaped {
+		t.Fatalf("server with id %v should not be registered", s3.config.NodeID)
+	}
+
+}
+
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
