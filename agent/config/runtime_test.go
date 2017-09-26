@@ -1657,6 +1657,48 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},
+		{
+			desc: "multiple check files",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "script": "/bin/true" } }`,
+				`{ "check": { "name": "b", "script": "/bin/false" } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" script = "/bin/true" }`,
+				`check = { name = "b" script = "/bin/false" }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", Script: "/bin/true"},
+					&structs.CheckDefinition{Name: "b", Script: "/bin/false"},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "multiple service files",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80 } }`,
+				`{ "service": { "name": "b", "port": 90 } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80 }`,
+				`service = { name = "b" port = 90 }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{Name: "a", Port: 80},
+					&structs.ServiceDefinition{Name: "b", Port: 90},
+				}
+				rt.DataDir = dataDir
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -2832,29 +2874,6 @@ func TestFullConfig(t *testing.T) {
 		CertFile:                         "7s4QAzDk",
 		Checks: []*structs.CheckDefinition{
 			&structs.CheckDefinition{
-				ID:        "fZaCAXww",
-				Name:      "OOM2eo0f",
-				Notes:     "zXzXI9Gt",
-				ServiceID: "L8G0QNmR",
-				Token:     "oo4BCTgJ",
-				Status:    "qLykAl5u",
-				Script:    "dhGfIF8n",
-				HTTP:      "29B93haH",
-				Header: map[string][]string{
-					"hBq0zn1q": {"2a9o9ZKP", "vKwA5lR6"},
-					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
-				},
-				Method:            "Dou0nGT5",
-				TCP:               "JY6fTTcw",
-				Interval:          18714 * time.Second,
-				DockerContainerID: "qF66POS9",
-				Shell:             "sOnDy228",
-				TLSSkipVerify:     true,
-				Timeout:           5954 * time.Second,
-				TTL:               30044 * time.Second,
-				DeregisterCriticalServiceAfter: 13209 * time.Second,
-			},
-			&structs.CheckDefinition{
 				ID:        "uAjE6m9Z",
 				Name:      "QsZRGpYr",
 				Notes:     "VJ7Sk4BY",
@@ -2899,6 +2918,29 @@ func TestFullConfig(t *testing.T) {
 				Timeout:           18506 * time.Second,
 				TTL:               31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
+			},
+			&structs.CheckDefinition{
+				ID:        "fZaCAXww",
+				Name:      "OOM2eo0f",
+				Notes:     "zXzXI9Gt",
+				ServiceID: "L8G0QNmR",
+				Token:     "oo4BCTgJ",
+				Status:    "qLykAl5u",
+				Script:    "dhGfIF8n",
+				HTTP:      "29B93haH",
+				Header: map[string][]string{
+					"hBq0zn1q": {"2a9o9ZKP", "vKwA5lR6"},
+					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
+				},
+				Method:            "Dou0nGT5",
+				TCP:               "JY6fTTcw",
+				Interval:          18714 * time.Second,
+				DockerContainerID: "qF66POS9",
+				Shell:             "sOnDy228",
+				TLSSkipVerify:     true,
+				Timeout:           5954 * time.Second,
+				TTL:               30044 * time.Second,
+				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
 		CheckUpdateInterval:       16507 * time.Second,

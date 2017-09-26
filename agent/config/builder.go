@@ -232,6 +232,19 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
+
+		// if we have a single 'check' or 'service' we need to add them to the
+		// list of checks and services first since we cannot merge them
+		// generically and later values would clobber earlier ones.
+		if c2.Check != nil {
+			c2.Checks = append(c2.Checks, *c2.Check)
+			c2.Check = nil
+		}
+		if c2.Service != nil {
+			c2.Services = append(c2.Services, *c2.Service)
+			c2.Service = nil
+		}
+
 		c = Merge(c, c2)
 	}
 
