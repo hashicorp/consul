@@ -717,7 +717,7 @@ func TestACLResolution(t *testing.T) {
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
-		enable_ui = true
+		ui = true
 	`)
 	defer a.Shutdown()
 

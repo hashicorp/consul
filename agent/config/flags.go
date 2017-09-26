@@ -98,7 +98,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.SerfBindAddrWAN, "serf-wan-bind", "Address to bind Serf WAN listeners to.")
 	add(&f.Config.ServerMode, "server", "Switches agent to server mode.")
 	add(&f.Config.EnableSyslog, "syslog", "Enables logging to syslog.")
-	add(&f.Config.EnableUI, "ui", "Enables the built-in static web UI server.")
+	add(&f.Config.UI, "ui", "Enables the built-in static web UI server.")
 	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
 }

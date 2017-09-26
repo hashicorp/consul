@@ -1338,13 +1338,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "DNS address cannot be a unix socket",
 		},
 		{
-			desc: "enable_ui and ui_dir",
+			desc: "ui and ui_dir",
 			flags: []string{
 				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "enable_ui": true, "ui_dir": "a" }`},
-			hcl:  []string{`enable_ui = true ui_dir = "a"`},
+			json: []string{`{ "ui": true, "ui_dir": "a" }`},
+			hcl:  []string{`ui = true ui_dir = "a"`},
 			err: "Both the ui and ui-dir flags were specified, please provide only one.\n" +
 				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
 				"If using Consul version 0.7.0 or later, the web UI is included in the binary so use ui to enable it",
@@ -1958,7 +1958,6 @@ func TestFullConfig(t *testing.T) {
 			"enable_debug": true,
 			"enable_script_checks": true,
 			"enable_syslog": true,
-			"enable_ui": true,
 			"encrypt": "A4wELWqH",
 			"encrypt_verify_incoming": true,
 			"encrypt_verify_outgoing": true,
@@ -2221,6 +2220,7 @@ func TestFullConfig(t *testing.T) {
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
+			"ui": true,
 			"ui_dir": "11IFzAUn",
 			"unix_sockets": {
 				"group": "8pFodrV8",
@@ -2378,7 +2378,6 @@ func TestFullConfig(t *testing.T) {
 			enable_debug = true
 			enable_script_checks = true
 			enable_syslog = true
-			enable_ui = true
 			encrypt = "A4wELWqH"
 			encrypt_verify_incoming = true
 			encrypt_verify_outgoing = true
@@ -2641,6 +2640,7 @@ func TestFullConfig(t *testing.T) {
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
+			ui = true
 			ui_dir = "11IFzAUn"
 			unix_sockets = {
 				group = "8pFodrV8"
