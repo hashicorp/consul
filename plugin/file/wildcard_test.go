@@ -261,6 +261,7 @@ func TestLookupMultiWildcard(t *testing.T) {
 }
 
 const exampleOrg = `; example.org test file
+$TTL 3600
 example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
 example.org.		IN	NS	b.iana-servers.net.
 example.org.		IN	NS	a.iana-servers.net.
@@ -274,6 +275,7 @@ alias.example.org.      IN      TXT     "Wildcard CNAME expansion"
 `
 
 const apexWildcard = `; example.org test file with wildcard at apex
+$TTL 3600
 example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
 example.org.		IN	NS	b.iana-servers.net.
 *.example.org.          IN      A       127.0.0.53
@@ -281,6 +283,7 @@ foo.example.org.        IN      A       127.0.0.54
 `
 
 const doubleWildcard = `; example.org test file with wildcard at apex
+$TTL 3600
 example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 1209600 3600
 example.org.		IN	NS	b.iana-servers.net.
 *.example.org.          IN      A       127.0.0.53
