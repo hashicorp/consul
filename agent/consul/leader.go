@@ -360,7 +360,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
 				serverPort = service.Port
-				_, node, err := state.GetNode(check.Name)
+				_, node, err := state.GetNode(check.Node)
 				if err != nil {
 					serverAddr = node.Address
 				} //TODO do we care if we get an error, given that this is inside a reconcile loop?
