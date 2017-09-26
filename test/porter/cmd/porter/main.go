@@ -39,20 +39,22 @@ func main() {
 	flag.Parse()
 
 	// check if there is an instance running
+	startServer := true
 	b, err := ioutil.ReadFile(addrFile)
-	switch {
-	// existing instance but no command to run
-	case err == nil && len(flag.Args()) == 0:
-		log.Println("porter already running on", string(b))
-		os.Exit(0)
-
-	// existing instance with command to run
-	case err == nil:
+	if err == nil {
 		addr = string(b)
-		log.Println("re-using porter instance on", addr)
+		conn, err := net.Dial("tcp", addr)
+		if err == nil {
+			log.Println("found running porter instance at", addr)
+			startServer = false
+			conn.Close()
+		} else {
+			log.Printf("found dead porter instance at %s, will take over", addr)
+		}
+	}
 
-	// new instance
-	case os.IsNotExist(err):
+	args := flag.Args()
+	if startServer {
 		if err := ioutil.WriteFile(addrFile, []byte(addr), 0644); err != nil {
 			log.Fatalf("Cannot write %s: %s", addrFile, err)
 		}
@@ -63,9 +65,12 @@ func main() {
 				log.Fatal(err)
 			}
 		}()
+	} else {
+		if len(args) == 0 {
+			log.Println("no command and existing porter instance found, exiting")
+			os.Exit(0)
+		}
 	}
-
-	args := flag.Args()
 
 	// no command to run: wait for CTRL-C
 	if len(args) == 0 {
