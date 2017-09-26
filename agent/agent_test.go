@@ -1918,3 +1918,49 @@ func TestAgent_GetCoordinate(t *testing.T) {
 	check(true)
 	check(false)
 }
+
+func TestAgent_reloadWatches(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Normal watch with http addr set, should succeed
+	newConf := *a.config
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type":    "key",
+			"key":     "asdf",
+			"handler": "ls",
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Should still succeed with only HTTPS addresses
+	newConf.HTTPSAddrs = newConf.HTTPAddrs
+	newConf.HTTPAddrs = make([]net.Addr, 0)
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type":    "key",
+			"key":     "asdf",
+			"handler": "ls",
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Should fail to reload with no http or https addrs
+	newConf.HTTPSAddrs = make([]net.Addr, 0)
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type":    "key",
+			"key":     "asdf",
+			"handler": "ls",
+		},
+	}
+	if err := a.reloadWatches(&newConf); err == nil || !strings.Contains(err.Error(), "watch plans require an HTTP or HTTPS endpoint") {
+		t.Fatalf("bad: %s", err)
+	}
+}

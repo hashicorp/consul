@@ -515,8 +515,19 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 // reloadWatches stops any existing watch plans and attempts to load the given
 // set of watches.
 func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
+	// Stop the current watches.
+	for _, wp := range a.watchPlans {
+		wp.Stop()
+	}
+	a.watchPlans = nil
+
+	// Return if there are no watches now.
+	if len(cfg.Watches) == 0 {
+		return nil
+	}
+
 	// Watches use the API to talk to this agent, so that must be enabled.
-	if len(cfg.HTTPAddrs) == 0 {
+	if len(cfg.HTTPAddrs) == 0 && len(cfg.HTTPSAddrs) == 0 {
 		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
 	}
 
@@ -539,15 +550,15 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		watchPlans = append(watchPlans, wp)
 	}
 
-	// Stop the current watches.
-	for _, wp := range a.watchPlans {
-		wp.Stop()
+	// Determine the primary http(s) endpoint.
+	var netaddr net.Addr
+	if len(cfg.HTTPAddrs) > 0 {
+		netaddr = cfg.HTTPAddrs[0]
+	} else {
+		netaddr = cfg.HTTPSAddrs[0]
 	}
-	a.watchPlans = nil
-
-	// deterine the primary http endpoint
-	addr := cfg.HTTPAddrs[0].String()
-	if cfg.HTTPAddrs[0].Network() == "unix" {
+	addr := netaddr.String()
+	if netaddr.Network() == "unix" {
 		addr = "unix://" + addr
 	}
 
