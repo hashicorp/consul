@@ -55,6 +55,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Add support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
+* agent: Improve list-peers endpoint by avoiding an extra agent RPC call. [GH-3449]
 
 BUG FIXES:
 
