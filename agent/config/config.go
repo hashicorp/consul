@@ -365,9 +365,9 @@ type Telemetry struct {
 	DogstatsdTags                      []string `json:"dogstatsd_tags,omitempty" hcl:"dogstatsd_tags" mapstructure:"dogstatsd_tags"`
 	FilterDefault                      *bool    `json:"filter_default,omitempty" hcl:"filter_default" mapstructure:"filter_default"`
 	PrefixFilter                       []string `json:"prefix_filter,omitempty" hcl:"prefix_filter" mapstructure:"prefix_filter"`
+	ServicePrefix                      *string  `json:"service_prefix,omitempty" hcl:"service_prefix" mapstructure:"service_prefix"`
 	StatsdAddr                         *string  `json:"statsd_address,omitempty" hcl:"statsd_address" mapstructure:"statsd_address"`
 	StatsiteAddr                       *string  `json:"statsite_address,omitempty" hcl:"statsite_address" mapstructure:"statsite_address"`
-	StatsitePrefix                     *string  `json:"statsite_prefix,omitempty" hcl:"statsite_prefix" mapstructure:"statsite_prefix"`
 }
 
 type Ports struct {

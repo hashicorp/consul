@@ -539,9 +539,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
 		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,
+		TelemetryServicePrefix:                      b.stringVal(c.Telemetry.ServicePrefix),
 		TelemetryStatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
 		TelemetryStatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
-		TelemetryStatsitePrefix:                     b.stringVal(c.Telemetry.StatsitePrefix),
 
 		// Agent
 		AdvertiseAddrLAN:            advertiseAddrLAN,
