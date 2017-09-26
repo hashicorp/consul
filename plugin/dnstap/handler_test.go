@@ -1,21 +1,18 @@
 package dnstap
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/dnstap/test"
 	mwtest "github.com/coredns/coredns/plugin/test"
 
 	tap "github.com/dnstap/golang-dnstap"
-	"github.com/golang/protobuf/proto"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
 func testCase(t *testing.T, tapq, tapr *tap.Message, q, r *dns.Msg) {
-	w := writer{}
+	w := writer{t: t}
 	w.queue = append(w.queue, tapq, tapr)
 	h := Dnstap{
 		Next: mwtest.HandlerFunc(func(_ context.Context,
@@ -23,7 +20,7 @@ func testCase(t *testing.T, tapq, tapr *tap.Message, q, r *dns.Msg) {
 
 			return 0, w.WriteMsg(r)
 		}),
-		Out:  &w,
+		IO:   &w,
 		Pack: false,
 	}
 	_, err := h.ServeDNS(context.TODO(), &mwtest.ResponseWriter{}, q)
@@ -33,22 +30,18 @@ func testCase(t *testing.T, tapq, tapr *tap.Message, q, r *dns.Msg) {
 }
 
 type writer struct {
+	t     *testing.T
 	queue []*tap.Message
 }
 
-func (w *writer) Write(b []byte) (int, error) {
-	e := tap.Dnstap{}
-	if err := proto.Unmarshal(b, &e); err != nil {
-		return 0, err
-	}
+func (w *writer) Dnstap(e tap.Dnstap) {
 	if len(w.queue) == 0 {
-		return 0, errors.New("message not expected")
+		w.t.Error("Message not expected.")
 	}
 	if !test.MsgEqual(w.queue[0], e.Message) {
-		return 0, fmt.Errorf("want: %v, have: %v", w.queue[0], e.Message)
+		w.t.Errorf("want: %v, have: %v", w.queue[0], e.Message)
 	}
 	w.queue = w.queue[1:]
-	return len(b), nil
 }
 
 func TestDnstap(t *testing.T) {

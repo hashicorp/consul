@@ -16,11 +16,15 @@ import (
 // Dnstap is the dnstap handler.
 type Dnstap struct {
 	Next plugin.Handler
-	Out  io.Writer
+	IO   IORoutine
 	Pack bool
 }
 
 type (
+	// IORoutine is the dnstap I/O thread as defined by: <http://dnstap.info/Architecture>.
+	IORoutine interface {
+		Dnstap(tap.Dnstap)
+	}
 	// Tapper is implemented by the Context passed by the dnstap handler.
 	Tapper interface {
 		TapMessage(*tap.Message) error
@@ -49,7 +53,8 @@ func tapMessageTo(w io.Writer, m *tap.Message) error {
 
 // TapMessage implements Tapper.
 func (h Dnstap) TapMessage(m *tap.Message) error {
-	return tapMessageTo(h.Out, m)
+	h.IO.Dnstap(msg.Wrap(m))
+	return nil
 }
 
 // TapBuilder implements Tapper.

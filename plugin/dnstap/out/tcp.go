@@ -32,7 +32,7 @@ func (s *TCP) Write(frame []byte) (n int, err error) {
 // Flush the remaining frames.
 func (s *TCP) Flush() error {
 	defer func() {
-		s.frames = s.frames[0:]
+		s.frames = s.frames[:0]
 	}()
 	c, err := net.DialTimeout("tcp", s.address, time.Second)
 	if err != nil {
