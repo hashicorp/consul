@@ -59,6 +59,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: Fixed an issue where disabling both the http and https interfaces would cause an error on agent startup. [GH-3425]
+
 ## 0.9.3 (September 8, 2017)
 
 FEATURES:
