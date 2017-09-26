@@ -341,12 +341,14 @@ func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
 func (l *localState) Checks() map[types.CheckID]*structs.HealthCheck {
-	checks := make(map[types.CheckID]*structs.HealthCheck)
 	l.RLock()
 	defer l.RUnlock()
 
-	for checkID, check := range l.checks {
-		checks[checkID] = check
+	checks := make(map[types.CheckID]*structs.HealthCheck)
+	for id, c := range l.checks {
+		c2 := new(structs.HealthCheck)
+		*c2 = *c
+		checks[id] = c2
 	}
 	return checks
 }
