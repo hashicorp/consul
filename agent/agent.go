@@ -551,17 +551,15 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	}
 
 	// Determine the primary http(s) endpoint.
-	var addr string
+	var netaddr net.Addr
 	if len(cfg.HTTPAddrs) > 0 {
-		addr = cfg.HTTPAddrs[0].String()
-		if cfg.HTTPAddrs[0].Network() == "unix" {
-			addr = "unix://" + addr
-		}
+		netaddr = cfg.HTTPAddrs[0]
 	} else {
-		addr = cfg.HTTPSAddrs[0].String()
-		if cfg.HTTPSAddrs[0].Network() == "unix" {
-			addr = "unix://" + addr
-		}
+		netaddr = cfg.HTTPSAddrs[0]
+	}
+	addr := netaddr.String()
+	if netaddr.Network() == "unix" {
+		addr = "unix://" + addr
 	}
 
 	// Fire off a goroutine for each new watch plan.
