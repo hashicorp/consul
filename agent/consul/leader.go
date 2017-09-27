@@ -329,9 +329,8 @@ func (s *Server) getOrCreateAutopilotConfig() (*structs.AutopilotConfig, bool) {
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
-// from Serf but remain in the catalog. This is done by looking for SerfCheckID
-// in a critical state that does not correspond to a known Serf member. We generate
-// a "reap" event to cause the node to be cleaned up.
+// from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
+// We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
 	_, checks, err := state.ChecksInState(nil, api.HealthAny)
@@ -349,6 +348,35 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 			continue
 		}
 
+		// Get the node services, look for ConsulServiceID
+		_, services, err := state.NodeServices(nil, check.Node)
+		if err != nil {
+			return err
+		}
+		serverPort := 0
+		serverAddr := ""
+		serverID := ""
+
+	CHECKS:
+		for _, service := range services.Services {
+			if service.ID == structs.ConsulServiceID {
+				_, node, err := state.GetNode(check.Node)
+				if err != nil {
+					s.logger.Printf("[ERR] consul: Unable to look up node with name %q: %v", check.Node, err)
+					continue CHECKS
+				}
+
+				serverAddr = node.Address
+				serverPort = service.Port
+				lookupAddr := net.JoinHostPort(serverAddr, strconv.Itoa(serverPort))
+				svr := s.serverLookup.Server(raft.ServerAddress(lookupAddr))
+				if svr != nil {
+					serverID = svr.ID
+				}
+				break
+			}
+		}
+
 		// Create a fake member
 		member := serf.Member{
 			Name: check.Node,
@@ -358,23 +386,12 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 			},
 		}
 
-		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node)
-		if err != nil {
-			return err
-		}
-		serverPort := 0
-		for _, service := range services.Services {
-			if service.ID == structs.ConsulServiceID {
-				serverPort = service.Port
-				break
-			}
-		}
-
 		// Create the appropriate tags if this was a server node
 		if serverPort > 0 {
 			member.Tags["role"] = "consul"
 			member.Tags["port"] = strconv.FormatUint(uint64(serverPort), 10)
+			member.Tags["id"] = serverID
+			member.Addr = net.ParseIP(serverAddr)
 		}
 
 		// Attempt to reap this member
