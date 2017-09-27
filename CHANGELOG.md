@@ -15,16 +15,39 @@ BREAKING CHANGES:
     | `-atlas-join` | None, Atlas is no longer supported. |
     | `-atlas-endpoint` | None, Atlas is no longer supported. |
     | `-dc` | [`-datacenter`](https://www.consul.io/docs/agent/options.html#_datacenter) |
-    | `-retry-join-azure-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-azure-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-region` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-tag-key` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-credentials-file` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-project-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-zone-pattern` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-azure-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#microsoft-azure) |
+    | `-retry-join-azure-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#microsoft-azure) |
+    | `-retry-join-ec2-region` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#amazon-ec2) |
+    | `-retry-join-ec2-tag-key` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#amazon-ec2) |
+    | `-retry-join-ec2-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#amazon-ec2) |
+    | `-retry-join-gce-credentials-file` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
+    | `-retry-join-gce-project-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
+    | `-retry-join-gce-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
+    | `-retry-join-gce-zone-pattern` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
+    | `addresses.rpc` | None, the RPC server for CLI commands is no longer supported. |
+    | `atlas_infrastructure` | None, Atlas is no longer supported. |
+    | `atlas_token` | None, Atlas is no longer supported. |
+    | `atlas_acl_token | None, Atlas is no longer supported. |
+    | `atlas_join` | None, Atlas is no longer supported. |
+    | `atlas_endpoint` | None, Atlas is no longer supported. |
+    | `dogstatsd_addr` | [`telemetry.dogstatsd_addr`](https://www.consul.io/docs/agent/options.html#telemetry-dogstatsd_addr) |
+    | `dogstatsd_tags` | [`telemetry.dogstatsd_tags`](https://www.consul.io/docs/agent/options.html#telemetry-dogstatsd_tags) |
+    | `http_api_response_headers` | [`http_config.response_headers`](https://www.consul.io/docs/agent/options.html#response_headers) |
+    | `ports.rpc` | None, the RPC server for CLI commands is no longer supported. |
+    | `recursor` | [`recursors`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#recursors) |
+    | `retry_join_azure` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#microsoft-azure) |
+    | `retry_join_ec2` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#amazon-ec2) |
+    | `retry_join_gce` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
+    | `statsd_addr` | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#telemetry-statsd_address) |
+    | `statsite_addr` | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#telemetry-statsite_address) |
+    | `statsite_prefix` | [`telemetry.metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix) |
+    | `telemetry.statsite_prefix` | [`telemetry.metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix) |
+    | (service definitions) `serviceid` | [`service_id`](https://www.consul.io/docs/agent/services.html) |
+    | (service definitions) `dockercontainerid` | [`docker_container_id`](https://www.consul.io/docs/agent/services.html) |
+    | (service definitions) `tlsskipverify` | [`tls_skip_verify`](https://www.consul.io/docs/agent/services.html) |
+    | (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](https://www.consul.io/docs/agent/services.html) |
 
+* **`statsite_prefix` Has Been Renamed to `metrics_prefix`:** Since the `statsite_prefix` applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
 * **HTTP Verbs are Now Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -71,7 +94,6 @@ BREAKING CHANGES:
     | /v1/status/peers | GET |
 
     </details>
-* **`statsite_prefix` Has Been Renamed to `metrics_prefix`:** Since the `statsite_prefix` applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
 
 FEATURES:
 
