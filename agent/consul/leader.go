@@ -357,16 +357,16 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		serverAddr := ""
 		serverID := ""
 
-	checks:
+	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
 				_, node, err := state.GetNode(check.Node)
 				if err != nil {
-					s.logger.Printf("[ERR] consul: Unable to look up node with name %q:%v", check.Node, err)
-					continue checks
-				} else {
-					serverAddr = node.Address
+					s.logger.Printf("[ERR] consul: Unable to look up node with name %q: %v", check.Node, err)
+					continue CHECKS
 				}
+
+				serverAddr = node.Address
 				serverPort = service.Port
 				lookupAddr := net.JoinHostPort(serverAddr, strconv.Itoa(serverPort))
 				svr := s.serverLookup.Server(raft.ServerAddress(lookupAddr))
