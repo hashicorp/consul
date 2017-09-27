@@ -6,10 +6,10 @@ BREAKING CHANGES:
 * **Config Files Require an Extension:** As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](https://www.consul.io/docs/agent/options.html#_config_file) argument to specify a file directly. [GH-3480]
 * **Deprecated Options Have Been Removed:** All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. [GH-3480]
 
-    <details><summary>Detailed List of Deprecated Options and their Equivalents</summary>
+    <details><summary>Detailed List of Removed Options and their Equivalents</summary>
     
-    | Option   | Supported Equivalent |
-    | -------- | -------------------- |
+    | Removed Option | Equivalent |
+    | -------------- | ---------- |
     | `-atlas` | None, Atlas is no longer supported. |
     | `-atlas-token`| None, Atlas is no longer supported. |
     | `-atlas-join` | None, Atlas is no longer supported. |
