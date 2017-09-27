@@ -105,6 +105,12 @@ type RuntimeConfig struct {
 	TelemetryStatsdAddr                         string
 	TelemetryStatsiteAddr                       string
 
+	// Datacenter and NodeName are exposed via /v1/agent/self from here and
+	// used in lots of places like CLI commands. Treat this as an interface
+	// that must be stable.
+	Datacenter string
+	NodeName   string
+
 	AdvertiseAddrLAN            *net.IPAddr
 	AdvertiseAddrWAN            *net.IPAddr
 	BindAddr                    *net.IPAddr
@@ -119,7 +125,6 @@ type RuntimeConfig struct {
 	DNSAddrs                    []net.Addr
 	DNSPort                     int
 	DataDir                     string
-	Datacenter                  string
 	DevMode                     bool
 	DisableAnonymousSignature   bool
 	DisableCoordinates          bool
@@ -144,7 +149,6 @@ type RuntimeConfig struct {
 	LogLevel                    string
 	NodeID                      types.NodeID
 	NodeMeta                    map[string]string
-	NodeName                    string
 	NonVotingServer             bool
 	PidFile                     string
 	RPCAdvertiseAddr            *net.TCPAddr
