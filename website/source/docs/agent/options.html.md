@@ -257,10 +257,8 @@ will exit with an error at startup.
     combined with static IP or DNS addresses or even multiple configurations
     for different providers.
 
-    ~> This replaces the previous `-retry-join-ec2-*`, `-retry-join-azure-*`,
-    and `-retry-join-gce-*` configuration options.
-
-    Here are the supported cloud provider specific auto joining options:
+    The following sections give the options specific to each supported cloud
+    provider.
 
     ### Amazon EC2
 
@@ -377,24 +375,6 @@ will exit with an error at startup.
     - `tag_value` (required) - the value of the tag to auto-join on.
     - `username` (required) - the username to use for auth.
     - `api_key` (required) - the api key to use for auth.
-
-* `-retry-join-ec2-tag-key` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-ec2-tag-value` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-ec2-region` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-gce-tag-value` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-gce-project-name` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-gce-zone-pattern` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-gce-credentials-file` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-azure-tag-name` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `-retry-join-azure-tag-value`- This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
@@ -896,23 +876,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).
 
-*   <a name="http_api_response_headers"></a><a href="#http_api_response_headers">`http_api_response_headers`</a>
-    This object allows adding headers to the HTTP API
-    responses. For example, the following config can be used to enable
-    [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
-    the HTTP API endpoints:
-
-    ```javascript
-      {
-        "http_api_response_headers": {
-            "Access-Control-Allow-Origin": "*"
-        }
-      }
-    ```
-
-    This has been deprecated in Consul 0.8.5. Setting this value will set `http_config.response_headers`
-    instead for backwards compatibility.
-
 *   <a name="http_config"></a><a href="#http_config">`http_config`</a>
     This object allows setting options for the HTTP API.
 
@@ -1016,8 +979,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS API, -1 to disable. Default -1 (disabled).
-    * <a name="rpc_port"></a><a href="#rpc_port">`rpc`</a> - The CLI RPC endpoint. Default 8400. This is deprecated
-      in Consul 0.8 and later.
     * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
@@ -1051,10 +1012,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   controls how long it takes for a failed server to be completely removed from the WAN pool. This also
   defaults to 72 hours, and must be >= 8 hours.
 
-* <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
-  This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for
-  backwards compatibility.
-
 * <a name="recursors"></a><a href="#recursors">`recursors`</a> This flag provides addresses of
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
   domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
@@ -1064,12 +1021,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   to the [`-rejoin` command-line flag](#_rejoin).
 
 * `retry_join` - Equivalent to the [`-retry-join`](#retry-join) command-line flag.
-
-* `retry_join_ec2`- This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `retry_join_gce` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
-
-* `retry_join_azure` - This parameter has been deprecated as of Consul 0.9.1. See [-retry-join](#retry-join) for details.
 
 * <a name="retry_interval"></a><a href="#retry_interval">`retry_interval`</a> Equivalent to the
   [`-retry-interval` command-line flag](#_retry_interval).
@@ -1223,21 +1174,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
       statsite.
 
-* <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> Deprecated, see
-  the <a href="#telemetry">telemetry</a> structure
-
-* <a name="statsite_addr"></a><a href="#statsite_addr">`statsite_addr`</a> Deprecated, see
-  the <a href="#telemetry">telemetry</a> structure
-
-* <a name="statsite_prefix"></a><a href="#statsite_prefix">`statsite_prefix`</a> Deprecated, see
-  the <a href="#telemetry">telemetry</a> structure
-
-* <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> Deprecated, see
-  the <a href="#telemetry">telemetry</a> structure
-
-* <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> Deprecated, see
-  the <a href="#telemetry">telemetry</a> structure
-
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
@@ -1359,11 +1295,6 @@ port.
   enable connection between servers through port 8302 for both TCP and UDP on
   the LAN interface as well for the WAN Join Flooding feature. See also:
   [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
-
-* CLI RPC (Default 8400). This is used by all agents to handle RPC
-  from the CLI, but is deprecated in Consul 0.8 and later. TCP only.
-  In Consul 0.8 all CLI commands were changed to use the HTTP API and
-  the RPC interface was completely removed.
 
 * HTTP API (Default 8500). This is used by clients to talk to the HTTP
   API. TCP only.
