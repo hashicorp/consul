@@ -3,7 +3,7 @@
 BREAKING CHANGES:
 
 * **Raft Protocol Now Defaults to 3:** The [`-raft-protocol`](https://www.consul.io/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features by default. Version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](https://www.consul.io/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](https://www.consul.io/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format. [GH-3477]
-* **Config Files Require an Extension:** As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](http://localhost:4567/docs/agent/options.html#_config_file) aregument to specify a file directly. [GH-3480]
+* **Config Files Require an Extension:** As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](https://www.consul.io/docs/agent/options.html#_config_file) aregument to specify a file directly. [GH-3480]
 * **HTTP Verbs are Enforced in HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -55,6 +55,7 @@ BREAKING CHANGES:
 FEATURES:
 
 * **Support for HCL Config Files:** Consul now supports HashiCorp's [HCL](https://github.com/hashicorp/hcl#syntax) format for config files. This is easier to work with than JSON and supports comments. As part of this change, all config files will need to have either an `.hcl` or `.json` extension in order to specify their format. [GH-3480]
+* **Support for Binding to Multiple Addresses:** Consul now supports binding to multiple addresses for its HTTP, HTTPS, and DNS services. You can provide a space-separated list of addresses to [`-client`](https://www.consul.io/docs/agent/options.html#_client) and [`addresses`](https://www.consul.io/docs/agent/options.html#addresses) configurations, or specify a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that resolvies to multiple addresses. [GH-3480]
 
 IMPROVEMENTS:
 
