@@ -16,14 +16,14 @@ BREAKING CHANGES:
     | `-atlas-endpoint` | None, Atlas is no longer supported. |
     | `-dc` | [`-datacenter`](https://www.consul.io/docs/agent/options.html#_datacenter) |
     | `-retry-join-azure-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-azure-tag-value" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-region" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-tag-key" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-ec2-tag-value" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-credentials-file" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-project-name" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-tag-name" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
-    | `-retry-join-gce-zone-pattern" | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-azure-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-ec2-region` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-ec2-tag-key` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-ec2-tag-value` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-gce-credentials-file` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-gce-project-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-gce-tag-name` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
+    | `-retry-join-gce-zone-pattern` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) |
 
 * **HTTP Verbs are Now Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
 
