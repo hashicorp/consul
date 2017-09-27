@@ -505,7 +505,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if info["Config"]["NodeName"] == "" {
+	if info["Config"]["NodeName"].(string) == "" {
 		t.Fatalf("bad: %v", info)
 	}
 }

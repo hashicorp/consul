@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"reflect"
 	"strings"
@@ -214,45 +215,135 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 	return tc.IncomingTLSConfig()
 }
 
-func (c *RuntimeConfig) Sanitized() RuntimeConfig {
-	isSecret := func(name string) bool {
-		name = strings.ToLower(name)
-		return strings.Contains(name, "key") || strings.Contains(name, "token") || strings.Contains(name, "secret")
-	}
+// Sanitized returns a JSON/HCL compatible representation of the runtime
+// configuration where all fields with potential secrets had their
+// values replaced by 'hidden'. In addition, network addresses and
+// time.Duration values are formatted to improve readability.
+func (c *RuntimeConfig) Sanitized() map[string]interface{} {
+	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
+}
 
-	cleanRetryJoin := func(a []string) (b []string) {
-		for _, line := range a {
-			var fields []string
-			for _, f := range strings.Fields(line) {
-				if isSecret(f) {
-					kv := strings.SplitN(f, "=", 2)
-					fields = append(fields, kv[0]+"=hidden")
-				} else {
-					fields = append(fields, f)
-				}
-			}
-			b = append(b, strings.Join(fields, " "))
-		}
-		return b
-	}
+// isSecret determines whether a field name represents a field which
+// may contain a secret.
+func isSecret(name string) bool {
+	name = strings.ToLower(name)
+	return strings.Contains(name, "key") || strings.Contains(name, "token") || strings.Contains(name, "secret")
+}
 
-	// sanitize all fields with secrets
-	typ := reflect.TypeOf(RuntimeConfig{})
-	rawval := reflect.ValueOf(*c)
-	sanval := reflect.New(typ) // *RuntimeConfig
-	for i := 0; i < typ.NumField(); i++ {
-		f := typ.Field(i)
-		if f.Type.Kind() == reflect.String && isSecret(f.Name) {
-			sanval.Elem().Field(i).Set(reflect.ValueOf("hidden"))
+// cleanRetryJoin sanitizes the go-discover config strings key=val key=val...
+// by scrubbing the individual key=val combinations.
+func cleanRetryJoin(a string) string {
+	var fields []string
+	for _, f := range strings.Fields(a) {
+		if isSecret(f) {
+			kv := strings.SplitN(f, "=", 2)
+			fields = append(fields, kv[0]+"=hidden")
 		} else {
-			sanval.Elem().Field(i).Set(rawval.Field(i))
+			fields = append(fields, f)
 		}
 	}
-	san := sanval.Elem().Interface().(RuntimeConfig)
+	return strings.Join(fields, " ")
+}
 
-	// sanitize retry-join config strings
-	san.RetryJoinLAN = cleanRetryJoin(san.RetryJoinLAN)
-	san.RetryJoinWAN = cleanRetryJoin(san.RetryJoinWAN)
+func sanitize(name string, v reflect.Value) reflect.Value {
+	typ := v.Type()
+	switch {
 
-	return san
+	// check before isStruct and isPtr
+	case isNetAddr(typ):
+		if v.IsNil() {
+			return reflect.ValueOf("")
+		}
+		switch x := v.Interface().(type) {
+		case *net.TCPAddr:
+			return reflect.ValueOf("tcp://" + x.String())
+		case *net.UDPAddr:
+			return reflect.ValueOf("udp://" + x.String())
+		case *net.UnixAddr:
+			return reflect.ValueOf("unix://" + x.String())
+		case *net.IPAddr:
+			return reflect.ValueOf(x.IP.String())
+		default:
+			return v
+		}
+
+	// check before isNumber
+	case isDuration(typ):
+		x := v.Interface().(time.Duration)
+		return reflect.ValueOf(x.String())
+
+	case isString(typ):
+		if strings.HasPrefix(name, "RetryJoinLAN[") || strings.HasPrefix(name, "RetryJoinWAN[") {
+			x := v.Interface().(string)
+			return reflect.ValueOf(cleanRetryJoin(x))
+		}
+		if isSecret(name) {
+			return reflect.ValueOf("hidden")
+		}
+		return v
+
+	case isNumber(typ) || isBool(typ):
+		return v
+
+	case isPtr(typ):
+		if v.IsNil() {
+			return v
+		}
+		return sanitize(name, v.Elem())
+
+	case isStruct(typ):
+		m := map[string]interface{}{}
+		for i := 0; i < typ.NumField(); i++ {
+			key := typ.Field(i).Name
+			m[key] = sanitize(key, v.Field(i)).Interface()
+		}
+		return reflect.ValueOf(m)
+
+	case isArray(typ) || isSlice(typ):
+		ma := make([]interface{}, 0)
+		for i := 0; i < v.Len(); i++ {
+			ma = append(ma, sanitize(fmt.Sprintf("%s[%d]", name, i), v.Index(i)).Interface())
+		}
+		return reflect.ValueOf(ma)
+
+	case isMap(typ):
+		m := map[string]interface{}{}
+		for _, k := range v.MapKeys() {
+			key := k.String()
+			m[key] = sanitize(key, v.MapIndex(k)).Interface()
+		}
+		return reflect.ValueOf(m)
+
+	default:
+		return v
+	}
+}
+
+func isDuration(t reflect.Type) bool { return t == reflect.TypeOf(time.Second) }
+func isMap(t reflect.Type) bool      { return t.Kind() == reflect.Map }
+func isNetAddr(t reflect.Type) bool  { return t.Implements(reflect.TypeOf((*net.Addr)(nil)).Elem()) }
+func isPtr(t reflect.Type) bool      { return t.Kind() == reflect.Ptr }
+func isArray(t reflect.Type) bool    { return t.Kind() == reflect.Array }
+func isSlice(t reflect.Type) bool    { return t.Kind() == reflect.Slice }
+func isString(t reflect.Type) bool   { return t.Kind() == reflect.String }
+func isStruct(t reflect.Type) bool   { return t.Kind() == reflect.Struct }
+func isBool(t reflect.Type) bool     { return t.Kind() == reflect.Bool }
+func isNumber(t reflect.Type) bool   { return isInt(t) || isUint(t) || isFloat(t) || isComplex(t) }
+func isInt(t reflect.Type) bool {
+	return t.Kind() == reflect.Int ||
+		t.Kind() == reflect.Int8 ||
+		t.Kind() == reflect.Int16 ||
+		t.Kind() == reflect.Int32 ||
+		t.Kind() == reflect.Int64
+}
+func isUint(t reflect.Type) bool {
+	return t.Kind() == reflect.Uint ||
+		t.Kind() == reflect.Uint8 ||
+		t.Kind() == reflect.Uint16 ||
+		t.Kind() == reflect.Uint32 ||
+		t.Kind() == reflect.Uint64
+}
+func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64 }
+func isComplex(t reflect.Type) bool {
+	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -21,7 +20,7 @@ import (
 )
 
 type Self struct {
-	Config config.RuntimeConfig
+	Config map[string]interface{}
 	Coord  *coordinate.Coordinate
 	Member serf.Member
 	Stats  map[string]map[string]string

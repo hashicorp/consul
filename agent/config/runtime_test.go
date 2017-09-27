@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type configTest struct {
@@ -3499,33 +3501,278 @@ func TestConfigDecodeBytes(t *testing.T) {
 
 func TestSanitize(t *testing.T) {
 	rt := RuntimeConfig{
+		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
+		SerfAdvertiseAddrLAN: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+		DNSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+		},
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+			&net.UnixAddr{Name: "/var/run/foo"},
+		},
+		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RetryJoinLAN: []string{
 			"foo=bar key=baz secret=boom bang=bar",
 		},
 		RetryJoinWAN: []string{
 			"wan_foo=bar wan_key=baz wan_secret=boom wan_bang=bar",
 		},
-	}
-
-	want := RuntimeConfig{
-		ACLAgentMasterToken:       "hidden",
-		ACLAgentToken:             "hidden",
-		ACLMasterToken:            "hidden",
-		ACLReplicationToken:       "hidden",
-		ACLToken:                  "hidden",
-		EncryptKey:                "hidden",
-		KeyFile:                   "hidden",
-		TelemetryCirconusAPIToken: "hidden",
-		RetryJoinLAN: []string{
-			"foo=bar key=hidden secret=hidden bang=bar",
+		Services: []*structs.ServiceDefinition{
+			&structs.ServiceDefinition{
+				Name:  "foo",
+				Token: "bar",
+				Check: structs.CheckType{
+					Name: "blurb",
+				},
+			},
 		},
-		RetryJoinWAN: []string{
-			"wan_foo=bar wan_key=hidden wan_secret=hidden wan_bang=bar",
+		Checks: []*structs.CheckDefinition{
+			&structs.CheckDefinition{
+				Name:  "zoo",
+				Token: "zope",
+			},
 		},
 	}
 
-	if got := rt.Sanitized(); !verify.Values(t, "", got, want) {
-		t.Fail()
+	rtJSON := `{
+    "ACLAgentMasterToken": "hidden",
+    "ACLAgentToken": "hidden",
+    "ACLDatacenter": "",
+    "ACLDefaultPolicy": "",
+    "ACLDisabledTTL": "0s",
+    "ACLDownPolicy": "",
+    "ACLEnforceVersion8": false,
+    "ACLMasterToken": "hidden",
+    "ACLReplicationToken": "hidden",
+    "ACLTTL": "0s",
+    "ACLToken": "hidden",
+    "AEInterval": "0s",
+    "AdvertiseAddrLAN": "",
+    "AdvertiseAddrWAN": "",
+    "AutopilotCleanupDeadServers": false,
+    "AutopilotDisableUpgradeMigration": false,
+    "AutopilotLastContactThreshold": "0s",
+    "AutopilotMaxTrailingLogs": 0,
+    "AutopilotRedundancyZoneTag": "",
+    "AutopilotServerStabilizationTime": "0s",
+    "AutopilotUpgradeVersionTag": "",
+    "BindAddr": "127.0.0.1",
+    "Bootstrap": false,
+    "BootstrapExpect": 0,
+    "CAFile": "",
+    "CAPath": "",
+    "CertFile": "",
+    "CheckDeregisterIntervalMin": "0s",
+    "CheckReapInterval": "0s",
+    "CheckUpdateInterval": "0s",
+    "Checks": [
+        {
+            "DeregisterCriticalServiceAfter": "0s",
+            "DockerContainerID": "",
+            "HTTP": "",
+            "Header": {},
+            "ID": "",
+            "Interval": "0s",
+            "Method": "",
+            "Name": "zoo",
+            "Notes": "",
+            "Script": "",
+            "ServiceID": "",
+            "Shell": "",
+            "Status": "",
+            "TCP": "",
+            "TLSSkipVerify": false,
+            "TTL": "0s",
+            "Timeout": "0s",
+            "Token": "hidden"
+        }
+    ],
+    "ClientAddrs": [],
+    "ConsulCoordinateUpdateBatchSize": 0,
+    "ConsulCoordinateUpdateMaxBatches": 0,
+    "ConsulCoordinateUpdatePeriod": "15s",
+    "ConsulRaftElectionTimeout": "0s",
+    "ConsulRaftHeartbeatTimeout": "0s",
+    "ConsulRaftLeaderLeaseTimeout": "0s",
+    "ConsulSerfLANGossipInterval": "0s",
+    "ConsulSerfLANProbeInterval": "0s",
+    "ConsulSerfLANProbeTimeout": "0s",
+    "ConsulSerfLANSuspicionMult": 0,
+    "ConsulSerfWANGossipInterval": "0s",
+    "ConsulSerfWANProbeInterval": "0s",
+    "ConsulSerfWANProbeTimeout": "0s",
+    "ConsulSerfWANSuspicionMult": 0,
+    "ConsulServerHealthInterval": "0s",
+    "DNSAddrs": [
+        "tcp://1.2.3.4:5678",
+        "udp://1.2.3.4:5678"
+    ],
+    "DNSAllowStale": false,
+    "DNSDisableCompression": false,
+    "DNSDomain": "",
+    "DNSEnableTruncate": false,
+    "DNSMaxStale": "0s",
+    "DNSNodeTTL": "0s",
+    "DNSOnlyPassing": false,
+    "DNSPort": 0,
+    "DNSRecursorTimeout": "0s",
+    "DNSRecursors": [],
+    "DNSServiceTTL": {},
+    "DNSUDPAnswerLimit": 0,
+    "DataDir": "",
+    "Datacenter": "",
+    "DevMode": false,
+    "DisableAnonymousSignature": false,
+    "DisableCoordinates": false,
+    "DisableHostNodeID": false,
+    "DisableKeyringFile": false,
+    "DisableRemoteExec": false,
+    "DisableUpdateCheck": false,
+    "EnableACLReplication": false,
+    "EnableDebug": false,
+    "EnableScriptChecks": false,
+    "EnableSyslog": false,
+    "EnableUI": false,
+    "EncryptKey": "hidden",
+    "EncryptVerifyIncoming": false,
+    "EncryptVerifyOutgoing": false,
+    "HTTPAddrs": [
+        "tcp://1.2.3.4:5678",
+        "unix:///var/run/foo"
+    ],
+    "HTTPBlockEndpoints": [],
+    "HTTPPort": 0,
+    "HTTPResponseHeaders": {},
+    "HTTPSAddrs": [],
+    "HTTPSPort": 0,
+    "KeyFile": "hidden",
+    "LeaveOnTerm": false,
+    "LogLevel": "",
+    "NodeID": "",
+    "NodeMeta": {},
+    "NodeName": "",
+    "NonVotingServer": false,
+    "PidFile": "",
+    "RPCAdvertiseAddr": "",
+    "RPCBindAddr": "",
+    "RPCMaxBurst": 0,
+    "RPCProtocol": 0,
+    "RPCRateLimit": 0,
+    "RaftProtocol": 0,
+    "ReconnectTimeoutLAN": "0s",
+    "ReconnectTimeoutWAN": "0s",
+    "RejoinAfterLeave": false,
+    "RetryJoinIntervalLAN": "0s",
+    "RetryJoinIntervalWAN": "0s",
+    "RetryJoinLAN": [
+        "foo=bar key=hidden secret=hidden bang=bar"
+    ],
+    "RetryJoinMaxAttemptsLAN": 0,
+    "RetryJoinMaxAttemptsWAN": 0,
+    "RetryJoinWAN": [
+        "wan_foo=bar wan_key=hidden wan_secret=hidden wan_bang=bar"
+    ],
+    "Revision": "",
+    "SegmentLimit": 0,
+    "SegmentName": "",
+    "SegmentNameLimit": 0,
+    "Segments": [],
+    "SerfAdvertiseAddrLAN": "tcp://1.2.3.4:5678",
+    "SerfAdvertiseAddrWAN": "",
+    "SerfBindAddrLAN": "",
+    "SerfBindAddrWAN": "",
+    "SerfPortLAN": 0,
+    "SerfPortWAN": 0,
+    "ServerMode": false,
+    "ServerName": "",
+    "ServerPort": 0,
+    "Services": [
+        {
+            "Address": "",
+            "Check": {
+                "CheckID": "",
+                "DeregisterCriticalServiceAfter": "0s",
+                "DockerContainerID": "",
+                "HTTP": "",
+                "Header": {},
+                "Interval": "0s",
+                "Method": "",
+                "Name": "blurb",
+                "Notes": "",
+                "Script": "",
+                "Shell": "",
+                "Status": "",
+                "TCP": "",
+                "TLSSkipVerify": false,
+                "TTL": "0s",
+                "Timeout": "0s"
+            },
+            "Checks": [],
+            "EnableTagOverride": false,
+            "ID": "",
+            "Name": "foo",
+            "Port": 0,
+            "Tags": [],
+            "Token": "hidden"
+        }
+    ],
+    "SessionTTLMin": "0s",
+    "SkipLeaveOnInt": false,
+    "StartJoinAddrsLAN": [],
+    "StartJoinAddrsWAN": [],
+    "SyncCoordinateIntervalMin": "0s",
+    "SyncCoordinateRateTarget": 0,
+    "SyslogFacility": "",
+    "TLSCipherSuites": [],
+    "TLSMinVersion": "",
+    "TLSPreferServerCipherSuites": false,
+    "TaggedAddresses": {},
+    "TelemetryAllowedPrefixes": [],
+    "TelemetryBlockedPrefixes": [],
+    "TelemetryCirconusAPIApp": "",
+    "TelemetryCirconusAPIToken": "hidden",
+    "TelemetryCirconusAPIURL": "",
+    "TelemetryCirconusBrokerID": "",
+    "TelemetryCirconusBrokerSelectTag": "",
+    "TelemetryCirconusCheckDisplayName": "",
+    "TelemetryCirconusCheckForceMetricActivation": "",
+    "TelemetryCirconusCheckID": "",
+    "TelemetryCirconusCheckInstanceID": "",
+    "TelemetryCirconusCheckSearchTag": "",
+    "TelemetryCirconusCheckTags": "",
+    "TelemetryCirconusSubmissionInterval": "",
+    "TelemetryCirconusSubmissionURL": "",
+    "TelemetryDisableHostname": false,
+    "TelemetryDogstatsdAddr": "",
+    "TelemetryDogstatsdTags": [],
+    "TelemetryFilterDefault": false,
+    "TelemetryMetricsPrefix": "",
+    "TelemetryStatsdAddr": "",
+    "TelemetryStatsiteAddr": "",
+    "TranslateWANAddrs": false,
+    "UIDir": "",
+    "UnixSocketGroup": "",
+    "UnixSocketMode": "",
+    "UnixSocketUser": "",
+    "VerifyIncoming": false,
+    "VerifyIncomingHTTPS": false,
+    "VerifyIncomingRPC": false,
+    "VerifyOutgoing": false,
+    "VerifyServerHostname": false,
+    "Version": "",
+    "VersionPrerelease": "",
+    "Watches": []
+}`
+
+	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(b), rtJSON; got != want {
+		dmp := diffmatchpatch.New()
+		diffs := dmp.DiffMain(want, got, false)
+		t.Fatal(dmp.DiffPrettyText(diffs))
 	}
 }
 
