@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,7 +24,7 @@ func TestAPI_AgentSelf(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	name := info["Config"]["NodeName"]
+	name := info["Config"]["NodeName"].(string)
 	if name == "" {
 		t.Fatalf("bad: %v", info)
 	}
@@ -639,9 +638,9 @@ func TestAPI_AgentJoin(t *testing.T) {
 	}
 
 	// Join ourself
-	ip := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["IP"].(string)
-	port := info["Config"]["SerfAdvertiseAddrLAN"].(map[string]interface{})["Port"].(float64)
-	addr := fmt.Sprintf("%s:%d", ip, int(port))
+	addr := info["Config"]["SerfAdvertiseAddrLAN"].(string)
+	// strip off 'tcp://'
+	addr = addr[len("tcp://"):]
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
