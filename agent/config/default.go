@@ -76,7 +76,7 @@ func DefaultSource() Source {
 			server = ` + strconv.Itoa(consul.DefaultRPCPort) + `
 		}
 		telemetry = {
-			service_prefix = "consul"
+			metrics_prefix = "consul"
 			filter_default = true
 		}
 	`,

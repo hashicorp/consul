@@ -1195,6 +1195,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
      This controls whether to allow metrics that have not been specified by the filter. Defaults to `true`, which will
      allow all metrics when no filters are provided. When set to `false` with no filters, no metrics will be sent.
 
+    * <a name="telemetry-metrics_prefix"></a><a href="#telemetry-metrics_prefix">`metrics_prefix`</a>
+      The prefix used while writing all telemetry data. By default, this is set to "consul".
+
     * <a name="telemetry-prefix_filter"></a><a href="#telemetry-prefix_filter">`prefix_filter`</a>
       This is a list of filter rules to apply for allowing/blocking metrics by prefix in the following format:
 
@@ -1208,9 +1211,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       A leading "<b>+</b>" will enable any metrics with the given prefix, and a leading "<b>-</b>" will block them. If there
       is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same
       prefix is listed multiple times.
-
-    * <a name="telemetry-service_prefix"></a><a href="#telemetry-service_prefix">`service_prefix`</a>
-      The prefix used while writing all telemetry data. By default, this is set to "consul".
 
     * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
       address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for

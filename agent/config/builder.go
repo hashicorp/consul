@@ -539,7 +539,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
 		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,
-		TelemetryServicePrefix:                      b.stringVal(c.Telemetry.ServicePrefix),
+		TelemetryMetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
 		TelemetryStatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
 		TelemetryStatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
 

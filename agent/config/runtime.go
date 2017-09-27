@@ -100,7 +100,7 @@ type RuntimeConfig struct {
 	TelemetryFilterDefault                      bool
 	TelemetryAllowedPrefixes                    []string
 	TelemetryBlockedPrefixes                    []string
-	TelemetryServicePrefix                      string
+	TelemetryMetricsPrefix                      string
 	TelemetryStatsdAddr                         string
 	TelemetryStatsiteAddr                       string
 

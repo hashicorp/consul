@@ -2254,7 +2254,7 @@ func TestFullConfig(t *testing.T) {
 				"dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
 				"filter_default": true,
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
-				"service_prefix": "ftO6DySn",
+				"metrics_prefix": "ftO6DySn",
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
@@ -2674,7 +2674,7 @@ func TestFullConfig(t *testing.T) {
 				dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
 				filter_default = true
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
-				service_prefix = "ftO6DySn"
+				metrics_prefix = "ftO6DySn"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
@@ -3213,7 +3213,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryFilterDefault:                      true,
 		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
-		TelemetryServicePrefix:                      "ftO6DySn",
+		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
 		TLSCipherSuites:                             []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
