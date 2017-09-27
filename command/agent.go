@@ -220,7 +220,7 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 	// metrics over stderr when there is a SIGUSR1 received.
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
-	metricsConf := metrics.DefaultConfig(conf.TelemetryStatsitePrefix)
+	metricsConf := metrics.DefaultConfig(conf.TelemetryMetricsPrefix)
 	metricsConf.EnableHostname = !conf.TelemetryDisableHostname
 	metricsConf.FilterDefault = conf.TelemetryFilterDefault
 

@@ -47,8 +47,9 @@ BREAKING CHANGES:
     | /v1/session/node | GET |
     | /v1/status/leader | GET |
     | /v1/status/peers | GET |
-    
+
     </details>
+* **Renamed `statsite_prefix` to `metrics_prefix` in Telemetry Configuration:** Since the `statsite_prefix` applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
 
 FEATURES:
 

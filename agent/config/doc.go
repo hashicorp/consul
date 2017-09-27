@@ -66,7 +66,8 @@
 // 	* "recursor" is deprecated. Please use "recursors" instead.
 // 	* "statsd_addr" is deprecated. Please use "telemetry.statsd_addr" instead.
 // 	* "statsite_addr" is deprecated. Please use "telemetry.statsite_addr" instead.
-// 	* "statsite_prefix" is deprecated. Please use "telemetry.statsite_prefix" instead.
+// 	* "statsite_prefix" is deprecated. Please use "telemetry.metrics_prefix" instead.
+// 	* "telemetry.statsite_prefix" is deprecated. Please use "telemetry.metrics_prefix" instead.
 //  * "retry_join_azure" is deprecated. Please use "retry_join" instead.
 //  * "retry_join_ec2" is deprecated. Please use "retry_join" instead.
 //  * "retry_join_gce" is deprecated. Please use "retry_join" instead.

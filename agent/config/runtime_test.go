@@ -2254,9 +2254,9 @@ func TestFullConfig(t *testing.T) {
 				"dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
 				"filter_default": true,
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
+				"metrics_prefix": "ftO6DySn",
 				"statsd_address": "drce87cy",
-				"statsite_address": "HpFwKB8R",
-				"statsite_prefix": "ftO6DySn"
+				"statsite_address": "HpFwKB8R"
 			},
 			"tls_cipher_suites": "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA",
 			"tls_min_version": "pAOWafkR",
@@ -2674,9 +2674,9 @@ func TestFullConfig(t *testing.T) {
 				dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
 				filter_default = true
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
+				metrics_prefix = "ftO6DySn"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
-				statsite_prefix = "ftO6DySn"
 			}
 			tls_cipher_suites = "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA"
 			tls_min_version = "pAOWafkR"
@@ -3213,9 +3213,9 @@ func TestFullConfig(t *testing.T) {
 		TelemetryFilterDefault:                      true,
 		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
+		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TelemetryStatsitePrefix:                     "ftO6DySn",
 		TLSCipherSuites:                             []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
 		TLSMinVersion:                               "pAOWafkR",
 		TLSPreferServerCipherSuites:                 true,
