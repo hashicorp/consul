@@ -1153,7 +1153,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
      allow all metrics when no filters are provided. When set to `false` with no filters, no metrics will be sent.
 
     * <a name="telemetry-metrics_prefix"></a><a href="#telemetry-metrics_prefix">`metrics_prefix`</a>
-      The prefix used while writing all telemetry data. By default, this is set to "consul".
+      The prefix used while writing all telemetry data. By default, this is set to "consul". This was added
+      in Consul 1.0. For previous versions of Consul, use the config option `statsite_prefix` in this
+      same structure. This was renamed in Consul 1.0 since this prefix applied to all telemetry providers,
+      not just statsite.
 
     * <a name="telemetry-prefix_filter"></a><a href="#telemetry-prefix_filter">`prefix_filter`</a>
       This is a list of filter rules to apply for allowing/blocking metrics by prefix in the following format:
