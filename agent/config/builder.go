@@ -321,6 +321,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if !isIPAddr(bindAddrs[0]) {
 		return RuntimeConfig{}, fmt.Errorf("bind_addr must be an ip address")
 	}
+	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrLAN)) {
+		return RuntimeConfig{}, fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
+	}
+	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrWAN)) {
+		return RuntimeConfig{}, fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
+	}
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
