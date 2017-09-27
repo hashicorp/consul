@@ -52,7 +52,8 @@ are a few global parameters that all watches support:
 
 * `datacenter` - Can be provided to override the agent's default datacenter.
 * `token` - Can be provided to override the agent's default ACL token.
-* `handler` - The handler to invoke when the data view updates.
+* `args` - The handler subprocess and arguments to invoke when the data view updates.
+* `handler` - The handler shell command to invoke when the data view updates.
 
 ## Watch Types
 
@@ -80,7 +81,7 @@ Here is an example configuration:
 {
   "type": "key",
   "key": "foo/bar/baz",
-  "handler": "/usr/bin/my-key-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -117,7 +118,7 @@ Here is an example configuration:
 {
   "type": "keyprefix",
   "prefix": "foo/",
-  "handler": "/usr/bin/my-prefix-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -231,7 +232,7 @@ Here is an example configuration:
 {
   "type": "service",
   "service": "redis",
-  "handler": "/usr/bin/my-service-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -322,13 +323,13 @@ Here is an example configuration:
 {
   "type": "event",
   "name": "web-deploy",
-  "handler": "/usr/bin/my-deploy-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-web-deploy"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh -web-deploy
 
 An example of the output of this command:
 

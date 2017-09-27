@@ -97,7 +97,7 @@ A script check:
   "check": {
     "id": "mem-util",
     "name": "Memory utilization",
-    "script": "/usr/local/bin/check_mem.py",
+    "args": ["/usr/local/bin/check_mem.py", "-limit", "256MB"],
     "interval": "10s",
     "timeout": "1s"
   }
@@ -231,7 +231,7 @@ health check definition, like so:
 {
   "check": {
     "id": "mem",
-    "script": "/bin/check_mem",
+    "args": ["/bin/check_mem", "-limit", "256MB"],
     "interval": "10s",
     "status": "passing"
   }
@@ -274,7 +274,7 @@ key in your configuration file.
     {
       "id": "chk1",
       "name": "mem",
-      "script": "/bin/check_mem",
+      "args": ["/bin/check_mem", "-limit", "256MB"],
       "interval": "5s"
     },
     {
