@@ -1091,7 +1091,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     1 and 64 characters in length.
     * <a name="segment_bind"></a><a href="#segment_bind">`bind`</a> - The bind address to use for the segment's gossip layer.
     Defaults to the [`-bind`](#_bind) value if not provided.
-    * <a name="segment_port"></a><a href="#segment_port">`port`</a> - The port to use for the segment's gossip layer.
+    * <a name="segment_port"></a><a href="#segment_port">`port`</a> - The port to use for the segment's gossip layer (required).
     * <a name="segment_advertise"></a><a href="#segment_advertise">`advertise`</a> - The advertise address to use for the
     segment's gossip layer. Defaults to the [`-advertise`](#_advertise) value if not provided.
     * <a name="segment_rpc_listener"></a><a href="#segment_rpc_listener">`rpc_listener`</a> - If true, a separate RPC listener will
