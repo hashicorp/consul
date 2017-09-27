@@ -102,7 +102,10 @@ will exit with an error at startup.
 
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By default,
-  this is "127.0.0.1", allowing only loopback connections.
+  this is "127.0.0.1", allowing only loopback connections. In Consul 1.0 and later
+  this can be set to a space-separated list of addresses to bind to, or a
+  [go-sockaddr](https://github.com/hashicorp/go-sockaddr#go-sockaddr) that can potentially
+  resolve to multiple addresses.
 
 * <a name="_config_file"></a><a href="#_config_file">`-config-file`</a> - A configuration file
   to load. For more information on
@@ -637,7 +640,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   are not actively invalidated, ACL policy may be stale up to the TTL value.
 
 *   <a name="addresses"></a><a href="#addresses">`addresses`</a> - This is a nested object that allows
-    setting bind addresses.
+    setting bind addresses. In Consul 1.0 and later these can be set to a space-separated list of
+    addresses to bind to, or a [go-sockaddr](https://github.com/hashicorp/go-sockaddr#go-sockaddr)
+    that can potentially resolve to multiple addresses.
 
     `http` supports binding to a Unix domain socket. A socket can be
     specified in the form `unix:///path/to/socket`. A new domain socket will be
