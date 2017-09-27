@@ -342,8 +342,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	advertiseAddr := bindAddr
-	if detect != nil {
+	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+	if ipaddr.IsAny(advertiseAddr) {
 		advertiseAddrs, err := detect()
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error detecting %s address: %s", addrtyp, err)
