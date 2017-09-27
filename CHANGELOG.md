@@ -47,7 +47,7 @@ BREAKING CHANGES:
     | (service definitions) `tlsskipverify` | [`tls_skip_verify`](https://www.consul.io/docs/agent/services.html) |
     | (service definitions) `deregistercriticalserviceafter` | [`deregister_critical_service_after`](https://www.consul.io/docs/agent/services.html) |
 
-* **`statsite_prefix` Has Been Renamed to `metrics_prefix`:** Since the `statsite_prefix` applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
+* **`statsite_prefix` Has Been Renamed to `metrics_prefix`:** Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
 * **HTTP Verbs are Now Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
