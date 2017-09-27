@@ -22,9 +22,10 @@ Configuration precedence is evaluated in the following order:
 When loading configuration, Consul loads the configuration from files and
 directories in lexical order. For example, configuration file
 `basic_config.json` will be processed before `extra_config.json`. Configuration
-can be in either HCL or JSON format. Files with an `.hcl` extension are assumed
-to be in HCL format. All other files are considered to be in JSON format
-however you should append a `.json` suffix to JSON config files for clarity.
+can be in either [HCL](https://github.com/hashicorp/hcl#syntax) or JSON format.
+Available in Consul 1.0 and later, the HCL support now requires an `.hcl` or
+`.json` extension on all configuration files in order to specify their format.
+
 Configuration specified later will be merged into configuration specified
 earlier. In most cases, "merge" means that the later version will override the
 earlier. In some cases, such as event handlers, merging appends the handlers to
