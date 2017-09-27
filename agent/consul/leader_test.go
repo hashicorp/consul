@@ -286,13 +286,12 @@ func TestLeader_ReapServer(t *testing.T) {
 	joinLAN(t, s1, s2)
 	joinLAN(t, s1, s3)
 
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	state := s1.fsm.State()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Should be registered
+	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s2.config.NodeName)
+		_, node, err := state.GetNode(s3.config.NodeName)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -301,14 +300,7 @@ func TestLeader_ReapServer(t *testing.T) {
 		}
 	})
 
-	// Make a failed healthcheck for s2
-	state.EnsureCheck(6, &structs.HealthCheck{
-		Node:    s2.config.NodeName,
-		CheckID: "web",
-		Status:  api.HealthCritical,
-	})
-
-	// call reconcileReaped with a map that does not contain s2
+	// call reconcileReaped with a map that does not contain s3
 	knownMembers := make(map[string]struct{})
 	knownMembers[s1.config.NodeName] = struct{}{}
 	knownMembers[s2.config.NodeName] = struct{}{}
@@ -318,23 +310,16 @@ func TestLeader_ReapServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error :%v", err)
 	}
-
-	// Should be deregistered; we have to poll quickly here because
-	// anti-entropy will put it back.
-	reaped := false
-	for start := time.Now(); time.Since(start) < 5*time.Second; {
+	// s3 should be deregistered
+	retry.Run(t, func(r *retry.R) {
 		_, node, err := state.GetNode(s3.config.NodeName)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		if node == nil {
-			reaped = true
-			break
+		if node != nil {
+			r.Fatalf("server with id %v should not be registered", s3.config.NodeID)
 		}
-	}
-	if !reaped {
-		t.Fatalf("server with id %v should not be registered", s3.config.NodeID)
-	}
+	})
 
 }
 
