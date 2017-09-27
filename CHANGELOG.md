@@ -58,6 +58,7 @@ IMPROVEMENTS:
 * agent: Added support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
 * agent: Improved list-peers endpoint by avoiding an extra agent RPC call. [GH-3449]
 * server: Updated BoltDB to final version 1.3.1. [GH-3502]
+* server: Improved dead member reap algorithm to fix edge cases where servers could get left behind. [GH-3452]
 
 BUG FIXES:
 
