@@ -654,6 +654,31 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc:  "bind addr any and advertise set should not detect",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "bind_addr":"0.0.0.0", "advertise_addr": "1.2.3.4" }`},
+			hcl:   []string{`bind_addr = "0.0.0.0" advertise_addr = "1.2.3.4"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrLAN = ipAddr("1.2.3.4")
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.BindAddr = ipAddr("0.0.0.0")
+				rt.RPCAdvertiseAddr = tcpAddr("1.2.3.4:8300")
+				rt.RPCBindAddr = tcpAddr("0.0.0.0:8300")
+				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
+				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
+				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
+				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
+				rt.TaggedAddresses = map[string]string{
+					"lan": "1.2.3.4",
+					"wan": "1.2.3.4",
+				}
+				rt.DataDir = dataDir
+			},
+			privatev4: func() ([]*net.IPAddr, error) {
+				return nil, fmt.Errorf("should not detect advertise_addr")
+			},
+		},
+		{
 			desc:  "client addr and ports == 0",
 			flags: []string{`-data-dir=` + dataDir},
 			json: []string{`{
@@ -1764,8 +1789,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 						return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
 					}
 				}
+				publicv6 := tt.publicv6
+				if publicv6 == nil {
+					publicv6 = func() ([]*net.IPAddr, error) {
+						return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+					}
+				}
 				b.GetPrivateIPv4 = privatev4
-				b.GetPublicIPv6 = tt.publicv6
+				b.GetPublicIPv6 = publicv6
 
 				// read the source fragements
 				for i, data := range srcs {
@@ -1824,8 +1855,8 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 					t.Fatal(err)
 				}
 				x.Hostname = b.Hostname
-				x.GetPrivateIPv4 = b.GetPrivateIPv4
-				x.GetPublicIPv6 = b.GetPublicIPv6
+				x.GetPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
+				x.GetPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
 				patchedRT, err := x.Build()
 				if err != nil {
 					t.Fatalf("build default failed: %s", err)

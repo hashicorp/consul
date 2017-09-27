@@ -323,27 +323,27 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
+	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+	if ipaddr.IsAny(advertiseAddr) {
 
-	var addrtyp string
-	var detect func() ([]*net.IPAddr, error)
-	switch {
-	case ipaddr.IsAnyV4(c.BindAddr) || ipaddr.IsAnyV4(bindAddr):
-		addrtyp = "private IPv4"
-		detect = b.GetPrivateIPv4
-		if detect == nil {
-			detect = ipaddr.GetPrivateIPv4
+		var addrtyp string
+		var detect func() ([]*net.IPAddr, error)
+		switch {
+		case ipaddr.IsAnyV4(advertiseAddr):
+			addrtyp = "private IPv4"
+			detect = b.GetPrivateIPv4
+			if detect == nil {
+				detect = ipaddr.GetPrivateIPv4
+			}
+
+		case ipaddr.IsAnyV6(advertiseAddr):
+			addrtyp = "public IPv6"
+			detect = b.GetPublicIPv6
+			if detect == nil {
+				detect = ipaddr.GetPublicIPv6
+			}
 		}
 
-	case ipaddr.IsAnyV6(c.BindAddr) || ipaddr.IsAnyV6(bindAddr):
-		addrtyp = "public IPv6"
-		detect = b.GetPublicIPv6
-		if detect == nil {
-			detect = ipaddr.GetPublicIPv6
-		}
-	}
-
-	advertiseAddr := bindAddr
-	if detect != nil {
 		advertiseAddrs, err := detect()
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error detecting %s address: %s", addrtyp, err)
