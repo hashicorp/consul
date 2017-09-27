@@ -368,7 +368,7 @@ The details of the change are not important, however to function the leader
 node will replicate a new command to its followers. Consul is designed
 defensively, and when a command that is not recognized is received, the
 server will panic. This is a purposeful design decision to avoid the possibility
-of data loss, inconsistensies, or security issues caused by future incompatibility.
+of data loss, inconsistencies, or security issues caused by future incompatibility.
 
 In practice, this means if a Consul 0.5 node is the leader, all of its
 followers must also be running 0.5. There are a number of ways to do this
