@@ -3527,6 +3527,12 @@ func TestSanitize(t *testing.T) {
 				},
 			},
 		},
+		Checks: []*structs.CheckDefinition{
+			&structs.CheckDefinition{
+				Name:  "zoo",
+				Token: "zope",
+			},
+		},
 	}
 
 	rtJSON := `{
@@ -3560,7 +3566,28 @@ func TestSanitize(t *testing.T) {
     "CheckDeregisterIntervalMin": "0s",
     "CheckReapInterval": "0s",
     "CheckUpdateInterval": "0s",
-    "Checks": [],
+    "Checks": [
+        {
+            "DeregisterCriticalServiceAfter": "0s",
+            "DockerContainerID": "",
+            "HTTP": "",
+            "Header": {},
+            "ID": "",
+            "Interval": "0s",
+            "Method": "",
+            "Name": "zoo",
+            "Notes": "",
+            "Script": "",
+            "ServiceID": "",
+            "Shell": "",
+            "Status": "",
+            "TCP": "",
+            "TLSSkipVerify": false,
+            "TTL": "0s",
+            "Timeout": "0s",
+            "Token": "hidden"
+        }
+    ],
     "ClientAddrs": [],
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
