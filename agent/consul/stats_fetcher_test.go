@@ -92,12 +92,4 @@ func TestStatsFetcher(t *testing.T) {
 			}
 		}
 	}()
-
-	// Do a fetch with a canceled context and make sure we bail right away.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	cancel()
-	stats := s1.statsFetcher.Fetch(ctx, servers)
-	if len(stats) != 0 {
-		t.Fatalf("bad: %#v", stats)
-	}
 }
