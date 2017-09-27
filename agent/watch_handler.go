@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 
+	"os/exec"
+
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
 )
@@ -21,12 +23,24 @@ const (
 )
 
 // makeWatchHandler returns a handler for the given watch
-func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc {
-	script := params.(string)
+func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFunc {
+	script, isScript := handler.(string)
+	args, isArgs := handler.([]string)
+	if isArgs {
+		script = fmt.Sprintf("%v", args)
+	}
 	logger := log.New(logOutput, "", log.LstdFlags)
 	fn := func(idx uint64, data interface{}) {
 		// Create the command
-		cmd, err := ExecScript(script)
+		var cmd *exec.Cmd
+		var err error
+		if isScript {
+			logger.Printf("[INFO] watch: script: %q", script)
+			cmd, err = ExecScript(script)
+		} else {
+			logger.Printf("[INFO] watch: args: %v", args)
+			cmd, err = ExecSubprocess(args)
+		}
 		if err != nil {
 			logger.Printf("[ERR] agent: Failed to setup watch: %v", err)
 			return
@@ -50,8 +64,11 @@ func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc
 		cmd.Stdin = &inp
 
 		// Run the handler
-		if err := cmd.Run(); err != nil {
+		if err := StartSubprocess(cmd, false); err != nil {
 			logger.Printf("[ERR] agent: Failed to invoke watch handler '%s': %v", script, err)
+		}
+		if err := cmd.Wait(); err != nil {
+			logger.Printf("[ERR] agent: Failed to run watch handler '%s': %v", script, err)
 		}
 
 		// Get the output, add a message about truncation

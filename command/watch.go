@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"os/exec"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/watch"
 )
@@ -37,6 +39,7 @@ Usage: consul watch [options] [child...]
 
 func (c *WatchCommand) Run(args []string) int {
 	var watchType, key, prefix, service, tag, passingOnly, state, name string
+	var shell bool
 
 	f := c.BaseCommand.NewFlagSet(c)
 	f.StringVar(&watchType, "type", "",
@@ -58,6 +61,9 @@ func (c *WatchCommand) Run(args []string) int {
 		"Specifies the states to watch. Optional for 'checks' type.")
 	f.StringVar(&name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
+	f.BoolVar(&shell, "shell", false,
+		"Use a shell to run the handler (can set a custom shell via the SHELL "+
+			"environment variable).")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
@@ -70,9 +76,6 @@ func (c *WatchCommand) Run(args []string) int {
 		c.UI.Error(c.Help())
 		return 1
 	}
-
-	// Grab the script to execute if any
-	script := strings.Join(f.Args(), " ")
 
 	// Compile the watch parameters
 	params := make(map[string]interface{})
@@ -140,7 +143,7 @@ func (c *WatchCommand) Run(args []string) int {
 	//	0: false
 	//	1: true
 	errExit := 0
-	if script == "" {
+	if len(f.Args()) == 0 {
 		wp.Handler = func(idx uint64, data interface{}) {
 			defer wp.Stop()
 			buf, err := json.MarshalIndent(data, "", "    ")
@@ -155,7 +158,12 @@ func (c *WatchCommand) Run(args []string) int {
 			// Create the command
 			var buf bytes.Buffer
 			var err error
-			cmd, err := agent.ExecScript(script)
+			var cmd *exec.Cmd
+			if !shell {
+				cmd, err = agent.ExecSubprocess(f.Args())
+			} else {
+				cmd, err = agent.ExecScript(strings.Join(f.Args(), " "))
+			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
@@ -174,7 +182,11 @@ func (c *WatchCommand) Run(args []string) int {
 			cmd.Stderr = os.Stderr
 
 			// Run the handler
-			if err := cmd.Run(); err != nil {
+			if err := agent.StartSubprocess(cmd, true); err != nil {
+				c.UI.Error(fmt.Sprintf("Error starting handler: %s", err))
+				goto ERR
+			}
+			if err := cmd.Wait(); err != nil {
 				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
 			}

@@ -535,15 +535,35 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	var watchPlans []*watch.Plan
 	for _, params := range cfg.Watches {
 		// Parse the watches, excluding the handler
-		wp, err := watch.ParseExempt(params, []string{"handler"})
+		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
 		if err != nil {
 			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
 		}
 
-		// Get the handler
-		h := wp.Exempt["handler"]
-		if _, ok := h.(string); h == nil || !ok {
+		// Get the handler and subprocess arguments
+		handler, hasHandler := wp.Exempt["handler"]
+		args, hasArgs := wp.Exempt["args"]
+		if _, ok := handler.(string); hasHandler && !ok {
 			return fmt.Errorf("Watch handler must be a string")
+		}
+		if raw, ok := args.([]interface{}); hasArgs && ok {
+			var parsed []string
+			for _, arg := range raw {
+				if v, ok := arg.(string); !ok {
+					return fmt.Errorf("Watch args must be a list of strings")
+				} else {
+					parsed = append(parsed, v)
+				}
+			}
+			wp.Exempt["args"] = parsed
+		} else {
+			return fmt.Errorf("Watch args must be a list of strings")
+		}
+		if hasHandler && hasArgs {
+			return fmt.Errorf("Cannot define both watch handler and args")
+		}
+		if !hasHandler && !hasArgs {
+			return fmt.Errorf("Must define either watch handler or args")
 		}
 
 		// Store the watch plan
@@ -566,7 +586,13 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	for _, wp := range watchPlans {
 		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
+			var handler interface{}
+			if h, ok := wp.Exempt["handler"]; ok {
+				handler = h
+			} else {
+				handler = wp.Exempt["args"]
+			}
+			wp.Handler = makeWatchHandler(a.LogOutput, handler)
 			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {
 				a.logger.Printf("[ERR] Failed to run watch: %v", err)
@@ -1700,12 +1726,13 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   a.state,
-				CheckID:  check.CheckID,
-				Script:   chkType.Script,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:     a.state,
+				CheckID:    check.CheckID,
+				Script:     chkType.Script,
+				ScriptArgs: chkType.ScriptArgs,
+				Interval:   chkType.Interval,
+				Timeout:    chkType.Timeout,
+				Logger:     a.logger,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor

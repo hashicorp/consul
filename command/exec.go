@@ -53,6 +53,7 @@ const (
 // rExecConf is used to pass around configuration
 type rExecConf struct {
 	prefix string
+	shell  bool
 
 	foreignDC bool
 	localDC   string
@@ -66,6 +67,7 @@ type rExecConf struct {
 	replWait time.Duration
 
 	cmd    string
+	args   []string
 	script []byte
 
 	verbose bool
@@ -82,6 +84,9 @@ type rExecEvent struct {
 type rExecSpec struct {
 	// Command is a single command to run directly in the shell
 	Command string `json:",omitempty"`
+
+	// Args is the list of arguments to run the subprocess directly
+	Args []string `json:",omitempty"`
 
 	// Script should be spilled to a file and executed
 	Script []byte `json:",omitempty"`
@@ -141,6 +146,9 @@ func (c *ExecCommand) Run(args []string) int {
 			"optimization to allow stale reads to be performed.")
 	f.BoolVar(&c.conf.verbose, "verbose", false,
 		"Enables verbose output.")
+	f.BoolVar(&c.conf.shell, "shell", false,
+		"Use a shell to run the command (can set a custom shell via the SHELL "+
+			"environment variable).")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
@@ -148,6 +156,9 @@ func (c *ExecCommand) Run(args []string) int {
 
 	// Join the commands to execute
 	c.conf.cmd = strings.Join(f.Args(), " ")
+	if !c.conf.shell {
+		c.conf.args = f.Args()
+	}
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
@@ -545,6 +556,7 @@ func (c *ExecCommand) destroySession() error {
 func (c *ExecCommand) makeRExecSpec() ([]byte, error) {
 	spec := &rExecSpec{
 		Command: c.conf.cmd,
+		Args:    c.conf.args,
 		Script:  c.conf.script,
 		Wait:    c.conf.wait,
 	}

@@ -49,12 +49,13 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify   CheckNotifier
-	CheckID  types.CheckID
-	Script   string
-	Interval time.Duration
-	Timeout  time.Duration
-	Logger   *log.Logger
+	Notify     CheckNotifier
+	CheckID    types.CheckID
+	Script     string
+	ScriptArgs []string
+	Interval   time.Duration
+	Timeout    time.Duration
+	Logger     *log.Logger
 
 	stop     bool
 	stopCh   chan struct{}
@@ -101,7 +102,13 @@ func (c *CheckMonitor) run() {
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
 	// Create the command
-	cmd, err := ExecScript(c.Script)
+	var cmd *exec.Cmd
+	var err error
+	if len(c.ScriptArgs) > 0 {
+		cmd, err = ExecSubprocess(c.ScriptArgs)
+	} else {
+		cmd, err = ExecScript(c.Script)
+	}
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
@@ -114,7 +121,7 @@ func (c *CheckMonitor) check() {
 	cmd.Stderr = output
 
 	// Start the check
-	if err := cmd.Start(); err != nil {
+	if err := StartSubprocess(cmd, false); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return

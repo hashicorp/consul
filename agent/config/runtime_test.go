@@ -1942,6 +1942,7 @@ func TestFullConfig(t *testing.T) {
 				"token": "oo4BCTgJ",
 				"status": "qLykAl5u",
 				"script": "dhGfIF8n",
+				"args": ["f3BemRjy", "e5zgpef7"],
 				"http": "29B93haH",
 				"header": {
 					"hBq0zn1q": [ "2a9o9ZKP", "vKwA5lR6" ],
@@ -1966,6 +1967,7 @@ func TestFullConfig(t *testing.T) {
 					"token": "toO59sh8",
 					"status": "9RlWsXMV",
 					"script": "8qbd8tWw",
+					"args": ["4BAJttck", "4D2NPtTQ"],
 					"http": "dohLcyQ2",
 					"header": {
 						"ZBfTin3L": [ "1sDbEqYG", "lJGASsWK" ],
@@ -1989,6 +1991,7 @@ func TestFullConfig(t *testing.T) {
 					"token": "a3nQzHuy",
 					"status": "irj26nf3",
 					"script": "FJsI1oXt",
+					"args": ["9s526ogY", "gSlOHj1w"],
 					"http": "yzhgsQ7Y",
 					"header": {
 						"zcqwA8dO": [ "qb1zx0DL", "sXCxPFsD" ],
@@ -2114,6 +2117,7 @@ func TestFullConfig(t *testing.T) {
 					"status": "rCvn53TH",
 					"notes": "fti5lfF3",
 					"script": "rtj34nfd",
+					"args": ["16WRUmwS", "QWk7j7ae"],
 					"http": "dl3Fgme3",
 					"header": {
 						"rjm4DEd3": ["2m3m2Fls"],
@@ -2136,6 +2140,7 @@ func TestFullConfig(t *testing.T) {
 						"notes": "yP5nKbW0",
 						"status": "7oLMEyfu",
 						"script": "NlUQ3nTE",
+						"args": ["5wEZtZpv", "0Ihyk8cS"],
 						"http": "KyDjGY9H",
 						"header": {
 							"gv5qefTz": [ "5Olo2pMG", "PvvKWQU5" ],
@@ -2157,6 +2162,7 @@ func TestFullConfig(t *testing.T) {
 						"notes": "SVqApqeM",
 						"status": "XXkVoZXt",
 						"script": "IXLZTM6E",
+						"args": ["wD05Bvao", "rLYB7kQC"],
 						"http": "kyICZsn8",
 						"header": {
 							"4ebP5vL4": [ "G20SrL5Q", "DwPKlMbo" ],
@@ -2189,6 +2195,7 @@ func TestFullConfig(t *testing.T) {
 						"status": "pDQKEhWL",
 						"notes": "Yt8EDLev",
 						"script": "MDu7wjlD",
+						"args": ["81EDZLPa", "bPY5X8xd"],
 						"http": "qzHYvmJO",
 						"header": {
 							"UkpmZ3a3": ["2dfzXuxZ"],
@@ -2220,6 +2227,7 @@ func TestFullConfig(t *testing.T) {
 							"notes": "CQy86DH0",
 							"status": "P0SWDvrk",
 							"script": "6BhLJ7R9",
+							"args": ["EXvkYIuG", "BATOyt6h"],
 							"http": "u97ByEiW",
 							"header": {
 								"MUlReo8L": [ "AUZG7wHG", "gsN0Dc2N" ],
@@ -2241,6 +2249,7 @@ func TestFullConfig(t *testing.T) {
 							"notes": "jKChDOdl",
 							"status": "5qFz6OZn",
 							"script": "PbdxFZ3K",
+							"args": ["NMtYWlT9", "vj74JXsm"],
 							"http": "1LBDJhw4",
 							"header": {
 								"cXPmnv1M": [ "imDqfaBx", "NFxZ1bQe" ],
@@ -2313,6 +2322,11 @@ func TestFullConfig(t *testing.T) {
 					"datacenter": "GyE6jpeW",
 					"key": "j9lF1Tve",
 					"handler": "90N7S4LN"
+				}, {
+					"type": "keyprefix",
+					"datacenter": "fYrl3F5d",
+					"key": "sl3Dffu7",
+					"args": ["dltjDJ2a", "flEa7C2d"]
 				}
 			]
 		}`,
@@ -2362,6 +2376,7 @@ func TestFullConfig(t *testing.T) {
 				token = "oo4BCTgJ"
 				status = "qLykAl5u"
 				script = "dhGfIF8n"
+				args = ["f3BemRjy", "e5zgpef7"]
 				http = "29B93haH"
 				header = {
 					hBq0zn1q = [ "2a9o9ZKP", "vKwA5lR6" ]
@@ -2386,6 +2401,7 @@ func TestFullConfig(t *testing.T) {
 					token = "toO59sh8"
 					status = "9RlWsXMV"
 					script = "8qbd8tWw"
+					args = ["4BAJttck", "4D2NPtTQ"]
 					http = "dohLcyQ2"
 					header = {
 						"ZBfTin3L" = [ "1sDbEqYG", "lJGASsWK" ]
@@ -2409,6 +2425,7 @@ func TestFullConfig(t *testing.T) {
 					token = "a3nQzHuy"
 					status = "irj26nf3"
 					script = "FJsI1oXt"
+					args = ["9s526ogY", "gSlOHj1w"]
 					http = "yzhgsQ7Y"
 					header = {
 						"zcqwA8dO" = [ "qb1zx0DL", "sXCxPFsD" ]
@@ -2534,6 +2551,7 @@ func TestFullConfig(t *testing.T) {
 					status = "rCvn53TH"
 					notes = "fti5lfF3"
 					script = "rtj34nfd"
+					args = ["16WRUmwS", "QWk7j7ae"]
 					http = "dl3Fgme3"
 					header = {
 						rjm4DEd3 = [ "2m3m2Fls" ]
@@ -2556,6 +2574,7 @@ func TestFullConfig(t *testing.T) {
 						notes = "yP5nKbW0"
 						status = "7oLMEyfu"
 						script = "NlUQ3nTE"
+						args = ["5wEZtZpv", "0Ihyk8cS"]
 						http = "KyDjGY9H"
 						header = {
 							"gv5qefTz" = [ "5Olo2pMG", "PvvKWQU5" ]
@@ -2577,6 +2596,7 @@ func TestFullConfig(t *testing.T) {
 						notes = "SVqApqeM"
 						status = "XXkVoZXt"
 						script = "IXLZTM6E"
+						args = ["wD05Bvao", "rLYB7kQC"]
 						http = "kyICZsn8"
 						header = {
 							"4ebP5vL4" = [ "G20SrL5Q", "DwPKlMbo" ]
@@ -2609,6 +2629,7 @@ func TestFullConfig(t *testing.T) {
 						status = "pDQKEhWL"
 						notes = "Yt8EDLev"
 						script = "MDu7wjlD"
+						args = ["81EDZLPa", "bPY5X8xd"]
 						http = "qzHYvmJO"
 						header = {
 							UkpmZ3a3 = [ "2dfzXuxZ" ]
@@ -2640,6 +2661,7 @@ func TestFullConfig(t *testing.T) {
 							notes = "CQy86DH0"
 							status = "P0SWDvrk"
 							script = "6BhLJ7R9"
+							args = ["EXvkYIuG", "BATOyt6h"]
 							http = "u97ByEiW"
 							header = {
 								"MUlReo8L" = [ "AUZG7wHG", "gsN0Dc2N" ]
@@ -2661,6 +2683,7 @@ func TestFullConfig(t *testing.T) {
 							notes = "jKChDOdl"
 							status = "5qFz6OZn"
 							script = "PbdxFZ3K"
+							args = ["NMtYWlT9", "vj74JXsm"]
 							http = "1LBDJhw4"
 							header = {
 								"cXPmnv1M" = [ "imDqfaBx", "NFxZ1bQe" ],
@@ -2732,6 +2755,11 @@ func TestFullConfig(t *testing.T) {
 				datacenter = "GyE6jpeW"
 				key = "j9lF1Tve"
 				handler = "90N7S4LN"
+			}, {
+				type = "keyprefix"
+				datacenter = "fYrl3F5d"
+				key = "sl3Dffu7"
+				args = ["dltjDJ2a", "flEa7C2d"]
 			}]
 		`}
 
@@ -2907,14 +2935,15 @@ func TestFullConfig(t *testing.T) {
 		CertFile:                         "7s4QAzDk",
 		Checks: []*structs.CheckDefinition{
 			&structs.CheckDefinition{
-				ID:        "uAjE6m9Z",
-				Name:      "QsZRGpYr",
-				Notes:     "VJ7Sk4BY",
-				ServiceID: "lSulPcyz",
-				Token:     "toO59sh8",
-				Status:    "9RlWsXMV",
-				Script:    "8qbd8tWw",
-				HTTP:      "dohLcyQ2",
+				ID:         "uAjE6m9Z",
+				Name:       "QsZRGpYr",
+				Notes:      "VJ7Sk4BY",
+				ServiceID:  "lSulPcyz",
+				Token:      "toO59sh8",
+				Status:     "9RlWsXMV",
+				Script:     "8qbd8tWw",
+				ScriptArgs: []string{"4BAJttck", "4D2NPtTQ"},
+				HTTP:       "dohLcyQ2",
 				Header: map[string][]string{
 					"ZBfTin3L": []string{"1sDbEqYG", "lJGASsWK"},
 					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
@@ -2930,14 +2959,15 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			&structs.CheckDefinition{
-				ID:        "Cqq95BhP",
-				Name:      "3qXpkS0i",
-				Notes:     "sb5qLTex",
-				ServiceID: "CmUUcRna",
-				Token:     "a3nQzHuy",
-				Status:    "irj26nf3",
-				Script:    "FJsI1oXt",
-				HTTP:      "yzhgsQ7Y",
+				ID:         "Cqq95BhP",
+				Name:       "3qXpkS0i",
+				Notes:      "sb5qLTex",
+				ServiceID:  "CmUUcRna",
+				Token:      "a3nQzHuy",
+				Status:     "irj26nf3",
+				Script:     "FJsI1oXt",
+				ScriptArgs: []string{"9s526ogY", "gSlOHj1w"},
+				HTTP:       "yzhgsQ7Y",
 				Header: map[string][]string{
 					"zcqwA8dO": []string{"qb1zx0DL", "sXCxPFsD"},
 					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
@@ -2953,14 +2983,15 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			&structs.CheckDefinition{
-				ID:        "fZaCAXww",
-				Name:      "OOM2eo0f",
-				Notes:     "zXzXI9Gt",
-				ServiceID: "L8G0QNmR",
-				Token:     "oo4BCTgJ",
-				Status:    "qLykAl5u",
-				Script:    "dhGfIF8n",
-				HTTP:      "29B93haH",
+				ID:         "fZaCAXww",
+				Name:       "OOM2eo0f",
+				Notes:      "zXzXI9Gt",
+				ServiceID:  "L8G0QNmR",
+				Token:      "oo4BCTgJ",
+				Status:     "qLykAl5u",
+				Script:     "dhGfIF8n",
+				ScriptArgs: []string{"f3BemRjy", "e5zgpef7"},
+				HTTP:       "29B93haH",
 				Header: map[string][]string{
 					"hBq0zn1q": {"2a9o9ZKP", "vKwA5lR6"},
 					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
@@ -3068,12 +3099,13 @@ func TestFullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Checks: []*structs.CheckType{
 					&structs.CheckType{
-						CheckID: "qmfeO5if",
-						Name:    "atDGP7n5",
-						Status:  "pDQKEhWL",
-						Notes:   "Yt8EDLev",
-						Script:  "MDu7wjlD",
-						HTTP:    "qzHYvmJO",
+						CheckID:    "qmfeO5if",
+						Name:       "atDGP7n5",
+						Status:     "pDQKEhWL",
+						Notes:      "Yt8EDLev",
+						Script:     "MDu7wjlD",
+						ScriptArgs: []string{"81EDZLPa", "bPY5X8xd"},
+						HTTP:       "qzHYvmJO",
 						Header: map[string][]string{
 							"UkpmZ3a3": {"2dfzXuxZ"},
 							"cVFpko4u": {"gGqdEB6k", "9LsRo22u"},
@@ -3100,12 +3132,13 @@ func TestFullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{
 					&structs.CheckType{
-						CheckID: "GTti9hCo",
-						Name:    "9OOS93ne",
-						Notes:   "CQy86DH0",
-						Status:  "P0SWDvrk",
-						Script:  "6BhLJ7R9",
-						HTTP:    "u97ByEiW",
+						CheckID:    "GTti9hCo",
+						Name:       "9OOS93ne",
+						Notes:      "CQy86DH0",
+						Status:     "P0SWDvrk",
+						Script:     "6BhLJ7R9",
+						ScriptArgs: []string{"EXvkYIuG", "BATOyt6h"},
+						HTTP:       "u97ByEiW",
 						Header: map[string][]string{
 							"MUlReo8L": {"AUZG7wHG", "gsN0Dc2N"},
 							"1UJXjVrT": {"OJgxzTfk", "xZZrFsq7"},
@@ -3121,12 +3154,13 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID: "UHsDeLxG",
-						Name:    "PQSaPWlT",
-						Notes:   "jKChDOdl",
-						Status:  "5qFz6OZn",
-						Script:  "PbdxFZ3K",
-						HTTP:    "1LBDJhw4",
+						CheckID:    "UHsDeLxG",
+						Name:       "PQSaPWlT",
+						Notes:      "jKChDOdl",
+						Status:     "5qFz6OZn",
+						Script:     "PbdxFZ3K",
+						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
+						HTTP:       "1LBDJhw4",
 						Header: map[string][]string{
 							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
 							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
@@ -3153,12 +3187,13 @@ func TestFullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{
 					&structs.CheckType{
-						CheckID: "Zv99e9Ka",
-						Name:    "sgV4F7Pk",
-						Notes:   "yP5nKbW0",
-						Status:  "7oLMEyfu",
-						Script:  "NlUQ3nTE",
-						HTTP:    "KyDjGY9H",
+						CheckID:    "Zv99e9Ka",
+						Name:       "sgV4F7Pk",
+						Notes:      "yP5nKbW0",
+						Status:     "7oLMEyfu",
+						Script:     "NlUQ3nTE",
+						ScriptArgs: []string{"5wEZtZpv", "0Ihyk8cS"},
+						HTTP:       "KyDjGY9H",
 						Header: map[string][]string{
 							"gv5qefTz": {"5Olo2pMG", "PvvKWQU5"},
 							"SHOVq1Vv": {"jntFhyym", "GYJh32pp"},
@@ -3174,12 +3209,13 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID: "G79O6Mpr",
-						Name:    "IEqrzrsd",
-						Notes:   "SVqApqeM",
-						Status:  "XXkVoZXt",
-						Script:  "IXLZTM6E",
-						HTTP:    "kyICZsn8",
+						CheckID:    "G79O6Mpr",
+						Name:       "IEqrzrsd",
+						Notes:      "SVqApqeM",
+						Status:     "XXkVoZXt",
+						Script:     "IXLZTM6E",
+						ScriptArgs: []string{"wD05Bvao", "rLYB7kQC"},
+						HTTP:       "kyICZsn8",
 						Header: map[string][]string{
 							"4ebP5vL4": {"G20SrL5Q", "DwPKlMbo"},
 							"p2UI34Qz": {"UsG1D0Qh", "NHhRiB6s"},
@@ -3195,12 +3231,13 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID: "RMi85Dv8",
-						Name:    "iehanzuq",
-						Status:  "rCvn53TH",
-						Notes:   "fti5lfF3",
-						Script:  "rtj34nfd",
-						HTTP:    "dl3Fgme3",
+						CheckID:    "RMi85Dv8",
+						Name:       "iehanzuq",
+						Status:     "rCvn53TH",
+						Notes:      "fti5lfF3",
+						Script:     "rtj34nfd",
+						ScriptArgs: []string{"16WRUmwS", "QWk7j7ae"},
+						HTTP:       "dl3Fgme3",
 						Header: map[string][]string{
 							"rjm4DEd3": {"2m3m2Fls"},
 							"l4HwQ112": {"fk56MNlo", "dhLK56aZ"},
@@ -3274,6 +3311,12 @@ func TestFullConfig(t *testing.T) {
 				"datacenter": "GyE6jpeW",
 				"key":        "j9lF1Tve",
 				"handler":    "90N7S4LN",
+			},
+			map[string]interface{}{
+				"type":       "keyprefix",
+				"datacenter": "fYrl3F5d",
+				"key":        "sl3Dffu7",
+				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
 	}
