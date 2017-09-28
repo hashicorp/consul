@@ -111,6 +111,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * agent: Fixed an issue where disabling both the http and https interfaces would cause a watch-related error on agent startup, even when no watches were defined. [GH-3425]
+* cli: If the `consul operator raft list-peers` command encounters an error it will now exit with a non-zero exit code. [GH-3513]
 
 ## 0.9.3 (September 8, 2017)
 
