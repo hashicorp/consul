@@ -50,9 +50,10 @@ func (c *OperatorRaftListCommand) Run(args []string) int {
 	result, err := raftListPeers(client, c.BaseCommand.HTTPStale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
+		return 1
 	}
-	c.UI.Output(result)
 
+	c.UI.Output(result)
 	return 0
 }
 
