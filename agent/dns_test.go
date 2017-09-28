@@ -78,6 +78,18 @@ func dnsA(src, dest string) *dns.A {
 	}
 }
 
+// dnsTXT returns a DNS TXT record struct
+func dnsTXT(src string, txt []string) *dns.TXT {
+	return &dns.TXT{
+		Hdr: dns.RR_Header{
+			Name:   dns.Fqdn(src),
+			Rrtype: dns.TypeTXT,
+			Class:  dns.ClassINET,
+		},
+		Txt: txt,
+	}
+}
+
 func TestRecursorAddr(t *testing.T) {
 	t.Parallel()
 	addr, err := recursorAddr("8.8.8.8")
@@ -86,6 +98,35 @@ func TestRecursorAddr(t *testing.T) {
 	}
 	if addr != "8.8.8.8:53" {
 		t.Fatalf("bad: %v", addr)
+	}
+}
+
+func TestEncodeKVasRFC1464(t *testing.T) {
+	// Test cases are from rfc1464
+	type rfc1464Test struct {
+		key, value, internalForm, externalForm string
+	}
+	tests := []rfc1464Test{
+		{"color", "blue", "color=blue", "color=blue"},
+		{"equation", "a=4", "equation=a=4", "equation=a=4"},
+		{"a=a", "true", "a`=a=true", "a`=a=true"},
+		{"a\\=a", "false", "a\\`=a=false", "a\\`=a=false"},
+		{"=", "\\=", "`==\\=", "`==\\="},
+
+		{"string", "\"Cat\"", "string=\"Cat\"", "string=\"Cat\""},
+		{"string2", "`abc`", "string2=``abc``", "string2=``abc``"},
+		{"novalue", "", "novalue=", "novalue="},
+		{"a b", "c d", "a b=c d", "a b=c d"},
+		{"abc ", "123 ", "abc` =123 ", "abc` =123 "},
+
+		// Additional tests
+		{" abc", " 321", "` abc= 321", "` abc= 321"},
+		{"`a", "b", "``a=b", "``a=b"},
+	}
+
+	for _, test := range tests {
+		answer := encodeKVasRFC1464(test.key, test.value)
+		verify.Values(t, "internalForm", answer, test.internalForm)
 	}
 }
 
@@ -300,6 +341,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
 			dnsA("google.com", "1.2.3.4"),
+			dnsTXT("google.com", []string{"my_txt_value"}),
 		},
 	})
 	defer recursor.Shutdown()
@@ -330,21 +372,111 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have the service record, CNAME record + A record
-	if len(in.Answer) != 3 {
+	wantAnswer := []dns.RR{
+		&dns.CNAME{
+			Hdr:    dns.RR_Header{Name: "google.node.consul.", Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x10},
+			Target: "www.google.com.",
+		},
+		&dns.CNAME{
+			Hdr:    dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Rdlength: 0x2},
+			Target: "google.com.",
+		},
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x1, 0x2, 0x3, 0x4}, // 1.2.3.4
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "google.com.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xd},
+			Txt: []string{"my_txt_value"},
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+}
+
+func TestDNS_NodeLookup_TXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"rfc1035-00": "value0",
+			"key0":       "value1",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("google.node.consul.", dns.TypeTXT)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have the 1 TXT record reply
+	if len(in.Answer) != 2 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
-	cnRec, ok := in.Answer[0].(*dns.CNAME)
+	txtRec, ok := in.Answer[0].(*dns.TXT)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if cnRec.Target != "www.google.com." {
+	if len(txtRec.Txt) != 1 {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if cnRec.Hdr.Ttl != 0 {
+	if txtRec.Txt[0] != "value0" && txtRec.Txt[0] != "key0=value1" {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
+}
+
+func TestDNS_NodeLookup_ANY(t *testing.T) {
+	a := NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAnswer := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xa},
+			Txt: []string{"key=value"},
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+
 }
 
 func TestDNS_EDNS0(t *testing.T) {

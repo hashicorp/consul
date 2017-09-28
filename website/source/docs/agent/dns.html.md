@@ -57,8 +57,9 @@ we can instead use `foo.node.consul.` This convention allows for terse
 syntax where appropriate while supporting queries of nodes in remote
 datacenters as necessary.
 
-For a node lookup, the only records returned are A records containing
-the IP address of the node.
+For a node lookup, the only records returned are A and AAAA records 
+containing the IP address, and TXT records containing the 
+`node_meta` values of the node.
 
 ```text
 $ dig @127.0.0.1 -p 8600 foo.node.consul ANY
@@ -76,10 +77,18 @@ $ dig @127.0.0.1 -p 8600 foo.node.consul ANY
 
 ;; ANSWER SECTION:
 foo.node.consul.	0	IN	A	10.1.10.12
+foo.node.consul.	0	IN	TXT	"meta_key=meta_value"
+foo.node.consul.	0	IN	TXT	"value only"
+
 
 ;; AUTHORITY SECTION:
 consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 ```
+
+By default the TXT records value will match the node's metadata key-value 
+pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt). 
+Alternatively, the TXT record will only include the node's metadata value when the 
+node's metadata key starts with `rfc1035-`.
 
 ## Service Lookups
 
