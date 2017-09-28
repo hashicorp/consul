@@ -27,7 +27,7 @@ BREAKING CHANGES:
     | `addresses.rpc` | None, the RPC server for CLI commands is no longer supported. |
     | `atlas_infrastructure` | None, Atlas is no longer supported. |
     | `atlas_token` | None, Atlas is no longer supported. |
-    | `atlas_acl_token | None, Atlas is no longer supported. |
+    | `atlas_acl_token` | None, Atlas is no longer supported. |
     | `atlas_join` | None, Atlas is no longer supported. |
     | `atlas_endpoint` | None, Atlas is no longer supported. |
     | `dogstatsd_addr` | [`telemetry.dogstatsd_addr`](https://www.consul.io/docs/agent/options.html#telemetry-dogstatsd_addr) |
