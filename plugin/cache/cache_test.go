@@ -208,6 +208,25 @@ func TestCache(t *testing.T) {
 	}
 }
 
+func TestCacheZeroTTL(t *testing.T) {
+	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: maxTTL, nttl: maxTTL}
+	c.pcache = cache.New(c.pcap)
+	c.ncache = cache.New(c.ncap)
+	c.Next = zeroTTLBackend()
+
+	req := new(dns.Msg)
+	req.SetQuestion("example.org.", dns.TypeA)
+	ctx := context.TODO()
+
+	c.ServeDNS(ctx, &test.ResponseWriter{}, req)
+	if c.pcache.Len() != 0 {
+		t.Errorf("Msg with 0 TTL should not have been cached")
+	}
+	if c.ncache.Len() != 0 {
+		t.Errorf("Msg with 0 TTL should not have been cached")
+	}
+}
+
 func BenchmarkCacheResponse(b *testing.B) {
 	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: maxTTL, nttl: maxTTL}
 	c.pcache = cache.New(c.pcap)
@@ -245,6 +264,18 @@ func BackendHandler() plugin.Handler {
 		owner := m.Question[0].Name
 		m.Answer = []dns.RR{test.A(owner + " 303 IN A 127.0.0.53")}
 
+		w.WriteMsg(m)
+		return dns.RcodeSuccess, nil
+	})
+}
+
+func zeroTTLBackend() plugin.Handler {
+	return plugin.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Response, m.RecursionAvailable = true, true
+
+		m.Answer = []dns.RR{test.A("example.org. 0 IN A 127.0.0.53")}
 		w.WriteMsg(m)
 		return dns.RcodeSuccess, nil
 	})

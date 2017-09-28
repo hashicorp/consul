@@ -106,7 +106,7 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		duration = msgTTL
 	}
 
-	if key != -1 {
+	if key != -1 && duration > 0 {
 		w.set(res, key, mt, duration)
 
 		cacheSize.WithLabelValues(Success).Set(float64(w.pcache.Len()))
@@ -134,8 +134,7 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 }
 
 func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration time.Duration) {
-	if key == -1 {
-		log.Printf("[ERROR] Caching called with empty cache key")
+	if key == -1 || duration == 0 {
 		return
 	}
 
