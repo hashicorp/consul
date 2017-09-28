@@ -15,7 +15,7 @@ import (
 )
 
 // Pasrse all README.md's of the plugin and check if every example Corefile
-// actually works. Each corefile is only used if:
+// actually works. Each corefile is only used if the language is set to 'corefile':
 //
 // ~~~ corefile
 // . {
@@ -49,11 +49,10 @@ func TestReadme(t *testing.T) {
 
 		// Test each snippet.
 		for _, in := range inputs {
-			t.Logf("Testing %s, with %d byte snippet", readme, len(in.Body()))
 			dnsserver.Port = strconv.Itoa(port)
 			server, err := caddy.Start(in)
 			if err != nil {
-				t.Errorf("Failed to start server for input %q:\n%s", err, in.Body())
+				t.Errorf("Failed to start server with %s, for input %q:\n%s", readme, err, in.Body())
 			}
 			server.Stop()
 			port++
