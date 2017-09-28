@@ -34,7 +34,7 @@ func TestExecCommandRun(t *testing.T) {
 	defer a.Shutdown()
 
 	ui, c := testExecCommand(t)
-	args := []string{"-http-addr=" + a.HTTPAddr(), "-wait=500ms", "uptime"}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-wait=1s", "uptime"}
 
 	code := c.Run(args)
 	if code != 0 {

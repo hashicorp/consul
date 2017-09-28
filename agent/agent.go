@@ -556,7 +556,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				}
 			}
 			wp.Exempt["args"] = parsed
-		} else {
+		} else if hasArgs && !ok {
 			return fmt.Errorf("Watch args must be a list of strings")
 		}
 		if hasHandler && hasArgs {
