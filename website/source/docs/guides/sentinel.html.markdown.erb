@@ -18,7 +18,8 @@ description: |-
 
 ## Sentinel in Consul
 
-Sentinel policies are applied during writes to the KV Store and the service catalog in Consul.
+Sentinel policies are applied during writes to the KV Store.
+
 ACL policy definitions take a `sentinel` field specifying the code and the enforcement level.
 
 Here's an example:
@@ -26,12 +27,14 @@ Here's an example:
 
 ```text
   sentinel {
-      code = "main = rule { port > 1024 and port < 32768 }"
+      code = "import \"strings\"
+              rule { strings.has_suffix(value,\"foo\") }"
       enforcementlevel = "soft-mandatory"
   }
 ```
 
-This policy ensures that all services written to the Catalog must have a port number between 1024 and 32768.
+This policy ensures that the value written during a KV update must end with "foo".
+
 If the `enforcementlevel` property is not set, it defaults to "hard-mandatory".
 
 ## Imports
@@ -52,55 +55,18 @@ Consul passes some context as variables into Sentinel, which are available to us
 | `flags`       | `uint64` | [Flags](/api/kv.html#flags) |
 
 
-#### Variables injected during service registration
-
-| Variable Name  |  Type               | Description |
-| -------------- |-------------------- | ----------- |
-| `node_id`      | `string`            | ID of the agent registering the service |
-| `node`         | `string`            | Name of the agent registering the service |
-| `address`      | `string`            | Service address |
-| `port`         | `int`               | Service port |
-| `service_id`   | `string`            | Service ID |
-| `service`      | `string`            | Service name |
-| `node_meta`    | `map[string]string` | Node metadata map |
-| `tags`         | `list`              | Service tags |
-
-
 ## Examples
 The following are some examples of ACL policies with Sentinel rules.
 
-### All services must register with a valid IPv6 address.
+### Any values stored under the key prefix "foo" must end with "bar"
 
 ```text
-service "" {
-  policy = "write"
-  sentinel {
-      import \"sockaddr\"
-      code = "main = rule { sockaddr.is_ipv6(address) }"
-      enforcementlevel = "soft-mandatory"
-  }
-}
-```
-### Service names must end with "Service"
 
-```text
-service "" {
-  policy = "write"
-  sentinel {
-      import \"strings\"
-      code = "main = rule { strings.has_suffix(service,\"Service\") }"
-      enforcementlevel = "soft-mandatory"
-  }
-}
-```
-
-### The service "db" must be registered with either a "Leader" or a "Follower" tag
-
-```text
-service "db" {
+key "foo" {
 policy = "write"
 sentinel {
-      main = rule { tags contains \"Leader\" or tags contains  \"Follower\" }
+    import "strings"
+    main = rule { strings.has_suffix(value, \"foo\") }
     }
 }
 ```
@@ -108,7 +74,7 @@ sentinel {
 ### The key "foo" can only be updated during business hours.
 
 ```text
-keys "foo" {
+key "foo" {
 policy = "write"
 sentinel {
     import "time"
