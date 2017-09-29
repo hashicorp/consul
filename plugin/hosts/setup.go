@@ -50,13 +50,16 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 			if !path.IsAbs(h.path) && config.Root != "" {
 				h.path = path.Join(config.Root, h.path)
 			}
-			_, err := os.Stat(h.path)
+			s, err := os.Stat(h.path)
 			if err != nil {
 				if os.IsNotExist(err) {
 					log.Printf("[WARNING] File does not exist: %s", h.path)
 				} else {
 					return h, c.Errf("unable to access hosts file '%s': %v", h.path, err)
 				}
+			}
+			if s != nil && s.IsDir() {
+				log.Printf("[WARNING] hosts file %q is a directory", h.path)
 			}
 		}
 
