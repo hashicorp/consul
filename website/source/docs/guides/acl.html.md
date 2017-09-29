@@ -946,22 +946,6 @@ In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured wit
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
 script checks.
 
-Consul Enterprise supports additional optional fields for key write policies for
-[Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example service
-rule with a Sentinel code policy looks like this:
-
-```text
-service "foo" {
-  policy = "write"
-  sentinel {
-      code = " import \"strings\"
-               main = rule { strings.has_suffix(service, \"Service\") } "
-      enforcementlevel = "hard-mandatory"
-  }
-}
-```
-
-For more detailed documentation, see the [Consul Sentinel Guide](/docs/guides/sentinel.html).
 
 #### Session Rules
 
