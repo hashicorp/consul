@@ -92,6 +92,8 @@ BREAKING CHANGES:
     | /v1/session/node | GET |
     | /v1/status/leader | GET |
     | /v1/status/peers | GET |
+    | /v1/operator/area/:uuid/members | GET |
+    | /v1/operator/area/:uuid/join | PUT |
 
     </details>
 
