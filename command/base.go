@@ -33,6 +33,8 @@ type BaseCommand struct {
 	UI    cli.Ui
 	Flags FlagSetFlags
 
+	HideNormalFlagsHelp bool
+
 	flagSet *flag.FlagSet
 	hidden  *flag.FlagSet
 
@@ -233,18 +235,20 @@ func (c *BaseCommand) helpFlagsFor(f *flag.FlagSet) string {
 		})
 	}
 
-	firstCommand := true
-	f.VisitAll(func(f *flag.Flag) {
-		// Skip HTTP flags as they will be grouped separately
-		if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) || flagContains(c.hidden, f) {
-			return
-		}
-		if firstCommand {
-			printTitle(&out, "Command Options")
-			firstCommand = false
-		}
-		printFlag(&out, f)
-	})
+	if !c.HideNormalFlagsHelp {
+		firstCommand := true
+		f.VisitAll(func(f *flag.Flag) {
+			// Skip HTTP flags as they will be grouped separately
+			if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) || flagContains(c.hidden, f) {
+				return
+			}
+			if firstCommand {
+				printTitle(&out, "Command Options")
+				firstCommand = false
+			}
+			printFlag(&out, f)
+		})
+	}
 
 	return strings.TrimRight(out.String(), "\n")
 }
