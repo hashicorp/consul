@@ -893,22 +893,78 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc:  "serf advertise address lan template",
+			desc:  "advertise address lan with ports",
 			flags: []string{`-data-dir=` + dataDir},
-			json:  []string{`{ "advertise_addrs": { "serf_lan": "{{ printf \"1.2.3.4\" }}" } }`},
-			hcl:   []string{`advertise_addrs = { serf_lan = "{{ printf \"1.2.3.4\" }}" }`},
+			json: []string{`{
+				"ports": {
+					"server": 1000,
+					"serf_lan": 2000,
+					"serf_wan": 3000
+				},
+				"advertise_addr": "1.2.3.4"
+			}`},
+			hcl: []string{`
+				ports {
+					server = 1000
+					serf_lan = 2000
+					serf_wan = 3000
+				}
+				advertise_addr = "1.2.3.4"
+			`},
 			patch: func(rt *RuntimeConfig) {
-				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
+				rt.AdvertiseAddrLAN = ipAddr("1.2.3.4")
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.RPCAdvertiseAddr = tcpAddr("1.2.3.4:1000")
+				rt.RPCBindAddr = tcpAddr("0.0.0.0:1000")
+				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:2000")
+				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:3000")
+				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:2000")
+				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:3000")
+				rt.SerfPortLAN = 2000
+				rt.SerfPortWAN = 3000
+				rt.ServerPort = 1000
+				rt.TaggedAddresses = map[string]string{
+					"lan": "1.2.3.4",
+					"wan": "1.2.3.4",
+				}
 				rt.DataDir = dataDir
 			},
 		},
 		{
-			desc:  "serf advertise address wan template",
+			desc:  "advertise address wan with ports",
 			flags: []string{`-data-dir=` + dataDir},
-			json:  []string{`{ "advertise_addrs": { "serf_wan": "{{ printf \"1.2.3.4\" }}" } }`},
-			hcl:   []string{`advertise_addrs = { serf_wan = "{{ printf \"1.2.3.4\" }}" }`},
+			json: []string{`{
+				"ports": {
+					"server": 1000,
+					"serf_lan": 2000,
+					"serf_wan": 3000
+				},
+				"advertise_addr_wan": "1.2.3.4"
+			}`},
+			hcl: []string{`
+				ports {
+					server = 1000
+					serf_lan = 2000
+					serf_wan = 3000
+				}
+				advertise_addr_wan = "1.2.3.4"
+			`},
 			patch: func(rt *RuntimeConfig) {
-				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
+				rt.AdvertiseAddrLAN = ipAddr("10.0.0.1")
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.RPCAdvertiseAddr = tcpAddr("10.0.0.1:1000")
+				rt.RPCBindAddr = tcpAddr("0.0.0.0:1000")
+				rt.SerfAdvertiseAddrLAN = tcpAddr("10.0.0.1:2000")
+				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:3000")
+				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:2000")
+				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:3000")
+				rt.SerfPortLAN = 2000
+				rt.SerfPortWAN = 3000
+				rt.ServerPort = 1000
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "1.2.3.4",
+				}
 				rt.DataDir = dataDir
 			},
 		},
@@ -1396,33 +1452,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "advertise_addr_wan": "::" }`},
 			hcl:  []string{`advertise_addr_wan = "::"`},
 			err:  "Advertise WAN address cannot be 0.0.0.0, :: or [::]",
-		},
-		{
-			desc: "advertise_addrs.rpc any",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "advertise_addrs":{ "rpc": "[::]" } }`},
-			hcl:  []string{`advertise_addrs = { rpc = "[::]" }`},
-			err:  "advertise_addrs.rpc cannot be 0.0.0.0, :: or [::]",
-		},
-		{
-			desc: "advertise_addrs.serf_lan any",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "advertise_addrs":{ "serf_lan": "[::]" } }`},
-			hcl:  []string{`advertise_addrs = { serf_lan = "[::]" }`},
-			err:  "advertise_addrs.serf_lan cannot be 0.0.0.0, :: or [::]",
-		},
-		{
-			desc: "advertise_addrs.serf_wan any",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "advertise_addrs":{ "serf_wan": "0.0.0.0" } }`},
-			hcl:  []string{`advertise_addrs = { serf_wan = "0.0.0.0" }`},
-			err:  "advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]",
 		},
 		{
 			desc: "dns_config.udp_answer_limit invalid",
@@ -1914,11 +1943,6 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
-			"advertise_addrs": {
-				"rpc": "28.27.94.38",
-				"serf_lan": "49.38.36.95",
-				"serf_wan": "63.38.52.13"
-			},
 			"autopilot": {
 				"cleanup_dead_servers": true,
 				"disable_upgrade_migration": true,
@@ -2334,11 +2358,6 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
-			advertise_addrs = {
-				rpc = "28.27.94.38"
-				serf_lan = "49.38.36.95"
-				serf_wan = "63.38.52.13"
-			}
 			autopilot = {
 				cleanup_dead_servers = true
 				disable_upgrade_migration = true
@@ -3022,7 +3041,7 @@ func TestFullConfig(t *testing.T) {
 		NodeName:                  "otlLxGaI",
 		NonVotingServer:           true,
 		PidFile:                   "43xN80Km",
-		RPCAdvertiseAddr:          tcpAddr("28.27.94.38:3757"),
+		RPCAdvertiseAddr:          tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:               tcpAddr("16.99.34.17:3757"),
 		RPCProtocol:               30793,
 		RPCRateLimit:              12029.43,
@@ -3218,8 +3237,8 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		SerfAdvertiseAddrLAN:                        tcpAddr("49.38.36.95:8301"),
-		SerfAdvertiseAddrWAN:                        tcpAddr("63.38.52.13:8302"),
+		SerfAdvertiseAddrLAN:                        tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN:                        tcpAddr("78.63.37.19:8302"),
 		SerfBindAddrLAN:                             tcpAddr("99.43.63.15:8301"),
 		SerfBindAddrWAN:                             tcpAddr("67.88.33.19:8302"),
 		SessionTTLMin:                               26627 * time.Second,

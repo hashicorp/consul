@@ -371,9 +371,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// derive other advertise addresses from the advertise address
 	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
 	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
-	rpcAdvertiseAddr := b.makeTCPAddr(b.expandFirstIP("advertise_addresses.rpc", c.AdvertiseAddrs.RPC), advertiseAddrLAN, serverPort)
-	serfAdvertiseAddrLAN := b.makeTCPAddr(b.expandFirstIP("advertise_addresses.serf_lan", c.AdvertiseAddrs.SerfLAN), advertiseAddrLAN, serfPortLAN)
-	serfAdvertiseAddrWAN := b.makeTCPAddr(b.expandFirstIP("advertise_addresses.serf_wan", c.AdvertiseAddrs.SerfWAN), advertiseAddrWAN, serfPortWAN)
+	rpcAdvertiseAddr := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serverPort}
+	serfAdvertiseAddrLAN := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serfPortLAN}
+	serfAdvertiseAddrWAN := &net.TCPAddr{IP: advertiseAddrWAN.IP, Port: serfPortWAN}
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
@@ -682,15 +682,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if ipaddr.IsAny(rt.AdvertiseAddrWAN.IP) {
 		return fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
-	}
-	if ipaddr.IsAny(rt.RPCAdvertiseAddr) {
-		return fmt.Errorf("advertise_addrs.rpc cannot be 0.0.0.0, :: or [::]")
-	}
-	if ipaddr.IsAny(rt.SerfAdvertiseAddrLAN) {
-		return fmt.Errorf("advertise_addrs.serf_lan cannot be 0.0.0.0, :: or [::]")
-	}
-	if ipaddr.IsAny(rt.SerfAdvertiseAddrWAN) {
-		return fmt.Errorf("advertise_addrs.serf_wan cannot be 0.0.0.0, :: or [::]")
 	}
 	if err := b.validateSegments(rt); err != nil {
 		return err
