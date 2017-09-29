@@ -2,12 +2,18 @@ package dnstapio
 
 import (
 	"bytes"
+	"io/ioutil"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
 	tap "github.com/dnstap/golang-dnstap"
 )
+
+func init() {
+	log.SetOutput(ioutil.Discard)
+}
 
 type buf struct {
 	*bytes.Buffer
@@ -38,7 +44,8 @@ func TestRace(t *testing.T) {
 					return
 				default:
 					time.Sleep(50 * time.Millisecond)
-					dio.Dnstap(tap.Dnstap{})
+					t := tap.Dnstap_MESSAGE
+					dio.Dnstap(tap.Dnstap{Type: &t})
 				}
 			}
 		}()
