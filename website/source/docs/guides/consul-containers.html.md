@@ -107,7 +107,7 @@ If the container running the currently-elected Consul server leader is stopped, 
 When a previously stopped server container is restarted using `docker start <container_id>`,  and it is configured to obtain a new IP, Autopilot will add it back to the set of Raft peers with the same node-id and the new IP address, after which it can participate as a server again. 
 
 ## Known Issues
-**Consul does not currently gracefully handle the situation where all nodes in the cluster running inside a container are restarted at the same time, and they all obtain new IP addresses.** This is because the underlying Raft layer persists the IP address and needs it for leader election operations. Operators must carefully orchestrate restarts of Consul containers that have ephemeral IP addresses to do restarts in small numbers, so that they can gracefully leave the cluster and re-join with their new IP address.
+**All nodes changing IP addresses** Prior to Consul 0.9.3, Consul did not currently gracefully handle the situation where all nodes in the cluster running inside a container are restarted at the same time, and they all obtain new IP addresses. This has been [fixed](https://github.com/hashicorp/consul/issues/1580) since Consul 0.9.3, and requires `"raft_protocol"` to be set to `"3"` in the configs in Consul 0.9.3. Consul 1.0 makes raft protocol 3 the default.
 
 **Snapshot close error** Due to a [known issue](https://github.com/docker/libnetwork/issues/1204) with half close support in Docker, you will see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This does not affect saving and restoring snapshots when running in Docker.
 
