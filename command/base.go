@@ -62,6 +62,11 @@ func (c *BaseCommand) HTTPClient() (*api.Client, error) {
 	}
 
 	config := api.DefaultConfig()
+	c.MergeHTTPConfig(config)
+	return api.NewClient(config)
+}
+
+func (c *BaseCommand) MergeHTTPConfig(config *api.Config) {
 	c.httpAddr.Merge(&config.Address)
 	c.token.Merge(&config.Token)
 	c.caFile.Merge(&config.TLSConfig.CAFile)
@@ -70,7 +75,6 @@ func (c *BaseCommand) HTTPClient() (*api.Client, error) {
 	c.keyFile.Merge(&config.TLSConfig.KeyFile)
 	c.tlsServerName.Merge(&config.TLSConfig.Address)
 	c.datacenter.Merge(&config.Datacenter)
-	return api.NewClient(config)
 }
 
 func (c *BaseCommand) HTTPAddr() string {
