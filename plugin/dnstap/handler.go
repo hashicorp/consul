@@ -36,6 +36,14 @@ type (
 	}
 )
 
+// ContextKey defines the type of key that is used to save data into the context
+type ContextKey string
+
+const (
+	// DnstapSendOption specifies the Dnstap message to be send.  Default is sent all.
+	DnstapSendOption ContextKey = "dnstap-send-option"
+)
+
 // TapperFromContext will return a Tapper if the dnstap plugin is enabled.
 func TapperFromContext(ctx context.Context) (t Tapper) {
 	t, _ = ctx.(Tapper)
@@ -64,10 +72,16 @@ func (h Dnstap) TapBuilder() msg.Builder {
 
 // ServeDNS logs the client query and response to dnstap and passes the dnstap Context.
 func (h Dnstap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	rw := &taprw.ResponseWriter{ResponseWriter: w, Tapper: &h, Query: r}
+
+	// Add send option into context so other plugin can decide on which DNSTap
+	// message to be sent out
+	sendOption := taprw.SendOption{Cq: true, Cr: true}
+	newCtx := context.WithValue(ctx, DnstapSendOption, &sendOption)
+
+	rw := &taprw.ResponseWriter{ResponseWriter: w, Tapper: &h, Query: r, Send: &sendOption}
 	rw.QueryEpoch()
 
-	code, err := plugin.NextOrFailure(h.Name(), h.Next, tapContext{ctx, h}, rw, r)
+	code, err := plugin.NextOrFailure(h.Name(), h.Next, tapContext{newCtx, h}, rw, r)
 	if err != nil {
 		// ignore dnstap errors
 		return code, err

@@ -80,3 +80,57 @@ func TestClientQueryResponse(t *testing.T) {
 		t.Fatalf("response: want: %v\nhave: %v", want, have)
 	}
 }
+
+func TestClientQueryResponseWithSendOption(t *testing.T) {
+	trapper := test.TrapTapper{Full: true}
+	m := testingMsg()
+	rw := ResponseWriter{
+		Query:          m,
+		Tapper:         &trapper,
+		ResponseWriter: &mwtest.ResponseWriter{},
+	}
+	d := test.TestingData()
+	bin, err := m.Pack()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	d.Packed = bin
+
+	// Do not send both CQ and CR
+	o := SendOption{Cq: false, Cr: false}
+	rw.Send = &o
+
+	if err := rw.WriteMsg(m); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if l := len(trapper.Trap); l != 0 {
+		t.Fatalf("%d msg trapped", l)
+		return
+	}
+
+	//Send CQ
+	o.Cq = true
+	if err := rw.WriteMsg(m); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if l := len(trapper.Trap); l != 1 {
+		t.Fatalf("%d msg trapped", l)
+		return
+	}
+
+	//Send CR
+	trapper.Trap = trapper.Trap[:0]
+	o.Cq = false
+	o.Cr = true
+	if err := rw.WriteMsg(m); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if l := len(trapper.Trap); l != 1 {
+		t.Fatalf("%d msg trapped", l)
+		return
+	}
+}
