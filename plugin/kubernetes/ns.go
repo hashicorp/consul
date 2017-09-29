@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
-	"k8s.io/client-go/1.5/pkg/api"
+	api "k8s.io/client-go/pkg/api/v1"
 )
 
 func isDefaultNS(name, zone string) bool {
@@ -20,12 +20,10 @@ func (k *Kubernetes) nsAddr() *dns.A {
 
 	rr := new(dns.A)
 	localIP := k.interfaceAddrsFunc()
-	endpointsList := k.APIConn.EndpointsList()
-
 	rr.A = localIP
 
 FindEndpoint:
-	for _, ep := range endpointsList.Items {
+	for _, ep := range k.APIConn.EndpointsList() {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {
@@ -42,11 +40,9 @@ FindEndpoint:
 		rr.A = localIP
 		return rr
 	}
-	// Find service to get ClusterIP
-	serviceList := k.APIConn.ServiceList()
 
 FindService:
-	for _, svc := range serviceList {
+	for _, svc := range k.APIConn.ServiceList() {
 		if svcName == svc.Name && svcNamespace == svc.Namespace {
 			if svc.Spec.ClusterIP == api.ClusterIPNone {
 				rr.A = localIP

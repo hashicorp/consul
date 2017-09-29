@@ -1,6 +1,8 @@
 package kubernetes
 
-import "net"
+import (
+	"net"
+)
 
 func localPodIP() net.IP {
 	addrs, err := net.InterfaceAddrs()
@@ -26,8 +28,7 @@ func (k *Kubernetes) localNodeName() string {
 	}
 
 	// Find endpoint matching localIP
-	endpointsList := k.APIConn.EndpointsList()
-	for _, ep := range endpointsList.Items {
+	for _, ep := range k.APIConn.EndpointsList() {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {

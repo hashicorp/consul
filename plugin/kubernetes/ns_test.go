@@ -3,53 +3,53 @@ package kubernetes
 import (
 	"testing"
 
-	"k8s.io/client-go/1.5/pkg/api"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	api "k8s.io/client-go/pkg/api/v1"
 )
 
 type APIConnTest struct{}
 
-func (APIConnTest) Run()                          { return }
-func (APIConnTest) Stop() error                   { return nil }
-func (APIConnTest) PodIndex(string) []interface{} { return nil }
+func (APIConnTest) Run()                       { return }
+func (APIConnTest) Stop() error                { return nil }
+func (APIConnTest) PodIndex(string) []*api.Pod { return nil }
 
 func (APIConnTest) ServiceList() []*api.Service {
-	svc := api.Service{
-		ObjectMeta: api.ObjectMeta{
-			Name:      "dns-service",
-			Namespace: "kube-system",
-		},
-		Spec: api.ServiceSpec{
-			ClusterIP: "10.0.0.111",
-		},
-	}
-
-	return []*api.Service{&svc}
-
-}
-
-func (APIConnTest) EndpointsList() api.EndpointsList {
-	return api.EndpointsList{
-		Items: []api.Endpoints{
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP: "127.0.0.1",
-							},
-						},
-					},
-				},
-				ObjectMeta: api.ObjectMeta{
-					Name:      "dns-service",
-					Namespace: "kube-system",
-				},
+	svcs := []*api.Service{
+		{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "dns-service",
+				Namespace: "kube-system",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: "10.0.0.111",
 			},
 		},
 	}
+	return svcs
 }
 
-func (APIConnTest) GetNodeByName(name string) (api.Node, error) { return api.Node{}, nil }
+func (APIConnTest) EndpointsList() []*api.Endpoints {
+	eps := []*api.Endpoints{
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP: "127.0.0.1",
+						},
+					},
+				},
+			},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "dns-service",
+				Namespace: "kube-system",
+			},
+		},
+	}
+	return eps
+}
+
+func (APIConnTest) GetNodeByName(name string) (*api.Node, error) { return &api.Node{}, nil }
 
 func TestNsAddr(t *testing.T) {
 

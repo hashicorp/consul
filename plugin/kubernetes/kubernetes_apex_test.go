@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-var kubeApexCases = [](test.Case){
+var kubeApexCases = []test.Case{
 	{
 		Qname: "cluster.local.", Qtype: dns.TypeSOA,
 		Rcode: dns.RcodeSuccess,

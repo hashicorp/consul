@@ -11,10 +11,10 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/proxy"
-	"github.com/miekg/dns"
 
 	"github.com/mholt/caddy"
-	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
+	"github.com/miekg/dns"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func init() {
@@ -150,7 +150,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 				args := c.RemainingArgs()
 				if len(args) > 0 {
 					labelSelectorString := strings.Join(args, " ")
-					ls, err := unversionedapi.ParseToLabelSelector(labelSelectorString)
+					ls, err := meta.ParseToLabelSelector(labelSelectorString)
 					if err != nil {
 						return nil, opts, fmt.Errorf("unable to parse label selector value: '%v': %v", labelSelectorString, err)
 					}

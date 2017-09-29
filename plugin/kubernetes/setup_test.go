@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/mholt/caddy"
-	"k8s.io/client-go/1.5/pkg/api/unversioned"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestKubernetesParse(t *testing.T) {
@@ -431,7 +431,7 @@ func TestKubernetesParse(t *testing.T) {
 
 		//    Labels
 		if opts.labelSelector != nil {
-			foundLabelSelectorString := unversioned.FormatLabelSelector(opts.labelSelector)
+			foundLabelSelectorString := meta.FormatLabelSelector(opts.labelSelector)
 			if foundLabelSelectorString != test.expectedLabelSelector {
 				t.Errorf("Test %d: Expected kubernetes controller to be initialized with label selector '%s'. Instead found selector '%s' for input '%s'", i, test.expectedLabelSelector, foundLabelSelectorString, test.input)
 			}

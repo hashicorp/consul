@@ -17,13 +17,13 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
-	"k8s.io/client-go/1.5/kubernetes"
-	"k8s.io/client-go/1.5/pkg/api"
-	unversionedapi "k8s.io/client-go/1.5/pkg/api/unversioned"
-	"k8s.io/client-go/1.5/pkg/labels"
-	"k8s.io/client-go/1.5/rest"
-	"k8s.io/client-go/1.5/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/1.5/tools/clientcmd/api"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+	api "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // Kubernetes implements a plugin that connects to a Kubernetes cluster.
@@ -76,7 +76,6 @@ var (
 	errNoItems        = errors.New("no items found")
 	errNsNotExposed   = errors.New("namespace is not exposed")
 	errInvalidRequest = errors.New("invalid query name")
-	errAPIBadPodType  = errors.New("expected type *api.Pod")
 	errPodsDisabled   = errors.New("pod records disabled")
 )
 
@@ -152,14 +151,17 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	clusterinfo := clientcmdapi.Cluster{}
 	authinfo := clientcmdapi.AuthInfo{}
 
+	// Connect to API from in cluster
 	if len(k.APIServerList) == 0 {
 		cc, err := rest.InClusterConfig()
 		if err != nil {
 			return nil, err
 		}
+		cc.ContentType = "application/vnd.kubernetes.protobuf"
 		return cc, err
 	}
 
+	// Connect to API from out of cluster
 	endpoint := k.APIServerList[0]
 	if len(k.APIServerList) > 1 {
 		// Use a random port for api proxy, will get the value later through listener.Addr()
@@ -230,7 +232,10 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	overrides.AuthInfo = authinfo
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 
-	return clientConfig.ClientConfig()
+	cc, err := clientConfig.ClientConfig()
+	cc.ContentType = "application/vnd.kubernetes.protobuf"
+	return cc, err
+
 }
 
 // initKubeCache initializes a new Kubernetes cache.
@@ -248,7 +253,7 @@ func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
 
 	if opts.labelSelector != nil {
 		var selector labels.Selector
-		selector, err = unversionedapi.LabelSelectorAsSelector(opts.labelSelector)
+		selector, err = meta.LabelSelectorAsSelector(opts.labelSelector)
 		if err != nil {
 			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", opts.labelSelector, err)
 		}
@@ -317,13 +322,7 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 	}
 
 	// PodModeVerified
-	objList := k.APIConn.PodIndex(ip)
-
-	for _, o := range objList {
-		p, ok := o.(*api.Pod)
-		if !ok {
-			return nil, errAPIBadPodType
-		}
+	for _, p := range k.APIConn.PodIndex(ip) {
 		// If namespace has a wildcard, filter results against Corefile namespace list.
 		if wildcard(namespace) && !k.namespaceExposed(p.Namespace) {
 			continue
@@ -341,11 +340,11 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 
 // findServices returns the services matching r from the cache.
 func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.Service, err error) {
-	serviceList := k.APIConn.ServiceList()
 	zonePath := msg.Path(zone, "coredns")
 	err = errNoItems // Set to errNoItems to signal really nothing found, gets reset when name is matched.
 
-	for _, svc := range serviceList {
+	for _, svc := range k.APIConn.ServiceList() {
+
 		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
 			continue
 		}
@@ -358,8 +357,8 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 		// Endpoint query or headless service
 		if svc.Spec.ClusterIP == api.ClusterIPNone || r.endpoint != "" {
-			endpointsList := k.APIConn.EndpointsList()
-			for _, ep := range endpointsList.Items {
+
+			for _, ep := range k.APIConn.EndpointsList() {
 				if ep.ObjectMeta.Name != svc.Name || ep.ObjectMeta.Namespace != svc.Namespace {
 					continue
 				}

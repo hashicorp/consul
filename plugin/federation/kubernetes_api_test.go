@@ -3,7 +3,8 @@ package federation
 import (
 	"github.com/coredns/coredns/plugin/kubernetes"
 
-	"k8s.io/client-go/1.5/pkg/api"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	api "k8s.io/client-go/pkg/api/v1"
 )
 
 type APIConnFederationTest struct{}
@@ -11,23 +12,22 @@ type APIConnFederationTest struct{}
 func (APIConnFederationTest) Run()        { return }
 func (APIConnFederationTest) Stop() error { return nil }
 
-func (APIConnFederationTest) PodIndex(string) []interface{} {
-	a := make([]interface{}, 1)
-	a[0] = &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+func (APIConnFederationTest) PodIndex(string) []*api.Pod {
+	a := []*api.Pod{{
+		ObjectMeta: meta.ObjectMeta{
 			Namespace: "podns",
 		},
 		Status: api.PodStatus{
 			PodIP: "10.240.0.1", // Remote IP set in test.ResponseWriter
 		},
-	}
+	}}
 	return a
 }
 
 func (APIConnFederationTest) ServiceList() []*api.Service {
 	svcs := []*api.Service{
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "svc1",
 				Namespace: "testns",
 			},
@@ -41,7 +41,7 @@ func (APIConnFederationTest) ServiceList() []*api.Service {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "hdls1",
 				Namespace: "testns",
 			},
@@ -50,7 +50,7 @@ func (APIConnFederationTest) ServiceList() []*api.Service {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "external",
 				Namespace: "testns",
 			},
@@ -65,42 +65,40 @@ func (APIConnFederationTest) ServiceList() []*api.Service {
 		},
 	}
 	return svcs
-
 }
 
-func (APIConnFederationTest) EndpointsList() api.EndpointsList {
-	return api.EndpointsList{
-		Items: []api.Endpoints{
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP:       "172.0.0.1",
-								Hostname: "ep1a",
-							},
+func (APIConnFederationTest) EndpointsList() []*api.Endpoints {
+	eps := []*api.Endpoints{
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP:       "172.0.0.1",
+							Hostname: "ep1a",
 						},
-						Ports: []api.EndpointPort{
-							{
-								Port:     80,
-								Protocol: "tcp",
-								Name:     "http",
-							},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
 						},
 					},
 				},
-				ObjectMeta: api.ObjectMeta{
-					Name:      "svc1",
-					Namespace: "testns",
-				},
+			},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
 			},
 		},
 	}
+	return eps
 }
 
-func (APIConnFederationTest) GetNodeByName(name string) (api.Node, error) {
-	return api.Node{
-		ObjectMeta: api.ObjectMeta{
+func (APIConnFederationTest) GetNodeByName(name string) (*api.Node, error) {
+	return &api.Node{
+		ObjectMeta: meta.ObjectMeta{
 			Name: "test.node.foo.bar",
 			Labels: map[string]string{
 				kubernetes.LabelRegion: "fd-r",

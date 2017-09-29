@@ -7,7 +7,8 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
-	"k8s.io/client-go/1.5/pkg/api"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	api "k8s.io/client-go/pkg/api/v1"
 )
 
 func TestWildcard(t *testing.T) {
@@ -50,14 +51,14 @@ func TestEndpointHostname(t *testing.T) {
 
 type APIConnServiceTest struct{}
 
-func (APIConnServiceTest) Run()                          { return }
-func (APIConnServiceTest) Stop() error                   { return nil }
-func (APIConnServiceTest) PodIndex(string) []interface{} { return nil }
+func (APIConnServiceTest) Run()                       { return }
+func (APIConnServiceTest) Stop() error                { return nil }
+func (APIConnServiceTest) PodIndex(string) []*api.Pod { return nil }
 
 func (APIConnServiceTest) ServiceList() []*api.Service {
 	svcs := []*api.Service{
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "svc1",
 				Namespace: "testns",
 			},
@@ -71,7 +72,7 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "hdls1",
 				Namespace: "testns",
 			},
@@ -80,7 +81,7 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: meta.ObjectMeta{
 				Name:      "external",
 				Namespace: "testns",
 			},
@@ -97,97 +98,96 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 	return svcs
 }
 
-func (APIConnServiceTest) EndpointsList() api.EndpointsList {
+func (APIConnServiceTest) EndpointsList() []*api.Endpoints {
 	n := "test.node.foo.bar"
 
-	return api.EndpointsList{
-		Items: []api.Endpoints{
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP:       "172.0.0.1",
-								Hostname: "ep1a",
-							},
+	eps := []*api.Endpoints{
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP:       "172.0.0.1",
+							Hostname: "ep1a",
 						},
-						Ports: []api.EndpointPort{
-							{
-								Port:     80,
-								Protocol: "tcp",
-								Name:     "http",
-							},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
 						},
 					},
 				},
-				ObjectMeta: api.ObjectMeta{
-					Name:      "svc1",
-					Namespace: "testns",
-				},
 			},
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP: "172.0.0.2",
-							},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP: "172.0.0.2",
 						},
-						Ports: []api.EndpointPort{
-							{
-								Port:     80,
-								Protocol: "tcp",
-								Name:     "http",
-							},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
 						},
 					},
 				},
-				ObjectMeta: api.ObjectMeta{
-					Name:      "hdls1",
-					Namespace: "testns",
-				},
 			},
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP: "172.0.0.3",
-							},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP: "172.0.0.3",
 						},
-						Ports: []api.EndpointPort{
-							{
-								Port:     80,
-								Protocol: "tcp",
-								Name:     "http",
-							},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
 						},
 					},
 				},
-				ObjectMeta: api.ObjectMeta{
-					Name:      "hdls1",
-					Namespace: "testns",
-				},
 			},
-			{
-				Subsets: []api.EndpointSubset{
-					{
-						Addresses: []api.EndpointAddress{
-							{
-								IP:       "10.9.8.7",
-								NodeName: &n,
-							},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP:       "10.9.8.7",
+							NodeName: &n,
 						},
 					},
 				},
 			},
 		},
 	}
+	return eps
 }
 
-func (APIConnServiceTest) GetNodeByName(name string) (api.Node, error) {
-	return api.Node{
-		ObjectMeta: api.ObjectMeta{
+func (APIConnServiceTest) GetNodeByName(name string) (*api.Node, error) {
+	return &api.Node{
+		ObjectMeta: meta.ObjectMeta{
 			Name: "test.node.foo.bar",
 		},
 	}, nil
