@@ -603,9 +603,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.RaftConfig.ElectionTimeout = a.config.ConsulRaftElectionTimeout
 
 	base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfPortLAN
+	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrLAN.Port
 	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfPortLAN
+	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrLAN.Port
 	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
 	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
 	base.SerfLANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfLANGossipInterval
@@ -614,9 +614,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfLANSuspicionMult
 
 	base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfPortWAN
+	base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
 	base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfPortWAN
+	base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
 	base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
 	base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
 	base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
