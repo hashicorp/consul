@@ -185,7 +185,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	cmd.Stderr = writer
 
 	// Start execution
-	err = StartSubprocess(cmd, false)
+	err = StartSubprocess(cmd, false, a.logger)
 	if err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
 		exitCode = 255

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-
 	"os/signal"
+	"log"
 )
 
 // ExecScript returns a command to execute a script through a shell.
@@ -29,7 +29,7 @@ func ExecSubprocess(args []string) (*exec.Cmd, error) {
 }
 
 // StartSubprocess starts the given command and sets up signal relaying.
-func StartSubprocess(cmd *exec.Cmd, echoSignals bool) error {
+func StartSubprocess(cmd *exec.Cmd, echoSignals bool, logger *log.Logger) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -46,7 +46,11 @@ func StartSubprocess(cmd *exec.Cmd, echoSignals bool) error {
 				select {
 				case sig := <-signalCh:
 					if err := cmd.Process.Signal(sig); err != nil {
-						fmt.Println("Error relaying signal to subprocess: ", err)
+						if logger != nil {
+							logger.Printf("[ERR] agent: error relaying signal to subprocess: %v", err)
+						} else {
+							fmt.Println("Error relaying signal to subprocess: ", err)
+						}
 					}
 				case <-shutdownCh:
 					signal.Stop(signalCh)

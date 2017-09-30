@@ -104,9 +104,6 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 			"is generated based on the provided child command.")
 	f.BoolVar(&passStdin, "pass-stdin", false,
 		"Pass stdin to the child process.")
-	f.BoolVar(&shell, "shell", false,
-		"Use a shell to run the child command (can set a custom shell via the SHELL "+
-			"environment variable).")
 	f.DurationVar(&timeout, "timeout", 0,
 		"Maximum amount of time to wait to acquire the lock, specified as a "+
 			"duration like \"1s\" or \"3h\". The default value is 0.")
@@ -375,7 +372,7 @@ func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
 
 	// Start the child process
 	c.childLock.Lock()
-	if err := agent.StartSubprocess(cmd, true); err != nil {
+	if err := agent.StartSubprocess(cmd, true, nil); err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting handler: %s", err))
 		c.childLock.Unlock()
 		return err

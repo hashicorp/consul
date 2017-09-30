@@ -543,6 +543,10 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		// Get the handler and subprocess arguments
 		handler, hasHandler := wp.Exempt["handler"]
 		args, hasArgs := wp.Exempt["args"]
+		if hasHandler {
+			a.logger.Printf("[WARN] agent: The 'handler' field in watches has been deprecated " +
+				"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
+		}
 		if _, ok := handler.(string); hasHandler && !ok {
 			return fmt.Errorf("Watch handler must be a string")
 		}
@@ -1720,9 +1724,14 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkMonitors, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
+				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval)
 				chkType.Interval = MinInterval
+			}
+			if chkType.Script != "" {
+				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
+					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
+					check.CheckID)
 			}
 
 			monitor := &CheckMonitor{

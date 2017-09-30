@@ -61,9 +61,6 @@ func (c *WatchCommand) Run(args []string) int {
 		"Specifies the states to watch. Optional for 'checks' type.")
 	f.StringVar(&name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
-	f.BoolVar(&shell, "shell", false,
-		"Use a shell to run the handler (can set a custom shell via the SHELL "+
-			"environment variable).")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
@@ -182,7 +179,7 @@ func (c *WatchCommand) Run(args []string) int {
 			cmd.Stderr = os.Stderr
 
 			// Run the handler
-			if err := agent.StartSubprocess(cmd, true); err != nil {
+			if err := agent.StartSubprocess(cmd, true, nil); err != nil {
 				c.UI.Error(fmt.Sprintf("Error starting handler: %s", err))
 				goto ERR
 			}

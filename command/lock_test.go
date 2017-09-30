@@ -257,7 +257,7 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 
 	t.Run("clean exit", func(t *testing.T) {
 		_, c := testLockCommand(t)
-		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "-shell", "test/prefix", "exit", "0"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "sh", "-c", "exit", "0"}
 		if got, want := c.Run(args), 0; got != want {
 			t.Fatalf("got %d want %d", got, want)
 		}
@@ -273,7 +273,7 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 
 	t.Run("not propagated", func(t *testing.T) {
 		_, c := testLockCommand(t)
-		args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "exit", "1"}
+		args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "sh", "-c", "exit", "1"}
 		if got, want := c.Run(args), 0; got != want {
 			t.Fatalf("got %d want %d", got, want)
 		}

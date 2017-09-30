@@ -146,9 +146,6 @@ func (c *ExecCommand) Run(args []string) int {
 			"optimization to allow stale reads to be performed.")
 	f.BoolVar(&c.conf.verbose, "verbose", false,
 		"Enables verbose output.")
-	f.BoolVar(&c.conf.shell, "shell", false,
-		"Use a shell to run the command (can set a custom shell via the SHELL "+
-			"environment variable).")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
@@ -156,9 +153,6 @@ func (c *ExecCommand) Run(args []string) int {
 
 	// Join the commands to execute
 	c.conf.cmd = strings.Join(f.Args(), " ")
-	if !c.conf.shell {
-		c.conf.args = f.Args()
-	}
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
@@ -172,10 +166,12 @@ func (c *ExecCommand) Run(args []string) int {
 			return 1
 		}
 		c.conf.script = buf.Bytes()
+	} else {
+		c.conf.args = f.Args()
 	}
 
 	// Ensure we have a command or script
-	if c.conf.cmd == "" && len(c.conf.script) == 0 {
+	if c.conf.cmd == "" && len(c.conf.script) == 0 && len(c.conf.args) == 0 {
 		c.UI.Error("Must specify a command to execute")
 		c.UI.Error("")
 		c.UI.Error(c.Help())
