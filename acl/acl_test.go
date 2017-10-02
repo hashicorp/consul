@@ -268,6 +268,10 @@ func TestPolicyACL(t *testing.T) {
 				Prefix: "zip/",
 				Policy: PolicyRead,
 			},
+			&KeyPolicy{
+				Prefix: "zap/",
+				Policy: PolicyList,
+			},
 		},
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
@@ -316,15 +320,17 @@ func TestPolicyACL(t *testing.T) {
 		read        bool
 		write       bool
 		writePrefix bool
+		list        bool
 	}
 	cases := []keycase{
-		{"other", true, true, true},
-		{"foo/test", true, true, true},
-		{"foo/priv/test", false, false, false},
-		{"bar/any", false, false, false},
-		{"zip/test", true, false, false},
-		{"foo/", true, true, false},
-		{"", true, true, false},
+		{"other", true, true, true, true},
+		{"foo/test", true, true, true, true},
+		{"foo/priv/test", false, false, false, false},
+		{"bar/any", false, false, false, false},
+		{"zip/test", true, false, false, false},
+		{"foo/", true, true, false, true},
+		{"", true, true, false, true},
+		{"zap/test", true, false, false, true},
 	}
 	for _, c := range cases {
 		if c.read != acl.KeyRead(c.inp) {

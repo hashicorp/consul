@@ -133,7 +133,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				return err
 			}
 			if aclRule != nil && !aclRule.KeyRead(args.Key) {
-				ent = nil
+				return acl.ErrPermissionDenied
 			}
 
 			if ent == nil {
@@ -159,9 +159,13 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	acl, err := k.srv.resolveToken(args.Token)
+	aclToken, err := k.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && !aclToken.KeyList(args.Key) {
+		return acl.ErrPermissionDenied
 	}
 
 	return k.srv.blockingQuery(
@@ -172,8 +176,8 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
-			if acl != nil {
-				ent = FilterDirEnt(acl, ent)
+			if aclToken != nil {
+				ent = FilterDirEnt(aclToken, ent)
 			}
 
 			if len(ent) == 0 {
@@ -199,9 +203,13 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	acl, err := k.srv.resolveToken(args.Token)
+	aclToken, err := k.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
+	}
+
+	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && !aclToken.KeyList(args.Prefix) {
+		return acl.ErrPermissionDenied
 	}
 
 	return k.srv.blockingQuery(
@@ -221,8 +229,8 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
-			if acl != nil {
-				keys = FilterKeys(acl, keys)
+			if aclToken != nil {
+				keys = FilterKeys(aclToken, keys)
 			}
 			reply.Keys = keys
 			return nil

@@ -11,6 +11,7 @@ const (
 	PolicyDeny  = "deny"
 	PolicyRead  = "read"
 	PolicyWrite = "write"
+	PolicyList  = "list"
 )
 
 // Policy is used to represent the policy specified by
@@ -117,6 +118,8 @@ func isPolicyValid(policy string) bool {
 	case PolicyRead:
 		return true
 	case PolicyWrite:
+		return true
+	case PolicyList:
 		return true
 	default:
 		return false

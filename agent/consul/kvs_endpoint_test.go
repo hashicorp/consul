@@ -214,16 +214,10 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		Key:        "zip",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("Expected %v, got err: %v", acl.ErrPermissionDenied, err)
 	}
 
-	if dirent.Index == 0 {
-		t.Fatalf("Bad: %v", dirent)
-	}
-	if len(dirent.Entries) != 0 {
-		t.Fatalf("Bad: %v", dirent)
-	}
 }
 
 func TestKVSEndpoint_List(t *testing.T) {
@@ -479,6 +473,116 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnableKeyListPolicy = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	keys := []string{
+		"abe",
+		"bar/bar1",
+		"bar/bar2",
+		"zip",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         api.KVSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	//write acl policy that denies recursive reads on ""
+	var testListRules1 = `
+key "" {
+	policy = "deny"
+}
+key "bar" {
+	policy = "list"
+}
+key "zip" {
+	policy = "read"
+}
+`
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testListRules1,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	//recursive read on empty prefix should fail
+	getR := structs.KeyRequest{
+		Datacenter:   "dc1",
+		Key:          "",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	var dirent structs.IndexedDirEntries
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("expected %v but got err: %v", acl.ErrPermissionDenied, err)
+	}
+
+	// recursive read with a prefix that has list permissions should succeed
+	getR2 := structs.KeyRequest{
+		Datacenter:   "dc1",
+		Key:          "bar",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR2, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 2 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
+	for i := 0; i < len(dirent.Entries); i++ {
+		d := dirent.Entries[i]
+		switch i {
+		case 0:
+			if d.Key != "bar/bar1" {
+				t.Fatalf("bad key %v", d.Key)
+			}
+		case 1:
+			if d.Key != "bar/bar2" {
+				t.Fatalf("bad key %v", d.Key)
+			}
+		}
+	}
+
+}
+
 func TestKVSEndpoint_ListKeys(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -626,6 +730,110 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	if dirent.Keys[1] != "test" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+}
+
+func TestKVSEndpoint_ListKeys_ACLEnableKeyListPolicy(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnableKeyListPolicy = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	keys := []string{
+		"abe",
+		"bar/bar1",
+		"bar/bar2",
+		"zip",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         api.KVSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	//write acl policy that denies recursive reads on ""
+	var testListRules1 = `
+key "" {
+	policy = "deny"
+}
+key "bar" {
+	policy = "list"
+}
+key "zip" {
+	policy = "read"
+}
+`
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testListRules1,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	//recursive read on empty prefix should fail
+	getR := structs.KeyListRequest{
+		Datacenter:   "dc1",
+		Prefix:       "",
+		Seperator:    "/",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	var dirent structs.IndexedKeyList
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("expected %v but got err: %v", acl.ErrPermissionDenied, err)
+	}
+
+	// recursive read with a prefix that has list permissions should succeed
+	getR2 := structs.KeyListRequest{
+		Datacenter:   "dc1",
+		Prefix:       "bar",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR2, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Keys) != 2 {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[0] != "bar/bar1" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[1] != "bar/bar2" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+
 }
 
 func TestKVS_Apply_LockDelay(t *testing.T) {

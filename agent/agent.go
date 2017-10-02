@@ -676,6 +676,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLEnforceVersion8 {
 		base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
 	}
+	if a.config.ACLEnableKeyListPolicy {
+		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
+	}
 	if a.config.SessionTTLMin != 0 {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
