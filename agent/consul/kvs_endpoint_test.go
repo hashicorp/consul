@@ -751,7 +751,6 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	}
 }
 
-
 func TestKVS_Apply_LockDelay(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
