@@ -34,6 +34,9 @@ resource "aws_instance" "server" {
             "${path.module}/../shared/scripts/install.sh",
             "${path.module}/../shared/scripts/service.sh",
             "${path.module}/../shared/scripts/ip_tables.sh",
+            "${path.module}/../shared/scripts/debian_upstart.conf",
+            "${path.module}/../shared/scripts/rhel_consul.service",
+            "${path.module}/../shared/scripts/rhel_upstart.conf"
         ]
     }
 }
