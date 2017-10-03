@@ -119,8 +119,6 @@ func isPolicyValid(policy string) bool {
 		return true
 	case PolicyWrite:
 		return true
-	case PolicyList:
-		return true
 	default:
 		return false
 	}
@@ -178,7 +176,7 @@ func Parse(rules string, sentinel sentinel.Evaluator) (*Policy, error) {
 
 	// Validate the key policy
 	for _, kp := range p.Keys {
-		if !isPolicyValid(kp.Policy) {
+		if kp.Policy != PolicyList && !isPolicyValid(kp.Policy) {
 			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
 		}
 		if err := isSentinelValid(sentinel, kp.Policy, kp.Sentinel); err != nil {
