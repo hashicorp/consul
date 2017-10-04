@@ -3,13 +3,12 @@ package command
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
-
-	"os/exec"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"

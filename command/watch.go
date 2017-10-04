@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
-
-	"os/exec"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/watch"

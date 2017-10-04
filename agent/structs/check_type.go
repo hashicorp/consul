@@ -60,7 +60,7 @@ func (c *CheckType) IsTTL() bool {
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return (c.Script != "" || len(c.ScriptArgs) > 0) && c.DockerContainerID == "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID == "" && c.Interval != 0
 }
 
 // IsHTTP checks if this is a HTTP type

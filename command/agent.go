@@ -363,7 +363,7 @@ func (cmd *AgentCommand) run(args []string) int {
 	logGate.Flush()
 
 	// wait for signal
-	signalCh := make(chan os.Signal, 4)
+	signalCh := make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 

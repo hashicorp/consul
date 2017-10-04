@@ -3387,7 +3387,6 @@ func TestFullConfig(t *testing.T) {
 			}
 
 			// check the warnings
-			t.Log(b.Warnings)
 			if got, want := b.Warnings, warns; !verify.Values(t, "warnings", got, want) {
 				t.FailNow()
 			}

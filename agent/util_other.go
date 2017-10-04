@@ -4,10 +4,10 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"log"
 )
 
 // ExecScript returns a command to execute a script through a shell.
@@ -37,8 +37,8 @@ func StartSubprocess(cmd *exec.Cmd, echoSignals bool, logger *log.Logger) error 
 	// If enabled, start a goroutine to relay signals to the subprocess and
 	// another to watch for its shutdown.
 	if echoSignals {
-		signalCh := make(chan os.Signal, 4)
-		shutdownCh := make(chan struct{}, 0)
+		signalCh := make(chan os.Signal, 10)
+		shutdownCh := make(chan struct{})
 		signal.Notify(signalCh)
 
 		go func() {
