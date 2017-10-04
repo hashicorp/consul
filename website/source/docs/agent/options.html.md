@@ -240,19 +240,24 @@ will exit with an error at startup.
     [go-discover](https://github.com/hashicorp/go-discover) library for doing
     automatic cluster joining using cloud metadata. To use retry-join with a
     supported cloud provider, specify the configuration on the command line or
-    configuration file as a `key=value key=value ...` string. The values need to
-	be URL encoded but for most practical purposes you need to replace spaces
-	with `+` signs.
+    configuration file as a `key=value key=value ...` string. 
+	
+	In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
+	practical purposes you need to replace spaces with `+` signs.
+
+	As of Consul 1.0 the values are taken literally and must not be URL
+	encoded. If the values contain spaces, backslashes or double quotes then
+	they need to be double quoted and the usual escaping rules apply.
 
     ```sh
-    $ consul agent -retry-join "provider=my-cloud config=val ..."
+    $ consul agent -retry-join 'provider=my-cloud config=val config2="some other val" ...'
     ```
 
     or via a configuration file:
 
     ```json
     {
-      "retry_join": ["provider=my-cloud config=val ..."]
+      "retry_join": ["provider=my-cloud config=val config2=\"some other val\" ..."]
     }
     ```
 
