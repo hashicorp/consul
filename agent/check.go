@@ -121,7 +121,7 @@ func (c *CheckMonitor) check() {
 	cmd.Stderr = output
 
 	// Start the check
-	if err := StartSubprocess(cmd, false, c.Logger); err != nil {
+	if err := cmd.Start(); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return

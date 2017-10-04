@@ -374,11 +374,19 @@ func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
 
 	// Start the child process
 	c.childLock.Lock()
-	if err := agent.StartSubprocess(cmd, true, nil); err != nil {
+	if err := cmd.Start(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting handler: %s", err))
 		c.childLock.Unlock()
 		return err
 	}
+
+	// Set up signal forwarding.
+	doneCh := make(chan struct{})
+	defer close(doneCh)
+	logFn := func(err error) {
+		c.UI.Error(fmt.Sprintf("Error forwarding signal: %s", err))
+	}
+	agent.ForwardSignals(cmd, logFn, doneCh)
 
 	// Setup the child info
 	c.child = cmd.Process

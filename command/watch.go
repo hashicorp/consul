@@ -154,6 +154,12 @@ func (c *WatchCommand) Run(args []string) int {
 		}
 	} else {
 		wp.Handler = func(idx uint64, data interface{}) {
+			doneCh := make(chan struct{})
+			defer close(doneCh)
+			logFn := func(err error) {
+				c.UI.Error(fmt.Sprintf("Error forwarding signal: %s", err))
+			}
+
 			// Create the command
 			var buf bytes.Buffer
 			var err error
@@ -180,11 +186,16 @@ func (c *WatchCommand) Run(args []string) int {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
-			// Run the handler
-			if err := agent.StartSubprocess(cmd, true, nil); err != nil {
+			// Run the handler.
+			if err := cmd.Start(); err != nil {
 				c.UI.Error(fmt.Sprintf("Error starting handler: %s", err))
 				goto ERR
 			}
+
+			// Set up signal forwarding.
+			agent.ForwardSignals(cmd, logFn, doneCh)
+
+			// Wait for the handler to complete.
 			if err := cmd.Wait(); err != nil {
 				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
