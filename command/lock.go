@@ -384,7 +384,7 @@ func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
 	doneCh := make(chan struct{})
 	defer close(doneCh)
 	logFn := func(err error) {
-		c.UI.Error(fmt.Sprintf("Error forwarding signal: %s", err))
+		c.UI.Error(fmt.Sprintf("Warning, could not forward signal: %s", err))
 	}
 	agent.ForwardSignals(cmd, logFn, doneCh)
 
