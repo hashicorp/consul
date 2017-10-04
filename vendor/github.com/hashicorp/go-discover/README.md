@@ -5,16 +5,20 @@
 ip addresses of nodes in cloud environments based on meta information
 like tags provided by the environment.
 
-The configuration for the providers is provided as a list of `key=val
-key=val ...` tuples where the values can be URL encoded. The provider is
-determined through the `provider` key. Effectively, only spaces have to
-be encoded with a `+` and on the command line you have to observe
-quoting rules with your shell.
+The configuration for the providers is provided as a list of `key=val key=val
+...` tuples. If either the key or the value contains a space (` `), a backslash
+(`\`) or double quotes (`"`) then it needs to be quoted with double quotes.
+Within a quoted string you can use the backslash to escape double quotes or the
+backslash itself, e.g. `key=val "some key"="some value"`
+
+Duplicate keys are reported as error and the provider is determined through the
+`provider` key. 
 
 ### Supported Providers
 
 The following cloud providers have implementations in the go-discover/provider
-sub packages. Additional providers can be added through the [Register](https://godoc.org/github.com/hashicorp/go-discover#Register)
+sub packages. Additional providers can be added through the
+[Register](https://godoc.org/github.com/hashicorp/go-discover#Register)
 function.
 
  * Amazon AWS [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/aws)
