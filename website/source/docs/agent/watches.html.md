@@ -45,6 +45,11 @@ Additionally, the `CONSUL_INDEX` environment variable will be set.
 This maps to the `X-Consul-Index` value in responses from the
 [HTTP API](/api/index.html).
 
+Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and
+would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be
+run without a shell. The `handler` field is deprecated, and you should include the shell in
+the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
+
 ## Global Parameters
 
 In addition to the parameters supported by each option type, there
