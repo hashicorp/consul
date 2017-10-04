@@ -25,15 +25,16 @@ Hosted Consul Enterprise in Atlas was officially deprecated on March 7th,
 
 There are strong alternatives available and they are listed below.
 
-For users on AWS the [-retry-join-ec2 configuration options](/docs/agent/options.html#_retry_join_ec2_tag_key) allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup.
+For users on supported cloud platform the
+[-retry-join](/docs/agent/options.html#_retry_join) option allows bootstrapping
+by automatically discovering instances with a given tag key/value at startup. 
 
-For users on GCE the [-retry-join-gce configuration options](/docs/agent/options.html#_retry_join_gce_tag_value) allow bootstrapping by automatically discovering instances on Google Compute Engine by tag value at startup.
+For users on other cloud platforms [-join and retry-join
+functionality](/docs/agent/options.html#_join) can be used to join clusters by
+ip address or hostname.
 
-For users on Azure the [-retry-join-azure configuration options](/docs/agent/options.html#_retry_join_azure_tag_name) allow bootstrapping by automatically discovering Azure instances with a given tag name/value at startup.
-
-For users not on AWS, GCE or Azure the native [-join and retry-join functionality](/docs/agent/options.html#_join) can be used.
-
-Other features of Consul Enterprise, such as the UI and Alerts also have suitable open source alternatives.
+Other features of Consul Enterprise, such as the UI and Alerts also have
+suitable open source alternatives.
 
 For replacing the UI, we recommend the [free UI packaged as part of Consul open source](https://www.consul.io/docs/agent/options.html#_ui). A live demo can be access at [https://demo.consul.io/ui/](https://demo.consul.io/ui/).
 
