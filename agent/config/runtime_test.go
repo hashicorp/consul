@@ -1932,6 +1932,7 @@ func TestFullConfig(t *testing.T) {
 			"acl_default_policy": "ArK3WIfE",
 			"acl_down_policy": "vZXMfMP0",
 			"acl_enforce_version_8": true,
+		        "acl_enable_key_list_policy": true,
 			"acl_master_token": "C1Q1oIwh",
 			"acl_replication_token": "LMmgy5dO",
 			"acl_token": "O1El0wan",
@@ -2347,6 +2348,7 @@ func TestFullConfig(t *testing.T) {
 			acl_default_policy = "ArK3WIfE"
 			acl_down_policy = "vZXMfMP0"
 			acl_enforce_version_8 = true
+		        acl_enable_key_list_policy = true
 			acl_master_token = "C1Q1oIwh"
 			acl_replication_token = "LMmgy5dO"
 			acl_token = "O1El0wan"
@@ -2905,6 +2907,7 @@ func TestFullConfig(t *testing.T) {
 		ACLDefaultPolicy:                 "ArK3WIfE",
 		ACLDownPolicy:                    "vZXMfMP0",
 		ACLEnforceVersion8:               true,
+		ACLEnableKeyListPolicy:           true,
 		ACLMasterToken:                   "C1Q1oIwh",
 		ACLReplicationToken:              "LMmgy5dO",
 		ACLTTL:                           18060 * time.Second,
@@ -3592,6 +3595,7 @@ func TestSanitize(t *testing.T) {
     "ACLDefaultPolicy": "",
     "ACLDisabledTTL": "0s",
     "ACLDownPolicy": "",
+    "ACLEnableKeyListPolicy": false,
     "ACLEnforceVersion8": false,
     "ACLMasterToken": "hidden",
     "ACLReplicationToken": "hidden",

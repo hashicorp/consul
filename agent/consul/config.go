@@ -257,6 +257,11 @@ type Config struct {
 	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
 	ACLEnforceVersion8 bool
 
+	// ACLEnableKeyListPolicy is used to gate enforcement of the new "list" policy that
+	// protects listing keys by prefix. This behavior is opt-in
+	// by default in Consul 1.0 and later.
+	ACLEnableKeyListPolicy bool
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result

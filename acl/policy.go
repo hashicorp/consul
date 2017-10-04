@@ -11,6 +11,7 @@ const (
 	PolicyDeny  = "deny"
 	PolicyRead  = "read"
 	PolicyWrite = "write"
+	PolicyList  = "list"
 )
 
 // Policy is used to represent the policy specified by
@@ -175,7 +176,7 @@ func Parse(rules string, sentinel sentinel.Evaluator) (*Policy, error) {
 
 	// Validate the key policy
 	for _, kp := range p.Keys {
-		if !isPolicyValid(kp.Policy) {
+		if kp.Policy != PolicyList && !isPolicyValid(kp.Policy) {
 			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
 		}
 		if err := isSentinelValid(sentinel, kp.Policy, kp.Sentinel); err != nil {

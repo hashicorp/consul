@@ -60,6 +60,9 @@ type ACL interface {
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string) bool
 
+	// KeyList checks for permission to list keys under a prefix
+	KeyList(string) bool
+
 	// KeyRead checks for permission to read a given key
 	KeyRead(string) bool
 
@@ -152,6 +155,10 @@ func (s *StaticACL) EventWrite(string) bool {
 }
 
 func (s *StaticACL) KeyRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyList(string) bool {
 	return s.defaultAllow
 }
 
@@ -455,7 +462,7 @@ func (p *PolicyACL) KeyRead(key string) bool {
 	if ok {
 		pr := rule.(PolicyRule)
 		switch pr.aclPolicy {
-		case PolicyRead, PolicyWrite:
+		case PolicyRead, PolicyWrite, PolicyList:
 			return true
 		default:
 			return false
@@ -464,6 +471,24 @@ func (p *PolicyACL) KeyRead(key string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.KeyRead(key)
+}
+
+// KeyList returns if a key is allowed to be listed
+func (p *PolicyACL) KeyList(key string) bool {
+	// Look for a matching rule
+	_, rule, ok := p.keyRules.LongestPrefix(key)
+	if ok {
+		pr := rule.(PolicyRule)
+		switch pr.aclPolicy {
+		case PolicyList, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.KeyList(key)
 }
 
 // KeyWrite returns if a key is allowed to be written

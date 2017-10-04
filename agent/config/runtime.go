@@ -54,6 +54,7 @@ type RuntimeConfig struct {
 	ACLDefaultPolicy    string
 	ACLDownPolicy       string
 	ACLEnforceVersion8  bool
+	ACLEnableKeyListPolicy bool
 	ACLMasterToken      string
 	ACLReplicationToken string
 	ACLTTL              time.Duration

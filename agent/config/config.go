@@ -128,6 +128,7 @@ type Config struct {
 	ACLDatacenter               *string                  `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
 	ACLDefaultPolicy            *string                  `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
 	ACLDownPolicy               *string                  `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
+	ACLEnableKeyListPolicy      *bool                    `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
 	ACLEnforceVersion8          *bool                    `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
 	ACLMasterToken              *string                  `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
 	ACLReplicationToken         *string                  `json:"acl_replication_token,omitempty" hcl:"acl_replication_token" mapstructure:"acl_replication_token"`
