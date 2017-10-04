@@ -50,6 +50,7 @@ BREAKING CHANGES:
 
 * **`statsite_prefix` Renamed to `metrics_prefix`:** Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [GH-3498]
 * **`advertise_addrs` Removed:** This configuration option was removed since it was redundant with `advertise_addr` and `advertise_addr_wan` in combination with `ports` and also wrongly stated that you could configure both host and port. [GH-3516]
+* When ACLs are enabled, reading a key with an unauthorized token returns a 403. This previously returned a 404 response.
 * **HTTP Verbs are Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [GH-3405]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -111,6 +112,7 @@ IMPROVEMENTS:
 
 * agent: Added support to detect public IPv4 and IPv6 addresses on AWS. [GH-3471]
 * agent: Improved /v1/operator/raft/configuration endpoint which allows Consul to avoid an extra agent RPC call for the `consul operator raft list-peers` command. [GH-3449]
+* agent: Improved ACL system for the KV store to support list permissions. This behavior can be opted in. For more information, see the [ACL Guide](https://www.consul.io/docs/guides/acl.html#list-policy-for-keys). [GH-3511]
 * server: Updated BoltDB to final version 1.3.1. [GH-3502]
 * server: Improved dead member reap algorithm to fix edge cases where servers could get left behind. [GH-3452]
 
