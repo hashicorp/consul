@@ -32,6 +32,8 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		script = h
 	case []string:
 		args = h
+	default:
+		panic(fmt.Errorf("unknown handler type %T", handler))
 	}
 
 	logger := log.New(logOutput, "", log.LstdFlags)
@@ -69,10 +71,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		cmd.Stdin = &inp
 
 		// Run the handler
-		if err := StartSubprocess(cmd, false, logger); err != nil {
-			logger.Printf("[ERR] agent: Failed to invoke watch handler '%v': %v", handler, err)
-		}
-		if err := cmd.Wait(); err != nil {
+		if err := cmd.Run(); err != nil {
 			logger.Printf("[ERR] agent: Failed to run watch handler '%v': %v", handler, err)
 		}
 
