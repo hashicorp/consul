@@ -189,7 +189,7 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 
-	if val.Config["SerfPortLAN"].(int) != a.Config.SerfPortLAN {
+	if val.DebugConfig["SerfPortLAN"].(int) != a.Config.SerfPortLAN {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 

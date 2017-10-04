@@ -638,7 +638,7 @@ func TestAPI_AgentJoin(t *testing.T) {
 	}
 
 	// Join ourself
-	addr := info["Config"]["SerfAdvertiseAddrLAN"].(string)
+	addr := info["DebugConfig"]["SerfAdvertiseAddrLAN"].(string)
 	// strip off 'tcp://'
 	addr = addr[len("tcp://"):]
 	err = agent.Join(addr, false)
