@@ -531,6 +531,7 @@ type CheckDocker struct {
 	Notify            CheckNotifier
 	CheckID           types.CheckID
 	Script            string
+	ScriptArgs        []string
 	DockerContainerID string
 	Shell             string
 	Interval          time.Duration
@@ -606,7 +607,13 @@ func (c *CheckDocker) check() {
 }
 
 func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
-	cmd := []string{c.Shell, "-c", c.Script}
+	var cmd []string
+	if len(c.ScriptArgs) > 0 {
+		cmd = c.ScriptArgs
+	} else {
+		cmd = []string{c.Shell, "-c", c.Script}
+	}
+
 	execID, err := c.client.CreateExec(c.DockerContainerID, cmd)
 	if err != nil {
 		return api.HealthCritical, nil, err

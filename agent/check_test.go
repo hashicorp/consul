@@ -810,7 +810,7 @@ func TestCheck_Docker(t *testing.T) {
 			check := &CheckDocker{
 				Notify:            notif,
 				CheckID:           id,
-				Script:            "/health.sh",
+				ScriptArgs:        []string{"/health.sh"},
 				DockerContainerID: "123",
 				Interval:          25 * time.Millisecond,
 				client:            c,
