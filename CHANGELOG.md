@@ -134,6 +134,7 @@ IMPROVEMENTS:
 * agent: When joining a cluster, Consul now skips the unique node ID constraint for Consul members running Consul older than 0.8.5. This makes it easier to upgrade to newer versions of Consul in an existing cluster with non-unique node IDs. [GH-3070]
 * build: Upgraded Go version to 1.9. [GH-3428]
 * server: Consul servers can re-establish quorum after all of them change their IP addresses upon a restart. [GH-1580]
+* ui: Changed text area font family to monospace to make it easier to manage complex text blocks. [GH-3521]
 
 BUG FIXES:
 
