@@ -139,6 +139,8 @@ func (c *ExecCommand) Run(args []string) int {
 		"Regular expression to filter on service tags. Must be used with -service.")
 	f.StringVar(&c.conf.prefix, "prefix", rExecPrefix,
 		"Prefix in the KV store to use for request data.")
+	f.BoolVar(&c.conf.shell, "shell", true,
+		"Use a shell to run the command.")
 	f.DurationVar(&c.conf.wait, "wait", rExecQuietWait,
 		"Period to wait with no responses before terminating execution.")
 	f.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait,
@@ -167,7 +169,10 @@ func (c *ExecCommand) Run(args []string) int {
 		}
 		c.conf.script = buf.Bytes()
 	} else {
-		c.conf.args = f.Args()
+		if !c.conf.shell {
+			c.conf.cmd = ""
+			c.conf.args = f.Args()
+		}
 	}
 
 	// Ensure we have a command or script
