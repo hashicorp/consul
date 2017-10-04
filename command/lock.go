@@ -103,6 +103,9 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 			"is generated based on the provided child command.")
 	f.BoolVar(&passStdin, "pass-stdin", false,
 		"Pass stdin to the child process.")
+	f.BoolVar(&shell, "shell", true,
+		"Use a shell to run the command (can set a custom shell via the SHELL "+
+			"environment variable).")
 	f.DurationVar(&timeout, "timeout", 0,
 		"Maximum amount of time to wait to acquire the lock, specified as a "+
 			"duration like \"1s\" or \"3h\". The default value is 0.")
@@ -337,17 +340,17 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 // startChild is a long running routine used to start and
 // wait for the child process to exit.
 func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
-	script := strings.Join(args, " ")
 	if c.verbose {
-		c.UI.Info(fmt.Sprintf("Starting handler '%s'", script))
+		c.UI.Info("Starting handler")
 	}
+
 	// Create the command
 	var cmd *exec.Cmd
 	var err error
 	if !shell {
 		cmd, err = agent.ExecSubprocess(args)
 	} else {
-		cmd, err = agent.ExecScript(script)
+		cmd, err = agent.ExecScript(strings.Join(args, " "))
 	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))

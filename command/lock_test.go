@@ -66,6 +66,27 @@ func TestLockCommand_Run(t *testing.T) {
 	}
 }
 
+func TestLockCommand_Run_NoShell(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	ui, c := testLockCommand(t)
+	filePath := filepath.Join(a.Config.DataDir, "test_touch")
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-shell=false", "test/prefix", "touch", filePath}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	// Check for the file
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestLockCommand_Try_Lock(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
