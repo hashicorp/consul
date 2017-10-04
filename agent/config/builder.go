@@ -871,6 +871,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Token:             b.stringVal(v.Token),
 		Status:            b.stringVal(v.Status),
 		Script:            b.stringVal(v.Script),
+		ScriptArgs:        v.ScriptArgs,
 		HTTP:              b.stringVal(v.HTTP),
 		Header:            v.Header,
 		Method:            b.stringVal(v.Method),

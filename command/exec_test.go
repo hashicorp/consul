@@ -34,7 +34,27 @@ func TestExecCommandRun(t *testing.T) {
 	defer a.Shutdown()
 
 	ui, c := testExecCommand(t)
-	args := []string{"-http-addr=" + a.HTTPAddr(), "-wait=500ms", "uptime"}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-wait=1s", "uptime"}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. Error:%#v  (std)Output:%#v", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.OutputWriter.String(), "load") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func TestExecCommandRun_NoShell(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), `
+		disable_remote_exec = false
+	`)
+	defer a.Shutdown()
+
+	ui, c := testExecCommand(t)
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-shell=false", "-wait=1s", "uptime"}
 
 	code := c.Run(args)
 	if code != 0 {

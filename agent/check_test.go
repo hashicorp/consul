@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func TestCheckMonitor(t *testing.T) {
+func TestCheckMonitor_Script(t *testing.T) {
 	tests := []struct {
 		script, status string
 	}{
@@ -54,16 +54,51 @@ func TestCheckMonitor(t *testing.T) {
 	}
 }
 
+func TestCheckMonitor_Args(t *testing.T) {
+	tests := []struct {
+		args   []string
+		status string
+	}{
+		{[]string{"sh", "-c", "exit 0"}, "passing"},
+		{[]string{"sh", "-c", "exit 1"}, "warning"},
+		{[]string{"sh", "-c", "exit 2"}, "critical"},
+		{[]string{"foobarbaz"}, "critical"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.status, func(t *testing.T) {
+			notif := mock.NewNotify()
+			check := &CheckMonitor{
+				Notify:     notif,
+				CheckID:    types.CheckID("foo"),
+				ScriptArgs: tt.args,
+				Interval:   25 * time.Millisecond,
+				Logger:     log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+			}
+			check.Start()
+			defer check.Stop()
+			retry.Run(t, func(r *retry.R) {
+				if got, want := notif.Updates("foo"), 2; got < want {
+					r.Fatalf("got %d updates want at least %d", got, want)
+				}
+				if got, want := notif.State("foo"), tt.status; got != want {
+					r.Fatalf("got state %q want %q", got, want)
+				}
+			})
+		})
+	}
+}
+
 func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		Script:   "sleep 1 && exit 0",
-		Interval: 50 * time.Millisecond,
-		Timeout:  25 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+		Notify:     notif,
+		CheckID:    types.CheckID("foo"),
+		ScriptArgs: []string{"sh", "-c", "sleep 1 && exit 0"},
+		Interval:   50 * time.Millisecond,
+		Timeout:    25 * time.Millisecond,
+		Logger:     log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -83,11 +118,11 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		Script:   "exit 0",
-		Interval: 25 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+		Notify:     notif,
+		CheckID:    types.CheckID("foo"),
+		ScriptArgs: []string{"sh", "-c", "exit 0"},
+		Interval:   25 * time.Millisecond,
+		Logger:     log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -108,11 +143,11 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		Script:   "od -N 81920 /dev/urandom",
-		Interval: 25 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
+		Notify:     notif,
+		CheckID:    types.CheckID("foo"),
+		ScriptArgs: []string{"od", "-N", "81920", "/dev/urandom"},
+		Interval:   25 * time.Millisecond,
+		Logger:     log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -775,7 +810,7 @@ func TestCheck_Docker(t *testing.T) {
 			check := &CheckDocker{
 				Notify:            notif,
 				CheckID:           id,
-				Script:            "/health.sh",
+				ScriptArgs:        []string{"/health.sh"},
 				DockerContainerID: "123",
 				Interval:          25 * time.Millisecond,
 				client:            c,

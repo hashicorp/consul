@@ -49,12 +49,13 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify   CheckNotifier
-	CheckID  types.CheckID
-	Script   string
-	Interval time.Duration
-	Timeout  time.Duration
-	Logger   *log.Logger
+	Notify     CheckNotifier
+	CheckID    types.CheckID
+	Script     string
+	ScriptArgs []string
+	Interval   time.Duration
+	Timeout    time.Duration
+	Logger     *log.Logger
 
 	stop     bool
 	stopCh   chan struct{}
@@ -101,7 +102,13 @@ func (c *CheckMonitor) run() {
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
 	// Create the command
-	cmd, err := ExecScript(c.Script)
+	var cmd *exec.Cmd
+	var err error
+	if len(c.ScriptArgs) > 0 {
+		cmd, err = ExecSubprocess(c.ScriptArgs)
+	} else {
+		cmd, err = ExecScript(c.Script)
+	}
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
@@ -524,6 +531,7 @@ type CheckDocker struct {
 	Notify            CheckNotifier
 	CheckID           types.CheckID
 	Script            string
+	ScriptArgs        []string
 	DockerContainerID string
 	Shell             string
 	Interval          time.Duration
@@ -599,7 +607,13 @@ func (c *CheckDocker) check() {
 }
 
 func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
-	cmd := []string{c.Shell, "-c", c.Script}
+	var cmd []string
+	if len(c.ScriptArgs) > 0 {
+		cmd = c.ScriptArgs
+	} else {
+		cmd = []string{c.Shell, "-c", c.Script}
+	}
+
 	execID, err := c.client.CreateExec(c.DockerContainerID, cmd)
 	if err != nil {
 		return api.HealthCritical, nil, err

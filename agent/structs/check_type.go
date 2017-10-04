@@ -24,6 +24,7 @@ type CheckType struct {
 	// Update CheckDefinition when adding fields here
 
 	Script            string
+	ScriptArgs        []string
 	HTTP              string
 	Header            map[string][]string
 	Method            string
@@ -49,7 +50,7 @@ func (c *CheckType) Valid() bool {
 
 // IsScript checks if this is a check that execs some kind of script.
 func (c *CheckType) IsScript() bool {
-	return c.Script != ""
+	return c.Script != "" || len(c.ScriptArgs) > 0
 }
 
 // IsTTL checks if this is a TTL type
@@ -59,7 +60,7 @@ func (c *CheckType) IsTTL() bool {
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return c.Script != "" && c.DockerContainerID == "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID == "" && c.Interval != 0
 }
 
 // IsHTTP checks if this is a HTTP type

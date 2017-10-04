@@ -97,7 +97,7 @@ A script check:
   "check": {
     "id": "mem-util",
     "name": "Memory utilization",
-    "script": "/usr/local/bin/check_mem.py",
+    "args": ["/usr/local/bin/check_mem.py", "-limit", "256MB"],
     "interval": "10s",
     "timeout": "1s"
   }
@@ -157,7 +157,7 @@ A Docker check:
     "name": "Memory utilization",
     "docker_container_id": "f972c95ebf0e",
     "shell": "/bin/bash",
-    "script": "/usr/local/bin/check_mem.py",
+    "args": ["/usr/local/bin/check_mem.py"],
     "interval": "10s"
   }
 }
@@ -218,6 +218,11 @@ In Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
 in order to enable script checks.
 
+Prior to Consul 1.0, checks used a single `script` field to define the command to run, and
+would always run in a shell. In Consul 1.0, the `args` array was added so that checks can be
+run without a shell. The `script` field is deprecated, and you should include the shell in
+the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
+
 ## Initial Health Check Status
 
 By default, when checks are registered against a Consul agent, the state is set
@@ -231,7 +236,7 @@ health check definition, like so:
 {
   "check": {
     "id": "mem",
-    "script": "/bin/check_mem",
+    "args": ["/bin/check_mem", "-limit", "256MB"],
     "interval": "10s",
     "status": "passing"
   }
@@ -274,7 +279,7 @@ key in your configuration file.
     {
       "id": "chk1",
       "name": "mem",
-      "script": "/bin/check_mem",
+      "args": ["/bin/check_mem", "-limit", "256MB"],
       "interval": "5s"
     },
     {

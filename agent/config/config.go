@@ -312,6 +312,7 @@ type CheckDefinition struct {
 	Token                          *string             `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	Status                         *string             `json:"status,omitempty" hcl:"status" mapstructure:"status"`
 	Script                         *string             `json:"script,omitempty" hcl:"script" mapstructure:"script"`
+	ScriptArgs                     []string            `json:"args,omitempty" hcl:"args" mapstructure:"args"`
 	HTTP                           *string             `json:"http,omitempty" hcl:"http" mapstructure:"http"`
 	Header                         map[string][]string `json:"header,omitempty" hcl:"header" mapstructure:"header"`
 	Method                         *string             `json:"method,omitempty" hcl:"method" mapstructure:"method"`

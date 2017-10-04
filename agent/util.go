@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
+	"os/signal"
 	osuser "os/user"
 	"strconv"
 	"time"
@@ -112,4 +114,35 @@ GROUP:
 	}
 
 	return nil
+}
+
+// ExecSubprocess returns a command to execute a subprocess directly.
+func ExecSubprocess(args []string) (*exec.Cmd, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("need an executable to run")
+	}
+
+	return exec.Command(args[0], args[1:]...), nil
+}
+
+// ForwardSignals will fire up a goroutine to forward signals to the given
+// subprocess until the shutdown channel is closed.
+func ForwardSignals(cmd *exec.Cmd, logFn func(error), shutdownCh <-chan struct{}) {
+	go func() {
+		signalCh := make(chan os.Signal, 10)
+		signal.Notify(signalCh, os.Interrupt, os.Kill)
+		defer signal.Stop(signalCh)
+
+		for {
+			select {
+			case sig := <-signalCh:
+				if err := cmd.Process.Signal(sig); err != nil {
+					logFn(fmt.Errorf("failed to send signal %q: %v", sig, err))
+				}
+
+			case <-shutdownCh:
+				return
+			}
+		}
+	}()
 }

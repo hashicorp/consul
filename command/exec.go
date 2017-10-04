@@ -53,6 +53,7 @@ const (
 // rExecConf is used to pass around configuration
 type rExecConf struct {
 	prefix string
+	shell  bool
 
 	foreignDC bool
 	localDC   string
@@ -66,6 +67,7 @@ type rExecConf struct {
 	replWait time.Duration
 
 	cmd    string
+	args   []string
 	script []byte
 
 	verbose bool
@@ -82,6 +84,9 @@ type rExecEvent struct {
 type rExecSpec struct {
 	// Command is a single command to run directly in the shell
 	Command string `json:",omitempty"`
+
+	// Args is the list of arguments to run the subprocess directly
+	Args []string `json:",omitempty"`
 
 	// Script should be spilled to a file and executed
 	Script []byte `json:",omitempty"`
@@ -134,6 +139,8 @@ func (c *ExecCommand) Run(args []string) int {
 		"Regular expression to filter on service tags. Must be used with -service.")
 	f.StringVar(&c.conf.prefix, "prefix", rExecPrefix,
 		"Prefix in the KV store to use for request data.")
+	f.BoolVar(&c.conf.shell, "shell", true,
+		"Use a shell to run the command.")
 	f.DurationVar(&c.conf.wait, "wait", rExecQuietWait,
 		"Period to wait with no responses before terminating execution.")
 	f.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait,
@@ -151,6 +158,11 @@ func (c *ExecCommand) Run(args []string) int {
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
+		if !c.conf.shell {
+			c.UI.Error("Cannot configure -shell=false when reading from stdin")
+			return 1
+		}
+
 		c.conf.cmd = ""
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, os.Stdin)
@@ -161,10 +173,13 @@ func (c *ExecCommand) Run(args []string) int {
 			return 1
 		}
 		c.conf.script = buf.Bytes()
+	} else if !c.conf.shell {
+		c.conf.cmd = ""
+		c.conf.args = f.Args()
 	}
 
 	// Ensure we have a command or script
-	if c.conf.cmd == "" && len(c.conf.script) == 0 {
+	if c.conf.cmd == "" && len(c.conf.script) == 0 && len(c.conf.args) == 0 {
 		c.UI.Error("Must specify a command to execute")
 		c.UI.Error("")
 		c.UI.Error(c.Help())
@@ -545,6 +560,7 @@ func (c *ExecCommand) destroySession() error {
 func (c *ExecCommand) makeRExecSpec() ([]byte, error) {
 	spec := &rExecSpec{
 		Command: c.conf.cmd,
+		Args:    c.conf.args,
 		Script:  c.conf.script,
 		Wait:    c.conf.wait,
 	}

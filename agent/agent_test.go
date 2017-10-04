@@ -1928,9 +1928,9 @@ func TestAgent_reloadWatches(t *testing.T) {
 	newConf := *a.config
 	newConf.Watches = []map[string]interface{}{
 		{
-			"type":    "key",
-			"key":     "asdf",
-			"handler": "ls",
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
 		},
 	}
 	if err := a.reloadWatches(&newConf); err != nil {
@@ -1942,9 +1942,9 @@ func TestAgent_reloadWatches(t *testing.T) {
 	newConf.HTTPAddrs = make([]net.Addr, 0)
 	newConf.Watches = []map[string]interface{}{
 		{
-			"type":    "key",
-			"key":     "asdf",
-			"handler": "ls",
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
 		},
 	}
 	if err := a.reloadWatches(&newConf); err != nil {
@@ -1955,9 +1955,9 @@ func TestAgent_reloadWatches(t *testing.T) {
 	newConf.HTTPSAddrs = make([]net.Addr, 0)
 	newConf.Watches = []map[string]interface{}{
 		{
-			"type":    "key",
-			"key":     "asdf",
-			"handler": "ls",
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
 		},
 	}
 	if err := a.reloadWatches(&newConf); err == nil || !strings.Contains(err.Error(), "watch plans require an HTTP or HTTPS endpoint") {
