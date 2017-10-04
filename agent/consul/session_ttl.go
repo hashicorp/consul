@@ -85,6 +85,7 @@ func (s *Server) createSessionTimer(id string, ttl time.Duration) {
 // need to invalidate the session.
 func (s *Server) invalidateSession(id string) {
 	defer metrics.MeasureSince([]string{"consul", "session_ttl", "invalidate"}, time.Now())
+	defer metrics.MeasureSince([]string{"session_ttl", "invalidate"}, time.Now())
 
 	// Clear the session timer
 	s.sessionTimers.Del(id)
@@ -134,6 +135,7 @@ func (s *Server) sessionStats() {
 		select {
 		case <-time.After(5 * time.Second):
 			metrics.SetGauge([]string{"consul", "session_ttl", "active"}, float32(s.sessionTimers.Len()))
+			metrics.SetGauge([]string{"session_ttl", "active"}, float32(s.sessionTimers.Len()))
 
 		case <-s.shutdownCh:
 			return

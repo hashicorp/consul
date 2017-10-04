@@ -360,10 +360,13 @@ func (s *Server) updateClusterHealth() error {
 	// Heartbeat a metric for monitoring if we're the leader
 	if s.IsLeader() {
 		metrics.SetGauge([]string{"consul", "autopilot", "failure_tolerance"}, float32(clusterHealth.FailureTolerance))
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(clusterHealth.FailureTolerance))
 		if clusterHealth.Healthy {
 			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 1)
+			metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
 		} else {
 			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 0)
+			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 		}
 	}
 

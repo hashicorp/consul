@@ -48,17 +48,17 @@ type RuntimeConfig struct {
 	ConsulSerfWANSuspicionMult       int
 	ConsulServerHealthInterval       time.Duration
 
-	ACLAgentMasterToken string
-	ACLAgentToken       string
-	ACLDatacenter       string
-	ACLDefaultPolicy    string
-	ACLDownPolicy       string
-	ACLEnforceVersion8  bool
+	ACLAgentMasterToken    string
+	ACLAgentToken          string
+	ACLDatacenter          string
+	ACLDefaultPolicy       string
+	ACLDownPolicy          string
+	ACLEnforceVersion8     bool
 	ACLEnableKeyListPolicy bool
-	ACLMasterToken      string
-	ACLReplicationToken string
-	ACLTTL              time.Duration
-	ACLToken            string
+	ACLMasterToken         string
+	ACLReplicationToken    string
+	ACLTTL                 time.Duration
+	ACLToken               string
 
 	AutopilotCleanupDeadServers      bool
 	AutopilotDisableUpgradeMigration bool

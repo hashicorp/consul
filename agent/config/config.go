@@ -368,6 +368,7 @@ type Telemetry struct {
 	MetricsPrefix                      *string  `json:"metrics_prefix,omitempty" hcl:"metrics_prefix" mapstructure:"metrics_prefix"`
 	StatsdAddr                         *string  `json:"statsd_address,omitempty" hcl:"statsd_address" mapstructure:"statsd_address"`
 	StatsiteAddr                       *string  `json:"statsite_address,omitempty" hcl:"statsite_address" mapstructure:"statsite_address"`
+	EnableDeprecatedNames              *bool    `json:"enable_deprecated_names" hcl:"enable_deprecated_names" mapstructure:"enable_deprecated_names"`
 }
 
 type Ports struct {

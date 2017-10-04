@@ -100,6 +100,7 @@ RECONCILE:
 		return
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
+	metrics.MeasureSince([]string{"leader", "barrier"}, start)
 
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {
@@ -411,6 +412,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		return nil
 	}
 	defer metrics.MeasureSince([]string{"consul", "leader", "reconcileMember"}, time.Now())
+	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
@@ -774,6 +776,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
 	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
+	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
 		Datacenter: s.config.Datacenter,
 		Op:         structs.TombstoneReap,

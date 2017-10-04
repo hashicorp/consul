@@ -92,6 +92,42 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>number of objects</td>
     <td>gauge</td>
   </tr>
+  <tr>
+    <td>`consul.acl.cache_hit`</td>
+    <td>The number of ACL cache hits.</td>
+    <td>hits</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.cache_miss`</td>
+    <td>The number of ACL cache misses.</td>
+    <td>misses</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.replication_hit`</td>
+    <td>The number of ACL replication cache hits (when not running in the ACL datacenter).</td>
+    <td>hits</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.dns.stale_queries`</td>
+    <td>This increments when an agent serves a query within the allowed stale threshold.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.dns.ptr_query.<node>`</td>
+    <td>This measures the time spent handling a reverse DNS query for the given node.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.dns.domain_query.<node>`</td>
+    <td>This measures the time spent handling a domain query for the given node.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
 </table>
 
 ## Server Health
@@ -144,6 +180,239 @@ These metrics are used to monitor the health of the Consul servers.
   <tr>
     <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
     <td>This will only be emitted by the Raft leader and measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.<br><br>The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options.html#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/guides/performance.html) guide for more details.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.apply`</td>
+    <td>This measures the time it takes to complete an update to the ACL store.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.fault`</td>
+    <td>This measures the time it takes to fault in the rules for an ACL during a cache miss.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.fetchRemoteACLs`</td>
+    <td>This measures the time it takes to fetch remote ACLs during replication.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.updateLocalACLs`</td>
+    <td>This measures the time it takes to apply replication changes to the local ACL store.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.replicateACLs`</td>
+    <td>This measures the time it takes to do one pass of the ACL replication algorithm.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.acl.resolveToken`</td>
+    <td>This measures the time it takes to resolve an ACL token.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.accept_conn`</td>
+    <td>This increments when a server accepts an RPC connection.</td>
+    <td>connections</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.catalog.register`</td>
+    <td>This measures the time it takes to complete a catalog register operation.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.catalog.deregister`</td>
+    <td>This measures the time it takes to complete a catalog deregister operation.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.register`</td>
+    <td>This measures the time it takes to apply a catalog register operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.deregister`</td>
+    <td>This measures the time it takes to apply a catalog deregister operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.acl.<op>`</td>
+    <td>This measures the time it takes to apply the given ACL operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.session.<op>`</td>
+    <td>This measures the time it takes to apply the given session operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.kvs.<op>`</td>
+    <td>This measures the time it takes to apply the given KV operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.tombstone.<op>`</td>
+    <td>This measures the time it takes to apply the given tombstone operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.coordinate.batch-update`</td>
+    <td>This measures the time it takes to apply the given batch coordinate update to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.prepared-query.<op>`</td>
+    <td>This measures the time it takes to apply the given prepared query update operation to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.txn`</td>
+    <td>This measures the time it takes to apply the given transaction update to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.autopilot`</td>
+    <td>This measures the time it takes to apply the given autopilot update to the FSM.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.fsm.persist`</td>
+    <td>This measures the time it takes to persist the FSM to a raft snapshot.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.kvs.apply`</td>
+    <td>This measures the time it takes to complete an update to the KV store.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.leader.barrier`</td>
+    <td>This measures the time spent waiting for the raft barrier upon gaining leadership.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.leader.reconcile`</td>
+    <td>This measures the time spent updating the raft store from the serf member information.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.leader.reconcileMember`</td>
+    <td>This measures the time spent updating the raft store for a single serf member's information.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.leader.reapTombstones`</td>
+    <td>This measures the time spent clearing tombstones.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.prepared-query.apply`</td>
+    <td>This measures the time it takes to apply a prepared query update.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.prepared-query.explain`</td>
+    <td>This measures the time it takes to process a prepared query explain request.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.prepared-query.execute`</td>
+    <td>This measures the time it takes to process a prepared query execute request.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.prepared-query.execute`</td>
+    <td>This measures the time it takes to process a prepared query execute request that was forwarded to another datacenter.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.raft_handoff`</td>
+    <td>This increments when a server accepts a Raft-related RPC connection.</td>
+    <td>connections</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.request_error`</td>
+    <td>This increments when a server returns an error from an RPC request.</td>
+    <td>errors</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.request`</td>
+    <td>This increments when a server receives a Consul-related RPC request.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.query`</td>
+    <td>This increments when a server receives a (potentially blocking) RPC query.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.consistentRead`</td>
+    <td>This measures the time spent confirming that a consistent read can be performed.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.session.apply`</td>
+    <td>This measures the time spent applying a session update.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.session.renew`</td>
+    <td>This measures the time spent renewing a session.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.session_ttl.invalidate`</td>
+    <td>This measures the time spent invalidating an expired session.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.txn.apply`</td>
+    <td>This measures the time spent applying a transaction operation.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+    <td>`consul.txn.read`</td>
+    <td>This measures the time spent returning a read transaction.</td>
     <td>ms</td>
     <td>timer</td>
   </tr>
@@ -213,5 +482,47 @@ These metrics give insight into the health of the cluster as a whole.
     <td>This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0.</td>
     <td>boolean</td>
     <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.session_ttl.active`</td>
+    <td>This tracks the active number of sessions being tracked.</td>
+    <td>sessions</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.catalog.service.query.<service>`</td>
+    <td>This increments for each catalog query for the given service.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.catalog.service.query-tag.<service>.<tag>`</td>
+    <td>This increments for each catalog query for the given service with the given tag.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.catalog.service.not-found.<service>`</td>
+    <td>This increments for each catalog query where the given service could not be found.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.health.service.query.<service>`</td>
+    <td>This increments for each health query for the given service.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.health.service.query-tag.<service>.<tag>`</td>
+    <td>This increments for each health query for the given service with the given tag.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.health.service.not-found.<service>`</td>
+    <td>This increments for each health query where the given service could not be found.</td>
+    <td>queries</td>
+    <td>counter</td>
   </tr>
 </table>

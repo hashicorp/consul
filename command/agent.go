@@ -223,6 +223,8 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 	metricsConf := metrics.DefaultConfig(conf.TelemetryMetricsPrefix)
 	metricsConf.EnableHostname = !conf.TelemetryDisableHostname
 	metricsConf.FilterDefault = conf.TelemetryFilterDefault
+	metricsConf.AllowedPrefixes = conf.TelemetryAllowedPrefixes
+	metricsConf.BlockedPrefixes = conf.TelemetryBlockedPrefixes
 
 	var sinks metrics.FanoutSink
 	addSink := func(name string, fn func(*config.RuntimeConfig, string) (metrics.MetricSink, error)) error {

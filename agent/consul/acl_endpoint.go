@@ -146,6 +146,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "apply"}, time.Now())
 
 	// Verify we are allowed to serve this request
 	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {

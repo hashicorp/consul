@@ -42,6 +42,7 @@ type aclCacheEntry struct {
 // using its replicated ACLs during an outage.
 func (s *Server) aclLocalFault(id string) (string, string, error) {
 	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "fault"}, time.Now())
 
 	// Query the state store.
 	state := s.fsm.State()
@@ -75,6 +76,7 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 		return nil, nil
 	}
 	defer metrics.MeasureSince([]string{"consul", "acl", "resolveToken"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "resolveToken"}, time.Now())
 
 	// Handle the anonymous token
 	if len(id) == 0 {
@@ -158,9 +160,11 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	// Check for live cache.
 	if cached != nil && time.Now().Before(cached.Expires) {
 		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
+		metrics.IncrCounter([]string{"acl", "cache_hit"}, 1)
 		return cached.ACL, nil
 	}
 	metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
+	metrics.IncrCounter([]string{"acl", "cache_miss"}, 1)
 
 	// Attempt to refresh the policy from the ACL datacenter via an RPC.
 	args := structs.ACLPolicyRequest{
@@ -223,6 +227,7 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		// Note we use the local TTL here, so this'll be used for that
 		// amount of time even once the ACL datacenter becomes available.
 		metrics.IncrCounter([]string{"consul", "acl", "replication_hit"}, 1)
+		metrics.IncrCounter([]string{"acl", "replication_hit"}, 1)
 		reply.ETag = makeACLETag(parent, policy)
 		reply.TTL = c.config.ACLTTL
 		reply.Parent = parent

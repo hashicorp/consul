@@ -156,6 +156,8 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
+			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Now().Sub(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -225,6 +227,8 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "domain_query"}, s,
+			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Now().Sub(s), resp.RemoteAddr().String(),
@@ -516,6 +520,7 @@ RPC:
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
 			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 		}
 	}
 
@@ -761,6 +766,7 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 
 	if args.AllowStale && out.LastContact > staleCounterThreshold {
 		metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+		metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 	}
 
 	// redo the request the response was too stale
@@ -887,6 +893,7 @@ RPC:
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
 			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
+			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 		}
 	}
 
