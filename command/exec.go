@@ -158,6 +158,11 @@ func (c *ExecCommand) Run(args []string) int {
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
+		if !c.conf.shell {
+			c.UI.Error("Cannot configure -shell=false when reading from stdin")
+			return 1
+		}
+
 		c.conf.cmd = ""
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, os.Stdin)
