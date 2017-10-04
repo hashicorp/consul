@@ -56,6 +56,9 @@ func (c *WatchCommand) Run(args []string) int {
 	f.StringVar(&passingOnly, "passingonly", "",
 		"Specifies if only hosts passing all checks are displayed. "+
 			"Optional for 'service' type, must be one of `[true|false]`. Defaults false.")
+	f.BoolVar(&shell, "shell", true,
+		"Use a shell to run the command (can set a custom shell via the SHELL "+
+			"environment variable).")
 	f.StringVar(&state, "state", "",
 		"Specifies the states to watch. Optional for 'checks' type.")
 	f.StringVar(&name, "name", "",
