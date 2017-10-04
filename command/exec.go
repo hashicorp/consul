@@ -173,11 +173,9 @@ func (c *ExecCommand) Run(args []string) int {
 			return 1
 		}
 		c.conf.script = buf.Bytes()
-	} else {
-		if !c.conf.shell {
-			c.conf.cmd = ""
-			c.conf.args = f.Args()
-		}
+	} else if !c.conf.shell {
+		c.conf.cmd = ""
+		c.conf.args = f.Args()
 	}
 
 	// Ensure we have a command or script
