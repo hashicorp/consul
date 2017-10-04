@@ -130,14 +130,14 @@ func ExecSubprocess(args []string) (*exec.Cmd, error) {
 func ForwardSignals(cmd *exec.Cmd, logFn func(error), shutdownCh <-chan struct{}) {
 	go func() {
 		signalCh := make(chan os.Signal, 10)
-		signal.Notify(signalCh)
+		signal.Notify(signalCh, os.Interrupt, os.Kill)
 		defer signal.Stop(signalCh)
 
 		for {
 			select {
 			case sig := <-signalCh:
 				if err := cmd.Process.Signal(sig); err != nil {
-					logFn(err)
+					logFn(fmt.Errorf("failed to send signal %q: %v", sig, err))
 				}
 
 			case <-shutdownCh:
