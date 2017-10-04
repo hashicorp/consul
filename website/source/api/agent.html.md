@@ -85,7 +85,10 @@ $ curl \
 ## Read Configuration
 
 This endpoint returns the configuration and member information of the local
-agent.
+agent. The `Config` element contains a subset of the configuration and its
+format will not change in a backwards incompatible way between releases.
+`DebugConfig` contains the full runtime configuration but its format is subject
+to change without notice or deprecation.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
@@ -112,42 +115,15 @@ $ curl \
 ```json
 {
   "Config": {
-    "Bootstrap": true,
-    "Server": true,
     "Datacenter": "dc1",
-    "DataDir": "/tmp/consul",
-    "DNSRecursor": "",
-    "DNSRecursors": [],
-    "Domain": "consul.",
-    "LogLevel": "INFO",
-    "NodeID": "40e4a748-2192-161a-0510-9bf59fe950b5",
     "NodeName": "foobar",
-    "ClientAddr": "127.0.0.1",
-    "BindAddr": "0.0.0.0",
-    "AdvertiseAddr": "10.1.10.12",
-    "Ports": {
-      "DNS": 8600,
-      "HTTP": 8500,
-      "RPC": 8400,
-      "SerfLan": 8301,
-      "SerfWan": 8302,
-      "Server": 8300
-    },
-    "LeaveOnTerm": false,
-    "SkipLeaveOnInt": false,
-    "StatsiteAddr": "",
-    "Protocol": 1,
-    "EnableDebug": false,
-    "VerifyIncoming": false,
-    "VerifyOutgoing": false,
-    "CAFile": "",
-    "CertFile": "",
-    "KeyFile": "",
-    "StartJoin": [],
-    "UiDir": "",
-    "PidFile": "",
-    "EnableSyslog": false,
-    "RejoinAfterLeave": false
+    "Server": true,
+    "Revision": "deadbeef",
+    "Version": "1.0.0"
+  },
+  "DebugConfig": {
+    ... full runtime configuration ...
+    ... format subject to change ...
   },
   "Coord": {
     "Adjustment": 0,
