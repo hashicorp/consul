@@ -20,11 +20,12 @@ import (
 )
 
 type Self struct {
-	Config map[string]interface{}
-	Coord  *coordinate.Coordinate
-	Member serf.Member
-	Stats  map[string]map[string]string
-	Meta   map[string]string
+	Config      interface{}
+	DebugConfig map[string]interface{}
+	Coord       *coordinate.Coordinate
+	Member      serf.Member
+	Stats       map[string]map[string]string
+	Meta        map[string]string
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -51,12 +52,26 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, acl.ErrPermissionDenied
 	}
 
+	config := struct {
+		Datacenter string
+		NodeName   string
+		Revision   string
+		Server     bool
+		Version    string
+	}{
+		Datacenter: s.agent.config.Datacenter,
+		NodeName:   s.agent.config.NodeName,
+		Revision:   s.agent.config.Revision,
+		Server:     s.agent.config.ServerMode,
+		Version:    s.agent.config.Version,
+	}
 	return Self{
-		Config: s.agent.config.Sanitized(),
-		Coord:  cs[s.agent.config.SegmentName],
-		Member: s.agent.LocalMember(),
-		Stats:  s.agent.Stats(),
-		Meta:   s.agent.state.Metadata(),
+		Config:      config,
+		DebugConfig: s.agent.config.Sanitized(),
+		Coord:       cs[s.agent.config.SegmentName],
+		Member:      s.agent.LocalMember(),
+		Stats:       s.agent.Stats(),
+		Meta:        s.agent.state.Metadata(),
 	}, nil
 }
 
