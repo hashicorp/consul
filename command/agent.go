@@ -54,7 +54,9 @@ func (cmd *AgentCommand) readConfig() *config.RuntimeConfig {
 	config.AddFlags(fs, &flags)
 
 	if err := cmd.BaseCommand.Parse(cmd.args); err != nil {
-		cmd.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
+		if !strings.Contains(err.Error(), "help requested") {
+			cmd.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
+		}
 		return nil
 	}
 
