@@ -128,6 +128,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>ms</td>
     <td>timer</td>
   </tr>
+  <tr>
+    <td>`consul.http.<verb>.<path>`</td>
+    <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
 </table>
 
 ## Server Health
@@ -446,12 +452,6 @@ These metrics give insight into the health of the cluster as a whole.
     <td>This increments when an agent processes an [event](/docs/commands/event.html). Consul uses events internally so there may be additional events showing in telemetry. There are also a per-event counters emitted as `consul.serf.events.<event name>`.</td>
     <td>events / interval</td>
     <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.http.<verb>.<path>`</td>
-    <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
-    <td>ms</td>
-    <td>timer</td>
   </tr>
   <tr>
     <td>`consul.autopilot.failure_tolerance`</td>
