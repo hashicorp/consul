@@ -41,6 +41,9 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	srv := new(dns.SRV)
 	srv.Hdr = dns.RR_Header{Name: "_" + state.Proto() + "." + state.QName(), Rrtype: dns.TypeSRV, Class: state.QClass()}
+	if state.QName() == "." {
+		srv.Hdr.Name = "_" + state.Proto() + state.QName()
+	}
 	port, _ := strconv.Atoi(state.Port())
 	srv.Port = uint16(port)
 	srv.Target = "."
