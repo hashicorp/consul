@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/configutil"
 )
 
 // ValidateCommand is a Command implementation that is used to
@@ -32,28 +31,18 @@ Usage: consul validate [options] FILE_OR_DIRECTORY...
 }
 
 func (c *ValidateCommand) Run(args []string) int {
-	var configFiles []string
 	var quiet bool
 
 	f := c.BaseCommand.NewFlagSet(c)
-	f.Var((*configutil.AppendSliceValue)(&configFiles), "config-file",
-		"Path to a JSON file to read configuration from. This can be specified multiple times.")
-	f.Var((*configutil.AppendSliceValue)(&configFiles), "config-dir",
-		"Path to a directory to read configuration files from. This will read every file ending in "+
-			".json as configuration in this directory in alphabetical order.")
 	f.BoolVar(&quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
-	c.BaseCommand.HideFlags("config-file", "config-dir")
 
 	if err := c.BaseCommand.Parse(args); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	if len(f.Args()) > 0 {
-		configFiles = append(configFiles, f.Args()...)
-	}
-
+	configFiles := f.Args()
 	if len(configFiles) < 1 {
 		c.UI.Error("Must specify at least one config file or directory")
 		return 1
