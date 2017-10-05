@@ -210,21 +210,15 @@ func (c *BaseCommand) helpFlagsFor(f *flag.FlagSet) string {
 
 	var out bytes.Buffer
 
-	firstHTTP := true
+	if c.hasClientHTTP() || c.hasServerHTTP() {
+		printTitle(&out, "HTTP API Options")
+	}
 	if c.hasClientHTTP() {
-		if firstHTTP {
-			printTitle(&out, "HTTP API Options")
-			firstHTTP = false
-		}
 		httpFlagsClient.VisitAll(func(f *flag.Flag) {
 			printFlag(&out, f)
 		})
 	}
 	if c.hasServerHTTP() {
-		if firstHTTP {
-			printTitle(&out, "HTTP API Options")
-			firstHTTP = false
-		}
 		httpFlagsServer.VisitAll(func(f *flag.Flag) {
 			printFlag(&out, f)
 		})
