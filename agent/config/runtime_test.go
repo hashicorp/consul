@@ -1659,9 +1659,27 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar"}
+				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
+		},
+		{
+			desc: "telemetry.enable_deprecated_names adds allow rule for whitelist",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"telemetry": { "enable_deprecated_names": true, "filter_default": false }
+				}`},
+			hcl: []string{`
+					telemetry = { enable_deprecated_names = true filter_default = false }
+				`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.TelemetryFilterDefault = false
+				rt.TelemetryAllowedPrefixes = []string{"consul.consul"}
+				rt.TelemetryBlockedPrefixes = []string{}
+			},
 		},
 		{
 			desc: "encrypt has invalid key",
@@ -2321,6 +2339,7 @@ func TestFullConfig(t *testing.T) {
 				"dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
 				"filter_default": true,
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
+				"enable_deprecated_names": true,
 				"metrics_prefix": "ftO6DySn",
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
@@ -2751,6 +2770,7 @@ func TestFullConfig(t *testing.T) {
 				dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
 				filter_default = true
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
+				enable_deprecated_names = true
 				metrics_prefix = "ftO6DySn"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
@@ -3303,7 +3323,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryDogstatsdAddr:                      "0wSndumK",
 		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
+		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
 		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryStatsdAddr:                         "drce87cy",

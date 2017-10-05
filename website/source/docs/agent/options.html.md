@@ -1168,6 +1168,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same
       prefix is listed multiple times.
 
+    * <a name="telemetry-enable_deprecated_names"></a><a href="#telemetry-enable_deprecated_names">`enable_deprecated_names`
+      </a>Added in Consul 1.0, this enables old metric names of the format `consul.consul...` to be sent alongside
+      other metrics. Defaults to false.
+
     * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
       address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for
       aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with

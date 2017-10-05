@@ -24,6 +24,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "session", "apply"}, time.Now())
+	defer metrics.MeasureSince([]string{"session", "apply"}, time.Now())
 
 	// Verify the args
 	if args.Session.ID == "" && args.Op == structs.SessionDestroy {
@@ -222,6 +223,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "session", "renew"}, time.Now())
+	defer metrics.MeasureSince([]string{"session", "renew"}, time.Now())
 
 	// Get the session, from local state.
 	state := s.srv.fsm.State()
