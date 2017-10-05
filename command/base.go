@@ -143,6 +143,7 @@ func (c *BaseCommand) httpFlagsServer() *flag.FlagSet {
 // generates help output and adds the appropriate API flags.
 func (c *BaseCommand) NewFlagSet(command cli.Command) *flag.FlagSet {
 	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flagSet.Usage = func() { c.UI.Error(command.Help()) }
 
 	if c.hasClientHTTP() {
 		c.httpFlagsClient().VisitAll(func(f *flag.Flag) {
