@@ -102,6 +102,25 @@ BREAKING CHANGES:
 
 * **Unauthorized KV Requests Return 403:** When ACLs are enabled, reading a key with an unauthorized token returns a 403. This previously returned a 404 response.
 * **Config Section of Agent Self Endpoint has Changed:** The /v1/agent/self endpoint's `Config` section has often been in flux as it was directly returning one of Consul's internal data structures. This configuration structure has been moved under `DebugConfig`, and is documents as for debugging use and subject to change, and a small set of elements of `Config` have been maintained and documented. See [Read Configuration](https://www.consul.io/api/agent.html#read-configuration) endpoint documentation for details. [[GH-3532](https://github.com/hashicorp/consul/issues/3532)]
+* **Metric Names Updated:** Fixed an issue where some of the internal Consul metric names began with `consul.consul.` instead of `consul.`. To help with transitioning dashboards and other metric consumers, the field `enable_deprecated_names` has been added to the telemetry section of the config, which will enable metrics with the old naming scheme to be sent alongside the new ones.
+
+    <details><summary>Detailed list of affected metrics by prefix</summary>
+    
+    | Prefix |
+    | ------ |
+    | consul.acl |
+    | consul.autopilot |
+    | consul.catalog |
+    | consul.fsm |
+    | consul.health |
+    | consul.http |
+    | consul.kvs |
+    | consul.leader |
+    | consul.prepared-query |
+    | consul.rpc |
+    | consul.session |
+    | consul.session_ttl |
+    | consul.txn |
 
 FEATURES:
 
