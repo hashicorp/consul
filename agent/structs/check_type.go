@@ -75,5 +75,5 @@ func (c *CheckType) IsTCP() bool {
 
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
-	return c.DockerContainerID != "" && c.Script != "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID != "" && c.Interval != 0
 }
