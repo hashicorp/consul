@@ -7,7 +7,7 @@ BREAKING CHANGES:
 * **Deprecated Options Have Been Removed:** All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 
     <details><summary>Detailed List of Removed Options and their Equivalents</summary>
-    
+
     | Removed Option | Equivalent |
     | -------------- | ---------- |
     | `-atlas` | None, Atlas is no longer supported. |
@@ -127,7 +127,7 @@ FEATURES:
 * **Support for HCL Config Files:** Consul now supports HashiCorp's [HCL](https://github.com/hashicorp/hcl#syntax) format for config files. This is easier to work with than JSON and supports comments. As part of this change, all config files will need to have either an `.hcl` or `.json` extension in order to specify their format. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 * **Support for Binding to Multiple Addresses:** Consul now supports binding to multiple addresses for its HTTP, HTTPS, and DNS services. You can provide a space-separated list of addresses to [`-client`](https://www.consul.io/docs/agent/options.html#_client) and [`addresses`](https://www.consul.io/docs/agent/options.html#addresses) configurations, or specify a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that resolves to multiple addresses. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
 * **Support for RFC1434 DNS TXT records:** Consul DNS responses now contain the node meta data encoded according to RFC1434 as TXT records. [[GH-3343](https://github.com/hashicorp/consul/issues/3343)]
-* **Support for Running Subproccesses Directly Without a Shell:** Consul agent checks and watches now support an `args` configuration which is a list of arguments to run for the subprocess, which runs the subprocess directly without a shell. The old `script` and `handler` configurations are now deprecated (specify a shell explicitly if you require one). A `-shell=false` option is also available on `consul lock`, `consul watch`, and `consul exec` to run the subprocesses associated with those without a shell. [GH-3509]
+* **Support for Running Subproccesses Directly Without a Shell:** Consul agent checks and watches now support an `args` configuration which is a list of arguments to run for the subprocess, which runs the subprocess directly without a shell. The old `script` and `handler` configurations are now deprecated (specify a shell explicitly if you require one). A `-shell=false` option is also available on `consul lock`, `consul watch`, and `consul exec` to run the subprocesses associated with those without a shell. [[GH-3509](https://github.com/hashicorp/consul/issues/3509)]
 * **Sentinel Integration:** (Consul Enterprise) Consul's ACL system integrates with [Sentinel](https://www.consul.io/docs/guides/sentinel.html) to enable code policies that apply to KV writes.
 
 
@@ -136,6 +136,7 @@ IMPROVEMENTS:
 * agent: Added support to detect public IPv4 and IPv6 addresses on AWS. [[GH-3471](https://github.com/hashicorp/consul/issues/3471)]
 * agent: Improved /v1/operator/raft/configuration endpoint which allows Consul to avoid an extra agent RPC call for the `consul operator raft list-peers` command. [[GH-3449](https://github.com/hashicorp/consul/issues/3449)]
 * agent: Improved ACL system for the KV store to support list permissions. This behavior can be opted in. For more information, see the [ACL Guide](https://www.consul.io/docs/guides/acl.html#list-policy-for-keys). [[GH-3511](https://github.com/hashicorp/consul/issues/3511)]
+* cli: `consul lock` and `consul watch` commands will forward `TERM` and `KILL` signals to their child subprocess. [[GH-3509](https://github.com/hashicorp/consul/issues/3509)]
 * server: Updated BoltDB to final version 1.3.1. [[GH-3502](https://github.com/hashicorp/consul/issues/3502)]
 * server: Improved dead member reap algorithm to fix edge cases where servers could get left behind. [[GH-3452](https://github.com/hashicorp/consul/issues/3452)]
 
