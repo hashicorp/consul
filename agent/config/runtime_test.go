@@ -1315,7 +1315,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "'bootstrap_expect > 0' not allowed in dev mode",
 		},
 		{
-			desc: "bootstrap-expect and boostrap",
+			desc: "bootstrap-expect and bootstrap",
 			flags: []string{
 				`-datacenter=a`,
 				`-data-dir=` + dataDir,
@@ -1325,7 +1325,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive",
 		},
 		{
-			desc: "bootstrap-expect=1 equals boostrap",
+			desc: "bootstrap-expect=1 equals bootstrap",
 			flags: []string{
 				`-data-dir=` + dataDir,
 			},
