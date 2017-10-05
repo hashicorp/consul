@@ -104,7 +104,7 @@ BREAKING CHANGES:
 * **Config Section of Agent Self Endpoint has Changed:** The /v1/agent/self endpoint's `Config` section has often been in flux as it was directly returning one of Consul's internal data structures. This configuration structure has been moved under `DebugConfig`, and is documents as for debugging use and subject to change, and a small set of elements of `Config` have been maintained and documented. See [Read Configuration](https://www.consul.io/api/agent.html#read-configuration) endpoint documentation for details. [[GH-3532](https://github.com/hashicorp/consul/issues/3532)]
 * **Deprecated `configtest` Command Removed:** The `configtest` command was deprecated and has been superseded by the `validate` command.
 * **Undocumented Flags in `validate` Command Removed:** The `validate` command supported the `-config-file` and `-config-dir` command line flags but did not document them. This support has been removed since the flags are not required.
-* **Metric Names Updated:** Fixed an issue where some of the internal Consul metric names began with `consul.consul.` instead of `consul.`. To help with transitioning dashboards and other metric consumers, the field `enable_deprecated_names` has been added to the telemetry section of the config, which will enable metrics with the old naming scheme to be sent alongside the new ones.
+* **Metric Names Updated:** Fixed an issue where some of the internal Consul metric names began with `consul.consul.` instead of `consul.`. To help with transitioning dashboards and other metric consumers, the field `enable_deprecated_names` has been added to the telemetry section of the config, which will enable metrics with the old naming scheme to be sent alongside the new ones. [[GH-3535](https://github.com/hashicorp/consul/issues/3535)]
 
     <details><summary>Detailed List of Affected Metrics by Prefix</summary>
 
@@ -147,6 +147,7 @@ BUG FIXES:
 
 * agent: Fixed an issue where disabling both the http and https interfaces would cause a watch-related error on agent startup, even when no watches were defined. [[GH-3425](https://github.com/hashicorp/consul/issues/3425)]
 * cli: If the `consul operator raft list-peers` command encounters an error it will now exit with a non-zero exit code. [[GH-3513](https://github.com/hashicorp/consul/issues/3513)]
+* cli: CLI commands will now show help for all of their arguments. [[GH-3536](https://github.com/hashicorp/consul/issues/3536)]
 
 ## 0.9.3 (September 8, 2017)
 
