@@ -448,24 +448,6 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
   <tr>
-    <td>`consul.dns.domain_query.<agent>`</td>
-    <td>This tracks how long it takes to service forward DNS lookups on the given Consul agent.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.dns.ptr_query.<agent>`</td>
-    <td>This tracks how long it takes to service reverse DNS lookups on the given Consul agent.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.dns.stale_queries`</td>
-    <td>Available in Consul 0.7.1 and later, this increments when an agent serves a DNS query based on information from a server that is more than 5 seconds out of date.</td>
-    <td>queries</td>
-    <td>counter</td>
-  </tr>
-  <tr>
     <td>`consul.http.<verb>.<path>`</td>
     <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
     <td>ms</td>

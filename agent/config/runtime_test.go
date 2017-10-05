@@ -1658,10 +1658,28 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
-				rt.TelemetryAllowedPrefixes = append([]string{"foo"}, rt.TelemetryAllowedPrefixes...)
-				rt.TelemetryBlockedPrefixes = append([]string{"bar"}, rt.TelemetryBlockedPrefixes...)
+				rt.TelemetryAllowedPrefixes = []string{"foo"}
+				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
+		},
+		{
+			desc: "telemetry.enable_deprecated_names adds allow rule for whitelist",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+					"telemetry": { "enable_deprecated_names": true, "filter_default": false }
+				}`},
+			hcl: []string{`
+					telemetry = { enable_deprecated_names = true filter_default = false }
+				`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.TelemetryFilterDefault = false
+				rt.TelemetryAllowedPrefixes = []string{"consul.consul"}
+				rt.TelemetryBlockedPrefixes = []string{}
+			},
 		},
 		{
 			desc: "encrypt has invalid key",
