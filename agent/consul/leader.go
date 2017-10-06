@@ -33,38 +33,36 @@ func (s *Server) monitorLeadership() {
 	// cleanup and to ensure we never run multiple leader loops.
 	raftNotifyCh := s.raftNotifyCh
 
-	// If there's a non-nil stopCh then this routine will wait on wg to
-	// ensure that there are never overlapping leaderLoops executing.
-	var stopCh chan struct{}
-	var wg sync.WaitGroup
+	var weAreLeaderCh chan struct{}
+	var leaderLoop sync.WaitGroup
 	for {
 		select {
 		case isLeader := <-raftNotifyCh:
 			switch {
 			case isLeader:
-				if stopCh != nil {
+				if weAreLeaderCh != nil {
 					s.logger.Printf("[ERR] consul: attempted to start the leader loop while running")
 					continue
 				}
 
-				stopCh = make(chan struct{})
-				wg.Add(1)
+				weAreLeaderCh = make(chan struct{})
+				leaderLoop.Add(1)
 				go func(ch chan struct{}) {
-					defer wg.Done()
+					defer leaderLoop.Done()
 					s.leaderLoop(ch)
-				}(stopCh)
+				}(weAreLeaderCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
 
 			default:
-				if stopCh == nil {
+				if weAreLeaderCh == nil {
 					s.logger.Printf("[ERR] consul: attempted to stop the leader loop while not running")
 					continue
 				}
 
 				s.logger.Printf("[DEBUG] consul: shutting down leader loop")
-				close(stopCh)
-				wg.Wait()
-				stopCh = nil
+				close(weAreLeaderCh)
+				leaderLoop.Wait()
+				weAreLeaderCh = nil
 				s.logger.Printf("[INFO] consul: cluster leadership lost")
 			}
 
