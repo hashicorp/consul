@@ -33,12 +33,10 @@ func (s *Server) monitorLeadership() {
 	// cleanup and to ensure we never run multiple leader loops.
 	raftNotifyCh := s.raftNotifyCh
 
-	// This wait group will ensure that only one leader loop will ever be
-	// running at any given time. We need to run that in a goroutine so we
-	// can look for other notifications (loss of leadership) which we pass
-	// along by closing the stopCh given to the current leader loop.
-	var wg sync.WaitGroup
+	// If there's a non-nil stopCh then this routine will wait on wg to
+	// ensure that there are never overlapping leaderLoops executing.
 	var stopCh chan struct{}
+	var wg sync.WaitGroup
 	for {
 		select {
 		case isLeader := <-raftNotifyCh:
