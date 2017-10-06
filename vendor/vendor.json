@@ -63,7 +63,7 @@
 		{"path":"github.com/hashicorp/serf/serf","checksumSHA1":"3WPnGSL9ZK6EmkAE6tEW5SCxrd8=","comment":"v0.7.0-66-g6c4672d","revision":"b84a66cc5575994cb672940d244a2404141688c0","revisionTime":"2017-08-17T21:22:02Z"},
 		{"path":"github.com/hashicorp/yamux","checksumSHA1":"ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=","revision":"d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd","revisionTime":"2016-07-20T23:31:40Z"},
 		{"path":"github.com/mattn/go-isatty","checksumSHA1":"xZuhljnmBysJPta/lMyYmJdujCg=","revision":"66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8","revisionTime":"2016-08-06T12:27:52Z"},
-		{"path":"github.com/miekg/dns","checksumSHA1":"OUZ1FFXyKs+Cfg9M9rmXqqweQck=","revision":"db96a2b759cdef4f11a34506a42eb8d1290c598e","revisionTime":"2016-07-26T03:20:27Z"},
+		{"path":"github.com/miekg/dns","checksumSHA1":"Jo+pItYOocIRdoFL0fc4nHhUEJY=","revision":"bbca4873b326f5dc54bfe31148446d4ed79a5a02","revisionTime":"2017-08-08T22:19:10Z"},
 		{"path":"github.com/mitchellh/cli","checksumSHA1":"GzfpPGtV2UJH9hFsKwzGjKrhp/A=","revision":"dff723fff508858a44c1f4bd0911f00d73b0202f","revisionTime":"2017-09-05T22:10:09Z"},
 		{"path":"github.com/mitchellh/copystructure","checksumSHA1":"86nE93o1VIND0Doe8PuhCXnhUx0=","revision":"cdac8253d00f2ecf0a0b19fbff173a9a72de4f82","revisionTime":"2016-08-04T03:23:30Z"},
 		{"path":"github.com/mitchellh/go-homedir","checksumSHA1":"V/quM7+em2ByJbWBLOsEwnY3j/Q=","revision":"b8bc1bf767474819792c23f32d8286a45736f1c6","revisionTime":"2016-12-03T19:45:07Z"},

@@ -13,9 +13,12 @@ const hexDigit = "0123456789abcdef"
 // SetReply creates a reply message from a request message.
 func (dns *Msg) SetReply(request *Msg) *Msg {
 	dns.Id = request.Id
-	dns.RecursionDesired = request.RecursionDesired // Copy rd bit
 	dns.Response = true
-	dns.Opcode = OpcodeQuery
+	dns.Opcode = request.Opcode
+	if dns.Opcode == OpcodeQuery {
+		dns.RecursionDesired = request.RecursionDesired // Copy rd bit
+		dns.CheckingDisabled = request.CheckingDisabled // Copy cd bit
+	}
 	dns.Rcode = RcodeSuccess
 	if len(request.Question) > 0 {
 		dns.Question = make([]Question, 1)
@@ -102,11 +105,11 @@ func (dns *Msg) SetAxfr(z string) *Msg {
 // SetTsig appends a TSIG RR to the message.
 // This is only a skeleton TSIG RR that is added as the last RR in the
 // additional section. The Tsig is calculated when the message is being send.
-func (dns *Msg) SetTsig(z, algo string, fudge, timesigned int64) *Msg {
+func (dns *Msg) SetTsig(z, algo string, fudge uint16, timesigned int64) *Msg {
 	t := new(TSIG)
 	t.Hdr = RR_Header{z, TypeTSIG, ClassANY, 0, 0}
 	t.Algorithm = algo
-	t.Fudge = 300
+	t.Fudge = fudge
 	t.TimeSigned = uint64(timesigned)
 	t.OrigId = dns.Id
 	dns.Extra = append(dns.Extra, t)
