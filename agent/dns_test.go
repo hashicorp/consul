@@ -796,7 +796,7 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 
 	wantAnswer := []dns.RR{
 		&dns.SRV{
-			Hdr:      dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x21, Class: 0x1, Rdlength: 0x15},
+			Hdr:      dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x21, Class: 0x1, Rdlength: 0x1b},
 			Priority: 0x1,
 			Weight:   0x1,
 			Port:     12345,
