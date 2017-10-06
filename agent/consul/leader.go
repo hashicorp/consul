@@ -42,7 +42,8 @@ func (s *Server) monitorLeadership() {
 	for {
 		select {
 		case isLeader := <-raftNotifyCh:
-			if isLeader {
+			switch {
+			case isLeader:
 				if stopCh != nil {
 					s.logger.Printf("[ERR] consul: attempted to start the leader loop while running")
 					continue
@@ -50,12 +51,13 @@ func (s *Server) monitorLeadership() {
 
 				stopCh = make(chan struct{})
 				wg.Add(1)
-				go func(stopCh chan struct{}) {
-					s.leaderLoop(stopCh)
-					wg.Done()
+				go func(ch chan struct{}) {
+					defer wg.Done()
+					s.leaderLoop(ch)
 				}(stopCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
-			} else {
+
+			default:
 				if stopCh == nil {
 					s.logger.Printf("[ERR] consul: attempted to stop the leader loop while not running")
 					continue
