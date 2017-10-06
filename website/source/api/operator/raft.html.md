@@ -28,9 +28,9 @@ The table below shows this endpoint's support for
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `operator:read` |
+| Blocking Queries | Consistency Modes     | ACL Required    |
+| ---------------- | --------------------- | --------------- |
+| `NO`             | `default` and `stale` | `operator:read` |
 
 ### Parameters
 
@@ -40,7 +40,10 @@ The table below shows this endpoint's support for
 
 - `stale` `(bool: false)` - If the cluster does not currently have a leader an
   error will be returned. You can use the `?stale` query parameter to read the
-  Raft configuration from any of the Consul servers.
+  Raft configuration from any of the Consul servers. Not setting this will choose
+  the default consistency mode which will forward the reqest to the leader for
+  processing but not re-confirm the server is still the leader before returning
+  results. See [default consistency](/api/index.html#default) for more details.
 
 ### Sample Request
 
