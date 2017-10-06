@@ -233,6 +233,14 @@ func (c *Client) Encrypted() bool {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+	// If we happen to be connected to the leader server for our request,
+	// it's possible that we can get a no leader error if it loses
+	// leadership. By allowing a single retry we can give the other servers
+	// a chance to route it to the new leader, subject to the RPC hold
+	// timeout.
+	retry := true
+
+TRY:
 	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
@@ -251,6 +259,10 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		c.routers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
+		if retry && structs.IsErrNoLeader(err) {
+			retry = false
+			goto TRY
+		}
 		return err
 	}
 

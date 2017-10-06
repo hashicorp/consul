@@ -23,6 +23,10 @@ var (
 	ErrRPCRateExceeded            = errors.New(errRPCRateExceeded)
 )
 
+func IsErrNoLeader(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errNoLeader)
+}
+
 func IsErrRPCRateExceeded(err error) bool {
-	return strings.Contains(err.Error(), errRPCRateExceeded)
+	return err != nil && strings.Contains(err.Error(), errRPCRateExceeded)
 }
