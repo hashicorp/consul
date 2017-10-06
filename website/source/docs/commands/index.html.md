@@ -92,8 +92,10 @@ $ consul e
 event  exec
 
 $ consul r
-raft    reload  rtt
+reload  rtt
 
+$ consul operator raft
+list-peers   remove-peer
 ```
 
 ## Environment Variables
