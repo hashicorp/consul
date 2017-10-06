@@ -33,25 +33,41 @@ func (s *Server) monitorLeadership() {
 	// cleanup and to ensure we never run multiple leader loops.
 	raftNotifyCh := s.raftNotifyCh
 
+	// This wait group will ensure that only one leader loop will ever be
+	// running at any given time. We need to run that in a goroutine so we
+	// can look for other notifications (loss of leadership) which we pass
+	// along by closing the stopCh given to the current leader loop.
 	var wg sync.WaitGroup
 	var stopCh chan struct{}
 	for {
 		select {
 		case isLeader := <-raftNotifyCh:
 			if isLeader {
+				if stopCh != nil {
+					s.logger.Printf("[ERR] consul: attempted to start the leader loop while running")
+					continue
+				}
+
 				stopCh = make(chan struct{})
 				wg.Add(1)
-				go func() {
+				go func(stopCh chan struct{}) {
 					s.leaderLoop(stopCh)
 					wg.Done()
-				}()
+				}(stopCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
-			} else if stopCh != nil {
+			} else {
+				if stopCh == nil {
+					s.logger.Printf("[ERR] consul: attempted to stop the leader loop while not running")
+					continue
+				}
+
+				s.logger.Printf("[DEBUG] consul: shutting down leader loop")
 				close(stopCh)
-				stopCh = nil
 				wg.Wait()
+				stopCh = nil
 				s.logger.Printf("[INFO] consul: cluster leadership lost")
 			}
+
 		case <-s.shutdownCh:
 			return
 		}
@@ -97,7 +113,7 @@ RECONCILE:
 	barrier := s.raft.Barrier(barrierWriteTimeout)
 	if err := barrier.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
-		return
+		goto WAIT
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
 	metrics.MeasureSince([]string{"leader", "barrier"}, start)
@@ -127,6 +143,15 @@ RECONCILE:
 	reconcileCh = s.reconcileCh
 
 WAIT:
+	// Poll the stop channel to give it priority so we don't waste time
+	// trying to perform the other operations if we have been asked to shut
+	// down.
+	select {
+	case <-stopCh:
+		return
+	default:
+	}
+
 	// Periodically reconcile as long as we are the leader,
 	// or when Serf events arrive
 	for {
