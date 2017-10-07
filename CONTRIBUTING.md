@@ -50,7 +50,7 @@ a lot of time.
 
 ## Vulnerabilities
 
-If you've found a vulnerability that is serious, please email me: <miek@miek.nl>.
+If you've found a vulnerability that is serious, please email: <team@coredns.io>.
 If it's not a big deal, a pull request will probably be faster.
 
 ## Git Hook
