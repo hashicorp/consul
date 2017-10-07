@@ -344,8 +344,8 @@ will exit with an error at startup.
     ```
 
     - `provider` (required) - the name of the provider ("gce" in this case).
-    - `project_name` (required) - the name of the project to auto-join on.
     - `tag_value` (required) - the value of the tag to auto-join on.
+    - `project_name` (optional) - the name of the project to auto-join on. Discovered if not set.
     - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
     - `credentials_file` (optional) - the credentials file for authentication. See below for more information.
 
