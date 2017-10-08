@@ -3,7 +3,7 @@
 package core
 
 import (
-	// Include all plugin.
+	// Include all plugins.
 	_ "github.com/coredns/coredns/plugin/auto"
 	_ "github.com/coredns/coredns/plugin/autopath"
 	_ "github.com/coredns/coredns/plugin/bind"

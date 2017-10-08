@@ -59,7 +59,7 @@ func genImports(file, pack string, mi map[string]string) {
 		outs += "\n"
 	}
 
-	outs += "// Include all plugin.\n"
+	outs += "// Include all plugins.\n"
 	for _, v := range mi {
 		outs += `_ "` + v + `"` + "\n"
 	}
