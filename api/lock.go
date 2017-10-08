@@ -370,7 +370,7 @@ RETRY:
 		// by doing retries. Note that we have to attempt the retry in a non-
 		// blocking fashion so that we have a clean place to reset the retry
 		// counter if service is restored.
-		if retries > 0 && IsServerError(err) {
+		if retries > 0 && IsRetryableError(err) {
 			time.Sleep(l.opts.MonitorRetryTime)
 			retries--
 			opts.WaitIndex = 0

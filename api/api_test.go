@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -529,17 +530,21 @@ func TestAPI_durToMsec(t *testing.T) {
 	}
 }
 
-func TestAPI_IsServerError(t *testing.T) {
+func TestAPI_IsRetryableError(t *testing.T) {
 	t.Parallel()
-	if IsServerError(nil) {
-		t.Fatalf("should not be a server error")
+	if IsRetryableError(nil) {
+		t.Fatal("should not be a retryable error")
 	}
 
-	if IsServerError(fmt.Errorf("not the error you are looking for")) {
-		t.Fatalf("should not be a server error")
+	if IsRetryableError(fmt.Errorf("not the error you are looking for")) {
+		t.Fatal("should not be a retryable error")
 	}
 
-	if !IsServerError(fmt.Errorf(serverError)) {
-		t.Fatalf("should be a server error")
+	if !IsRetryableError(fmt.Errorf(serverError)) {
+		t.Fatal("should be a retryable error")
+	}
+
+	if !IsRetryableError(&net.OpError{Err: fmt.Errorf("network conn error")}) {
+		t.Fatal("should be a retryable error")
 	}
 }
