@@ -127,6 +127,20 @@ func TestSigningDname(t *testing.T) {
 	}
 }
 
+func TestSigningEmpty(t *testing.T) {
+	d, rm1, rm2 := newDnssec(t, []string{"miek.nl."})
+	defer rm1()
+	defer rm2()
+
+	m := testEmptyMsg()
+	m.SetQuestion("a.miek.nl.", dns.TypeA)
+	state := request.Request{Req: m}
+	m = d.Sign(state, "miek.nl.", time.Now().UTC())
+	if !section(m.Ns, 2) {
+		t.Errorf("authority section should have 2 sig")
+	}
+}
+
 func section(rss []dns.RR, nrSigs int) bool {
 	i := 0
 	for _, r := range rss {
@@ -178,6 +192,13 @@ func testMsgDname() *dns.Msg {
 			test.A("a.test.miek.nl.	1800	IN	A	139.162.196.78"),
 			test.DNAME("dname.miek.nl.	1800	IN	DNAME	test.miek.nl."),
 		},
+	}
+}
+
+func testEmptyMsg() *dns.Msg {
+	// don't care about the message header
+	return &dns.Msg{
+		Ns: []dns.RR{test.SOA("miek.nl.	1800	IN	SOA	ns.miek.nl. dnsmaster.miek.nl. 2017100301 200 100 604800 3600")},
 	}
 }
 

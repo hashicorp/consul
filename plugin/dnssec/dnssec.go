@@ -49,7 +49,7 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 
 	incep, expir := incepExpir(now)
 
-	if mt == response.NameError {
+	if mt == response.NameError || mt == response.NoData {
 		if req.Ns[0].Header().Rrtype != dns.TypeSOA || len(req.Ns) > 1 {
 			return req
 		}
