@@ -61,6 +61,7 @@ func Parse(params map[string]interface{}) (*Plan, error) {
 func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) {
 	plan := &Plan{
 		stopCh: make(chan struct{}),
+		Exempt: make(map[string]interface{}),
 	}
 
 	// Parse the generic parameters
@@ -90,7 +91,15 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		if err := mapstructure.Decode(params["http_handler_config"], &config); err != nil {
 			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse http_handler_config: %v", err))
 		}
-		// TODO(hadar): Required fields
+		if config.Path == "" {
+			return nil, fmt.Errorf("HTTP watch handler requires 'path' to be set in 'http_handler_config'")
+		}
+		if config.Method == "" {
+			config.Method = "POST"
+		}
+		if config.Timeout == 0*time.Second {
+			config.Timeout = 10 * time.Second
+		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
 
@@ -113,7 +122,6 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 
 	// Remove the exempt parameters
 	if len(exempt) > 0 {
-		plan.Exempt = make(map[string]interface{})
 		for _, ex := range exempt {
 			val, ok := params[ex]
 			if ok {
