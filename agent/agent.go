@@ -2041,9 +2041,12 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 	// Register the services from config
 	for _, service := range conf.Services {
 		ns := service.NodeService()
-		chkTypes := service.CheckTypes()
+		chkTypes, err := service.CheckTypes()
+		if err != nil {
+			return fmt.Errorf("Failed to validate checks for service %q:%v", service.Name, err)
+		}
 		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
-			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
+			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
 	}
 

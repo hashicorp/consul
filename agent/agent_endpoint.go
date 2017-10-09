@@ -576,16 +576,16 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	ns := args.NodeService()
 
 	// Verify the check type.
-	chkTypes := args.CheckTypes()
+	chkTypes, err := args.CheckTypes()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, invalidCheckMessage)
+		return nil, nil
+	}
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
-			return nil, nil
-		}
-		if !check.Valid() {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, invalidCheckMessage)
 			return nil, nil
 		}
 	}

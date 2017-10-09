@@ -48,6 +48,11 @@ func (c *CheckType) Valid() bool {
 	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
 }
 
+// Empty checks if the CheckType has no fields defined. Empty checks parsed from json configs are filtered out
+func (c *CheckType) Empty() bool {
+	return c.Script == "" && c.ScriptArgs == nil && c.HTTP == "" && (c.Header == nil || len(c.Header) == 0) && c.Method == "" && c.TCP == "" && c.DockerContainerID == "" && c.Shell == "" && c.TTL == 0 && c.Interval == 0
+}
+
 // IsScript checks if this is a check that execs some kind of script.
 func (c *CheckType) IsScript() bool {
 	return c.Script != "" || len(c.ScriptArgs) > 0
@@ -55,25 +60,35 @@ func (c *CheckType) IsScript() bool {
 
 // IsTTL checks if this is a TTL type
 func (c *CheckType) IsTTL() bool {
-	return c.TTL != 0
+	return c.TTL > 0
 }
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return c.IsScript() && c.DockerContainerID == "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID == "" && c.Interval > 0
 }
 
 // IsHTTP checks if this is a HTTP type
 func (c *CheckType) IsHTTP() bool {
-	return c.HTTP != "" && c.Interval != 0
+	return c.HTTP != "" && c.Interval > 0
 }
 
 // IsTCP checks if this is a TCP type
 func (c *CheckType) IsTCP() bool {
-	return c.TCP != "" && c.Interval != 0
+	return c.TCP != "" && c.Interval > 0
 }
 
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
-	return c.IsScript() && c.DockerContainerID != "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
+}
+
+// ValidateMsg returns a user friendly error message indicating missing fields
+func (c *CheckType) ValidateMsg() string {
+	msgSuffix := " must be >0"
+	if c.IsScript() || c.HTTP != "" || c.TCP != "" {
+		return "Interval" + msgSuffix
+	} else {
+		return "TTL" + msgSuffix
+	}
 }
