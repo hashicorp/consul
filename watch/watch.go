@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"time"
 )
 
 // Plan is the parsed version of a watch specification. A watch provides
@@ -19,9 +20,10 @@ type Plan struct {
 	Type       string
 	Exempt     map[string]interface{}
 
-	Watcher   WatcherFunc
-	Handler   HandlerFunc
-	LogOutput io.Writer
+	Watcher     WatcherFunc
+	HandlerType string
+	Handler     HandlerFunc
+	LogOutput   io.Writer
 
 	address    string
 	client     *consulapi.Client
@@ -32,6 +34,14 @@ type Plan struct {
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
 	cancelFunc context.CancelFunc
+}
+
+type HttpHandlerConfig struct {
+	Path          string
+	Method        string
+	Timeout       time.Duration
+	Header        map[string][]string
+	TLSSkipVerify bool
 }
 
 // WatcherFunc is used to watch for a diff
