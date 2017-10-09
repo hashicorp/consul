@@ -65,8 +65,9 @@ func DefaultSource() Source {
 			rpc_max_burst = 1000
 		}
 		performance = {
-			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
 			leave_drain_time = "3s"
+			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
+			rpc_hold_timeout = "7s"
 		}
 		ports = {
 			dns = 8600

@@ -155,6 +155,7 @@ type RuntimeConfig struct {
 	PidFile                     string
 	RPCAdvertiseAddr            *net.TCPAddr
 	RPCBindAddr                 *net.TCPAddr
+	RPCHoldTimeout              time.Duration
 	RPCMaxBurst                 int
 	RPCProtocol                 int
 	RPCRateLimit                rate.Limit

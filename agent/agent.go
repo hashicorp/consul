@@ -750,6 +750,10 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCMaxBurst = a.config.RPCMaxBurst
 	}
 
+	// RPC-related performance configs.
+	if a.config.RPCHoldTimeout > 0 {
+		base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	}
 	if a.config.LeaveDrainTime > 0 {
 		base.LeaveDrainTime = a.config.LeaveDrainTime
 	}

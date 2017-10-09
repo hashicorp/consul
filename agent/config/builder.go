@@ -597,6 +597,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		PidFile:                     b.stringVal(c.PidFile),
 		RPCAdvertiseAddr:            rpcAdvertiseAddr,
 		RPCBindAddr:                 rpcBindAddr,
+		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
 		RPCMaxBurst:                 b.intVal(c.Limits.RPCMaxBurst),
 		RPCProtocol:                 b.intVal(c.RPCProtocol),
 		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),

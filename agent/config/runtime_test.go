@@ -2104,8 +2104,9 @@ func TestFullConfig(t *testing.T) {
 			"node_name": "otlLxGaI",
 			"non_voting_server": true,
 			"performance": {
-				"leave_drain_time": "1s",
-				"raft_multiplier": 5
+				"raft_multiplier": 5,
+				"rpc_hold_timeout": "15707s",
+				"leave_drain_time": "8265s"
 			},
 			"pid_file": "43xN80Km",
 			"ports": {
@@ -2536,8 +2537,9 @@ func TestFullConfig(t *testing.T) {
 			node_name = "otlLxGaI"
 			non_voting_server = true
 			performance {
-				leave_drain_time = "1s"
+				leave_drain_time = "8265s"
 				raft_multiplier = 5
+				rpc_hold_timeout = "15707s"
 			}
 			pid_file = "43xN80Km"
 			ports {
@@ -3090,7 +3092,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPSAddrs:                []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPSPort:                 15127,
 		KeyFile:                   "IEkkwgIA",
-		LeaveDrainTime:            1 * time.Second,
+		LeaveDrainTime:            8265 * time.Second,
 		LeaveOnTerm:               true,
 		LogLevel:                  "k1zo9Spt",
 		NodeID:                    types.NodeID("AsUIlw99"),
@@ -3100,6 +3102,7 @@ func TestFullConfig(t *testing.T) {
 		PidFile:                   "43xN80Km",
 		RPCAdvertiseAddr:          tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:               tcpAddr("16.99.34.17:3757"),
+		RPCHoldTimeout:            15707 * time.Second,
 		RPCProtocol:               30793,
 		RPCRateLimit:              12029.43,
 		RPCMaxBurst:               44848,
@@ -3778,6 +3781,7 @@ func TestSanitize(t *testing.T) {
     "PidFile": "",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
+    "RPCHoldTimeout": "0s",
     "RPCMaxBurst": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
