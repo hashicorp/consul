@@ -113,7 +113,7 @@ deprecated and will be removed in Consul 1.1.
 
 To configure a service, either provide it as a `-config-file` option to
 the agent or place it inside the `-config-dir` of the agent. The file
-must end in the `.json` extension to be loaded by Consul. Check
+must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
 definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
 API](/api/index.html).
