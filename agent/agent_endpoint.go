@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -523,6 +524,10 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		if !ok {
 			return nil
 		}
+
+		config.TranslateKeys(rawMap, map[string]string{
+			"enable_tag_override": "EnableTagOverride",
+		})
 
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {

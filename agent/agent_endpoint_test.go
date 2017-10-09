@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
@@ -1154,6 +1155,34 @@ func TestAgent_RegisterService(t *testing.T) {
 	// Ensure the token was configured
 	if token := a.state.ServiceToken("test"); token == "" {
 		t.Fatalf("missing token")
+	}
+}
+
+func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	json := `{"name":"test", "port":8000, "enable_tag_override": true}`
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
+
+	obj, err := a.srv.AgentRegisterService(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	svc := &structs.NodeService{
+		ID:                "test",
+		Service:           "test",
+		Port:              8000,
+		EnableTagOverride: true,
+	}
+
+	if got, want := a.state.Services()["test"], svc; !verify.Values(t, "", got, want) {
+		t.Fail()
 	}
 }
 
