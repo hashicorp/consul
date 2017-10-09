@@ -2104,9 +2104,9 @@ func TestFullConfig(t *testing.T) {
 			"node_name": "otlLxGaI",
 			"non_voting_server": true,
 			"performance": {
+				"leave_drain_time": "8265s",
 				"raft_multiplier": 5,
-				"rpc_hold_timeout": "15707s",
-				"leave_drain_time": "8265s"
+				"rpc_hold_timeout": "15707s"
 			},
 			"pid_file": "43xN80Km",
 			"ports": {
