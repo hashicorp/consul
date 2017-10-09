@@ -51,7 +51,7 @@ For more details on the specifics of upgrading, see the [upgrading page](/docs/u
     <td>1, 2, 3</td>
   </tr>
   <tr>
-    <td>0.7 - 0.8</td>
+    <td>>= 0.7</td>
     <td>2, 3. Will automatically use protocol > 2 when speaking to compatible agents</td>
   </tr>
 </table>
