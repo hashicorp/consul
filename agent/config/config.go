@@ -109,16 +109,6 @@ func Parse(data string, format string) (c Config, err error) {
 		"tlsskipverify":                  "tls_skip_verify",
 	})
 
-	// 	toJSON := func(v interface{}) string {
-	// 		b, err := json.MarshalIndent(v, "", "    ")
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 		return string(b)
-	// 	}
-	// 	fmt.Println("raw:", toJSON(raw))
-	// 	fmt.Println("patched:", toJSON(m))
-
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
