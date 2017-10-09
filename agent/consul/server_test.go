@@ -94,6 +94,11 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
+
+	// TODO (slackpad) - We should be able to run all tests w/o this, but it
+	// looks like several depend on it.
+	config.RPCHoldTimeout = 5 * time.Second
+
 	return dir, config
 }
 
