@@ -1485,8 +1485,9 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		service.ID = service.Service
 	}
 	for _, check := range chkTypes {
-		if !check.Valid() {
-			return fmt.Errorf("Check type is not valid")
+		valid, err := check.Valid()
+		if !valid {
+			return fmt.Errorf("Check type is not valid:%v", err)
 		}
 	}
 
@@ -1602,8 +1603,9 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	if chkType != nil {
-		if !chkType.Valid() {
-			return fmt.Errorf("Check type is not valid")
+		valid, err := chkType.Valid()
+		if !valid {
+			return fmt.Errorf("Check type is not valid:%v", err)
 		}
 
 		if chkType.IsScript() && !a.config.EnableScriptChecks {

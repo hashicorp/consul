@@ -35,41 +35,21 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 		TTL: 10 * time.Second,
 	})
 
-	// Does not return empty checks
-	svc.Checks = append(svc.Checks, &CheckType{})
-	checks, err := svc.CheckTypes()
-	if err != nil {
-		t.Fatalf("Got error:%v", err)
+	// Validate checks
+	cases := []struct {
+		in   *CheckType
+		err  error
+		desc string
+	}{
+		{&CheckType{HTTP: "http://foo/baz"}, fmt.Errorf("Interval must be > 0"), "Missing interval"},
+		{&CheckType{TTL: -1}, fmt.Errorf("TTL must be > 0"), "Negative TTL"},
 	}
-
-	if len(checks) != 4 {
-		t.Fatalf("bad: %#v", svc)
-	}
-
-	//Error on invalid interval
-	svc.Checks = append(svc.Checks, &CheckType{
-		HTTP: "http://foo/baz",
-	})
-
-	checks, err = svc.CheckTypes()
-	expectedErr := fmt.Errorf("invalid check definition:Interval must be >0")
-	verify.Values(t, "", expectedErr.Error(), err.Error())
-
-	if len(checks) != 0 {
-		t.Fatalf("bad: %#v", svc)
-	}
-
-	//Error on invalid ttl
-	svc.Checks = []*CheckType{}
-	svc.Checks = append(svc.Checks, &CheckType{
-		TTL: -1,
-	})
-
-	checks, err = svc.CheckTypes()
-	expectedErr = fmt.Errorf("invalid check definition:TTL must be >0")
-	verify.Values(t, "", expectedErr.Error(), err.Error())
-
-	if len(checks) != 0 {
-		t.Fatalf("bad: %#v", svc)
+	for _, tc := range cases {
+		svc.Check = *tc.in
+		checks, err := svc.CheckTypes()
+		verify.Values(t, tc.desc, tc.err.Error(), err.Error())
+		if len(checks) != 0 {
+			t.Fatalf("bad: %#v", svc)
+		}
 	}
 }

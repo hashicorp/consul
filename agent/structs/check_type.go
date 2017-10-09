@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/types"
@@ -44,13 +46,18 @@ type CheckType struct {
 type CheckTypes []*CheckType
 
 // Valid checks if the CheckType is valid
-func (c *CheckType) Valid() bool {
-	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
+func (c *CheckType) Valid() (bool, error) {
+	valid := c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
+	var err error
+	if !valid {
+		err = fmt.Errorf(c.validateMsg())
+	}
+	return valid, err
 }
 
 // Empty checks if the CheckType has no fields defined. Empty checks parsed from json configs are filtered out
 func (c *CheckType) Empty() bool {
-	return c.Script == "" && c.ScriptArgs == nil && c.HTTP == "" && (c.Header == nil || len(c.Header) == 0) && c.Method == "" && c.TCP == "" && c.DockerContainerID == "" && c.Shell == "" && c.TTL == 0 && c.Interval == 0
+	return reflect.DeepEqual(c, &CheckType{})
 }
 
 // IsScript checks if this is a check that execs some kind of script.
@@ -84,11 +91,10 @@ func (c *CheckType) IsDocker() bool {
 }
 
 // ValidateMsg returns a user friendly error message indicating missing fields
-func (c *CheckType) ValidateMsg() string {
-	msgSuffix := " must be >0"
+func (c *CheckType) validateMsg() string {
 	if c.IsScript() || c.HTTP != "" || c.TCP != "" {
-		return "Interval" + msgSuffix
+		return "Interval must be > 0"
 	} else {
-		return "TTL" + msgSuffix
+		return "TTL must be > 0"
 	}
 }

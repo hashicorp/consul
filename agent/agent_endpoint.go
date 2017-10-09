@@ -345,7 +345,8 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 
 	// Verify the check type.
 	chkType := args.CheckType()
-	if !chkType.Valid() {
+	_, err := chkType.Valid()
+	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, invalidCheckMessage)
 		return nil, nil
