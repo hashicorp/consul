@@ -163,10 +163,17 @@ A Docker check:
 }
 ```
 
-Each type of definition must include a `name` and may optionally
-provide an `id` and `notes` field. The `id` is set to the `name` if not
-provided. It is required that all checks have a unique ID per node: if names
-might conflict, unique IDs should be provided.
+Each type of definition must include a `name` and may optionally provide an
+`id` and `notes` field. The `id` must be unique per _agent_ otherwise only the
+last defined check with that `id` will be registered. If the `id` is not set
+and the check is embedded within a service definition a unique check id is
+generated. Otherwise, `id` will be set to `name`. If names might conflict,
+unique IDs should be provided.
+
+-> **Note:** Consul 0.9.3 and before require the optional check ID for a check
+   that is embedded in a service definition to be configured via the `CheckID`
+   field. Consul 1.0 accepts both `id` and `CheckID` but the latter is
+   deprecated and will be removed in Consul 1.1.
 
 The `notes` field is opaque to Consul but can be used to provide a human-readable
 description of the current state of the check. With a script check, the field is
