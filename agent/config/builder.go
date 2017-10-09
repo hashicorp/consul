@@ -587,6 +587,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EncryptVerifyIncoming:       b.boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:       b.boolVal(c.EncryptVerifyOutgoing),
 		KeyFile:                     b.stringVal(c.KeyFile),
+		LeaveDrainTime:              b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                 leaveOnTerm,
 		LogLevel:                    b.stringVal(c.LogLevel),
 		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),

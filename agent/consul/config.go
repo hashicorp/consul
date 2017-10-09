@@ -329,6 +329,10 @@ type Config struct {
 	RPCRate     rate.Limit
 	RPCMaxBurst int
 
+	// LeaveDrainTime is used to wait after a server has left the LAN Serf
+	// pool for RPCs to drain and new requests to be sent to other servers.
+	LeaveDrainTime time.Duration
+
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig

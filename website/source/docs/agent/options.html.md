@@ -975,6 +975,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
         details on tuning this parameter. The maximum allowed value is 10.
 
+    *   <a name="leave_drain_time"></a><a href="#leave_drain_time">`leave_drain_time`</a> - A duration
+        that a server will dwell during a graceful leave in order to allow requests to be retried against
+        other Consul servers. Under normal circumstances, this can prevent clients from experiencing
+        "no leader" errors when performing a rolling update of the Consul servers. This was added in
+        Consul 1.0. Must be a duration value such as 10s. Defaults to 3s.
+
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.

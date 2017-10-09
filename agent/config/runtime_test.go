@@ -2104,6 +2104,7 @@ func TestFullConfig(t *testing.T) {
 			"node_name": "otlLxGaI",
 			"non_voting_server": true,
 			"performance": {
+				"leave_drain_time": "1s",
 				"raft_multiplier": 5
 			},
 			"pid_file": "43xN80Km",
@@ -2535,6 +2536,7 @@ func TestFullConfig(t *testing.T) {
 			node_name = "otlLxGaI"
 			non_voting_server = true
 			performance {
+				leave_drain_time = "1s"
 				raft_multiplier = 5
 			}
 			pid_file = "43xN80Km"
@@ -3088,6 +3090,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPSAddrs:                []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPSPort:                 15127,
 		KeyFile:                   "IEkkwgIA",
+		LeaveDrainTime:            1 * time.Second,
 		LeaveOnTerm:               true,
 		LogLevel:                  "k1zo9Spt",
 		NodeID:                    types.NodeID("AsUIlw99"),
@@ -3765,6 +3768,7 @@ func TestSanitize(t *testing.T) {
     "HTTPSAddrs": [],
     "HTTPSPort": 0,
     "KeyFile": "hidden",
+    "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "LogLevel": "",
     "NodeID": "",

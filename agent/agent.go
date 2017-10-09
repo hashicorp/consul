@@ -750,6 +750,10 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCMaxBurst = a.config.RPCMaxBurst
 	}
 
+	if a.config.LeaveDrainTime > 0 {
+		base.LeaveDrainTime = a.config.LeaveDrainTime
+	}
+
 	// set the src address for outgoing rpc connections
 	// Use port 0 so that outgoing connections use a random port.
 	if !ipaddr.IsAny(base.RPCAddr.IP) {

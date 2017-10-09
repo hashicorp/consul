@@ -66,6 +66,7 @@ func DefaultSource() Source {
 		}
 		performance = {
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
+			leave_drain_time = "3s"
 		}
 		ports = {
 			dns = 8600

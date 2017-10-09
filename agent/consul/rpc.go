@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -205,10 +206,23 @@ CHECK_LEADER:
 
 	// Handle the case of a known leader
 	if remoteServer != nil {
+		// A no leader error can happen if the remote server loses
+		// leadership, so it's worth to retry for that case.
 		err := s.forwardLeader(remoteServer, method, args, reply)
+		if structs.IsErrNoLeader(err) {
+			goto RETRY
+		}
 		return true, err
+	} else {
+		// If we are leaving and don't know about the leader, we
+		// likely never will, so fail fast. This depends on the
+		// client agents doing a retry in their RPC path.
+		if drain := atomic.LoadInt32(&s.leaveDrain); drain > 0 {
+			return true, structs.ErrNoLeader
+		}
 	}
 
+RETRY:
 	// Gate the request until there is a leader
 	if firstCheck.IsZero() {
 		firstCheck = time.Now()

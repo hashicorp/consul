@@ -146,6 +146,7 @@ type RuntimeConfig struct {
 	HTTPSAddrs                  []net.Addr
 	HTTPSPort                   int
 	KeyFile                     string
+	LeaveDrainTime              time.Duration
 	LeaveOnTerm                 bool
 	LogLevel                    string
 	NodeID                      types.NodeID
