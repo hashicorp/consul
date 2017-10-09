@@ -40,7 +40,8 @@ type Plan struct {
 type HttpHandlerConfig struct {
 	Path          string              `mapstructure:"path"`
 	Method        string              `mapstructure:"method"`
-	Timeout       time.Duration       `mapstructure:"timeout"`
+	Timeout       time.Duration       `mapstructure:"-"`
+	TimeoutRaw    string              `mapstructure:"timeout"`
 	Header        map[string][]string `mapstructure:"header"`
 	TLSSkipVerify bool                `mapstructure:"tls_skip_verify"`
 }
@@ -97,8 +98,14 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		if config.Method == "" {
 			config.Method = "POST"
 		}
-		if config.Timeout == 0*time.Second {
+		if config.TimeoutRaw == "" {
 			config.Timeout = 10 * time.Second
+		} else {
+			if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
+				return nil, fmt.Errorf(fmt.Sprintf("Failed to parse HTTP watch timeout: %v", err))
+			} else {
+				config.Timeout = timeout
+			}
 		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
