@@ -1773,6 +1773,58 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "translated keys",
+			flags: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{
+					"service": {
+						"name": "a",
+						"port": 80,
+						"EnableTagOverride": true,
+						"check": {
+							"CheckID": "x",
+							"name": "y",
+							"DockerContainerID": "z",
+							"DeregisterCriticalServiceAfter": "10s"
+						}
+					}
+				}`,
+			},
+			hcl: []string{
+				`service = {
+					name = "a"
+					port = 80
+					EnableTagOverride = true
+					check = {
+						CheckID = "x"
+						name = "y"
+						DockerContainerID = "z"
+						DeregisterCriticalServiceAfter = "10s"
+					}
+				}`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name:              "a",
+						Port:              80,
+						EnableTagOverride: true,
+						Checks: []*structs.CheckType{
+							&structs.CheckType{
+								CheckID:                        types.CheckID("x"),
+								Name:                           "y",
+								DockerContainerID:              "z",
+								DeregisterCriticalServiceAfter: 10 * time.Second,
+							},
+						},
+					},
+				}
+				rt.DataDir = dataDir
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
