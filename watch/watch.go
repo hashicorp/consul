@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/mitchellh/mapstructure"
 	"time"
 )
 
@@ -15,15 +16,15 @@ import (
 // This view is watched for changes and a handler is invoked to take any
 // appropriate actions.
 type Plan struct {
-	Datacenter string
-	Token      string
-	Type       string
-	Exempt     map[string]interface{}
-
-	Watcher     WatcherFunc
+	Datacenter  string
+	Token       string
+	Type        string
 	HandlerType string
-	Handler     HandlerFunc
-	LogOutput   io.Writer
+	Exempt      map[string]interface{}
+
+	Watcher   WatcherFunc
+	Handler   HandlerFunc
+	LogOutput io.Writer
 
 	address    string
 	client     *consulapi.Client
@@ -37,11 +38,11 @@ type Plan struct {
 }
 
 type HttpHandlerConfig struct {
-	Path          string
-	Method        string
-	Timeout       time.Duration
-	Header        map[string][]string
-	TLSSkipVerify bool
+	Path          string              `mapstructure:"path"`
+	Method        string              `mapstructure:"method"`
+	Timeout       time.Duration       `mapstructure:"timeout"`
+	Header        map[string][]string `mapstructure:"header"`
+	TLSSkipVerify bool                `mapstructure:"tls_skip_verify"`
 }
 
 // WatcherFunc is used to watch for a diff
@@ -72,10 +73,29 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 	if err := assignValue(params, "type", &plan.Type); err != nil {
 		return nil, err
 	}
-
 	// Ensure there is a watch type
 	if plan.Type == "" {
 		return nil, fmt.Errorf("Watch type must be specified")
+	}
+
+	if err := assignValue(params, "handler_type", &plan.HandlerType); err != nil {
+		return nil, err
+	}
+	switch plan.HandlerType {
+	case "http":
+		if _, ok := params["http_handler_config"]; !ok {
+			return nil, fmt.Errorf("Handler type 'http' requires 'http_handler_config' to be set")
+		}
+		var config HttpHandlerConfig
+		if err := mapstructure.Decode(params["http_handler_config"], &config); err != nil {
+			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse http_handler_config: %v", err))
+		}
+		// TODO(hadar): Required fields
+		plan.Exempt["http_handler_config"] = config
+		delete(params, "http_handler_config")
+
+	default:
+
 	}
 
 	// Look for a factory function

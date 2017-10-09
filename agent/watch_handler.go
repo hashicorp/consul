@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-cleanhttp"
 	"net/http"
-	"time"
 )
 
 const (
@@ -92,7 +91,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	return fn
 }
 
-func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, headers map[string][]string, timeout time.Duration, tlsSkipVerify bool) watch.HandlerFunc {
+func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
 	logger := log.New(logOutput, "", log.LstdFlags)
 
 	fn := func(idx uint64, data interface{}) {
@@ -101,15 +100,15 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 		// Skip SSL certificate verification if TLSSkipVerify is true
 		if trans.TLSClientConfig == nil {
 			trans.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: tlsSkipVerify,
+				InsecureSkipVerify: config.TLSSkipVerify,
 			}
 		} else {
-			trans.TLSClientConfig.InsecureSkipVerify = tlsSkipVerify
+			trans.TLSClientConfig.InsecureSkipVerify = config.TLSSkipVerify
 		}
 
 		// Create the HTTP client.
 		httpClient := &http.Client{
-			Timeout:   timeout,
+			Timeout:   config.Timeout,
 			Transport: trans,
 		}
 
@@ -117,24 +116,24 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 		var inp bytes.Buffer
 		enc := json.NewEncoder(&inp)
 		if err := enc.Encode(data); err != nil {
-			logger.Printf("[ERR] agent: Failed to encode data for http watch '%s': %v", httpUrl, err)
+			logger.Printf("[ERR] agent: Failed to encode data for http watch '%s': %v", config.Path, err)
 			return
 		}
 
-		req, err := http.NewRequest(method, httpUrl, &inp)
+		req, err := http.NewRequest(config.Method, config.Path, &inp)
 		if err != nil {
 			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
 			return
 		}
 		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
-		for key, values := range headers {
+		for key, values := range config.Header {
 			for _, val := range values {
 				req.Header.Add(key, val)
 			}
 		}
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", httpUrl, err)
+			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", config.Path, err)
 			return
 		}
 		defer resp.Body.Close()
@@ -152,10 +151,10 @@ func makeHTTPWatchHandler(logOutput io.Writer, method string, httpUrl string, he
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			// Log the output
-			logger.Printf("[DEBUG] agent: http watch handler '%s' output: %s", httpUrl, outputStr)
+			logger.Printf("[DEBUG] agent: http watch handler '%s' output: %s", config.Path, outputStr)
 		} else {
 			logger.Printf("[ERR] agent: http watch handler '%s' got '%s' with output: %s",
-				httpUrl, resp.Status, outputStr)
+				config.Path, resp.Status, outputStr)
 		}
 	}
 	return fn
