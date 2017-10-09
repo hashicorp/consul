@@ -32,7 +32,7 @@ For more details on the specifics of upgrading, see the [upgrading page](/docs/u
 
 <table class="table table-bordered table-striped">
   <tr>
-    <th>Version</th>
+    <th>Consul Version</th>
     <th>Protocol Compatibility</th>
   </tr>
   <tr>
