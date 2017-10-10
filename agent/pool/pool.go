@@ -376,6 +376,8 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 
 // getClient is used to get a usable client for an address and protocol version
 func (p *ConnPool) getClient(dc string, addr net.Addr, version int, useTLS bool) (*Conn, *StreamClient, error) {
+	retries := 0
+START:
 	// Try to get a conn first
 	conn, err := p.acquire(dc, addr, version, useTLS)
 	if err != nil {
@@ -387,6 +389,12 @@ func (p *ConnPool) getClient(dc string, addr net.Addr, version int, useTLS bool)
 	if err != nil {
 		p.clearConn(conn)
 		p.releaseConn(conn)
+
+		// Try to redial, possible that the TCP session closed due to timeout
+		if retries == 0 {
+			retries++
+			goto START
+		}
 		return nil, nil, fmt.Errorf("failed to start stream: %v", err)
 	}
 	return conn, client, nil
