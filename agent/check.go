@@ -128,19 +128,27 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Wait for the check to complete
-	errCh := make(chan error, 2)
+	waitCh := make(chan error, 1)
 	go func() {
-		errCh <- cmd.Wait()
+		waitCh <- cmd.Wait()
 	}()
-	go func() {
-		if c.Timeout > 0 {
-			time.Sleep(c.Timeout)
+
+	timeout := 30 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	select {
+	case <-time.After(timeout):
+		if err := cmd.Process.Kill(); err != nil {
+			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", c.Script, err)
 		} else {
-			time.Sleep(30 * time.Second)
+			c.Logger.Printf("[WARN] Timed out running check '%s'", c.Script)
 		}
-		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
-	}()
-	err = <-errCh
+		err = <-waitCh
+
+	case err = <-waitCh:
+		// The process returned before the timeout, proceed normally
+	}
 
 	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
