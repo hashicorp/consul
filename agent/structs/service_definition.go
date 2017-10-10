@@ -37,8 +37,7 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 		checks = append(checks, &s.Check)
 	}
 	for _, check := range s.Checks {
-		err := check.Validate()
-		if err != nil {
+		if err := check.Validate(); err != nil {
 			return nil, err
 		}
 		checks = append(checks, check)
