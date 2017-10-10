@@ -124,6 +124,8 @@ BREAKING CHANGES:
     | consul.session_ttl |
     | consul.txn |
 
+* **Checks Validated On Agent Startup:** Consul agents now validate health check definitions in their configuration and will fail at startup if any checks are invalid. In previous versions of Consul, invalid health checks would get skipped. [[GH-3559](https://github.com/hashicorp/consul/issues/3559)]
+
 FEATURES:
 
 * **Support for HCL Config Files:** Consul now supports HashiCorp's [HCL](https://github.com/hashicorp/hcl#syntax) format for config files. This is easier to work with than JSON and supports comments. As part of this change, all config files will need to have either an `.hcl` or `.json` extension in order to specify their format. [[GH-3480](https://github.com/hashicorp/consul/issues/3480)]
