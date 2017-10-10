@@ -37,9 +37,11 @@ are used.
 All directives from the *file* plugin are supported. Note that *auto* will load all zones found,
 even though the directive might only receive queries for a specific zone. I.e:
 
-~~~
-auto example.org {
-    directory /etc/coredns/zones
+~~~ corefile
+. {
+    auto example.org {
+        directory /etc/coredns/zones
+    }
 }
 ~~~
 Will happily pick up a zone for `example.COM`, except it will never be queried, because the *auto*

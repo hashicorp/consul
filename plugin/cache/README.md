@@ -10,7 +10,7 @@ cache [TTL] [ZONES...]
 
 * **TTL** max TTL in seconds. If not specified, the maximum TTL will be used which is 3600 for
     noerror responses and 1800 for denial of existence ones.
-    Setting a TTL of 300 *cache 300* would cache the record up to 300 seconds.
+    Setting a TTL of 300: `cache 300` would cache the record up to 300 seconds.
 * **ZONES** zones it should cache for. If empty, the zones from the configuration block are used.
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
@@ -45,10 +45,10 @@ The minimum TTL allowed on resource records is 5 seconds.
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
 
-* coredns_cache_size{type} - Total elements in the cache by cache type.
-* coredns_cache_capacity{type} - Total capacity of the cache by cache type.
-* coredns_cache_hits_total{type} - Counter of cache hits by cache type.
-* coredns_cache_misses_total - Counter of cache misses.
+* `coredns_cache_size{type}` - Total elements in the cache by cache type.
+* `coredns_cache_capacity{type}` - Total capacity of the cache by cache type.
+* `coredns_cache_hits_total{type}` - Counter of cache hits by cache type.
+* `coredns_cache_misses_total{}` - Counter of cache misses.
 
 Cache types are either "denial" or "success".
 
@@ -56,8 +56,11 @@ Cache types are either "denial" or "success".
 
 Enable caching for all zones, but cap everything to a TTL of 10 seconds:
 
-~~~
-cache 10
+~~~ corefile
+. {
+    cache 10
+    whoami
+}
 ~~~
 
 Proxy to Google Public DNS and only cache responses for example.org (or below).

@@ -13,7 +13,7 @@ the same model: it chains plugins.
 CoreDNS is a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
 
 CoreDNS is the successor to [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
-layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
+layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a **generic** DNS
 server that can talk to multiple backends (etcd, kubernetes, etc.).
 
 CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
@@ -43,7 +43,8 @@ Currently CoreDNS is able to:
 * Rewrite queries (qtype, qclass and qname) (*rewrite*).
 * Echo back the IP address, transport and port number used (*whoami*).
 
-Each of the plugins has a README.md of its own.
+Each of the plugins has a README.md of its own, see [coredns.io/plugins](https://coredns.io/plugins)
+for all in-tree plugins.
 
 ## Status
 
@@ -54,9 +55,8 @@ here](https://coredns.io). If you do want to use CoreDNS in production, please l
 
 ## Compilation
 
-CoreDNS (as a servertype plugin for Caddy) has a dependency on Caddy, but this is not different than
-any other Go dependency. If you have the source of CoreDNS checked out in the appropriate place in
-your `GOPATH`, get all dependencies:
+If you have the source of CoreDNS checked out in the appropriate place in your `GOPATH`, get all
+dependencies:
 
     go get ./...
 
@@ -82,7 +82,8 @@ The above command alone will have `coredns` binary generated.
 
 ## Examples
 
-When starting CoreDNS without any configuration, it loads the `whoami` plugin and starts
+When starting CoreDNS without any configuration, it loads the
+[*whoami*](https://coredns.io/plugins/whoami) plugin and starts
 listening on port 53 (override with `-dns.port`), it should show the following:
 
 ~~~ txt
@@ -147,9 +148,9 @@ nameserver *and* rewrite ANY queries to HINFO.
 
 IP addresses are also allowed. They are automatically converted to reverse zones:
 
-~~~ txt
+~~~ corefile
 10.0.0.0/24 {
-    # ...
+    whoami
 }
 ~~~
 Means you are authoritative for `0.0.10.in-addr.arpa.`.
@@ -160,9 +161,9 @@ dot: `10.0.0.0/24.` as this also stops the conversion.
 
 Listening on TLS and for gRPC? Use:
 
-~~~ txt
+~~~ corefile
 tls://example.org grpc://example.org {
-    # ...
+    whoami
 }
 ~~~
 

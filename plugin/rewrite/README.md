@@ -48,14 +48,19 @@ This has two fields, code and data. A match is defined as having the same code. 
 
 * A string data can be treated as hex if it starts with `0x`. Example:
 
-~~~
-rewrite edns0 local set 0xffee 0x61626364
+~~~ corefile
+. {
+    rewrite edns0 local set 0xffee 0x61626364
+    whoami
+}
 ~~~
 
 rewrites the first local option with code 0xffee, setting the data to "abcd". Equivalent:
 
-~~~
-rewrite edns0 local set 0xffee abcd
+~~~ corefile
+. {
+    rewrite edns0 local set 0xffee abcd
+}
 ~~~
 
 * A variable data is specified with a pair of curly brackets `{}`. Following are the supported variables:
@@ -86,9 +91,8 @@ length is used to extract the client subnet from the source IP address in the qu
 Example:
 
 ~~~
-   rewrite edns0 subnet set 24 56
+rewrite edns0 subnet set 24 56
 ~~~
 
 * If the query has source IP as IPv4, the first 24 bits in the IP will be the network subnet.
 * If the query has source IP as IPv6, the first 56 bits in the IP will be the network subnet.
-

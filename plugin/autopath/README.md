@@ -11,7 +11,7 @@ element in it) to the name of this answer.
 ## Syntax
 
 ~~~
-autopath [ZONE..] RESOLV-CONF
+autopath [ZONE...] RESOLV-CONF
 ~~~
 
 * **ZONES** zones *autopath* should be authoritative for.

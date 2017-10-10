@@ -4,8 +4,8 @@
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https://github.com/skynetservices/skydns). It should also work just like SkyDNS.
 
-The etcd plugin makes extensive use of the proxy plugin to forward and query other servers
-in the network.
+The etcd plugin makes extensive use of the proxy plugin to forward and query other servers in the
+network.
 
 ## Syntax
 
@@ -15,8 +15,8 @@ etcd [ZONES...]
 
 * **ZONES** zones etcd should be authoritative for.
 
-The path will default to `/skydns` the local etcd proxy (http://localhost:2379).
-If no zones are specified the block's zone will be used as the zone.
+The path will default to `/skydns` the local etcd proxy (http://localhost:2379). If no zones are
+specified the block's zone will be used as the zone.
 
 If you want to `round robin` A and AAAA responses look at the `loadbalance` plugin.
 
@@ -103,7 +103,7 @@ Next you'll need to populate the zone with reverse records, here we add a revers
 
 Querying with dig:
 
-~~~
+~~~ sh
 % dig @localhost -x 10.0.0.127 +short
-reverse.atoom.net.
+reverse.skydns.local.
 ~~~

@@ -11,23 +11,22 @@ log
 * With no arguments, a query log entry is written to *stdout* in the common log format for all requests
 
 ~~~ txt
-log FILE
+log [stdout]
 ~~~
 
-* **FILE** is the log file to create (or append to). The *only* valid name for **FILE** is *stdout*.
+Or if you want/need slightly more control:
 
 ~~~ txt
-log [NAME] FILE [FORMAT]
+log [NAME] stdout [FORMAT]
 ~~~
 
 * `NAME` is the name to match in order to be logged
-* `FILE` is the log file (again only *stdout* is allowed here).
 * `FORMAT` is the log format to use (default is Common Log Format)
 
 You can further specify the class of responses that get logged:
 
 ~~~ txt
-log [NAME] FILE [FORMAT] {
+log [NAME] stdout [FORMAT] {
     class [success|denial|error|all]
 }
 ~~~
@@ -42,11 +41,6 @@ classes have the following meaning:
 * `all`: the default - nothing is specified.
 
 If no class is specified, it defaults to *all*.
-
-## Log File
-
-The "log file" can only be *stdout*. CoreDNS expects another service to pick up this output and deal
-with it, i.e. journald when using systemd or Docker's logging capabilities.
 
 ## Log Format
 
@@ -83,20 +77,27 @@ The default Common Log Format is:
 
 Log all requests to stdout
 
-~~~
-log stdout
+~~~ corefile
+. {
+    log
+    whoami
+}
 ~~~
 
 Custom log format, for all zones (`.`)
 
-~~~
-log . stdout "{proto} Request: {name} {type} {>id}"
+~~~ corefile
+. {
+    log . stdout "{proto} Request: {name} {type} {>id}"
+}
 ~~~
 
 Only log denials for example.org (and below to a file)
 
-~~~
-log example.org stdout {
-    class denial
+~~~ corefile
+. {
+    log example.org stdout {
+        class denial
+    }
 }
 ~~~

@@ -36,26 +36,26 @@ dnstap tcp://127.0.0.1:6000 full
 ## Dnstap command line tool
 
 ~~~ sh
-go get github.com/dnstap/golang-dnstap
-cd $GOPATH/src/github.com/dnstap/golang-dnstap/dnstap
-go build
-./dnstap
+% go get github.com/dnstap/golang-dnstap
+% cd $GOPATH/src/github.com/dnstap/golang-dnstap/dnstap
+% go build
+% ./dnstap
 ~~~
 
 The following command listens on the given socket and decodes messages to stdout.
 
 ~~~ sh
-dnstap -u /tmp/dnstap.sock
+% dnstap -u /tmp/dnstap.sock
 ~~~
 
 The following command listens on the given socket and saves message payloads to a binary dnstap-format log file.
 
 ~~~ sh
-dnstap -u /tmp/dnstap.sock -w /tmp/test.dnstap
+% dnstap -u /tmp/dnstap.sock -w /tmp/test.dnstap
 ~~~
 
 Listen for dnstap messages on port 6000.
 
 ~~~ sh
-dnstap -l 127.0.0.1:6000
+% dnstap -l 127.0.0.1:6000
 ~~~

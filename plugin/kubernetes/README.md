@@ -36,6 +36,7 @@ kubernetes [ZONES...] {
     fallthrough
 }
 ```
+
 * `resyncperiod` specifies the Kubernetes data API **DURATION** period.
 * `endpoint` specifies the **URL** for a remove k8s API endpoint.
    If omitted, it will connect to k8s in-cluster using the cluster service account.

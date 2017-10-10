@@ -17,6 +17,11 @@ loadbalance [POLICY]
 
 ## Examples
 
-~~~
-loadbalance round_robin
+Load balance replies coming back from Google Public DNS:
+
+~~~ corefile
+. {
+    loadbalance round_robin
+    proxy . 8.8.8.8 8.8.4.4
+}
 ~~~

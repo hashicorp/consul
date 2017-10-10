@@ -29,8 +29,10 @@ hosts [FILE [ZONES...]] {
 
 Load `/etc/hosts` file.
 
-~~~
-hosts
+~~~ corefile
+. {
+    hosts
+}
 ~~~
 
 Load `example.hosts` file in the current directory.
