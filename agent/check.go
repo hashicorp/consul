@@ -144,7 +144,9 @@ func (c *CheckMonitor) check() {
 		} else {
 			c.Logger.Printf("[WARN] Timed out running check '%s'", c.Script)
 		}
-		err = <-waitCh
+
+		err = fmt.Errorf("Timed out running check '%s'", c.Script)
+		<-waitCh
 
 	case err = <-waitCh:
 		// The process returned before the timeout, proceed normally
