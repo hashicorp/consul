@@ -148,8 +148,15 @@ type Server struct {
 	// updated
 	reconcileCh chan serf.Member
 
-	// used to track when the server is ready to serve consistent reads, updated atomically
+	// readyForConsistentReads is used to track when the leader server is
+	// ready to serve consistent reads, after it has applied its initial
+	// barrier. This is updated atomically.
 	readyForConsistentReads int32
+
+	// leaveCh is used to signal that the server is leaving the cluster
+	// and trying to shed its RPC traffic onto other Consul servers. This
+	// is only ever closed.
+	leaveCh chan struct{}
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -302,6 +309,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		logger:                logger,
+		leaveCh:               make(chan struct{}),
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
@@ -782,6 +790,14 @@ func (s *Server) Leave() error {
 			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
+
+	// Start refusing RPCs now that we've left the LAN pool. It's important
+	// to do this *after* we've left the LAN pool so that clients will know
+	// to shift onto another server if they perform a retry. We also wake up
+	// all queries in the RPC retry state.
+	s.logger.Printf("[INFO] consul: Waiting %s to drain RPC traffic", s.config.LeaveDrainTime)
+	close(s.leaveCh)
+	time.Sleep(s.config.LeaveDrainTime)
 
 	// If we were not leader, wait to be safely removed from the cluster. We
 	// must wait to allow the raft replication to take place, otherwise an

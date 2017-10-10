@@ -146,6 +146,7 @@ type RuntimeConfig struct {
 	HTTPSAddrs                  []net.Addr
 	HTTPSPort                   int
 	KeyFile                     string
+	LeaveDrainTime              time.Duration
 	LeaveOnTerm                 bool
 	LogLevel                    string
 	NodeID                      types.NodeID
@@ -154,6 +155,7 @@ type RuntimeConfig struct {
 	PidFile                     string
 	RPCAdvertiseAddr            *net.TCPAddr
 	RPCBindAddr                 *net.TCPAddr
+	RPCHoldTimeout              time.Duration
 	RPCMaxBurst                 int
 	RPCProtocol                 int
 	RPCRateLimit                rate.Limit

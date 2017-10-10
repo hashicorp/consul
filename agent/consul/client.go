@@ -233,6 +233,15 @@ func (c *Client) Encrypted() bool {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+	// This is subtle but we start measuring the time on the client side
+	// right at the time of the first request, vs. on the first retry as
+	// is done on the server side inside forward(). This is because the
+	// servers may already be applying the RPCHoldTimeout up there, so by
+	// starting the timer here we won't potentially double up the delay.
+	// TODO (slackpad) Plumb a deadline here with a context.
+	firstCheck := time.Now()
+
+TRY:
 	server := c.routers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
@@ -248,13 +257,28 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	}
 
 	// Make the request.
-	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
-		c.routers.NotifyFailedServer(server)
-		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
-		return err
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	if rpcErr == nil {
+		return nil
 	}
 
-	return nil
+	// Move off to another server, and see if we can retry.
+	c.logger.Printf("[ERR] consul: %q RPC failed to server %s: %v", method, server.Addr, rpcErr)
+	c.routers.NotifyFailedServer(server)
+	if retry := canRetry(args, rpcErr); !retry {
+		return rpcErr
+	}
+
+	// We can wait a bit and retry!
+	if time.Now().Sub(firstCheck) < c.config.RPCHoldTimeout {
+		jitter := lib.RandomStagger(c.config.RPCHoldTimeout / jitterFraction)
+		select {
+		case <-time.After(jitter):
+			goto TRY
+		case <-c.shutdownCh:
+		}
+	}
+	return rpcErr
 }
 
 // SnapshotRPC sends the snapshot request to one of the servers, reading from

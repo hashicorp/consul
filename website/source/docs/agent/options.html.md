@@ -958,6 +958,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     Consul. See the [Server Performance](/docs/guides/performance.html) guide for more details. The
     following parameters are available:
 
+    *   <a name="leave_drain_time"></a><a href="#leave_drain_time">`leave_drain_time`</a> - A duration
+        that a server will dwell during a graceful leave in order to allow requests to be retried against
+        other Consul servers. Under normal circumstances, this can prevent clients from experiencing
+        "no leader" errors when performing a rolling update of the Consul servers. This was added in
+        Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
+
     *   <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
         multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
         or setting it to 0 uses default timing described below. Lower values are used to tighten
@@ -974,6 +980,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
         See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
         details on tuning this parameter. The maximum allowed value is 10.
+
+    *   <a name="rpc_hold_timeout"></a><a href="#rpc_hold_timeout">`rpc_hold_timeout`</a> - A duration
+        that a client or server will retry internal RPC requests during leader elections. Under normal
+        circumstances, this can prevent clients from experiencing "no leader" errors. This was added in
+        Consul 1.0. Must be a duration value such as 10s. Defaults to 7s.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:

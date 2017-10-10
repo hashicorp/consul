@@ -177,6 +177,24 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 	}()
 }
 
+// canRetry returns true if the given situation is safe for a retry.
+func canRetry(args interface{}, err error) bool {
+	// No leader errors are always safe to retry since no state could have
+	// been changed.
+	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// Reads are safe to retry for stream errors, such as if a server was
+	// being shut down.
+	info, ok := args.(structs.RPCInfo)
+	if ok && info.IsRead() && lib.IsErrEOF(err) {
+		return true
+	}
+
+	return false
+}
+
 // forward is used to forward to a remote DC or to forward to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
 func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
@@ -195,8 +213,15 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 	}
 
 CHECK_LEADER:
+	// Fail fast if we are in the process of leaving
+	select {
+	case <-s.leaveCh:
+		return true, structs.ErrNoLeader
+	default:
+	}
+
 	// Find the leader
-	isLeader, remoteServer := s.getLeader()
+	isLeader, leader := s.getLeader()
 
 	// Handle the case we are the leader
 	if isLeader {
@@ -204,11 +229,17 @@ CHECK_LEADER:
 	}
 
 	// Handle the case of a known leader
-	if remoteServer != nil {
-		err := s.forwardLeader(remoteServer, method, args, reply)
-		return true, err
+	rpcErr := structs.ErrNoLeader
+	if leader != nil {
+		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.Addr,
+			leader.Version, method, leader.UseTLS, args, reply)
+		if rpcErr != nil && canRetry(info, rpcErr) {
+			goto RETRY
+		}
+		return true, rpcErr
 	}
 
+RETRY:
 	// Gate the request until there is a leader
 	if firstCheck.IsZero() {
 		firstCheck = time.Now()
@@ -218,12 +249,13 @@ CHECK_LEADER:
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
+		case <-s.leaveCh:
 		case <-s.shutdownCh:
 		}
 	}
 
 	// No leader found and hold time exceeded
-	return true, structs.ErrNoLeader
+	return true, rpcErr
 }
 
 // getLeader returns if the current node is the leader, and if not then it
@@ -246,15 +278,6 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 
 	// Server could be nil
 	return false, server
-}
-
-// forwardLeader is used to forward an RPC call to the leader, or fail if no leader
-func (s *Server) forwardLeader(server *metadata.Server, method string, args interface{}, reply interface{}) error {
-	// Handle a missing server
-	if server == nil {
-		return structs.ErrNoLeader
-	}
-	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers

@@ -329,6 +329,10 @@ type Config struct {
 	RPCRate     rate.Limit
 	RPCMaxBurst int
 
+	// LeaveDrainTime is used to wait after a server has left the LAN Serf
+	// pool for RPCs to drain and new requests to be sent to other servers.
+	LeaveDrainTime time.Duration
+
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
@@ -405,12 +409,6 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
-
-		// This holds RPCs during leader elections. For the default Raft
-		// config the election timeout is 5 seconds, so we set this a
-		// bit longer to try to cover that period. This should be more
-		// than enough when running in the high performance mode.
-		RPCHoldTimeout: 7 * time.Second,
 
 		RPCRate:     rate.Inf,
 		RPCMaxBurst: 1000,

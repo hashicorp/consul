@@ -93,6 +93,12 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.Build = "0.8.0"
 
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
+	config.LeaveDrainTime = 1 * time.Millisecond
+
+	// TODO (slackpad) - We should be able to run all tests w/o this, but it
+	// looks like several depend on it.
+	config.RPCHoldTimeout = 5 * time.Second
+
 	return dir, config
 }
 
@@ -395,16 +401,16 @@ func TestServer_LeaveLeader(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Issue a leave to the leader
-	var err error
+	var leader *Server
 	switch {
 	case s1.IsLeader():
-		err = s1.Leave()
+		leader = s1
 	case s2.IsLeader():
-		err = s2.Leave()
+		leader = s2
 	default:
 		t.Fatal("no leader")
 	}
-	if err != nil {
+	if err := leader.Leave(); err != nil {
 		t.Fatal("leave failed: ", err)
 	}
 
@@ -433,16 +439,16 @@ func TestServer_Leave(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Issue a leave to the non-leader
-	var err error
+	var nonleader *Server
 	switch {
 	case s1.IsLeader():
-		err = s2.Leave()
+		nonleader = s2
 	case s2.IsLeader():
-		err = s1.Leave()
+		nonleader = s1
 	default:
 		t.Fatal("no leader")
 	}
-	if err != nil {
+	if err := nonleader.Leave(); err != nil {
 		t.Fatal("leave failed: ", err)
 	}
 
