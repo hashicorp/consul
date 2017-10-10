@@ -173,6 +173,7 @@ type Config struct {
 	DisableKeyringFile          *bool                    `json:"disable_keyring_file,omitempty" hcl:"disable_keyring_file" mapstructure:"disable_keyring_file"`
 	DisableRemoteExec           *bool                    `json:"disable_remote_exec,omitempty" hcl:"disable_remote_exec" mapstructure:"disable_remote_exec"`
 	DisableUpdateCheck          *bool                    `json:"disable_update_check,omitempty" hcl:"disable_update_check" mapstructure:"disable_update_check"`
+	DiscardCheckOutput          *bool                    `json:"discard_check_output" hcl:"discard_check_output" mapstructure:"discard_check_output"`
 	EnableACLReplication        *bool                    `json:"enable_acl_replication,omitempty" hcl:"enable_acl_replication" mapstructure:"enable_acl_replication"`
 	EnableDebug                 *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`
 	EnableScriptChecks          *bool                    `json:"enable_script_checks,omitempty" hcl:"enable_script_checks" mapstructure:"enable_script_checks"`

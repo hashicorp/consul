@@ -2386,5 +2386,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Update filtered metrics
 	metrics.UpdateFilter(newCfg.TelemetryAllowedPrefixes, newCfg.TelemetryBlockedPrefixes)
 
+	a.state.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
 	return nil
 }
