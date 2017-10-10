@@ -962,7 +962,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         that a server will dwell during a graceful leave in order to allow requests to be retried against
         other Consul servers. Under normal circumstances, this can prevent clients from experiencing
         "no leader" errors when performing a rolling update of the Consul servers. This was added in
-        Consul 1.0. Must be a duration value such as 10s. Defaults to 3s.
+        Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
     *   <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
         multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
