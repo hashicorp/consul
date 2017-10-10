@@ -17,6 +17,8 @@ func FixupCheckType(raw interface{}) error {
 		return nil
 	}
 
+	// see https://github.com/hashicorp/consul/pull/3557 why we need this
+	// and why we should get rid of it.
 	config.TranslateKeys(rawMap, map[string]string{
 		"deregister_critical_service_after": "DeregisterCriticalServiceAfter",
 		"docker_container_id":               "DockerContainerID",

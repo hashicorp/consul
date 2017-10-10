@@ -525,6 +525,8 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			return nil
 		}
 
+		// see https://github.com/hashicorp/consul/pull/3557 why we need this
+		// and why we should get rid of it.
 		config.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
 		})
