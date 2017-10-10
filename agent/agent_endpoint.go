@@ -309,8 +309,6 @@ func (s *HTTPServer) syncChanges() {
 	}
 }
 
-const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/TCP and Interval"
-
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
@@ -345,9 +343,10 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 
 	// Verify the check type.
 	chkType := args.CheckType()
-	if !chkType.Valid() {
+	err := chkType.Validate()
+	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, invalidCheckMessage)
+		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
 		return nil, nil
 	}
 
@@ -576,16 +575,16 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	ns := args.NodeService()
 
 	// Verify the check type.
-	chkTypes := args.CheckTypes()
+	chkTypes, err := args.CheckTypes()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
+		return nil, nil
+	}
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
-			return nil, nil
-		}
-		if !check.Valid() {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, invalidCheckMessage)
 			return nil, nil
 		}
 	}

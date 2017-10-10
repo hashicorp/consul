@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/types"
@@ -43,9 +45,25 @@ type CheckType struct {
 }
 type CheckTypes []*CheckType
 
-// Valid checks if the CheckType is valid
-func (c *CheckType) Valid() bool {
-	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
+// Validate returns an error message if the check is invalid
+func (c *CheckType) Validate() error {
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != ""
+
+	if c.Interval > 0 && c.TTL > 0 {
+		return fmt.Errorf("Interval and TTL cannot both be specified")
+	}
+	if intervalCheck && c.Interval <= 0 {
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, or TCP checks")
+	}
+	if !intervalCheck && c.TTL <= 0 {
+		return fmt.Errorf("TTL must be > 0 for TTL checks")
+	}
+	return nil
+}
+
+// Empty checks if the CheckType has no fields defined. Empty checks parsed from json configs are filtered out
+func (c *CheckType) Empty() bool {
+	return reflect.DeepEqual(c, &CheckType{})
 }
 
 // IsScript checks if this is a check that execs some kind of script.
@@ -55,25 +73,25 @@ func (c *CheckType) IsScript() bool {
 
 // IsTTL checks if this is a TTL type
 func (c *CheckType) IsTTL() bool {
-	return c.TTL != 0
+	return c.TTL > 0
 }
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return c.IsScript() && c.DockerContainerID == "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID == "" && c.Interval > 0
 }
 
 // IsHTTP checks if this is a HTTP type
 func (c *CheckType) IsHTTP() bool {
-	return c.HTTP != "" && c.Interval != 0
+	return c.HTTP != "" && c.Interval > 0
 }
 
 // IsTCP checks if this is a TCP type
 func (c *CheckType) IsTCP() bool {
-	return c.TCP != "" && c.Interval != 0
+	return c.TCP != "" && c.Interval > 0
 }
 
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
-	return c.IsScript() && c.DockerContainerID != "" && c.Interval != 0
+	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
 }

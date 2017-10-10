@@ -28,12 +28,19 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	return ns
 }
 
-func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
-	s.Checks = append(s.Checks, &s.Check)
-	for _, check := range s.Checks {
-		if check.Valid() {
-			checks = append(checks, check)
+func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
+	if !s.Check.Empty() {
+		err := s.Check.Validate()
+		if err != nil {
+			return nil, err
 		}
+		checks = append(checks, &s.Check)
 	}
-	return
+	for _, check := range s.Checks {
+		if err := check.Validate(); err != nil {
+			return nil, err
+		}
+		checks = append(checks, check)
+	}
+	return checks, nil
 }
