@@ -259,11 +259,15 @@ func (l *localState) checkToken(checkID types.CheckID) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *localState) AddCheck(check *structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
 	// Set the node name
 	check.Node = l.config.NodeName
 
-	l.Lock()
-	defer l.Unlock()
+	if l.discardCheckOutput.Load().(bool) {
+		check.Output = ""
+	}
 
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
