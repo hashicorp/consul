@@ -99,8 +99,6 @@ func Typify(m *dns.Msg, t time.Time) (Type, *dns.OPT) {
 		}
 	}
 
-	// Check length of different sections, and drop stuff that is just to large? TODO(miek).
-
 	if soa && m.Rcode == dns.RcodeSuccess {
 		return NoData, opt
 	}
