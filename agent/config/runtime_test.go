@@ -1788,7 +1788,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"CheckID": "x",
 							"name": "y",
 							"DockerContainerID": "z",
-							"DeregisterCriticalServiceAfter": "10s"
+							"DeregisterCriticalServiceAfter": "10s",
+							"ScriptArgs": ["a", "b"]
 						}
 					}
 				}`,
@@ -1803,6 +1804,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						name = "y"
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
+						ScriptArgs = ["a", "b"]
 					}
 				}`,
 			},
@@ -1818,6 +1820,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								Name:                           "y",
 								DockerContainerID:              "z",
 								DeregisterCriticalServiceAfter: 10 * time.Second,
+								ScriptArgs:                     []string{"a", "b"},
 							},
 						},
 					},

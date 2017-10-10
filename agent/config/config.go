@@ -105,6 +105,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"deregistercriticalserviceafter": "deregister_critical_service_after",
 		"dockercontainerid":              "docker_container_id",
 		"enabletagoverride":              "enable_tag_override",
+		"scriptargs":                     "args",
 		"serviceid":                      "service_id",
 		"tlsskipverify":                  "tls_skip_verify",
 	})
