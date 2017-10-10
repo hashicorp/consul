@@ -413,9 +413,6 @@ func TestServer_LeaveLeader(t *testing.T) {
 	if err := leader.Leave(); err != nil {
 		t.Fatal("leave failed: ", err)
 	}
-	if drain := atomic.LoadInt32(&leader.leaveDrain); drain == 0 {
-		t.Fatal("should have set drain flag")
-	}
 
 	// Should lose a peer
 	retry.Run(t, func(r *retry.R) {
@@ -453,9 +450,6 @@ func TestServer_Leave(t *testing.T) {
 	}
 	if err := nonleader.Leave(); err != nil {
 		t.Fatal("leave failed: ", err)
-	}
-	if drain := atomic.LoadInt32(&nonleader.leaveDrain); drain == 0 {
-		t.Fatal("should have set drain flag")
 	}
 
 	// Should lose a peer

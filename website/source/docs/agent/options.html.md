@@ -982,9 +982,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         details on tuning this parameter. The maximum allowed value is 10.
 
     *   <a name="rpc_hold_timeout"></a><a href="#rpc_hold_timeout">`rpc_hold_timeout`</a> - A duration
-        that a server will retry internal RPC requests during leader elections. Under normal circumstances,
-        this can prevent clients from experiencing "no leader" errors. This was added in Consul 1.0. Must
-        be a duration value such as 10s. Defaults to 7s.
+        that a client or server will retry internal RPC requests during leader elections. Under normal
+        circumstances, this can prevent clients from experiencing "no leader" errors. This was added in
+        Consul 1.0. Must be a duration value such as 10s. Defaults to 7s.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:

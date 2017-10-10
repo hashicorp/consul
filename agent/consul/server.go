@@ -153,10 +153,10 @@ type Server struct {
 	// barrier. This is updated atomically.
 	readyForConsistentReads int32
 
-	// leaveDrain is used to signal that the server is leaving the cluster
+	// leaveCh is used to signal that the server is leaving the cluster
 	// and trying to shed its RPC traffic onto other Consul servers. This
-	// is updated atomically.
-	leaveDrain int32
+	// is only ever closed.
+	leaveCh chan struct{}
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -309,6 +309,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		eventChLAN:            make(chan serf.Event, 256),
 		eventChWAN:            make(chan serf.Event, 256),
 		logger:                logger,
+		leaveCh:               make(chan struct{}),
 		reconcileCh:           make(chan serf.Member, 32),
 		router:                router.NewRouter(logger, config.Datacenter),
 		rpcServer:             rpc.NewServer(),
@@ -790,10 +791,12 @@ func (s *Server) Leave() error {
 		}
 	}
 
-	// Start refusing RPCs and wait a little while for existing RPCs to
-	// clear.
+	// Start refusing RPCs now that we've left the LAN pool. It's important
+	// to do this *after* we've left the LAN pool so that clients will know
+	// to shift onto another server if they perform a retry. We also wake up
+	// all queries in the RPC retry state.
 	s.logger.Printf("[INFO] consul: Waiting %s to drain RPC traffic", s.config.LeaveDrainTime)
-	atomic.StoreInt32(&s.leaveDrain, 1)
+	close(s.leaveCh)
 	time.Sleep(s.config.LeaveDrainTime)
 
 	// If we were not leader, wait to be safely removed from the cluster. We

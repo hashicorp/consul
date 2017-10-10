@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -375,8 +376,6 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 
 // getClient is used to get a usable client for an address and protocol version
 func (p *ConnPool) getClient(dc string, addr net.Addr, version int, useTLS bool) (*Conn, *StreamClient, error) {
-	retries := 0
-START:
 	// Try to get a conn first
 	conn, err := p.acquire(dc, addr, version, useTLS)
 	if err != nil {
@@ -388,12 +387,6 @@ START:
 	if err != nil {
 		p.clearConn(conn)
 		p.releaseConn(conn)
-
-		// Try to redial, possible that the TCP session closed due to timeout
-		if retries == 0 {
-			retries++
-			goto START
-		}
 		return nil, nil, fmt.Errorf("failed to start stream: %v", err)
 	}
 	return conn, client, nil
@@ -406,7 +399,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, use
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, addr, version, useTLS)
 	if err != nil {
-		return fmt.Errorf("rpc error: %v", err)
+		return fmt.Errorf("rpc error getting client: %v", err)
 	}
 
 	// Make the RPC call
@@ -418,12 +411,12 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, use
 		// about how we found this. The tldr is that if we see this
 		// error, we know this connection is toast, so we should clear
 		// it and make a new one on the next attempt.
-		if err == io.EOF {
+		if lib.IsErrEOF(err) {
 			p.clearConn(conn)
 		}
 
 		p.releaseConn(conn)
-		return fmt.Errorf("rpc error: %v", err)
+		return fmt.Errorf("rpc error making call: %v", err)
 	}
 
 	// Done with the connection
