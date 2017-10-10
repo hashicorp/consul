@@ -104,13 +104,16 @@ func (c *CheckMonitor) check() {
 	// Create the command
 	var cmd *exec.Cmd
 	var err error
+	var cmdDisplay string
 	if len(c.ScriptArgs) > 0 {
+		cmdDisplay = fmt.Sprintf("%v", c.ScriptArgs)
 		cmd, err = ExecSubprocess(c.ScriptArgs)
 	} else {
+		cmdDisplay = c.Script
 		cmd, err = ExecScript(c.Script)
 	}
 	if err != nil {
-		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", cmdDisplay, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -122,7 +125,7 @@ func (c *CheckMonitor) check() {
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
-		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", cmdDisplay, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -140,12 +143,12 @@ func (c *CheckMonitor) check() {
 	select {
 	case <-time.After(timeout):
 		if err := cmd.Process.Kill(); err != nil {
-			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", c.Script, err)
+			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", cmdDisplay, err)
 		} else {
-			c.Logger.Printf("[WARN] Timed out running check '%s'", c.Script)
+			c.Logger.Printf("[WARN] Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
 		}
 
-		err = fmt.Errorf("Timed out running check '%s'", c.Script)
+		err = fmt.Errorf("Timed out running check '%s'", cmdDisplay)
 		<-waitCh
 
 	case err = <-waitCh:
@@ -160,7 +163,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, outputStr)
+		c.CheckID, cmdDisplay, outputStr)
 
 	// Check if the check passed
 	if err == nil {

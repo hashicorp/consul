@@ -95,7 +95,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	check := &CheckMonitor{
 		Notify:     notif,
 		CheckID:    types.CheckID("foo"),
-		ScriptArgs: []string{"sh", "-c", "sleep 1 && exit 0"},
+		ScriptArgs: []string{"sleep", "1"},
 		Interval:   50 * time.Millisecond,
 		Timeout:    25 * time.Millisecond,
 		Logger:     log.New(ioutil.Discard, UniqueID(), log.LstdFlags),
