@@ -86,15 +86,29 @@ func Parse(data string, format string) (c Config, err error) {
 		"watches",
 	})
 
-	// 	toJSON := func(v interface{}) string {
-	// 		b, err := json.MarshalIndent(v, "", "    ")
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 		return string(b)
-	// 	}
-	// 	fmt.Println("raw:", toJSON(raw))
-	// 	fmt.Println("patched:", toJSON(m))
+	// There is a difference of representation of some fields depending on
+	// where they are used. The HTTP API uses CamelCase whereas the config
+	// files use snake_case and between the two there is no automatic mapping.
+	// While the JSON and HCL parsers match keys without case (both `id` and
+	// `ID` are mapped to an ID field) the same thing does not happen between
+	// CamelCase and snake_case. Since changing either format would break
+	// existing setups we have to support both and slowly transition to one of
+	// the formats. Also, there is at least one case where we use the "wrong"
+	// key and want to map that to the new key to support deprecation
+	// (`check.id` vs `service.check.CheckID`) See [GH-3179]. TranslateKeys
+	// maps potentially CamelCased values to the snake_case that is used in the
+	// config file parser. If both the CamelCase and snake_case values are set,
+	// the snake_case value is used and the other value is discarded.
+	TranslateKeys(m, map[string]string{
+		"check_id":                       "id",
+		"checkid":                        "id",
+		"deregistercriticalserviceafter": "deregister_critical_service_after",
+		"dockercontainerid":              "docker_container_id",
+		"enabletagoverride":              "enable_tag_override",
+		"scriptargs":                     "args",
+		"serviceid":                      "service_id",
+		"tlsskipverify":                  "tls_skip_verify",
+	})
 
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
@@ -305,7 +319,6 @@ type ServiceDefinition struct {
 
 type CheckDefinition struct {
 	ID                             *string             `json:"id,omitempty" hcl:"id" mapstructure:"id"`
-	CheckID                        *string             `json:"check_id,omitempty" hcl:"check_id" mapstructure:"check_id"`
 	Name                           *string             `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Notes                          *string             `json:"notes,omitempty" hcl:"notes" mapstructure:"notes"`
 	ServiceID                      *string             `json:"service_id,omitempty" hcl:"service_id" mapstructure:"service_id"`

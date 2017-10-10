@@ -869,9 +869,6 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	}
 
 	id := types.CheckID(b.stringVal(v.ID))
-	if v.CheckID != nil {
-		id = types.CheckID(b.stringVal(v.CheckID))
-	}
 
 	return &structs.CheckDefinition{
 		ID:                id,

@@ -26,7 +26,7 @@ A service definition that is a script looks like:
     "tags": ["primary"],
     "address": "",
     "port": 8000,
-    "enableTagOverride": false,
+    "enable_tag_override": false,
     "checks": [
       {
         "script": "/usr/local/bin/check_redis.py",
@@ -38,10 +38,14 @@ A service definition that is a script looks like:
 ```
 
 A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `port`, `check`, and `enableTagOverride`. The
+`id`, `tags`, `address`, `port`, `check`, and `enable_tag_override`. The
 `id` is set to the `name` if not provided. It is required that all
 services have a unique ID per node, so if names might conflict then
 unique IDs should be provided.
+
+For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
+supports both `enable_tag_override` and `enableTagOverride` but the latter is
+deprecated and will be removed in Consul 1.1.
 
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
@@ -75,32 +79,41 @@ from `1`.
 
 -> **Note:** There is more information about [checks here](/docs/agent/checks.html).
 
-The `enableTagOverride` can optionally be specified to disable the
-anti-entropy feature for this service. If `enableTagOverride` is set to
+-> **Note:** Consul 0.9.3 and before require the optional check ID for a check
+   that is embedded in a service definition to be configured via the `CheckID`
+   field. Consul 1.0 accepts both `id` and `CheckID` but the latter is
+   deprecated and will be removed in Consul 1.1.
+
+The `enable_tag_override` can optionally be specified to disable the
+anti-entropy feature for this service. If `enable_tag_override` is set to
 `TRUE` then external agents can update this service in the
 [catalog](/api/catalog.html) and modify the tags. Subsequent
 local sync operations by this agent will ignore the updated tags. For
 example, if an external agent modified both the tags and the port for
-this service and `enableTagOverride` was set to `TRUE` then after the next
+this service and `enable_tag_override` was set to `TRUE` then after the next
 sync cycle the service's port would revert to the original value but the
 tags would maintain the updated value. As a counter example: If an
 external agent modified both the tags and port for this service and
-`enableTagOverride` was set to `FALSE` then after the next sync cycle the
+`enable_tag_override` was set to `FALSE` then after the next sync cycle the
 service's port *and* the tags would revert to the original value and all
 modifications would be lost.
 
 It's important to note that this applies only to the locally registered
 service. If you have multiple nodes all registering the same service
-their `enableTagOverride` configuration and all other service
+their `enable_tag_override` configuration and all other service
 configuration items are independent of one another. Updating the tags
 for the service registered on one node is independent of the same
-service (by name) registered on another node. If `enableTagOverride` is
+service (by name) registered on another node. If `enable_tag_override` is
 not specified the default value is false. See [anti-entropy
 syncs](/docs/internals/anti-entropy.html) for more info.
 
+For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
+supports both `enable_tag_override` and `enableTagOverride` but the latter is
+deprecated and will be removed in Consul 1.1.
+
 To configure a service, either provide it as a `-config-file` option to
 the agent or place it inside the `-config-dir` of the agent. The file
-must end in the `.json` extension to be loaded by Consul. Check
+must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
 definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
 API](/api/index.html).
