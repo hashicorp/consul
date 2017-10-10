@@ -45,14 +45,20 @@ type CheckType struct {
 }
 type CheckTypes []*CheckType
 
-// Valid checks if the CheckType is valid
-func (c *CheckType) Valid() (bool, error) {
-	valid := c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
-	var err error
-	if !valid {
-		err = fmt.Errorf(c.validateMsg())
+// Validate returns an error message if the check is invalid
+func (c *CheckType) Validate() error {
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != ""
+
+	if c.Interval > 0 && c.TTL > 0 {
+		return fmt.Errorf("Interval and TTL cannot both be specified")
 	}
-	return valid, err
+	if intervalCheck && c.Interval <= 0 {
+		return fmt.Errorf("Interval must be > 0 for Script, HTTP, or TCP checks")
+	}
+	if !intervalCheck && c.TTL <= 0 {
+		return fmt.Errorf("TTL must be > 0 for TTL checks")
+	}
+	return nil
 }
 
 // Empty checks if the CheckType has no fields defined. Empty checks parsed from json configs are filtered out
@@ -88,13 +94,4 @@ func (c *CheckType) IsTCP() bool {
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
 	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
-}
-
-// ValidateMsg returns a user friendly error message indicating missing fields
-func (c *CheckType) validateMsg() string {
-	if c.IsScript() || c.HTTP != "" || c.TCP != "" {
-		return "Interval must be > 0"
-	} else {
-		return "TTL must be > 0"
-	}
 }

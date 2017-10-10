@@ -309,8 +309,6 @@ func (s *HTTPServer) syncChanges() {
 	}
 }
 
-const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/TCP and Interval"
-
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
@@ -345,10 +343,10 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 
 	// Verify the check type.
 	chkType := args.CheckType()
-	_, err := chkType.Valid()
+	err := chkType.Validate()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, invalidCheckMessage)
+		fmt.Fprint(resp, fmt.Errorf("Invalid Check Definition:%v", err))
 		return nil, nil
 	}
 
@@ -580,7 +578,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	chkTypes, err := args.CheckTypes()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, invalidCheckMessage)
+		fmt.Fprint(resp, fmt.Errorf("Invalid Check Definition:%v", err))
 		return nil, nil
 	}
 	for _, check := range chkTypes {
