@@ -595,8 +595,8 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			} else if h, ok := wp.Exempt["args"]; ok {
 				wp.Handler = makeWatchHandler(a.LogOutput, h)
 			} else {
-				httpConfig := wp.Exempt["http_handler_config"].(watch.HttpHandlerConfig)
-				wp.Handler = makeHTTPWatchHandler(a.LogOutput, &httpConfig)
+				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
+				wp.Handler = makeHTTPWatchHandler(a.LogOutput, httpConfig)
 			}
 			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {

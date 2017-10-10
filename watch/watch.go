@@ -80,6 +80,7 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		return nil, fmt.Errorf("Watch type must be specified")
 	}
 
+	// Get the specific handler
 	if err := assignValue(params, "handler_type", &plan.HandlerType); err != nil {
 		return nil, err
 	}
@@ -88,30 +89,17 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		if _, ok := params["http_handler_config"]; !ok {
 			return nil, fmt.Errorf("Handler type 'http' requires 'http_handler_config' to be set")
 		}
-		var config HttpHandlerConfig
-		if err := mapstructure.Decode(params["http_handler_config"], &config); err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse http_handler_config: %v", err))
-		}
-		if config.Path == "" {
-			return nil, fmt.Errorf("HTTP watch handler requires 'path' to be set in 'http_handler_config'")
-		}
-		if config.Method == "" {
-			config.Method = "POST"
-		}
-		if config.TimeoutRaw == "" {
-			config.Timeout = 10 * time.Second
-		} else {
-			if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
-				return nil, fmt.Errorf(fmt.Sprintf("Failed to parse HTTP watch timeout: %v", err))
-			} else {
-				config.Timeout = timeout
-			}
+		config, err := parseHttpHandlerConfig(params["http_handler_config"])
+		if err != nil {
+			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse 'http_handler_config': %v", err))
 		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
 
+	case "":
+		// Let continue and check for 'args' or 'handler' parameter later
 	default:
-
+		return nil, fmt.Errorf(fmt.Sprintf("Handler type '%s' not recognized", plan.HandlerType))
 	}
 
 	// Look for a factory function
@@ -173,4 +161,30 @@ func assignValueBool(params map[string]interface{}, name string, out *bool) erro
 		delete(params, name)
 	}
 	return nil
+}
+
+// Parse the 'http_handler_config' parameters
+func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error) {
+	var config HttpHandlerConfig
+	if err := mapstructure.Decode(configParams, &config); err != nil {
+		return nil, err
+	}
+
+	if config.Path == "" {
+		return nil, fmt.Errorf("Requires 'path' to be set")
+	}
+	if config.Method == "" {
+		config.Method = "POST"
+	}
+	if config.TimeoutRaw == "" {
+		config.Timeout = 10 * time.Second
+	} else {
+		if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
+			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse timeout: %v", err))
+		} else {
+			config.Timeout = timeout
+		}
+	}
+
+	return &config, nil
 }
