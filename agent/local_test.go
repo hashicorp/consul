@@ -1174,7 +1174,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		Output:  "first output",
 	}
 	if err := a.state.AddCheck(check, ""); err != nil {
-		t.Fatal("bad: %s", err)
+		t.Fatalf("bad: %s", err)
 	}
 
 	// wait until the check is in sync
