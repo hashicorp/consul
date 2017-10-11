@@ -2116,6 +2116,7 @@ func TestFullConfig(t *testing.T) {
 			"disable_keyring_file": true,
 			"disable_remote_exec": true,
 			"disable_update_check": true,
+			"discard_check_output": true,
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
@@ -2549,6 +2550,7 @@ func TestFullConfig(t *testing.T) {
 			disable_keyring_file = true
 			disable_remote_exec = true
 			disable_update_check = true
+			discard_check_output = true
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
@@ -3132,6 +3134,7 @@ func TestFullConfig(t *testing.T) {
 		DisableKeyringFile:        true,
 		DisableRemoteExec:         true,
 		DisableUpdateCheck:        true,
+		DiscardCheckOutput:        true,
 		EnableACLReplication:      true,
 		EnableDebug:               true,
 		EnableScriptChecks:        true,
@@ -3808,6 +3811,7 @@ func TestSanitize(t *testing.T) {
     "DisableKeyringFile": false,
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
+    "DiscardCheckOutput": false,
     "EnableACLReplication": false,
     "EnableDebug": false,
     "EnableScriptChecks": false,

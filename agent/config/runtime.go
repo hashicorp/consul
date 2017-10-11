@@ -133,6 +133,7 @@ type RuntimeConfig struct {
 	DisableKeyringFile          bool
 	DisableRemoteExec           bool
 	DisableUpdateCheck          bool
+	DiscardCheckOutput          bool
 	EnableACLReplication        bool
 	EnableDebug                 bool
 	EnableScriptChecks          bool

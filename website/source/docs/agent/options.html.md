@@ -771,6 +771,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="disable_update_check"></a><a href="#disable_update_check">`disable_update_check`</a>
   Disables automatic checking for security bulletins and new version releases.
 
+* <a name="discard_check_output"></a><a href="#discard_check_output">`discard_check_output`</a>
+  Discards the output of health checks before storing them. This reduces the number of writes
+  to the Consul raft log in environments where health checks have volatile output like
+  timestamps, process ids, ...
+
 *   <a name="dns_config"></a><a href="#dns_config">`dns_config`</a> This object allows a number
     of sub-keys to be set which can tune how DNS queries are serviced. See this guide on
     [DNS caching](/docs/guides/dns-cache.html) for more detail.
@@ -1331,4 +1336,5 @@ items which are reloaded include:
 * Watches
 * HTTP Client Address
 * <a href="#node_meta">Node Metadata</a>
-* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
+* <a href="#telemetry_prefix_filter">Metric Prefix Filter</a>
+* <a href="#discard_check_output">Discard Check Output</a>

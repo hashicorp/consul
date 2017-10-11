@@ -1151,6 +1151,56 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}
 }
 
+func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		discard_check_output = true
+		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
+	`)
+	defer a.Shutdown()
+
+	inSync := func(id string) bool {
+		a.state.Lock()
+		defer a.state.Unlock()
+		return a.state.checkStatus[types.CheckID(id)].inSync
+	}
+
+	// register a check
+	check := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "web",
+		Name:    "web",
+		Status:  api.HealthPassing,
+		Output:  "first output",
+	}
+	if err := a.state.AddCheck(check, ""); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// wait until the check is in sync
+	retry.Run(t, func(r *retry.R) {
+		if inSync("web") {
+			return
+		}
+		r.FailNow()
+	})
+
+	// update the check with the same status but different output
+	// and the check should still be in sync.
+	a.state.UpdateCheck(check.CheckID, api.HealthPassing, "second output")
+	if !inSync("web") {
+		t.Fatal("check should be in sync")
+	}
+
+	// disable discarding of check output and update the check again with different
+	// output. Then the check should be out of sync.
+	a.state.SetDiscardCheckOutput(false)
+	a.state.UpdateCheck(check.CheckID, api.HealthPassing, "third output")
+	if inSync("web") {
+		t.Fatal("check should be out of sync")
+	}
+}
+
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
 	a := &TestAgent{Name: t.Name(), HCL: `
