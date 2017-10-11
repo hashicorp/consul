@@ -1,23 +1,26 @@
-package command
+package cat
 
 import (
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
-var _ cli.Command = (*CatalogCommand)(nil)
-
-type CatalogCommand struct {
-	BaseCommand
+func New() *cmd {
+	return &cmd{}
 }
 
-func (c *CatalogCommand) Run(args []string) int {
+type cmd struct{}
+
+func (c *cmd) Run(args []string) int {
 	return cli.RunResultHelp
 }
 
-func (c *CatalogCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul catalog <subcommand> [options] [args]
+func (c *cmd) Synopsis() string {
+	return "Interact with the catalog"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul catalog <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's catalog. The
   catalog should not be confused with the agent, although the APIs and
@@ -38,11 +41,6 @@ Usage: consul catalog <subcommand> [options] [args]
 
       $ consul catalog services
 
-  For more examples, ask for subcommand help or view the documentation.
-
-`)
-}
-
-func (c *CatalogCommand) Synopsis() string {
-	return "Interact with the catalog"
+  For more examples, ask for subcommand help or view the documentation.`
+	return flags.Usage(s, nil, nil, nil)
 }
