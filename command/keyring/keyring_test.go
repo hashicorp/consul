@@ -1,4 +1,4 @@
-package command
+package keyring
 
 import (
 	"strings"
@@ -8,19 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testKeyringCommand(t *testing.T) (*cli.MockUi, *KeyringCommand) {
-	ui := cli.NewMockUi()
-	return ui, &KeyringCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestKeyringCommand_implements(t *testing.T) {
+func TestKeyringCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &KeyringCommand{}
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestKeyringCommandRun(t *testing.T) {
@@ -76,7 +68,8 @@ func TestKeyringCommandRun(t *testing.T) {
 
 func TestKeyringCommandRun_help(t *testing.T) {
 	t.Parallel()
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	code := c.Run(nil)
 	if code != 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
@@ -90,7 +83,8 @@ func TestKeyringCommandRun_help(t *testing.T) {
 
 func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	t.Parallel()
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{"-list", "-http-addr=127.0.0.1:0"}
 	code := c.Run(args)
 	if code != 1 {
@@ -103,7 +97,8 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 
 func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
 	t.Parallel()
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{"-list", "-relay-factor=6"}
 	code := c.Run(args)
@@ -113,7 +108,8 @@ func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
 }
 
 func listKeys(t *testing.T, addr string) string {
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{"-list", "-http-addr=" + addr}
 	code := c.Run(args)
@@ -125,7 +121,8 @@ func listKeys(t *testing.T, addr string) string {
 }
 
 func installKey(t *testing.T, addr string, key string) {
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{"-install=" + key, "-http-addr=" + addr}
 	code := c.Run(args)
@@ -135,7 +132,8 @@ func installKey(t *testing.T, addr string, key string) {
 }
 
 func useKey(t *testing.T, addr string, key string) {
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{"-use=" + key, "-http-addr=" + addr}
 	code := c.Run(args)
@@ -145,7 +143,8 @@ func useKey(t *testing.T, addr string, key string) {
 }
 
 func removeKey(t *testing.T, addr string, key string) {
-	ui, c := testKeyringCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{"-remove=" + key, "-http-addr=" + addr}
 	code := c.Run(args)

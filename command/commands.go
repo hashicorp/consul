@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/keygen"
+	"github.com/hashicorp/consul/command/keyring"
 	"github.com/hashicorp/consul/command/kv"
 	"github.com/hashicorp/consul/command/kvdel"
 	"github.com/hashicorp/consul/command/kvexp"
@@ -111,12 +112,7 @@ func init() {
 		},
 
 		"keyring": func() (cli.Command, error) {
-			return &KeyringCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return keyring.New(ui), nil
 		},
 
 		"kv": func() (cli.Command, error) {
