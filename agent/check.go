@@ -122,6 +122,7 @@ func (c *CheckMonitor) check() {
 	output, _ := circbuf.NewBuffer(CheckBufSize)
 	cmd.Stdout = output
 	cmd.Stderr = output
+	SetSysProcAttr(cmd)
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
@@ -142,7 +143,7 @@ func (c *CheckMonitor) check() {
 	}
 	select {
 	case <-time.After(timeout):
-		if err := cmd.Process.Kill(); err != nil {
+		if err := KillCommandSubtree(cmd); err != nil {
 			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", cmdDisplay, err)
 		} else {
 			c.Logger.Printf("[WARN] Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
