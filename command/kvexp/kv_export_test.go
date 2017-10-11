@@ -1,14 +1,23 @@
-package command
+package kvexp
 
 import (
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/kvimpexp"
 	"github.com/mitchellh/cli"
 )
+
+func TestKVExportCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
+}
 
 func TestKVExportCommand_Run(t *testing.T) {
 	t.Parallel()
@@ -17,12 +26,7 @@ func TestKVExportCommand_Run(t *testing.T) {
 	client := a.Client()
 
 	ui := cli.NewMockUi()
-	c := KVExportCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
+	c := New(ui)
 
 	keys := map[string]string{
 		"foo/a": "a",
@@ -49,7 +53,7 @@ func TestKVExportCommand_Run(t *testing.T) {
 
 	output := ui.OutputWriter.String()
 
-	var exported []*kvExportEntry
+	var exported []*kvimpexp.Entry
 	err := json.Unmarshal([]byte(output), &exported)
 	if err != nil {
 		t.Fatalf("bad: %d", code)
