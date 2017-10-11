@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/configutil"
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
@@ -29,7 +29,7 @@ func (c *CatalogListServicesCommand) initFlags() {
 	c.InitFlagSet()
 	c.FlagSet.StringVar(&c.node, "node", "",
 		"Node `id or name` for which to list services.")
-	c.FlagSet.Var((*configutil.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+	c.FlagSet.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
 		"filter nodes with the given `key=value` pairs. If specified, only "+
 		"services running on nodes matching the given metadata will be returned. "+
 		"This flag may be specified multiple times to filter on multiple sources "+

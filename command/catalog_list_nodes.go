@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/configutil"
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -31,7 +31,7 @@ func (c *CatalogListNodesCommand) initFlags() {
 	c.FlagSet.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
 		"order based on estimated round-trip time from that node. "+
 		"Passing \"_agent\" will use this agent's node for sorting.")
-	c.FlagSet.Var((*configutil.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+	c.FlagSet.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
 		"filter nodes with the given `key=value` pairs. This flag may be "+
 		"specified multiple times to filter on multiple sources of metadata.")
 	c.FlagSet.StringVar(&c.service, "service", "", "Service `id or name` to filter nodes. "+
