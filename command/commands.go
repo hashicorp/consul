@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command/cat"
 	"github.com/hashicorp/consul/command/catlistdc"
+	"github.com/hashicorp/consul/command/catlistnodes"
 	"github.com/hashicorp/consul/command/event"
 	execmd "github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
@@ -56,12 +57,7 @@ func init() {
 		},
 
 		"catalog nodes": func() (cli.Command, error) {
-			return &CatalogListNodesCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return catlistnodes.New(ui), nil
 		},
 
 		"catalog services": func() (cli.Command, error) {

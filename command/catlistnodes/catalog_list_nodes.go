@@ -1,7 +1,9 @@
-package command
+package catlistnodes
 
 import (
+	"flag"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -10,12 +12,16 @@ import (
 	"github.com/ryanuber/columnize"
 )
 
-var _ cli.Command = (*CatalogListNodesCommand)(nil)
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-// CatalogListNodesCommand is a Command implementation that is used to fetch all the
-// nodes in the catalog.
-type CatalogListNodesCommand struct {
-	BaseCommand
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 
 	// flags
 	detailed bool
@@ -24,67 +30,37 @@ type CatalogListNodesCommand struct {
 	service  string
 }
 
-func (c *CatalogListNodesCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
 		"the nodes including their addresses and metadata.")
-	c.FlagSet.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
+	c.flags.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
 		"order based on estimated round-trip time from that node. "+
 		"Passing \"_agent\" will use this agent's node for sorting.")
-	c.FlagSet.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+	c.flags.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
 		"filter nodes with the given `key=value` pairs. This flag may be "+
 		"specified multiple times to filter on multiple sources of metadata.")
-	c.FlagSet.StringVar(&c.service, "service", "", "Service `id or name` to filter nodes. "+
+	c.flags.StringVar(&c.service, "service", "", "Service `id or name` to filter nodes. "+
 		"Only nodes which are providing the given service will be returned.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *CatalogListNodesCommand) Help() string {
+func (c *cmd) Run(args []string) int {
 	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul catalog nodes [options]
-
-  Retrieves the list nodes registered in a given datacenter. By default, the
-  datacenter of the local agent is queried.
-
-  To retrieve the list of nodes:
-
-      $ consul catalog nodes
-
-  To print detailed information including full node IDs, tagged addresses, and
-  metadata information:
-
-      $ consul catalog nodes -detailed
-
-  To list nodes which are running a particular service:
-
-      $ consul catalog nodes -service=web
-
-  To filter by node metadata:
-
-      $ consul catalog nodes -node-meta="foo=bar"
-
-  To sort nodes by estimated round-trip time from node-web:
-
-      $ consul catalog nodes -near=node-web
-
-  For a full list of options and examples, please see the Consul documentation.
-
-`)
-}
-
-func (c *CatalogListNodesCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
-	if l := len(c.FlagSet.Args()); l > 0 {
+	if l := len(c.flags.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -142,8 +118,40 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *CatalogListNodesCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Lists all nodes in the given datacenter"
+}
+
+func (c *cmd) Help() string {
+	s := `
+Usage: consul catalog nodes [options]
+
+  Retrieves the list nodes registered in a given datacenter. By default, the
+  datacenter of the local agent is queried.
+
+  To retrieve the list of nodes:
+
+      $ consul catalog nodes
+
+  To print detailed information including full node IDs, tagged addresses, and
+  metadata information:
+
+      $ consul catalog nodes -detailed
+
+  To list nodes which are running a particular service:
+
+      $ consul catalog nodes -service=web
+
+  To filter by node metadata:
+
+      $ consul catalog nodes -node-meta="foo=bar"
+
+  To sort nodes by estimated round-trip time from node-web:
+
+      $ consul catalog nodes -near=node-web
+
+  For a full list of options and examples, please see the Consul documentation.`
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 // printNodes accepts a list of nodes and prints information in a tabular
@@ -190,4 +198,20 @@ func simpleNodes(nodes []*api.Node) []string {
 	}
 
 	return result
+}
+
+// mapToKV converts a map[string]string into a human-friendly key=value list,
+// sorted by name.
+func mapToKV(m map[string]string, joiner string) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	r := make([]string, len(keys))
+	for i, k := range keys {
+		r[i] = fmt.Sprintf("%s=%s", k, m[k])
+	}
+	return strings.Join(r, joiner)
 }
