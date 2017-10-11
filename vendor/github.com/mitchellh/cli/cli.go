@@ -578,6 +578,12 @@ func (c *CLI) processArgs() {
 			break
 		}
 
+		// Check for help flags.
+		if arg == "-h" || arg == "-help" || arg == "--help" {
+			c.isHelp = true
+			continue
+		}
+
 		// Check for autocomplete flags
 		if c.Autocomplete {
 			if arg == "-"+c.AutocompleteInstall || arg == "--"+c.AutocompleteInstall {
@@ -595,12 +601,6 @@ func (c *CLI) processArgs() {
 			// Check for version flags if not in a subcommand.
 			if arg == "-v" || arg == "-version" || arg == "--version" {
 				c.isVersion = true
-				continue
-			}
-
-			// Check for help flags.
-			if arg == "-h" || arg == "-help" || arg == "--help" {
-				c.isHelp = true
 				continue
 			}
 
