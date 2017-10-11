@@ -603,7 +603,7 @@ func (p *PolicyACL) NodeWrite(name string, scope sentinel.ScopeFn) bool {
 		pr := rule.(PolicyRule)
 		switch pr.aclPolicy {
 		case PolicyWrite:
-			return p.executeCodePolicy(&pr.sentinelPolicy, scope)
+			return true
 		default:
 			return false
 		}
@@ -686,7 +686,7 @@ func (p *PolicyACL) ServiceWrite(name string, scope sentinel.ScopeFn) bool {
 		pr := rule.(PolicyRule)
 		switch pr.aclPolicy {
 		case PolicyWrite:
-			return p.executeCodePolicy(&pr.sentinelPolicy, scope)
+			return true
 		default:
 			return false
 		}

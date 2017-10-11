@@ -127,8 +127,6 @@ func isPolicyValid(policy string) bool {
 // isSentinelValid makes sure the given sentinel block is valid, and will skip
 // out if the evaluator is nil.
 func isSentinelValid(sentinel sentinel.Evaluator, basicPolicy string, sp Sentinel) error {
-	// TODO (slackpad) - Need a unit test for this.
-
 	// Sentinel not enabled at all, or for this policy.
 	if sentinel == nil {
 		return nil

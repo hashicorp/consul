@@ -631,7 +631,6 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	default:
 		t.Fatalf("bad")
 	}
-
 }
 
 func TestFSM_BadRestore(t *testing.T) {
