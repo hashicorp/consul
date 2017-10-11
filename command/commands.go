@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/command/event"
 	execmd "github.com/hashicorp/consul/command/exec"
+	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
@@ -91,12 +92,7 @@ func init() {
 		},
 
 		"info": func() (cli.Command, error) {
-			return &InfoCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return info.New(ui), nil
 		},
 
 		"join": func() (cli.Command, error) {
