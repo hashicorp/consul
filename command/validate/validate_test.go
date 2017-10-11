@@ -1,28 +1,20 @@
-package command
+package validate
 
 import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 
-func testValidateCommand(t *testing.T) (*cli.MockUi, *ValidateCommand) {
-	ui := cli.NewMockUi()
-	return ui, &ValidateCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetNone,
-		},
+func TestValidateCommand_noTabs(t *testing.T) {
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
 	}
-}
-
-func TestValidateCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &ValidateCommand{}
 }
 
 func TestValidateCommandFailOnEmptyFile(t *testing.T) {
@@ -30,8 +22,7 @@ func TestValidateCommandFailOnEmptyFile(t *testing.T) {
 	tmpFile := testutil.TempFile(t, "consul")
 	defer os.RemoveAll(tmpFile.Name())
 
-	_, cmd := testValidateCommand(t)
-
+	cmd := New(cli.NewMockUi())
 	args := []string{tmpFile.Name()}
 
 	if code := cmd.Run(args); code == 0 {
@@ -49,8 +40,7 @@ func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	_, cmd := testValidateCommand(t)
-
+	cmd := New(cli.NewMockUi())
 	args := []string{fp}
 
 	if code := cmd.Run(args); code != 0 {
@@ -67,8 +57,7 @@ func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	_, cmd := testValidateCommand(t)
-
+	cmd := New(cli.NewMockUi())
 	args := []string{td}
 
 	if code := cmd.Run(args); code != 0 {
@@ -87,8 +76,8 @@ func TestValidateCommandQuiet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui, cmd := testValidateCommand(t)
-
+	ui := cli.NewMockUi()
+	cmd := New(ui)
 	args := []string{"-quiet", td}
 
 	if code := cmd.Run(args); code != 0 {
