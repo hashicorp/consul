@@ -104,13 +104,16 @@ func (c *CheckMonitor) check() {
 	// Create the command
 	var cmd *exec.Cmd
 	var err error
+	var cmdDisplay string
 	if len(c.ScriptArgs) > 0 {
+		cmdDisplay = fmt.Sprintf("%v", c.ScriptArgs)
 		cmd, err = ExecSubprocess(c.ScriptArgs)
 	} else {
+		cmdDisplay = c.Script
 		cmd, err = ExecScript(c.Script)
 	}
 	if err != nil {
-		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", cmdDisplay, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -119,28 +122,39 @@ func (c *CheckMonitor) check() {
 	output, _ := circbuf.NewBuffer(CheckBufSize)
 	cmd.Stdout = output
 	cmd.Stderr = output
+	SetSysProcAttr(cmd)
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
-		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", cmdDisplay, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 
 	// Wait for the check to complete
-	errCh := make(chan error, 2)
+	waitCh := make(chan error, 1)
 	go func() {
-		errCh <- cmd.Wait()
+		waitCh <- cmd.Wait()
 	}()
-	go func() {
-		if c.Timeout > 0 {
-			time.Sleep(c.Timeout)
+
+	timeout := 30 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	select {
+	case <-time.After(timeout):
+		if err := KillCommandSubtree(cmd); err != nil {
+			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", cmdDisplay, err)
 		} else {
-			time.Sleep(30 * time.Second)
+			c.Logger.Printf("[WARN] Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
 		}
-		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
-	}()
-	err = <-errCh
+
+		err = fmt.Errorf("Timed out running check '%s'", cmdDisplay)
+		<-waitCh
+
+	case err = <-waitCh:
+		// The process returned before the timeout, proceed normally
+	}
 
 	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
@@ -150,7 +164,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, outputStr)
+		c.CheckID, cmdDisplay, outputStr)
 
 	// Check if the check passed
 	if err == nil {

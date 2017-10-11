@@ -22,3 +22,9 @@ func ExecScript(script string) (*exec.Cmd, error) {
 	}
 	return cmd, nil
 }
+
+func SetSysProcAttr(cmd *exec.Cmd) {}
+
+func KillCommandSubtree(cmd *exec.Cmd) error {
+	return cmd.Process.Kill()
+}
