@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/command/kvget"
 	"github.com/hashicorp/consul/command/kvimp"
 	"github.com/hashicorp/consul/command/kvput"
+	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -136,12 +137,7 @@ func init() {
 		},
 
 		"leave": func() (cli.Command, error) {
-			return &LeaveCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return leave.New(ui), nil
 		},
 
 		"lock": func() (cli.Command, error) {
