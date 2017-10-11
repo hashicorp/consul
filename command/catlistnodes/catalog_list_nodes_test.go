@@ -1,4 +1,4 @@
-package command
+package catlistnodes
 
 import (
 	"strings"
@@ -8,24 +8,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testCatalogListNodesCommand(t *testing.T) (*cli.MockUi, *CatalogListNodesCommand) {
-	ui := cli.NewMockUi()
-	return ui, &CatalogListNodesCommand{
-		BaseCommand: BaseCommand{
-			Flags: FlagSetHTTP,
-			UI:    ui,
-		},
-	}
-}
-
 func TestCatalogListNodesCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(CatalogListNodesCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestCatalogListNodesCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testCatalogListNodesCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -64,7 +57,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 
 	t.Run("simple", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 		}
@@ -87,7 +81,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("detailed", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-detailed",
@@ -106,7 +101,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("node-meta", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-node-meta", "foo=bar",
@@ -123,7 +119,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("near", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-near", "_agent",
@@ -140,7 +137,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("service_present", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-service", "consul",
@@ -157,7 +155,8 @@ func TestCatalogListNodesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("service_missing", func(t *testing.T) {
-		ui, c := testCatalogListNodesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-service", "this-service-will-literally-never-exist",
