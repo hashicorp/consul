@@ -1,4 +1,4 @@
-package configutil
+package flags
 
 import "strings"
 

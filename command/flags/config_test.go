@@ -1,14 +1,13 @@
-package configutil
+package flags
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"testing"
-
 	"path"
 	"reflect"
+	"strings"
+	"testing"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -108,7 +107,7 @@ func TestConfigUtil_Visit(t *testing.T) {
 		return nil
 	}
 
-	basePath := "../test/command/merge"
+	basePath := "../../test/command/merge"
 	if err := Visit(basePath, visitor); err != nil {
 		t.Fatalf("err: %v", err)
 	}

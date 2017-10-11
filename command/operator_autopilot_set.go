@@ -6,20 +6,20 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/configutil"
+	"github.com/hashicorp/consul/command/flags"
 )
 
 type OperatorAutopilotSetCommand struct {
 	BaseCommand
 
 	// flags
-	cleanupDeadServers      configutil.BoolValue
-	maxTrailingLogs         configutil.UintValue
-	lastContactThreshold    configutil.DurationValue
-	serverStabilizationTime configutil.DurationValue
-	redundancyZoneTag       configutil.StringValue
-	disableUpgradeMigration configutil.BoolValue
-	upgradeVersionTag       configutil.StringValue
+	cleanupDeadServers      flags.BoolValue
+	maxTrailingLogs         flags.UintValue
+	lastContactThreshold    flags.DurationValue
+	serverStabilizationTime flags.DurationValue
+	redundancyZoneTag       flags.StringValue
+	disableUpgradeMigration flags.BoolValue
+	upgradeVersionTag       flags.StringValue
 }
 
 func (c *OperatorAutopilotSetCommand) initFlags() {
