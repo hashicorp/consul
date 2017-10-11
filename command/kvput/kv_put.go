@@ -1,109 +1,83 @@
-package command
+package kvput
 
 import (
 	"bytes"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// KVPutCommand is a Command implementation that is used to write data to the
-// key-value store.
-type KVPutCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-	// testStdin is the input for testing.
-	testStdin io.Reader
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 
 	// flags
 	cas           bool
-	flags         uint64
+	kvflags       uint64
 	base64encoded bool
 	modifyIndex   uint64
 	session       string
 	acquire       bool
 	release       bool
+
+	// testStdin is the input for testing.
+	testStdin io.Reader
 }
 
-func (c *KVPutCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.cas, "cas", false,
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.cas, "cas", false,
 		"Perform a Check-And-Set operation. Specifying this value also "+
 			"requires the -modify-index flag to be set. The default value "+
 			"is false.")
-	c.FlagSet.Uint64Var(&c.flags, "flags", 0,
+	c.flags.Uint64Var(&c.kvflags, "flags", 0,
 		"Unsigned integer value to assign to this key-value pair. This "+
 			"value is not read by Consul, so clients can use this value however "+
 			"makes sense for their use case. The default value is 0 (no flags).")
-	c.FlagSet.BoolVar(&c.base64encoded, "base64", false,
+	c.flags.BoolVar(&c.base64encoded, "base64", false,
 		"Treat the data as base 64 encoded. The default value is false.")
-	c.FlagSet.Uint64Var(&c.modifyIndex, "modify-index", 0,
+	c.flags.Uint64Var(&c.modifyIndex, "modify-index", 0,
 		"Unsigned integer representing the ModifyIndex of the key. This is "+
 			"used in combination with the -cas flag.")
-	c.FlagSet.StringVar(&c.session, "session", "",
+	c.flags.StringVar(&c.session, "session", "",
 		"User-defined identifer for this session as a string. This is commonly "+
 			"used with the -acquire and -release operations to build robust locking, "+
 			"but it can be set on any key. The default value is empty (no session).")
-	c.FlagSet.BoolVar(&c.acquire, "acquire", false,
+	c.flags.BoolVar(&c.acquire, "acquire", false,
 		"Obtain a lock on the key. If the key does not exist, this operation "+
 			"will create the key and obtain the lock. The session must already "+
 			"exist and be specified via the -session flag. The default value is false.")
-	c.FlagSet.BoolVar(&c.release, "release", false,
+	c.flags.BoolVar(&c.release, "release", false,
 		"Forfeit the lock on the key at the given path. This requires the "+
 			"-session flag to be set. The key must be held by the session in order to "+
 			"be unlocked. The default value is false.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *KVPutCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul kv put [options] KEY [DATA]
-
-  Writes the data to the given path in the key-value store. The data can be of
-  any type.
-
-      $ consul kv put config/redis/maxconns 5
-
-  The data can also be consumed from a file on disk by prefixing with the "@"
-  symbol. For example:
-
-      $ consul kv put config/program/license @license.lic
-
-  Or it can be read from stdin using the "-" symbol:
-
-      $ echo "abcd1234" | consul kv put config/program/license -
-
-  The DATA argument itself is optional. If omitted, this will create an empty
-  key-value pair at the specified path:
-
-      $ consul kv put webapp/beta/active
-
-  If the -base64 flag is specified, the data will be treated as base 64
-  encoded.
-
-  To perform a Check-And-Set operation, specify the -cas flag with the
-  appropriate -modify-index flag corresponding to the key you want to perform
-  the CAS operation on:
-
-      $ consul kv put -cas -modify-index=844 config/redis/maxconns 5
-
-  Additional flags and more advanced use cases are detailed below.
-
-`)
-}
-
-func (c *KVPutCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	// Check for arg validation
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	key, data, err := c.dataFromArgs(args)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error! %s", err))
@@ -131,7 +105,7 @@ func (c *KVPutCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -140,7 +114,7 @@ func (c *KVPutCommand) Run(args []string) int {
 	pair := &api.KVPair{
 		Key:         key,
 		ModifyIndex: c.modifyIndex,
-		Flags:       c.flags,
+		Flags:       c.kvflags,
 		Value:       dataBytes,
 		Session:     c.session,
 	}
@@ -196,11 +170,47 @@ func (c *KVPutCommand) Run(args []string) int {
 	}
 }
 
-func (c *KVPutCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Sets or updates data in the KV store"
 }
 
-func (c *KVPutCommand) dataFromArgs(args []string) (string, string, error) {
+func (c *cmd) Help() string {
+	s := `Usage: consul kv put [options] KEY [DATA]
+
+  Writes the data to the given path in the key-value store. The data can be of
+  any type.
+
+      $ consul kv put config/redis/maxconns 5
+
+  The data can also be consumed from a file on disk by prefixing with the "@"
+  symbol. For example:
+
+      $ consul kv put config/program/license @license.lic
+
+  Or it can be read from stdin using the "-" symbol:
+
+      $ echo "abcd1234" | consul kv put config/program/license -
+
+  The DATA argument itself is optional. If omitted, this will create an empty
+  key-value pair at the specified path:
+
+      $ consul kv put webapp/beta/active
+
+  If the -base64 flag is specified, the data will be treated as base 64
+  encoded.
+
+  To perform a Check-And-Set operation, specify the -cas flag with the
+  appropriate -modify-index flag corresponding to the key you want to perform
+  the CAS operation on:
+
+      $ consul kv put -cas -modify-index=844 config/redis/maxconns 5
+
+  Additional flags and more advanced use cases are detailed below.`
+
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+}
+
+func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 	var stdin io.Reader = os.Stdin
 	if c.testStdin != nil {
 		stdin = c.testStdin
