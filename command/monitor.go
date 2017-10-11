@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -15,10 +14,20 @@ type MonitorCommand struct {
 
 	lock     sync.Mutex
 	quitting bool
+
+	// flags
+	logLevel string
+}
+
+func (c *MonitorCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.StringVar(&c.logLevel, "log-level", "INFO",
+		"Log level of the agent.")
 }
 
 func (c *MonitorCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul monitor [options]
 
   Shows recent log messages of a Consul agent, and attaches to the agent,
@@ -27,29 +36,23 @@ Usage: consul monitor [options]
   example your agent may only be logging at INFO level, but with the monitor
   you can see the DEBUG level logs.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *MonitorCommand) Run(args []string) int {
-	var logLevel string
-
-	f := c.BaseCommand.NewFlagSet(c)
-	f.StringVar(&logLevel, "log-level", "INFO", "Log level of the agent.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	eventDoneCh := make(chan struct{})
-	logCh, err := client.Agent().Monitor(logLevel, eventDoneCh, nil)
+	logCh, err := client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1

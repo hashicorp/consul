@@ -3,7 +3,6 @@ package command
 import (
 	"flag"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -12,17 +11,53 @@ import (
 
 type OperatorAutopilotSetCommand struct {
 	BaseCommand
+
+	// flags
+	cleanupDeadServers      configutil.BoolValue
+	maxTrailingLogs         configutil.UintValue
+	lastContactThreshold    configutil.DurationValue
+	serverStabilizationTime configutil.DurationValue
+	redundancyZoneTag       configutil.StringValue
+	disableUpgradeMigration configutil.BoolValue
+	upgradeVersionTag       configutil.StringValue
+}
+
+func (c *OperatorAutopilotSetCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.Var(&c.cleanupDeadServers, "cleanup-dead-servers",
+		"Controls whether Consul will automatically remove dead servers "+
+			"when new ones are successfully added. Must be one of `true|false`.")
+	c.FlagSet.Var(&c.maxTrailingLogs, "max-trailing-logs",
+		"Controls the maximum number of log entries that a server can trail the "+
+			"leader by before being considered unhealthy.")
+	c.FlagSet.Var(&c.lastContactThreshold, "last-contact-threshold",
+		"Controls the maximum amount of time a server can go without contact "+
+			"from the leader before being considered unhealthy. Must be a duration value "+
+			"such as `200ms`.")
+	c.FlagSet.Var(&c.serverStabilizationTime, "server-stabilization-time",
+		"Controls the minimum amount of time a server must be stable in the "+
+			"'healthy' state before being added to the cluster. Only takes effect if all "+
+			"servers are running Raft protocol version 3 or higher. Must be a duration "+
+			"value such as `10s`.")
+	c.FlagSet.Var(&c.redundancyZoneTag, "redundancy-zone-tag",
+		"(Enterprise-only) Controls the node_meta tag name used for separating servers into "+
+			"different redundancy zones.")
+	c.FlagSet.Var(&c.disableUpgradeMigration, "disable-upgrade-migration",
+		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
+			"it can perform a migration. Must be one of `true|false`.")
+	c.FlagSet.Var(&c.upgradeVersionTag, "upgrade-version-tag",
+		"(Enterprise-only) The node_meta tag to use for version info when performing upgrade "+
+			"migrations. If left blank, the Consul version will be used.")
 }
 
 func (c *OperatorAutopilotSetCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul operator autopilot set-config [options]
 
 Modifies the current Autopilot configuration.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *OperatorAutopilotSetCommand) Synopsis() string {
@@ -30,42 +65,8 @@ func (c *OperatorAutopilotSetCommand) Synopsis() string {
 }
 
 func (c *OperatorAutopilotSetCommand) Run(args []string) int {
-	var cleanupDeadServers configutil.BoolValue
-	var maxTrailingLogs configutil.UintValue
-	var lastContactThreshold configutil.DurationValue
-	var serverStabilizationTime configutil.DurationValue
-	var redundancyZoneTag configutil.StringValue
-	var disableUpgradeMigration configutil.BoolValue
-	var upgradeVersionTag configutil.StringValue
-
-	f := c.BaseCommand.NewFlagSet(c)
-
-	f.Var(&cleanupDeadServers, "cleanup-dead-servers",
-		"Controls whether Consul will automatically remove dead servers "+
-			"when new ones are successfully added. Must be one of `true|false`.")
-	f.Var(&maxTrailingLogs, "max-trailing-logs",
-		"Controls the maximum number of log entries that a server can trail the "+
-			"leader by before being considered unhealthy.")
-	f.Var(&lastContactThreshold, "last-contact-threshold",
-		"Controls the maximum amount of time a server can go without contact "+
-			"from the leader before being considered unhealthy. Must be a duration value "+
-			"such as `200ms`.")
-	f.Var(&serverStabilizationTime, "server-stabilization-time",
-		"Controls the minimum amount of time a server must be stable in the "+
-			"'healthy' state before being added to the cluster. Only takes effect if all "+
-			"servers are running Raft protocol version 3 or higher. Must be a duration "+
-			"value such as `10s`.")
-	f.Var(&redundancyZoneTag, "redundancy-zone-tag",
-		"(Enterprise-only) Controls the node_meta tag name used for separating servers into "+
-			"different redundancy zones.")
-	f.Var(&disableUpgradeMigration, "disable-upgrade-migration",
-		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
-			"it can perform a migration. Must be one of `true|false`.")
-	f.Var(&upgradeVersionTag, "upgrade-version-tag",
-		"(Enterprise-only) The node_meta tag to use for version info when performing upgrade "+
-			"migrations. If left blank, the Consul version will be used.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -74,7 +75,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
@@ -89,21 +90,21 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	}
 
 	// Update the config values based on the set flags.
-	cleanupDeadServers.Merge(&conf.CleanupDeadServers)
-	redundancyZoneTag.Merge(&conf.RedundancyZoneTag)
-	disableUpgradeMigration.Merge(&conf.DisableUpgradeMigration)
-	upgradeVersionTag.Merge(&conf.UpgradeVersionTag)
+	c.cleanupDeadServers.Merge(&conf.CleanupDeadServers)
+	c.redundancyZoneTag.Merge(&conf.RedundancyZoneTag)
+	c.disableUpgradeMigration.Merge(&conf.DisableUpgradeMigration)
+	c.upgradeVersionTag.Merge(&conf.UpgradeVersionTag)
 
 	trailing := uint(conf.MaxTrailingLogs)
-	maxTrailingLogs.Merge(&trailing)
+	c.maxTrailingLogs.Merge(&trailing)
 	conf.MaxTrailingLogs = uint64(trailing)
 
 	last := time.Duration(*conf.LastContactThreshold)
-	lastContactThreshold.Merge(&last)
+	c.lastContactThreshold.Merge(&last)
 	conf.LastContactThreshold = api.NewReadableDuration(last)
 
 	stablization := time.Duration(*conf.ServerStabilizationTime)
-	serverStabilizationTime.Merge(&stablization)
+	c.serverStabilizationTime.Merge(&stablization)
 	conf.ServerStabilizationTime = api.NewReadableDuration(stablization)
 
 	// Check-and-set the new configuration.

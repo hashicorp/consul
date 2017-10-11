@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"sort"
-	"strings"
 )
 
 // InfoCommand is a Command implementation that queries a running
@@ -12,25 +11,13 @@ type InfoCommand struct {
 	BaseCommand
 }
 
-func (c *InfoCommand) Help() string {
-	helpText := `
-Usage: consul info [options]
-
-	Provides debugging information for operators
-
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
-}
-
 func (c *InfoCommand) Run(args []string) int {
-	c.BaseCommand.NewFlagSet(c)
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -77,6 +64,16 @@ func (c *InfoCommand) Run(args []string) int {
 		}
 	}
 	return 0
+}
+
+func (c *InfoCommand) Help() string {
+	c.InitFlagSet()
+	return c.HelpCommand(`
+Usage: consul info [options]
+
+	Provides debugging information for operators
+
+`)
 }
 
 func (c *InfoCommand) Synopsis() string {

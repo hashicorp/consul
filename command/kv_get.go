@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
@@ -15,10 +14,39 @@ import (
 // a key from the key-value store.
 type KVGetCommand struct {
 	BaseCommand
+
+	// flags
+	base64encode bool
+	detailed     bool
+	keys         bool
+	recurse      bool
+	separator    string
+}
+
+func (c *KVGetCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.base64encode, "base64", false,
+		"Base64 encode the value. The default value is false.")
+	c.FlagSet.BoolVar(&c.detailed, "detailed", false,
+		"Provide additional metadata about the key in addition to the value such "+
+			"as the ModifyIndex and any flags that may have been set on the key. "+
+			"The default value is false.")
+	c.FlagSet.BoolVar(&c.keys, "keys", false,
+		"List keys which start with the given prefix, but not their values. "+
+			"This is especially useful if you only need the key names themselves. "+
+			"This option is commonly combined with the -separator option. The default "+
+			"value is false.")
+	c.FlagSet.BoolVar(&c.recurse, "recurse", false,
+		"Recursively look at all keys prefixed with the given path. The default "+
+			"value is false.")
+	c.FlagSet.StringVar(&c.separator, "separator", "/",
+		"String to use as a separator between keys. The default value is \"/\", "+
+			"but this option is only taken into account when paired with the -keys flag.")
 }
 
 func (c *KVGetCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   Retrieves the value from Consul's key-value store at the given key name. If no
@@ -49,39 +77,19 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KVGetCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-	base64encode := f.Bool("base64", false,
-		"Base64 encode the value. The default value is false.")
-	detailed := f.Bool("detailed", false,
-		"Provide additional metadata about the key in addition to the value such "+
-			"as the ModifyIndex and any flags that may have been set on the key. "+
-			"The default value is false.")
-	keys := f.Bool("keys", false,
-		"List keys which start with the given prefix, but not their values. "+
-			"This is especially useful if you only need the key names themselves. "+
-			"This option is commonly combined with the -separator option. The default "+
-			"value is false.")
-	recurse := f.Bool("recurse", false,
-		"Recursively look at all keys prefixed with the given path. The default "+
-			"value is false.")
-	separator := f.String("separator", "/",
-		"String to use as a separator between keys. The default value is \"/\", "+
-			"but this option is only taken into account when paired with the -keys flag.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 
 	// Check for arg validation
-	args = f.Args()
+	args = c.FlagSet.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -101,22 +109,22 @@ func (c *KVGetCommand) Run(args []string) int {
 
 	// If the key is empty and we are not doing a recursive or key-based lookup,
 	// this is an error.
-	if key == "" && !(*recurse || *keys) {
+	if key == "" && !(c.recurse || c.keys) {
 		c.UI.Error("Error! Missing KEY argument")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	switch {
-	case *keys:
-		keys, _, err := client.KV().Keys(key, *separator, &api.QueryOptions{
-			AllowStale: c.BaseCommand.HTTPStale(),
+	case c.keys:
+		keys, _, err := client.KV().Keys(key, c.separator, &api.QueryOptions{
+			AllowStale: c.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -128,9 +136,9 @@ func (c *KVGetCommand) Run(args []string) int {
 		}
 
 		return 0
-	case *recurse:
+	case c.recurse:
 		pairs, _, err := client.KV().List(key, &api.QueryOptions{
-			AllowStale: c.BaseCommand.HTTPStale(),
+			AllowStale: c.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -138,9 +146,9 @@ func (c *KVGetCommand) Run(args []string) int {
 		}
 
 		for i, pair := range pairs {
-			if *detailed {
+			if c.detailed {
 				var b bytes.Buffer
-				if err := prettyKVPair(&b, pair, *base64encode); err != nil {
+				if err := prettyKVPair(&b, pair, c.base64encode); err != nil {
 					c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 					return 1
 				}
@@ -151,7 +159,7 @@ func (c *KVGetCommand) Run(args []string) int {
 					c.UI.Info("")
 				}
 			} else {
-				if *base64encode {
+				if c.base64encode {
 					c.UI.Info(fmt.Sprintf("%s:%s", pair.Key, base64.StdEncoding.EncodeToString(pair.Value)))
 				} else {
 					c.UI.Info(fmt.Sprintf("%s:%s", pair.Key, pair.Value))
@@ -162,7 +170,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	default:
 		pair, _, err := client.KV().Get(key, &api.QueryOptions{
-			AllowStale: c.BaseCommand.HTTPStale(),
+			AllowStale: c.HTTPStale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -174,9 +182,9 @@ func (c *KVGetCommand) Run(args []string) int {
 			return 1
 		}
 
-		if *detailed {
+		if c.detailed {
 			var b bytes.Buffer
-			if err := prettyKVPair(&b, pair, *base64encode); err != nil {
+			if err := prettyKVPair(&b, pair, c.base64encode); err != nil {
 				c.UI.Error(fmt.Sprintf("Error rendering KV pair: %s", err))
 				return 1
 			}

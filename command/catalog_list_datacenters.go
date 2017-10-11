@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/mitchellh/cli"
 )
@@ -14,7 +13,8 @@ type CatalogListDatacentersCommand struct {
 }
 
 func (c *CatalogListDatacentersCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul catalog datacenters [options]
 
   Retrieves the list of all known datacenters. This datacenters are sorted in
@@ -27,25 +27,22 @@ Usage: consul catalog datacenters [options]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *CatalogListDatacentersCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	if l := len(f.Args()); l > 0 {
+	if l := len(c.FlagSet.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1

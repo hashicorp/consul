@@ -18,10 +18,29 @@ var _ cli.Command = (*CatalogListServicesCommand)(nil)
 // datacenters the agent knows about.
 type CatalogListServicesCommand struct {
 	BaseCommand
+
+	// flags
+	node     string
+	nodeMeta map[string]string
+	tags     bool
+}
+
+func (c *CatalogListServicesCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.StringVar(&c.node, "node", "",
+		"Node `id or name` for which to list services.")
+	c.FlagSet.Var((*configutil.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+		"filter nodes with the given `key=value` pairs. If specified, only "+
+		"services running on nodes matching the given metadata will be returned. "+
+		"This flag may be specified multiple times to filter on multiple sources "+
+		"of metadata.")
+	c.FlagSet.BoolVar(&c.tags, "tags", false, "Display each service's tags as a "+
+		"comma-separated list beside each service entry.")
 }
 
 func (c *CatalogListServicesCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul catalog services [options]
 
   Retrieves the list services registered in a given datacenter. By default, the
@@ -45,46 +64,31 @@ Usage: consul catalog services [options]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *CatalogListServicesCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-
-	node := f.String("node", "", "Node `id or name` for which to list services.")
-
-	nodeMeta := make(map[string]string)
-	f.Var((*configutil.FlagMapValue)(&nodeMeta), "node-meta", "Metadata to "+
-		"filter nodes with the given `key=value` pairs. If specified, only "+
-		"services running on nodes matching the given metadata will be returned. "+
-		"This flag may be specified multiple times to filter on multiple sources "+
-		"of metadata.")
-
-	tags := f.Bool("tags", false, "Display each service's tags as a "+
-		"comma-separated list beside each service entry.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	if l := len(f.Args()); l > 0 {
+	if l := len(c.FlagSet.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	var services map[string][]string
-	if *node != "" {
-		catalogNode, _, err := client.Catalog().Node(*node, &api.QueryOptions{
-			NodeMeta: nodeMeta,
+	if c.node != "" {
+		catalogNode, _, err := client.Catalog().Node(c.node, &api.QueryOptions{
+			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing services for node: %s", err))
@@ -98,7 +102,7 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 		}
 	} else {
 		services, _, err = client.Catalog().Services(&api.QueryOptions{
-			NodeMeta: nodeMeta,
+			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing services: %s", err))
@@ -119,7 +123,7 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 	}
 	sort.Strings(order)
 
-	if *tags {
+	if c.tags {
 		var b bytes.Buffer
 		tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 		for _, s := range order {

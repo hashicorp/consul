@@ -12,10 +12,20 @@ import (
 // estimated round trip time between nodes using network coordinates.
 type RTTCommand struct {
 	BaseCommand
+
+	// flags
+	wan bool
+}
+
+func (c *RTTCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.wan, "wan", false,
+		"Use WAN coordinates instead of LAN coordinates.")
 }
 
 func (c *RTTCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul rtt [options] node1 [node2]
 
   Estimates the round trip time between two nodes using Consul's network
@@ -34,24 +44,17 @@ Usage: consul rtt [options] node1 [node2]
   because they are maintained by independent Serf gossip areas, so they are
   not compatible.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *RTTCommand) Run(args []string) int {
-	var wan bool
-
-	f := c.BaseCommand.NewFlagSet(c)
-
-	f.BoolVar(&wan, "wan", false, "Use WAN coordinates instead of LAN coordinates.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// They must provide at least one node.
-	nodes := f.Args()
+	nodes := c.FlagSet.Args()
 	if len(nodes) < 1 || len(nodes) > 2 {
 		c.UI.Error("One or two node names must be specified")
 		c.UI.Error("")
@@ -60,7 +63,7 @@ func (c *RTTCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client.
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -69,7 +72,7 @@ func (c *RTTCommand) Run(args []string) int {
 
 	var source string
 	var coord1, coord2 *coordinate.Coordinate
-	if wan {
+	if c.wan {
 		source = "WAN"
 
 		// Default the second node to the agent if none was given.

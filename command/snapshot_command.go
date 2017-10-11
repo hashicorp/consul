@@ -1,8 +1,6 @@
 package command
 
 import (
-	"strings"
-
 	"github.com/mitchellh/cli"
 )
 
@@ -17,8 +15,7 @@ func (c *SnapshotCommand) Run(args []string) int {
 }
 
 func (c *SnapshotCommand) Help() string {
-	helpText := `
-Usage: consul snapshot <subcommand> [options] [args]
+	return `Usage: consul snapshot <subcommand> [options] [args]
 
   This command has subcommands for saving, restoring, and inspecting the state
   of the Consul servers for disaster recovery. These are atomic, point-in-time
@@ -47,7 +44,6 @@ Usage: consul snapshot <subcommand> [options] [args]
 
   For more examples, ask for subcommand help or view the documentation.
 `
-	return strings.TrimSpace(helpText)
 }
 
 func (c *SnapshotCommand) Synopsis() string {

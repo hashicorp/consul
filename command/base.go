@@ -35,7 +35,8 @@ type BaseCommand struct {
 
 	HideNormalFlagsHelp bool
 
-	flagSet *flag.FlagSet
+	FlagSet *flag.FlagSet
+	hidden  *flag.FlagSet
 
 	// These are the options which correspond to the HTTP API options
 	httpAddr      configutil.StringValue
@@ -56,7 +57,7 @@ func (c *BaseCommand) HTTPClient() (*api.Client, error) {
 	if !c.hasClientHTTP() && !c.hasServerHTTP() {
 		panic("no http flags defined")
 	}
-	if !c.flagSet.Parsed() {
+	if !c.FlagSet.Parsed() {
 		panic("flags have not been parsed")
 	}
 
@@ -141,19 +142,19 @@ func (c *BaseCommand) httpFlagsServer() *flag.FlagSet {
 
 // NewFlagSet creates a new flag set for the given command. It automatically
 // generates help output and adds the appropriate API flags.
-func (c *BaseCommand) NewFlagSet(command cli.Command) *flag.FlagSet {
-	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flagSet.Usage = func() { c.UI.Error(command.Help()) }
+func (c *BaseCommand) InitFlagSet() {
+	c.hidden = flag.NewFlagSet("", flag.ContinueOnError)
+	c.FlagSet = flag.NewFlagSet("", flag.ContinueOnError)
 
 	if c.hasClientHTTP() {
 		c.httpFlagsClient().VisitAll(func(f *flag.Flag) {
-			c.flagSet.Var(f.Value, f.Name, f.DefValue)
+			c.FlagSet.Var(f.Value, f.Name, f.Usage)
 		})
 	}
 
 	if c.hasServerHTTP() {
 		c.httpFlagsServer().VisitAll(func(f *flag.Flag) {
-			c.flagSet.Var(f.Value, f.Name, f.DefValue)
+			c.FlagSet.Var(f.Value, f.Name, f.Usage)
 		})
 	}
 
@@ -164,24 +165,11 @@ func (c *BaseCommand) NewFlagSet(command cli.Command) *flag.FlagSet {
 			c.UI.Error(errScanner.Text())
 		}
 	}()
-	c.flagSet.SetOutput(errW)
-
-	return c.flagSet
+	c.FlagSet.SetOutput(errW)
 }
 
-// Parse is used to parse the underlying flag set.
-func (c *BaseCommand) Parse(args []string) error {
-	return c.flagSet.Parse(args)
-}
-
-// Help returns the help for this flagSet.
-func (c *BaseCommand) Help() string {
-	// Some commands with subcommands (kv/snapshot) call this without initializing
-	// any flags first, so exit early to avoid a panic
-	if c.flagSet == nil {
-		return ""
-	}
-	return c.helpFlagsFor(c.flagSet)
+func (c *BaseCommand) HelpCommand(msg string) string {
+	return strings.TrimSpace(msg + c.helpFlagsFor())
 }
 
 // hasClientHTTP returns true if this meta command contains client HTTP flags.
@@ -198,7 +186,11 @@ func (c *BaseCommand) hasServerHTTP() bool {
 // help output. This function is sad because there's no "merging" of command
 // line flags. We explicitly pull out our "common" options into another section
 // by doing string comparisons :(.
-func (c *BaseCommand) helpFlagsFor(f *flag.FlagSet) string {
+func (c *BaseCommand) helpFlagsFor() string {
+	if c.FlagSet == nil {
+		panic("FlagSet not initialized. Did you forget to call InitFlagSet()?")
+	}
+
 	httpFlagsClient := c.httpFlagsClient()
 	httpFlagsServer := c.httpFlagsServer()
 
@@ -220,7 +212,7 @@ func (c *BaseCommand) helpFlagsFor(f *flag.FlagSet) string {
 
 	if !c.HideNormalFlagsHelp {
 		firstCommand := true
-		f.VisitAll(func(f *flag.Flag) {
+		c.FlagSet.VisitAll(func(f *flag.Flag) {
 			// Skip HTTP flags as they will be grouped separately
 			if flagContains(httpFlagsClient, f) || flagContains(httpFlagsServer, f) {
 				return

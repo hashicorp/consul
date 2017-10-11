@@ -9,10 +9,29 @@ import (
 // node or service maintenance mode.
 type MaintCommand struct {
 	BaseCommand
+
+	// flags
+	enable    bool
+	disable   bool
+	reason    string
+	serviceID string
+}
+
+func (c *MaintCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.enable, "enable", false,
+		"Enable maintenance mode.")
+	c.FlagSet.BoolVar(&c.disable, "disable", false,
+		"Disable maintenance mode.")
+	c.FlagSet.StringVar(&c.reason, "reason", "",
+		"Text describing the maintenance reason.")
+	c.FlagSet.StringVar(&c.serviceID, "service", "",
+		"Control maintenance mode for a specific service ID.")
 }
 
 func (c *MaintCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul maint [options]
 
   Places a node or service into maintenance mode. During maintenance mode,
@@ -36,44 +55,31 @@ Usage: consul maint [options]
   If no arguments are given, the agent's maintenance status will be shown.
   This will return blank if nothing is currently under maintenance.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *MaintCommand) Run(args []string) int {
-	var enable bool
-	var disable bool
-	var reason string
-	var serviceID string
-
-	f := c.BaseCommand.NewFlagSet(c)
-
-	f.BoolVar(&enable, "enable", false, "Enable maintenance mode.")
-	f.BoolVar(&disable, "disable", false, "Disable maintenance mode.")
-	f.StringVar(&reason, "reason", "", "Text describing the maintenance reason.")
-	f.StringVar(&serviceID, "service", "", "Control maintenance mode for a specific service ID.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// Ensure we don't have conflicting args
-	if enable && disable {
+	if c.enable && c.disable {
 		c.UI.Error("Only one of -enable or -disable may be provided")
 		return 1
 	}
-	if !enable && reason != "" {
+	if !c.enable && c.reason != "" {
 		c.UI.Error("Reason may only be provided with -enable")
 		return 1
 	}
-	if !enable && !disable && serviceID != "" {
+	if !c.enable && !c.disable && c.serviceID != "" {
 		c.UI.Error("Service requires either -enable or -disable")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -85,7 +91,7 @@ func (c *MaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !enable && !disable {
+	if !c.enable && !c.disable {
 		// List mode - list nodes/services in maintenance mode
 		checks, err := a.Checks()
 		if err != nil {
@@ -110,10 +116,10 @@ func (c *MaintCommand) Run(args []string) int {
 		return 0
 	}
 
-	if enable {
+	if c.enable {
 		// Enable node maintenance
-		if serviceID == "" {
-			if err := a.EnableNodeMaintenance(reason); err != nil {
+		if c.serviceID == "" {
+			if err := a.EnableNodeMaintenance(c.reason); err != nil {
 				c.UI.Error(fmt.Sprintf("Error enabling node maintenance: %s", err))
 				return 1
 			}
@@ -122,17 +128,17 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		// Enable service maintenance
-		if err := a.EnableServiceMaintenance(serviceID, reason); err != nil {
+		if err := a.EnableServiceMaintenance(c.serviceID, c.reason); err != nil {
 			c.UI.Error(fmt.Sprintf("Error enabling service maintenance: %s", err))
 			return 1
 		}
-		c.UI.Output(fmt.Sprintf("Service maintenance is now enabled for %q", serviceID))
+		c.UI.Output(fmt.Sprintf("Service maintenance is now enabled for %q", c.serviceID))
 		return 0
 	}
 
-	if disable {
+	if c.disable {
 		// Disable node maintenance
-		if serviceID == "" {
+		if c.serviceID == "" {
 			if err := a.DisableNodeMaintenance(); err != nil {
 				c.UI.Error(fmt.Sprintf("Error disabling node maintenance: %s", err))
 				return 1
@@ -142,11 +148,11 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		// Disable service maintenance
-		if err := a.DisableServiceMaintenance(serviceID); err != nil {
+		if err := a.DisableServiceMaintenance(c.serviceID); err != nil {
 			c.UI.Error(fmt.Sprintf("Error disabling service maintenance: %s", err))
 			return 1
 		}
-		c.UI.Output(fmt.Sprintf("Service maintenance is now disabled for %q", serviceID))
+		c.UI.Output(fmt.Sprintf("Service maintenance is now disabled for %q", c.serviceID))
 		return 0
 	}
 

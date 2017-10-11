@@ -16,10 +16,31 @@ var _ cli.Command = (*CatalogListNodesCommand)(nil)
 // nodes in the catalog.
 type CatalogListNodesCommand struct {
 	BaseCommand
+
+	// flags
+	detailed bool
+	near     string
+	nodeMeta map[string]string
+	service  string
+}
+
+func (c *CatalogListNodesCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
+		"the nodes including their addresses and metadata.")
+	c.FlagSet.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
+		"order based on estimated round-trip time from that node. "+
+		"Passing \"_agent\" will use this agent's node for sorting.")
+	c.FlagSet.Var((*configutil.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+		"filter nodes with the given `key=value` pairs. This flag may be "+
+		"specified multiple times to filter on multiple sources of metadata.")
+	c.FlagSet.StringVar(&c.service, "service", "", "Service `id or name` to filter nodes. "+
+		"Only nodes which are providing the given service will be returned.")
 }
 
 func (c *CatalogListNodesCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul catalog nodes [options]
 
   Retrieves the list nodes registered in a given datacenter. By default, the
@@ -48,50 +69,32 @@ Usage: consul catalog nodes [options]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *CatalogListNodesCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-
-	detailed := f.Bool("detailed", false, "Output detailed information about "+
-		"the nodes including their addresses and metadata.")
-
-	near := f.String("near", "", "Node name to sort the node list in ascending "+
-		"order based on estimated round-trip time from that node. "+
-		"Passing \"_agent\" will use this agent's node for sorting.")
-
-	nodeMeta := make(map[string]string)
-	f.Var((*configutil.FlagMapValue)(&nodeMeta), "node-meta", "Metadata to "+
-		"filter nodes with the given `key=value` pairs. This flag may be "+
-		"specified multiple times to filter on multiple sources of metadata.")
-
-	service := f.String("service", "", "Service `id or name` to filter nodes. "+
-		"Only nodes which are providing the given service will be returned.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	if l := len(f.Args()); l > 0 {
+	if l := len(c.FlagSet.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	var nodes []*api.Node
-	if *service != "" {
-		services, _, err := client.Catalog().Service(*service, "", &api.QueryOptions{
-			Near:     *near,
-			NodeMeta: nodeMeta,
+	if c.service != "" {
+		services, _, err := client.Catalog().Service(c.service, "", &api.QueryOptions{
+			Near:     c.near,
+			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes for service: %s", err))
@@ -113,8 +116,8 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 		}
 	} else {
 		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
-			Near:     *near,
-			NodeMeta: nodeMeta,
+			Near:     c.near,
+			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))
@@ -128,7 +131,7 @@ func (c *CatalogListNodesCommand) Run(args []string) int {
 		return 0
 	}
 
-	output, err := printNodes(nodes, *detailed)
+	output, err := printNodes(nodes, c.detailed)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error printing nodes: %s", err))
 		return 1

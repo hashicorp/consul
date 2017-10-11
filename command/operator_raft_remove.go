@@ -3,17 +3,29 @@ package command
 import (
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
 
 type OperatorRaftRemoveCommand struct {
 	BaseCommand
+
+	// flags
+	address string
+	id      string
+}
+
+func (c *OperatorRaftRemoveCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.StringVar(&c.address, "address", "",
+		"The address to remove from the Raft configuration.")
+	c.FlagSet.StringVar(&c.id, "id", "",
+		"The ID to remove from the Raft configuration.")
 }
 
 func (c *OperatorRaftRemoveCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul operator raft remove-peer [options]
 
 Remove the Consul server with given -address from the Raft configuration.
@@ -25,9 +37,7 @@ quorum. If the server still shows in the output of the "consul members" command,
 it is preferable to clean up by simply running "consul force-leave" instead of
 this command.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *OperatorRaftRemoveCommand) Synopsis() string {
@@ -35,15 +45,8 @@ func (c *OperatorRaftRemoveCommand) Synopsis() string {
 }
 
 func (c *OperatorRaftRemoveCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-
-	var address, id string
-	f.StringVar(&address, "address", "",
-		"The address to remove from the Raft configuration.")
-	f.StringVar(&id, "id", "",
-		"The ID to remove from the Raft configuration.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -52,21 +55,21 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
 	// Fetch the current configuration.
-	if err := raftRemovePeers(address, id, client.Operator()); err != nil {
+	if err := raftRemovePeers(c.address, c.id, client.Operator()); err != nil {
 		c.UI.Error(fmt.Sprintf("Error removing peer: %v", err))
 		return 1
 	}
-	if address != "" {
-		c.UI.Output(fmt.Sprintf("Removed peer with address %q", address))
+	if c.address != "" {
+		c.UI.Output(fmt.Sprintf("Removed peer with address %q", c.address))
 	} else {
-		c.UI.Output(fmt.Sprintf("Removed peer with id %q", id))
+		c.UI.Output(fmt.Sprintf("Removed peer with id %q", c.id))
 	}
 
 	return 0

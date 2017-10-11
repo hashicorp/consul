@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -28,7 +27,8 @@ func (c *KVImportCommand) Synopsis() string {
 }
 
 func (c *KVImportCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul kv import [DATA]
 
   Imports key-value pairs to the key-value store from the JSON representation
@@ -48,20 +48,17 @@ Usage: consul kv import [DATA]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KVImportCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// Check for arg validation
-	args = f.Args()
+	args = c.FlagSet.Args()
 	data, err := c.dataFromArgs(args)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error! %s", err))
@@ -69,7 +66,7 @@ func (c *KVImportCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
