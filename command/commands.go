@@ -1,13 +1,11 @@
 package command
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
-	"sort"
-	"strings"
 	"syscall"
 
+	"github.com/hashicorp/consul/command/cat"
 	"github.com/hashicorp/consul/command/event"
 	execmd "github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
@@ -49,12 +47,7 @@ func init() {
 		},
 
 		"catalog": func() (cli.Command, error) {
-			return &CatalogCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return cat.New(), nil
 		},
 
 		"catalog datacenters": func() (cli.Command, error) {
@@ -331,20 +324,4 @@ func makeShutdownCh() <-chan struct{} {
 	}()
 
 	return resultCh
-}
-
-// mapToKV converts a map[string]string into a human-friendly key=value list,
-// sorted by name.
-func mapToKV(m map[string]string, joiner string) string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	r := make([]string, len(keys))
-	for i, k := range keys {
-		r[i] = fmt.Sprintf("%s=%s", k, m[k])
-	}
-	return strings.Join(r, joiner)
 }
