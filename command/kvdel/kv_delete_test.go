@@ -49,6 +49,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 	}
 
 	for name, tc := range cases {
+		c.initFlags()
 		// Ensure our buffer is always clear
 		if ui.ErrorWriter != nil {
 			ui.ErrorWriter.Reset()
