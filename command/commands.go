@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -349,12 +350,7 @@ func init() {
 		},
 
 		"validate": func() (cli.Command, error) {
-			return &ValidateCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return validate.New(ui), nil
 		},
 
 		"version": func() (cli.Command, error) {
