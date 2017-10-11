@@ -1,4 +1,4 @@
-package command
+package forceleave
 
 import (
 	"strings"
@@ -10,19 +10,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
-	ui := cli.NewMockUi()
-	return ui, &ForceLeaveCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestForceLeaveCommand_implements(t *testing.T) {
+func TestForceLeaveCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &ForceLeaveCommand{}
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestForceLeaveCommandRun(t *testing.T) {
@@ -40,7 +32,8 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	// Forcibly shutdown a2 so that it appears "failed" in a1
 	a2.Shutdown()
 
-	ui, c := testForceLeaveCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{
 		"-http-addr=" + a1.HTTPAddr(),
 		a2.Config.NodeName,
@@ -66,7 +59,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
-	ui, c := testForceLeaveCommand(t)
+	c := New(ui)
 	args := []string{"-http-addr=foo"}
 
 	code := c.Run(args)
