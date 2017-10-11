@@ -1,4 +1,4 @@
-package command
+package catlistsvc
 
 import (
 	"strings"
@@ -9,24 +9,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testCatalogListServicesCommand(t *testing.T) (*cli.MockUi, *CatalogListServicesCommand) {
-	ui := cli.NewMockUi()
-	return ui, &CatalogListServicesCommand{
-		BaseCommand: BaseCommand{
-			Flags: FlagSetHTTP,
-			UI:    ui,
-		},
-	}
-}
-
 func TestCatalogListServicesCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(CatalogListServicesCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestCatalogListServicesCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testCatalogListServicesCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -75,7 +68,8 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 	}
 
 	t.Run("simple", func(t *testing.T) {
-		ui, c := testCatalogListServicesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 		}
@@ -91,7 +85,8 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("tags", func(t *testing.T) {
-		ui, c := testCatalogListServicesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-tags",
@@ -108,7 +103,8 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("node_missing", func(t *testing.T) {
-		ui, c := testCatalogListServicesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-node", "not-a-real-node",
@@ -125,7 +121,8 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("node_present", func(t *testing.T) {
-		ui, c := testCatalogListServicesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-node", a.Config.NodeName,
@@ -142,7 +139,8 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 	})
 
 	t.Run("node-meta", func(t *testing.T) {
-		ui, c := testCatalogListServicesCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-node-meta", "foo=bar",

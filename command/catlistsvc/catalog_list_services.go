@@ -1,7 +1,8 @@
-package command
+package catlistsvc
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"sort"
 	"strings"
@@ -12,12 +13,16 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-var _ cli.Command = (*CatalogListServicesCommand)(nil)
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-// CatalogListServicesCommand is a Command implementation that is used to fetch all the
-// datacenters the agent knows about.
-type CatalogListServicesCommand struct {
-	BaseCommand
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 
 	// flags
 	node     string
@@ -25,61 +30,36 @@ type CatalogListServicesCommand struct {
 	tags     bool
 }
 
-func (c *CatalogListServicesCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.StringVar(&c.node, "node", "",
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.node, "node", "",
 		"Node `id or name` for which to list services.")
-	c.FlagSet.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
+	c.flags.Var((*flags.FlagMapValue)(&c.nodeMeta), "node-meta", "Metadata to "+
 		"filter nodes with the given `key=value` pairs. If specified, only "+
 		"services running on nodes matching the given metadata will be returned. "+
 		"This flag may be specified multiple times to filter on multiple sources "+
 		"of metadata.")
-	c.FlagSet.BoolVar(&c.tags, "tags", false, "Display each service's tags as a "+
+	c.flags.BoolVar(&c.tags, "tags", false, "Display each service's tags as a "+
 		"comma-separated list beside each service entry.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *CatalogListServicesCommand) Help() string {
+func (c *cmd) Run(args []string) int {
 	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul catalog services [options]
-
-  Retrieves the list services registered in a given datacenter. By default, the
-  datacenter of the local agent is queried.
-
-  To retrieve the list of services:
-
-      $ consul catalog services
-
-  To include the services' tags in the output:
-
-      $ consul catalog services -tags
-
-  To list services which run on a particular node:
-
-      $ consul catalog services -node=web
-
-  To filter services on node metadata:
-
-      $ consul catalog services -node-meta="foo=bar"
-
-  For a full list of options and examples, please see the Consul documentation.
-
-`)
-}
-
-func (c *CatalogListServicesCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
-	if l := len(c.FlagSet.Args()); l > 0 {
+	if l := len(c.flags.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -144,6 +124,32 @@ func (c *CatalogListServicesCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *CatalogListServicesCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Lists all registered services in a datacenter"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul catalog services [options]
+
+  Retrieves the list services registered in a given datacenter. By default, the
+  datacenter of the local agent is queried.
+
+  To retrieve the list of services:
+
+      $ consul catalog services
+
+  To include the services' tags in the output:
+
+      $ consul catalog services -tags
+
+  To list services which run on a particular node:
+
+      $ consul catalog services -node=web
+
+  To filter services on node metadata:
+
+      $ consul catalog services -node-meta="foo=bar"
+
+  For a full list of options and examples, please see the Consul documentation.`
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
