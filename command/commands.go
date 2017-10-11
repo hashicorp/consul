@@ -12,6 +12,7 @@ import (
 	execmd "github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
+	"github.com/hashicorp/consul/command/keygen"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -100,12 +101,7 @@ func init() {
 		},
 
 		"keygen": func() (cli.Command, error) {
-			return &KeygenCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return keygen.New(ui), nil
 		},
 
 		"keyring": func() (cli.Command, error) {

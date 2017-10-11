@@ -1,27 +1,24 @@
-package command
+package keygen
 
 import (
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/mitchellh/cli"
 )
 
-func TestKeygenCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &KeygenCommand{}
+func TestKeygenCommand_noTabs(t *testing.T) {
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestKeygenCommand(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
-	c := &KeygenCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetNone,
-		},
-	}
-	code := c.Run(nil)
+	cmd := New(ui)
+	code := cmd.Run(nil)
 	if code != 0 {
 		t.Fatalf("bad: %d", code)
 	}
