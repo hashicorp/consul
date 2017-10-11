@@ -1,4 +1,4 @@
-package command
+package kvput
 
 import (
 	"bytes"
@@ -15,29 +15,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
-	ui := cli.NewMockUi()
-	return ui, &KVPutCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestKVPutCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &KVPutCommand{}
-}
-
 func TestKVPutCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(KVDeleteCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestKVPutCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -92,7 +80,8 @@ func TestKVPutCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -120,7 +109,8 @@ func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -148,7 +138,8 @@ func TestKVPutCommand_RunBase64(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	const encodedString = "aGVsbG8gd29ybGQK"
 
@@ -184,7 +175,8 @@ func TestKVPutCommand_File(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	f := testutil.TempFile(t, "kv-put-command-file")
 	defer os.Remove(f.Name())
@@ -214,7 +206,8 @@ func TestKVPutCommand_File(t *testing.T) {
 
 func TestKVPutCommand_FileNoExist(t *testing.T) {
 	t.Parallel()
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"foo", "@/nope/definitely/not-a-real-file.txt",
@@ -239,7 +232,8 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 
 	stdinR, stdinW := io.Pipe()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	c.testStdin = stdinR
 
 	go func() {
@@ -273,7 +267,8 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -301,7 +296,8 @@ func TestKVPutCommand_Flags(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -339,7 +335,8 @@ func TestKVPutCommand_CAS(t *testing.T) {
 		t.Fatalf("err: %#v", err)
 	}
 
-	ui, c := testKVPutCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
