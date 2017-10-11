@@ -1,17 +1,25 @@
-package command
+package keyring
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
-// KeyringCommand is a Command implementation that handles querying, installing,
-// and removing gossip encryption keys from a keyring.
-type KeyringCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
+
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 
 	// flags
 	installKey string
@@ -21,29 +29,32 @@ type KeyringCommand struct {
 	relay      int
 }
 
-func (c *KeyringCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.StringVar(&c.installKey, "install", "",
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.installKey, "install", "",
 		"Install a new encryption key. This will broadcast the new key to "+
 			"all members in the cluster.")
-	c.FlagSet.StringVar(&c.useKey, "use", "",
+	c.flags.StringVar(&c.useKey, "use", "",
 		"Change the primary encryption key, which is used to encrypt "+
 			"messages. The key must already be installed before this operation "+
 			"can succeed.")
-	c.FlagSet.StringVar(&c.removeKey, "remove", "",
+	c.flags.StringVar(&c.removeKey, "remove", "",
 		"Remove the given key from the cluster. This operation may only be "+
 			"performed on keys which are not currently the primary key.")
-	c.FlagSet.BoolVar(&c.listKeys, "list", false,
+	c.flags.BoolVar(&c.listKeys, "list", false,
 		"List all keys currently in use within the cluster.")
-	c.FlagSet.IntVar(&c.relay, "relay-factor", 0,
+	c.flags.IntVar(&c.relay, "relay-factor", 0,
 		"Setting this to a non-zero value will cause nodes to relay their response "+
 			"to the operation through this many randomly-chosen other nodes in the "+
 			"cluster. The maximum allowed value is 5.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *KeyringCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -78,7 +89,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	// All other operations will require a client connection
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -130,7 +141,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *KeyringCommand) handleList(responses []*consulapi.KeyringResponse) {
+func (c *cmd) handleList(responses []*consulapi.KeyringResponse) {
 	for _, response := range responses {
 		pool := response.Datacenter + " (LAN)"
 		if response.Segment != "" {
@@ -148,10 +159,12 @@ func (c *KeyringCommand) handleList(responses []*consulapi.KeyringResponse) {
 	}
 }
 
-func (c *KeyringCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul keyring [options]
+func (c *cmd) Synopsis() string {
+	return "Manages gossip layer encryption keys"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul keyring [options]
 
   Manages encryption keys used for gossip messages. Gossip encryption is
   optional. When enabled, this command may be used to examine active encryption
@@ -164,11 +177,6 @@ Usage: consul keyring [options]
 
   All variations of the keyring command return 0 if all nodes reply and there
   are no errors. If any node fails to reply or reports failure, the exit code
-  will be 1.
-
-`)
-}
-
-func (c *KeyringCommand) Synopsis() string {
-	return "Manages gossip layer encryption keys"
+  will be 1.`
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
