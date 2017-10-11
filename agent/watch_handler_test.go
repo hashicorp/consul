@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"github.com/hashicorp/consul/watch"
 )
 
 func TestMakeWatchHandler(t *testing.T) {
@@ -54,7 +55,11 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		w.Write([]byte("Ok, i see"))
 	}))
 	defer server.Close()
-	headers := map[string][]string{"X-Custom": {"abc", "def"}}
-	handler := makeHTTPWatchHandler(os.Stderr, "POST", server.URL, headers, time.Minute, false)
+	config := watch.HttpHandlerConfig{
+		Path:    server.URL,
+		Header:  map[string][]string{"X-Custom": {"abc", "def"}},
+		Timeout: time.Minute,
+	}
+	handler := makeHTTPWatchHandler(os.Stderr, &config)
 	handler(100, []string{"foo", "bar", "baz"})
 }
