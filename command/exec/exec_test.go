@@ -1,4 +1,4 @@
-package command
+package exec
 
 import (
 	"strings"
@@ -11,19 +11,10 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testExecCommand(t *testing.T) (*cli.MockUi, *ExecCommand) {
-	ui := cli.NewMockUi()
-	return ui, &ExecCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
+func TestExecCommand_noTabs(t *testing.T) {
+	if strings.ContainsRune(New(nil, nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
 	}
-}
-
-func TestExecCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &ExecCommand{}
 }
 
 func TestExecCommandRun(t *testing.T) {
@@ -33,7 +24,8 @@ func TestExecCommandRun(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	ui, c := testExecCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-wait=1s", "uptime"}
 
 	code := c.Run(args)
@@ -53,7 +45,8 @@ func TestExecCommandRun_NoShell(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	ui, c := testExecCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-shell=false", "-wait=1s", "uptime"}
 
 	code := c.Run(args)
@@ -94,7 +87,8 @@ func TestExecCommandRun_CrossDC(t *testing.T) {
 		}
 	})
 
-	ui, c := testExecCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
 	args := []string{"-http-addr=" + a1.HTTPAddr(), "-wait=500ms", "-datacenter=dc2", "uptime"}
 
 	code := c.Run(args)
@@ -150,16 +144,16 @@ func TestExecCommand_Sessions(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	client := a.Client()
-	_, c := testExecCommand(t)
-	c.client = client
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
+	c.apiclient = a.Client()
 
 	id, err := c.createSession()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	se, _, err := client.Session().Info(id, nil)
+	se, _, err := a.Client().Session().Info(id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -173,7 +167,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	se, _, err = client.Session().Info(id, nil)
+	se, _, err = a.Client().Session().Info(id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -189,9 +183,9 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	client := a.Client()
-	_, c := testExecCommand(t)
-	c.client = client
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
+	c.apiclient = a.Client()
 
 	c.conf.foreignDC = true
 	c.conf.localDC = "dc1"
@@ -209,7 +203,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 		}
 	})
 
-	se, _, err := client.Session().Info(id, nil)
+	se, _, err := a.Client().Session().Info(id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -223,7 +217,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	se, _, err = client.Session().Info(id, nil)
+	se, _, err = a.Client().Session().Info(id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -239,9 +233,9 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	client := a.Client()
-	_, c := testExecCommand(t)
-	c.client = client
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
+	c.apiclient = a.Client()
 
 	id, err := c.createSession()
 	if err != nil {
@@ -263,7 +257,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	pair, _, err := client.KV().Get("_rexec/"+id+"/job", nil)
+	pair, _, err := a.Client().KV().Get("_rexec/"+id+"/job", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -277,7 +271,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	pair, _, err = client.KV().Get("_rexec/"+id+"/job", nil)
+	pair, _, err = a.Client().KV().Get("_rexec/"+id+"/job", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -294,9 +288,9 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	client := a.Client()
-	_, c := testExecCommand(t)
-	c.client = client
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
+	c.apiclient = a.Client()
 	c.conf.prefix = "_rexec"
 
 	id, err := c.createSession()
@@ -315,7 +309,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
 
 	prefix := "_rexec/" + id + "/"
-	ok, _, err := client.KV().Acquire(&consulapi.KVPair{
+	ok, _, err := a.Client().KV().Acquire(&consulapi.KVPair{
 		Key:     prefix + "foo/ack",
 		Session: id,
 	}, nil)
@@ -335,7 +329,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 		t.Fatalf("timeout")
 	}
 
-	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+	ok, _, err = a.Client().KV().Acquire(&consulapi.KVPair{
 		Key:     prefix + "foo/exit",
 		Value:   []byte("127"),
 		Session: id,
@@ -357,7 +351,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	}
 
 	// Random key, should ignore
-	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+	ok, _, err = a.Client().KV().Acquire(&consulapi.KVPair{
 		Key:     prefix + "foo/random",
 		Session: id,
 	}, nil)
@@ -369,7 +363,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	}
 
 	// Output heartbeat
-	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+	ok, _, err = a.Client().KV().Acquire(&consulapi.KVPair{
 		Key:     prefix + "foo/out/00000",
 		Session: id,
 	}, nil)
@@ -390,7 +384,7 @@ func TestExecCommand_StreamResults(t *testing.T) {
 	}
 
 	// Output value
-	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+	ok, _, err = a.Client().KV().Acquire(&consulapi.KVPair{
 		Key:     prefix + "foo/out/00001",
 		Value:   []byte("test"),
 		Session: id,

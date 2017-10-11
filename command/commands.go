@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/consul/command/event"
+	execmd "github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
@@ -77,13 +78,7 @@ func init() {
 		},
 
 		"exec": func() (cli.Command, error) {
-			return &ExecCommand{
-				ShutdownCh: makeShutdownCh(),
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return execmd.New(ui, makeShutdownCh()), nil
 		},
 
 		"force-leave": func() (cli.Command, error) {
