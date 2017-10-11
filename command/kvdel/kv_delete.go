@@ -11,7 +11,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -19,12 +19,13 @@ type cmd struct {
 	UI          cli.Ui
 	flags       *flag.FlagSet
 	http        *flags.HTTPFlags
+	usage       string
 	cas         bool
 	modifyIndex uint64
 	recurse     bool
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.cas, "cas", false,
 		"Perform a Check-And-Set operation. Specifying this value also requires "+
@@ -38,6 +39,7 @@ func (c *cmd) initFlags() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -140,7 +142,10 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul kv delete [options] KEY_OR_PREFIX
+	return c.usage
+}
+
+const usage = `Usage: consul kv delete [options] KEY_OR_PREFIX
 
   Removes the value from Consul's key-value store at the given path. If no
   key exists at the path, no action is taken.
@@ -155,5 +160,3 @@ func (c *cmd) Help() string {
 
   This will delete the keys named "foo", "food", and "foo/bar/zip" if they
   existed. `
-	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}

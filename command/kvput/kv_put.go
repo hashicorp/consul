@@ -16,7 +16,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -24,6 +24,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
+	usage string
 
 	// flags
 	cas           bool
@@ -38,7 +39,7 @@ type cmd struct {
 	testStdin io.Reader
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.cas, "cas", false,
 		"Perform a Check-And-Set operation. Specifying this value also "+
@@ -69,6 +70,7 @@ func (c *cmd) initFlags() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -175,39 +177,7 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul kv put [options] KEY [DATA]
-
-  Writes the data to the given path in the key-value store. The data can be of
-  any type.
-
-      $ consul kv put config/redis/maxconns 5
-
-  The data can also be consumed from a file on disk by prefixing with the "@"
-  symbol. For example:
-
-      $ consul kv put config/program/license @license.lic
-
-  Or it can be read from stdin using the "-" symbol:
-
-      $ echo "abcd1234" | consul kv put config/program/license -
-
-  The DATA argument itself is optional. If omitted, this will create an empty
-  key-value pair at the specified path:
-
-      $ consul kv put webapp/beta/active
-
-  If the -base64 flag is specified, the data will be treated as base 64
-  encoded.
-
-  To perform a Check-And-Set operation, specify the -cas flag with the
-  appropriate -modify-index flag corresponding to the key you want to perform
-  the CAS operation on:
-
-      $ consul kv put -cas -modify-index=844 config/redis/maxconns 5
-
-  Additional flags and more advanced use cases are detailed below.`
-
-	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	return c.usage
 }
 
 func (c *cmd) dataFromArgs(args []string) (string, string, error) {
@@ -254,3 +224,35 @@ func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 		return key, data, nil
 	}
 }
+
+const usage = `Usage: consul kv put [options] KEY [DATA]
+
+  Writes the data to the given path in the key-value store. The data can be of
+  any type.
+
+      $ consul kv put config/redis/maxconns 5
+
+  The data can also be consumed from a file on disk by prefixing with the "@"
+  symbol. For example:
+
+      $ consul kv put config/program/license @license.lic
+
+  Or it can be read from stdin using the "-" symbol:
+
+      $ echo "abcd1234" | consul kv put config/program/license -
+
+  The DATA argument itself is optional. If omitted, this will create an empty
+  key-value pair at the specified path:
+
+      $ consul kv put webapp/beta/active
+
+  If the -base64 flag is specified, the data will be treated as base 64
+  encoded.
+
+  To perform a Check-And-Set operation, specify the -cas flag with the
+  appropriate -modify-index flag corresponding to the key you want to perform
+  the CAS operation on:
+
+      $ consul kv put -cas -modify-index=844 config/redis/maxconns 5
+
+  Additional flags and more advanced use cases are detailed below.`

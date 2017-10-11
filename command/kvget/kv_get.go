@@ -15,7 +15,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -23,6 +23,7 @@ type cmd struct {
 	UI           cli.Ui
 	flags        *flag.FlagSet
 	http         *flags.HTTPFlags
+	usage        string
 	base64encode bool
 	detailed     bool
 	keys         bool
@@ -30,7 +31,7 @@ type cmd struct {
 	separator    string
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.base64encode, "base64", false,
 		"Base64 encode the value. The default value is false.")
@@ -53,6 +54,7 @@ func (c *cmd) initFlags() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -177,7 +179,30 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul kv get [options] [KEY_OR_PREFIX]
+	return c.usage
+}
+
+func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
+	tw := tabwriter.NewWriter(w, 0, 2, 6, ' ', 0)
+	fmt.Fprintf(tw, "CreateIndex\t%d\n", pair.CreateIndex)
+	fmt.Fprintf(tw, "Flags\t%d\n", pair.Flags)
+	fmt.Fprintf(tw, "Key\t%s\n", pair.Key)
+	fmt.Fprintf(tw, "LockIndex\t%d\n", pair.LockIndex)
+	fmt.Fprintf(tw, "ModifyIndex\t%d\n", pair.ModifyIndex)
+	if pair.Session == "" {
+		fmt.Fprint(tw, "Session\t-\n")
+	} else {
+		fmt.Fprintf(tw, "Session\t%s\n", pair.Session)
+	}
+	if base64EncodeValue {
+		fmt.Fprintf(tw, "Value\t%s", base64.StdEncoding.EncodeToString(pair.Value))
+	} else {
+		fmt.Fprintf(tw, "Value\t%s", pair.Value)
+	}
+	return tw.Flush()
+}
+
+const usage = `Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   Retrieves the value from Consul's key-value store at the given key name. If no
   key exists with that name, an error is returned. If a key exists with that
@@ -206,26 +231,3 @@ func (c *cmd) Help() string {
       $ consul kv get -keys foo
 
   For a full list of options and examples, please see the Consul documentation. `
-
-	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
-	tw := tabwriter.NewWriter(w, 0, 2, 6, ' ', 0)
-	fmt.Fprintf(tw, "CreateIndex\t%d\n", pair.CreateIndex)
-	fmt.Fprintf(tw, "Flags\t%d\n", pair.Flags)
-	fmt.Fprintf(tw, "Key\t%s\n", pair.Key)
-	fmt.Fprintf(tw, "LockIndex\t%d\n", pair.LockIndex)
-	fmt.Fprintf(tw, "ModifyIndex\t%d\n", pair.ModifyIndex)
-	if pair.Session == "" {
-		fmt.Fprint(tw, "Session\t-\n")
-	} else {
-		fmt.Fprintf(tw, "Session\t%s\n", pair.Session)
-	}
-	if base64EncodeValue {
-		fmt.Fprintf(tw, "Value\t%s", base64.StdEncoding.EncodeToString(pair.Value))
-	} else {
-		fmt.Fprintf(tw, "Value\t%s", pair.Value)
-	}
-	return tw.Flush()
-}
