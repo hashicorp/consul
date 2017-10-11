@@ -1,23 +1,38 @@
-package command
+package info
 
 import (
+	"flag"
 	"fmt"
 	"sort"
+
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// InfoCommand is a Command implementation that queries a running
-// Consul agent for various debugging statistics for operators
-type InfoCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
 }
 
-func (c *InfoCommand) Run(args []string) int {
-	c.InitFlagSet()
-	if err := c.FlagSet.Parse(args); err != nil {
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+}
+
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -66,16 +81,14 @@ func (c *InfoCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InfoCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul info [options]
-
-	Provides debugging information for operators
-
-`)
+func (c *cmd) Synopsis() string {
+	return "Provides debugging information for operators."
 }
 
-func (c *InfoCommand) Synopsis() string {
-	return "Provides debugging information for operators."
+func (c *cmd) Help() string {
+	s := `Usage: consul info [options]
+
+  Provides debugging information for operators`
+
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), nil)
 }

@@ -1,4 +1,4 @@
-package command
+package info
 
 import (
 	"strings"
@@ -8,9 +8,10 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestInfoCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &InfoCommand{}
+func TestInfoCommand_noTabs(t *testing.T) {
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestInfoCommandRun(t *testing.T) {
@@ -19,15 +20,10 @@ func TestInfoCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 
 	ui := cli.NewMockUi()
-	c := &InfoCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
+	cmd := New(ui)
 	args := []string{"-http-addr=" + a1.HTTPAddr()}
 
-	code := c.Run(args)
+	code := cmd.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
