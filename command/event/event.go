@@ -12,7 +12,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -27,7 +27,7 @@ type cmd struct {
 	usage   string
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.name, "name", "",
 		"Name of the event.")

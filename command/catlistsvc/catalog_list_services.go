@@ -15,7 +15,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -31,7 +31,7 @@ type cmd struct {
 	tags     bool
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.node, "node", "",
 		"Node `id or name` for which to list services.")
