@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/command/kv"
 	"github.com/hashicorp/consul/command/kvdel"
 	"github.com/hashicorp/consul/command/kvexp"
+	"github.com/hashicorp/consul/command/kvget"
 	"github.com/hashicorp/consul/command/kvimp"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
@@ -126,12 +127,7 @@ func init() {
 		},
 
 		"kv get": func() (cli.Command, error) {
-			return &KVGetCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return kvget.New(ui), nil
 		},
 
 		"kv put": func() (cli.Command, error) {
