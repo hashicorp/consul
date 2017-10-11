@@ -19,106 +19,6 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-const (
-	// rExecPrefix is the prefix in the KV store used to
-	// store the remote exec data
-	rExecPrefix = "_rexec"
-
-	// rExecFileName is the name of the file we append to
-	// the path, e.g. _rexec/session_id/job
-	rExecFileName = "job"
-
-	// rExecAck is the suffix added to an ack path
-	rExecAckSuffix = "/ack"
-
-	// rExecAck is the suffix added to an exit code
-	rExecExitSuffix = "/exit"
-
-	// rExecOutputDivider is used to namespace the output
-	rExecOutputDivider = "/out/"
-
-	// rExecReplicationWait is how long we wait for replication
-	rExecReplicationWait = 200 * time.Millisecond
-
-	// rExecQuietWait is how long we wait for no responses
-	// before assuming the job is done.
-	rExecQuietWait = 2 * time.Second
-
-	// rExecTTL is how long we default the session TTL to
-	rExecTTL = "15s"
-
-	// rExecRenewInterval is how often we renew the session TTL
-	// when doing an exec in a foreign DC.
-	rExecRenewInterval = 5 * time.Second
-)
-
-// rExecConf is used to pass around configuration
-type rExecConf struct {
-	prefix string
-	shell  bool
-
-	foreignDC bool
-	localDC   string
-	localNode string
-
-	node    string
-	service string
-	tag     string
-
-	wait     time.Duration
-	replWait time.Duration
-
-	cmd    string
-	args   []string
-	script []byte
-
-	verbose bool
-}
-
-// rExecEvent is the event we broadcast using a user-event
-type rExecEvent struct {
-	Prefix  string
-	Session string
-}
-
-// rExecSpec is the file we upload to specify the parameters
-// of the remote execution.
-type rExecSpec struct {
-	// Command is a single command to run directly in the shell
-	Command string `json:",omitempty"`
-
-	// Args is the list of arguments to run the subprocess directly
-	Args []string `json:",omitempty"`
-
-	// Script should be spilled to a file and executed
-	Script []byte `json:",omitempty"`
-
-	// Wait is how long we are waiting on a quiet period to terminate
-	Wait time.Duration
-}
-
-// rExecAck is used to transmit an acknowledgement
-type rExecAck struct {
-	Node string
-}
-
-// rExecHeart is used to transmit a heartbeat
-type rExecHeart struct {
-	Node string
-}
-
-// rExecOutput is used to transmit a chunk of output
-type rExecOutput struct {
-	Node   string
-	Output []byte
-}
-
-// rExecExit is used to transmit an exit code
-type rExecExit struct {
-	Node string
-	Code int
-}
-
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
 	c := &cmd{UI: ui, shutdownCh: shutdownCh}
 	c.initFlags()
@@ -647,6 +547,106 @@ func (c *cmd) fireEvent() (string, error) {
 	// Fire the event
 	id, _, err := event.Fire(params, nil)
 	return id, err
+}
+
+const (
+	// rExecPrefix is the prefix in the KV store used to
+	// store the remote exec data
+	rExecPrefix = "_rexec"
+
+	// rExecFileName is the name of the file we append to
+	// the path, e.g. _rexec/session_id/job
+	rExecFileName = "job"
+
+	// rExecAck is the suffix added to an ack path
+	rExecAckSuffix = "/ack"
+
+	// rExecAck is the suffix added to an exit code
+	rExecExitSuffix = "/exit"
+
+	// rExecOutputDivider is used to namespace the output
+	rExecOutputDivider = "/out/"
+
+	// rExecReplicationWait is how long we wait for replication
+	rExecReplicationWait = 200 * time.Millisecond
+
+	// rExecQuietWait is how long we wait for no responses
+	// before assuming the job is done.
+	rExecQuietWait = 2 * time.Second
+
+	// rExecTTL is how long we default the session TTL to
+	rExecTTL = "15s"
+
+	// rExecRenewInterval is how often we renew the session TTL
+	// when doing an exec in a foreign DC.
+	rExecRenewInterval = 5 * time.Second
+)
+
+// rExecConf is used to pass around configuration
+type rExecConf struct {
+	prefix string
+	shell  bool
+
+	foreignDC bool
+	localDC   string
+	localNode string
+
+	node    string
+	service string
+	tag     string
+
+	wait     time.Duration
+	replWait time.Duration
+
+	cmd    string
+	args   []string
+	script []byte
+
+	verbose bool
+}
+
+// rExecEvent is the event we broadcast using a user-event
+type rExecEvent struct {
+	Prefix  string
+	Session string
+}
+
+// rExecSpec is the file we upload to specify the parameters
+// of the remote execution.
+type rExecSpec struct {
+	// Command is a single command to run directly in the shell
+	Command string `json:",omitempty"`
+
+	// Args is the list of arguments to run the subprocess directly
+	Args []string `json:",omitempty"`
+
+	// Script should be spilled to a file and executed
+	Script []byte `json:",omitempty"`
+
+	// Wait is how long we are waiting on a quiet period to terminate
+	Wait time.Duration
+}
+
+// rExecAck is used to transmit an acknowledgement
+type rExecAck struct {
+	Node string
+}
+
+// rExecHeart is used to transmit a heartbeat
+type rExecHeart struct {
+	Node string
+}
+
+// rExecOutput is used to transmit a chunk of output
+type rExecOutput struct {
+	Node   string
+	Output []byte
+}
+
+// rExecExit is used to transmit an exit code
+type rExecExit struct {
+	Node string
+	Code int
 }
 
 // TargetedUI is a UI that wraps another UI implementation and modifies
