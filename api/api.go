@@ -555,11 +555,18 @@ func durToMsec(dur time.Duration) string {
 // serverError is a string we look for to detect 500 errors.
 const serverError = "Unexpected response code: 500"
 
-// IsServerError returns true for 500 errors from the Consul servers, these are
-// usually retryable at a later time.
-func IsServerError(err error) bool {
+// IsRetryableError returns true for 500 errors from the Consul servers, and
+// network connection errors. These are usually retryable at a later time.
+// This applies to reads but NOT to writes. This may return true for errors
+// on writes that may have still gone through, so do not use this to retry
+// any write operations.
+func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
+	}
+
+	if _, ok := err.(net.Error); ok {
+		return true
 	}
 
 	// TODO (slackpad) - Make a real error type here instead of using
