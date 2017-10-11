@@ -1,21 +1,28 @@
-package command
+package kvget
 
 import (
 	"bytes"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"io"
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// KVGetCommand is a Command implementation that is used to fetch the value of
-// a key from the key-value store.
-type KVGetCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-	// flags
+type cmd struct {
+	UI           cli.Ui
+	flags        *flag.FlagSet
+	http         *flags.HTTPFlags
 	base64encode bool
 	detailed     bool
 	keys         bool
@@ -23,73 +30,40 @@ type KVGetCommand struct {
 	separator    string
 }
 
-func (c *KVGetCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.base64encode, "base64", false,
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.base64encode, "base64", false,
 		"Base64 encode the value. The default value is false.")
-	c.FlagSet.BoolVar(&c.detailed, "detailed", false,
+	c.flags.BoolVar(&c.detailed, "detailed", false,
 		"Provide additional metadata about the key in addition to the value such "+
 			"as the ModifyIndex and any flags that may have been set on the key. "+
 			"The default value is false.")
-	c.FlagSet.BoolVar(&c.keys, "keys", false,
+	c.flags.BoolVar(&c.keys, "keys", false,
 		"List keys which start with the given prefix, but not their values. "+
 			"This is especially useful if you only need the key names themselves. "+
 			"This option is commonly combined with the -separator option. The default "+
 			"value is false.")
-	c.FlagSet.BoolVar(&c.recurse, "recurse", false,
+	c.flags.BoolVar(&c.recurse, "recurse", false,
 		"Recursively look at all keys prefixed with the given path. The default "+
 			"value is false.")
-	c.FlagSet.StringVar(&c.separator, "separator", "/",
+	c.flags.StringVar(&c.separator, "separator", "/",
 		"String to use as a separator between keys. The default value is \"/\", "+
 			"but this option is only taken into account when paired with the -keys flag.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *KVGetCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul kv get [options] [KEY_OR_PREFIX]
-
-  Retrieves the value from Consul's key-value store at the given key name. If no
-  key exists with that name, an error is returned. If a key exists with that
-  name but has no data, nothing is returned. If the name or prefix is omitted,
-  it defaults to "" which is the root of the key-value store.
-
-  To retrieve the value for the key named "foo" in the key-value store:
-
-      $ consul kv get foo
-
-  This will return the original, raw value stored in Consul. To view detailed
-  information about the key, specify the "-detailed" flag. This will output all
-  known metadata about the key including ModifyIndex and any user-supplied
-  flags:
-
-      $ consul kv get -detailed foo
-
-  To treat the path as a prefix and list all keys which start with the given
-  prefix, specify the "-recurse" flag:
-
-      $ consul kv get -recurse foo
-
-  This will return all key-value pairs. To just list the keys which start with
-  the specified prefix, use the "-keys" option instead:
-
-      $ consul kv get -keys foo
-
-  For a full list of options and examples, please see the Consul documentation.
-
-`)
-}
-
-func (c *KVGetCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 
 	// Check for arg validation
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -115,7 +89,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -124,7 +98,7 @@ func (c *KVGetCommand) Run(args []string) int {
 	switch {
 	case c.keys:
 		keys, _, err := client.KV().Keys(key, c.separator, &api.QueryOptions{
-			AllowStale: c.HTTPStale(),
+			AllowStale: c.http.Stale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -138,7 +112,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	case c.recurse:
 		pairs, _, err := client.KV().List(key, &api.QueryOptions{
-			AllowStale: c.HTTPStale(),
+			AllowStale: c.http.Stale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -170,7 +144,7 @@ func (c *KVGetCommand) Run(args []string) int {
 		return 0
 	default:
 		pair, _, err := client.KV().Get(key, &api.QueryOptions{
-			AllowStale: c.HTTPStale(),
+			AllowStale: c.http.Stale(),
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
@@ -198,8 +172,42 @@ func (c *KVGetCommand) Run(args []string) int {
 	}
 }
 
-func (c *KVGetCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Retrieves or lists data from the KV store"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul kv get [options] [KEY_OR_PREFIX]
+
+  Retrieves the value from Consul's key-value store at the given key name. If no
+  key exists with that name, an error is returned. If a key exists with that
+  name but has no data, nothing is returned. If the name or prefix is omitted,
+  it defaults to "" which is the root of the key-value store.
+
+  To retrieve the value for the key named "foo" in the key-value store:
+
+      $ consul kv get foo
+
+  This will return the original, raw value stored in Consul. To view detailed
+  information about the key, specify the "-detailed" flag. This will output all
+  known metadata about the key including ModifyIndex and any user-supplied
+  flags:
+
+      $ consul kv get -detailed foo
+
+  To treat the path as a prefix and list all keys which start with the given
+  prefix, specify the "-recurse" flag:
+
+      $ consul kv get -recurse foo
+
+  This will return all key-value pairs. To just list the keys which start with
+  the specified prefix, use the "-keys" option instead:
+
+      $ consul kv get -keys foo
+
+  For a full list of options and examples, please see the Consul documentation. `
+
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {

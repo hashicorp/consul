@@ -1,4 +1,4 @@
-package command
+package kvget
 
 import (
 	"encoding/base64"
@@ -10,29 +10,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testKVGetCommand(t *testing.T) (*cli.MockUi, *KVGetCommand) {
-	ui := cli.NewMockUi()
-	return ui, &KVGetCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestKVGetCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &KVGetCommand{}
-}
-
 func TestKVGetCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(KVGetCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestKVGetCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -75,7 +63,8 @@ func TestKVGetCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -107,7 +96,8 @@ func TestKVGetCommand_Missing(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	_, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -126,7 +116,8 @@ func TestKVGetCommand_Empty(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "empty",
@@ -154,7 +145,8 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -197,7 +189,8 @@ func TestKVGetCommand_Keys(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	keys := []string{"foo/bar", "foo/baz", "foo/zip"}
 	for _, key := range keys {
@@ -231,7 +224,8 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	keys := map[string]string{
 		"foo/a": "a",
@@ -270,7 +264,8 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	keys := map[string]string{
 		"foo/a": "Hello World 1",
@@ -310,7 +305,8 @@ func TestKVGetCommand_DetailedBase64(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVGetCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "foo",
