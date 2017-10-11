@@ -11,7 +11,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -19,12 +19,14 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
+	usage string
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -86,9 +88,9 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul info [options]
+	return c.usage
+}
+
+const usage = `Usage: consul info [options]
 
   Provides debugging information for operators`
-
-	return flags.Usage(s, c.flags, c.http.ClientFlags(), nil)
-}
