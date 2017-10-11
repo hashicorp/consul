@@ -399,6 +399,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	for _, s := range c.Segments {
 		name := b.stringVal(s.Name)
 		port := b.portVal(fmt.Sprintf("segments[%s].port", name), s.Port)
+		if port == 0 {
+			return RuntimeConfig{}, fmt.Errorf("Port must be specified for segment %q", s.Name)
+		}
 
 		bind := b.makeTCPAddr(
 			b.expandFirstIP(fmt.Sprintf("segments[%s].bind", name), s.Bind),
