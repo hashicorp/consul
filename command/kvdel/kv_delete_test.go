@@ -1,4 +1,4 @@
-package command
+package kvdel
 
 import (
 	"strconv"
@@ -10,29 +10,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testKVDeleteCommand(t *testing.T) (*cli.MockUi, *KVDeleteCommand) {
-	ui := cli.NewMockUi()
-	return ui, &KVDeleteCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestKVDeleteCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &KVDeleteCommand{}
-}
-
 func TestKVDeleteCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(KVDeleteCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestKVDeleteCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testKVDeleteCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -87,7 +75,8 @@ func TestKVDeleteCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVDeleteCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "foo",
@@ -123,7 +112,8 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVDeleteCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	keys := []string{"foo/a", "foo/b", "food"}
 
@@ -166,7 +156,8 @@ func TestKVDeleteCommand_CAS(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testKVDeleteCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	pair := &api.KVPair{
 		Key:   "foo",

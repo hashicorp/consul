@@ -1,66 +1,54 @@
-package command
+package kvdel
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// KVDeleteCommand is a Command implementation that is used to delete a key or
-// prefix of keys from the key-value store.
-type KVDeleteCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-	// flags
+type cmd struct {
+	UI          cli.Ui
+	flags       *flag.FlagSet
+	http        *flags.HTTPFlags
 	cas         bool
 	modifyIndex uint64
 	recurse     bool
 }
 
-func (c *KVDeleteCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.cas, "cas", false,
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.cas, "cas", false,
 		"Perform a Check-And-Set operation. Specifying this value also requires "+
 			"the -modify-index flag to be set. The default value is false.")
-	c.FlagSet.Uint64Var(&c.modifyIndex, "modify-index", 0,
+	c.flags.Uint64Var(&c.modifyIndex, "modify-index", 0,
 		"Unsigned integer representing the ModifyIndex of the key. This is "+
 			"used in combination with the -cas flag.")
-	c.FlagSet.BoolVar(&c.recurse, "recurse", false,
+	c.flags.BoolVar(&c.recurse, "recurse", false,
 		"Recursively delete all keys with the path. The default value is false.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
 }
 
-func (c *KVDeleteCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul kv delete [options] KEY_OR_PREFIX
-
-  Removes the value from Consul's key-value store at the given path. If no
-  key exists at the path, no action is taken.
-
-  To delete the value for the key named "foo" in the key-value store:
-
-      $ consul kv delete foo
-
-  To delete all keys which start with "foo", specify the -recurse option:
-
-      $ consul kv delete -recurse foo
-
-  This will delete the keys named "foo", "food", and "foo/bar/zip" if they
-  existed.
-
-`)
-}
-
-func (c *KVDeleteCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 
 	// Check for arg validation
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -103,7 +91,7 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -147,6 +135,25 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	}
 }
 
-func (c *KVDeleteCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Removes data from the KV store"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul kv delete [options] KEY_OR_PREFIX
+
+  Removes the value from Consul's key-value store at the given path. If no
+  key exists at the path, no action is taken.
+
+  To delete the value for the key named "foo" in the key-value store:
+
+      $ consul kv delete foo
+
+  To delete all keys which start with "foo", specify the -recurse option:
+
+      $ consul kv delete -recurse foo
+
+  This will delete the keys named "foo", "food", and "foo/bar/zip" if they
+  existed. `
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }

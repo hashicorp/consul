@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/keygen"
 	"github.com/hashicorp/consul/command/kv"
+	"github.com/hashicorp/consul/command/kvdel"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -119,12 +120,7 @@ func init() {
 		},
 
 		"kv delete": func() (cli.Command, error) {
-			return &KVDeleteCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return kvdel.New(ui), nil
 		},
 
 		"kv get": func() (cli.Command, error) {
