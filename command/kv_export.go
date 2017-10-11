@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -20,7 +19,8 @@ func (c *KVExportCommand) Synopsis() string {
 }
 
 func (c *KVExportCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul kv export [KEY_OR_PREFIX]
 
   Retrieves key-value pairs for the given prefix from Consul's key-value store,
@@ -31,20 +31,18 @@ Usage: consul kv export [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KVExportCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 	// Check for arg validation
-	args = f.Args()
+	args = c.FlagSet.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -63,14 +61,14 @@ func (c *KVExportCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	pairs, _, err := client.KV().List(key, &api.QueryOptions{
-		AllowStale: c.BaseCommand.HTTPStale(),
+		AllowStale: c.HTTPStale(),
 	})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))

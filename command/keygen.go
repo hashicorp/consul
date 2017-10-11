@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"strings"
 )
 
 // KeygenCommand is a Command implementation that generates an encryption
@@ -14,8 +13,8 @@ type KeygenCommand struct {
 }
 
 func (c *KeygenCommand) Run(args []string) int {
-	c.BaseCommand.NewFlagSet(c)
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
@@ -34,19 +33,18 @@ func (c *KeygenCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *KeygenCommand) Synopsis() string {
-	return "Generates a new encryption key"
-}
-
 func (c *KeygenCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul keygen
 
   Generates a new encryption key that can be used to configure the
   agent to encrypt traffic. The output of this command is already
   in the proper format that the agent expects.
 
-` + c.BaseCommand.Help()
+`)
+}
 
-	return strings.TrimSpace(helpText)
+func (c *KeygenCommand) Synopsis() string {
+	return "Generates a new encryption key"
 }

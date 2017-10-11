@@ -16,50 +16,53 @@ import (
 // Consul agent what members are part of the cluster currently.
 type MembersCommand struct {
 	BaseCommand
+
+	// flags
+	detailed     bool
+	wan          bool
+	statusFilter string
+	segment      string
+}
+
+func (c *MembersCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.detailed, "detailed", false,
+		"Provides detailed information about nodes.")
+	c.FlagSet.BoolVar(&c.wan, "wan", false,
+		"If the agent is in server mode, this can be used to return the other "+
+			"peers in the WAN pool.")
+	c.FlagSet.StringVar(&c.statusFilter, "status", ".*",
+		"If provided, output is filtered to only nodes matching the regular "+
+			"expression for status.")
+	c.FlagSet.StringVar(&c.segment, "segment", consulapi.AllSegments,
+		"(Enterprise-only) If provided, output is filtered to only nodes in"+
+			"the given segment.")
 }
 
 func (c *MembersCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul members [options]
 
   Outputs the members of a running Consul agent.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *MembersCommand) Run(args []string) int {
-	var detailed bool
-	var wan bool
-	var statusFilter string
-	var segment string
-
-	f := c.BaseCommand.NewFlagSet(c)
-	f.BoolVar(&detailed, "detailed", false,
-		"Provides detailed information about nodes.")
-	f.BoolVar(&wan, "wan", false,
-		"If the agent is in server mode, this can be used to return the other "+
-			"peers in the WAN pool.")
-	f.StringVar(&statusFilter, "status", ".*",
-		"If provided, output is filtered to only nodes matching the regular "+
-			"expression for status.")
-	f.StringVar(&segment, "segment", consulapi.AllSegments,
-		"(Enterprise-only) If provided, output is filtered to only nodes in"+
-			"the given segment.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// Compile the regexp
-	statusRe, err := regexp.Compile(statusFilter)
+	statusRe, err := regexp.Compile(c.statusFilter)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to compile status regexp: %v", err))
 		return 1
 	}
 
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -67,8 +70,8 @@ func (c *MembersCommand) Run(args []string) int {
 
 	// Make the request.
 	opts := consulapi.MembersOpts{
-		Segment: segment,
-		WAN:     wan,
+		Segment: c.segment,
+		WAN:     c.wan,
 	}
 	members, err := client.Agent().MembersOpts(opts)
 	if err != nil {
@@ -83,7 +86,7 @@ func (c *MembersCommand) Run(args []string) int {
 		if member.Tags["segment"] == "" {
 			member.Tags["segment"] = "<default>"
 		}
-		if segment == consulapi.AllSegments && member.Tags["role"] == "consul" {
+		if c.segment == consulapi.AllSegments && member.Tags["role"] == "consul" {
 			member.Tags["segment"] = "<all>"
 		}
 		statusString := serf.MemberStatus(member.Status).String()
@@ -105,7 +108,7 @@ func (c *MembersCommand) Run(args []string) int {
 
 	// Generate the output
 	var result []string
-	if detailed {
+	if c.detailed {
 		result = c.detailedOutput(members)
 	} else {
 		result = c.standardOutput(members)

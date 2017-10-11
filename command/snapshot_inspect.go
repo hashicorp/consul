@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/snapshot"
@@ -17,7 +16,8 @@ type SnapshotInspectCommand struct {
 }
 
 func (c *SnapshotInspectCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul snapshot inspect [options] FILE
 
   Displays information about a snapshot file on disk.
@@ -27,21 +27,18 @@ Usage: consul snapshot inspect [options] FILE
     $ consul snapshot inspect backup.snap
 
   For a full list of options and examples, please see the Consul documentation.
-`
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *SnapshotInspectCommand) Run(args []string) int {
-	flagSet := c.BaseCommand.NewFlagSet(c)
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = flagSet.Args()
+	args = c.FlagSet.Args()
 	switch len(args) {
 	case 0:
 		c.UI.Error("Missing FILE argument")

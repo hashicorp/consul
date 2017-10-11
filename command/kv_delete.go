@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -11,10 +10,28 @@ import (
 // prefix of keys from the key-value store.
 type KVDeleteCommand struct {
 	BaseCommand
+
+	// flags
+	cas         bool
+	modifyIndex uint64
+	recurse     bool
+}
+
+func (c *KVDeleteCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.cas, "cas", false,
+		"Perform a Check-And-Set operation. Specifying this value also requires "+
+			"the -modify-index flag to be set. The default value is false.")
+	c.FlagSet.Uint64Var(&c.modifyIndex, "modify-index", 0,
+		"Unsigned integer representing the ModifyIndex of the key. This is "+
+			"used in combination with the -cas flag.")
+	c.FlagSet.BoolVar(&c.recurse, "recurse", false,
+		"Recursively delete all keys with the path. The default value is false.")
 }
 
 func (c *KVDeleteCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul kv delete [options] KEY_OR_PREFIX
 
   Removes the value from Consul's key-value store at the given path. If no
@@ -31,30 +48,19 @@ Usage: consul kv delete [options] KEY_OR_PREFIX
   This will delete the keys named "foo", "food", and "foo/bar/zip" if they
   existed.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KVDeleteCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-	cas := f.Bool("cas", false,
-		"Perform a Check-And-Set operation. Specifying this value also requires "+
-			"the -modify-index flag to be set. The default value is false.")
-	modifyIndex := f.Uint64("modify-index", 0,
-		"Unsigned integer representing the ModifyIndex of the key. This is "+
-			"used in combination with the -cas flag.")
-	recurse := f.Bool("recurse", false,
-		"Recursively delete all keys with the path. The default value is false.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	key := ""
 
 	// Check for arg validation
-	args = f.Args()
+	args = c.FlagSet.Args()
 	switch len(args) {
 	case 0:
 		key = ""
@@ -74,37 +80,37 @@ func (c *KVDeleteCommand) Run(args []string) int {
 
 	// If the key is empty and we are not doing a recursive delete, this is an
 	// error.
-	if key == "" && !*recurse {
+	if key == "" && !c.recurse {
 		c.UI.Error("Error! Missing KEY argument")
 		return 1
 	}
 
 	// ModifyIndex is required for CAS
-	if *cas && *modifyIndex == 0 {
+	if c.cas && c.modifyIndex == 0 {
 		c.UI.Error("Must specify -modify-index with -cas!")
 		return 1
 	}
 
 	// Specifying a ModifyIndex for a non-CAS operation is not possible.
-	if *modifyIndex != 0 && !*cas {
+	if c.modifyIndex != 0 && !c.cas {
 		c.UI.Error("Cannot specify -modify-index without -cas!")
 	}
 
 	// It is not valid to use a CAS and recurse in the same call
-	if *recurse && *cas {
+	if c.recurse && c.cas {
 		c.UI.Error("Cannot specify both -cas and -recurse!")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	switch {
-	case *recurse:
+	case c.recurse:
 		if _, err := client.KV().DeleteTree(key, nil); err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Did not delete prefix %s: %s", key, err))
 			return 1
@@ -112,10 +118,10 @@ func (c *KVDeleteCommand) Run(args []string) int {
 
 		c.UI.Info(fmt.Sprintf("Success! Deleted keys with prefix: %s", key))
 		return 0
-	case *cas:
+	case c.cas:
 		pair := &api.KVPair{
 			Key:         key,
-			ModifyIndex: *modifyIndex,
+			ModifyIndex: c.modifyIndex,
 		}
 
 		success, _, err := client.KV().DeleteCAS(pair, nil)

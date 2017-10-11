@@ -36,8 +36,8 @@ func init() {
 		"catalog": func() (cli.Command, error) {
 			return &CatalogCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetNone,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -100,8 +100,8 @@ func init() {
 		"info": func() (cli.Command, error) {
 			return &InfoCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetClientHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -109,8 +109,8 @@ func init() {
 		"join": func() (cli.Command, error) {
 			return &JoinCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetClientHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -118,8 +118,8 @@ func init() {
 		"keygen": func() (cli.Command, error) {
 			return &KeygenCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetNone,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -127,8 +127,8 @@ func init() {
 		"keyring": func() (cli.Command, error) {
 			return &KeyringCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetClientHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -136,8 +136,8 @@ func init() {
 		"kv": func() (cli.Command, error) {
 			return &KVCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetNone,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -145,8 +145,8 @@ func init() {
 		"kv delete": func() (cli.Command, error) {
 			return &KVDeleteCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -154,8 +154,8 @@ func init() {
 		"kv get": func() (cli.Command, error) {
 			return &KVGetCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -163,8 +163,8 @@ func init() {
 		"kv put": func() (cli.Command, error) {
 			return &KVPutCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -172,8 +172,8 @@ func init() {
 		"kv export": func() (cli.Command, error) {
 			return &KVExportCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},
@@ -181,8 +181,8 @@ func init() {
 		"kv import": func() (cli.Command, error) {
 			return &KVImportCommand{
 				BaseCommand: BaseCommand{
-					UI:    ui,
 					Flags: FlagSetHTTP,
+					UI:    ui,
 				},
 			}, nil
 		},

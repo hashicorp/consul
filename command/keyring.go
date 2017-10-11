@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
@@ -13,33 +12,38 @@ import (
 // and removing gossip encryption keys from a keyring.
 type KeyringCommand struct {
 	BaseCommand
+
+	// flags
+	installKey string
+	useKey     string
+	removeKey  string
+	listKeys   bool
+	relay      int
 }
 
-func (c *KeyringCommand) Run(args []string) int {
-	var installKey, useKey, removeKey string
-	var listKeys bool
-	var relay int
-
-	f := c.BaseCommand.NewFlagSet(c)
-
-	f.StringVar(&installKey, "install", "",
+func (c *KeyringCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.StringVar(&c.installKey, "install", "",
 		"Install a new encryption key. This will broadcast the new key to "+
 			"all members in the cluster.")
-	f.StringVar(&useKey, "use", "",
+	c.FlagSet.StringVar(&c.useKey, "use", "",
 		"Change the primary encryption key, which is used to encrypt "+
 			"messages. The key must already be installed before this operation "+
 			"can succeed.")
-	f.StringVar(&removeKey, "remove", "",
+	c.FlagSet.StringVar(&c.removeKey, "remove", "",
 		"Remove the given key from the cluster. This operation may only be "+
 			"performed on keys which are not currently the primary key.")
-	f.BoolVar(&listKeys, "list", false,
+	c.FlagSet.BoolVar(&c.listKeys, "list", false,
 		"List all keys currently in use within the cluster.")
-	f.IntVar(&relay, "relay-factor", 0,
+	c.FlagSet.IntVar(&c.relay, "relay-factor", 0,
 		"Setting this to a non-zero value will cause nodes to relay their response "+
 			"to the operation through this many randomly-chosen other nodes in the "+
 			"cluster. The maximum allowed value is 5.")
+}
 
-	if err := c.BaseCommand.Parse(args); err != nil {
+func (c *KeyringCommand) Run(args []string) int {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
@@ -51,8 +55,8 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	// Only accept a single argument
-	found := listKeys
-	for _, arg := range []string{installKey, useKey, removeKey} {
+	found := c.listKeys
+	for _, arg := range []string{c.installKey, c.useKey, c.removeKey} {
 		if found && len(arg) > 0 {
 			c.UI.Error("Only a single action is allowed")
 			return 1
@@ -67,20 +71,20 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	// Validate the relay factor
-	relayFactor, err := agent.ParseRelayFactor(relay)
+	relayFactor, err := agent.ParseRelayFactor(c.relay)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error parsing relay factor: %s", err))
 		return 1
 	}
 
 	// All other operations will require a client connection
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
-	if listKeys {
+	if c.listKeys {
 		c.UI.Info("Gathering installed encryption keys...")
 		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor})
 		if err != nil {
@@ -92,9 +96,9 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	opts := &consulapi.WriteOptions{RelayFactor: relayFactor}
-	if installKey != "" {
+	if c.installKey != "" {
 		c.UI.Info("Installing new gossip encryption key...")
-		err := client.Operator().KeyringInstall(installKey, opts)
+		err := client.Operator().KeyringInstall(c.installKey, opts)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -102,9 +106,9 @@ func (c *KeyringCommand) Run(args []string) int {
 		return 0
 	}
 
-	if useKey != "" {
+	if c.useKey != "" {
 		c.UI.Info("Changing primary gossip encryption key...")
-		err := client.Operator().KeyringUse(useKey, opts)
+		err := client.Operator().KeyringUse(c.useKey, opts)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -112,9 +116,9 @@ func (c *KeyringCommand) Run(args []string) int {
 		return 0
 	}
 
-	if removeKey != "" {
+	if c.removeKey != "" {
 		c.UI.Info("Removing gossip encryption key...")
-		err := client.Operator().KeyringRemove(removeKey, opts)
+		err := client.Operator().KeyringRemove(c.removeKey, opts)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -145,7 +149,8 @@ func (c *KeyringCommand) handleList(responses []*consulapi.KeyringResponse) {
 }
 
 func (c *KeyringCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul keyring [options]
 
   Manages encryption keys used for gossip messages. Gossip encryption is
@@ -161,9 +166,7 @@ Usage: consul keyring [options]
   are no errors. If any node fails to reply or reports failure, the exit code
   will be 1.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KeyringCommand) Synopsis() string {

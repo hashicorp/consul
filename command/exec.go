@@ -129,32 +129,35 @@ type ExecCommand struct {
 	stopCh     chan struct{}
 }
 
-func (c *ExecCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-	f.StringVar(&c.conf.node, "node", "",
+func (c *ExecCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.StringVar(&c.conf.node, "node", "",
 		"Regular expression to filter on node names.")
-	f.StringVar(&c.conf.service, "service", "",
+	c.FlagSet.StringVar(&c.conf.service, "service", "",
 		"Regular expression to filter on service instances.")
-	f.StringVar(&c.conf.tag, "tag", "",
+	c.FlagSet.StringVar(&c.conf.tag, "tag", "",
 		"Regular expression to filter on service tags. Must be used with -service.")
-	f.StringVar(&c.conf.prefix, "prefix", rExecPrefix,
+	c.FlagSet.StringVar(&c.conf.prefix, "prefix", rExecPrefix,
 		"Prefix in the KV store to use for request data.")
-	f.BoolVar(&c.conf.shell, "shell", true,
+	c.FlagSet.BoolVar(&c.conf.shell, "shell", true,
 		"Use a shell to run the command.")
-	f.DurationVar(&c.conf.wait, "wait", rExecQuietWait,
+	c.FlagSet.DurationVar(&c.conf.wait, "wait", rExecQuietWait,
 		"Period to wait with no responses before terminating execution.")
-	f.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait,
+	c.FlagSet.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait,
 		"Period to wait for replication before firing event. This is an "+
 			"optimization to allow stale reads to be performed.")
-	f.BoolVar(&c.conf.verbose, "verbose", false,
+	c.FlagSet.BoolVar(&c.conf.verbose, "verbose", false,
 		"Enables verbose output.")
+}
 
-	if err := c.BaseCommand.Parse(args); err != nil {
+func (c *ExecCommand) Run(args []string) int {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// Join the commands to execute
-	c.conf.cmd = strings.Join(f.Args(), " ")
+	c.conf.cmd = strings.Join(c.FlagSet.Args(), " ")
 
 	// If there is no command, read stdin for a script input
 	if c.conf.cmd == "-" {
@@ -175,7 +178,7 @@ func (c *ExecCommand) Run(args []string) int {
 		c.conf.script = buf.Bytes()
 	} else if !c.conf.shell {
 		c.conf.cmd = ""
-		c.conf.args = f.Args()
+		c.conf.args = c.FlagSet.Args()
 	}
 
 	// Ensure we have a command or script
@@ -193,7 +196,7 @@ func (c *ExecCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -206,7 +209,7 @@ func (c *ExecCommand) Run(args []string) int {
 	c.client = client
 
 	// Check if this is a foreign datacenter
-	if c.BaseCommand.HTTPDatacenter() != "" && c.BaseCommand.HTTPDatacenter() != info["Config"]["Datacenter"] {
+	if c.HTTPDatacenter() != "" && c.HTTPDatacenter() != info["Config"]["Datacenter"] {
 		if c.conf.verbose {
 			c.UI.Info("Remote exec in foreign datacenter, using Session TTL")
 		}
@@ -506,7 +509,7 @@ func (c *ExecCommand) createSessionForeign() (string, error) {
 	node := services[0].Node.Node
 	if c.conf.verbose {
 		c.UI.Info(fmt.Sprintf("Binding session to remote node %s@%s",
-			node, c.BaseCommand.HTTPDatacenter()))
+			node, c.HTTPDatacenter()))
 	}
 
 	session := c.client.Session()
@@ -628,7 +631,8 @@ func (c *ExecCommand) Synopsis() string {
 }
 
 func (c *ExecCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul exec [options] [-|command...]
 
   Evaluates a command on remote Consul nodes. The nodes responding can
@@ -636,9 +640,7 @@ Usage: consul exec [options] [-|command...]
   definitions. If a command is '-', stdin will be read until EOF
   and used as a script input.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 // TargetedUI is a UI that wraps another UI implementation and modifies

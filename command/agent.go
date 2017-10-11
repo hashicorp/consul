@@ -49,11 +49,12 @@ type AgentCommand struct {
 // readConfig is responsible for setup of our configuration using
 // the command line and any file configs
 func (cmd *AgentCommand) readConfig() *config.RuntimeConfig {
-	var flags config.Flags
-	fs := cmd.BaseCommand.NewFlagSet(cmd)
-	config.AddFlags(fs, &flags)
+	cmd.InitFlagSet()
 
-	if err := cmd.BaseCommand.Parse(cmd.args); err != nil {
+	var flags config.Flags
+	config.AddFlags(cmd.FlagSet, &flags)
+
+	if err := cmd.FlagSet.Parse(cmd.args); err != nil {
 		if !strings.Contains(err.Error(), "help requested") {
 			cmd.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
 		}
@@ -480,15 +481,15 @@ func (cmd *AgentCommand) Synopsis() string {
 }
 
 func (cmd *AgentCommand) Help() string {
-	helpText := `
+	cmd.InitFlagSet()
+	config.AddFlags(cmd.FlagSet, &config.Flags{})
+	return cmd.HelpCommand(`
 Usage: consul agent [options]
 
   Starts the Consul agent and runs until an interrupt is received. The
   agent represents a single node in a cluster.
 
- ` + cmd.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+ `)
 }
 
 func printJSON(name string, v interface{}) {

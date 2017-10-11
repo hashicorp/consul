@@ -29,26 +29,24 @@ func TestRTTCommand_Implements(t *testing.T) {
 
 func TestRTTCommand_Run_BadArgs(t *testing.T) {
 	t.Parallel()
-	_, c := testRTTCommand(t)
-
-	if code := c.Run([]string{}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
+	tests := []struct {
+		args []string
+	}{
+		{args: []string{}},
+		{args: []string{"node1", "node2", "node3"}},
+		{args: []string{"-wan", "node1", "node2"}},
+		{args: []string{"-wan", "node1.dc1", "node2"}},
+		{args: []string{"-wan", "node1", "node2.dc1"}},
 	}
 
-	if code := c.Run([]string{"node1", "node2", "node3"}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
-	}
-
-	if code := c.Run([]string{"-wan", "node1", "node2"}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
-	}
-
-	if code := c.Run([]string{"-wan", "node1.dc1", "node2"}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
-	}
-
-	if code := c.Run([]string{"-wan", "node1", "node2.dc1"}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
+			t.Parallel()
+			_, c := testRTTCommand(t)
+			if code := c.Run(tt.args); code != 1 {
+				t.Fatalf("expected return code 1, got %d", code)
+			}
+		})
 	}
 }
 

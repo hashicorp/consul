@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
 )
@@ -11,10 +10,20 @@ import (
 // verify config files
 type ValidateCommand struct {
 	BaseCommand
+
+	// flags
+	quiet bool
+}
+
+func (c *ValidateCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.quiet, "quiet", false,
+		"When given, a successful run will produce no output.")
 }
 
 func (c *ValidateCommand) Help() string {
-	helpText := `
+	c.initFlags()
+	return c.HelpCommand(`
 Usage: consul validate [options] FILE_OR_DIRECTORY...
 
   Performs a basic sanity test on Consul configuration files. For each file
@@ -25,24 +34,17 @@ Usage: consul validate [options] FILE_OR_DIRECTORY...
 
   Returns 0 if the configuration is valid, or 1 if there are problems.
 
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *ValidateCommand) Run(args []string) int {
-	var quiet bool
-
-	f := c.BaseCommand.NewFlagSet(c)
-	f.BoolVar(&quiet, "quiet", false,
-		"When given, a successful run will produce no output.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	configFiles := f.Args()
+	configFiles := c.FlagSet.Args()
 	if len(configFiles) < 1 {
 		c.UI.Error("Must specify at least one config file or directory")
 		return 1
@@ -58,7 +60,7 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !quiet {
+	if !c.quiet {
 		c.UI.Output("Configuration is valid!")
 	}
 	return 0

@@ -1,8 +1,6 @@
 package command
 
 import (
-	"strings"
-
 	"github.com/mitchellh/cli"
 )
 
@@ -17,7 +15,8 @@ func (c *CatalogCommand) Run(args []string) int {
 }
 
 func (c *CatalogCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul catalog <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's catalog. The
@@ -41,8 +40,7 @@ Usage: consul catalog <subcommand> [options] [args]
 
   For more examples, ask for subcommand help or view the documentation.
 
-`
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *CatalogCommand) Synopsis() string {

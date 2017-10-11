@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"strings"
 )
 
 // ForceLeaveCommand is a Command implementation that tells a running Consul
@@ -12,12 +11,12 @@ type ForceLeaveCommand struct {
 }
 
 func (c *ForceLeaveCommand) Run(args []string) int {
-	f := c.BaseCommand.NewFlagSet(c)
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.InitFlagSet()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
-	nodes := f.Args()
+	nodes := c.FlagSet.Args()
 	if len(nodes) != 1 {
 		c.UI.Error("A single node name must be specified to force leave.")
 		c.UI.Error("")
@@ -25,7 +24,7 @@ func (c *ForceLeaveCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -40,12 +39,9 @@ func (c *ForceLeaveCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *ForceLeaveCommand) Synopsis() string {
-	return "Forces a member of the cluster to enter the \"left\" state"
-}
-
 func (c *ForceLeaveCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul force-leave [options] name
 
   Forces a member of a Consul cluster to enter the "left" state. Note
@@ -55,7 +51,9 @@ Usage: consul force-leave [options] name
   Consul will attempt to reconnect to those failed nodes for some period of
   time before eventually reaping them.
 
-` + c.BaseCommand.Help()
+`)
+}
 
-	return strings.TrimSpace(helpText)
+func (c *ForceLeaveCommand) Synopsis() string {
+	return "Forces a member of the cluster to enter the \"left\" state"
 }

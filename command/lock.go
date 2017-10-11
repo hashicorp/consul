@@ -43,30 +43,50 @@ type LockCommand struct {
 	child     *os.Process
 	childLock sync.Mutex
 	verbose   bool
+
+	// flags
+	limit              int
+	monitorRetry       int
+	name               string
+	passStdin          bool
+	propagateChildCode bool
+	shell              bool
+	timeout            time.Duration
 }
 
-func (c *LockCommand) Help() string {
-	helpText := `
-Usage: consul lock [options] prefix child...
+func (c *LockCommand) initFlags() {
+	c.InitFlagSet()
+	c.FlagSet.BoolVar(&c.propagateChildCode, "child-exit-code", false,
+		"Exit 2 if the child process exited with an error if this is true, "+
+			"otherwise this doesn't propagate an error from the child. The "+
+			"default value is false.")
+	c.FlagSet.IntVar(&c.limit, "n", 1,
+		"Optional limit on the number of concurrent lock holders. The underlying "+
+			"implementation switches from a lock to a semaphore when the value is "+
+			"greater than 1. The default value is 1.")
+	c.FlagSet.IntVar(&c.monitorRetry, "monitor-retry", defaultMonitorRetry,
+		"Number of times to retry if Consul returns a 500 error while monitoring "+
+			"the lock. This allows riding out brief periods of unavailability "+
+			"without causing leader elections, but increases the amount of time "+
+			"required to detect a lost lock in some cases. The default value is 3, "+
+			"with a 1s wait between retries. Set this value to 0 to disable retires.")
+	c.FlagSet.StringVar(&c.name, "name", "",
+		"Optional name to associate with the lock session. It not provided, one "+
+			"is generated based on the provided child command.")
+	c.FlagSet.BoolVar(&c.passStdin, "pass-stdin", false,
+		"Pass stdin to the child process.")
+	c.FlagSet.BoolVar(&c.shell, "shell", true,
+		"Use a shell to run the command (can set a custom shell via the SHELL "+
+			"environment variable).")
+	c.FlagSet.DurationVar(&c.timeout, "timeout", 0,
+		"Maximum amount of time to wait to acquire the lock, specified as a "+
+			"duration like \"1s\" or \"3h\". The default value is 0.")
+	c.FlagSet.BoolVar(&c.verbose, "verbose", false,
+		"Enable verbose (debugging) output.")
 
-  Acquires a lock or semaphore at a given path, and invokes a child process
-  when successful. The child process can assume the lock is held while it
-  executes. If the lock is lost or communication is disrupted the child
-  process will be sent a SIGTERM signal and given time to gracefully exit.
-  After the grace period expires the process will be hard terminated.
-
-  For Consul agents on Windows, the child process is always hard terminated
-  with a SIGKILL, since Windows has no POSIX compatible notion for SIGTERM.
-
-  When -n=1, only a single lock holder or leader exists providing mutual
-  exclusion. Setting a higher value switches to a semaphore allowing multiple
-  holders to coordinate.
-
-  The prefix provided must have write privileges.
-
-` + c.BaseCommand.Help()
-
-	return strings.TrimSpace(helpText)
+	// Deprecations
+	c.FlagSet.DurationVar(&c.timeout, "try", 0,
+		"DEPRECATED. Use -timeout instead.")
 }
 
 func (c *LockCommand) Run(args []string) int {
@@ -75,59 +95,19 @@ func (c *LockCommand) Run(args []string) int {
 }
 
 func (c *LockCommand) run(args []string, lu **LockUnlock) int {
-	var limit int
-	var monitorRetry int
-	var name string
-	var passStdin bool
-	var propagateChildCode bool
-	var shell bool
-	var timeout time.Duration
-
-	f := c.BaseCommand.NewFlagSet(c)
-	f.BoolVar(&propagateChildCode, "child-exit-code", false,
-		"Exit 2 if the child process exited with an error if this is true, "+
-			"otherwise this doesn't propagate an error from the child. The "+
-			"default value is false.")
-	f.IntVar(&limit, "n", 1,
-		"Optional limit on the number of concurrent lock holders. The underlying "+
-			"implementation switches from a lock to a semaphore when the value is "+
-			"greater than 1. The default value is 1.")
-	f.IntVar(&monitorRetry, "monitor-retry", defaultMonitorRetry,
-		"Number of times to retry if Consul returns a 500 error while monitoring "+
-			"the lock. This allows riding out brief periods of unavailability "+
-			"without causing leader elections, but increases the amount of time "+
-			"required to detect a lost lock in some cases. The default value is 3, "+
-			"with a 1s wait between retries. Set this value to 0 to disable retires.")
-	f.StringVar(&name, "name", "",
-		"Optional name to associate with the lock session. It not provided, one "+
-			"is generated based on the provided child command.")
-	f.BoolVar(&passStdin, "pass-stdin", false,
-		"Pass stdin to the child process.")
-	f.BoolVar(&shell, "shell", true,
-		"Use a shell to run the command (can set a custom shell via the SHELL "+
-			"environment variable).")
-	f.DurationVar(&timeout, "timeout", 0,
-		"Maximum amount of time to wait to acquire the lock, specified as a "+
-			"duration like \"1s\" or \"3h\". The default value is 0.")
-	f.BoolVar(&c.verbose, "verbose", false,
-		"Enable verbose (debugging) output.")
-
-	// Deprecations
-	f.DurationVar(&timeout, "try", 0,
-		"DEPRECATED. Use -timeout instead.")
-
-	if err := c.BaseCommand.Parse(args); err != nil {
+	c.initFlags()
+	if err := c.FlagSet.Parse(args); err != nil {
 		return 1
 	}
 
 	// Check the limit
-	if limit <= 0 {
+	if c.limit <= 0 {
 		c.UI.Error(fmt.Sprintf("Lock holder limit must be positive"))
 		return 1
 	}
 
 	// Verify the prefix and child are provided
-	extra := f.Args()
+	extra := c.FlagSet.Args()
 	if len(extra) < 2 {
 		c.UI.Error("Key prefix and child command must be specified")
 		return 1
@@ -135,27 +115,27 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	prefix := extra[0]
 	prefix = strings.TrimPrefix(prefix, "/")
 
-	if timeout < 0 {
+	if c.timeout < 0 {
 		c.UI.Error("Timeout must be positive")
 		return 1
 	}
 
 	// Calculate a session name if none provided
-	if name == "" {
-		name = fmt.Sprintf("Consul lock for '%s' at '%s'", strings.Join(extra[1:], " "), prefix)
+	if c.name == "" {
+		c.name = fmt.Sprintf("Consul lock for '%s' at '%s'", strings.Join(extra[1:], " "), prefix)
 	}
 
 	// Calculate oneshot
-	oneshot := timeout > 0
+	oneshot := c.timeout > 0
 
 	// Check the retry parameter
-	if monitorRetry < 0 {
+	if c.monitorRetry < 0 {
 		c.UI.Error("Number for 'monitor-retry' must be >= 0")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.BaseCommand.HTTPClient()
+	client, err := c.HTTPClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -167,10 +147,10 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Setup the lock or semaphore
-	if limit == 1 {
-		*lu, err = c.setupLock(client, prefix, name, oneshot, timeout, monitorRetry)
+	if c.limit == 1 {
+		*lu, err = c.setupLock(client, prefix, c.name, oneshot, c.timeout, c.monitorRetry)
 	} else {
-		*lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, timeout, monitorRetry)
+		*lu, err = c.setupSemaphore(client, c.limit, prefix, c.name, oneshot, c.timeout, c.monitorRetry)
 	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Lock setup failed: %s", err))
@@ -204,7 +184,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	// Start the child process
 	childErr = make(chan error, 1)
 	go func() {
-		childErr <- c.startChild(f.Args()[1:], passStdin, shell)
+		childErr <- c.startChild(c.FlagSet.Args()[1:], c.passStdin, c.shell)
 	}()
 
 	// Monitor for shutdown, child termination, or lock loss
@@ -257,7 +237,7 @@ RELEASE:
 
 	// If we detected an error from the child process then we propagate
 	// that.
-	if propagateChildCode {
+	if c.propagateChildCode {
 		return childCode
 	}
 
@@ -447,6 +427,29 @@ func (c *LockCommand) killChild(childErr chan error) error {
 		return fmt.Errorf("Failed to kill %d: %v", child.Pid, err)
 	}
 	return nil
+}
+
+func (c *LockCommand) Help() string {
+	c.initFlags()
+	return c.HelpCommand(`
+Usage: consul lock [options] prefix child...
+
+  Acquires a lock or semaphore at a given path, and invokes a child process
+  when successful. The child process can assume the lock is held while it
+  executes. If the lock is lost or communication is disrupted the child
+  process will be sent a SIGTERM signal and given time to gracefully exit.
+  After the grace period expires the process will be hard terminated.
+
+  For Consul agents on Windows, the child process is always hard terminated
+  with a SIGKILL, since Windows has no POSIX compatible notion for SIGTERM.
+
+  When -n=1, only a single lock holder or leader exists providing mutual
+  exclusion. Setting a higher value switches to a semaphore allowing multiple
+  holders to coordinate.
+
+  The prefix provided must have write privileges.
+
+`)
 }
 
 func (c *LockCommand) Synopsis() string {

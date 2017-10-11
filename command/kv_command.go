@@ -1,8 +1,6 @@
 package command
 
 import (
-	"strings"
-
 	"github.com/mitchellh/cli"
 )
 
@@ -17,7 +15,8 @@ func (c *KVCommand) Run(args []string) int {
 }
 
 func (c *KVCommand) Help() string {
-	helpText := `
+	c.InitFlagSet()
+	return c.HelpCommand(`
 Usage: consul kv <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's key-value
@@ -42,8 +41,7 @@ Usage: consul kv <subcommand> [options] [args]
 
   For more examples, ask for subcommand help or view the documentation.
 
-`
-	return strings.TrimSpace(helpText)
+`)
 }
 
 func (c *KVCommand) Synopsis() string {

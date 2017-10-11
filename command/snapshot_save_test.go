@@ -33,7 +33,6 @@ func TestSnapshotSaveCommand_noTabs(t *testing.T) {
 
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testSnapshotSaveCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -50,6 +49,8 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	}
 
 	for name, tc := range cases {
+		ui, c := testSnapshotSaveCommand(t)
+
 		// Ensure our buffer is always clear
 		if ui.ErrorWriter != nil {
 			ui.ErrorWriter.Reset()
