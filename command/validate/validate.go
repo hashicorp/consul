@@ -11,7 +11,7 @@ import (
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
-	c.initFlags()
+	c.init()
 	return c
 }
 
@@ -19,12 +19,14 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	quiet bool
+	usage string
 }
 
-func (c *cmd) initFlags() {
+func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
+	c.usage = flags.Usage(usage, c.flags, nil, nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -58,7 +60,10 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul validate [options] FILE_OR_DIRECTORY...
+	return c.usage
+}
+
+const usage = `Usage: consul validate [options] FILE_OR_DIRECTORY...
 
   Performs a basic sanity test on Consul configuration files. For each file
   or directory given, the validate command will attempt to parse the
@@ -67,6 +72,3 @@ func (c *cmd) Help() string {
   starting the agent.
 
   Returns 0 if the configuration is valid, or 1 if there are problems.`
-
-	return flags.Usage(s, c.flags, nil, nil)
-}
