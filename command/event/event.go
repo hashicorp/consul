@@ -1,39 +1,48 @@
-package command
+package event
 
 import (
+	"flag"
 	"fmt"
 	"regexp"
 
-	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// EventCommand is a Command implementation that is used to
-// fire new events
-type EventCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.initFlags()
+	return c
+}
 
-	// flags
+type cmd struct {
+	UI      cli.Ui
+	flags   *flag.FlagSet
+	http    *flags.HTTPFlags
 	name    string
 	node    string
 	service string
 	tag     string
 }
 
-func (c *EventCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.StringVar(&c.name, "name", "",
+func (c *cmd) initFlags() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.name, "name", "",
 		"Name of the event.")
-	c.FlagSet.StringVar(&c.node, "node", "",
+	c.flags.StringVar(&c.node, "node", "",
 		"Regular expression to filter on node names.")
-	c.FlagSet.StringVar(&c.service, "service", "",
+	c.flags.StringVar(&c.service, "service", "",
 		"Regular expression to filter on service instances.")
-	c.FlagSet.StringVar(&c.tag, "tag", "",
+	c.flags.StringVar(&c.tag, "tag", "",
 		"Regular expression to filter on service tags. Must be used with -service.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
 }
 
-func (c *EventCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -71,7 +80,7 @@ func (c *EventCommand) Run(args []string) int {
 
 	// Check for a payload
 	var payload []byte
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	switch len(args) {
 	case 0:
 	case 1:
@@ -84,7 +93,7 @@ func (c *EventCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -97,7 +106,7 @@ func (c *EventCommand) Run(args []string) int {
 
 	// Prepare the request
 	event := client.Event()
-	params := &consulapi.UserEvent{
+	params := &api.UserEvent{
 		Name:          c.name,
 		Payload:       payload,
 		NodeFilter:    c.node,
@@ -117,18 +126,16 @@ func (c *EventCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *EventCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul event [options] [payload]
+func (c *cmd) Synopsis() string {
+	return "Fire a new event"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul event [options] [payload]
 
   Dispatches a custom user event across a datacenter. An event must provide
   a name, but a payload is optional. Events support filtering using
-  regular expressions on node name, service, and tag definitions.
+  regular expressions on node name, service, and tag definitions.`
 
-`)
-}
-
-func (c *EventCommand) Synopsis() string {
-	return "Fire a new event"
+	return flags.Usage(s, c.flags, c.http.ClientFlags(), nil)
 }
