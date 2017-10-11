@@ -1,4 +1,4 @@
-package command
+package catlistdc
 
 import (
 	"strings"
@@ -8,24 +8,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testCatalogListDatacentersCommand(t *testing.T) (*cli.MockUi, *CatalogListDatacentersCommand) {
-	ui := cli.NewMockUi()
-	return ui, &CatalogListDatacentersCommand{
-		BaseCommand: BaseCommand{
-			Flags: FlagSetHTTP,
-			UI:    ui,
-		},
-	}
-}
-
 func TestCatalogListDatacentersCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(CatalogListDatacentersCommand))
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testCatalogListDatacentersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -63,7 +56,8 @@ func TestCatalogListDatacentersCommand_Run(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testCatalogListDatacentersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
