@@ -1,23 +1,26 @@
-package command
+package kv
 
 import (
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
-// KVCommand is a Command implementation that just shows help for
-// the subcommands nested below it.
-type KVCommand struct {
-	BaseCommand
+func New() *cmd {
+	return &cmd{}
 }
 
-func (c *KVCommand) Run(args []string) int {
+type cmd struct{}
+
+func (c *cmd) Run(args []string) int {
 	return cli.RunResultHelp
 }
 
-func (c *KVCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul kv <subcommand> [options] [args]
+func (c *cmd) Synopsis() string {
+	return "Interact with the key-value store"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul kv <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's key-value
   store. Here are some simple examples, and more detailed examples are
@@ -39,11 +42,6 @@ Usage: consul kv <subcommand> [options] [args]
 
       $ consul kv delete redis/config/connections
 
-  For more examples, ask for subcommand help or view the documentation.
-
-`)
-}
-
-func (c *KVCommand) Synopsis() string {
-	return "Interact with the key-value store"
+  For more examples, ask for subcommand help or view the documentation.`
+	return flags.Usage(s, nil, nil, nil)
 }

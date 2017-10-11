@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/keygen"
+	"github.com/hashicorp/consul/command/kv"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -114,12 +115,7 @@ func init() {
 		},
 
 		"kv": func() (cli.Command, error) {
-			return &KVCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return kv.New(), nil
 		},
 
 		"kv delete": func() (cli.Command, error) {
