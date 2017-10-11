@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
@@ -72,12 +73,7 @@ func init() {
 		},
 
 		"event": func() (cli.Command, error) {
-			return &EventCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return event.New(ui), nil
 		},
 
 		"exec": func() (cli.Command, error) {
