@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -108,12 +109,7 @@ func init() {
 		},
 
 		"join": func() (cli.Command, error) {
-			return &JoinCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return join.New(ui), nil
 		},
 
 		"keygen": func() (cli.Command, error) {
