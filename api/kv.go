@@ -353,19 +353,19 @@ type TxnResponse struct {
 //
 // Here's an example:
 //
-// ops := KVTxnOps{
-//     &KVTxnOp{
-//         Verb:    KVLock,
-//         Key:     "test/lock",
-//         Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-//         Value:   []byte("hello"),
-//     },
-//     &KVTxnOp{
-//         Verb:    KVGet,
-//         Key:     "another/key",
-//     },
-// }
-// ok, response, _, err := kv.Txn(&ops, nil)
+//	   ops := KVTxnOps{
+//		   &KVTxnOp{
+//			   Verb:    KVLock,
+//			   Key:     "test/lock",
+//			   Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+//			   Value:   []byte("hello"),
+//		   },
+//		   &KVTxnOp{
+//			   Verb:    KVGet,
+//			   Key:     "another/key",
+//		   },
+//	   }
+//	   ok, response, _, err := kv.Txn(&ops, nil)
 //
 // If there is a problem making the transaction request then an error will be
 // returned. Otherwise, the ok value will be true if the transaction succeeded
