@@ -1,13 +1,13 @@
 package kvexp
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/kvimpexp"
 	"github.com/mitchellh/cli"
 )
 
@@ -70,9 +70,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	exported := make([]*kvExportEntry, len(pairs))
+	exported := make([]*kvimpexp.Entry, len(pairs))
 	for i, pair := range pairs {
-		exported[i] = toExportEntry(pair)
+		exported[i] = kvimpexp.ToEntry(pair)
 	}
 
 	marshaled, err := json.MarshalIndent(exported, "", "\t")
@@ -102,18 +102,4 @@ func (c *cmd) Help() string {
   For a full list of options and examples, please see the Consul documentation.`
 
 	return flags.Usage(s, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-type kvExportEntry struct {
-	Key   string `json:"key"`
-	Flags uint64 `json:"flags"`
-	Value string `json:"value"`
-}
-
-func toExportEntry(pair *api.KVPair) *kvExportEntry {
-	return &kvExportEntry{
-		Key:   pair.Key,
-		Flags: pair.Flags,
-		Value: base64.StdEncoding.EncodeToString(pair.Value),
-	}
 }
