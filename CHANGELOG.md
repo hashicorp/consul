@@ -142,6 +142,7 @@ IMPROVEMENTS:
 * agent: Updates miekg/dns library to later version to pick up bug fixes and improvements. [[GH-3547](https://github.com/hashicorp/consul/issues/3547)]
 * agent: Added automatic retries to the RPC path, and a brief RPC drain time when servers leave. These changes make Consul more robust during graceful leaves of Consul servers, such as during upgrades, and help shield applications from "no leader" errors. These are configured with new [`performance`](https://www.consul.io/docs/agent/options.html#performance) options. [[GH-5414](https://github.com/hashicorp/consul/issues/5414)]
 * agent: Added a new `discard_check_output` agent-level configuration option that can be used to trade off write load to the Consul servers vs. visibility of health check output. This is reloadable so it can be toggled without fully restarting the agent. [[GH-3562](https://github.com/hashicorp/consul/issues/3562)]
+* api: Updated the API client to ride out network errors when monitoring locks and semaphores. [[GH-3553](https://github.com/hashicorp/consul/issues/3553)]
 * build: Updated Go toolchain to version 1.9.1. [[GH-3537](https://github.com/hashicorp/consul/issues/3537)]
 * cli: `consul lock` and `consul watch` commands will forward `TERM` and `KILL` signals to their child subprocess. [[GH-3509](https://github.com/hashicorp/consul/issues/3509)]
 * cli: Added support for [autocompletion](https://www.consul.io/docs/commands/index.html#autocompletion). [[GH-3412](https://github.com/hashicorp/consul/issues/3412)]
