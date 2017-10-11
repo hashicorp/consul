@@ -19,10 +19,10 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI      cli.Ui
-	flags   *flag.FlagSet
-	http    *flags.HTTPFlags
-	helpStr string
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 
 	// flags
 	detailed bool
@@ -30,34 +30,6 @@ type cmd struct {
 	nodeMeta map[string]string
 	service  string
 }
-
-const helpPrefix = `Usage: consul catalog nodes [options]
-
-  Retrieves the list nodes registered in a given datacenter. By default, the
-  datacenter of the local agent is queried.
-
-  To retrieve the list of nodes:
-
-      $ consul catalog nodes
-
-  To print detailed information including full node IDs, tagged addresses, and
-  metadata information:
-
-      $ consul catalog nodes -detailed
-
-  To list nodes which are running a particular service:
-
-      $ consul catalog nodes -service=web
-
-  To filter by node metadata:
-
-      $ consul catalog nodes -node-meta="foo=bar"
-
-  To sort nodes by estimated round-trip time from node-web:
-
-      $ consul catalog nodes -near=node-web
-
-  For a full list of options and examples, please see the Consul documentation.`
 
 // init sets up command flags and help text
 func (c *cmd) init() {
@@ -77,7 +49,7 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 
-	c.helpStr = flags.Usage(helpPrefix, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -154,7 +126,7 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	return c.helpStr
+	return c.usage
 }
 
 // printNodes accepts a list of nodes and prints information in a tabular
@@ -218,3 +190,31 @@ func mapToKV(m map[string]string, joiner string) string {
 	}
 	return strings.Join(r, joiner)
 }
+
+const usage = `Usage: consul catalog nodes [options]
+
+  Retrieves the list nodes registered in a given datacenter. By default, the
+  datacenter of the local agent is queried.
+
+  To retrieve the list of nodes:
+
+      $ consul catalog nodes
+
+  To print detailed information including full node IDs, tagged addresses, and
+  metadata information:
+
+      $ consul catalog nodes -detailed
+
+  To list nodes which are running a particular service:
+
+      $ consul catalog nodes -service=web
+
+  To filter by node metadata:
+
+      $ consul catalog nodes -node-meta="foo=bar"
+
+  To sort nodes by estimated round-trip time from node-web:
+
+      $ consul catalog nodes -near=node-web
+
+  For a full list of options and examples, please see the Consul documentation.`
