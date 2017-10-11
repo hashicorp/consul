@@ -1,4 +1,4 @@
-package command
+package leave
 
 import (
 	"strings"
@@ -8,19 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testLeaveCommand(t *testing.T) (*cli.MockUi, *LeaveCommand) {
-	ui := cli.NewMockUi()
-	return ui, &LeaveCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestLeaveCommand_implements(t *testing.T) {
+func TestLeaveCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &LeaveCommand{}
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestLeaveCommandRun(t *testing.T) {
@@ -28,7 +20,8 @@ func TestLeaveCommandRun(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLeaveCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
@@ -46,7 +39,8 @@ func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	_, c := testLeaveCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr(), "appserver1"}
 
 	code := c.Run(args)
