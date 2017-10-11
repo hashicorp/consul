@@ -1,4 +1,4 @@
-package command
+package join
 
 import (
 	"strings"
@@ -8,35 +8,27 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testJoinCommand(t *testing.T) (*cli.MockUi, *JoinCommand) {
-	ui := cli.NewMockUi()
-	return ui, &JoinCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
+func TestJoinCommand_noTabs(t *testing.T) {
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
 	}
 }
 
-func TestJoinCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &JoinCommand{}
-}
-
-func TestJoinCommandRun(t *testing.T) {
+func TestJoinCommandJoinRun_lan(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	ui, c := testJoinCommand(t)
+	ui := cli.NewMockUi()
+	cmd := New(ui)
 	args := []string{
 		"-http-addr=" + a1.HTTPAddr(),
 		a2.Config.SerfBindAddrLAN.String(),
 	}
 
-	code := c.Run(args)
+	code := cmd.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
@@ -53,14 +45,15 @@ func TestJoinCommandRun_wan(t *testing.T) {
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	ui, c := testJoinCommand(t)
+	ui := cli.NewMockUi()
+	cmd := New(ui)
 	args := []string{
 		"-http-addr=" + a1.HTTPAddr(),
 		"-wan",
 		a2.Config.SerfBindAddrWAN.String(),
 	}
 
-	code := c.Run(args)
+	code := cmd.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
@@ -72,10 +65,11 @@ func TestJoinCommandRun_wan(t *testing.T) {
 
 func TestJoinCommandRun_noAddrs(t *testing.T) {
 	t.Parallel()
-	ui, c := testJoinCommand(t)
+	ui := cli.NewMockUi()
+	cmd := New(ui)
 	args := []string{"-http-addr=foo"}
 
-	code := c.Run(args)
+	code := cmd.Run(args)
 	if code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
