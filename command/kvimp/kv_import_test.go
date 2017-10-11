@@ -1,4 +1,4 @@
-package command
+package kvimp
 
 import (
 	"strings"
@@ -7,6 +7,13 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 )
+
+func TestKVImportCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(nil).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
+}
 
 func TestKVImportCommand_Run(t *testing.T) {
 	t.Parallel()
@@ -28,13 +35,8 @@ func TestKVImportCommand_Run(t *testing.T) {
 	]`
 
 	ui := cli.NewMockUi()
-	c := &KVImportCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-		testStdin: strings.NewReader(json),
-	}
+	c := New(ui)
+	c.testStdin = strings.NewReader(json)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
