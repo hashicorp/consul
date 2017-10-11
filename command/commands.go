@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/command/event"
 	execmd "github.com/hashicorp/consul/command/exec"
+	"github.com/hashicorp/consul/command/forceleave"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/keygen"
@@ -91,12 +92,7 @@ func init() {
 		},
 
 		"force-leave": func() (cli.Command, error) {
-			return &ForceLeaveCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return forceleave.New(ui), nil
 		},
 
 		"info": func() (cli.Command, error) {
