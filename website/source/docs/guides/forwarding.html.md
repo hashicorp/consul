@@ -179,6 +179,20 @@ but not need the overhead of a separate service on the Consul host.
 [root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
+### macOS Setup
+
+On macOS systems, you can use the macOS system resolver to point all .consul requests to consul.
+Just add a resolver entry in /etc/resolver/ to point at consul. 
+documentation for this feature is available via: ```man5 resolver```.
+To setup create a new file ```/etc/resolver/consul``` (you will need sudo/root access) and put in the file:
+
+```
+nameserver 127.0.0.1
+port 8600
+```
+
+This is telling the macOS resolver daemon for all .consul TLD requests, ask 127.0.0.1 on port 8600.
+
 ### Testing
 
 First, perform a DNS query against Consul directly to be sure that the record exists:
