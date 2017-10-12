@@ -1,13 +1,12 @@
 package members
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"regexp"
 	"sort"
 	"strings"
-
-	"flag"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
