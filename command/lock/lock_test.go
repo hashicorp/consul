@@ -1,4 +1,4 @@
-package command
+package lock
 
 import (
 	"io/ioutil"
@@ -12,23 +12,10 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testLockCommand(t *testing.T) (*cli.MockUi, *LockCommand) {
-	ui := cli.NewMockUi()
-	return ui, &LockCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestLockCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &LockCommand{}
-}
-
 func argFail(t *testing.T, args []string, expected string) {
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
 	}
@@ -50,7 +37,9 @@ func TestLockCommand_Run(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "touch", filePath}
 
@@ -71,7 +60,9 @@ func TestLockCommand_Run_NoShell(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-shell=false", "test/prefix", "touch", filePath}
 
@@ -92,7 +83,9 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-try=10s", "test/prefix", "touch", filePath}
 
@@ -122,7 +115,9 @@ func TestLockCommand_Try_Semaphore(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-try=10s", "test/prefix", "touch", filePath}
 
@@ -152,7 +147,9 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "touch", filePath}
 
@@ -183,7 +180,9 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "test/prefix", "touch", filePath}
 
@@ -214,7 +213,9 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-monitor-retry=9", "test/prefix", "touch", filePath}
 
@@ -245,7 +246,9 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testLockCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	filePath := filepath.Join(a.Config.DataDir, "test_touch")
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-n=3", "-monitor-retry=9", "test/prefix", "touch", filePath}
 
@@ -277,7 +280,8 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 	defer a.Shutdown()
 
 	t.Run("clean exit", func(t *testing.T) {
-		_, c := testLockCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "sh", "-c", "exit", "0"}
 		if got, want := c.Run(args), 0; got != want {
 			t.Fatalf("got %d want %d", got, want)
@@ -285,7 +289,8 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 	})
 
 	t.Run("error exit", func(t *testing.T) {
-		_, c := testLockCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "exit", "1"}
 		if got, want := c.Run(args), 2; got != want {
 			t.Fatalf("got %d want %d", got, want)
@@ -293,7 +298,8 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 	})
 
 	t.Run("not propagated", func(t *testing.T) {
-		_, c := testLockCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "sh", "-c", "exit", "1"}
 		if got, want := c.Run(args), 0; got != want {
 			t.Fatalf("got %d want %d", got, want)

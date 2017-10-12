@@ -1,6 +1,6 @@
 // +build !windows
 
-package command
+package lock
 
 import (
 	"syscall"

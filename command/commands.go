@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/command/kvimp"
 	"github.com/hashicorp/consul/command/kvput"
 	"github.com/hashicorp/consul/command/leave"
+	"github.com/hashicorp/consul/command/lock"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -122,13 +123,7 @@ func init() {
 		},
 
 		"lock": func() (cli.Command, error) {
-			return &LockCommand{
-				ShutdownCh: makeShutdownCh(),
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return lock.New(ui), nil
 		},
 
 		"maint": func() (cli.Command, error) {

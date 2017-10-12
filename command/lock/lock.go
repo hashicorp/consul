@@ -1,6 +1,7 @@
-package command
+package lock
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
 const (
@@ -35,8 +38,11 @@ const (
 
 // LockCommand is a Command implementation that is used to setup
 // a "lock" which manages lock acquisition and invokes a sub-process
-type LockCommand struct {
-	BaseCommand
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 
 	ShutdownCh <-chan struct{}
 
@@ -54,49 +60,59 @@ type LockCommand struct {
 	timeout            time.Duration
 }
 
-func (c *LockCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.propagateChildCode, "child-exit-code", false,
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.propagateChildCode, "child-exit-code", false,
 		"Exit 2 if the child process exited with an error if this is true, "+
 			"otherwise this doesn't propagate an error from the child. The "+
 			"default value is false.")
-	c.FlagSet.IntVar(&c.limit, "n", 1,
+	c.flags.IntVar(&c.limit, "n", 1,
 		"Optional limit on the number of concurrent lock holders. The underlying "+
 			"implementation switches from a lock to a semaphore when the value is "+
 			"greater than 1. The default value is 1.")
-	c.FlagSet.IntVar(&c.monitorRetry, "monitor-retry", defaultMonitorRetry,
+	c.flags.IntVar(&c.monitorRetry, "monitor-retry", defaultMonitorRetry,
 		"Number of times to retry if Consul returns a 500 error while monitoring "+
 			"the lock. This allows riding out brief periods of unavailability "+
 			"without causing leader elections, but increases the amount of time "+
 			"required to detect a lost lock in some cases. The default value is 3, "+
 			"with a 1s wait between retries. Set this value to 0 to disable retires.")
-	c.FlagSet.StringVar(&c.name, "name", "",
+	c.flags.StringVar(&c.name, "name", "",
 		"Optional name to associate with the lock session. It not provided, one "+
 			"is generated based on the provided child command.")
-	c.FlagSet.BoolVar(&c.passStdin, "pass-stdin", false,
+	c.flags.BoolVar(&c.passStdin, "pass-stdin", false,
 		"Pass stdin to the child process.")
-	c.FlagSet.BoolVar(&c.shell, "shell", true,
+	c.flags.BoolVar(&c.shell, "shell", true,
 		"Use a shell to run the command (can set a custom shell via the SHELL "+
 			"environment variable).")
-	c.FlagSet.DurationVar(&c.timeout, "timeout", 0,
+	c.flags.DurationVar(&c.timeout, "timeout", 0,
 		"Maximum amount of time to wait to acquire the lock, specified as a "+
 			"duration like \"1s\" or \"3h\". The default value is 0.")
-	c.FlagSet.BoolVar(&c.verbose, "verbose", false,
+	c.flags.BoolVar(&c.verbose, "verbose", false,
 		"Enable verbose (debugging) output.")
 
 	// Deprecations
-	c.FlagSet.DurationVar(&c.timeout, "try", 0,
+	c.flags.DurationVar(&c.timeout, "try", 0,
 		"DEPRECATED. Use -timeout instead.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
-func (c *LockCommand) Run(args []string) int {
+func (c *cmd) Run(args []string) int {
 	var lu *LockUnlock
 	return c.run(args, &lu)
 }
 
-func (c *LockCommand) run(args []string, lu **LockUnlock) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) run(args []string, lu **LockUnlock) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -107,7 +123,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Verify the prefix and child are provided
-	extra := c.FlagSet.Args()
+	extra := c.flags.Args()
 	if len(extra) < 2 {
 		c.UI.Error("Key prefix and child command must be specified")
 		return 1
@@ -135,7 +151,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -184,7 +200,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	// Start the child process
 	childErr = make(chan error, 1)
 	go func() {
-		childErr <- c.startChild(c.FlagSet.Args()[1:], c.passStdin, c.shell)
+		childErr <- c.startChild(c.flags.Args()[1:], c.passStdin, c.shell)
 	}()
 
 	// Monitor for shutdown, child termination, or lock loss
@@ -249,7 +265,7 @@ RELEASE:
 // up for a single attempt at acquisition, using the given wait time. The retry
 // parameter sets how many 500 errors the lock monitor will tolerate before
 // giving up the lock.
-func (c *LockCommand) setupLock(client *api.Client, prefix, name string,
+func (c *cmd) setupLock(client *api.Client, prefix, name string,
 	oneshot bool, wait time.Duration, retry int) (*LockUnlock, error) {
 	// Use the DefaultSemaphoreKey extension, this way if a lock and
 	// semaphore are both used at the same prefix, we will get a conflict
@@ -287,7 +303,7 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string,
 // set up for a single attempt at acquisition, using the given wait time. The
 // retry parameter sets how many 500 errors the lock monitor will tolerate
 // before giving up the semaphore.
-func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name string,
+func (c *cmd) setupSemaphore(client *api.Client, limit int, prefix, name string,
 	oneshot bool, wait time.Duration, retry int) (*LockUnlock, error) {
 	if c.verbose {
 		c.UI.Info(fmt.Sprintf("Setting up semaphore (limit %d) at prefix: %s", limit, prefix))
@@ -319,7 +335,7 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 
 // startChild is a long running routine used to start and
 // wait for the child process to exit.
-func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
+func (c *cmd) startChild(args []string, passStdin, shell bool) error {
 	if c.verbose {
 		c.UI.Info("Starting handler")
 	}
@@ -385,7 +401,7 @@ func (c *LockCommand) startChild(args []string, passStdin, shell bool) error {
 // termination.
 // On Windows, the child is always hard terminated with a SIGKILL, even
 // on the first attempt.
-func (c *LockCommand) killChild(childErr chan error) error {
+func (c *cmd) killChild(childErr chan error) error {
 	// Get the child process
 	child := c.child
 
@@ -429,10 +445,25 @@ func (c *LockCommand) killChild(childErr chan error) error {
 	return nil
 }
 
-func (c *LockCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul lock [options] prefix child...
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Synopsis() string {
+	return "Execute a command holding a lock"
+}
+
+// LockUnlock is used to abstract over the differences between
+// a lock and a semaphore.
+type LockUnlock struct {
+	lockFn    func(<-chan struct{}) (<-chan struct{}, error)
+	unlockFn  func() error
+	cleanupFn func() error
+	inUseErr  error
+	rawOpts   interface{}
+}
+
+const usage = `Usage: consul lock [options] prefix child...
 
   Acquires a lock or semaphore at a given path, and invokes a child process
   when successful. The child process can assume the lock is held while it
@@ -449,19 +480,4 @@ Usage: consul lock [options] prefix child...
 
   The prefix provided must have write privileges.
 
-`)
-}
-
-func (c *LockCommand) Synopsis() string {
-	return "Execute a command holding a lock"
-}
-
-// LockUnlock is used to abstract over the differences between
-// a lock and a semaphore.
-type LockUnlock struct {
-	lockFn    func(<-chan struct{}) (<-chan struct{}, error)
-	unlockFn  func() error
-	cleanupFn func() error
-	inUseErr  error
-	rawOpts   interface{}
-}
+`
