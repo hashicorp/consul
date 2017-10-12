@@ -1,14 +1,21 @@
-package command
+package maint
 
 import (
+	"flag"
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-// MaintCommand is a Command implementation that enables or disables
+// cmd is a Command implementation that enables or disables
 // node or service maintenance mode.
-type MaintCommand struct {
-	BaseCommand
+type cmd struct {
+	UI    cli.Ui
+	usage string
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 
 	// flags
 	enable    bool
@@ -17,50 +24,35 @@ type MaintCommand struct {
 	serviceID string
 }
 
-func (c *MaintCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.enable, "enable", false,
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+
+	c.flags.BoolVar(&c.enable, "enable", false,
 		"Enable maintenance mode.")
-	c.FlagSet.BoolVar(&c.disable, "disable", false,
+	c.flags.BoolVar(&c.disable, "disable", false,
 		"Disable maintenance mode.")
-	c.FlagSet.StringVar(&c.reason, "reason", "",
+	c.flags.StringVar(&c.reason, "reason", "",
 		"Text describing the maintenance reason.")
-	c.FlagSet.StringVar(&c.serviceID, "service", "",
+	c.flags.StringVar(&c.serviceID, "service", "",
 		"Control maintenance mode for a specific service ID.")
+
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
 }
 
-func (c *MaintCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul maint [options]
-
-  Places a node or service into maintenance mode. During maintenance mode,
-  the node or service will be excluded from all queries through the DNS
-  or API interfaces, effectively taking it out of the pool of available
-  nodes. This is done by registering an additional critical health check.
-
-  When enabling maintenance mode for a node or service, you may optionally
-  specify a reason string. This string will appear in the "Notes" field
-  of the critical health check which is registered against the node or
-  service. If no reason is provided, a default value will be used.
-
-  Maintenance mode is persistent, and will be restored in the event of an
-  agent restart. It is therefore required to disable maintenance mode on
-  a given node or service before it will be placed back into the pool.
-
-  By default, we operate on the node as a whole. By specifying the
-  "-service" argument, this behavior can be changed to enable or disable
-  only a specific service.
-
-  If no arguments are given, the agent's maintenance status will be shown.
-  This will return blank if nothing is currently under maintenance.
-
-`)
+func (c *cmd) Help() string {
+	return c.usage
 }
 
-func (c *MaintCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -79,7 +71,7 @@ func (c *MaintCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -159,6 +151,31 @@ func (c *MaintCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *MaintCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Controls node or service maintenance mode"
 }
+
+const usage = `Usage: consul maint [options]
+
+  Places a node or service into maintenance mode. During maintenance mode,
+  the node or service will be excluded from all queries through the DNS
+  or API interfaces, effectively taking it out of the pool of available
+  nodes. This is done by registering an additional critical health check.
+
+  When enabling maintenance mode for a node or service, you may optionally
+  specify a reason string. This string will appear in the "Notes" field
+  of the critical health check which is registered against the node or
+  service. If no reason is provided, a default value will be used.
+
+  Maintenance mode is persistent, and will be restored in the event of an
+  agent restart. It is therefore required to disable maintenance mode on
+  a given node or service before it will be placed back into the pool.
+
+  By default, we operate on the node as a whole. By specifying the
+  "-service" argument, this behavior can be changed to enable or disable
+  only a specific service.
+
+  If no arguments are given, the agent's maintenance status will be shown.
+  This will return blank if nothing is currently under maintenance.
+
+`
