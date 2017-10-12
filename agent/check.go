@@ -143,19 +143,33 @@ func (c *CheckMonitor) check() {
 	}
 	select {
 	case <-time.After(timeout):
-		if err := KillCommandSubtree(cmd); err != nil {
-			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", cmdDisplay, err)
-		} else {
-			c.Logger.Printf("[WARN] Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
+		if killErr := KillCommandSubtree(cmd); killErr != nil {
+			c.Logger.Printf("[WARN] Failed to kill check '%s' after timeout: %v", cmdDisplay, killErr)
 		}
 
-		err = fmt.Errorf("Timed out running check '%s'", cmdDisplay)
+		err = fmt.Errorf("Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
+		c.Logger.Printf("[WARN] %v", err)
+
+		// On Windows we don't yet have support for killing processes, so
+		// it could take a while to register the error. We will poll once
+		// to see if the kill worked, and if not we will fail the check
+		// before we continue to wait.
+		select {
+		case <-waitCh:
+			goto REPORT
+
+		case <-time.After(1 * time.Second):
+			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
+		}
+
+		// Now wait for the process to exit.
 		<-waitCh
 
 	case err = <-waitCh:
 		// The process returned before the timeout, proceed normally
 	}
 
+REPORT:
 	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
 	if output.TotalWritten() > output.Size() {
