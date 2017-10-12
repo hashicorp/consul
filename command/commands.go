@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
 	"github.com/hashicorp/consul/command/maint"
+	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -132,12 +133,7 @@ func init() {
 		},
 
 		"members": func() (cli.Command, error) {
-			return &MembersCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return members.New(ui), nil
 		},
 
 		"monitor": func() (cli.Command, error) {

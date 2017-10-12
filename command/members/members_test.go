@@ -1,4 +1,4 @@
-package command
+package members
 
 import (
 	"fmt"
@@ -9,27 +9,15 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testMembersCommand(t *testing.T) (*cli.MockUi, *MembersCommand) {
-	ui := cli.NewMockUi()
-	return ui, &MembersCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestMembersCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &MembersCommand{}
-}
-
 func TestMembersCommandRun(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMembersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
@@ -58,7 +46,10 @@ func TestMembersCommandRun_WAN(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMembersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-wan"}
 
 	code := c.Run(args)
@@ -76,7 +67,10 @@ func TestMembersCommandRun_statusFilter(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMembersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-status=a.*e",
@@ -97,7 +91,10 @@ func TestMembersCommandRun_statusFilter_failed(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMembersCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-status=(fail|left)",

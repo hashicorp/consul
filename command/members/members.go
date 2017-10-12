@@ -1,4 +1,4 @@
-package command
+package members
 
 import (
 	"fmt"
@@ -7,16 +7,22 @@ import (
 	"sort"
 	"strings"
 
+	"flag"
+
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
 
-// MembersCommand is a Command implementation that queries a running
+// cmd is a Command implementation that queries a running
 // Consul agent what members are part of the cluster currently.
-type MembersCommand struct {
-	BaseCommand
-
+type cmd struct {
+	UI    cli.Ui
+	usage string
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
 	// flags
 	detailed     bool
 	wan          bool
@@ -24,34 +30,37 @@ type MembersCommand struct {
 	segment      string
 }
 
-func (c *MembersCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.detailed, "detailed", false,
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+
+	c.flags.BoolVar(&c.detailed, "detailed", false,
 		"Provides detailed information about nodes.")
-	c.FlagSet.BoolVar(&c.wan, "wan", false,
+	c.flags.BoolVar(&c.wan, "wan", false,
 		"If the agent is in server mode, this can be used to return the other "+
 			"peers in the WAN pool.")
-	c.FlagSet.StringVar(&c.statusFilter, "status", ".*",
+	c.flags.StringVar(&c.statusFilter, "status", ".*",
 		"If provided, output is filtered to only nodes matching the regular "+
 			"expression for status.")
-	c.FlagSet.StringVar(&c.segment, "segment", consulapi.AllSegments,
+	c.flags.StringVar(&c.segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
 }
 
-func (c *MembersCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul members [options]
-
-  Outputs the members of a running Consul agent.
-
-`)
+func (c *cmd) Help() string {
+	return c.usage
 }
 
-func (c *MembersCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -62,7 +71,7 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -139,7 +148,7 @@ func (m ByMemberNameAndSegment) Less(i, j int) bool {
 
 // standardOutput is used to dump the most useful information about nodes
 // in a more human-friendly format
-func (c *MembersCommand) standardOutput(members []*consulapi.AgentMember) []string {
+func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 	result := make([]string, 0, len(members))
 	header := "Node|Address|Status|Type|Build|Protocol|DC|Segment"
 	result = append(result, header)
@@ -176,7 +185,7 @@ func (c *MembersCommand) standardOutput(members []*consulapi.AgentMember) []stri
 
 // detailedOutput is used to dump all known information about nodes in
 // their raw format
-func (c *MembersCommand) detailedOutput(members []*consulapi.AgentMember) []string {
+func (c *cmd) detailedOutput(members []*consulapi.AgentMember) []string {
 	result := make([]string, 0, len(members))
 	header := "Node|Address|Status|Tags"
 	result = append(result, header)
@@ -204,6 +213,13 @@ func (c *MembersCommand) detailedOutput(members []*consulapi.AgentMember) []stri
 	return result
 }
 
-func (c *MembersCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Lists the members of a Consul cluster"
 }
+
+const usage = `
+Usage: consul members [options]
+
+  Outputs the members of a running Consul agent.
+
+`
