@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/command/kvput"
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
+	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -127,12 +128,7 @@ func init() {
 		},
 
 		"maint": func() (cli.Command, error) {
-			return &MaintCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return maint.New(ui), nil
 		},
 
 		"members": func() (cli.Command, error) {

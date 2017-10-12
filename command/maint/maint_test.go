@@ -1,4 +1,4 @@
-package command
+package maint
 
 import (
 	"strings"
@@ -9,24 +9,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testMaintCommand(t *testing.T) (*cli.MockUi, *MaintCommand) {
-	ui := cli.NewMockUi()
-	return ui, &MaintCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestMaintCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &MaintCommand{}
-}
-
 func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 	t.Parallel()
-	_, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	if code := c.Run([]string{"-enable", "-disable"}); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
@@ -66,7 +53,9 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 	a.EnableNodeMaintenance("broken 2", "")
 
 	// Run consul maint with no args (list mode)
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 	code := c.Run(args)
@@ -97,7 +86,9 @@ func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -119,7 +110,9 @@ func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -149,7 +142,9 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -181,7 +176,9 @@ func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -203,7 +200,9 @@ func TestMaintCommandRun_ServiceMaintenance_NoService(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	ui, c := testMaintCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
