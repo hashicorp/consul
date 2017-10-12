@@ -124,6 +124,17 @@ func (c *CheckMonitor) check() {
 	cmd.Stderr = output
 	SetSysProcAttr(cmd)
 
+	truncateAndLogOutput := func() string {
+		outputStr := string(output.Bytes())
+		if output.TotalWritten() > output.Size() {
+			outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
+				output.Size(), output.TotalWritten(), outputStr)
+		}
+		c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
+			c.CheckID, cmdDisplay, outputStr)
+		return outputStr
+	}
+
 	// Start the check
 	if err := cmd.Start(); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", cmdDisplay, err)
@@ -144,29 +155,29 @@ func (c *CheckMonitor) check() {
 	select {
 	case <-time.After(timeout):
 		if err := KillCommandSubtree(cmd); err != nil {
-			c.Logger.Printf("[WARN] Timed out running check '%s': error killing process: %v", cmdDisplay, err)
-		} else {
-			c.Logger.Printf("[WARN] Timed out (%s) running check '%s'", timeout.String(), cmdDisplay)
+			c.Logger.Printf("[WARN] Failed to kill check '%s' after timeout: %v", cmdDisplay, err)
 		}
 
-		err = fmt.Errorf("Timed out running check '%s'", cmdDisplay)
+		msg := fmt.Sprintf("Timed out (%s) running check", timeout.String())
+		c.Logger.Printf("[WARN] %s '%s'", msg, cmdDisplay)
+
+		outputStr := truncateAndLogOutput()
+		if len(outputStr) > 0 {
+			msg += "\n\n" + outputStr
+		}
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, msg)
+
+		// Now wait for the process to exit so we never start another
+		// instance concurrently.
 		<-waitCh
+		return
 
 	case err = <-waitCh:
 		// The process returned before the timeout, proceed normally
 	}
 
-	// Get the output, add a message about truncation
-	outputStr := string(output.Bytes())
-	if output.TotalWritten() > output.Size() {
-		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
-			output.Size(), output.TotalWritten(), outputStr)
-	}
-
-	c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
-		c.CheckID, cmdDisplay, outputStr)
-
 	// Check if the check passed
+	outputStr := truncateAndLogOutput()
 	if err == nil {
 		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, outputStr)
