@@ -28,7 +28,7 @@ Here's an example:
 ```text
   sentinel {
       code = "import \"strings\"
-              rule { strings.has_suffix(value,\"foo\") }"
+              main = rule { strings.has_suffix(value,\"foo\") }"
       enforcementlevel = "soft-mandatory"
   }
 ```
@@ -61,12 +61,11 @@ The following are some examples of ACL policies with Sentinel rules.
 ### Any values stored under the key prefix "foo" must end with "bar"
 
 ```text
-
 key "foo" {
-policy = "write"
-sentinel {
-    import "strings"
-    main = rule { strings.has_suffix(value, \"foo\") }
+    policy = "write"
+    sentinel {
+        code = "import \"strings\"
+                main = rule { strings.has_suffix(value, \"bar\") }"
     }
 }
 ```
@@ -75,10 +74,10 @@ sentinel {
 
 ```text
 key "foo" {
-policy = "write"
-sentinel {
-    import "time"
-    main = rule { time.hour > 8 and time.hour < 17 }
+    policy = "write"
+    sentinel {
+        code = "import \"time\"
+                main = rule { time.hour > 8 and time.hour < 17 }"
     }
 }
 ```
