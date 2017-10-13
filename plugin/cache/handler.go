@@ -34,7 +34,9 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		resp, _ = state.Scrub(resp)
 		w.WriteMsg(resp)
 
-		i.Freq.Update(c.duration, now)
+		if c.prefetch > 0 {
+			i.Freq.Update(c.duration, now)
+		}
 
 		pct := 100
 		if i.origTTL != 0 { // you'll never know
