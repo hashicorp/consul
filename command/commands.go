@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/command/lock"
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
+	"github.com/hashicorp/consul/command/monitor"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -137,13 +138,7 @@ func init() {
 		},
 
 		"monitor": func() (cli.Command, error) {
-			return &MonitorCommand{
-				ShutdownCh: makeShutdownCh(),
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return monitor.New(ui, makeShutdownCh()), nil
 		},
 
 		"operator": func() (cli.Command, error) {
