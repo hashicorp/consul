@@ -32,8 +32,6 @@ func (m Plugins ) AutoPath(state request.Request) []string {
 package autopath
 
 import (
-	"log"
-
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/nonwriter"
@@ -76,7 +74,6 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	}
 
 	if len(searchpath) == 0 {
-		log.Printf("[WARNING] No search path available for autopath")
 		return plugin.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 	}
 
@@ -87,7 +84,7 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	origQName := state.QName()
 
 	// Establish base name of the query. I.e what was originally asked.
-	base, err := dnsutil.TrimZone(state.QName(), searchpath[0]) // TODO(miek): we loose the original case of the query here.
+	base, err := dnsutil.TrimZone(state.QName(), searchpath[0])
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
@@ -128,6 +125,7 @@ func (a *AutoPath) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 		// Write whatever non-nxdomain answer we've found.
 		w.WriteMsg(msg)
+		AutoPathCount.WithLabelValues().Add(1)
 		return rcode, err
 
 	}

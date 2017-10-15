@@ -26,6 +26,8 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("autopath", err)
 	}
 
+	c.OnStartup(OnStartupMetrics)
+
 	// Do this in OnStartup, so all plugin has been initialized.
 	c.OnStartup(func() error {
 		m := dnsserver.GetConfig(c).Handler(mw)
