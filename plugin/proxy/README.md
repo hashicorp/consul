@@ -38,7 +38,7 @@ proxy FROM TO... {
   random, least_conn, or round_robin. Default is random.
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is
   down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to
-  communicate with it. The default value is 10 seconds ("10s").
+  communicate with it. The default value is 2 seconds ("2s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering
   a backend to be down. If 0, the backend will never be marked as down. Default is 1.
 * `health_check` will check **PATH** (on **PORT**) on each backend. If a backend returns a status code of

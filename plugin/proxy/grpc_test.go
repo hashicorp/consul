@@ -28,7 +28,6 @@ func TestStartupShutdown(t *testing.T) {
 		HealthCheck: healthcheck.HealthCheck{
 			Hosts:       pool(),
 			FailTimeout: 10 * time.Second,
-			Future:      60 * time.Second,
 			MaxFails:    1,
 		},
 	}

@@ -13,6 +13,8 @@ import (
 var workableServer *httptest.Server
 
 func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+
 	workableServer = httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// do nothing
@@ -30,15 +32,9 @@ func (r *customPolicy) Select(pool HostPool) *UpstreamHost {
 
 func testPool() HostPool {
 	pool := []*UpstreamHost{
-		{
-			Name: workableServer.URL, // this should resolve (healthcheck test)
-		},
-		{
-			Name: "http://shouldnot.resolve", // this shouldn't
-		},
-		{
-			Name: "http://C",
-		},
+		{Name: workableServer.URL},         // this should resolve (healthcheck test)
+		{Name: "http://shouldnot.resolve"}, // this shouldn't
+		{Name: "http://C"},
 	}
 	return HostPool(pool)
 }
@@ -53,46 +49,27 @@ func TestRegisterPolicy(t *testing.T) {
 
 }
 
-// TODO(miek): Disabled for now, we should get out of the habit of using
-// realtime in these tests .
-func testHealthCheck(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
+func TestHealthCheck(t *testing.T) {
 	u := &HealthCheck{
 		Hosts:       testPool(),
 		FailTimeout: 10 * time.Second,
-		Future:      60 * time.Second,
 		MaxFails:    1,
 	}
 
+	for i, h := range u.Hosts {
+		u.Hosts[i].Fails = 1
+		u.Hosts[i].CheckURL = u.normalizeCheckURL(h.Name)
+	}
+
 	u.healthCheck()
-	// sleep a bit, it's async now
-	time.Sleep(time.Duration(2 * time.Second))
+
+	time.Sleep(time.Duration(1 * time.Second)) // sleep a bit, it's async now
 
 	if u.Hosts[0].Down() {
 		t.Error("Expected first host in testpool to not fail healthcheck.")
 	}
 	if !u.Hosts[1].Down() {
 		t.Error("Expected second host in testpool to fail healthcheck.")
-	}
-}
-
-func TestSelect(t *testing.T) {
-	u := &HealthCheck{
-		Hosts:       testPool()[:3],
-		FailTimeout: 10 * time.Second,
-		Future:      60 * time.Second,
-		MaxFails:    1,
-	}
-	u.Hosts[0].OkUntil = time.Unix(0, 0)
-	u.Hosts[1].OkUntil = time.Unix(0, 0)
-	u.Hosts[2].OkUntil = time.Unix(0, 0)
-	if h := u.Select(); h != nil {
-		t.Error("Expected select to return nil as all host are down")
-	}
-	u.Hosts[2].OkUntil = time.Time{}
-	if h := u.Select(); h == nil {
-		t.Error("Expected select to not return nil")
 	}
 }
 
@@ -109,10 +86,8 @@ func TestRoundRobinPolicy(t *testing.T) {
 	if h != pool[2] {
 		t.Error("Expected second round robin host to be third host in the pool.")
 	}
-	// mark host as down
-	pool[0].OkUntil = time.Unix(0, 0)
 	h = rrPolicy.Select(pool)
-	if h != pool[1] {
+	if h != pool[0] {
 		t.Error("Expected third round robin host to be first host in the pool.")
 	}
 }

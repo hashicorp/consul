@@ -20,7 +20,7 @@ func TestReverse(t *testing.T) {
 	em := Reverse{
 		Networks: networks{network{
 			IPnet:        net4,
-			Zone:         "example.org",
+			Zone:         "example.org.",
 			Template:     "ip-{ip}.example.org.",
 			RegexMatchIP: regexIP4,
 		}},
@@ -37,7 +37,7 @@ func TestReverse(t *testing.T) {
 	}{
 		{
 			next:          test.NextHandler(dns.RcodeSuccess, nil),
-			qname:         "test.ip-10.1.1.2.example.org",
+			qname:         "test.ip-10.1.1.2.example.org.",
 			expectedCode:  dns.RcodeSuccess,
 			expectedReply: "10.1.1.2",
 			expectedErr:   nil,
@@ -50,7 +50,7 @@ func TestReverse(t *testing.T) {
 		req := new(dns.Msg)
 
 		tr.qtype = dns.TypeA
-		req.SetQuestion(dns.Fqdn(tr.qname), tr.qtype)
+		req.SetQuestion(tr.qname, tr.qtype)
 
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)

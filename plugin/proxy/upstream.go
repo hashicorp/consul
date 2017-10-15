@@ -33,7 +33,6 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			HealthCheck: healthcheck.HealthCheck{
 				FailTimeout: 5 * time.Second,
 				MaxFails:    3,
-				Future:      12 * time.Second,
 			},
 			ex: newDNSEx(),
 		}
@@ -61,15 +60,13 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		}
 
 		upstream.Hosts = make([]*healthcheck.UpstreamHost, len(toHosts))
+
 		for i, host := range toHosts {
 			uh := &healthcheck.UpstreamHost{
 				Name:        host,
-				Conns:       0,
-				Fails:       0,
 				FailTimeout: upstream.FailTimeout,
 				CheckDown:   checkDownFunc(upstream),
 			}
-
 			upstream.Hosts[i] = uh
 		}
 		upstream.Start()
@@ -77,10 +74,6 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 		upstreams = append(upstreams, upstream)
 	}
 	return upstreams, nil
-}
-
-func (u *staticUpstream) From() string {
-	return u.from
 }
 
 func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
@@ -128,12 +121,6 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 				return err
 			}
 			u.HealthCheck.Interval = dur
-			u.Future = 2 * dur
-
-			// set a minimum of 3 seconds
-			if u.Future < (3 * time.Second) {
-				u.Future = 3 * time.Second
-			}
 		}
 	case "except":
 		ignoredDomains := c.RemainingArgs()
@@ -204,3 +191,4 @@ func (u *staticUpstream) IsAllowedDomain(name string) bool {
 }
 
 func (u *staticUpstream) Exchanger() Exchanger { return u.ex }
+func (u *staticUpstream) From() string         { return u.from }

@@ -175,7 +175,6 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 				HealthCheck: healthcheck.HealthCheck{
 					FailTimeout: 3 * time.Second,
 					MaxFails:    1,
-					Future:      10 * time.Second,
 					Path:        "/",
 					Interval:    5 * time.Second,
 				},
@@ -190,21 +189,11 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 				CheckDown: func(upstream *proxyHandler) healthcheck.UpstreamHostDownFunc {
 					return func(uh *healthcheck.UpstreamHost) bool {
 
-						down := false
-
-						uh.Lock()
-						until := uh.OkUntil
-						uh.Unlock()
-
-						if !until.IsZero() && time.Now().After(until) {
-							down = true
-						}
-
 						fails := atomic.LoadInt32(&uh.Fails)
 						if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-							down = true
+							return true
 						}
-						return down
+						return false
 					}
 				}(&k.APIProxy.handler),
 			}

@@ -21,7 +21,6 @@ type UpstreamHost struct {
 	Name        string // IP address (and port) of this upstream host
 	Fails       int32
 	FailTimeout time.Duration
-	OkUntil     time.Time
 	CheckDown   UpstreamHostDownFunc
 	CheckURL    string
 	Checking    bool
@@ -33,19 +32,8 @@ type UpstreamHost struct {
 // back to some default criteria if necessary.
 func (uh *UpstreamHost) Down() bool {
 	if uh.CheckDown == nil {
-		// Default settings
 		fails := atomic.LoadInt32(&uh.Fails)
-		after := false
-
-		uh.Lock()
-		until := uh.OkUntil
-		uh.Unlock()
-
-		if !until.IsZero() && time.Now().After(until) {
-			after = true
-		}
-
-		return after || fails > 0
+		return fails > 0
 	}
 	return uh.CheckDown(uh)
 }
@@ -64,7 +52,6 @@ type HealthCheck struct {
 	Spray       Policy
 	FailTimeout time.Duration
 	MaxFails    int32
-	Future      time.Duration
 	Path        string
 	Port        string
 	Interval    time.Duration
@@ -72,6 +59,10 @@ type HealthCheck struct {
 
 // Start starts the healthcheck
 func (u *HealthCheck) Start() {
+	for i, h := range u.Hosts {
+		u.Hosts[i].CheckURL = u.normalizeCheckURL(h.Name)
+	}
+
 	u.stop = make(chan struct{})
 	if u.Path != "" {
 		u.wg.Add(1)
@@ -104,14 +95,16 @@ func (u *HealthCheck) Stop() error {
 // otherwise checks will back up, potentially a lot of them if a host is
 // absent for a long time.  This arrangement makes checks quickly see if
 // they are the only one running and abort otherwise.
-func (uh *UpstreamHost) healthCheckURL(nextTs time.Time) {
 
-	// lock for our bool check.  We don't just defer the unlock because
-	// we don't want the lock held while http.Get runs
+// HealthCheckURL performs the http.Get that implements healthcheck.
+func (uh *UpstreamHost) HealthCheckURL() {
+	// Lock for our bool check.  We don't just defer the unlock because
+	// we don't want the lock held while http.Get runs.
 	uh.Lock()
 
-	// are we mid check?  Don't run another one
-	if uh.Checking {
+	// We call HealthCheckURL from proxy.go and lookup.go, bail out when nothing
+	// is configured to healthcheck. Or we mid check?  Don't run another one.
+	if uh.CheckURL == "" || uh.Checking { // nothing configured
 		uh.Unlock()
 		return
 	}
@@ -119,64 +112,39 @@ func (uh *UpstreamHost) healthCheckURL(nextTs time.Time) {
 	uh.Checking = true
 	uh.Unlock()
 
-	// fetch that url.  This has been moved into a go func because
-	// when the remote host is not merely not serving, but actually
-	// absent, then tcp syn timeouts can be very long, and so one
-	// fetch could last several check intervals
-	if r, err := http.Get(uh.CheckURL); err == nil {
+	// default timeout (5s)
+	r, err := healthClient.Get(uh.CheckURL)
+
+	defer func() {
+		uh.Lock()
+		uh.Checking = false
+		uh.Unlock()
+	}()
+
+	if err != nil {
+		log.Printf("[WARNING] Host %s health check probe failed: %v", uh.Name, err)
+		return
+	}
+
+	if err == nil {
 		io.Copy(ioutil.Discard, r.Body)
 		r.Body.Close()
 
 		if r.StatusCode < 200 || r.StatusCode >= 400 {
 			log.Printf("[WARNING] Host %s health check returned HTTP code %d", uh.Name, r.StatusCode)
-			nextTs = time.Unix(0, 0)
-		} else {
-			// We are healthy again, reset fails
-			atomic.StoreInt32(&uh.Fails, 0)
+			return
 		}
-	} else {
-		log.Printf("[WARNING] Host %s health check probe failed: %v", uh.Name, err)
-		nextTs = time.Unix(0, 0)
-	}
 
-	uh.Lock()
-	uh.Checking = false
-	uh.OkUntil = nextTs
-	uh.Unlock()
+		// We are healthy again, reset fails.
+		atomic.StoreInt32(&uh.Fails, 0)
+		return
+	}
 }
 
 func (u *HealthCheck) healthCheck() {
 	for _, host := range u.Hosts {
-
-		if host.CheckURL == "" {
-			var hostName, checkPort string
-
-			// The DNS server might be an HTTP server.  If so, extract its name.
-			ret, err := url.Parse(host.Name)
-			if err == nil && len(ret.Host) > 0 {
-				hostName = ret.Host
-			} else {
-				hostName = host.Name
-			}
-
-			// Extract the port number from the parsed server name.
-			checkHostName, checkPort, err := net.SplitHostPort(hostName)
-			if err != nil {
-				checkHostName = hostName
-			}
-
-			if u.Port != "" {
-				checkPort = u.Port
-			}
-
-			host.CheckURL = "http://" + net.JoinHostPort(checkHostName, checkPort) + u.Path
-		}
-
-		// calculate next timestamp before the get
-		nextTs := time.Now().Add(u.Future)
-
 		// locks/bools should prevent requests backing up
-		go host.healthCheckURL(nextTs)
+		go host.HealthCheckURL()
 	}
 }
 
@@ -239,3 +207,28 @@ func (u *HealthCheck) Select() *UpstreamHost {
 	}
 	return u.Spray.Select(pool)
 }
+
+// normalizeCheckURL creates a proper URL for the health check.
+func (u *HealthCheck) normalizeCheckURL(name string) string {
+	// The DNS server might be an HTTP server.  If so, extract its name.
+	hostName := name
+	ret, err := url.Parse(name)
+	if err == nil && len(ret.Host) > 0 {
+		hostName = ret.Host
+	}
+
+	// Extract the port number from the parsed server name.
+	checkHostName, checkPort, err := net.SplitHostPort(hostName)
+	if err != nil {
+		checkHostName = hostName
+	}
+
+	if u.Port != "" {
+		checkPort = u.Port
+	}
+
+	checkURL := "http://" + net.JoinHostPort(checkHostName, checkPort) + u.Path
+	return checkURL
+}
+
+var healthClient = func() *http.Client { return &http.Client{Timeout: 5 * time.Second} }()

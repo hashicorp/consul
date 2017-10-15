@@ -15,29 +15,16 @@ import (
 func TestStop(t *testing.T) {
 	config := "proxy . %s {\n health_check /healthcheck:%s %dms \n}"
 	tests := []struct {
-		name                    string
 		intervalInMilliseconds  int
 		numHealthcheckIntervals int
 	}{
-		{
-			"No Healthchecks After Stop - 5ms, 1 intervals",
-			5,
-			1,
-		},
-		{
-			"No Healthchecks After Stop - 5ms, 2 intervals",
-			5,
-			2,
-		},
-		{
-			"No Healthchecks After Stop - 5ms, 3 intervals",
-			5,
-			3,
-		},
+		{5, 1},
+		{5, 2},
+		{5, 3},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("Test %d", i), func(t *testing.T) {
 
 			// Set up proxy.
 			var counter int64
@@ -53,7 +40,7 @@ func TestStop(t *testing.T) {
 			c := caddyfile.NewDispenser("Testfile", strings.NewReader(fmt.Sprintf(config, back, port, test.intervalInMilliseconds)))
 			upstreams, err := NewStaticUpstreams(&c)
 			if err != nil {
-				t.Error("Expected no error. Got:", err.Error())
+				t.Errorf("Test %d, expected no error. Got: %s", i, err)
 			}
 
 			// Give some time for healthchecks to hit the server.
@@ -61,27 +48,25 @@ func TestStop(t *testing.T) {
 
 			for _, upstream := range upstreams {
 				if err := upstream.Stop(); err != nil {
-					t.Error("Expected no error stopping upstream. Got: ", err.Error())
+					t.Errorf("Test %d, expected no error stopping upstream, got: %s", i, err)
 				}
 			}
 
-			counterValueAfterShutdown := atomic.LoadInt64(&counter)
+			counterAfterShutdown := atomic.LoadInt64(&counter)
 
 			// Give some time to see if healthchecks are still hitting the server.
 			time.Sleep(time.Duration(test.intervalInMilliseconds*test.numHealthcheckIntervals) * time.Millisecond)
 
-			if counterValueAfterShutdown == 0 {
-				t.Error("Expected healthchecks to hit test server. Got no healthchecks.")
+			if counterAfterShutdown == 0 {
+				t.Errorf("Test %d, Expected healthchecks to hit test server, got none", i)
 			}
 
 			// health checks are in a go routine now, so one may well occur after we shutdown,
 			// but we only ever expect one more
-			counterValueAfterWaiting := atomic.LoadInt64(&counter)
-			if counterValueAfterWaiting > (counterValueAfterShutdown + 1) {
-				t.Errorf("Expected no more healthchecks after shutdown. Got: %d healthchecks after shutdown", counterValueAfterWaiting-counterValueAfterShutdown)
+			counterAfterWaiting := atomic.LoadInt64(&counter)
+			if counterAfterWaiting > (counterAfterShutdown + 1) {
+				t.Errorf("Test %d, expected no more healthchecks after shutdown. got: %d healthchecks after shutdown", i, counterAfterWaiting-counterAfterShutdown)
 			}
-
 		})
-
 	}
 }
