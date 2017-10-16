@@ -1,4 +1,4 @@
-## 1.0.0 (UNRELEASED)
+## 1.0.0 (October 16, 2017)
 
 SECURITY:
 
