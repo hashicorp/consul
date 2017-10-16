@@ -105,7 +105,7 @@ function tomographyMouseOver(el) {
   if (segment !== "") {
     buf += ' (Segment: ' + segment + ')';
   }
-  document.getElementById('tomography-node-info').innerHTML = buf;
+  document.getElementById('tomography-node-info').textContent = buf;
 
 }
 
@@ -151,7 +151,7 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   }
   distances.forEach(function (d, i) {
     buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (d.distance / max)) + '" ' +
-      'data-node="' + d.node + '" data-distance="' + d.distance + '" data-segment="' + d.segment + '" onmouseover="tomographyMouseOver(this);"/>';
+      'data-node="' + Handlebars.Utils.escapeExpression(d.node) + '" data-distance="' + d.distance + '" data-segment="' + Handlebars.Utils.escapeExpression(d.segment) + '" onmouseover="tomographyMouseOver(this);"/>';
   });
   buf += '' +
 '          </g>' +
