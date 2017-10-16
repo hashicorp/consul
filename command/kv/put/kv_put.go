@@ -100,12 +100,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// ModifyIndex is required for CAS
-	if c.cas && c.modifyIndex == 0 {
-		c.UI.Error("Must specify -modify-index with -cas!")
-		return 1
-	}
-
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -129,6 +123,10 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if !ok {
+			if pair.ModifyIndex == 0 {
+				c.UI.Error("Must specify -modify-index with -cas for existing key!")
+				return 1
+			}
 			c.UI.Error(fmt.Sprintf("Error! Did not write to %s: CAS failed", key))
 			return 1
 		}
