@@ -8,17 +8,17 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"sort"
-	"strconv"
 	"strings"
 )
 
 func main() {
 	mi := make(map[string]string, 0)
-	md := make(map[int]string, 0)
+	md := []string{}
 
 	file, err := os.Open(pluginFile)
-	fatalIfErr(err)
+	if err != nil {
+		log.Fatalf("Failed to open %s: %q", pluginFile, err)
+	}
 
 	defer file.Close()
 
@@ -30,21 +30,21 @@ func main() {
 		}
 
 		items := strings.Split(line, ":")
-		if len(items) != 3 {
-			// ignore
+		if len(items) != 2 {
+			// ignore empty lines
 			continue
 		}
-		priority, err := strconv.Atoi(items[0])
-		fatalIfErr(err)
+		name, repo := items[0], items[1]
 
-		if v, ok := md[priority]; ok {
-			log.Fatalf("Duplicate priority '%d', slot already taken by %q", priority, v)
+		if _, ok := mi[name]; ok {
+			log.Fatalf("Duplicate entry %q", name)
 		}
-		md[priority] = items[1]
-		mi[items[1]] = pluginPath + items[2] // Default, unless overridden by 3rd arg
 
-		if _, err := os.Stat(pluginFSPath + items[2]); err != nil { // External package has been given
-			mi[items[1]] = items[2]
+		md = append(md, name)
+		mi[name] = pluginPath + repo // Default, unless overridden by 3rd arg
+
+		if _, err := os.Stat(pluginFSPath + repo); err != nil { // External package has been given
+			mi[name] = repo
 		}
 	}
 
@@ -65,14 +65,12 @@ func genImports(file, pack string, mi map[string]string) {
 	}
 	outs += ")\n"
 
-	res, err := format.Source([]byte(outs))
-	fatalIfErr(err)
-
-	err = ioutil.WriteFile(file, res, 0644)
-	fatalIfErr(err)
+	if err := formatAndWrite(file, outs); err != nil {
+		log.Fatalf("Failed to format and write: %q", err)
+	}
 }
 
-func genDirectives(file, pack string, md map[int]string) {
+func genDirectives(file, pack string, md []string) {
 
 	outs := header + "package " + pack + "\n\n"
 	outs += `
@@ -87,29 +85,27 @@ func genDirectives(file, pack string, md map[int]string) {
 var directives = []string{
 `
 
-	var orders []int
-	for k := range md {
-		orders = append(orders, k)
-	}
-	sort.Ints(orders)
-
-	for _, k := range orders {
-		outs += `"` + md[k] + `",` + "\n"
+	for i := range md {
+		outs += `"` + md[i] + `",` + "\n"
 	}
 
 	outs += "}\n"
 
-	res, err := format.Source([]byte(outs))
-	fatalIfErr(err)
-
-	err = ioutil.WriteFile(file, res, 0644)
-	fatalIfErr(err)
+	if err := formatAndWrite(file, outs); err != nil {
+		log.Fatalf("Failed to format and write: %q", err)
+	}
 }
 
-func fatalIfErr(err error) {
+func formatAndWrite(file string, data string) error {
+	res, err := format.Source([]byte(data))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	if err = ioutil.WriteFile(file, res, 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 const (
