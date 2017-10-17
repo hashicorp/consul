@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
+	"github.com/hashicorp/consul/command/oper"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -142,12 +143,7 @@ func init() {
 		},
 
 		"operator": func() (cli.Command, error) {
-			return &OperatorCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return oper.New(), nil
 		},
 
 		"operator autopilot": func() (cli.Command, error) {
