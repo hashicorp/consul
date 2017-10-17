@@ -1,4 +1,4 @@
-package command
+package operautoset
 
 import (
 	"flag"
@@ -7,10 +7,20 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-type OperatorAutopilotSetCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 
 	// flags
 	cleanupDeadServers      flags.BoolValue
@@ -22,51 +32,49 @@ type OperatorAutopilotSetCommand struct {
 	upgradeVersionTag       flags.StringValue
 }
 
-func (c *OperatorAutopilotSetCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.Var(&c.cleanupDeadServers, "cleanup-dead-servers",
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.Var(&c.cleanupDeadServers, "cleanup-dead-servers",
 		"Controls whether Consul will automatically remove dead servers "+
 			"when new ones are successfully added. Must be one of `true|false`.")
-	c.FlagSet.Var(&c.maxTrailingLogs, "max-trailing-logs",
+	c.flags.Var(&c.maxTrailingLogs, "max-trailing-logs",
 		"Controls the maximum number of log entries that a server can trail the "+
 			"leader by before being considered unhealthy.")
-	c.FlagSet.Var(&c.lastContactThreshold, "last-contact-threshold",
+	c.flags.Var(&c.lastContactThreshold, "last-contact-threshold",
 		"Controls the maximum amount of time a server can go without contact "+
 			"from the leader before being considered unhealthy. Must be a duration value "+
 			"such as `200ms`.")
-	c.FlagSet.Var(&c.serverStabilizationTime, "server-stabilization-time",
+	c.flags.Var(&c.serverStabilizationTime, "server-stabilization-time",
 		"Controls the minimum amount of time a server must be stable in the "+
 			"'healthy' state before being added to the cluster. Only takes effect if all "+
 			"servers are running Raft protocol version 3 or higher. Must be a duration "+
 			"value such as `10s`.")
-	c.FlagSet.Var(&c.redundancyZoneTag, "redundancy-zone-tag",
+	c.flags.Var(&c.redundancyZoneTag, "redundancy-zone-tag",
 		"(Enterprise-only) Controls the node_meta tag name used for separating servers into "+
 			"different redundancy zones.")
-	c.FlagSet.Var(&c.disableUpgradeMigration, "disable-upgrade-migration",
+	c.flags.Var(&c.disableUpgradeMigration, "disable-upgrade-migration",
 		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
 			"it can perform a migration. Must be one of `true|false`.")
-	c.FlagSet.Var(&c.upgradeVersionTag, "upgrade-version-tag",
+	c.flags.Var(&c.upgradeVersionTag, "upgrade-version-tag",
 		"(Enterprise-only) The node_meta tag to use for version info when performing upgrade "+
 			"migrations. If left blank, the Consul version will be used.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
-func (c *OperatorAutopilotSetCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul operator autopilot set-config [options]
-
-Modifies the current Autopilot configuration.
-
-`)
-}
-
-func (c *OperatorAutopilotSetCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Modify the current Autopilot configuration"
 }
 
-func (c *OperatorAutopilotSetCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -75,7 +83,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
@@ -120,3 +128,7 @@ func (c *OperatorAutopilotSetCommand) Run(args []string) int {
 	c.UI.Output("Configuration could not be atomically updated, please try again")
 	return 1
 }
+
+const usage = `Usage: consul operator autopilot set-config [options]
+
+Modifies the current Autopilot configuration.`
