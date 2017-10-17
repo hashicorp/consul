@@ -1,20 +1,24 @@
-package command
+package snapshot
 
 import (
 	"github.com/mitchellh/cli"
 )
 
-// SnapshotCommand is a Command implementation that just shows help for
-// the subcommands nested below it.
-type SnapshotCommand struct {
-	UI cli.Ui
+func New() *cmd {
+	return &cmd{}
 }
 
-func (c *SnapshotCommand) Run(args []string) int {
+type cmd struct{}
+
+func (c *cmd) Run(args []string) int {
 	return cli.RunResultHelp
 }
 
-func (c *SnapshotCommand) Help() string {
+func (c *cmd) Synopsis() string {
+	return "Saves, restores and inspects snapshots of Consul server state"
+}
+
+func (c *cmd) Help() string {
 	return `Usage: consul snapshot <subcommand> [options] [args]
 
   This command has subcommands for saving, restoring, and inspecting the state
@@ -44,8 +48,4 @@ func (c *SnapshotCommand) Help() string {
 
   For more examples, ask for subcommand help or view the documentation.
 `
-}
-
-func (c *SnapshotCommand) Synopsis() string {
-	return "Saves, restores and inspects snapshots of Consul server state"
 }
