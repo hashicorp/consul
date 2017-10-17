@@ -1,4 +1,4 @@
-package command
+package agent
 
 import (
 	"fmt"
@@ -15,42 +15,6 @@ import (
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
-
-func baseCommand(ui *cli.MockUi) BaseCommand {
-	return BaseCommand{
-		Flags: FlagSetNone,
-		UI:    ui,
-	}
-}
-
-func TestCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = new(AgentCommand)
-}
-
-func TestValidDatacenter(t *testing.T) {
-	t.Parallel()
-	shouldMatch := []string{
-		"dc1",
-		"east-aws-001",
-		"PROD_aws01-small",
-	}
-	noMatch := []string{
-		"east.aws",
-		"east!aws",
-		"first,second",
-	}
-	for _, m := range shouldMatch {
-		if !validDatacenter.MatchString(m) {
-			t.Fatalf("expected match: %s", m)
-		}
-	}
-	for _, m := range noMatch {
-		if validDatacenter.MatchString(m) {
-			t.Fatalf("expected no match: %s", m)
-		}
-	}
-}
 
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
@@ -129,11 +93,8 @@ func TestRetryJoin(t *testing.T) {
 		<-doneCh
 	}()
 
-	cmd := &AgentCommand{
-		Version:     version.Version,
-		ShutdownCh:  shutdownCh,
-		BaseCommand: baseCommand(cli.NewMockUi()),
-	}
+	ui := cli.NewMockUi()
+	cmd := New(ui, "", version.Version, "", "", shutdownCh)
 
 	args := []string{
 		"-server",
@@ -173,10 +134,8 @@ func TestRetryJoinFail(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)
 
-	cmd := &AgentCommand{
-		ShutdownCh:  shutdownCh,
-		BaseCommand: baseCommand(cli.NewMockUi()),
-	}
+	ui := cli.NewMockUi()
+	cmd := New(ui, "", "", "", "", shutdownCh)
 
 	args := []string{
 		"-bind", cfg.BindAddr.String(),
@@ -201,10 +160,8 @@ func TestRetryJoinWanFail(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)
 
-	cmd := &AgentCommand{
-		ShutdownCh:  shutdownCh,
-		BaseCommand: baseCommand(cli.NewMockUi()),
-	}
+	ui := cli.NewMockUi()
+	cmd := New(ui, "", "", "", "", shutdownCh)
 
 	args := []string{
 		"-server",
@@ -245,11 +202,9 @@ func TestProtectDataDir(t *testing.T) {
 	}
 
 	ui := cli.NewMockUi()
-	cmd := &AgentCommand{
-		BaseCommand: baseCommand(ui),
-		args:        []string{"-config-file=" + cfgFile.Name()},
-	}
-	if conf := cmd.readConfig(); conf != nil {
+	cmd := New(ui, "", "", "", "", nil)
+	args := []string{"-config-file=" + cfgFile.Name()}
+	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should fail")
 	}
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, dir) {
@@ -269,11 +224,9 @@ func TestBadDataDirPermissions(t *testing.T) {
 	defer os.RemoveAll(dataDir)
 
 	ui := cli.NewMockUi()
-	cmd := &AgentCommand{
-		BaseCommand: baseCommand(ui),
-		args:        []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"},
-	}
-	if conf := cmd.readConfig(); conf != nil {
+	cmd := New(ui, "", "", "", "", nil)
+	args := []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"}
+	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("Should fail with bad data directory permissions")
 	}
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Permission denied") {

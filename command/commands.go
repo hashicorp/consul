@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	agentcmd "github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/cat"
 	"github.com/hashicorp/consul/command/catlistdc"
 	"github.com/hashicorp/consul/command/catlistnodes"
@@ -55,17 +56,14 @@ func init() {
 
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
-			return &AgentCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-				Revision:          version.GitCommit,
-				Version:           version.Version,
-				VersionPrerelease: version.VersionPrerelease,
-				HumanVersion:      version.GetHumanVersion(),
-				ShutdownCh:        make(chan struct{}),
-			}, nil
+			return agentcmd.New(
+				ui,
+				version.GitCommit,
+				version.Version,
+				version.VersionPrerelease,
+				version.GetHumanVersion(),
+				make(chan struct{}),
+			), nil
 		},
 
 		"catalog": func() (cli.Command, error) {
