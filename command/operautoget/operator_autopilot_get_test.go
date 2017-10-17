@@ -1,4 +1,4 @@
-package command
+package operautoget
 
 import (
 	"strings"
@@ -8,9 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestOperator_Autopilot_Get_Implements(t *testing.T) {
+func TestOperatorAutopilotGetCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &OperatorAutopilotGetCommand{}
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestOperator_Autopilot_Get(t *testing.T) {
@@ -19,12 +21,7 @@ func TestOperator_Autopilot_Get(t *testing.T) {
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
-	c := OperatorAutopilotGetCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
+	c := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)

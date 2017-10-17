@@ -1,33 +1,45 @@
-package command
+package operautoget
 
 import (
 	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-type OperatorAutopilotGetCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
 }
 
-func (c *OperatorAutopilotGetCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul operator autopilot get-config [options]
-
-Displays the current Autopilot configuration.
-
-`)
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 }
 
-func (c *OperatorAutopilotGetCommand) Synopsis() string {
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+}
+
+func (c *cmd) Synopsis() string {
 	return "Display the current Autopilot configuration"
 }
 
-func (c *OperatorAutopilotGetCommand) Run(args []string) int {
-	c.InitFlagSet()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -36,7 +48,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
@@ -44,7 +56,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 
 	// Fetch the current configuration.
 	opts := &api.QueryOptions{
-		AllowStale: c.HTTPStale(),
+		AllowStale: c.http.Stale(),
 	}
 	config, err := client.Operator().AutopilotGetConfiguration(opts)
 	if err != nil {
@@ -61,3 +73,7 @@ func (c *OperatorAutopilotGetCommand) Run(args []string) int {
 
 	return 0
 }
+
+const usage = `Usage: consul operator autopilot get-config [options]
+
+Displays the current Autopilot configuration.`
