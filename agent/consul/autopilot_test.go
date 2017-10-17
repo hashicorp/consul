@@ -231,7 +231,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		if !health.Healthy {
 			r.Fatalf("bad: %v", health)
 		}
-		if time.Now().Sub(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime {
+		if time.Since(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime {
 			r.Fatal("stable period not elapsed")
 		}
 	})

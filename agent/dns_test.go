@@ -2208,7 +2208,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	start := time.Now()
 	in, _, err := c.Exchange(m, a.DNSAddr())
 
-	duration := time.Now().Sub(start)
+	duration := time.Since(start)
 
 	if err != nil {
 		t.Fatalf("err: %v", err)

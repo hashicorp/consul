@@ -363,7 +363,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Since(start) < 100*time.Millisecond {
 		t.Fatalf("too fast")
 	}
 

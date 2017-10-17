@@ -365,7 +365,7 @@ func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
-		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Now().Sub(start))
+		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
 	}(time.Now())
 
 	return &consulSnapshot{c.state.Snapshot()}, nil

@@ -541,7 +541,7 @@ func TestAPI_LockOneShot(t *testing.T) {
 	if ch != nil {
 		t.Fatalf("should not be leader")
 	}
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	if diff < contender.opts.LockWaitTime || diff > 2*contender.opts.LockWaitTime {
 		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}
