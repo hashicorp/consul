@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/validate"
+	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -187,9 +188,7 @@ func init() {
 		},
 
 		"snapshot": func() (cli.Command, error) {
-			return &SnapshotCommand{
-				UI: ui,
-			}, nil
+			return snapshot.New(), nil
 		},
 
 		"snapshot restore": func() (cli.Command, error) {
