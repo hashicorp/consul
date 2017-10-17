@@ -65,6 +65,10 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 	return fs
 }
 
+func (f *HTTPFlags) Addr() string {
+	return f.address.String()
+}
+
 func (f *HTTPFlags) Datacenter() string {
 	return f.datacenter.String()
 }
@@ -74,6 +78,10 @@ func (f *HTTPFlags) Stale() bool {
 		return false
 	}
 	return *f.stale.v
+}
+
+func (f *HTTPFlags) Token() string {
+	return f.token.String()
 }
 
 func (f *HTTPFlags) APIClient() (*api.Client, error) {
