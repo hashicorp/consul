@@ -1,4 +1,4 @@
-package command
+package rtt
 
 import (
 	"fmt"
@@ -12,19 +12,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testRTTCommand(t *testing.T) (*cli.MockUi, *RTTCommand) {
-	ui := cli.NewMockUi()
-	return ui, &RTTCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
-}
-
-func TestRTTCommand_Implements(t *testing.T) {
+func TestRTTCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &RTTCommand{}
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestRTTCommand_Run_BadArgs(t *testing.T) {
@@ -42,7 +34,8 @@ func TestRTTCommand_Run_BadArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
 			t.Parallel()
-			_, c := testRTTCommand(t)
+			ui := cli.NewMockUi()
+			c := New(ui)
 			if code := c.Run(tt.args); code != 1 {
 				t.Fatalf("expected return code 1, got %d", code)
 			}
@@ -101,7 +94,8 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 	}
 
 	// Ask for the RTT of two known nodes
-	ui, c := testRTTCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		a.Config.NodeName,
@@ -123,7 +117,8 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 
 	// Default to the agent's node.
 	{
-		ui, c := testRTTCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"dogs",
@@ -142,7 +137,8 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 
 	// Try an unknown node.
 	{
-		ui, c := testRTTCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			a.Config.NodeName,
@@ -165,7 +161,8 @@ func TestRTTCommand_Run_WAN(t *testing.T) {
 	// We can't easily inject WAN coordinates, so we will just query the
 	// node with itself.
 	{
-		ui, c := testRTTCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-wan",
 			"-http-addr=" + a.HTTPAddr(),
@@ -185,7 +182,8 @@ func TestRTTCommand_Run_WAN(t *testing.T) {
 
 	// Default to the agent's node.
 	{
-		ui, c := testRTTCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-wan",
 			"-http-addr=" + a.HTTPAddr(),
@@ -204,7 +202,8 @@ func TestRTTCommand_Run_WAN(t *testing.T) {
 
 	// Try an unknown node.
 	{
-		ui, c := testRTTCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 		args := []string{
 			"-wan",
 			"-http-addr=" + a.HTTPAddr(),
