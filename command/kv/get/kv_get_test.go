@@ -1,4 +1,4 @@
-package kvget
+package get
 
 import (
 	"encoding/base64"

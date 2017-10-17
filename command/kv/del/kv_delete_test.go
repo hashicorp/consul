@@ -1,4 +1,4 @@
-package kvdel
+package del
 
 import (
 	"strconv"

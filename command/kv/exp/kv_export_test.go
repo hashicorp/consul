@@ -1,4 +1,4 @@
-package kvexp
+package exp
 
 import (
 	"encoding/base64"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/kvimpexp"
+	"github.com/hashicorp/consul/command/kv/impexp"
 	"github.com/mitchellh/cli"
 )
 
@@ -53,7 +53,7 @@ func TestKVExportCommand_Run(t *testing.T) {
 
 	output := ui.OutputWriter.String()
 
-	var exported []*kvimpexp.Entry
+	var exported []*impexp.Entry
 	err := json.Unmarshal([]byte(output), &exported)
 	if err != nil {
 		t.Fatalf("bad: %d", code)

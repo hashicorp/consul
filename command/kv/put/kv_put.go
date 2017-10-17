@@ -1,4 +1,4 @@
-package kvput
+package put
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package kvimpexp
+package impexp
 
 import (
 	"encoding/base64"
