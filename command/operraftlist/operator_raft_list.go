@@ -1,34 +1,46 @@
-package command
+package operraftlist
 
 import (
 	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
 
-type OperatorRaftListCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
 }
 
-func (c *OperatorRaftListCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul operator raft list-peers [options]
-
-Displays the current Raft peer configuration.
-
-`)
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 }
 
-func (c *OperatorRaftListCommand) Synopsis() string {
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+}
+
+func (c *cmd) Synopsis() string {
 	return "Display the current Raft peer configuration"
 }
 
-func (c *OperatorRaftListCommand) Run(args []string) int {
-	c.InitFlagSet()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -37,14 +49,14 @@ func (c *OperatorRaftListCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
 	}
 
 	// Fetch the current configuration.
-	result, err := raftListPeers(client, c.HTTPStale())
+	result, err := raftListPeers(client, c.http.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 		return 1
@@ -55,7 +67,6 @@ func (c *OperatorRaftListCommand) Run(args []string) int {
 }
 
 func raftListPeers(client *api.Client, stale bool) (string, error) {
-
 	q := &api.QueryOptions{
 		AllowStale: stale,
 	}
@@ -82,3 +93,7 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 
 	return columnize.SimpleFormat(result), nil
 }
+
+const usage = `Usage: consul operator raft list-peers [options]
+
+Displays the current Raft peer configuration.`
