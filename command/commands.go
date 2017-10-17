@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/command/snapshot"
 	"github.com/hashicorp/consul/command/snapshotinspect"
 	"github.com/hashicorp/consul/command/validate"
+	versioncmd "github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -219,10 +220,7 @@ func init() {
 		},
 
 		"version": func() (cli.Command, error) {
-			return &VersionCommand{
-				HumanVersion: version.GetHumanVersion(),
-				UI:           ui,
-			}, nil
+			return versioncmd.New(ui, version.GetHumanVersion()), nil
 		},
 
 		"watch": func() (cli.Command, error) {
