@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/snapshot"
 	"github.com/hashicorp/consul/command/snapshotinspect"
+	"github.com/hashicorp/consul/command/snapshotrestore"
 	"github.com/hashicorp/consul/command/validate"
 	versioncmd "github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/version"
@@ -194,12 +195,7 @@ func init() {
 		},
 
 		"snapshot restore": func() (cli.Command, error) {
-			return &SnapshotRestoreCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return snapshotrestore.New(ui), nil
 		},
 
 		"snapshot save": func() (cli.Command, error) {

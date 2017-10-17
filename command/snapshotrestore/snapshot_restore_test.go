@@ -1,4 +1,4 @@
-package command
+package snapshotrestore
 
 import (
 	"io"
@@ -12,29 +12,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testSnapshotRestoreCommand(t *testing.T) (*cli.MockUi, *SnapshotRestoreCommand) {
-	ui := cli.NewMockUi()
-	return ui, &SnapshotRestoreCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestSnapshotRestoreCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &SnapshotRestoreCommand{}
-}
-
 func TestSnapshotRestoreCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(SnapshotRestoreCommand))
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testSnapshotRestoreCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -77,7 +65,8 @@ func TestSnapshotRestoreCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testSnapshotRestoreCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
