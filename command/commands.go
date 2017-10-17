@@ -42,6 +42,7 @@ import (
 	"github.com/hashicorp/consul/command/snapshotsave"
 	"github.com/hashicorp/consul/command/validate"
 	versioncmd "github.com/hashicorp/consul/command/version"
+	watchcmd "github.com/hashicorp/consul/command/watch"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -216,13 +217,7 @@ func init() {
 		},
 
 		"watch": func() (cli.Command, error) {
-			return &WatchCommand{
-				ShutdownCh: makeShutdownCh(),
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return watchcmd.New(ui, makeShutdownCh()), nil
 		},
 	}
 }
