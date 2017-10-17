@@ -10,21 +10,17 @@ import (
 	text "github.com/tonnerre/golang-text"
 )
 
-func Usage(txt string, cmdFlags, clientFlags, serverFlags *flag.FlagSet) string {
+func Usage(txt string, flags *flag.FlagSet) string {
 	u := &Usager{
-		Usage:           txt,
-		CmdFlags:        cmdFlags,
-		HTTPClientFlags: clientFlags,
-		HTTPServerFlags: serverFlags,
+		Usage: txt,
+		Flags: flags,
 	}
 	return u.String()
 }
 
 type Usager struct {
-	Usage           string
-	CmdFlags        *flag.FlagSet
-	HTTPClientFlags *flag.FlagSet
-	HTTPServerFlags *flag.FlagSet
+	Usage string
+	Flags *flag.FlagSet
 }
 
 func (u *Usager) String() string {
@@ -33,28 +29,39 @@ func (u *Usager) String() string {
 	out.WriteString("\n")
 	out.WriteString("\n")
 
-	httpFlags := u.HTTPClientFlags
-	if httpFlags == nil {
-		httpFlags = u.HTTPServerFlags
-	} else {
-		Merge(httpFlags, u.HTTPServerFlags)
-	}
+	if u.Flags != nil {
+		f := &HTTPFlags{}
+		clientFlags := f.ClientFlags()
+		serverFlags := f.ServerFlags()
 
-	if httpFlags != nil {
-		printTitle(out, "HTTP API Options")
-		httpFlags.VisitAll(func(f *flag.Flag) {
-			printFlag(out, f)
-		})
-	}
-
-	if u.CmdFlags != nil {
-		printTitle(out, "Command Options")
-		u.CmdFlags.VisitAll(func(f *flag.Flag) {
-			if flagContains(httpFlags, f) {
-				return
+		var httpFlags, cmdFlags *flag.FlagSet
+		u.Flags.VisitAll(func(f *flag.Flag) {
+			if contains(clientFlags, f) || contains(serverFlags, f) {
+				if httpFlags == nil {
+					httpFlags = flag.NewFlagSet("", flag.ContinueOnError)
+				}
+				httpFlags.Var(f.Value, f.Name, f.Usage)
+			} else {
+				if cmdFlags == nil {
+					cmdFlags = flag.NewFlagSet("", flag.ContinueOnError)
+				}
+				cmdFlags.Var(f.Value, f.Name, f.Usage)
 			}
-			printFlag(out, f)
 		})
+
+		if httpFlags != nil {
+			printTitle(out, "HTTP API Options")
+			httpFlags.VisitAll(func(f *flag.Flag) {
+				printFlag(out, f)
+			})
+		}
+
+		if cmdFlags != nil {
+			printTitle(out, "Command Options")
+			cmdFlags.VisitAll(func(f *flag.Flag) {
+				printFlag(out, f)
+			})
+		}
 	}
 
 	return strings.TrimRight(out.String(), "\n")
@@ -78,26 +85,18 @@ func printFlag(w io.Writer, f *flag.Flag) {
 	fmt.Fprintf(w, "%s\n\n", indented)
 }
 
-// flagContains returns true if the given flag is contained in the given flag
+// contains returns true if the given flag is contained in the given flag
 // set or false otherwise.
-func flagContains(fs *flag.FlagSet, f *flag.Flag) bool {
+func contains(fs *flag.FlagSet, f *flag.Flag) bool {
 	if fs == nil {
 		return false
 	}
 
-	var skip bool
+	var in bool
 	fs.VisitAll(func(hf *flag.Flag) {
-		if skip {
-			return
-		}
-
-		if f.Name == hf.Name {
-			skip = true
-			return
-		}
+		in = in || f.Name == hf.Name
 	})
-
-	return skip
+	return in
 }
 
 // maxLineLength is the maximum width of any line.

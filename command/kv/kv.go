@@ -20,7 +20,7 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	return flags.Usage(help, nil, nil, nil)
+	return flags.Usage(help, nil)
 }
 
 const synopsis = "Interact with the key-value store"

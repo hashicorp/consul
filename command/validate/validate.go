@@ -26,7 +26,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
-	c.help = flags.Usage(help, c.flags, nil, nil)
+	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
