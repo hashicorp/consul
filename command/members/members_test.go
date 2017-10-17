@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestMembersCommandRun(t *testing.T) {
+func TestMembersCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -41,7 +41,7 @@ func TestMembersCommandRun(t *testing.T) {
 	}
 }
 
-func TestMembersCommandRun_WAN(t *testing.T) {
+func TestMembersCommand_WAN(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -62,7 +62,7 @@ func TestMembersCommandRun_WAN(t *testing.T) {
 	}
 }
 
-func TestMembersCommandRun_statusFilter(t *testing.T) {
+func TestMembersCommand_statusFilter(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -86,7 +86,7 @@ func TestMembersCommandRun_statusFilter(t *testing.T) {
 	}
 }
 
-func TestMembersCommandRun_statusFilter_failed(t *testing.T) {
+func TestMembersCommand_statusFilter_failed(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

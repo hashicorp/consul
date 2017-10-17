@@ -17,7 +17,7 @@ func TestValidateCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestValidateCommandFailOnEmptyFile(t *testing.T) {
+func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 	t.Parallel()
 	tmpFile := testutil.TempFile(t, "consul")
 	defer os.RemoveAll(tmpFile.Name())
@@ -30,7 +30,7 @@ func TestValidateCommandFailOnEmptyFile(t *testing.T) {
 	}
 }
 
-func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
+func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
@@ -48,7 +48,7 @@ func TestValidateCommandSucceedOnMinimalConfigFile(t *testing.T) {
 	}
 }
 
-func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
+func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
@@ -65,7 +65,7 @@ func TestValidateCommandSucceedOnMinimalConfigDir(t *testing.T) {
 	}
 }
 
-func TestValidateCommandQuiet(t *testing.T) {
+func TestValidateCommand_Quiet(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)

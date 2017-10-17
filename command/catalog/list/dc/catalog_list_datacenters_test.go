@@ -51,7 +51,7 @@ func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCatalogListDatacentersCommand_Run(t *testing.T) {
+func TestCatalogListDatacentersCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

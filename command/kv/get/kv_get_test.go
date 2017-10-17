@@ -57,7 +57,7 @@ func TestKVGetCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestKVGetCommand_Run(t *testing.T) {
+func TestKVGetCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

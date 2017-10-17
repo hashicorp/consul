@@ -17,7 +17,7 @@ func TestExecCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestExecCommandRun(t *testing.T) {
+func TestExecCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
@@ -38,7 +38,7 @@ func TestExecCommandRun(t *testing.T) {
 	}
 }
 
-func TestExecCommandRun_NoShell(t *testing.T) {
+func TestExecCommand_NoShell(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
@@ -59,7 +59,7 @@ func TestExecCommandRun_NoShell(t *testing.T) {
 	}
 }
 
-func TestExecCommandRun_CrossDC(t *testing.T) {
+func TestExecCommand_CrossDC(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false

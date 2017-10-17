@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
+func TestMaintCommand_ConflictingArgs(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -32,7 +32,7 @@ func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_NoArgs(t *testing.T) {
+func TestMaintCommand_NoArgs(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -81,7 +81,7 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
+func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -105,7 +105,7 @@ func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
+func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -128,7 +128,7 @@ func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
+func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -162,7 +162,7 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
+func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -195,7 +195,7 @@ func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_ServiceMaintenance_NoService(t *testing.T) {
+func TestMaintCommand_ServiceMaintenance_NoService(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

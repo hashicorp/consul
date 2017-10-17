@@ -15,7 +15,7 @@ func TestKeyringCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestKeyringCommandRun(t *testing.T) {
+func TestKeyringCommand(t *testing.T) {
 	t.Parallel()
 	key1 := "HS5lJ+XuTlYKWaeGYyG+/A=="
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
@@ -66,7 +66,7 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 }
 
-func TestKeyringCommandRun_help(t *testing.T) {
+func TestKeyringCommand_help(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -81,7 +81,7 @@ func TestKeyringCommandRun_help(t *testing.T) {
 	}
 }
 
-func TestKeyringCommandRun_failedConnection(t *testing.T) {
+func TestKeyringCommand_failedConnection(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -95,7 +95,7 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	}
 }
 
-func TestKeyringCommandRun_invalidRelayFactor(t *testing.T) {
+func TestKeyringCommand_invalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)

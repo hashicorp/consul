@@ -8,7 +8,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestWatchCommandRun(t *testing.T) {
+func TestWatchCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

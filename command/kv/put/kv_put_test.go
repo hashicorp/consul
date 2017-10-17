@@ -75,7 +75,7 @@ func TestKVPutCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestKVPutCommand_Run(t *testing.T) {
+func TestKVPutCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -104,7 +104,7 @@ func TestKVPutCommand_Run(t *testing.T) {
 	}
 }
 
-func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
+func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -133,7 +133,7 @@ func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
 	}
 }
 
-func TestKVPutCommand_RunBase64(t *testing.T) {
+func TestKVPutCommand_Base64(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

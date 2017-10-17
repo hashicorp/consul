@@ -32,7 +32,7 @@ func TestLockCommand_BadArgs(t *testing.T) {
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 
-func TestLockCommand_Run(t *testing.T) {
+func TestLockCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -55,7 +55,7 @@ func TestLockCommand_Run(t *testing.T) {
 	}
 }
 
-func TestLockCommand_Run_NoShell(t *testing.T) {
+func TestLockCommand_NoShell(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -78,7 +78,7 @@ func TestLockCommand_Run_NoShell(t *testing.T) {
 	}
 }
 
-func TestLockCommand_Try_Lock(t *testing.T) {
+func TestLockCommand_TryLock(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -110,7 +110,7 @@ func TestLockCommand_Try_Lock(t *testing.T) {
 	}
 }
 
-func TestLockCommand_Try_Semaphore(t *testing.T) {
+func TestLockCommand_TrySemaphore(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

@@ -70,7 +70,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestKVDeleteCommand_Run(t *testing.T) {
+func TestKVDeleteCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

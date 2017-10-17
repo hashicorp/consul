@@ -14,7 +14,7 @@ func TestJoinCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestJoinCommandJoinRun_lan(t *testing.T) {
+func TestJoinCommandJoin_lan(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
@@ -38,7 +38,7 @@ func TestJoinCommandJoinRun_lan(t *testing.T) {
 	}
 }
 
-func TestJoinCommandRun_wan(t *testing.T) {
+func TestJoinCommand_wan(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
@@ -63,7 +63,7 @@ func TestJoinCommandRun_wan(t *testing.T) {
 	}
 }
 
-func TestJoinCommandRun_noAddrs(t *testing.T) {
+func TestJoinCommand_noAddrs(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	cmd := New(ui)
