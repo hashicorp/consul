@@ -1,8 +1,9 @@
-package command
+package watch
 
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,14 +11,24 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/consul/command/flags"
+	consulwatch "github.com/hashicorp/consul/watch"
+	"github.com/mitchellh/cli"
 )
 
-// WatchCommand is a Command implementation that is used to setup
-// a "watch" which uses a sub-process
-type WatchCommand struct {
-	BaseCommand
-	ShutdownCh <-chan struct{}
+func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
+	c := &cmd{UI: ui, shutdownCh: shutdownCh}
+	c.init()
+	return c
+}
+
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
+
+	shutdownCh <-chan struct{}
 
 	// flags
 	watchType   string
@@ -31,50 +42,47 @@ type WatchCommand struct {
 	shell       bool
 }
 
-func (c *WatchCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.StringVar(&c.watchType, "type", "",
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.watchType, "type", "",
 		"Specifies the watch type. One of key, keyprefix, services, nodes, "+
 			"service, checks, or event.")
-	c.FlagSet.StringVar(&c.key, "key", "",
+	c.flags.StringVar(&c.key, "key", "",
 		"Specifies the key to watch. Only for 'key' type.")
-	c.FlagSet.StringVar(&c.prefix, "prefix", "",
+	c.flags.StringVar(&c.prefix, "prefix", "",
 		"Specifies the key prefix to watch. Only for 'keyprefix' type.")
-	c.FlagSet.StringVar(&c.service, "service", "",
+	c.flags.StringVar(&c.service, "service", "",
 		"Specifies the service to watch. Required for 'service' type, "+
 			"optional for 'checks' type.")
-	c.FlagSet.StringVar(&c.tag, "tag", "",
+	c.flags.StringVar(&c.tag, "tag", "",
 		"Specifies the service tag to filter on. Optional for 'service' type.")
-	c.FlagSet.StringVar(&c.passingOnly, "passingonly", "",
+	c.flags.StringVar(&c.passingOnly, "passingonly", "",
 		"Specifies if only hosts passing all checks are displayed. "+
 			"Optional for 'service' type, must be one of `[true|false]`. Defaults false.")
-	c.FlagSet.BoolVar(&c.shell, "shell", true,
+	c.flags.BoolVar(&c.shell, "shell", true,
 		"Use a shell to run the command (can set a custom shell via the SHELL "+
 			"environment variable).")
-	c.FlagSet.StringVar(&c.state, "state", "",
+	c.flags.StringVar(&c.state, "state", "",
 		"Specifies the states to watch. Optional for 'checks' type.")
-	c.FlagSet.StringVar(&c.name, "name", "",
+	c.flags.StringVar(&c.name, "name", "",
 		"Specifies an event name to watch. Only for 'event' type.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
-func (c *WatchCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul watch [options] [child...]
-
-  Watches for changes in a given data view from Consul. If a child process
-  is specified, it will be invoked with the latest results on changes. Otherwise,
-  the latest values are dumped to stdout and the watch terminates.
-
-  Providing the watch type is required, and other parameters may be required
-  or supported depending on the watch type.
-
-`)
+func (c *cmd) Synopsis() string {
+	return "Watch for changes in Consul"
 }
 
-func (c *WatchCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
@@ -91,11 +99,11 @@ func (c *WatchCommand) Run(args []string) int {
 	if c.watchType != "" {
 		params["type"] = c.watchType
 	}
-	if c.HTTPDatacenter() != "" {
-		params["datacenter"] = c.HTTPDatacenter()
+	if c.http.Datacenter() != "" {
+		params["datacenter"] = c.http.Datacenter()
 	}
-	if c.HTTPToken() != "" {
-		params["token"] = c.HTTPToken()
+	if c.http.Token() != "" {
+		params["token"] = c.http.Token()
 	}
 	if c.key != "" {
 		params["key"] = c.key
@@ -109,8 +117,8 @@ func (c *WatchCommand) Run(args []string) int {
 	if c.tag != "" {
 		params["tag"] = c.tag
 	}
-	if c.HTTPStale() {
-		params["stale"] = c.HTTPStale()
+	if c.http.Stale() {
+		params["stale"] = c.http.Stale()
 	}
 	if c.state != "" {
 		params["state"] = c.state
@@ -128,14 +136,14 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 
 	// Create the watch
-	wp, err := watch.Parse(params)
+	wp, err := consulwatch.Parse(params)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("%s", err))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -152,7 +160,7 @@ func (c *WatchCommand) Run(args []string) int {
 	//	0: false
 	//	1: true
 	errExit := 0
-	if len(c.FlagSet.Args()) == 0 {
+	if len(c.flags.Args()) == 0 {
 		wp.Handler = func(idx uint64, data interface{}) {
 			defer wp.Stop()
 			buf, err := json.MarshalIndent(data, "", "    ")
@@ -175,9 +183,9 @@ func (c *WatchCommand) Run(args []string) int {
 			var err error
 			var cmd *exec.Cmd
 			if !c.shell {
-				cmd, err = agent.ExecSubprocess(c.FlagSet.Args())
+				cmd, err = agent.ExecSubprocess(c.flags.Args())
 			} else {
-				cmd, err = agent.ExecScript(strings.Join(c.FlagSet.Args(), " "))
+				cmd, err = agent.ExecScript(strings.Join(c.flags.Args(), " "))
 			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))
@@ -219,13 +227,13 @@ func (c *WatchCommand) Run(args []string) int {
 
 	// Watch for a shutdown
 	go func() {
-		<-c.ShutdownCh
+		<-c.shutdownCh
 		wp.Stop()
 		os.Exit(0)
 	}()
 
 	// Run the watch
-	if err := wp.Run(c.HTTPAddr()); err != nil {
+	if err := wp.Run(c.http.Addr()); err != nil {
 		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
@@ -233,6 +241,11 @@ func (c *WatchCommand) Run(args []string) int {
 	return errExit
 }
 
-func (c *WatchCommand) Synopsis() string {
-	return "Watch for changes in Consul"
-}
+const usage = `Usage: consul watch [options] [child...]
+
+  Watches for changes in a given data view from Consul. If a child process
+  is specified, it will be invoked with the latest results on changes. Otherwise,
+  the latest values are dumped to stdout and the watch terminates.
+
+  Providing the watch type is required, and other parameters may be required
+  or supported depending on the watch type.`

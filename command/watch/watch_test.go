@@ -1,4 +1,4 @@
-package command
+package watch
 
 import (
 	"strings"
@@ -8,23 +8,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestWatchCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &WatchCommand{}
-}
-
 func TestWatchCommandRun(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
-	c := &WatchCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
+	c := New(ui, nil)
 	args := []string{"-http-addr=" + a.HTTPAddr(), "-type=nodes"}
 
 	code := c.Run(args)
