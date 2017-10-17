@@ -1,4 +1,4 @@
-package command
+package snapshotsave
 
 import (
 	"os"
@@ -11,26 +11,12 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
-	ui := cli.NewMockUi()
-	return ui, &SnapshotSaveCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
-}
-
-func TestSnapshotSaveCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &SnapshotSaveCommand{}
-}
-
 func TestSnapshotSaveCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	assertNoTabs(t, new(SnapshotSaveCommand))
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
-
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	t.Parallel()
 
@@ -49,7 +35,8 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		ui, c := testSnapshotSaveCommand(t)
+		ui := cli.NewMockUi()
+		c := New(ui)
 
 		// Ensure our buffer is always clear
 		if ui.ErrorWriter != nil {
@@ -77,7 +64,8 @@ func TestSnapshotSaveCommand_Run(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui, c := testSnapshotSaveCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)

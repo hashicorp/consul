@@ -1,55 +1,54 @@
-package command
+package snapshotsave
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
+	"github.com/mitchellh/cli"
 )
 
-// SnapshotSaveCommand is a Command implementation that is used to save the
-// state of the Consul servers for disaster recovery.
-type SnapshotSaveCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
 }
 
-func (c *SnapshotSaveCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul snapshot save [options] FILE
-
-  Retrieves an atomic, point-in-time snapshot of the state of the Consul servers
-  which includes key/value entries, service catalog, prepared queries, sessions,
-  and ACLs.
-
-  If ACLs are enabled, a management token must be supplied in order to perform
-  snapshot operations.
-
-  To create a snapshot from the leader server and save it to "backup.snap":
-
-    $ consul snapshot save backup.snap
-
-  To create a potentially stale snapshot from any available server (useful if no
-  leader is available):
-
-    $ consul snapshot save -stale backup.snap
-
-  For a full list of options and examples, please see the Consul documentation.
-
-`)
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 }
 
-func (c *SnapshotSaveCommand) Run(args []string) int {
-	c.InitFlagSet()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+}
+
+func (c *cmd) Synopsis() string {
+	return "Saves snapshot of Consul server state"
+}
+
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	switch len(args) {
 	case 0:
 		c.UI.Error("Missing FILE argument")
@@ -62,7 +61,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -70,7 +69,7 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 
 	// Take the snapshot.
 	snap, qm, err := client.Snapshot().Save(&api.QueryOptions{
-		AllowStale: c.HTTPStale(),
+		AllowStale: c.http.Stale(),
 	})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error saving snapshot: %s", err))
@@ -114,6 +113,22 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *SnapshotSaveCommand) Synopsis() string {
-	return "Saves snapshot of Consul server state"
-}
+const usage = `Usage: consul snapshot save [options] FILE
+
+  Retrieves an atomic, point-in-time snapshot of the state of the Consul servers
+  which includes key/value entries, service catalog, prepared queries, sessions,
+  and ACLs.
+
+  If ACLs are enabled, a management token must be supplied in order to perform
+  snapshot operations.
+
+  To create a snapshot from the leader server and save it to "backup.snap":
+
+    $ consul snapshot save backup.snap
+
+  To create a potentially stale snapshot from any available server (useful if no
+  leader is available):
+
+    $ consul snapshot save -stale backup.snap
+
+  For a full list of options and examples, please see the Consul documentation.`
