@@ -20,7 +20,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	cleanupDeadServers      flags.BoolValue
@@ -62,15 +62,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Modify the current Autopilot configuration"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -129,6 +121,17 @@ func (c *cmd) Run(args []string) int {
 	return 1
 }
 
-const usage = `Usage: consul operator autopilot set-config [options]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
 
-Modifies the current Autopilot configuration.`
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Modify the current Autopilot configuration"
+const help = `
+Usage: consul operator autopilot set-config [options]
+
+  Modifies the current Autopilot configuration.
+`

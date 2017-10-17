@@ -29,7 +29,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	shutdownCh <-chan struct{}
 	conf       rExecConf
@@ -60,7 +60,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -183,12 +183,22 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Executes a command on Consul nodes"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
+
+const synopsis = "Executes a command on Consul nodes"
+const help = `
+Usage: consul exec [options] [-|command...]
+
+  Evaluates a command on remote Consul nodes. The nodes responding can
+  be filtered using regular expressions on node name, service, and tag
+  definitions. If a command is '-', stdin will be read until EOF
+  and used as a script input.
+`
 
 // waitForJob is used to poll for results and wait until the job is terminated
 func (c *cmd) waitForJob() int {
@@ -685,10 +695,3 @@ func (u *TargetedUI) prefixLines(arrow bool, message string) string {
 
 	return strings.TrimRightFunc(result.String(), unicode.IsSpace)
 }
-
-const usage = `Usage: consul exec [options] [-|command...]
-
-  Evaluates a command on remote Consul nodes. The nodes responding can
-  be filtered using regular expressions on node name, service, and tag
-  definitions. If a command is '-', stdin will be read until EOF
-  and used as a script input. `

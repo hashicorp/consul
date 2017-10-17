@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -26,7 +26,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -58,18 +58,21 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Forces a member of the cluster to enter the \"left\" state"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul force-leave [options] name
+const synopsis = "Forces a member of the cluster to enter the \"left\" state"
+const help = `
+Usage: consul force-leave [options] name
 
   Forces a member of a Consul cluster to enter the "left" state. Note
   that if the member is still actually alive, it will eventually rejoin
   the cluster. This command is most useful for cleaning out "failed" nodes
   that are never coming back. If you do not force leave a failed node,
   Consul will attempt to reconnect to those failed nodes for some period of
-  time before eventually reaping them.`
+  time before eventually reaping them.
+`

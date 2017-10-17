@@ -23,7 +23,7 @@ type cmd struct {
 	UI           cli.Ui
 	flags        *flag.FlagSet
 	http         *flags.HTTPFlags
-	usage        string
+	help         string
 	base64encode bool
 	detailed     bool
 	keys         bool
@@ -54,7 +54,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -175,11 +175,11 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Retrieves or lists data from the KV store"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
 func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
@@ -202,7 +202,9 @@ func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 	return tw.Flush()
 }
 
-const usage = `Usage: consul kv get [options] [KEY_OR_PREFIX]
+const synopsis = "Retrieves or lists data from the KV store"
+const help = `
+Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   Retrieves the value from Consul's key-value store at the given key name. If no
   key exists with that name, an error is returned. If a key exists with that
@@ -230,4 +232,5 @@ const usage = `Usage: consul kv get [options] [KEY_OR_PREFIX]
 
       $ consul kv get -keys foo
 
-  For a full list of options and examples, please see the Consul documentation. `
+  For a full list of options and examples, please see the Consul documentation.
+`

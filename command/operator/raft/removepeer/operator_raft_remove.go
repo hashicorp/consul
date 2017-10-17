@@ -19,7 +19,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	address string
@@ -36,15 +36,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Remove a Consul server from the Raft configuration"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -99,13 +91,24 @@ func raftRemovePeers(address, id string, operator *api.Operator) error {
 	return nil
 }
 
-const usage = `Usage: consul operator raft remove-peer [options]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
 
-Remove the Consul server with given -address from the Raft configuration.
+func (c *cmd) Help() string {
+	return c.help
+}
 
-There are rare cases where a peer may be left behind in the Raft quorum even
-though the server is no longer present and known to the cluster. This command
-can be used to remove the failed server so that it is no longer affects the Raft
-quorum. If the server still shows in the output of the "consul members" command,
-it is preferable to clean up by simply running "consul force-leave" instead of
-this command.`
+const synopsis = "Remove a Consul server from the Raft configuration"
+const help = `
+Usage: consul operator raft remove-peer [options]
+
+  Remove the Consul server with given -address from the Raft configuration.
+
+  There are rare cases where a peer may be left behind in the Raft quorum even
+  though the server is no longer present and known to the cluster. This command
+  can be used to remove the failed server so that it is no longer affects the Raft
+  quorum. If the server still shows in the output of the "consul members" command,
+  it is preferable to clean up by simply running "consul force-leave" instead of
+  this command.
+`

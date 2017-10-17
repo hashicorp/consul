@@ -23,7 +23,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	node     string
@@ -46,7 +46,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -126,14 +126,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Lists all registered services in a datacenter"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul catalog services [options]
+const synopsis = "Lists all registered services in a datacenter"
+const help = `
+Usage: consul catalog services [options]
 
   Retrieves the list services registered in a given datacenter. By default, the
   datacenter of the local agent is queried.
@@ -154,4 +156,5 @@ const usage = `Usage: consul catalog services [options]
 
       $ consul catalog services -node-meta="foo=bar"
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

@@ -20,7 +20,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	installKey string
@@ -52,7 +52,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -162,14 +162,16 @@ func (c *cmd) handleList(responses []*consulapi.KeyringResponse) {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Manages gossip layer encryption keys"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul keyring [options]
+const synopsis = "Manages gossip layer encryption keys"
+const help = `
+Usage: consul keyring [options]
 
   Manages encryption keys used for gossip messages. Gossip encryption is
   optional. When enabled, this command may be used to examine active encryption
@@ -182,4 +184,5 @@ const usage = `Usage: consul keyring [options]
 
   All variations of the keyring command return 0 if all nodes reply and there
   are no errors. If any node fails to reply or reports failure, the exit code
-  will be 1.`
+  will be 1.
+`

@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -26,15 +26,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Triggers the agent to reload configuration files"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -57,7 +49,18 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-const usage = `Usage: consul reload
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Triggers the agent to reload configuration files"
+const help = `
+Usage: consul reload
 
   Causes the agent to reload configurations. This can be used instead
-  of sending the SIGHUP signal to the agent.`
+  of sending the SIGHUP signal to the agent.
+`

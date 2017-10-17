@@ -1,6 +1,7 @@
 package autopilot
 
 import (
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
@@ -15,14 +16,17 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Provides tools for modifying Autopilot configuration"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul operator autopilot <subcommand> [options]
-
-The Autopilot operator command is used to interact with Consul's Autopilot
-subsystem. The command can be used to view or modify the current configuration.`
-
-	return s
+	return flags.Usage(help, nil, nil, nil)
 }
+
+const synopsis = "Provides tools for modifying Autopilot configuration"
+const help = `
+Usage: consul operator autopilot <subcommand> [options]
+
+  The Autopilot operator command is used to interact with Consul's Autopilot
+  subsystem. The command can be used to view or modify the current configuration.
+`

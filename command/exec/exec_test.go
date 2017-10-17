@@ -13,7 +13,7 @@ import (
 
 func TestExecCommand_noTabs(t *testing.T) {
 	if strings.ContainsRune(New(nil, nil).Help(), '\t') {
-		t.Fatal("usage has tabs")
+		t.Fatal("help has tabs")
 	}
 }
 

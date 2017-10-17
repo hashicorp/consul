@@ -26,7 +26,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	shutdownCh <-chan struct{}
 
@@ -70,15 +70,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Watch for changes in Consul"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -241,11 +233,22 @@ func (c *cmd) Run(args []string) int {
 	return errExit
 }
 
-const usage = `Usage: consul watch [options] [child...]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Watch for changes in Consul"
+const help = `
+Usage: consul watch [options] [child...]
 
   Watches for changes in a given data view from Consul. If a child process
   is specified, it will be invoked with the latest results on changes. Otherwise,
   the latest values are dumped to stdout and the watch terminates.
 
   Providing the watch type is required, and other parameters may be required
-  or supported depending on the watch type.`
+  or supported depending on the watch type.
+`

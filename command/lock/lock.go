@@ -42,7 +42,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	ShutdownCh <-chan struct{}
 
@@ -103,7 +103,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -445,12 +445,12 @@ func (c *cmd) killChild(childErr chan error) error {
 	return nil
 }
 
-func (c *cmd) Help() string {
-	return c.usage
+func (c *cmd) Synopsis() string {
+	return synopsis
 }
 
-func (c *cmd) Synopsis() string {
-	return "Execute a command holding a lock"
+func (c *cmd) Help() string {
+	return c.help
 }
 
 // LockUnlock is used to abstract over the differences between
@@ -463,7 +463,9 @@ type LockUnlock struct {
 	rawOpts   interface{}
 }
 
-const usage = `Usage: consul lock [options] prefix child...
+const synopsis = "Execute a command holding a lock"
+const help = `
+Usage: consul lock [options] prefix child...
 
   Acquires a lock or semaphore at a given path, and invokes a child process
   when successful. The child process can assume the lock is held while it
@@ -479,5 +481,4 @@ const usage = `Usage: consul lock [options] prefix child...
   holders to coordinate.
 
   The prefix provided must have write privileges.
-
 `

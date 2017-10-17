@@ -16,11 +16,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Interact with the catalog"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul catalog <subcommand> [options] [args]
+	return flags.Usage(help, nil, nil, nil)
+}
+
+const synopsis = "Interact with the catalog"
+const help = `
+Usage: consul catalog <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's catalog. The
   catalog should not be confused with the agent, although the APIs and
@@ -41,6 +46,5 @@ func (c *cmd) Help() string {
 
       $ consul catalog services
 
-  For more examples, ask for subcommand help or view the documentation.`
-	return flags.Usage(s, nil, nil, nil)
-}
+  For more examples, ask for subcommand help or view the documentation.
+`

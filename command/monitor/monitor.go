@@ -13,7 +13,7 @@ import (
 // Consul agent what members are part of the cluster currently.
 type cmd struct {
 	UI    cli.Ui
-	usage string
+	help  string
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 
@@ -40,11 +40,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Log level of the agent.")
 
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -100,10 +96,15 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Stream logs from a Consul agent"
+	return synopsis
 }
 
-const usage = `
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Stream logs from a Consul agent"
+const help = `
 Usage: consul monitor [options]
 
   Shows recent log messages of a Consul agent, and attaches to the agent,
@@ -111,5 +112,4 @@ Usage: consul monitor [options]
   listen for log levels that may be filtered out of the Consul agent. For
   example your agent may only be logging at INFO level, but with the monitor
   you can see the DEBUG level logs.
-
 `

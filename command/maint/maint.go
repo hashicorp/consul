@@ -13,7 +13,7 @@ import (
 // node or service maintenance mode.
 type cmd struct {
 	UI    cli.Ui
-	usage string
+	help  string
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 
@@ -44,11 +44,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.serviceID, "service", "",
 		"Control maintenance mode for a specific service ID.")
 
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -152,10 +148,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Controls node or service maintenance mode"
+	return synopsis
 }
 
-const usage = `Usage: consul maint [options]
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Controls node or service maintenance mode"
+const help = `
+Usage: consul maint [options]
 
   Places a node or service into maintenance mode. During maintenance mode,
   the node or service will be excluded from all queries through the DNS
@@ -177,5 +179,4 @@ const usage = `Usage: consul maint [options]
 
   If no arguments are given, the agent's maintenance status will be shown.
   This will return blank if nothing is currently under maintenance.
-
 `

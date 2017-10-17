@@ -19,7 +19,7 @@ type cmd struct {
 	UI          cli.Ui
 	flags       *flag.FlagSet
 	http        *flags.HTTPFlags
-	usage       string
+	help        string
 	cas         bool
 	modifyIndex uint64
 	recurse     bool
@@ -39,7 +39,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -138,14 +138,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Removes data from the KV store"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul kv delete [options] KEY_OR_PREFIX
+const synopsis = "Removes data from the KV store"
+const help = `
+Usage: consul kv delete [options] KEY_OR_PREFIX
 
   Removes the value from Consul's key-value store at the given path. If no
   key exists at the path, no action is taken.
@@ -159,4 +161,5 @@ const usage = `Usage: consul kv delete [options] KEY_OR_PREFIX
       $ consul kv delete -recurse foo
 
   This will delete the keys named "foo", "food", and "foo/bar/zip" if they
-  existed. `
+  existed.
+`

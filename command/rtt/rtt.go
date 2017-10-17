@@ -21,7 +21,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	wan bool
@@ -34,15 +34,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
-}
-
-func (c *cmd) Synopsis() string {
-	return "Estimates network round trip time between nodes"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -182,7 +174,17 @@ SHOW_RTT:
 	return 0
 }
 
-const usage = `Usage: consul rtt [options] node1 [node2]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Estimates network round trip time between nodes"
+const help = `
+Usage: consul rtt [options] node1 [node2]
 
   Estimates the round trip time between two nodes using Consul's network
   coordinate model of the cluster.
@@ -198,4 +200,5 @@ const usage = `Usage: consul rtt [options] node1 [node2]
 
   It is not possible to measure between LAN coordinates and WAN coordinates
   because they are maintained by independent Serf gossip areas, so they are
-  not compatible.`
+  not compatible.
+`

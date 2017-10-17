@@ -19,7 +19,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -27,15 +27,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Restores snapshot of Consul server state"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -83,7 +75,17 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-const usage = `Usage: consul snapshot restore [options] FILE
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Restores snapshot of Consul server state"
+const help = `
+Usage: consul snapshot restore [options] FILE
 
   Restores an atomic, point-in-time snapshot of the state of the Consul servers
   which includes key/value entries, service catalog, prepared queries, sessions,
@@ -101,4 +103,5 @@ const usage = `Usage: consul snapshot restore [options] FILE
 
     $ consul snapshot restore backup.snap
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

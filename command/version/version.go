@@ -17,14 +17,6 @@ type cmd struct {
 	version string
 }
 
-func (c *cmd) Synopsis() string {
-	return "Prints the Consul version"
-}
-
-func (c *cmd) Help() string {
-	return ""
-}
-
 func (c *cmd) Run(_ []string) int {
 	c.UI.Output(fmt.Sprintf("Consul %s", c.version))
 
@@ -42,4 +34,12 @@ func (c *cmd) Run(_ []string) int {
 		rpcProtocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
 
 	return 0
+}
+
+func (c *cmd) Synopsis() string {
+	return "Prints the Consul version"
+}
+
+func (c *cmd) Help() string {
+	return ""
 }

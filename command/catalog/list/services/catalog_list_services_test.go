@@ -11,7 +11,7 @@ import (
 
 func TestCatalogListServicesCommand_noTabs(t *testing.T) {
 	if strings.ContainsRune(New(nil).Help(), '\t') {
-		t.Fatal("usage has tabs")
+		t.Fatal("help has tabs")
 	}
 }
 

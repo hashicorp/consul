@@ -21,7 +21,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -29,7 +29,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -89,14 +89,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Exports a tree from the KV store as JSON"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul kv export [KEY_OR_PREFIX]
+const synopsis = "Exports a tree from the KV store as JSON"
+const help = `
+Usage: consul kv export [KEY_OR_PREFIX]
 
   Retrieves key-value pairs for the given prefix from Consul's key-value store,
   and writes a JSON representation to stdout. This can be used with the command
@@ -104,4 +106,5 @@ const usage = `Usage: consul kv export [KEY_OR_PREFIX]
 
       $ consul kv export vault
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

@@ -1,6 +1,7 @@
 package snapshot
 
 import (
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
@@ -15,11 +16,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Saves, restores and inspects snapshots of Consul server state"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return `Usage: consul snapshot <subcommand> [options] [args]
+	return flags.Usage(help, nil, nil, nil)
+}
+
+const synopsis = "Saves, restores and inspects snapshots of Consul server state"
+const help = `
+Usage: consul snapshot <subcommand> [options] [args]
 
   This command has subcommands for saving, restoring, and inspecting the state
   of the Consul servers for disaster recovery. These are atomic, point-in-time
@@ -48,4 +54,3 @@ func (c *cmd) Help() string {
 
   For more examples, ask for subcommand help or view the documentation.
 `
-}

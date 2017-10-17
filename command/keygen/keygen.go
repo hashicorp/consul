@@ -19,12 +19,12 @@ func New(ui cli.Ui) *cmd {
 type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.usage = flags.Usage(usage, c.flags, nil, nil)
+	c.help = flags.Usage(help, c.flags, nil, nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -48,15 +48,18 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Generates a new encryption key"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul keygen
+const synopsis = "Generates a new encryption key"
+const help = `
+Usage: consul keygen
 
   Generates a new encryption key that can be used to configure the
   agent to encrypt traffic. The output of this command is already
-  in the proper format that the agent expects.`
+  in the proper format that the agent expects.
+`

@@ -24,7 +24,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	cas           bool
@@ -70,7 +70,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -172,14 +172,6 @@ func (c *cmd) Run(args []string) int {
 	}
 }
 
-func (c *cmd) Synopsis() string {
-	return "Sets or updates data in the KV store"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
-}
-
 func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 	var stdin io.Reader = os.Stdin
 	if c.testStdin != nil {
@@ -225,7 +217,17 @@ func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 	}
 }
 
-const usage = `Usage: consul kv put [options] KEY [DATA]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Sets or updates data in the KV store"
+const help = `
+Usage: consul kv put [options] KEY [DATA]
 
   Writes the data to the given path in the key-value store. The data can be of
   any type.
@@ -255,4 +257,5 @@ const usage = `Usage: consul kv put [options] KEY [DATA]
 
       $ consul kv put -cas -modify-index=844 config/redis/maxconns 5
 
-  Additional flags and more advanced use cases are detailed below.`
+  Additional flags and more advanced use cases are detailed below.
+`
