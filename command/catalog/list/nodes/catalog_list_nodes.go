@@ -1,4 +1,4 @@
-package catlistnodes
+package nodes
 
 import (
 	"flag"

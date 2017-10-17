@@ -6,10 +6,10 @@ import (
 	"syscall"
 
 	agentcmd "github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/command/cat"
-	"github.com/hashicorp/consul/command/catlistdc"
-	"github.com/hashicorp/consul/command/catlistnodes"
-	"github.com/hashicorp/consul/command/catlistsvc"
+	"github.com/hashicorp/consul/command/catalog"
+	catlistdccmd "github.com/hashicorp/consul/command/catalog/list/dc"
+	catlistnodescmd "github.com/hashicorp/consul/command/catalog/list/nodes"
+	catlistsvccmd "github.com/hashicorp/consul/command/catalog/list/services"
 	"github.com/hashicorp/consul/command/event"
 	execmd "github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
@@ -66,10 +66,10 @@ func init() {
 			), nil
 		},
 
-		"catalog":                       func() (cli.Command, error) { return cat.New(), nil },
-		"catalog datacenters":           func() (cli.Command, error) { return catlistdc.New(ui), nil },
-		"catalog nodes":                 func() (cli.Command, error) { return catlistnodes.New(ui), nil },
-		"catalog services":              func() (cli.Command, error) { return catlistsvc.New(ui), nil },
+		"catalog":                       func() (cli.Command, error) { return catalog.New(), nil },
+		"catalog datacenters":           func() (cli.Command, error) { return catlistdccmd.New(ui), nil },
+		"catalog nodes":                 func() (cli.Command, error) { return catlistnodescmd.New(ui), nil },
+		"catalog services":              func() (cli.Command, error) { return catlistsvccmd.New(ui), nil },
 		"event":                         func() (cli.Command, error) { return event.New(ui), nil },
 		"exec":                          func() (cli.Command, error) { return execmd.New(ui, makeShutdownCh()), nil },
 		"force-leave":                   func() (cli.Command, error) { return forceleave.New(ui), nil },

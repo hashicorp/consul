@@ -1,4 +1,4 @@
-package catlistsvc
+package services
 
 import (
 	"bytes"
