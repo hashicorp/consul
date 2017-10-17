@@ -1,60 +1,57 @@
-package command
+package rtt
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/cli"
 )
 
-// RTTCommand is a Command implementation that allows users to query the
-// estimated round trip time between nodes using network coordinates.
-type RTTCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 
 	// flags
 	wan bool
 }
 
-func (c *RTTCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.BoolVar(&c.wan, "wan", false,
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.wan, "wan", false,
 		"Use WAN coordinates instead of LAN coordinates.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
 }
 
-func (c *RTTCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul rtt [options] node1 [node2]
-
-  Estimates the round trip time between two nodes using Consul's network
-  coordinate model of the cluster.
-
-  At least one node name is required. If the second node name isn't given, it
-  is set to the agent's node name. Note that these are node names as known to
-  Consul as "consul members" would show, not IP addresses.
-
-  By default, the two nodes are assumed to be nodes in the local datacenter
-  and the LAN coordinates are used. If the -wan option is given, then the WAN
-  coordinates are used, and the node names must be suffixed by a period and
-  the datacenter (eg. "myserver.dc1").
-
-  It is not possible to measure between LAN coordinates and WAN coordinates
-  because they are maintained by independent Serf gossip areas, so they are
-  not compatible.
-
-`)
+func (c *cmd) Synopsis() string {
+	return "Estimates network round trip time between nodes"
 }
 
-func (c *RTTCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	// They must provide at least one node.
-	nodes := c.FlagSet.Args()
+	nodes := c.flags.Args()
 	if len(nodes) < 1 || len(nodes) > 2 {
 		c.UI.Error("One or two node names must be specified")
 		c.UI.Error("")
@@ -63,7 +60,7 @@ func (c *RTTCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client.
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -185,6 +182,20 @@ SHOW_RTT:
 	return 0
 }
 
-func (c *RTTCommand) Synopsis() string {
-	return "Estimates network round trip time between nodes"
-}
+const usage = `Usage: consul rtt [options] node1 [node2]
+
+  Estimates the round trip time between two nodes using Consul's network
+  coordinate model of the cluster.
+
+  At least one node name is required. If the second node name isn't given, it
+  is set to the agent's node name. Note that these are node names as known to
+  Consul as "consul members" would show, not IP addresses.
+
+  By default, the two nodes are assumed to be nodes in the local datacenter
+  and the LAN coordinates are used. If the -wan option is given, then the WAN
+  coordinates are used, and the node names must be suffixed by a period and
+  the datacenter (eg. "myserver.dc1").
+
+  It is not possible to measure between LAN coordinates and WAN coordinates
+  because they are maintained by independent Serf gossip areas, so they are
+  not compatible.`
