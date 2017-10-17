@@ -1,4 +1,4 @@
-package catlistdc
+package dc
 
 import (
 	"flag"

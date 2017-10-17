@@ -1,22 +1,21 @@
-package catlistsvc
+package nodes
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 )
 
-func TestCatalogListServicesCommand_noTabs(t *testing.T) {
+func TestCatalogListNodesCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
-func TestCatalogListServicesCommand_Validation(t *testing.T) {
+func TestCatalogListNodesCommand_Validation(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -52,20 +51,10 @@ func TestCatalogListServicesCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCatalogListServicesCommand_Run(t *testing.T) {
+func TestCatalogListNodesCommand_Run(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
-
-	// Add another service with tags for testing
-	if err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{
-		Name:    "testing",
-		Tags:    []string{"foo", "bar"},
-		Port:    8080,
-		Address: "127.0.0.1",
-	}); err != nil {
-		t.Fatal(err)
-	}
 
 	t.Run("simple", func(t *testing.T) {
 		ui := cli.NewMockUi()
@@ -79,17 +68,24 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		}
 
 		output := ui.OutputWriter.String()
-		if expected := "consul\ntesting\n"; output != expected {
-			t.Errorf("expected %q to be %q", output, expected)
+		for _, s := range []string{"Node", "ID", "Address", "DC"} {
+			if !strings.Contains(output, s) {
+				t.Errorf("expected %q to contain %q", output, s)
+			}
+		}
+		for _, s := range []string{"TaggedAddresses", "Meta"} {
+			if strings.Contains(output, s) {
+				t.Errorf("expected %q to NOT contain %q", output, s)
+			}
 		}
 	})
 
-	t.Run("tags", func(t *testing.T) {
+	t.Run("detailed", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-tags",
+			"-detailed",
 		}
 		code := c.Run(args)
 		if code != 0 {
@@ -97,44 +93,10 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		}
 
 		output := ui.OutputWriter.String()
-		if expected := "bar,foo"; !strings.Contains(output, expected) {
-			t.Errorf("expected %q to contain %q", output, expected)
-		}
-	})
-
-	t.Run("node_missing", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		c := New(ui)
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-node", "not-a-real-node",
-		}
-		code := c.Run(args)
-		if code != 0 {
-			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
-		}
-
-		output := ui.ErrorWriter.String()
-		if expected := "No services match the given query"; !strings.Contains(output, expected) {
-			t.Errorf("expected %q to contain %q", output, expected)
-		}
-	})
-
-	t.Run("node_present", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		c := New(ui)
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-node", a.Config.NodeName,
-		}
-		code := c.Run(args)
-		if code != 0 {
-			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
-		}
-
-		output := ui.OutputWriter.String()
-		if expected := "consul\ntesting\n"; !strings.Contains(output, expected) {
-			t.Errorf("expected %q to contain %q", output, expected)
+		for _, s := range []string{"Node", "ID", "Address", "DC", "TaggedAddresses", "Meta"} {
+			if !strings.Contains(output, s) {
+				t.Errorf("expected %q to contain %q", output, s)
+			}
 		}
 	})
 
@@ -151,7 +113,61 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		}
 
 		output := ui.ErrorWriter.String()
-		if expected := "No services match the given query"; !strings.Contains(output, expected) {
+		if expected := "No nodes match the given query"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
+	t.Run("near", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-near", "_agent",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		if expected := "127.0.0.1"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
+	t.Run("service_present", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service", "consul",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		if expected := "127.0.0.1"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
+	t.Run("service_missing", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service", "this-service-will-literally-never-exist",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.ErrorWriter.String()
+		if expected := "No nodes match the given query"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
 		}
 	})
