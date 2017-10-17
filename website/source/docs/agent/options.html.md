@@ -265,6 +265,10 @@ will exit with an error at startup.
     combined with static IP or DNS addresses or even multiple configurations
     for different providers.
 
+    In order to use discovery behind a proxy, you will need to set
+    `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables per
+    [Golang `net/http` library](https://golang.org/pkg/net/http/#ProxyFromEnvironment).
+
     The following sections give the options specific to each supported cloud
     provider.
 
