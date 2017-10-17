@@ -1,4 +1,4 @@
-package command
+package operraftremove
 
 import (
 	"strings"
@@ -8,9 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestOperator_Raft_RemovePeer_Implements(t *testing.T) {
+func TestOperatorRaftRemovePeerCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &OperatorRaftRemoveCommand{}
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestOperator_Raft_RemovePeer(t *testing.T) {
@@ -18,15 +20,9 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	// Test the remove-peer subcommand directly
-	{
+	t.Run("Test the remove-peer subcommand directly", func(t *testing.T) {
 		ui := cli.NewMockUi()
-		c := OperatorRaftRemoveCommand{
-			BaseCommand: BaseCommand{
-				UI:    ui,
-				Flags: FlagSetHTTP,
-			},
-		}
+		c := New(ui)
 		args := []string{"-http-addr=" + a.HTTPAddr(), "-address=nope"}
 
 		code := c.Run(args)
@@ -39,17 +35,11 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 		if !strings.Contains(output, "address \"nope\" was not found in the Raft configuration") {
 			t.Fatalf("bad: %s", output)
 		}
-	}
+	})
 
-	// Test the remove-peer subcommand with -id
-	{
+	t.Run("Test the remove-peer subcommand with -id", func(t *testing.T) {
 		ui := cli.NewMockUi()
-		c := OperatorRaftRemoveCommand{
-			BaseCommand: BaseCommand{
-				UI:    ui,
-				Flags: FlagSetHTTP,
-			},
-		}
+		c := New(ui)
 		args := []string{"-http-addr=" + a.HTTPAddr(), "-id=nope"}
 
 		code := c.Run(args)
@@ -62,5 +52,5 @@ func TestOperator_Raft_RemovePeer(t *testing.T) {
 		if !strings.Contains(output, "id \"nope\" was not found in the Raft configuration") {
 			t.Fatalf("bad: %s", output)
 		}
-	}
+	})
 }

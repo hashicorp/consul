@@ -1,52 +1,54 @@
-package command
+package operraftremove
 
 import (
 	"flag"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
-type OperatorRaftRemoveCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
+}
+
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	usage string
 
 	// flags
 	address string
 	id      string
 }
 
-func (c *OperatorRaftRemoveCommand) initFlags() {
-	c.InitFlagSet()
-	c.FlagSet.StringVar(&c.address, "address", "",
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.address, "address", "",
 		"The address to remove from the Raft configuration.")
-	c.FlagSet.StringVar(&c.id, "id", "",
+	c.flags.StringVar(&c.id, "id", "",
 		"The ID to remove from the Raft configuration.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.ServerFlags())
+	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
-func (c *OperatorRaftRemoveCommand) Help() string {
-	c.initFlags()
-	return c.HelpCommand(`
-Usage: consul operator raft remove-peer [options]
-
-Remove the Consul server with given -address from the Raft configuration.
-
-There are rare cases where a peer may be left behind in the Raft quorum even
-though the server is no longer present and known to the cluster. This command
-can be used to remove the failed server so that it is no longer affects the Raft
-quorum. If the server still shows in the output of the "consul members" command,
-it is preferable to clean up by simply running "consul force-leave" instead of
-this command.
-
-`)
-}
-
-func (c *OperatorRaftRemoveCommand) Synopsis() string {
+func (c *cmd) Synopsis() string {
 	return "Remove a Consul server from the Raft configuration"
 }
 
-func (c *OperatorRaftRemoveCommand) Run(args []string) int {
-	c.initFlags()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -55,7 +57,7 @@ func (c *OperatorRaftRemoveCommand) Run(args []string) int {
 	}
 
 	// Set up a client.
-	client, err := c.HTTPClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error initializing client: %s", err))
 		return 1
@@ -96,3 +98,14 @@ func raftRemovePeers(address, id string, operator *api.Operator) error {
 
 	return nil
 }
+
+const usage = `Usage: consul operator raft remove-peer [options]
+
+Remove the Consul server with given -address from the Raft configuration.
+
+There are rare cases where a peer may be left behind in the Raft quorum even
+though the server is no longer present and known to the cluster. This command
+can be used to remove the failed server so that it is no longer affects the Raft
+quorum. If the server still shows in the output of the "consul members" command,
+it is preferable to clean up by simply running "consul force-leave" instead of
+this command.`
