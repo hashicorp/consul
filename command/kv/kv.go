@@ -16,11 +16,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Interact with the key-value store"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul kv <subcommand> [options] [args]
+	return flags.Usage(help, nil, nil, nil)
+}
+
+const synopsis = "Interact with the key-value store"
+const help = `
+Usage: consul kv <subcommand> [options] [args]
 
   This command has subcommands for interacting with Consul's key-value
   store. Here are some simple examples, and more detailed examples are
@@ -42,6 +47,5 @@ func (c *cmd) Help() string {
 
       $ consul kv delete redis/config/connections
 
-  For more examples, ask for subcommand help or view the documentation.`
-	return flags.Usage(s, nil, nil, nil)
-}
+  For more examples, ask for subcommand help or view the documentation.
+`

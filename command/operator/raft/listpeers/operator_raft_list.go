@@ -20,7 +20,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -28,15 +28,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
-}
-
-func (c *cmd) Synopsis() string {
-	return "Display the current Raft peer configuration"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -94,6 +86,17 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 	return columnize.SimpleFormat(result), nil
 }
 
-const usage = `Usage: consul operator raft list-peers [options]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
 
-Displays the current Raft peer configuration.`
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Display the current Raft peer configuration"
+const help = `
+Usage: consul operator raft list-peers [options]
+
+  Displays the current Raft peer configuration.
+`

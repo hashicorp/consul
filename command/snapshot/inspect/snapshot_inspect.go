@@ -21,20 +21,12 @@ func New(ui cli.Ui) *cmd {
 type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.usage = flags.Usage(usage, c.flags, nil, nil)
-}
-
-func (c *cmd) Synopsis() string {
-	return "Displays information about a Consul snapshot file"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, nil, nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -85,7 +77,17 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-const usage = `Usage: consul snapshot inspect [options] FILE
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Displays information about a Consul snapshot file"
+const help = `
+Usage: consul snapshot inspect [options] FILE
 
   Displays information about a snapshot file on disk.
 
@@ -93,4 +95,5 @@ const usage = `Usage: consul snapshot inspect [options] FILE
 
     $ consul snapshot inspect backup.snap
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

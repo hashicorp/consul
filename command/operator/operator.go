@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
 
@@ -15,11 +16,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Provides cluster-level tools for Consul operators"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	s := `Usage: consul operator <subcommand> [options]
+	return flags.Usage(help, nil, nil, nil)
+}
+
+const synopsis = "Provides cluster-level tools for Consul operators"
+const help = `
+Usage: consul operator <subcommand> [options]
 
   Provides cluster-level tools for Consul operators, such as interacting with
   the Raft subsystem. NOTE: Use this command with extreme caution, as improper
@@ -32,5 +38,3 @@ func (c *cmd) Help() string {
   Run consul operator <subcommand> with no arguments for help on that
   subcommand.
 `
-	return s
-}

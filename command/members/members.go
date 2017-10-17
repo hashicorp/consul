@@ -19,7 +19,7 @@ import (
 // Consul agent what members are part of the cluster currently.
 type cmd struct {
 	UI    cli.Ui
-	usage string
+	help  string
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	// flags
@@ -51,11 +51,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -213,12 +209,16 @@ func (c *cmd) detailedOutput(members []*consulapi.AgentMember) []string {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Lists the members of a Consul cluster"
+	return synopsis
 }
 
-const usage = `
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Lists the members of a Consul cluster"
+const help = `
 Usage: consul members [options]
 
   Outputs the members of a running Consul agent.
-
 `

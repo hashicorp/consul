@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -26,7 +26,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -56,13 +56,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Gracefully leaves the Consul cluster and shuts down"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul leave [options]
+const synopsis = "Gracefully leaves the Consul cluster and shuts down"
+const help = `
+Usage: consul leave [options]
 
-  Causes the agent to gracefully leave the Consul cluster and shutdown.`
+  Causes the agent to gracefully leave the Consul cluster and shutdown.
+`

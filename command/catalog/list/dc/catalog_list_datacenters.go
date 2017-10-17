@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
@@ -26,7 +26,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -59,14 +59,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Lists all known datacenters"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul catalog datacenters [options]
+const synopsis = "Lists all known datacenters"
+const help = `
+Usage: consul catalog datacenters [options]
 
   Retrieves the list of all known datacenters. This datacenters are sorted in
   ascending order based on the estimated median round trip time from the servers
@@ -76,4 +78,5 @@ const usage = `Usage: consul catalog datacenters [options]
 
       $ consul catalog datacenters
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

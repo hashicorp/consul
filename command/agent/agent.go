@@ -54,7 +54,7 @@ type cmd struct {
 	UI                cli.Ui
 	flags             *flag.FlagSet
 	http              *flags.HTTPFlags
-	usage             string
+	help              string
 	revision          string
 	version           string
 	versionPrerelease string
@@ -70,15 +70,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	config.AddFlags(c.flags, &c.flagArgs)
-	c.usage = flags.Usage(usage, c.flags, nil, nil)
-}
-
-func (c *cmd) Synopsis() string {
-	return "Runs a Consul agent"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
+	c.help = flags.Usage(help, c.flags, nil, nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -499,7 +491,18 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 	return cfg, errs
 }
 
-const usage = `Usage: consul agent [options]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Runs a Consul agent"
+const help = `
+Usage: consul agent [options]
 
   Starts the Consul agent and runs until an interrupt is received. The
-  agent represents a single node in a cluster.`
+  agent represents a single node in a cluster.
+`

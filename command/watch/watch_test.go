@@ -10,7 +10,7 @@ import (
 
 func TestWatchCommand_noTabs(t *testing.T) {
 	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
-		t.Fatal("usage has tabs")
+		t.Fatal("help has tabs")
 	}
 }
 

@@ -19,14 +19,14 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -84,13 +84,16 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Provides debugging information for operators."
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul info [options]
+const synopsis = "Provides debugging information for operators."
+const help = `
+Usage: consul info [options]
 
-  Provides debugging information for operators`
+  Provides debugging information for operators.
+`

@@ -22,7 +22,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 
 	// flags
 	detailed bool
@@ -48,8 +48,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), c.http.ServerFlags())
 }
 
 func (c *cmd) Run(args []string) int {
@@ -121,14 +120,6 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) Synopsis() string {
-	return "Lists all nodes in the given datacenter"
-}
-
-func (c *cmd) Help() string {
-	return c.usage
-}
-
 // printNodes accepts a list of nodes and prints information in a tabular
 // format about the nodes.
 func printNodes(nodes []*api.Node, detailed bool) (string, error) {
@@ -191,7 +182,17 @@ func mapToKV(m map[string]string, joiner string) string {
 	return strings.Join(r, joiner)
 }
 
-const usage = `Usage: consul catalog nodes [options]
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
+}
+
+const synopsis = "Lists all nodes in the given datacenter"
+const help = `
+Usage: consul catalog nodes [options]
 
   Retrieves the list nodes registered in a given datacenter. By default, the
   datacenter of the local agent is queried.
@@ -217,4 +218,5 @@ const usage = `Usage: consul catalog nodes [options]
 
       $ consul catalog nodes -near=node-web
 
-  For a full list of options and examples, please see the Consul documentation.`
+  For a full list of options and examples, please see the Consul documentation.
+`

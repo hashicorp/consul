@@ -24,7 +24,7 @@ type cmd struct {
 	node    string
 	service string
 	tag     string
-	usage   string
+	help    string
 }
 
 func (c *cmd) init() {
@@ -40,7 +40,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -129,15 +129,18 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Fire a new event"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul event [options] [payload]
+const synopsis = "Fire a new event"
+const help = `
+Usage: consul event [options] [payload]
 
   Dispatches a custom user event across a datacenter. An event must provide
   a name, but a payload is optional. Events support filtering using
-  regular expressions on node name, service, and tag definitions.`
+  regular expressions on node name, service, and tag definitions.
+`

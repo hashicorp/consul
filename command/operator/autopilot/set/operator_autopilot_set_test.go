@@ -12,7 +12,7 @@ import (
 
 func TestOperatorAutopilotSetConfigCommand_noTabs(t *testing.T) {
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
-		t.Fatal("usage has tabs")
+		t.Fatal("help has tabs")
 	}
 }
 

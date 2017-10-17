@@ -18,7 +18,7 @@ type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
-	usage string
+	help  string
 	wan   bool
 }
 
@@ -29,7 +29,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	c.usage = flags.Usage(usage, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
 }
 
 func (c *cmd) Run(args []string) int {
@@ -71,14 +71,17 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) Synopsis() string {
-	return "Tell Consul agent to join cluster"
+	return synopsis
 }
 
 func (c *cmd) Help() string {
-	return c.usage
+	return c.help
 }
 
-const usage = `Usage: consul join [options] address ...
+const synopsis = "Tell Consul agent to join cluster"
+const help = `
+Usage: consul join [options] address ...
 
   Tells a running Consul agent (with "consul agent") to join the cluster
-  by specifying at least one existing member.`
+  by specifying at least one existing member.
+`
