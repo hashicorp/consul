@@ -25,6 +25,13 @@ func argFail(t *testing.T, args []string, expected string) {
 
 }
 
+func TestLockCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
+}
+
 func TestLockCommand_BadArgs(t *testing.T) {
 	t.Parallel()
 	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
