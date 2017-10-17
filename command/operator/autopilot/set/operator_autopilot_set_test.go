@@ -10,14 +10,14 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestOperatorAutopilotSetCommand_noTabs(t *testing.T) {
+func TestOperatorAutopilotSetConfigCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
-func TestOperator_Autopilot_Set(t *testing.T) {
+func TestOperatorAutopilotSetConfigCommmand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

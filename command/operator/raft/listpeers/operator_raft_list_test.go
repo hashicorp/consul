@@ -16,7 +16,7 @@ func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestOperatorRaftListPeersCommandRun(t *testing.T) {
+func TestOperatorRaftListPeersCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

@@ -15,7 +15,7 @@ func TestLeaveCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestLeaveCommandRun(t *testing.T) {
+func TestLeaveCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -34,7 +34,7 @@ func TestLeaveCommandRun(t *testing.T) {
 	}
 }
 
-func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
+func TestLeaveCommand_FailOnNonFlagArgs(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

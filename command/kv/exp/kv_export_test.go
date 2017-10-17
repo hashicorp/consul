@@ -19,7 +19,7 @@ func TestKVExportCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestKVExportCommand_Run(t *testing.T) {
+func TestKVExportCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()

@@ -59,7 +59,7 @@ func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestSnapshotRestoreCommand_Run(t *testing.T) {
+func TestSnapshotRestoreCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
