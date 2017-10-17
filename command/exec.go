@@ -324,7 +324,7 @@ OUTER:
 			c.UI.Info(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
 			if c.conf.verbose {
 				c.UI.Info(fmt.Sprintf("Completed in %0.2f seconds",
-					float64(time.Now().Sub(start))/float64(time.Second)))
+					float64(time.Since(start))/float64(time.Second)))
 			}
 			if exitCount < ackCount {
 				badExit++

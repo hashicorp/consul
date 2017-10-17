@@ -250,7 +250,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	if err := s1.updateLocalACLs(changes); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if dur := time.Now().Sub(start); dur < time.Second {
+	if dur := time.Since(start); dur < time.Second {
 		t.Fatalf("too slow: %9.6f", dur.Seconds())
 	}
 
@@ -268,7 +268,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	if err := s1.updateLocalACLs(changes); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if dur := time.Now().Sub(start); dur < 2*time.Second {
+	if dur := time.Since(start); dur < 2*time.Second {
 		t.Fatalf("too fast: %9.6f", dur.Seconds())
 	}
 }

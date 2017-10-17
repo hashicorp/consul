@@ -661,7 +661,7 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	}
 	start := time.Now()
 	resp, err := c.config.HttpClient.Do(req)
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	return diff, resp, err
 }
 

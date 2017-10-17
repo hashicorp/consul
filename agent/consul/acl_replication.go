@@ -192,7 +192,7 @@ func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
 		// Do a smooth rate limit to wait out the min time allowed for
 		// each op. If this op took longer than the min, then the sleep
 		// time will be negative and we will just move on.
-		elapsed := time.Now().Sub(start)
+		elapsed := time.Since(start)
 		time.Sleep(minTimePerOp - elapsed)
 	}
 	return nil

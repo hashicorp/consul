@@ -244,7 +244,7 @@ RETRY:
 	if firstCheck.IsZero() {
 		firstCheck = time.Now()
 	}
-	if time.Now().Sub(firstCheck) < s.config.RPCHoldTimeout {
+	if time.Since(firstCheck) < s.config.RPCHoldTimeout {
 		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
 		select {
 		case <-time.After(jitter):
@@ -443,7 +443,7 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 		m.LastContact = 0
 		m.KnownLeader = true
 	} else {
-		m.LastContact = time.Now().Sub(s.raft.LastContact())
+		m.LastContact = time.Since(s.raft.LastContact())
 		m.KnownLeader = (s.raft.Leader() != "")
 	}
 }

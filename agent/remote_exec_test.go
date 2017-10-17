@@ -46,7 +46,7 @@ func TestRexecWriter(t *testing.T) {
 		if len(b) != 4 {
 			t.Fatalf("Bad: %v", b)
 		}
-		if time.Now().Sub(start) < writer.BufIdle {
+		if time.Since(start) < writer.BufIdle {
 			t.Fatalf("too early")
 		}
 	case <-time.After(2 * writer.BufIdle):
@@ -66,7 +66,7 @@ func TestRexecWriter(t *testing.T) {
 		if len(b) != 12 {
 			t.Fatalf("Bad: %v", b)
 		}
-		if time.Now().Sub(start) < writer.BufIdle {
+		if time.Since(start) < writer.BufIdle {
 			t.Fatalf("too early")
 		}
 	case <-time.After(2 * writer.BufIdle):

@@ -159,7 +159,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
-			q, time.Now().Sub(s), resp.RemoteAddr().String(),
+			q, time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
 	}(time.Now())
 
@@ -231,7 +231,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
-			q, time.Now().Sub(s), resp.RemoteAddr().String(),
+			q, time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
 	}(time.Now())
 
@@ -1061,7 +1061,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	network := "udp"
 	defer func(s time.Time) {
 		d.logger.Printf("[DEBUG] dns: request for %v (%s) (%v) from client %s (%s)",
-			q, network, time.Now().Sub(s), resp.RemoteAddr().String(),
+			q, network, time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
 	}(time.Now())
 

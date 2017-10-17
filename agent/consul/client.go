@@ -270,7 +270,7 @@ TRY:
 	}
 
 	// We can wait a bit and retry!
-	if time.Now().Sub(firstCheck) < c.config.RPCHoldTimeout {
+	if time.Since(firstCheck) < c.config.RPCHoldTimeout {
 		jitter := lib.RandomStagger(c.config.RPCHoldTimeout / jitterFraction)
 		select {
 		case <-time.After(jitter):

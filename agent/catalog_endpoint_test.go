@@ -325,7 +325,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		}
 
 		// Should block for a while
-		if d := time.Now().Sub(start); d < 50*time.Millisecond {
+		if d := time.Since(start); d < 50*time.Millisecond {
 			errch <- fmt.Errorf("too fast: %v", d)
 		}
 
