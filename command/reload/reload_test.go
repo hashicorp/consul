@@ -1,4 +1,4 @@
-package command
+package reload
 
 import (
 	"strings"
@@ -8,9 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestReloadCommand_implements(t *testing.T) {
+func TestReloadCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &ReloadCommand{}
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestReloadCommandRun(t *testing.T) {
@@ -25,12 +27,7 @@ func TestReloadCommandRun(t *testing.T) {
 	}()
 
 	ui := cli.NewMockUi()
-	c := &ReloadCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetClientHTTP,
-		},
-	}
+	c := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
