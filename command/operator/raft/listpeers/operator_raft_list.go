@@ -1,4 +1,4 @@
-package operraftlist
+package listpeers
 
 import (
 	"flag"

@@ -1,4 +1,4 @@
-package operraft
+package raft
 
 import (
 	"strings"
