@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/command/operraft"
 	"github.com/hashicorp/consul/command/operraftlist"
 	"github.com/hashicorp/consul/command/operraftremove"
+	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -177,12 +178,7 @@ func init() {
 		},
 
 		"reload": func() (cli.Command, error) {
-			return &ReloadCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetClientHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return reload.New(ui), nil
 		},
 
 		"rtt": func() (cli.Command, error) {
