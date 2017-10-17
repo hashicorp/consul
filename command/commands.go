@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
 	"github.com/hashicorp/consul/command/oper"
+	"github.com/hashicorp/consul/command/operauto"
 	"github.com/hashicorp/consul/command/operraft"
 	"github.com/hashicorp/consul/command/operraftlist"
 	"github.com/hashicorp/consul/command/operraftremove"
@@ -150,12 +151,7 @@ func init() {
 		},
 
 		"operator autopilot": func() (cli.Command, error) {
-			return &OperatorAutopilotCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return operauto.New(), nil
 		},
 
 		"operator autopilot get-config": func() (cli.Command, error) {
