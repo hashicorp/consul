@@ -5,13 +5,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	agentcmd "github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/catalog"
-	catlistdccmd "github.com/hashicorp/consul/command/catalog/list/dc"
-	catlistnodescmd "github.com/hashicorp/consul/command/catalog/list/nodes"
-	catlistsvccmd "github.com/hashicorp/consul/command/catalog/list/services"
+	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
+	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
+	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
 	"github.com/hashicorp/consul/command/event"
-	execmd "github.com/hashicorp/consul/command/exec"
+	"github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/join"
@@ -38,13 +38,14 @@ import (
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/snapshot"
-	snapinspectcmd "github.com/hashicorp/consul/command/snapshot/inspect"
-	snaprestorecmd "github.com/hashicorp/consul/command/snapshot/restore"
-	snapsavecmd "github.com/hashicorp/consul/command/snapshot/save"
+	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
+	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
+	snapsave "github.com/hashicorp/consul/command/snapshot/save"
 	"github.com/hashicorp/consul/command/validate"
-	versioncmd "github.com/hashicorp/consul/command/version"
-	watchcmd "github.com/hashicorp/consul/command/watch"
-	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/consul/command/version"
+	"github.com/hashicorp/consul/command/watch"
+	consulversion "github.com/hashicorp/consul/version"
+
 	"github.com/mitchellh/cli"
 )
 
@@ -56,33 +57,33 @@ func init() {
 
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
-			return agentcmd.New(
+			return agent.New(
 				ui,
-				version.GitCommit,
-				version.Version,
-				version.VersionPrerelease,
-				version.GetHumanVersion(),
+				consulversion.GitCommit,
+				consulversion.Version,
+				consulversion.VersionPrerelease,
+				consulversion.GetHumanVersion(),
 				make(chan struct{}),
 			), nil
 		},
 
 		"catalog":                       func() (cli.Command, error) { return catalog.New(), nil },
-		"catalog datacenters":           func() (cli.Command, error) { return catlistdccmd.New(ui), nil },
-		"catalog nodes":                 func() (cli.Command, error) { return catlistnodescmd.New(ui), nil },
-		"catalog services":              func() (cli.Command, error) { return catlistsvccmd.New(ui), nil },
+		"catalog datacenters":           func() (cli.Command, error) { return catlistdc.New(ui), nil },
+		"catalog nodes":                 func() (cli.Command, error) { return catlistnodes.New(ui), nil },
+		"catalog services":              func() (cli.Command, error) { return catlistsvc.New(ui), nil },
 		"event":                         func() (cli.Command, error) { return event.New(ui), nil },
-		"exec":                          func() (cli.Command, error) { return execmd.New(ui, makeShutdownCh()), nil },
+		"exec":                          func() (cli.Command, error) { return exec.New(ui, makeShutdownCh()), nil },
 		"force-leave":                   func() (cli.Command, error) { return forceleave.New(ui), nil },
 		"info":                          func() (cli.Command, error) { return info.New(ui), nil },
 		"join":                          func() (cli.Command, error) { return join.New(ui), nil },
 		"keygen":                        func() (cli.Command, error) { return keygen.New(ui), nil },
 		"keyring":                       func() (cli.Command, error) { return keyring.New(ui), nil },
+		"kv":                            func() (cli.Command, error) { return kv.New(), nil },
 		"kv delete":                     func() (cli.Command, error) { return kvdel.New(ui), nil },
 		"kv export":                     func() (cli.Command, error) { return kvexp.New(ui), nil },
 		"kv get":                        func() (cli.Command, error) { return kvget.New(ui), nil },
 		"kv import":                     func() (cli.Command, error) { return kvimp.New(ui), nil },
 		"kv put":                        func() (cli.Command, error) { return kvput.New(ui), nil },
-		"kv":                            func() (cli.Command, error) { return kv.New(), nil },
 		"leave":                         func() (cli.Command, error) { return leave.New(ui), nil },
 		"lock":                          func() (cli.Command, error) { return lock.New(ui), nil },
 		"maint":                         func() (cli.Command, error) { return maint.New(ui), nil },
@@ -98,12 +99,12 @@ func init() {
 		"reload":                        func() (cli.Command, error) { return reload.New(ui), nil },
 		"rtt":                           func() (cli.Command, error) { return rtt.New(ui), nil },
 		"snapshot":                      func() (cli.Command, error) { return snapshot.New(), nil },
-		"snapshot inspect":              func() (cli.Command, error) { return snapinspectcmd.New(ui), nil },
-		"snapshot restore":              func() (cli.Command, error) { return snaprestorecmd.New(ui), nil },
-		"snapshot save":                 func() (cli.Command, error) { return snapsavecmd.New(ui), nil },
+		"snapshot inspect":              func() (cli.Command, error) { return snapinspect.New(ui), nil },
+		"snapshot restore":              func() (cli.Command, error) { return snaprestore.New(ui), nil },
+		"snapshot save":                 func() (cli.Command, error) { return snapsave.New(ui), nil },
 		"validate":                      func() (cli.Command, error) { return validate.New(ui), nil },
-		"version":                       func() (cli.Command, error) { return versioncmd.New(ui, version.GetHumanVersion()), nil },
-		"watch":                         func() (cli.Command, error) { return watchcmd.New(ui, makeShutdownCh()), nil },
+		"version":                       func() (cli.Command, error) { return version.New(ui, consulversion.GetHumanVersion()), nil },
+		"watch":                         func() (cli.Command, error) { return watch.New(ui, makeShutdownCh()), nil },
 	}
 }
 
