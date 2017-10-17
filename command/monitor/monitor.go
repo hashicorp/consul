@@ -40,7 +40,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Log level of the agent.")
 
-	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {

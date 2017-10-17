@@ -10,6 +10,6 @@ func Merge(dst, src *flag.FlagSet) {
 		return
 	}
 	src.VisitAll(func(f *flag.Flag) {
-		dst.Var(f.Value, f.Name, f.DefValue)
+		dst.Var(f.Value, f.Name, f.Usage)
 	})
 }

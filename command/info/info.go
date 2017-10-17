@@ -26,7 +26,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {

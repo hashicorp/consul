@@ -51,7 +51,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
-	c.help = flags.Usage(help, c.flags, c.http.ClientFlags(), nil)
+	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
