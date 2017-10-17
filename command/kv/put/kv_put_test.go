@@ -16,12 +16,14 @@ import (
 )
 
 func TestKVPutCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestKVPutCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -74,6 +76,7 @@ func TestKVPutCommand_Validation(t *testing.T) {
 }
 
 func TestKVPutCommand(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -102,6 +105,7 @@ func TestKVPutCommand(t *testing.T) {
 }
 
 func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -130,6 +134,7 @@ func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 }
 
 func TestKVPutCommand_Base64(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -166,6 +171,7 @@ func TestKVPutCommand_Base64(t *testing.T) {
 }
 
 func TestKVPutCommand_File(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -200,6 +206,7 @@ func TestKVPutCommand_File(t *testing.T) {
 }
 
 func TestKVPutCommand_FileNoExist(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -219,6 +226,7 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 }
 
 func TestKVPutCommand_Stdin(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -255,6 +263,7 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 }
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -283,6 +292,7 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 }
 
 func TestKVPutCommand_Flags(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -312,6 +322,7 @@ func TestKVPutCommand_Flags(t *testing.T) {
 }
 
 func TestKVPutCommand_CAS(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()

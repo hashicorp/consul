@@ -6,6 +6,7 @@ import (
 )
 
 func TestFlagMapValueSet(t *testing.T) {
+	t.Parallel()
 
 	t.Run("missing =", func(t *testing.T) {
 

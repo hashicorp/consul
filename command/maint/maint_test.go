@@ -10,12 +10,14 @@ import (
 )
 
 func TestMaintCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestMaintCommand_ConflictingArgs(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 	c.flags.SetOutput(ui.ErrorWriter)
@@ -38,6 +40,7 @@ func TestMaintCommand_ConflictingArgs(t *testing.T) {
 }
 
 func TestMaintCommand_NoArgs(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -86,6 +89,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 }
 
 func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -109,6 +113,7 @@ func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -131,6 +136,7 @@ func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -164,6 +170,7 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -196,6 +203,7 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_ServiceMaintenance_NoService(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

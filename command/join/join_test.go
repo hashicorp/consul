@@ -9,12 +9,14 @@ import (
 )
 
 func TestJoinCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestJoinCommandJoin_lan(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
@@ -38,6 +40,7 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 }
 
 func TestJoinCommand_wan(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
@@ -62,6 +65,7 @@ func TestJoinCommand_wan(t *testing.T) {
 }
 
 func TestJoinCommand_noAddrs(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	cmd := New(ui)
 	args := []string{"-http-addr=foo"}

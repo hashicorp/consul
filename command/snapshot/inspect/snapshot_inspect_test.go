@@ -13,12 +13,14 @@ import (
 )
 
 func TestSnapshotInpectCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestSnapshotInspectCommand_Validation(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -58,6 +60,7 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotInspectCommand(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()

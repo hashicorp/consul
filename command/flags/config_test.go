@@ -13,6 +13,7 @@ import (
 )
 
 func TestConfigUtil_Values(t *testing.T) {
+	t.Parallel()
 	type config struct {
 		B BoolValue     `mapstructure:"bool"`
 		D DurationValue `mapstructure:"duration"`
@@ -101,6 +102,7 @@ func TestConfigUtil_Values(t *testing.T) {
 }
 
 func TestConfigUtil_Visit(t *testing.T) {
+	t.Parallel()
 	var trail []string
 	visitor := func(path string) error {
 		trail = append(trail, path)
