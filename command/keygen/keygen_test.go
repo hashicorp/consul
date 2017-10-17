@@ -9,12 +9,14 @@ import (
 )
 
 func TestKeygenCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestKeygenCommand(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	cmd := New(ui)
 	code := cmd.Run(nil)

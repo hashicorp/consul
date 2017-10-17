@@ -12,12 +12,14 @@ import (
 )
 
 func TestExecCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil, nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestExecCommand(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -38,6 +40,7 @@ func TestExecCommand(t *testing.T) {
 }
 
 func TestExecCommand_NoShell(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -58,6 +61,7 @@ func TestExecCommand_NoShell(t *testing.T) {
 }
 
 func TestExecCommand_CrossDC(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -99,6 +103,7 @@ func TestExecCommand_CrossDC(t *testing.T) {
 }
 
 func TestExecCommand_Validate(t *testing.T) {
+	t.Parallel()
 	conf := &rExecConf{}
 	err := conf.validate()
 	if err != nil {
@@ -134,6 +139,7 @@ func TestExecCommand_Validate(t *testing.T) {
 }
 
 func TestExecCommand_Sessions(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -172,6 +178,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 }
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -221,6 +228,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 }
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)
@@ -275,6 +283,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 }
 
 func TestExecCommand_StreamResults(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		disable_remote_exec = false
 	`)

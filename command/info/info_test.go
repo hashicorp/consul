@@ -9,12 +9,14 @@ import (
 )
 
 func TestInfoCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestInfoCommand(t *testing.T) {
+	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
 

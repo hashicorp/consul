@@ -9,12 +9,14 @@ import (
 )
 
 func TestKeyringCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestKeyringCommand(t *testing.T) {
+	t.Parallel()
 	key1 := "HS5lJ+XuTlYKWaeGYyG+/A=="
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
@@ -65,6 +67,7 @@ func TestKeyringCommand(t *testing.T) {
 }
 
 func TestKeyringCommand_help(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 	code := c.Run(nil)
@@ -79,6 +82,7 @@ func TestKeyringCommand_help(t *testing.T) {
 }
 
 func TestKeyringCommand_failedConnection(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 	args := []string{"-list", "-http-addr=127.0.0.1:0"}
@@ -92,6 +96,7 @@ func TestKeyringCommand_failedConnection(t *testing.T) {
 }
 
 func TestKeyringCommand_invalidRelayFactor(t *testing.T) {
+	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 

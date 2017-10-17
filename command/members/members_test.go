@@ -10,12 +10,14 @@ import (
 )
 
 func TestMembersCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestMembersCommand(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -47,6 +49,7 @@ func TestMembersCommand(t *testing.T) {
 }
 
 func TestMembersCommand_WAN(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -67,6 +70,7 @@ func TestMembersCommand_WAN(t *testing.T) {
 }
 
 func TestMembersCommand_statusFilter(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -90,6 +94,7 @@ func TestMembersCommand_statusFilter(t *testing.T) {
 }
 
 func TestMembersCommand_statusFilter_failed(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

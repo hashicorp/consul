@@ -12,12 +12,14 @@ import (
 )
 
 func TestValidateCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
+	t.Parallel()
 	tmpFile := testutil.TempFile(t, "consul")
 	defer os.RemoveAll(tmpFile.Name())
 
@@ -30,6 +32,7 @@ func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
+	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
@@ -48,6 +51,7 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
+	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 
@@ -65,6 +69,7 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 }
 
 func TestValidateCommand_Quiet(t *testing.T) {
+	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 

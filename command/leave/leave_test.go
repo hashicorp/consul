@@ -9,12 +9,14 @@ import (
 )
 
 func TestLeaveCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
 func TestLeaveCommand(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -33,6 +35,7 @@ func TestLeaveCommand(t *testing.T) {
 }
 
 func TestLeaveCommand_FailOnNonFlagArgs(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
