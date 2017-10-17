@@ -1,4 +1,4 @@
-package command
+package version
 
 import (
 	"fmt"
@@ -8,18 +8,25 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// VersionCommand is a Command implementation prints the version.
-type VersionCommand struct {
-	HumanVersion string
-	UI           cli.Ui
+func New(ui cli.Ui, version string) *cmd {
+	return &cmd{UI: ui, version: version}
 }
 
-func (c *VersionCommand) Help() string {
+type cmd struct {
+	UI      cli.Ui
+	version string
+}
+
+func (c *cmd) Synopsis() string {
+	return "Prints the Consul version"
+}
+
+func (c *cmd) Help() string {
 	return ""
 }
 
-func (c *VersionCommand) Run(_ []string) int {
-	c.UI.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
+func (c *cmd) Run(_ []string) int {
+	c.UI.Output(fmt.Sprintf("Consul %s", c.version))
 
 	rpcProtocol, err := config.DefaultRPCProtocol()
 	if err != nil {
@@ -35,8 +42,4 @@ func (c *VersionCommand) Run(_ []string) int {
 		rpcProtocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
 
 	return 0
-}
-
-func (c *VersionCommand) Synopsis() string {
-	return "Prints the Consul version"
 }
