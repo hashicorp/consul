@@ -1,4 +1,4 @@
-package operauto
+package autopilot
 
 import (
 	"github.com/mitchellh/cli"

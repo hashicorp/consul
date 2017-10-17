@@ -1,4 +1,4 @@
-package operautoset
+package set
 
 import (
 	"flag"

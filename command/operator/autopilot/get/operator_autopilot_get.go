@@ -1,4 +1,4 @@
-package operautoget
+package get
 
 import (
 	"flag"

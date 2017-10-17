@@ -28,13 +28,13 @@ import (
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
-	"github.com/hashicorp/consul/command/oper"
-	"github.com/hashicorp/consul/command/operauto"
-	"github.com/hashicorp/consul/command/operautoget"
-	"github.com/hashicorp/consul/command/operautoset"
-	"github.com/hashicorp/consul/command/operraft"
-	"github.com/hashicorp/consul/command/operraftlist"
-	"github.com/hashicorp/consul/command/operraftremove"
+	"github.com/hashicorp/consul/command/operator"
+	operauto "github.com/hashicorp/consul/command/operator/autopilot"
+	operautoget "github.com/hashicorp/consul/command/operator/autopilot/get"
+	operautoset "github.com/hashicorp/consul/command/operator/autopilot/set"
+	operraft "github.com/hashicorp/consul/command/operator/raft"
+	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
+	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/snapshot"
@@ -88,7 +88,7 @@ func init() {
 		"maint":                         func() (cli.Command, error) { return maint.New(ui), nil },
 		"members":                       func() (cli.Command, error) { return members.New(ui), nil },
 		"monitor":                       func() (cli.Command, error) { return monitor.New(ui, makeShutdownCh()), nil },
-		"operator":                      func() (cli.Command, error) { return oper.New(), nil },
+		"operator":                      func() (cli.Command, error) { return operator.New(), nil },
 		"operator autopilot":            func() (cli.Command, error) { return operauto.New(), nil },
 		"operator autopilot get-config": func() (cli.Command, error) { return operautoget.New(ui), nil },
 		"operator autopilot set-config": func() (cli.Command, error) { return operautoset.New(ui), nil },
