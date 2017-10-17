@@ -66,157 +66,44 @@ func init() {
 			), nil
 		},
 
-		"catalog": func() (cli.Command, error) {
-			return cat.New(), nil
-		},
-
-		"catalog datacenters": func() (cli.Command, error) {
-			return catlistdc.New(ui), nil
-		},
-
-		"catalog nodes": func() (cli.Command, error) {
-			return catlistnodes.New(ui), nil
-		},
-
-		"catalog services": func() (cli.Command, error) {
-			return catlistsvc.New(ui), nil
-		},
-
-		"event": func() (cli.Command, error) {
-			return event.New(ui), nil
-		},
-
-		"exec": func() (cli.Command, error) {
-			return execmd.New(ui, makeShutdownCh()), nil
-		},
-
-		"force-leave": func() (cli.Command, error) {
-			return forceleave.New(ui), nil
-		},
-
-		"info": func() (cli.Command, error) {
-			return info.New(ui), nil
-		},
-
-		"join": func() (cli.Command, error) {
-			return join.New(ui), nil
-		},
-
-		"keygen": func() (cli.Command, error) {
-			return keygen.New(ui), nil
-		},
-
-		"keyring": func() (cli.Command, error) {
-			return keyring.New(ui), nil
-		},
-
-		"kv": func() (cli.Command, error) {
-			return kv.New(), nil
-		},
-
-		"kv delete": func() (cli.Command, error) {
-			return kvdel.New(ui), nil
-		},
-
-		"kv get": func() (cli.Command, error) {
-			return kvget.New(ui), nil
-		},
-
-		"kv put": func() (cli.Command, error) {
-			return kvput.New(ui), nil
-		},
-
-		"kv export": func() (cli.Command, error) {
-			return kvexp.New(ui), nil
-		},
-
-		"kv import": func() (cli.Command, error) {
-			return kvimp.New(ui), nil
-		},
-
-		"leave": func() (cli.Command, error) {
-			return leave.New(ui), nil
-		},
-
-		"lock": func() (cli.Command, error) {
-			return lock.New(ui), nil
-		},
-
-		"maint": func() (cli.Command, error) {
-			return maint.New(ui), nil
-		},
-
-		"members": func() (cli.Command, error) {
-			return members.New(ui), nil
-		},
-
-		"monitor": func() (cli.Command, error) {
-			return monitor.New(ui, makeShutdownCh()), nil
-		},
-
-		"operator": func() (cli.Command, error) {
-			return oper.New(), nil
-		},
-
-		"operator autopilot": func() (cli.Command, error) {
-			return operauto.New(), nil
-		},
-
-		"operator autopilot get-config": func() (cli.Command, error) {
-			return operautoget.New(ui), nil
-		},
-
-		"operator autopilot set-config": func() (cli.Command, error) {
-			return operautoset.New(ui), nil
-		},
-
-		"operator raft": func() (cli.Command, error) {
-			return operraft.New(), nil
-		},
-
-		"operator raft list-peers": func() (cli.Command, error) {
-			return operraftlist.New(ui), nil
-		},
-
-		"operator raft remove-peer": func() (cli.Command, error) {
-			return operraftremove.New(ui), nil
-		},
-
-		"reload": func() (cli.Command, error) {
-			return reload.New(ui), nil
-		},
-
-		"rtt": func() (cli.Command, error) {
-			return rtt.New(ui), nil
-		},
-
-		"snapshot": func() (cli.Command, error) {
-			return snapshot.New(), nil
-		},
-
-		"snapshot restore": func() (cli.Command, error) {
-			return snapshotrestore.New(ui), nil
-		},
-
-		"snapshot save": func() (cli.Command, error) {
-			return snapshotsave.New(ui), nil
-		},
-
-		"snapshot inspect": func() (cli.Command, error) {
-			return snapshotinspect.New(ui), nil
-		},
-
-		"validate": func() (cli.Command, error) {
-			return validate.New(ui), nil
-		},
-
-		"version": func() (cli.Command, error) {
-			return versioncmd.New(ui, version.GetHumanVersion()), nil
-		},
-
-		"watch": func() (cli.Command, error) {
-			return watchcmd.New(ui, makeShutdownCh()), nil
-		},
+		"catalog":                       func() (cli.Command, error) { return cat.New(), nil },
+		"catalog datacenters":           func() (cli.Command, error) { return catlistdc.New(ui), nil },
+		"catalog nodes":                 func() (cli.Command, error) { return catlistnodes.New(ui), nil },
+		"catalog services":              func() (cli.Command, error) { return catlistsvc.New(ui), nil },
+		"event":                         func() (cli.Command, error) { return event.New(ui), nil },
+		"exec":                          func() (cli.Command, error) { return execmd.New(ui, makeShutdownCh()), nil },
+		"force-leave":                   func() (cli.Command, error) { return forceleave.New(ui), nil },
+		"info":                          func() (cli.Command, error) { return info.New(ui), nil },
+		"join":                          func() (cli.Command, error) { return join.New(ui), nil },
+		"keygen":                        func() (cli.Command, error) { return keygen.New(ui), nil },
+		"keyring":                       func() (cli.Command, error) { return keyring.New(ui), nil },
+		"kv delete":                     func() (cli.Command, error) { return kvdel.New(ui), nil },
+		"kv export":                     func() (cli.Command, error) { return kvexp.New(ui), nil },
+		"kv get":                        func() (cli.Command, error) { return kvget.New(ui), nil },
+		"kv import":                     func() (cli.Command, error) { return kvimp.New(ui), nil },
+		"kv put":                        func() (cli.Command, error) { return kvput.New(ui), nil },
+		"kv":                            func() (cli.Command, error) { return kv.New(), nil },
+		"leave":                         func() (cli.Command, error) { return leave.New(ui), nil },
+		"lock":                          func() (cli.Command, error) { return lock.New(ui), nil },
+		"maint":                         func() (cli.Command, error) { return maint.New(ui), nil },
+		"members":                       func() (cli.Command, error) { return members.New(ui), nil },
+		"monitor":                       func() (cli.Command, error) { return monitor.New(ui, makeShutdownCh()), nil },
+		"operator":                      func() (cli.Command, error) { return oper.New(), nil },
+		"operator autopilot":            func() (cli.Command, error) { return operauto.New(), nil },
+		"operator autopilot get-config": func() (cli.Command, error) { return operautoget.New(ui), nil },
+		"operator autopilot set-config": func() (cli.Command, error) { return operautoset.New(ui), nil },
+		"operator raft":                 func() (cli.Command, error) { return operraft.New(), nil },
+		"operator raft list-peers":      func() (cli.Command, error) { return operraftlist.New(ui), nil },
+		"operator raft remove-peer":     func() (cli.Command, error) { return operraftremove.New(ui), nil },
+		"reload":                        func() (cli.Command, error) { return reload.New(ui), nil },
+		"rtt":                           func() (cli.Command, error) { return rtt.New(ui), nil },
+		"snapshot":                      func() (cli.Command, error) { return snapshot.New(), nil },
+		"snapshot inspect":              func() (cli.Command, error) { return snapshotinspect.New(ui), nil },
+		"snapshot restore":              func() (cli.Command, error) { return snapshotrestore.New(ui), nil },
+		"snapshot save":                 func() (cli.Command, error) { return snapshotsave.New(ui), nil },
+		"validate":                      func() (cli.Command, error) { return validate.New(ui), nil },
+		"version":                       func() (cli.Command, error) { return versioncmd.New(ui, version.GetHumanVersion()), nil },
+		"watch":                         func() (cli.Command, error) { return watchcmd.New(ui, makeShutdownCh()), nil },
 	}
 }
 
