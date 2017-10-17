@@ -1,6 +1,7 @@
-package snapshotsave
+package restore
 
 import (
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -11,14 +12,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestSnapshotSaveCommand_noTabs(t *testing.T) {
+func TestSnapshotRestoreCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
-func TestSnapshotSaveCommand_Validation(t *testing.T) {
+
+func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 	t.Parallel()
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -35,9 +39,6 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		ui := cli.NewMockUi()
-		c := New(ui)
-
 		// Ensure our buffer is always clear
 		if ui.ErrorWriter != nil {
 			ui.ErrorWriter.Reset()
@@ -58,7 +59,7 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestSnapshotSaveCommand_Run(t *testing.T) {
+func TestSnapshotRestoreCommand_Run(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -76,18 +77,26 @@ func TestSnapshotSaveCommand_Run(t *testing.T) {
 		file,
 	}
 
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-
-	f, err := os.Open(file)
+	f, err := os.Create(file)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer f.Close()
 
-	if err := client.Snapshot().Restore(nil, f); err != nil {
+	snap, _, err := client.Snapshot().Save(nil)
+	if err != nil {
+		f.Close()
 		t.Fatalf("err: %v", err)
+	}
+	if _, err := io.Copy(f, snap); err != nil {
+		f.Close()
+		t.Fatalf("err: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 }

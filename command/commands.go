@@ -38,9 +38,9 @@ import (
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/snapshot"
-	"github.com/hashicorp/consul/command/snapshotinspect"
-	"github.com/hashicorp/consul/command/snapshotrestore"
-	"github.com/hashicorp/consul/command/snapshotsave"
+	snapinspectcmd "github.com/hashicorp/consul/command/snapshot/inspect"
+	snaprestorecmd "github.com/hashicorp/consul/command/snapshot/restore"
+	snapsavecmd "github.com/hashicorp/consul/command/snapshot/save"
 	"github.com/hashicorp/consul/command/validate"
 	versioncmd "github.com/hashicorp/consul/command/version"
 	watchcmd "github.com/hashicorp/consul/command/watch"
@@ -98,9 +98,9 @@ func init() {
 		"reload":                        func() (cli.Command, error) { return reload.New(ui), nil },
 		"rtt":                           func() (cli.Command, error) { return rtt.New(ui), nil },
 		"snapshot":                      func() (cli.Command, error) { return snapshot.New(), nil },
-		"snapshot inspect":              func() (cli.Command, error) { return snapshotinspect.New(ui), nil },
-		"snapshot restore":              func() (cli.Command, error) { return snapshotrestore.New(ui), nil },
-		"snapshot save":                 func() (cli.Command, error) { return snapshotsave.New(ui), nil },
+		"snapshot inspect":              func() (cli.Command, error) { return snapinspectcmd.New(ui), nil },
+		"snapshot restore":              func() (cli.Command, error) { return snaprestorecmd.New(ui), nil },
+		"snapshot save":                 func() (cli.Command, error) { return snapsavecmd.New(ui), nil },
 		"validate":                      func() (cli.Command, error) { return validate.New(ui), nil },
 		"version":                       func() (cli.Command, error) { return versioncmd.New(ui, version.GetHumanVersion()), nil },
 		"watch":                         func() (cli.Command, error) { return watchcmd.New(ui, makeShutdownCh()), nil },
