@@ -1,4 +1,4 @@
-package kvexp
+package exp
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/kvimpexp"
+	"github.com/hashicorp/consul/command/kv/impexp"
 	"github.com/mitchellh/cli"
 )
 
@@ -72,9 +72,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	exported := make([]*kvimpexp.Entry, len(pairs))
+	exported := make([]*impexp.Entry, len(pairs))
 	for i, pair := range pairs {
-		exported[i] = kvimpexp.ToEntry(pair)
+		exported[i] = impexp.ToEntry(pair)
 	}
 
 	marshaled, err := json.MarshalIndent(exported, "", "\t")

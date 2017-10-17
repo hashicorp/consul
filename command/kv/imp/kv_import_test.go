@@ -1,4 +1,4 @@
-package kvimp
+package imp
 
 import (
 	"strings"

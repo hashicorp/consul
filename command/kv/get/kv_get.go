@@ -1,4 +1,4 @@
-package kvget
+package get
 
 import (
 	"bytes"

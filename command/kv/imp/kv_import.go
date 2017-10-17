@@ -1,4 +1,4 @@
-package kvimp
+package imp
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/kvimpexp"
+	"github.com/hashicorp/consul/command/kv/impexp"
 	"github.com/mitchellh/cli"
 )
 
@@ -61,7 +61,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var entries []*kvimpexp.Entry
+	var entries []*impexp.Entry
 	if err := json.Unmarshal([]byte(data), &entries); err != nil {
 		c.UI.Error(fmt.Sprintf("Cannot unmarshal data: %s", err))
 		return 1
