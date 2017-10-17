@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/command/oper"
 	"github.com/hashicorp/consul/command/operauto"
 	"github.com/hashicorp/consul/command/operautoget"
+	"github.com/hashicorp/consul/command/operautoset"
 	"github.com/hashicorp/consul/command/operraft"
 	"github.com/hashicorp/consul/command/operraftlist"
 	"github.com/hashicorp/consul/command/operraftremove"
@@ -160,12 +161,7 @@ func init() {
 		},
 
 		"operator autopilot set-config": func() (cli.Command, error) {
-			return &OperatorAutopilotSetCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return operautoset.New(ui), nil
 		},
 
 		"operator raft": func() (cli.Command, error) {

@@ -1,4 +1,4 @@
-package command
+package operautoset
 
 import (
 	"strings"
@@ -10,9 +10,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestOperator_Autopilot_Set_Implements(t *testing.T) {
+func TestOperatorAutopilotSetCommand_noTabs(t *testing.T) {
 	t.Parallel()
-	var _ cli.Command = &OperatorAutopilotSetCommand{}
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
 }
 
 func TestOperator_Autopilot_Set(t *testing.T) {
@@ -21,12 +23,7 @@ func TestOperator_Autopilot_Set(t *testing.T) {
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
-	c := OperatorAutopilotSetCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetHTTP,
-		},
-	}
+	c := New(ui)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-cleanup-dead-servers=false",
