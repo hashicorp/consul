@@ -1,20 +1,25 @@
-package command
+package oper
 
 import (
-	"strings"
-
 	"github.com/mitchellh/cli"
 )
 
-// OperatorCommand is used to provide various low-level tools for Consul
-// operators.
-type OperatorCommand struct {
-	BaseCommand
+func New() *cmd {
+	return &cmd{}
 }
 
-func (c *OperatorCommand) Help() string {
-	helpText := `
-Usage: consul operator <subcommand> [options]
+type cmd struct{}
+
+func (c *cmd) Run(args []string) int {
+	return cli.RunResultHelp
+}
+
+func (c *cmd) Synopsis() string {
+	return "Provides cluster-level tools for Consul operators"
+}
+
+func (c *cmd) Help() string {
+	s := `Usage: consul operator <subcommand> [options]
 
   Provides cluster-level tools for Consul operators, such as interacting with
   the Raft subsystem. NOTE: Use this command with extreme caution, as improper
@@ -27,14 +32,5 @@ Usage: consul operator <subcommand> [options]
   Run consul operator <subcommand> with no arguments for help on that
   subcommand.
 `
-	return strings.TrimSpace(helpText)
-}
-
-func (c *OperatorCommand) Run(args []string) int {
-	return cli.RunResultHelp
-}
-
-// Synopsis returns a one-line description of this command.
-func (c *OperatorCommand) Synopsis() string {
-	return "Provides cluster-level tools for Consul operators"
+	return s
 }
