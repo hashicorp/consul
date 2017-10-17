@@ -1,4 +1,4 @@
-package command
+package snapshotinspect
 
 import (
 	"io"
@@ -12,29 +12,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func testSnapshotInspectCommand(t *testing.T) (*cli.MockUi, *SnapshotInspectCommand) {
-	ui := cli.NewMockUi()
-	return ui, &SnapshotInspectCommand{
-		BaseCommand: BaseCommand{
-			UI:    ui,
-			Flags: FlagSetNone,
-		},
+func TestSnapshotInpectCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
 	}
-}
-
-func TestSnapshotInspectCommand_implements(t *testing.T) {
-	t.Parallel()
-	var _ cli.Command = &SnapshotInspectCommand{}
-}
-
-func TestSnapshotInspectCommand_noTabs(t *testing.T) {
-	t.Parallel()
-	assertNoTabs(t, new(SnapshotInspectCommand))
 }
 
 func TestSnapshotInspectCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui, c := testSnapshotInspectCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -102,7 +90,8 @@ func TestSnapshotInspectCommand_Run(t *testing.T) {
 	}
 
 	// Inspect the snapshot
-	ui, c := testSnapshotInspectCommand(t)
+	ui := cli.NewMockUi()
+	c := New(ui)
 	args := []string{file}
 
 	code := c.Run(args)

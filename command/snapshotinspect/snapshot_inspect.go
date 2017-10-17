@@ -1,44 +1,50 @@
-package command
+package snapshotinspect
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
+	"github.com/mitchellh/cli"
 )
 
-// SnapshotInspectCommand is a Command implementation that is used to display
-// metadata about a snapshot file
-type SnapshotInspectCommand struct {
-	BaseCommand
+func New(ui cli.Ui) *cmd {
+	c := &cmd{UI: ui}
+	c.init()
+	return c
 }
 
-func (c *SnapshotInspectCommand) Help() string {
-	c.InitFlagSet()
-	return c.HelpCommand(`
-Usage: consul snapshot inspect [options] FILE
-
-  Displays information about a snapshot file on disk.
-
-  To inspect the file "backup.snap":
-
-    $ consul snapshot inspect backup.snap
-
-  For a full list of options and examples, please see the Consul documentation.
-`)
+type cmd struct {
+	UI    cli.Ui
+	flags *flag.FlagSet
+	usage string
 }
 
-func (c *SnapshotInspectCommand) Run(args []string) int {
-	c.InitFlagSet()
-	if err := c.FlagSet.Parse(args); err != nil {
+func (c *cmd) init() {
+	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.usage = flags.Usage(usage, c.flags, nil, nil)
+}
+
+func (c *cmd) Synopsis() string {
+	return "Displays information about a Consul snapshot file"
+}
+
+func (c *cmd) Help() string {
+	return c.usage
+}
+
+func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = c.FlagSet.Args()
+	args = c.flags.Args()
 	switch len(args) {
 	case 0:
 		c.UI.Error("Missing FILE argument")
@@ -79,6 +85,12 @@ func (c *SnapshotInspectCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *SnapshotInspectCommand) Synopsis() string {
-	return "Displays information about a Consul snapshot file"
-}
+const usage = `Usage: consul snapshot inspect [options] FILE
+
+  Displays information about a snapshot file on disk.
+
+  To inspect the file "backup.snap":
+
+    $ consul snapshot inspect backup.snap
+
+  For a full list of options and examples, please see the Consul documentation.`
