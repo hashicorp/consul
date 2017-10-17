@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/command/monitor"
 	"github.com/hashicorp/consul/command/oper"
 	"github.com/hashicorp/consul/command/operraft"
+	"github.com/hashicorp/consul/command/operraftlist"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
@@ -179,12 +180,7 @@ func init() {
 		},
 
 		"operator raft list-peers": func() (cli.Command, error) {
-			return &OperatorRaftListCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetHTTP,
-					UI:    ui,
-				},
-			}, nil
+			return operraftlist.New(ui), nil
 		},
 
 		"operator raft remove-peer": func() (cli.Command, error) {
