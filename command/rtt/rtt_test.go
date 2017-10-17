@@ -13,14 +13,12 @@ import (
 )
 
 func TestRTTCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestRTTCommand_BadArgs(t *testing.T) {
-	t.Parallel()
 	tests := []struct {
 		args []string
 	}{
@@ -33,7 +31,6 @@ func TestRTTCommand_BadArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
-			t.Parallel()
 			ui := cli.NewMockUi()
 			c := New(ui)
 			if code := c.Run(tt.args); code != 1 {
@@ -44,7 +41,6 @@ func TestRTTCommand_BadArgs(t *testing.T) {
 }
 
 func TestRTTCommand_LAN(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), `
 		consul = {
 			coordinate = {
@@ -152,7 +148,6 @@ func TestRTTCommand_LAN(t *testing.T) {
 }
 
 func TestRTTCommand_WAN(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

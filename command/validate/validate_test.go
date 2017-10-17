@@ -18,7 +18,6 @@ func TestValidateCommand_noTabs(t *testing.T) {
 }
 
 func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
-	t.Parallel()
 	tmpFile := testutil.TempFile(t, "consul")
 	defer os.RemoveAll(tmpFile.Name())
 
@@ -66,7 +65,6 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 }
 
 func TestValidateCommand_Quiet(t *testing.T) {
-	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)
 

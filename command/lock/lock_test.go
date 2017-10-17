@@ -26,21 +26,18 @@ func argFail(t *testing.T, args []string, expected string) {
 }
 
 func TestLockCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestLockCommand_BadArgs(t *testing.T) {
-	t.Parallel()
 	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
 	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "Timeout must be positive")
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 
 func TestLockCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -63,7 +60,6 @@ func TestLockCommand(t *testing.T) {
 }
 
 func TestLockCommand_NoShell(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -86,7 +82,6 @@ func TestLockCommand_NoShell(t *testing.T) {
 }
 
 func TestLockCommand_TryLock(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -118,7 +113,6 @@ func TestLockCommand_TryLock(t *testing.T) {
 }
 
 func TestLockCommand_TrySemaphore(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -150,7 +144,6 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -183,7 +176,6 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -216,7 +208,6 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -249,7 +240,6 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -282,7 +272,6 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 }
 
 func TestLockCommand_ChildExitCode(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

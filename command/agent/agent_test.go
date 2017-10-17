@@ -18,7 +18,6 @@ import (
 
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
-	t.Parallel()
 
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
@@ -77,7 +76,6 @@ func TestConfigFail(t *testing.T) {
 
 func TestRetryJoin(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -126,7 +124,6 @@ func TestRetryJoin(t *testing.T) {
 
 func TestRetryJoinFail(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
-	t.Parallel()
 	cfg := agent.TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
@@ -152,7 +149,6 @@ func TestRetryJoinFail(t *testing.T) {
 
 func TestRetryJoinWanFail(t *testing.T) {
 	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
-	t.Parallel()
 	cfg := agent.TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
@@ -178,7 +174,6 @@ func TestRetryJoinWanFail(t *testing.T) {
 }
 
 func TestProtectDataDir(t *testing.T) {
-	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 
@@ -213,7 +208,6 @@ func TestProtectDataDir(t *testing.T) {
 }
 
 func TestBadDataDirPermissions(t *testing.T) {
-	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dir)
 

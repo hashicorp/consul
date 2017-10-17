@@ -9,14 +9,12 @@ import (
 )
 
 func TestWatchCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestWatchCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

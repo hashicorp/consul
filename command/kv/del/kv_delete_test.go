@@ -11,14 +11,12 @@ import (
 )
 
 func TestKVDeleteCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestKVDeleteCommand_Validation(t *testing.T) {
-	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -71,7 +69,6 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 }
 
 func TestKVDeleteCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -108,7 +105,6 @@ func TestKVDeleteCommand(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -152,7 +148,6 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 }
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()

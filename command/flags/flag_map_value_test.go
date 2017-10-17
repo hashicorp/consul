@@ -6,10 +6,8 @@ import (
 )
 
 func TestFlagMapValueSet(t *testing.T) {
-	t.Parallel()
 
 	t.Run("missing =", func(t *testing.T) {
-		t.Parallel()
 
 		f := new(FlagMapValue)
 		if err := f.Set("foo"); err == nil {
@@ -18,7 +16,6 @@ func TestFlagMapValueSet(t *testing.T) {
 	})
 
 	t.Run("sets", func(t *testing.T) {
-		t.Parallel()
 
 		f := new(FlagMapValue)
 		if err := f.Set("foo=bar"); err != nil {
@@ -35,7 +32,6 @@ func TestFlagMapValueSet(t *testing.T) {
 	})
 
 	t.Run("sets multiple", func(t *testing.T) {
-		t.Parallel()
 
 		f := new(FlagMapValue)
 
@@ -63,7 +59,6 @@ func TestFlagMapValueSet(t *testing.T) {
 	})
 
 	t.Run("overwrites", func(t *testing.T) {
-		t.Parallel()
 
 		f := new(FlagMapValue)
 		if err := f.Set("foo=bar"); err != nil {

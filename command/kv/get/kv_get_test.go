@@ -11,14 +11,12 @@ import (
 )
 
 func TestKVGetCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestKVGetCommand_Validation(t *testing.T) {
-	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -58,7 +56,6 @@ func TestKVGetCommand_Validation(t *testing.T) {
 }
 
 func TestKVGetCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -92,7 +89,6 @@ func TestKVGetCommand(t *testing.T) {
 }
 
 func TestKVGetCommand_Missing(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -111,7 +107,6 @@ func TestKVGetCommand_Missing(t *testing.T) {
 }
 
 func TestKVGetCommand_Empty(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -140,7 +135,6 @@ func TestKVGetCommand_Empty(t *testing.T) {
 }
 
 func TestKVGetCommand_Detailed(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -184,7 +178,6 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 }
 
 func TestKVGetCommand_Keys(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -219,7 +212,6 @@ func TestKVGetCommand_Keys(t *testing.T) {
 }
 
 func TestKVGetCommand_Recurse(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -259,7 +251,6 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 }
 
 func TestKVGetCommand_RecurseBase64(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -300,7 +291,6 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 }
 
 func TestKVGetCommand_DetailedBase64(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
