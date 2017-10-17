@@ -9,6 +9,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+func TestMaintCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
+}
+
 func TestMaintCommand_ConflictingArgs(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()

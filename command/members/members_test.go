@@ -9,6 +9,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+func TestMembersCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
+		t.Fatal("usage has tabs")
+	}
+}
+
 func TestMembersCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
