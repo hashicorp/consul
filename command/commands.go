@@ -36,8 +36,9 @@ import (
 	"github.com/hashicorp/consul/command/operraftremove"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
+	"github.com/hashicorp/consul/command/snapshot"
+	"github.com/hashicorp/consul/command/snapshotinspect"
 	"github.com/hashicorp/consul/command/validate"
-	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
@@ -210,12 +211,7 @@ func init() {
 		},
 
 		"snapshot inspect": func() (cli.Command, error) {
-			return &SnapshotInspectCommand{
-				BaseCommand: BaseCommand{
-					Flags: FlagSetNone,
-					UI:    ui,
-				},
-			}, nil
+			return snapshotinspect.New(ui), nil
 		},
 
 		"validate": func() (cli.Command, error) {
