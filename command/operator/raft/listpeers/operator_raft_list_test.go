@@ -10,14 +10,12 @@ import (
 )
 
 func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestOperatorRaftListPeersCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

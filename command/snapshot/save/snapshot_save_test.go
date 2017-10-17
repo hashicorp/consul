@@ -12,13 +12,11 @@ import (
 )
 
 func TestSnapshotSaveCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
-	t.Parallel()
 
 	cases := map[string]struct {
 		args   []string
@@ -59,7 +57,6 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()

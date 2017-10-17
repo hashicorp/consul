@@ -9,14 +9,12 @@ import (
 )
 
 func TestCatalogListDatacentersCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
-	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -52,7 +50,6 @@ func TestCatalogListDatacentersCommand_Validation(t *testing.T) {
 }
 
 func TestCatalogListDatacentersCommand(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 

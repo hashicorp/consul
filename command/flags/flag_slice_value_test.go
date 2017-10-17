@@ -7,7 +7,6 @@ import (
 )
 
 func TestAppendSliceValue_implements(t *testing.T) {
-	t.Parallel()
 	var raw interface{}
 	raw = new(AppendSliceValue)
 	if _, ok := raw.(flag.Value); !ok {
@@ -16,7 +15,6 @@ func TestAppendSliceValue_implements(t *testing.T) {
 }
 
 func TestAppendSliceValueSet(t *testing.T) {
-	t.Parallel()
 	sv := new(AppendSliceValue)
 	err := sv.Set("foo")
 	if err != nil {

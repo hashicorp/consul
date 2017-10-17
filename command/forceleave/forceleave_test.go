@@ -11,14 +11,12 @@ import (
 )
 
 func TestForceLeaveCommand_noTabs(t *testing.T) {
-	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
 
 func TestForceLeaveCommand(t *testing.T) {
-	t.Parallel()
 	a1 := agent.NewTestAgent(t.Name(), ``)
 	a2 := agent.NewTestAgent(t.Name(), ``)
 	defer a1.Shutdown()
@@ -57,7 +55,6 @@ func TestForceLeaveCommand(t *testing.T) {
 }
 
 func TestForceLeaveCommand_noAddrs(t *testing.T) {
-	t.Parallel()
 	ui := cli.NewMockUi()
 	c := New(ui)
 	args := []string{"-http-addr=foo"}
