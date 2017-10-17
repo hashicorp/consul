@@ -21,34 +21,12 @@ func TestCatalogListServicesCommand_Validation(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	cases := map[string]struct {
-		args   []string
-		output string
-	}{
-		"args": {
-			[]string{"foo"},
-			"Too many arguments",
-		},
+	code := c.Run([]string{"foo"})
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
 	}
-
-	for name, tc := range cases {
-		// Ensure our buffer is always clear
-		if ui.ErrorWriter != nil {
-			ui.ErrorWriter.Reset()
-		}
-		if ui.OutputWriter != nil {
-			ui.OutputWriter.Reset()
-		}
-
-		code := c.Run(tc.args)
-		if code == 0 {
-			t.Errorf("%s: expected non-zero exit", name)
-		}
-
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, tc.output) {
-			t.Errorf("%s: expected %q to contain %q", name, output, tc.output)
-		}
+	if got, want := ui.ErrorWriter.String(), "Too many arguments"; !strings.Contains(got, want) {
+		t.Fatalf("expected %q to contain %q", got, want)
 	}
 }
 
@@ -77,7 +55,6 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
-
 		output := ui.OutputWriter.String()
 		if expected := "consul\ntesting\n"; output != expected {
 			t.Errorf("expected %q to be %q", output, expected)
@@ -95,7 +72,6 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
-
 		output := ui.OutputWriter.String()
 		if expected := "bar,foo"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
@@ -113,7 +89,6 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
-
 		output := ui.ErrorWriter.String()
 		if expected := "No services match the given query"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
@@ -131,7 +106,6 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
-
 		output := ui.OutputWriter.String()
 		if expected := "consul\ntesting\n"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
@@ -149,7 +123,6 @@ func TestCatalogListServicesCommand_Run(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
-
 		output := ui.ErrorWriter.String()
 		if expected := "No services match the given query"; !strings.Contains(output, expected) {
 			t.Errorf("expected %q to contain %q", output, expected)
