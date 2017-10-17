@@ -1,4 +1,4 @@
-package snapshotinspect
+package inspect
 
 import (
 	"bytes"

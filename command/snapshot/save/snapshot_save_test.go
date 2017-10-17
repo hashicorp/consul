@@ -1,7 +1,6 @@
-package snapshotinspect
+package save
 
 import (
-	"io"
 	"os"
 	"path"
 	"strings"
@@ -12,17 +11,14 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestSnapshotInpectCommand_noTabs(t *testing.T) {
+func TestSnapshotSaveCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("usage has tabs")
 	}
 }
-
-func TestSnapshotInspectCommand_Validation(t *testing.T) {
+func TestSnapshotSaveCommand_Validation(t *testing.T) {
 	t.Parallel()
-	ui := cli.NewMockUi()
-	c := New(ui)
 
 	cases := map[string]struct {
 		args   []string
@@ -39,6 +35,9 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 	}
 
 	for name, tc := range cases {
+		ui := cli.NewMockUi()
+		c := New(ui)
+
 		// Ensure our buffer is always clear
 		if ui.ErrorWriter != nil {
 			ui.ErrorWriter.Reset()
@@ -59,56 +58,36 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestSnapshotInspectCommand_Run(t *testing.T) {
+func TestSnapshotSaveCommand_Run(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
+	ui := cli.NewMockUi()
+	c := New(ui)
+
 	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
 	file := path.Join(dir, "backup.tgz")
-
-	// Save a snapshot of the current Consul state
-	f, err := os.Create(file)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		file,
 	}
-
-	snap, _, err := client.Snapshot().Save(nil)
-	if err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := io.Copy(f, snap); err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Inspect the snapshot
-	ui := cli.NewMockUi()
-	c := New(ui)
-	args := []string{file}
 
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	for _, key := range []string{
-		"ID",
-		"Size",
-		"Index",
-		"Term",
-		"Version",
-	} {
-		if !strings.Contains(output, key) {
-			t.Fatalf("bad %#v, missing %q", output, key)
-		}
+	f, err := os.Open(file)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer f.Close()
+
+	if err := client.Snapshot().Restore(nil, f); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }

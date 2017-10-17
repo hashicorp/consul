@@ -1,4 +1,4 @@
-package snapshotsave
+package save
 
 import (
 	"flag"

@@ -1,4 +1,4 @@
-package snapshotrestore
+package restore
 
 import (
 	"flag"
