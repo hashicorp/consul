@@ -533,6 +533,53 @@ func (l *State) Metadata() map[string]string {
 	return m
 }
 
+// LoadMetadata loads node metadata fields from the agent config and
+// updates them on the local agent.
+func (l *State) LoadMetadata(data map[string]string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	for k, v := range data {
+		l.metadata[k] = v
+	}
+	l.TriggerSyncChanges()
+	return nil
+}
+
+// UnloadMetadata resets the local metadata state
+func (l *State) UnloadMetadata() {
+	l.Lock()
+	defer l.Unlock()
+	l.metadata = make(map[string]string)
+}
+
+// Stats is used to get various debugging state from the sub-systems
+func (l *State) Stats() map[string]string {
+	l.RLock()
+	defer l.RUnlock()
+
+	services := 0
+	for _, s := range l.services {
+		if s.Deleted {
+			continue
+		}
+		services++
+	}
+
+	checks := 0
+	for _, c := range l.checks {
+		if c.Deleted {
+			continue
+		}
+		checks++
+	}
+
+	return map[string]string{
+		"services": strconv.Itoa(services),
+		"checks":   strconv.Itoa(checks),
+	}
+}
+
 // updateSyncState does a read of the server state, and updates
 // the local sync status as appropriate
 func (l *State) updateSyncState() error {
@@ -759,53 +806,6 @@ func (l *State) SyncChanges() error {
 		return nil
 	}
 	return l.syncNodeInfo()
-}
-
-// LoadMetadata loads node metadata fields from the agent config and
-// updates them on the local agent.
-func (l *State) LoadMetadata(data map[string]string) error {
-	l.Lock()
-	defer l.Unlock()
-
-	for k, v := range data {
-		l.metadata[k] = v
-	}
-	l.TriggerSyncChanges()
-	return nil
-}
-
-// UnloadMetadata resets the local metadata state
-func (l *State) UnloadMetadata() {
-	l.Lock()
-	defer l.Unlock()
-	l.metadata = make(map[string]string)
-}
-
-// Stats is used to get various debugging state from the sub-systems
-func (l *State) Stats() map[string]string {
-	l.RLock()
-	defer l.RUnlock()
-
-	services := 0
-	for _, s := range l.services {
-		if s.Deleted {
-			continue
-		}
-		services++
-	}
-
-	checks := 0
-	for _, c := range l.checks {
-		if c.Deleted {
-			continue
-		}
-		checks++
-	}
-
-	return map[string]string{
-		"services": strconv.Itoa(services),
-		"checks":   strconv.Itoa(checks),
-	}
 }
 
 // deleteService is used to delete a service from the server
