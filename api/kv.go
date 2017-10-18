@@ -252,7 +252,7 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return false, nil, fmt.Errorf("Failed to read response: %v", err)
 	}
-	res := strings.Contains(string(buf.Bytes()), "true")
+	res := strings.Contains(buf.String(), "true")
 	return res, qm, nil
 }
 
@@ -296,7 +296,7 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return false, nil, fmt.Errorf("Failed to read response: %v", err)
 	}
-	res := strings.Contains(string(buf.Bytes()), "true")
+	res := strings.Contains(buf.String(), "true")
 	return res, qm, nil
 }
 
