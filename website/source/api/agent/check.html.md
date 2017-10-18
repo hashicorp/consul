@@ -110,6 +110,11 @@ The table below shows this endpoint's support for
   `Script` field is deprecated, and you should include the shell in the `Args` to
   run under a shell, eg. `"args": ["sh", "-c", "..."]`.
 
+  -> **Note:** Consul 1.0 shipped with an issue where `Args` was erroneously named
+    `ScriptArgs` in this API. Please use `ScriptArgs` with Consul 1.0 (that will
+    continue to be accepted in future versions of Consul), and `Args` in Consul
+    1.0.1 and later.
+
 - `DockerContainerID` `(string: "")` - Specifies that the check is a Docker
   check, and Consul will evaluate the script every `Interval` in the given
   container using the specified `Shell`. Note that `Shell` is currently only
