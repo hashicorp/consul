@@ -86,7 +86,6 @@ func (c *CheckMonitor) Stop() {
 func (c *CheckMonitor) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s", initialPauseTime, c.Script)
 	next := time.After(initialPauseTime)
 	for {
 		select {
@@ -594,7 +593,6 @@ func (c *CheckDocker) Stop() {
 
 func (c *CheckDocker) run() {
 	firstWait := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", firstWait, c.Shell, c.Script, c.DockerContainerID)
 	next := time.After(firstWait)
 	for {
 		select {
