@@ -18,9 +18,7 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// Config is the configuration for the State. It is
-// populated during NewLocalAgent from the agent configuration to avoid
-// race conditions with the agent configuration.
+// Config is the configuration for the State.
 type Config struct {
 	AdvertiseAddr       string
 	CheckUpdateInterval time.Duration
@@ -110,7 +108,7 @@ type rpc interface {
 }
 
 // State is used to represent the node's services,
-// and checks. We used it to perform anti-entropy with the
+// and checks. We use it to perform anti-entropy with the
 // catalog representation
 type State struct {
 	sync.RWMutex
@@ -154,7 +152,7 @@ type State struct {
 	tokens *token.Store
 }
 
-// NewLocalState creates a  is used to initialize the local state
+// NewLocalState creates a new local state for the agent.
 func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 	l := &State{
 		config:   c,
@@ -168,6 +166,8 @@ func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 	return l
 }
 
+// SetDiscardCheckOutput configures whether the check output
+// is discarded. This can be changed at runtime.
 func (l *State) SetDiscardCheckOutput(b bool) {
 	l.discardCheckOutput.Store(b)
 }
@@ -181,6 +181,7 @@ func (l *State) ServiceToken(id string) string {
 }
 
 // serviceToken returns an ACL token associated with a service.
+// This method is not synchronized and the lock must already be held.
 func (l *State) serviceToken(id string) string {
 	var token string
 	if s := l.services[id]; s != nil {
@@ -310,6 +311,7 @@ func (l *State) CheckToken(checkID types.CheckID) string {
 }
 
 // checkToken returns an ACL token associated with a check.
+// This method is not synchronized and the lock must already be held.
 func (l *State) checkToken(id types.CheckID) string {
 	var token string
 	c := l.checks[id]
@@ -483,7 +485,7 @@ func (l *State) CheckState(id types.CheckID) *CheckState {
 }
 
 // CheckStates returns a shallow copy of all health check state records.
-//  The health check records and the deferred checks still point to
+// The health check records and the deferred checks still point to
 // the original values and must not be modified.
 func (l *State) CheckStates() map[types.CheckID]*CheckState {
 	l.RLock()
@@ -500,7 +502,10 @@ func (l *State) CheckStates() map[types.CheckID]*CheckState {
 }
 
 // CriticalCheckStates returns the locally registered checks that the
-// agent is aware of and are being kept in sync with the server
+// agent is aware of and are being kept in sync with the server.
+// The map contains a shallow copy of the current check states but
+// references to the actual check definition which must not be
+// modified.
 func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
