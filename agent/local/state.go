@@ -525,6 +525,7 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 func (l *State) Metadata() map[string]string {
 	l.RLock()
 	defer l.RUnlock()
+
 	m := make(map[string]string)
 	for k, v := range l.metadata {
 		m[k] = v
@@ -535,7 +536,7 @@ func (l *State) Metadata() map[string]string {
 // updateSyncState does a read of the server state, and updates
 // the local sync status as appropriate
 func (l *State) updateSyncState() error {
-	// 1. get all checks and services from the master
+	// Get all checks and services from the master
 	req := structs.NodeSpecificRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
@@ -552,7 +553,7 @@ func (l *State) updateSyncState() error {
 		return err
 	}
 
-	// 2. create useful data structures for traversal
+	// Create useful data structures for traversal
 	remoteServices := make(map[string]*structs.NodeService)
 	if out1.NodeServices != nil {
 		remoteServices = out1.NodeServices.Services
@@ -563,12 +564,13 @@ func (l *State) updateSyncState() error {
 		remoteChecks[rc.CheckID] = rc
 	}
 
-	// 3. perform sync
+	// Traverse all checks, services and the node info to determine
+	// which entries need to be updated on or removed from the server
 
 	l.Lock()
 	defer l.Unlock()
 
-	// sync node info
+	// Check if node info needs syncing
 	if out1.NodeServices == nil || out1.NodeServices.Node == nil ||
 		out1.NodeServices.Node.ID != l.config.NodeID ||
 		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) ||
@@ -576,25 +578,30 @@ func (l *State) updateSyncState() error {
 		l.nodeInfoInSync = false
 	}
 
-	// sync services
+	// Check which services need syncing
 
-	// sync local services that do not exist remotely
+	// Look for local services that do not exist remotely and mark them for
+	// syncing so that they will be pushed to the server later
 	for id, s := range l.services {
 		if remoteServices[id] == nil {
 			s.InSync = false
 		}
 	}
 
+	// Traverse the list of services from the server.
+	// Remote services which do not exist locally have been deregistered.
+	// Otherwise, check whether the two definitions are still in sync.
 	for id, rs := range remoteServices {
-		// If we don't have the service locally, deregister it
 		ls := l.services[id]
 		if ls == nil {
-			// The consul service is created automatically and does
-			// not need to be deregistered.
+			// The consul service is managed automatically and does
+			// not need to be deregistered
 			if id == structs.ConsulServiceID {
 				continue
 			}
 
+			// Mark a remote service that does not exist locally as deleted so
+			// that it will be removed on the server later.
 			l.services[id] = &ServiceState{Deleted: true}
 			continue
 		}
@@ -614,19 +621,22 @@ func (l *State) updateSyncState() error {
 		ls.InSync = ls.Service.IsSame(rs)
 	}
 
-	// sync checks
+	// Check which checks need syncing
 
-	// sync local checks which do not exist remotely
+	// Look for local checks that do not exist remotely and mark them for
+	// syncing so that they will be pushed to the server later
 	for id, c := range l.checks {
 		if remoteChecks[id] == nil {
 			c.InSync = false
 		}
 	}
 
+	// Traverse the list of checks from the server.
+	// Remote checks which do not exist locally have been deregistered.
+	// Otherwise, check whether the two definitions are still in sync.
 	for id, rc := range remoteChecks {
 		lc := l.checks[id]
 
-		// If we don't have the check locally, deregister it
 		if lc == nil {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
@@ -635,6 +645,8 @@ func (l *State) updateSyncState() error {
 				continue
 			}
 
+			// Mark a remote check that does not exist locally as deleted so
+			// that it will be removed on the server later.
 			l.checks[id] = &CheckState{Deleted: true}
 			continue
 		}
@@ -692,8 +704,8 @@ func (l *State) SyncFull() error {
 	return l.SyncChanges()
 }
 
-// SyncChanges is used to scan the status our local services and checks
-// and update any that are out of sync with the server
+// SyncChanges pushes checks, services and node info data which has been
+// marked out of sync or deleted to the server.
 func (l *State) SyncChanges() error {
 	l.Lock()
 	defer l.Unlock()
@@ -703,6 +715,7 @@ func (l *State) SyncChanges() error {
 	// API works.
 
 	// Sync the services
+	// (logging happens in the helper methods)
 	for id, s := range l.services {
 		var err error
 		switch {
@@ -711,13 +724,15 @@ func (l *State) SyncChanges() error {
 		case !s.InSync:
 			err = l.syncService(id)
 		default:
-			l.logger.Printf("[DEBUG] agent: Service '%s' in sync", id)
+			l.logger.Printf("[DEBUG] agent: Service %q in sync", id)
 		}
 		if err != nil {
 			return err
 		}
 	}
 
+	// Sync the checks
+	// (logging happens in the helper methods)
 	for id, c := range l.checks {
 		var err error
 		switch {
@@ -730,7 +745,7 @@ func (l *State) SyncChanges() error {
 			}
 			err = l.syncCheck(id)
 		default:
-			l.logger.Printf("[DEBUG] agent: Check '%s' in sync", id)
+			l.logger.Printf("[DEBUG] agent: Check %q in sync", id)
 		}
 		if err != nil {
 			return err
@@ -739,15 +754,11 @@ func (l *State) SyncChanges() error {
 
 	// Now sync the node level info if we need to, and didn't do any of
 	// the other sync operations.
-	if !l.nodeInfoInSync {
-		if err := l.syncNodeInfo(); err != nil {
-			return err
-		}
-	} else {
+	if l.nodeInfoInSync {
 		l.logger.Printf("[DEBUG] agent: Node info in sync")
+		return nil
 	}
-
-	return nil
+	return l.syncNodeInfo()
 }
 
 // LoadMetadata loads node metadata fields from the agent config and
