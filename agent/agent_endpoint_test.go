@@ -750,12 +750,13 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name+" as node check", func(t *testing.T) {
-			req, obj := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(tt.check))
-			if _, err := a.srv.AgentRegisterCheck(nil, req); err != nil {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(tt.check))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterCheck(resp, req); err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if obj != nil {
-				t.Fatalf("bad: %v", obj)
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
 			}
 		})
 
@@ -766,12 +767,13 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 				"Check": tt.check,
 			}
 
-			req, obj := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-			if _, err := a.srv.AgentRegisterService(nil, req); err != nil {
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if obj != nil {
-				t.Fatalf("bad: %v", obj)
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
 			}
 		})
 
@@ -782,12 +784,13 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 				"Checks": []map[string]interface{}{tt.check},
 			}
 
-			req, obj := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-			if _, err := a.srv.AgentRegisterService(nil, req); err != nil {
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if obj != nil {
-				t.Fatalf("bad: %v", obj)
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
 			}
 		})
 	}
