@@ -53,18 +53,16 @@ import (
 var Commands map[string]cli.CommandFactory
 
 func init() {
+	rev := consulversion.GitCommit
+	ver := consulversion.Version
+	verPre := consulversion.VersionPrerelease
+	verHuman := consulversion.GetHumanVersion()
+
 	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
 
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
-			return agent.New(
-				ui,
-				consulversion.GitCommit,
-				consulversion.Version,
-				consulversion.VersionPrerelease,
-				consulversion.GetHumanVersion(),
-				make(chan struct{}),
-			), nil
+			return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
 		},
 
 		"catalog":                       func() (cli.Command, error) { return catalog.New(), nil },
@@ -103,7 +101,7 @@ func init() {
 		"snapshot restore":              func() (cli.Command, error) { return snaprestore.New(ui), nil },
 		"snapshot save":                 func() (cli.Command, error) { return snapsave.New(ui), nil },
 		"validate":                      func() (cli.Command, error) { return validate.New(ui), nil },
-		"version":                       func() (cli.Command, error) { return version.New(ui, consulversion.GetHumanVersion()), nil },
+		"version":                       func() (cli.Command, error) { return version.New(ui, verHuman), nil },
 		"watch":                         func() (cli.Command, error) { return watch.New(ui, makeShutdownCh()), nil },
 	}
 }
