@@ -80,7 +80,15 @@ type RuntimeConfig struct {
 	DNSUDPAnswerLimit     int
 	DNSRecursors          []string
 
-	HTTPBlockEndpoints  []string
+	// HTTPBlockEndpoints is a list of endpoint prefixes to block in the
+	// HTTP API. Any requests to these will get a 403 response.
+	//
+	// hcl: http_config { block_endpoints = []string }
+	HTTPBlockEndpoints []string
+
+	// HTTPResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
+	//
+	// hcl: http_config { response_headers = map[string]string }
 	HTTPResponseHeaders map[string]string
 
 	// TelemetryCirconus*: see https://github.com/circonus-labs/circonus-gometrics
