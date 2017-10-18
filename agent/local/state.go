@@ -206,19 +206,11 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 		service.ID = service.Service
 	}
 
-	l.AddServiceState(&ServiceState{
+	l.SetServiceState(&ServiceState{
 		Service: service,
 		Token:   token,
 	})
 	return nil
-}
-
-func (l *State) AddServiceState(s *ServiceState) {
-	l.Lock()
-	defer l.Unlock()
-
-	l.services[s.Service.ID] = s
-	l.TriggerSyncChanges()
 }
 
 // RemoveService is used to remove a service entry from the local state.
@@ -285,6 +277,17 @@ func (l *State) ServiceState(id string) *ServiceState {
 	return s.Clone()
 }
 
+// SetServiceState is used to overwrite a raw service state with the given
+// state. This method is safe to be called concurrently but should only be used
+// during testing. You should most likely call AddService instead.
+func (l *State) SetServiceState(s *ServiceState) {
+	l.Lock()
+	defer l.Unlock()
+
+	l.services[s.Service.ID] = s
+	l.TriggerSyncChanges()
+}
+
 // ServiceStates returns a shallow copy of all service state records.
 // The service record still points to the original service record and
 // must not be modified.
@@ -345,19 +348,11 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
-	l.AddCheckState(&CheckState{
+	l.SetCheckState(&CheckState{
 		Check: check,
 		Token: token,
 	})
 	return nil
-}
-
-func (l *State) AddCheckState(c *CheckState) {
-	l.Lock()
-	defer l.Unlock()
-
-	l.checks[c.Check.CheckID] = c
-	l.TriggerSyncChanges()
 }
 
 // RemoveCheck is used to remove a health check from the local state.
@@ -482,6 +477,17 @@ func (l *State) CheckState(id types.CheckID) *CheckState {
 		return nil
 	}
 	return c.Clone()
+}
+
+// SetCheckState is used to overwrite a raw check state with the given
+// state. This method is safe to be called concurrently but should only be used
+// during testing. You should most likely call AddCheck instead.
+func (l *State) SetCheckState(c *CheckState) {
+	l.Lock()
+	defer l.Unlock()
+
+	l.checks[c.Check.CheckID] = c
+	l.TriggerSyncChanges()
 }
 
 // CheckStates returns a shallow copy of all health check state records.
