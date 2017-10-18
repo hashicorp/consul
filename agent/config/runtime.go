@@ -60,13 +60,52 @@ type RuntimeConfig struct {
 	ACLTTL                 time.Duration
 	ACLToken               string
 
-	AutopilotCleanupDeadServers      bool
+	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
+	// are added to the peer list. Defaults to true.
+	//
+	// hcl: autopilot { cleanup_dead_servers = (true|false) }
+	AutopilotCleanupDeadServers bool
+
+	// AutopilotDisableUpgradeMigration will disable Autopilot's upgrade migration
+	// strategy of waiting until enough newer-versioned servers have been added to the
+	// cluster before promoting them to voters. (Enterprise-only)
+	//
+	// hcl: autopilot { disable_upgrade_migration = (true|false)
 	AutopilotDisableUpgradeMigration bool
-	AutopilotLastContactThreshold    time.Duration
-	AutopilotMaxTrailingLogs         int
-	AutopilotRedundancyZoneTag       string
+
+	// AutopilotLastContactThreshold is the limit on the amount of time a server can go
+	// without leader contact before being considered unhealthy.
+	//
+	// hcl: autopilot { last_contact_threshold = "duration" }
+	AutopilotLastContactThreshold time.Duration
+
+	// AutopilotMaxTrailingLogs is the amount of entries in the Raft Log that a server can
+	// be behind before being considered unhealthy. The value must be positive.
+	//
+	// hcl: autopilot { max_trailing_logs = int }
+	AutopilotMaxTrailingLogs int
+
+	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
+	// into zones for redundancy. If left blank, this feature will be disabled.
+	// (Enterprise-only)
+	//
+	// hcl: autopilot { redundancy_zone_tag = string }
+	AutopilotRedundancyZoneTag string
+
+	// AutopilotServerStabilizationTime is the minimum amount of time a server must be
+	// in a stable, healthy state before it can be added to the cluster. Only
+	// applicable with Raft protocol version 3 or higher.
+	//
+	// hcl: autopilot { server_stabilization_time = "duration" }
 	AutopilotServerStabilizationTime time.Duration
-	AutopilotUpgradeVersionTag       string
+
+	// AutopilotUpgradeVersionTag is the node tag to use for version info when
+	// performing upgrade migrations. If left blank, the Consul version will be used.
+	//
+	// (Entrprise-only)
+	//
+	// hcl: autopilot { upgrade_version_tag = string }
+	AutopilotUpgradeVersionTag string
 
 	// DNSAllowStale is used to enable lookups with stale
 	// data. This gives horizontal read scalability since
