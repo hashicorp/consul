@@ -28,7 +28,7 @@ func (k *Kubernetes) localNodeName() string {
 	}
 
 	// Find endpoint matching localIP
-	for _, ep := range k.APIConn.EndpointsList() {
+	for _, ep := range k.APIConn.EpIndexReverse(localIP.String()) {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {

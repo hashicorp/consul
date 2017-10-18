@@ -51,9 +51,54 @@ func TestEndpointHostname(t *testing.T) {
 
 type APIConnServiceTest struct{}
 
-func (APIConnServiceTest) Run()                       { return }
-func (APIConnServiceTest) Stop() error                { return nil }
-func (APIConnServiceTest) PodIndex(string) []*api.Pod { return nil }
+func (APIConnServiceTest) Run()                                   { return }
+func (APIConnServiceTest) Stop() error                            { return nil }
+func (APIConnServiceTest) PodIndex(string) []*api.Pod             { return nil }
+func (APIConnServiceTest) SvcIndexReverse(string) []*api.Service  { return nil }
+func (APIConnServiceTest) EpIndexReverse(string) []*api.Endpoints { return nil }
+
+func (APIConnServiceTest) SvcIndex(string) []*api.Service {
+	svcs := []*api.Service{
+		{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: "10.0.0.1",
+				Ports: []api.ServicePort{{
+					Name:     "http",
+					Protocol: "tcp",
+					Port:     80,
+				}},
+			},
+		},
+		{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: api.ClusterIPNone,
+			},
+		},
+		{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "external",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ExternalName: "coredns.io",
+				Ports: []api.ServicePort{{
+					Name:     "http",
+					Protocol: "tcp",
+					Port:     80,
+				}},
+			},
+		},
+	}
+	return svcs
+}
 
 func (APIConnServiceTest) ServiceList() []*api.Service {
 	svcs := []*api.Service{
@@ -96,6 +141,93 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 		},
 	}
 	return svcs
+}
+
+func (APIConnServiceTest) EpIndex(string) []*api.Endpoints {
+	n := "test.node.foo.bar"
+
+	eps := []*api.Endpoints{
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP:       "172.0.0.1",
+							Hostname: "ep1a",
+						},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
+						},
+					},
+				},
+			},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP: "172.0.0.2",
+						},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
+						},
+					},
+				},
+			},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP: "172.0.0.3",
+						},
+					},
+					Ports: []api.EndpointPort{
+						{
+							Port:     80,
+							Protocol: "tcp",
+							Name:     "http",
+						},
+					},
+				},
+			},
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "hdls1",
+				Namespace: "testns",
+			},
+		},
+		{
+			Subsets: []api.EndpointSubset{
+				{
+					Addresses: []api.EndpointAddress{
+						{
+							IP:       "10.9.8.7",
+							NodeName: &n,
+						},
+					},
+				},
+			},
+		},
+	}
+	return eps
 }
 
 func (APIConnServiceTest) EndpointsList() []*api.Endpoints {

@@ -21,10 +21,18 @@ var (
 )
 
 const podIPIndex = "PodIP"
+const svcNameNamespaceIndex = "NameNamespace"
+const svcIPIndex = "ServiceIP"
+const epNameNamespaceIndex = "EndpointNameNamespace"
+const epIPIndex = "EndpointsIP"
 
 type dnsController interface {
 	ServiceList() []*api.Service
+	SvcIndex(string) []*api.Service
+	SvcIndexReverse(string) []*api.Service
 	PodIndex(string) []*api.Pod
+	EpIndex(string) []*api.Endpoints
+	EpIndexReverse(string) []*api.Endpoints
 	EndpointsList() []*api.Endpoints
 
 	GetNodeByName(string) (*api.Node, error)
@@ -44,7 +52,7 @@ type dnsControl struct {
 
 	svcLister cache.Indexer
 	podLister cache.Indexer
-	epLister  cache.Store
+	epLister  cache.Indexer
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and
@@ -77,7 +85,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 		&api.Service{},
 		opts.resyncPeriod,
 		cache.ResourceEventHandlerFuncs{},
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		cache.Indexers{svcNameNamespaceIndex: svcNameNamespaceIndexFunc, svcIPIndex: svcIPIndexFunc})
 
 	if opts.initPodCache {
 		dns.podLister, dns.podController = cache.NewIndexerInformer(
@@ -90,14 +98,15 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 			cache.ResourceEventHandlerFuncs{},
 			cache.Indexers{podIPIndex: podIPIndexFunc})
 	}
-	dns.epLister, dns.epController = cache.NewInformer(
+	dns.epLister, dns.epController = cache.NewIndexerInformer(
 		&cache.ListWatch{
 			ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
 			WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
 		},
 		&api.Endpoints{},
 		opts.resyncPeriod,
-		cache.ResourceEventHandlerFuncs{})
+		cache.ResourceEventHandlerFuncs{},
+		cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc})
 
 	return &dns
 }
@@ -108,6 +117,38 @@ func podIPIndexFunc(obj interface{}) ([]string, error) {
 		return nil, errors.New("obj was not an *api.Pod")
 	}
 	return []string{p.Status.PodIP}, nil
+}
+
+func svcIPIndexFunc(obj interface{}) ([]string, error) {
+	svc, ok := obj.(*api.Service)
+	if !ok {
+		return nil, errors.New("obj was not an *api.Service")
+	}
+	return []string{svc.Spec.ClusterIP}, nil
+}
+
+func svcNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
+	s, ok := obj.(*api.Service)
+	if !ok {
+		return nil, errors.New("obj was not an *api.Service")
+	}
+	return []string{s.ObjectMeta.Name + "." + s.ObjectMeta.Namespace}, nil
+}
+
+func epNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
+	s, ok := obj.(*api.Endpoints)
+	if !ok {
+		return nil, errors.New("obj was not an *api.Endpoints")
+	}
+	return []string{s.ObjectMeta.Name + "." + s.ObjectMeta.Namespace}, nil
+}
+
+func epIPIndexFunc(obj interface{}) ([]string, error) {
+	ep, ok := obj.(*api.EndpointAddress)
+	if !ok {
+		return nil, errors.New("obj was not an *api.EndpointAddress")
+	}
+	return []string{ep.IP}, nil
 }
 
 func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
@@ -253,6 +294,79 @@ func (dns *dnsControl) PodIndex(ip string) (pods []*api.Pod) {
 		pods = append(pods, p)
 	}
 	return pods
+}
+
+func (dns *dnsControl) SvcIndex(idx string) (svcs []*api.Service) {
+	if dns.svcLister == nil {
+		return nil
+	}
+	os, err := dns.svcLister.ByIndex(svcNameNamespaceIndex, idx)
+	if err != nil {
+		return nil
+	}
+	for _, o := range os {
+		s, ok := o.(*api.Service)
+		if !ok {
+			continue
+		}
+		svcs = append(svcs, s)
+	}
+	return svcs
+}
+
+func (dns *dnsControl) SvcIndexReverse(ip string) (svcs []*api.Service) {
+	if dns.svcLister == nil {
+		return nil
+	}
+	os, err := dns.svcLister.ByIndex(svcIPIndex, ip)
+	if err != nil {
+		return nil
+	}
+
+	for _, o := range os {
+		s, ok := o.(*api.Service)
+		if !ok {
+			continue
+		}
+		svcs = append(svcs, s)
+	}
+	return svcs
+}
+
+func (dns *dnsControl) EpIndex(idx string) (ep []*api.Endpoints) {
+	if dns.epLister == nil {
+		return nil
+	}
+	os, err := dns.epLister.ByIndex(epNameNamespaceIndex, idx)
+	if err != nil {
+		return nil
+	}
+	for _, o := range os {
+		e, ok := o.(*api.Endpoints)
+		if !ok {
+			continue
+		}
+		ep = append(ep, e)
+	}
+	return ep
+}
+
+func (dns *dnsControl) EpIndexReverse(ip string) (ep []*api.Endpoints) {
+	if dns.svcLister == nil {
+		return nil
+	}
+	os, err := dns.epLister.ByIndex(epIPIndex, ip)
+	if err != nil {
+		return nil
+	}
+	for _, o := range os {
+		e, ok := o.(*api.Endpoints)
+		if !ok {
+			continue
+		}
+		ep = append(ep, e)
+	}
+	return ep
 }
 
 func (dns *dnsControl) EndpointsList() (eps []*api.Endpoints) {
