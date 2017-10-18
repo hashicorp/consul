@@ -453,21 +453,40 @@ type RuntimeConfig struct {
 	Datacenter string
 	NodeName   string
 
-	AdvertiseAddrLAN          *net.IPAddr
-	AdvertiseAddrWAN          *net.IPAddr
-	BindAddr                  *net.IPAddr
-	Bootstrap                 bool
-	BootstrapExpect           int
-	CAFile                    string
-	CAPath                    string
-	CertFile                  string
-	CheckUpdateInterval       time.Duration
-	Checks                    []*structs.CheckDefinition
-	ClientAddrs               []*net.IPAddr
-	DNSAddrs                  []net.Addr
-	DNSPort                   int
-	DataDir                   string
-	DevMode                   bool
+	AdvertiseAddrLAN *net.IPAddr
+	AdvertiseAddrWAN *net.IPAddr
+	BindAddr         *net.IPAddr
+
+	// Bootstrap is used to bring up the first Consul server, and
+	// permits that node to elect itself leader
+	//
+	// hcl: bootstrap = (true|false)
+	// flag: -bootstrap
+	Bootstrap bool
+
+	// BootstrapExpect tries to automatically bootstrap the Consul cluster,
+	// by withholding peers until enough servers join.
+	//
+	// hcl: bootstrap_expect = int
+	// flag: -bootstrap-expect=int
+	BootstrapExpect int
+
+	CAFile              string
+	CAPath              string
+	CertFile            string
+	CheckUpdateInterval time.Duration
+	Checks              []*structs.CheckDefinition
+	ClientAddrs         []*net.IPAddr
+	DNSAddrs            []net.Addr
+	DNSPort             int
+	DataDir             string
+
+	// DevMode enables a fast-path mode of operation to bring up an in-memory
+	// server with minimal configuration. Useful for developing Consul.
+	//
+	// flag: -dev
+	DevMode bool
+
 	DisableAnonymousSignature bool
 	DisableCoordinates        bool
 	DisableHostNodeID         bool
@@ -485,31 +504,43 @@ type RuntimeConfig struct {
 	// todo(fs): rename to ACLEnableReplication
 	EnableACLReplication bool
 
-	EnableDebug                 bool
-	EnableScriptChecks          bool
-	EnableSyslog                bool
-	EnableUI                    bool
-	EncryptKey                  string
-	EncryptVerifyIncoming       bool
-	EncryptVerifyOutgoing       bool
-	HTTPAddrs                   []net.Addr
-	HTTPPort                    int
-	HTTPSAddrs                  []net.Addr
-	HTTPSPort                   int
-	KeyFile                     string
-	LeaveDrainTime              time.Duration
-	LeaveOnTerm                 bool
-	LogLevel                    string
-	NodeID                      types.NodeID
-	NodeMeta                    map[string]string
-	NonVotingServer             bool
-	PidFile                     string
-	RPCAdvertiseAddr            *net.TCPAddr
-	RPCBindAddr                 *net.TCPAddr
-	RPCHoldTimeout              time.Duration
-	RPCMaxBurst                 int
+	EnableDebug           bool
+	EnableScriptChecks    bool
+	EnableSyslog          bool
+	EnableUI              bool
+	EncryptKey            string
+	EncryptVerifyIncoming bool
+	EncryptVerifyOutgoing bool
+	HTTPAddrs             []net.Addr
+	HTTPPort              int
+	HTTPSAddrs            []net.Addr
+	HTTPSPort             int
+	KeyFile               string
+	LeaveDrainTime        time.Duration
+	LeaveOnTerm           bool
+	LogLevel              string
+	NodeID                types.NodeID
+	NodeMeta              map[string]string
+	NonVotingServer       bool
+	PidFile               string
+	RPCAdvertiseAddr      *net.TCPAddr
+	RPCBindAddr           *net.TCPAddr
+	RPCHoldTimeout        time.Duration
+
+	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
+	// to happen. In any large enough time interval, rate limiter limits the
+	// rate to RPCRate tokens per second, with a maximum burst size of
+	// RPCMaxBurst events. As a special case, if RPCRate == Inf (the infinite
+	// rate), RPCMaxBurst is ignored.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	//
+	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
+	RPCRateLimit rate.Limit
+	RPCMaxBurst  int
+
 	RPCProtocol                 int
-	RPCRateLimit                rate.Limit
 	RaftProtocol                int
 	ReconnectTimeoutLAN         time.Duration
 	ReconnectTimeoutWAN         time.Duration
