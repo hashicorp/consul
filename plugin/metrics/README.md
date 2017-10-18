@@ -48,6 +48,15 @@ Use an alternative address:
 }
 ~~~
 
+Or via an enviroment variable (this is supported throughout the Corefile): `export PORT=9253`, and
+then:
+
+~~~ corefile
+. {
+    prometheus localhost:{$PORT}
+}
+~~~
+
 # Bugs
 
 When reloading, we keep the handler running, meaning that any changes to the handler's address

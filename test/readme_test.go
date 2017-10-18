@@ -14,15 +14,14 @@ import (
 	"github.com/mholt/caddy"
 )
 
-// Pasrse all README.md's of the plugin and check if every example Corefile
-// actually works. Each corefile is only used if the language is set to 'corefile':
+// TestReadme parses all README.md's of the plugins and checks if every example Corefile
+// actually works. Each corefile snippet is only used if the language is set to 'corefile':
 //
 // ~~~ corefile
 // . {
 //	# check-this-please
 // }
 // ~~~
-
 func TestReadme(t *testing.T) {
 	port := 30053
 	caddy.Quiet = true
