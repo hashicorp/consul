@@ -34,12 +34,11 @@ func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
-
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Log level of the agent.")
 
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 

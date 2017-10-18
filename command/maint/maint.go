@@ -32,9 +32,6 @@ func New(ui cli.Ui) *cmd {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
-
 	c.flags.BoolVar(&c.enable, "enable", false,
 		"Enable maintenance mode.")
 	c.flags.BoolVar(&c.disable, "disable", false,
@@ -44,6 +41,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.serviceID, "service", "",
 		"Control maintenance mode for a specific service ID.")
 
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 

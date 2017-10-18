@@ -22,6 +22,7 @@ type cmd struct {
 	help  string
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
+
 	// flags
 	detailed     bool
 	wan          bool
@@ -37,9 +38,6 @@ func New(ui cli.Ui) *cmd {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
-
 	c.flags.BoolVar(&c.detailed, "detailed", false,
 		"Provides detailed information about nodes.")
 	c.flags.BoolVar(&c.wan, "wan", false,
@@ -51,6 +49,9 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.segment, "segment", consulapi.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
+
+	c.http = &flags.HTTPFlags{}
+	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
