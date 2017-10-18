@@ -108,7 +108,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{},
 		Port:    11211,
 	}
-	a.State.AddServiceState(&local.ServiceState{
+	a.State.SetServiceState(&local.ServiceState{
 		Service: srv6,
 		InSync:  true,
 	})
@@ -679,7 +679,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "cache",
 		Status:  api.HealthPassing,
 	}
-	a.State.AddCheckState(&local.CheckState{
+	a.State.SetCheckState(&local.CheckState{
 		Check:  chk5,
 		InSync: true,
 	})
