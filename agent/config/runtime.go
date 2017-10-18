@@ -68,17 +68,95 @@ type RuntimeConfig struct {
 	AutopilotServerStabilizationTime time.Duration
 	AutopilotUpgradeVersionTag       string
 
-	DNSAllowStale         bool
+	// DNSAllowStale is used to enable lookups with stale
+	// data. This gives horizontal read scalability since
+	// any Consul server can service the query instead of
+	// only the leader.
+	//
+	// hcl: dns_config { allow_stale = (true|false) }
+	DNSAllowStale bool
+
+	// DNSDisableCompression is used to control whether DNS responses are
+	// compressed. In Consul 0.7 this was turned on by default and this
+	// config was added as an opt-out.
+	//
+	// hcl: dns_config { disable_compression = (true|false) }
 	DNSDisableCompression bool
-	DNSDomain             string
-	DNSEnableTruncate     bool
-	DNSMaxStale           time.Duration
-	DNSNodeTTL            time.Duration
-	DNSOnlyPassing        bool
-	DNSRecursorTimeout    time.Duration
-	DNSServiceTTL         map[string]time.Duration
-	DNSUDPAnswerLimit     int
-	DNSRecursors          []string
+
+	// DNSDomain is the DNS domain for the records. Should end with a dot.
+	// Defaults to "consul."
+	//
+	// hcl: domain = string
+	// flag: -domain string
+	DNSDomain string
+
+	// DNSEnableTruncate is used to enable setting the truncate
+	// flag for UDP DNS queries.  This allows unmodified
+	// clients to re-query the consul server using TCP
+	// when the total number of records exceeds the number
+	// returned by default for UDP.
+	//
+	// hcl: dns_config { enable_truncate = (true|false) }
+	DNSEnableTruncate bool
+
+	// DNSMaxStale is used to bound how stale of a result is
+	// accepted for a DNS lookup. This can be used with
+	// AllowStale to limit how old of a value is served up.
+	// If the stale result exceeds this, another non-stale
+	// stale read is performed.
+	//
+	// hcl: dns_config { max_stale = "duration" }
+	DNSMaxStale time.Duration
+
+	// DNSNodeTTL provides the TTL value for a node query.
+	//
+	// hcl: dns_config { node_ttl = "duration" }
+	DNSNodeTTL time.Duration
+
+	// DNSOnlyPassing is used to determine whether to filter nodes
+	// whose health checks are in any non-passing state. By
+	// default, only nodes in a critical state are excluded.
+	//
+	// hcl: dns_config { only_passing = "duration" }
+	DNSOnlyPassing bool
+
+	// DNSRecursorTimeout specifies the timeout in seconds
+	// for Consul's internal dns client used for recursion.
+	// This value is used for the connection, read and write timeout.
+	//
+	// hcl: dns_config { recursor_timeout = "duration" }
+	DNSRecursorTimeout time.Duration
+
+	// DNSServiceTTL provides the TTL value for a service
+	// query for given service. The "*" wildcard can be used
+	// to set a default for all services.
+	//
+	// hcl: dns_config { service_ttl = map[string]"duration" }
+	DNSServiceTTL map[string]time.Duration
+
+	// DNSUDPAnswerLimit is used to limit the maximum number of DNS Resource
+	// Records returned in the ANSWER section of a DNS response. This is
+	// not normally useful and will be limited based on the querying
+	// protocol, however systems that implemented §6 Rule 9 in RFC3484
+	// may want to set this to `1` in order to subvert §6 Rule 9 and
+	// re-obtain the effect of randomized resource records (i.e. each
+	// answer contains only one IP, but the IP changes every request).
+	// RFC3484 sorts answers in a deterministic order, which defeats the
+	// purpose of randomized DNS responses.  This RFC has been obsoleted
+	// by RFC6724 and restores the desired behavior of randomized
+	// responses, however a large number of Linux hosts using glibc(3)
+	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
+	// Debian Squeeze, etc).
+	//
+	// hcl: dns_config { udp_answer_limit = int }
+	DNSUDPAnswerLimit int
+
+	// DNSRecursors can be set to allow the DNS servers to recursively
+	// resolve non-consul domains.
+	//
+	// hcl: recursors = []string
+	// flag: -recursor string [-recursor string]
+	DNSRecursors []string
 
 	// HTTPBlockEndpoints is a list of endpoint prefixes to block in the
 	// HTTP API. Any requests to these will get a 403 response.
