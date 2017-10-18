@@ -23,7 +23,7 @@
 		{"path":"github.com/go-ole/go-ole/oleutil","checksumSHA1":"IvdiJE1NIogRmGi3WmteEKZQJB8=","revision":"5e9c030faf78847db7aa77e3661b9cc449de29b7","revisionTime":"2016-11-16T06:46:58Z"},
 		{"path":"github.com/google/gofuzz","checksumSHA1":"PFtXkXPO7pwRtykVUUXtc07wc7U=","revision":"24818f796faf91cd76ec7bddd72458fbced7a6c1","revisionTime":"2017-06-12T17:47:53Z"},
 		{"path":"github.com/hashicorp/errwrap","checksumSHA1":"cdOCt0Yb+hdErz8NAQqayxPmRsY=","revision":"7554cd9344cec97297fa6649b055a8c98c2a1e55","revisionTime":"2014-10-28T05:47:10Z"},
-		{"path":"github.com/hashicorp/go-checkpoint","checksumSHA1":"nd3S1qkFv7zZxA9be0bw4nT0pe0=","revision":"e4b2dc34c0f698ee04750bf2035d8b9384233e1b","revisionTime":"2015-10-22T18:15:14Z"},
+		{"path":"github.com/hashicorp/go-checkpoint","checksumSHA1":"D267IUMW2rcb+vNe3QU+xhfSrgY=","revision":"1545e56e46dec3bba264e41fde2c1e2aa65b5dd4","revisionTime":"2017-10-09T17:35:28Z"},
 		{"path":"github.com/hashicorp/go-cleanhttp","checksumSHA1":"b8F628srIitj5p7Y130xc9k0QWs=","revision":"3573b8b52aa7b37b9358d966a898feb387f62437","revisionTime":"2017-02-11T01:34:15Z"},
 		{"path":"github.com/hashicorp/go-discover","checksumSHA1":"tWQmb13hmUBoWi0ZHnc4CLBqRc0=","revision":"745a463b035b25a4d0c12d056e208e3850fdd1be","revisionTime":"2017-10-04T16:46:45Z"},
 		{"path":"github.com/hashicorp/go-discover/provider/aws","checksumSHA1":"lyPRg8aZKgGiNkMILk/VKwOqMy4=","revision":"25e4565347de14cea0a0e0730374c9fcffa7bab0","revisionTime":"2017-09-25T01:06:15Z","tree":true},
