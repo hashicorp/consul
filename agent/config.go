@@ -17,9 +17,13 @@ func FixupCheckType(raw interface{}) error {
 		return nil
 	}
 
-	// see https://github.com/hashicorp/consul/pull/3557 why we need this
-	// and why we should get rid of it.
+	// See https://github.com/hashicorp/consul/pull/3557 why we need this
+	// and why we should get rid of it. In Consul 1.0 we also didn't map
+	// Args correctly, so we ended up exposing (and need to carry forward)
+	// ScriptArgs, see https://github.com/hashicorp/consul/issues/3587.
 	config.TranslateKeys(rawMap, map[string]string{
+		"args":                              "ScriptArgs",
+		"script_args":                       "ScriptArgs",
 		"deregister_critical_service_after": "DeregisterCriticalServiceAfter",
 		"docker_container_id":               "DockerContainerID",
 		"tls_skip_verify":                   "TLSSkipVerify",

@@ -498,6 +498,69 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentScriptCheck(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.EnableScriptChecks = true
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	t.Run("node script check", func(t *testing.T) {
+		reg := &AgentCheckRegistration{
+			Name: "foo",
+			AgentServiceCheck: AgentServiceCheck{
+				Interval: "10s",
+				Args:     []string{"sh", "-c", "false"},
+			},
+		}
+		if err := agent.CheckRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["foo"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+
+	t.Run("service script check", func(t *testing.T) {
+		reg := &AgentServiceRegistration{
+			Name: "bar",
+			Port: 1234,
+			Checks: AgentServiceChecks{
+				&AgentServiceCheck{
+					Interval: "10s",
+					Args:     []string{"sh", "-c", "false"},
+				},
+			},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		services, err := agent.Services()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := services["bar"]; !ok {
+			t.Fatalf("missing service: %v", services)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["service:bar"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+}
+
 func TestAPI_AgentCheckStartPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

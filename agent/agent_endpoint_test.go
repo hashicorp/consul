@@ -667,7 +667,6 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Register node
 	args := &structs.CheckDefinition{
 		Name: "test",
 		TTL:  15 * time.Second,
@@ -703,12 +702,105 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	}
 }
 
+// This verifies all the forms of the new args-style check that we need to
+// support as a result of https://github.com/hashicorp/consul/issues/3587.
+func TestAgent_RegisterCheck_Scripts(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+`)
+	defer a.Shutdown()
+
+	tests := []struct {
+		name  string
+		check map[string]interface{}
+	}{
+		{
+			"< Consul 1.0.0",
+			map[string]interface{}{
+				"Name":     "test",
+				"Interval": "2s",
+				"Script":   "true",
+			},
+		},
+		{
+			"== Consul 1.0.0",
+			map[string]interface{}{
+				"Name":       "test",
+				"Interval":   "2s",
+				"ScriptArgs": []string{"true"},
+			},
+		},
+		{
+			"> Consul 1.0.0 (fixup)",
+			map[string]interface{}{
+				"Name":        "test",
+				"Interval":    "2s",
+				"script_args": []string{"true"},
+			},
+		},
+		{
+			"> Consul 1.0.0",
+			map[string]interface{}{
+				"Name":     "test",
+				"Interval": "2s",
+				"Args":     []string{"true"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name+" as node check", func(t *testing.T) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(tt.check))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterCheck(resp, req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
+			}
+		})
+
+		t.Run(tt.name+" as top-level service check", func(t *testing.T) {
+			args := map[string]interface{}{
+				"Name":  "a",
+				"Port":  1234,
+				"Check": tt.check,
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
+			}
+		})
+
+		t.Run(tt.name+" as slice-based service check", func(t *testing.T) {
+			args := map[string]interface{}{
+				"Name":   "a",
+				"Port":   1234,
+				"Checks": []map[string]interface{}{tt.check},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			resp := httptest.NewRecorder()
+			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp.Code != http.StatusOK {
+				t.Fatalf("bad: %d", resp.Code)
+			}
+		})
+	}
+}
+
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Register node
 	args := &structs.CheckDefinition{
 		Name:   "test",
 		TTL:    15 * time.Second,
@@ -744,7 +836,6 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Register node
 	args := &structs.CheckDefinition{
 		Name:   "test",
 		TTL:    15 * time.Second,
@@ -795,7 +886,6 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
 	obj, err := a.srv.AgentDeregisterCheck(nil, req)
 	if err != nil {
