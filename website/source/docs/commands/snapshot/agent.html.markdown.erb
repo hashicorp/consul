@@ -198,6 +198,10 @@ if desired.
 * `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or versionize snapshots, and will save them with the same name each time.
                                    Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
 
+* `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
+
+* `-aws-s3-kms-key` -  Optional Amazon KMS key to use, if this is not set the default KMS master key will be used. Set this if you want to manage key rotation yourself.
+
 ## Examples
 
 Running the agent with no arguments will run a long-running daemon process that will
