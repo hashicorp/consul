@@ -15,7 +15,7 @@ servers, monitoring the state of the Raft cluster, and stable server introductio
 To enable Autopilot features (with the exception of dead server cleanup),
 the [`raft_protocol`](/docs/agent/options.html#_raft_protocol) setting in
 the Agent configuration must be set to 3 or higher on all servers. In Consul
-0.8 this setting defaults to 2; in Consul 0.9 it will default to 3. For more
+0.8 this setting defaults to 2; in Consul 1.0 it will default to 3. For more
 information, see the [Version Upgrade section](/docs/upgrade-specific.html#raft_protocol)
 on Raft Protocol versions.
 
