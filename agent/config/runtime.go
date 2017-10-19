@@ -451,15 +451,42 @@ type RuntimeConfig struct {
 	// hcl: telemetry { statsite_addr = string }
 	TelemetryStatsiteAddr string
 
-	// Datacenter and NodeName are exposed via /v1/agent/self from here and
+	// Datacenter is the datacenter this node is in. Defaults to "dc1".
+	//
+	// Datacenter is exposed via /v1/agent/self from here and
 	// used in lots of places like CLI commands. Treat this as an interface
 	// that must be stable.
+	// todo(fs): do we need this warning? RuntimeConfig was meant to be refactorable.
+	//
+	// hcl: datacenter = string
+	// flag: -datacenter string
 	Datacenter string
-	NodeName   string
+
+	// Node name is the name we use to advertise. Defaults to hostname.
+	//
+	// NodeName is exposed via /v1/agent/self from here and
+	// used in lots of places like CLI commands. Treat this as an interface
+	// that must be stable.
+	// todo(fs): do we need this warning? RuntimeConfig was meant to be refactorable.
+	//
+	// hcl: node_name = string
+	// flag: -node string
+	NodeName string
 
 	AdvertiseAddrLAN *net.IPAddr
 	AdvertiseAddrWAN *net.IPAddr
-	BindAddr         *net.IPAddr
+
+	// BindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip, Server RPC)
+	//
+	// The value can be either an ip address or a go-sockaddr
+	// template which resolves to a single ip address.
+	//
+	// hcl: bind_addr = string
+	// flag: -bind string
+	BindAddr *net.IPAddr
 
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
@@ -475,15 +502,35 @@ type RuntimeConfig struct {
 	// flag: -bootstrap-expect=int
 	BootstrapExpect int
 
-	CAFile              string
-	CAPath              string
-	CertFile            string
+	// CAFile is a path to a certificate authority file. This is used with
+	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	//
+	// hcl: ca_file = string
+	CAFile string
+
+	// CAPath is a path to a directory of certificate authority files. This is
+	// used with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	//
+	// hcl: ca_path = string
+	CAPath string
+
+	// CertFile is used to provide a TLS certificate that is used for serving
+	// TLS connections. Must be provided to serve TLS connections.
+	//
+	// hcl: cert_file = string
+	CertFile string
+
 	CheckUpdateInterval time.Duration
 	Checks              []*structs.CheckDefinition
 	ClientAddrs         []*net.IPAddr
 	DNSAddrs            []net.Addr
 	DNSPort             int
-	DataDir             string
+
+	// DataDir is the path to the directory where the local state is stored.
+	//
+	// hcl: data_dir = string
+	// flag: -data-dir string
+	DataDir string
 
 	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
@@ -493,11 +540,23 @@ type RuntimeConfig struct {
 
 	DisableAnonymousSignature bool
 	DisableCoordinates        bool
-	DisableHostNodeID         bool
-	DisableKeyringFile        bool
-	DisableRemoteExec         bool
-	DisableUpdateCheck        bool
-	DiscardCheckOutput        bool
+
+	// DisableHostNodeID will prevent Consul from using information from the
+	// host to generate a node ID, and will cause Consul to generate a
+	// random ID instead.
+	//
+	// hcl: disable_host_node_id = (true|false)
+	DisableHostNodeID bool
+
+	// DisableKeyringFile disables writing the keyring to a file.
+	//
+	// hcl: disable_keyring_file = (true|false)
+	// flag: -disable-keyring-file
+	DisableKeyringFile bool
+
+	DisableRemoteExec  bool
+	DisableUpdateCheck bool
+	DiscardCheckOutput bool
 
 	// EnableACLReplication is used to turn on ACL replication when using
 	// /v1/agent/token/acl_replication_token to introduce the token, instead
@@ -508,28 +567,86 @@ type RuntimeConfig struct {
 	// todo(fs): rename to ACLEnableReplication
 	EnableACLReplication bool
 
-	EnableDebug           bool
-	EnableScriptChecks    bool
-	EnableSyslog          bool
-	EnableUI              bool
-	EncryptKey            string
+	// EnableDebug is used to enable various debugging features.
+	//
+	// hcl: enable_debug = (true|false)
+	EnableDebug bool
+
+	EnableScriptChecks bool
+	EnableSyslog       bool
+	EnableUI           bool
+
+	// EncryptKey contains the encryption key to use for the Serf communication.
+	//
+	// hcl: encrypt = string
+	// flag: -encrypt string
+	EncryptKey string
+
+	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_incoming = (true|false)
 	EncryptVerifyIncoming bool
+
+	// EncryptVerifyOutgoing enforces outgoing gossip encryption and can be
+	// used to upshift to encrypted gossip on a running cluster.
+	//
+	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
-	HTTPAddrs             []net.Addr
-	HTTPPort              int
-	HTTPSAddrs            []net.Addr
-	HTTPSPort             int
-	KeyFile               string
-	LeaveDrainTime        time.Duration
-	LeaveOnTerm           bool
-	LogLevel              string
-	NodeID                types.NodeID
-	NodeMeta              map[string]string
-	NonVotingServer       bool
-	PidFile               string
-	RPCAdvertiseAddr      *net.TCPAddr
-	RPCBindAddr           *net.TCPAddr
-	RPCHoldTimeout        time.Duration
+
+	HTTPAddrs  []net.Addr
+	HTTPPort   int
+	HTTPSAddrs []net.Addr
+	HTTPSPort  int
+
+	// KeyFile is used to provide a TLS key that is used for serving TLS
+	// connections. Must be provided to serve TLS connections.
+	//
+	// hcl: key_file = string
+	KeyFile string
+
+	LeaveDrainTime time.Duration
+
+	// LeaveOnTerm controls if Serf does a graceful leave when receiving
+	// the TERM signal. Defaults true on clients, false on servers. (reloadable)
+	//
+	// hcl: leave_on_terminate = (true|false)
+	LeaveOnTerm bool
+
+	// LogLevel is the level of the logs to write. Defaults to "INFO".
+	//
+	// hcl: log_level = string
+	LogLevel string
+
+	// Node ID is a unique ID for this node across space and time. Defaults
+	// to a randomly-generated ID that persists in the data-dir.
+	//
+	// todo(fs): don't we have a requirement for this to be a UUID in a specific format?
+	//
+	// hcl: node_id = string
+	// flag: -node-id string
+	NodeID types.NodeID
+
+	// NodeMeta contains metadata key/value pairs. These are excluded from JSON output
+	// because they can be reloaded and might be stale when shown from the
+	// config instead of the local state.
+	// todo(fs): should the sanitizer omit them from output as well since they could be stale?
+	//
+	// hcl: node_meta = map[string]string
+	// flag: -node-meta "key:value" -node-meta "key:value" ...
+	NodeMeta map[string]string
+
+	// NonVotingServer is whether this server will act as a non-voting member
+	// of the cluster to help provide read scalability. (Enterprise-only)
+	//
+	// hcl: non_voting_server = (true|false)
+	// flag: -non-voting-server
+	NonVotingServer bool
+
+	PidFile          string
+	RPCAdvertiseAddr *net.TCPAddr
+	RPCBindAddr      *net.TCPAddr
+	RPCHoldTimeout   time.Duration
 
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
@@ -544,49 +661,202 @@ type RuntimeConfig struct {
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
 
-	RPCProtocol                 int
-	RaftProtocol                int
-	ReconnectTimeoutLAN         time.Duration
-	ReconnectTimeoutWAN         time.Duration
-	RejoinAfterLeave            bool
-	RetryJoinIntervalLAN        time.Duration
-	RetryJoinIntervalWAN        time.Duration
-	RetryJoinLAN                []string
-	RetryJoinMaxAttemptsLAN     int
-	RetryJoinMaxAttemptsWAN     int
-	RetryJoinWAN                []string
-	SegmentName                 string
-	Segments                    []structs.NetworkSegment
-	SerfAdvertiseAddrLAN        *net.TCPAddr
-	SerfAdvertiseAddrWAN        *net.TCPAddr
-	SerfBindAddrLAN             *net.TCPAddr
-	SerfBindAddrWAN             *net.TCPAddr
-	SerfPortLAN                 int
-	SerfPortWAN                 int
-	ServerMode                  bool
-	ServerName                  string
-	ServerPort                  int
-	Services                    []*structs.ServiceDefinition
-	SessionTTLMin               time.Duration
-	SkipLeaveOnInt              bool
-	StartJoinAddrsLAN           []string
-	StartJoinAddrsWAN           []string
-	SyslogFacility              string
-	TLSCipherSuites             []uint16
-	TLSMinVersion               string
+	// RPCProtocol is the Consul protocol version to use.
+	//
+	// hcl: protocol = int
+	RPCProtocol int
+
+	// RaftProtocol sets the Raft protocol version to use on this server.
+	// Defaults to 3.
+	//
+	// hcl: raft_protocol = int
+	RaftProtocol int
+
+	ReconnectTimeoutLAN     time.Duration
+	ReconnectTimeoutWAN     time.Duration
+	RejoinAfterLeave        bool
+	RetryJoinIntervalLAN    time.Duration
+	RetryJoinIntervalWAN    time.Duration
+	RetryJoinLAN            []string
+	RetryJoinMaxAttemptsLAN int
+	RetryJoinMaxAttemptsWAN int
+	RetryJoinWAN            []string
+
+	// SegmentName is the network segment for this client to join.
+	// (Enterprise-only)
+	//
+	// hcl: segment = string
+	SegmentName string
+
+	// Segments is the list of network segments for this server to
+	// initialize.
+	//
+	// hcl: segment = [
+	//   {
+	//     # name is the name of the segment
+	//     name = string
+	//
+	//     # bind is the bind ip address for this segment.
+	//     bind = string
+	//
+	//     # port is the bind port for this segment.
+	//     port = int
+	//
+	//     # advertise is the advertise ip address for this segment.
+	//     # Defaults to the bind address if not set.
+	//     advertise = string
+	//
+	//     # rpc_listener controls whether or not to bind a separate
+	//     # RPC listener to the bind address.
+	//     rpc_listener = (true|false)
+	//   },
+	//   ...
+	// ]
+	Segments []structs.NetworkSegment
+
+	SerfAdvertiseAddrLAN *net.TCPAddr
+	SerfAdvertiseAddrWAN *net.TCPAddr
+	SerfBindAddrLAN      *net.TCPAddr
+	SerfBindAddrWAN      *net.TCPAddr
+	SerfPortLAN          int
+	SerfPortWAN          int
+
+	// ServerMode controls if this agent acts like a Consul server,
+	// or merely as a client. Servers have more state, take part
+	// in leader election, etc.
+	//
+	// hcl: server = (true|false)
+	// flag: -server
+	ServerMode bool
+
+	// ServerName is used with the TLS certificates to ensure the name we
+	// provide matches the certificate.
+	//
+	// hcl: server_name = string
+	ServerName string
+
+	ServerPort    int
+	Services      []*structs.ServiceDefinition
+	SessionTTLMin time.Duration
+
+	// SkipLeaveOnInt controls if Serf skips a graceful leave when
+	// receiving the INT signal. Defaults false on clients, true on
+	// servers. (reloadable)
+	//
+	// hcl: skip_leave_on_interrupt = (true|false)
+	SkipLeaveOnInt bool
+
+	StartJoinAddrsLAN []string
+	StartJoinAddrsWAN []string
+	SyslogFacility    string
+
+	// TLSCipherSuites is used to specify the list of supported ciphersuites.
+	//
+	// The values should be a list of the following values:
+	//
+	//   TLS_RSA_WITH_RC4_128_SHA
+	//   TLS_RSA_WITH_3DES_EDE_CBC_SHA
+	//   TLS_RSA_WITH_AES_128_CBC_SHA
+	//   TLS_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_RSA_WITH_AES_128_GCM_SHA256
+	//   TLS_RSA_WITH_AES_256_GCM_SHA384
+	//   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_RC4_128_SHA
+	//   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	//
+	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
+	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants
+	// todo(fs): since they are standardized by IANA.
+	//
+	// hcl: tls_cipher_suites = []string
+	TLSCipherSuites []uint16
+
+	// TLSMinVersion is used to set the minimum TLS version used for TLS
+	// connections. Should be either "tls10", "tls11", or "tls12".
+	//
+	// hcl: tls_min_version = string
+	TLSMinVersion string
+
+	// TLSPreferServerCipherSuites specifies whether to prefer the server's
+	// cipher suite over the client cipher suites.
+	//
+	// hcl: tls_prefer_server_cipher_suites = (true|false)
 	TLSPreferServerCipherSuites bool
-	TaggedAddresses             map[string]string
-	TranslateWANAddrs           bool
-	UIDir                       string
-	UnixSocketGroup             string
-	UnixSocketMode              string
-	UnixSocketUser              string
-	VerifyIncoming              bool
-	VerifyIncomingHTTPS         bool
-	VerifyIncomingRPC           bool
-	VerifyOutgoing              bool
-	VerifyServerHostname        bool
-	Watches                     []map[string]interface{}
+
+	// TaggedAddresses are used to publish a set of addresses for
+	// for a node, which can be used by the remote agent. We currently
+	// populate only the "wan" tag based on the SerfWan advertise address,
+	// but this structure is here for possible future features with other
+	// user-defined tags. The "wan" tag will be used by remote agents if
+	// they are configured with TranslateWANAddrs set to true.
+	//
+	// hcl: tagged_addresses = map[string]string
+	TaggedAddresses map[string]string
+
+	// TranslateWANAddrs controls whether or not Consul should prefer
+	// the "wan" tagged address when doing lookups in remote datacenters.
+	// See TaggedAddresses below for more details.
+	//
+	// hcl: translate_wan_addrs = (true|false)
+	TranslateWANAddrs bool
+
+	UIDir           string
+	UnixSocketGroup string
+	UnixSocketMode  string
+	UnixSocketUser  string
+
+	// VerifyIncoming is used to verify the authenticity of incoming
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming = (true|false)
+	VerifyIncoming bool
+
+	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming_https = (true|false)
+	VerifyIncomingHTTPS bool
+
+	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC
+	// connections. This means that TCP requests are forbidden, only allowing
+	// for TLS. TLS connections must match a provided certificate authority.
+	// This can be used to force client auth.
+	//
+	// hcl: verify_incoming_rpc = (true|false)
+	VerifyIncomingRPC bool
+
+	// VerifyOutgoing is used to verify the authenticity of outgoing
+	// connections. This means that TLS requests are used. TLS connections must
+	// match a provided certificate authority. This is used to verify
+	// authenticity of server nodes.
+	//
+	// hcl: verify_outgoing = (true|false)
+	VerifyOutgoing bool
+
+	// VerifyServerHostname is used to enable hostname verification of servers.
+	// This ensures that the certificate presented is valid for
+	// server.<datacenter>.<domain>. This prevents a compromised client from
+	// being restarted as a server, and then intercepting request traffic as
+	// well as being added as a raft peer. This should be enabled by default
+	// with VerifyOutgoing, but for legacy reasons we cannot break existing
+	// clients.
+	//
+	// hcl: verify_server_hostname = (true|false)
+	VerifyServerHostname bool
+
+	Watches []map[string]interface{}
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
