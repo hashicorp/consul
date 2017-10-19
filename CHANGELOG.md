@@ -1,6 +1,7 @@
 ## 1.0.1 (UNRELEASED)
 
 FEATURES:
+* agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
 
 IMPROVEMENTS:
 
