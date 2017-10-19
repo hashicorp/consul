@@ -99,7 +99,7 @@ const (
 	retryFailIntv = 15 * time.Second
 )
 
-func NewStateSyner(state State, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+func NewStateSyncer(state State, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
 	s := &StateSyncer{
 		State:             state,
 		Interval:          intv,
