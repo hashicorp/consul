@@ -212,8 +212,8 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 	}
 }
 
-// event defines a timing or notification event from a multiple
-// timers and channels.
+// event defines a timing or notification event from multiple timers and
+// channels.
 type event string
 
 const (
@@ -224,7 +224,9 @@ const (
 )
 
 // retrySyncFullEventFn waits for an event which triggers a retry
-// of a full sync or a termination signal.
+// of a full sync or a termination signal. This function should not be
+// called directly but through s.retryFullSyncState to allow mocking for
+// testing.
 func (s *StateSyncer) retrySyncFullEventFn() event {
 	select {
 	// trigger a full sync immediately.
@@ -249,7 +251,9 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 }
 
 // syncChangesEventFn waits for a event which either triggers a full
-// or a partial sync or a termination signal.
+// or a partial sync or a termination signal. This function should not
+// be called directly but through s.syncChangesEvent to allow mocking
+// for testing.
 func (s *StateSyncer) syncChangesEventFn() event {
 	select {
 	// trigger a full sync immediately
@@ -276,9 +280,16 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	}
 }
 
+// stubbed out for testing
+var libRandomStagger = lib.RandomStagger
+
+// staggerFn returns a random duration which depends on the cluster size
+// and a random factor which should provide some timely distribution of
+// cluster wide events. This function should not be called directly
+// but through s.stagger to allow mocking for testing.
 func (s *StateSyncer) staggerFn(d time.Duration) time.Duration {
 	f := scaleFactor(s.ClusterSize())
-	return lib.RandomStagger(time.Duration(f) * d)
+	return libRandomStagger(time.Duration(f) * d)
 }
 
 // Pause temporarily disables sync runs.
