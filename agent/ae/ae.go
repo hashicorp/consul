@@ -77,7 +77,7 @@ type StateSyncer struct {
 
 	// paused stores whether sync runs are temporarily disabled.
 	pauseLock sync.Mutex
-	paused    bool
+	paused    int
 }
 
 func NewStateSyner(state State, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
@@ -180,7 +180,7 @@ FullSync:
 func (s *StateSyncer) ifNotPausedRun(f func() error) error {
 	s.pauseLock.Lock()
 	defer s.pauseLock.Unlock()
-	if s.paused {
+	if s.paused != 0 {
 		return errPaused
 	}
 	return f()
@@ -189,10 +189,7 @@ func (s *StateSyncer) ifNotPausedRun(f func() error) error {
 // Pause temporarily disables sync runs.
 func (s *StateSyncer) Pause() {
 	s.pauseLock.Lock()
-	if s.paused {
-		panic("pause while paused")
-	}
-	s.paused = true
+	s.paused++
 	s.pauseLock.Unlock()
 }
 
@@ -200,16 +197,18 @@ func (s *StateSyncer) Pause() {
 func (s *StateSyncer) Paused() bool {
 	s.pauseLock.Lock()
 	defer s.pauseLock.Unlock()
-	return s.paused
+	return s.paused != 0
 }
 
 // Resume re-enables sync runs.
 func (s *StateSyncer) Resume() {
 	s.pauseLock.Lock()
-	if !s.paused {
-		panic("resume while not paused")
+	s.paused--
+	if s.paused < 0 {
+		panic("unbalanced pause/resume")
 	}
-	s.paused = false
+	if s.paused == 0 {
+		s.SyncChanges.Trigger()
+	}
 	s.pauseLock.Unlock()
-	s.SyncChanges.Trigger()
 }
