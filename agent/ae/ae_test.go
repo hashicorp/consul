@@ -1,7 +1,9 @@
 package ae
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -55,4 +57,23 @@ func TestAE_nestedPauseResume(t *testing.T) {
 		}
 	}()
 	l.Resume()
+}
+
+func TestAE_ifNotPausedRun(t *testing.T) {
+	l := NewStateSyner(nil, 0, nil, nil)
+
+	errCalled := errors.New("f called")
+	f := func() error { return errCalled }
+
+	l.Pause()
+	err := l.ifNotPausedRun(f)
+	if got, want := err, errPaused; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got error %q want %q", got, want)
+	}
+	l.Resume()
+
+	err = l.ifNotPausedRun(f)
+	if got, want := err, errCalled; got != want {
+		t.Fatalf("got error %q want %q", got, want)
+	}
 }
