@@ -2,7 +2,7 @@
 package ae
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -37,7 +37,7 @@ func scaleFactor(nodes int) int {
 	return int(math.Ceil(math.Log2(float64(nodes))-math.Log2(float64(scaleThreshold))) + 1.0)
 }
 
-type State interface {
+type SyncState interface {
 	SyncChanges() error
 	SyncFull() error
 }
@@ -51,7 +51,7 @@ type State interface {
 // for the cluster which is also called anti-entropy.
 type StateSyncer struct {
 	// State contains the data that needs to be synchronized.
-	State State
+	State SyncState
 
 	// Interval is the time between two full sync runs.
 	Interval time.Duration
@@ -79,15 +79,23 @@ type StateSyncer struct {
 	pauseLock sync.Mutex
 	paused    int
 
-	// stagger randomly picks a duration between 0s and the given duration.
-	stagger func(time.Duration) time.Duration
-
 	// serverUpInterval is the max time after which a full sync is
 	// performed when a server has been added to the cluster.
 	serverUpInterval time.Duration
 
 	// retryFailInterval is the time after which a failed full sync is retried.
 	retryFailInterval time.Duration
+
+	// stagger randomly picks a duration between 0s and the given duration.
+	stagger func(time.Duration) time.Duration
+
+	// retrySyncFullEvent generates an event based on multiple conditions
+	// when the state machine is trying to retry a full state sync.
+	retrySyncFullEvent func() event
+
+	// syncChangesEvent generates an event based on multiple conditions
+	// when the state machine is performing partial state syncs.
+	syncChangesEvent func() event
 }
 
 const (
@@ -99,7 +107,7 @@ const (
 	retryFailIntv = 15 * time.Second
 )
 
-func NewStateSyncer(state State, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
 	s := &StateSyncer{
 		State:             state,
 		Interval:          intv,
@@ -110,14 +118,25 @@ func NewStateSyncer(state State, intv time.Duration, shutdownCh chan struct{}, l
 		serverUpInterval:  serverUpIntv,
 		retryFailInterval: retryFailIntv,
 	}
-	s.stagger = func(d time.Duration) time.Duration {
-		f := scaleFactor(s.ClusterSize())
-		return lib.RandomStagger(time.Duration(f) * d)
-	}
+
+	// retain these methods as member variables so that
+	// we can mock them for testing.
+	s.retrySyncFullEvent = s.retrySyncFullEventFn
+	s.syncChangesEvent = s.syncChangesEventFn
+	s.stagger = s.staggerFn
+
 	return s
 }
 
-var errPaused = errors.New("paused")
+// fsmState defines states for the state machine.
+type fsmState string
+
+const (
+	doneState          fsmState = "done"
+	fullSyncState      fsmState = "fullSync"
+	partialSyncState   fsmState = "partialSync"
+	retryFullSyncState fsmState = "retryFullSync"
+)
 
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
@@ -125,77 +144,141 @@ func (s *StateSyncer) Run() {
 	if s.ClusterSize == nil {
 		panic("ClusterSize not set")
 	}
+	s.runFSM(fullSyncState, s.nextFSMState)
+}
 
-FullSync:
+// runFSM runs the state machine.
+func (s *StateSyncer) runFSM(fs fsmState, next func(fsmState) fsmState) {
 	for {
-		// attempt a full sync
-		err := s.ifNotPausedRun(s.State.SyncFull)
-		if err != nil {
-			if err != errPaused {
-				s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
-			}
-
-			select {
-			// trigger a full sync immediately.
-			// this is usually called when a consul server was added to the cluster.
-			// stagger the delay to avoid a thundering herd.
-			case <-s.SyncFull.Notif():
-				select {
-				case <-time.After(s.stagger(s.serverUpInterval)):
-					continue FullSync
-				case <-s.ShutdownCh:
-					return
-				}
-
-			// retry full sync after some time
-			// todo(fs): why don't we use s.Interval here?
-			case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
-				continue FullSync
-
-			case <-s.ShutdownCh:
-				return
-			}
-		}
-
-		// do partial syncs until it is time for a full sync again
-		for {
-			select {
-			// trigger a full sync immediately
-			// this is usually called when a consul server was added to the cluster.
-			// stagger the delay to avoid a thundering herd.
-			case <-s.SyncFull.Notif():
-				select {
-				case <-time.After(s.stagger(s.serverUpInterval)):
-					continue FullSync
-				case <-s.ShutdownCh:
-					return
-				}
-
-			// time for a full sync again
-			case <-time.After(s.Interval + s.stagger(s.Interval)):
-				continue FullSync
-
-			// do partial syncs on demand
-			case <-s.SyncChanges.Notif():
-				err := s.ifNotPausedRun(s.State.SyncChanges)
-				if err != nil && err != errPaused {
-					s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
-				}
-
-			case <-s.ShutdownCh:
-				return
-			}
+		if fs = next(fs); fs == doneState {
+			return
 		}
 	}
 }
 
-func (s *StateSyncer) ifNotPausedRun(f func() error) error {
-	s.pauseLock.Lock()
-	defer s.pauseLock.Unlock()
-	if s.paused != 0 {
-		return errPaused
+// nextFSMState determines the next state based on the current state.
+func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
+	switch fs {
+	case fullSyncState:
+		if s.Paused() {
+			return retryFullSyncState
+		}
+
+		err := s.State.SyncFull()
+		if err != nil {
+			s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
+			return retryFullSyncState
+		}
+
+		return partialSyncState
+
+	case retryFullSyncState:
+		e := s.retrySyncFullEvent()
+		switch e {
+		case syncFullNotifEvent, syncFullTimerEvent:
+			return fullSyncState
+		case shutdownEvent:
+			return doneState
+		default:
+			panic(fmt.Sprintf("invalid event: %s", e))
+		}
+
+	case partialSyncState:
+		e := s.syncChangesEvent()
+		switch e {
+		case syncFullNotifEvent, syncFullTimerEvent:
+			return fullSyncState
+
+		case syncChangesNotifEvent:
+			if s.Paused() {
+				return partialSyncState
+			}
+
+			err := s.State.SyncChanges()
+			if err != nil {
+				s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+			}
+			return partialSyncState
+
+		case shutdownEvent:
+			return doneState
+
+		default:
+			panic(fmt.Sprintf("invalid event: %s", e))
+		}
+
+	default:
+		panic(fmt.Sprintf("invalid state: %s", fs))
 	}
-	return f()
+}
+
+// event defines a timing or notification event from a multiple
+// timers and channels.
+type event string
+
+const (
+	shutdownEvent         event = "shutdown"
+	syncFullNotifEvent    event = "syncFullNotif"
+	syncFullTimerEvent    event = "syncFullTimer"
+	syncChangesNotifEvent event = "syncChangesNotif"
+)
+
+// retrySyncFullEventFn waits for an event which triggers a retry
+// of a full sync or a termination signal.
+func (s *StateSyncer) retrySyncFullEventFn() event {
+	select {
+	// trigger a full sync immediately.
+	// this is usually called when a consul server was added to the cluster.
+	// stagger the delay to avoid a thundering herd.
+	case <-s.SyncFull.Notif():
+		select {
+		case <-time.After(s.stagger(s.serverUpInterval)):
+			return syncFullNotifEvent
+		case <-s.ShutdownCh:
+			return shutdownEvent
+		}
+
+	// retry full sync after some time
+	// todo(fs): why don't we use s.Interval here?
+	case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
+		return syncFullTimerEvent
+
+	case <-s.ShutdownCh:
+		return shutdownEvent
+	}
+}
+
+// syncChangesEventFn waits for a event which either triggers a full
+// or a partial sync or a termination signal.
+func (s *StateSyncer) syncChangesEventFn() event {
+	select {
+	// trigger a full sync immediately
+	// this is usually called when a consul server was added to the cluster.
+	// stagger the delay to avoid a thundering herd.
+	case <-s.SyncFull.Notif():
+		select {
+		case <-time.After(s.stagger(s.serverUpInterval)):
+			return syncFullNotifEvent
+		case <-s.ShutdownCh:
+			return shutdownEvent
+		}
+
+	// time for a full sync again
+	case <-time.After(s.Interval + s.stagger(s.Interval)):
+		return syncFullTimerEvent
+
+	// do partial syncs on demand
+	case <-s.SyncChanges.Notif():
+		return syncChangesNotifEvent
+
+	case <-s.ShutdownCh:
+		return shutdownEvent
+	}
+}
+
+func (s *StateSyncer) staggerFn(d time.Duration) time.Duration {
+	f := scaleFactor(s.ClusterSize())
+	return lib.RandomStagger(time.Duration(f) * d)
 }
 
 // Pause temporarily disables sync runs.
