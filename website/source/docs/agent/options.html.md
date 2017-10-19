@@ -297,7 +297,7 @@ will exit with an error at startup.
 
     #### Authentication &amp; Precedence
 
-    - Static credentials `acesss_key_id=xxx secret_access_key=xxx`
+    - Static credentials `access_key_id=xxx secret_access_key=xxx`
     - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
     - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
     - ECS task role metadata (container-specific).
