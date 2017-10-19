@@ -14,6 +14,7 @@ import (
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/context"
 	"net/http"
 )
 
@@ -106,9 +107,12 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 			trans.TLSClientConfig.InsecureSkipVerify = config.TLSSkipVerify
 		}
 
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
+		defer cancel()
+
 		// Create the HTTP client.
 		httpClient := &http.Client{
-			Timeout:   config.Timeout,
 			Transport: trans,
 		}
 
@@ -125,6 +129,7 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
 			return
 		}
+		req = req.WithContext(ctx)
 		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
 		for key, values := range config.Header {
 			for _, val := range values {
