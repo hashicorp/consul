@@ -445,12 +445,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-recursor",
 			flags: []string{
-				`-recursor=a`,
-				`-recursor=b`,
+				`-recursor=1.2.3.4`,
+				`-recursor=5.6.7.8`,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.DNSRecursors = []string{"a", "b"}
+				rt.DNSRecursors = []string{"1.2.3.4", "5.6.7.8"}
 				rt.DataDir = dataDir
 			},
 		},
@@ -988,6 +988,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc:  "dns recursor templates with deduplication",
+			flags: []string{`-data-dir=` + dataDir},
+			json:  []string{`{ "recursors": [ "{{ printf \"5.6.7.8:9999\" }}", "{{ printf \"1.2.3.4\" }}", "{{ printf \"5.6.7.8:9999\" }}" ] }`},
+			hcl:   []string{`recursors = [ "{{ printf \"5.6.7.8:9999\" }}", "{{ printf \"1.2.3.4\" }}", "{{ printf \"5.6.7.8:9999\" }}" ] `},
+			patch: func(rt *RuntimeConfig) {
+				rt.DNSRecursors = []string{"5.6.7.8:9999", "1.2.3.4"}
+				rt.DataDir = dataDir
+			},
+		},
 
 		// ------------------------------------------------------------
 		// precedence rules
@@ -1047,7 +1057,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						"bootstrap_expect": 3,
 						"datacenter":"a",
 						"node_meta": {"a":"b"},
-						"recursors":["a", "b"],
+						"recursors":["1.2.3.5", "5.6.7.9"],
 						"serf_lan": "a",
 						"serf_wan": "a",
 						"start_join":["a", "b"]
@@ -1061,7 +1071,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap_expect = 3
 					datacenter = "a"
 					node_meta = { "a" = "b" }
-					recursors = ["a", "b"]
+					recursors = ["1.2.3.5", "5.6.7.9"]
 					serf_lan = "a"
 					serf_wan = "a"
 					start_join = ["a", "b"]
@@ -1076,7 +1086,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 				`-join`, `c`, `-join=d`,
 				`-node-meta=c:d`,
-				`-recursor`, `c`, `-recursor=d`,
+				`-recursor`, `1.2.3.6`, `-recursor=5.6.7.10`,
 				`-serf-lan-bind=3.3.3.3`,
 				`-serf-wan-bind=4.4.4.4`,
 			},
@@ -1087,7 +1097,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 				rt.Datacenter = "b"
-				rt.DNSRecursors = []string{"c", "d", "a", "b"}
+				rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 				rt.NodeMeta = map[string]string{"c": "d"}
 				rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 				rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
@@ -2175,7 +2185,7 @@ func TestFullConfig(t *testing.T) {
 			"raft_protocol": 19016,
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
-			"recursors": [ "FtFhoUHl", "UYkwck1k" ],
+			"recursors": [ "63.38.39.58", "92.49.18.18" ],
 			"rejoin_after_leave": true,
 			"retry_interval": "8067s",
 			"retry_interval_wan": "28866s",
@@ -2609,7 +2619,7 @@ func TestFullConfig(t *testing.T) {
 			raft_protocol = 19016
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
-			recursors = [ "FtFhoUHl", "UYkwck1k" ]
+			recursors = [ "63.38.39.58", "92.49.18.18" ]
 			rejoin_after_leave = true
 			retry_interval = "8067s"
 			retry_interval_wan = "28866s"
@@ -3122,7 +3132,7 @@ func TestFullConfig(t *testing.T) {
 		DNSOnlyPassing:            true,
 		DNSPort:                   7001,
 		DNSRecursorTimeout:        4427 * time.Second,
-		DNSRecursors:              []string{"FtFhoUHl", "UYkwck1k"},
+		DNSRecursors:              []string{"63.38.39.58", "92.49.18.18"},
 		DNSServiceTTL:             map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:         29909,
 		DataDir:                   dataDir,
