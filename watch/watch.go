@@ -98,10 +98,8 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
 
-	case "":
-		// Let continue and check for 'args' or 'handler' parameter later
-	default:
-		return nil, fmt.Errorf(fmt.Sprintf("Handler type '%s' not recognized", plan.HandlerType))
+	case "script":
+		// Let the caller check for configuration in exempt parameters
 	}
 
 	// Look for a factory function

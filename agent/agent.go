@@ -534,7 +534,13 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	// Compile the watches
 	var watchPlans []*watch.Plan
 	for _, params := range cfg.Watches {
-		// Parse the watches, excluding the handler
+		if handlerType, ok := params["handler_type"]; !ok {
+			params["handler_type"] = "script"
+		} else if handlerType != "http" && handlerType != "script" {
+			return fmt.Errorf(fmt.Sprintf("Handler type '%s' not recognized", params["handler_type"]))
+		}
+
+		// Parse the watches, excluding 'handler' and 'args'
 		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
 		if err != nil {
 			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
@@ -563,10 +569,10 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		} else if hasArgs && !ok {
 			return fmt.Errorf("Watch args must be a list of strings")
 		}
-		if hasHandler && hasArgs || hasHandler && wp.HandlerType != "" || hasArgs && wp.HandlerType != "" {
+		if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
 			return fmt.Errorf("Only one watch handler allowed")
 		}
-		if !hasHandler && !hasArgs && wp.HandlerType == "" {
+		if !hasHandler && !hasArgs && wp.HandlerType != "http" {
 			return fmt.Errorf("Must define a watch handler")
 		}
 
