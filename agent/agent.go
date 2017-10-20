@@ -537,7 +537,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		if handlerType, ok := params["handler_type"]; !ok {
 			params["handler_type"] = "script"
 		} else if handlerType != "http" && handlerType != "script" {
-			return fmt.Errorf(fmt.Sprintf("Handler type '%s' not recognized", params["handler_type"]))
+			return fmt.Errorf("Handler type '%s' not recognized", params["handler_type"])
 		}
 
 		// Parse the watches, excluding 'handler' and 'args'
