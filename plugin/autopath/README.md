@@ -1,6 +1,6 @@
 # autopath
 
-*autopath* allows CoreDNS to perform server side search path completion.
+*autopath* allows for server side search path completion.
 
 If it sees a query that matches the first element of the configured search path, *autopath* will
 follow the chain of search path elements and returns the first reply that is not NXDOMAIN. On any
@@ -44,8 +44,3 @@ autopath @kubernetes
 ~~~
 
 Use the search path dynamically retrieved from the kubernetes plugin.
-
-## Bugs
-
-Replies from this plugin are not cached, as the *cache* plugin is configured after this one (see
-plugin.cfg).

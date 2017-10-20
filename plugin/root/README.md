@@ -1,6 +1,6 @@
 # root
 
-*root* simply specifies the root of where CoreDNS finds (e.g.) zone files.
+*root* simply specifies the root of where to find (zone) files.
 
 The default root is the current working directory of CoreDNS. A relative root path is relative to
 the current working directory.

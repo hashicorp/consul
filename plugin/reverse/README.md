@@ -1,6 +1,6 @@
 # reverse
 
-*reverse* allows CoreDNS to respond dynamically to a PTR request and the related A/AAAA request.
+*reverse* allows for dynamic responses to PTR and the related A/AAAA requests.
 
 ## Syntax
 

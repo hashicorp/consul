@@ -1,6 +1,6 @@
 # chaos
 
-*chaos* allows CoreDNS to respond to TXT queries in the CH class.
+*chaos* allows for responding to TXT queries in the CH class.
 
 This is useful for retrieving version or author information from the server.
 
