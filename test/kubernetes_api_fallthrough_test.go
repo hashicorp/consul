@@ -4,7 +4,6 @@ package test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/plugin/test"
 
@@ -35,9 +34,6 @@ func TestKubernetesAPIFallthrough(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer server.Stop()
-
-	// Work-around for timing condition that results in no-data being returned in test environment.
-	time.Sleep(3 * time.Second)
 
 	for _, tc := range tests {
 

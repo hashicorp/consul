@@ -338,10 +338,13 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 	)
 	if wildcard(r.service) || wildcard(r.namespace) {
 		serviceList = k.APIConn.ServiceList()
+		endpointsList = k.APIConn.EndpointsList()
 	} else {
 		idx = r.service + "." + r.namespace
 		serviceList = k.APIConn.SvcIndex(idx)
+		endpointsList = k.APIConn.EpIndex(idx)
 	}
+
 	for _, svc := range serviceList {
 
 		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
@@ -356,12 +359,6 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 		// Endpoint query or headless service
 		if svc.Spec.ClusterIP == api.ClusterIPNone || r.endpoint != "" {
-			if wildcard(r.service) || wildcard(r.namespace) {
-				endpointsList = k.APIConn.EndpointsList()
-			} else {
-				idx = r.service + "." + r.namespace
-				endpointsList = k.APIConn.EpIndex(idx)
-			}
 			for _, ep := range endpointsList {
 				if ep.ObjectMeta.Name != svc.Name || ep.ObjectMeta.Namespace != svc.Namespace {
 					continue

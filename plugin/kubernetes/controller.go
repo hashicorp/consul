@@ -38,6 +38,7 @@ type dnsController interface {
 	GetNodeByName(string) (*api.Node, error)
 
 	Run()
+	HasSynced() bool
 	Stop() error
 }
 
@@ -229,17 +230,6 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) 
 	}
 }
 
-func (dns *dnsControl) controllersInSync() bool {
-	hs := dns.svcController.HasSynced() &&
-		dns.epController.HasSynced()
-
-	if dns.podController != nil {
-		hs = hs && dns.podController.HasSynced()
-	}
-
-	return hs
-}
-
 // Stop stops the  controller.
 func (dns *dnsControl) Stop() error {
 	dns.stopLock.Lock()
@@ -264,6 +254,17 @@ func (dns *dnsControl) Run() {
 		go dns.podController.Run(dns.stopCh)
 	}
 	<-dns.stopCh
+}
+
+// HasSynced calls on all controllers.
+func (dns *dnsControl) HasSynced() bool {
+	a := dns.svcController.HasSynced()
+	b := dns.epController.HasSynced()
+	c := true
+	if dns.podController != nil {
+		c = dns.podController.HasSynced()
+	}
+	return a && b && c
 }
 
 func (dns *dnsControl) ServiceList() (svcs []*api.Service) {

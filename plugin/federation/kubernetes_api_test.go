@@ -9,6 +9,7 @@ import (
 
 type APIConnFederationTest struct{}
 
+func (APIConnFederationTest) HasSynced() bool                        { return true }
 func (APIConnFederationTest) Run()                                   { return }
 func (APIConnFederationTest) Stop() error                            { return nil }
 func (APIConnFederationTest) SvcIndexReverse(string) []*api.Service  { return nil }

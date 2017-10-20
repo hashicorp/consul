@@ -9,6 +9,7 @@ import (
 
 type APIConnTest struct{}
 
+func (APIConnTest) HasSynced() bool                       { return true }
 func (APIConnTest) Run()                                  { return }
 func (APIConnTest) Stop() error                           { return nil }
 func (APIConnTest) PodIndex(string) []*api.Pod            { return nil }

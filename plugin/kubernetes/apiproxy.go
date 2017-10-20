@@ -65,7 +65,9 @@ func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (p *apiProxy) Run() {
 	p.handler.Start()
-	p.Serve(p.listener)
+	go func() {
+		p.Serve(p.listener)
+	}()
 }
 
 func (p *apiProxy) Stop() {

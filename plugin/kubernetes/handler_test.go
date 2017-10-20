@@ -191,6 +191,7 @@ func TestServeDNS(t *testing.T) {
 
 type APIConnServeTest struct{}
 
+func (APIConnServeTest) HasSynced() bool                        { return true }
 func (APIConnServeTest) Run()                                   { return }
 func (APIConnServeTest) Stop() error                            { return nil }
 func (APIConnServeTest) EpIndexReverse(string) []*api.Endpoints { return nil }

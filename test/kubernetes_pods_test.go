@@ -4,7 +4,6 @@ package test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/plugin/test"
 
@@ -30,11 +29,11 @@ var dnsTestCasesPodsInsecure = []test.Case{
 
 func TestKubernetesPodsInsecure(t *testing.T) {
 	corefile := `.:0 {
-    kubernetes cluster.local 0.0.10.in-addr.arpa {
-                endpoint http://localhost:8080
-                namespaces test-1
-                pods insecure
-    }
+kubernetes cluster.local 0.0.10.in-addr.arpa {
+	endpoint http://localhost:8080
+	namespaces test-1
+	pods insecure
+}
 `
 
 	server, udp, _, err := CoreDNSServerAndPorts(corefile)
@@ -42,9 +41,6 @@ func TestKubernetesPodsInsecure(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer server.Stop()
-
-	// Work-around for timing condition that results in no-data being returned in test environment.
-	time.Sleep(3 * time.Second)
 
 	for _, tc := range dnsTestCasesPodsInsecure {
 
@@ -91,9 +87,6 @@ func TestKubernetesPodsVerified(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer server.Stop()
-
-	// Work-around for timing condition that results in no-data being returned in test environment.
-	time.Sleep(3 * time.Second)
 
 	for _, tc := range dnsTestCasesPodsVerified {
 

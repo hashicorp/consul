@@ -39,8 +39,14 @@ func setup(c *caddy.Controller) error {
 	c.OnStartup(func() error {
 		go kubernetes.APIConn.Run()
 		if kubernetes.APIProxy != nil {
-			go kubernetes.APIProxy.Run()
+			kubernetes.APIProxy.Run()
 		}
+		synced := false
+		for synced == false {
+			synced = kubernetes.APIConn.HasSynced()
+			time.Sleep(100 * time.Millisecond)
+		}
+
 		return nil
 	})
 

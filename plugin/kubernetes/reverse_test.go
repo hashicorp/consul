@@ -14,6 +14,7 @@ import (
 
 type APIConnReverseTest struct{}
 
+func (APIConnReverseTest) HasSynced() bool                       { return true }
 func (APIConnReverseTest) Run()                                  { return }
 func (APIConnReverseTest) Stop() error                           { return nil }
 func (APIConnReverseTest) PodIndex(string) []*api.Pod            { return nil }
