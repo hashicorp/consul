@@ -115,7 +115,8 @@ func defaultServerConfig() *TestServerConfig {
 	if err != nil {
 		if _, ok := err.(*porter.PorterExistErr); ok {
 			// Fall back in the case that the testutil server is being used
-			// without porter
+			// without porter. This should NEVER be used for Consul's own
+			// unit tests. See comments for getRandomPorts() for more details.
 			ports = getRandomPorts(6)
 		} else {
 			panic(err)
@@ -390,7 +391,11 @@ func (s *TestServer) waitForLeader() error {
 	return nil
 }
 
-// getRandomPorts returns a set of random port or panics on error.
+// getRandomPorts returns a set of random port or panics on error. This
+// is here to support external uses of testutil which may not have porter,
+// but this has been shown not to work well with parallel tests (such as
+// Consul's unit tests). This fallback should NEVER be used for Consul's
+// own tests.
 func getRandomPorts(n int) []int {
 	ports := make([]int, n)
 	for i := 0; i < n; i++ {
