@@ -313,8 +313,9 @@ func (s *StateSyncer) Resume() {
 	if s.paused < 0 {
 		panic("unbalanced pause/resume")
 	}
-	if s.paused == 0 {
+	trigger := s.paused == 0
+	s.pauseLock.Unlock()
+	if trigger {
 		s.SyncChanges.Trigger()
 	}
-	s.pauseLock.Unlock()
 }
