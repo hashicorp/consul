@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"reflect"
 	"strings"
 	"testing"
@@ -36,10 +37,6 @@ func TestParseFlags(t *testing.T) {
 			flags: Flags{Config: Config{Bootstrap: pBool(false)}},
 		},
 		{
-			args:  []string{`-bootstrap`, `true`},
-			flags: Flags{Config: Config{Bootstrap: pBool(true)}},
-		},
-		{
 			args:  []string{`-config-file`, `a`, `-config-dir`, `b`, `-config-file`, `c`, `-config-dir`, `d`},
 			flags: Flags{ConfigFiles: []string{"a", "b", "c", "d"}},
 		},
@@ -59,14 +56,22 @@ func TestParseFlags(t *testing.T) {
 			args:  []string{`-node-meta`, `a:b`, `-node-meta`, `c:d`},
 			flags: Flags{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}},
 		},
+		{
+			args:  []string{`-bootstrap`, `true`},
+			flags: Flags{Config: Config{Bootstrap: pBool(true)}, Args: []string{"true"}},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
-			flags, err := ParseFlags(tt.args)
+			flags := Flags{}
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			AddFlags(fs, &flags)
+			err := fs.Parse(tt.args)
 			if got, want := err, tt.err; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got error %v want %v", got, want)
 			}
+			flags.Args = fs.Args()
 			if !verify.Values(t, "flag", flags, tt.flags) {
 				t.FailNow()
 			}
