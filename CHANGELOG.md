@@ -2,6 +2,7 @@
 
 FEATURES:
 * agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
+* agent: Added defensive code to prevent out of range ping times from infecting network coordinates. Updates to the coordinate system with round trip times higher than 10 seconds will return an error.
 
 IMPROVEMENTS:
 
