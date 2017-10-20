@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/test/porter"
+	"github.com/hashicorp/consul/test/freeport"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
@@ -111,7 +111,7 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
-	ports, err := porter.RandomPorts(6)
+	ports, err := freeport.Ports(6)
 	if err != nil {
 		panic(err)
 	}
