@@ -4154,6 +4154,9 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		"node.consul.",
 		"service.consul.",
 		"query.consul.",
+		"foo.node.dc1.extra.consul.",
+		"foo.service.dc1.extra.consul.",
+		"foo.query.dc1.extra.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)

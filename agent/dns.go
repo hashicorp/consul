@@ -369,6 +369,9 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
+	// Provide a flag for remembering whether the datacenter name was parsed already.
+	var dcParsed bool
+
 	// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
 PARSE:
 	n := len(labels)
@@ -475,6 +478,22 @@ PARSE:
 		}
 
 	default:
+		// https://github.com/hashicorp/consul/issues/3200
+		//
+		// Since datacenter names cannot contain dots we can only allow one
+		// label between the query type and the domain to be the datacenter name.
+		// Since the datacenter name is optional and the parser strips off labels at the end until it finds a suitable
+		// query type label we return NXDOMAIN when we encounter another label
+		// which could be the datacenter name.
+		//
+		// If '.consul' is the domain then
+		//  * foo.service.dc.consul is OK
+		//  * foo.service.dc.stuff.consul is not OK
+		if dcParsed {
+			goto INVALID
+		}
+		dcParsed = true
+
 		// Store the DC, and re-parse
 		datacenter = labels[n-1]
 		labels = labels[:n-1]
