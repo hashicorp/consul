@@ -10,7 +10,7 @@ import (
 
 const (
 	// mruSize is the mru size for the handed out ports.
-	mruSize = 10
+	mruSize = 4096
 )
 
 var (
