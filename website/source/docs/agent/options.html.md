@@ -1037,8 +1037,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
   domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
   outside of the "consul." domain, the query will be resolved upstream. As of Consul 1.0.1 recursors
-  can be provided as ip addresses or as go-sockaddr templates. The list of ip addresses is deduplicated
-  while the original order is maintained.
+  can be provided as ip addresses or as go-sockaddr templates. IP addresses are resolved in order, 
+  and duplicates are ignored.
 
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent
   to the [`-rejoin` command-line flag](#_rejoin).
