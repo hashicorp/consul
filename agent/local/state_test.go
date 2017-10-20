@@ -1272,8 +1272,6 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Make sure we synced our node info - this should have ridden on the
-	// "consul" service sync
 	id := services.NodeServices.Node.ID
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
