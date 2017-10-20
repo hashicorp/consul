@@ -113,7 +113,13 @@ func defaultServerConfig() *TestServerConfig {
 
 	ports, err := porter.RandomPorts(6)
 	if err != nil {
-		panic(err)
+		if _, ok := err.(*porter.PorterExistErr); ok {
+			// Fall back in the case that the testutil server is being used
+			// without porter
+			ports = getRandomPorts(6)
+		} else {
+			panic(err)
+		}
 	}
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
@@ -382,4 +388,19 @@ func (s *TestServer) waitForLeader() error {
 		return errors.New("failed waiting for leader")
 	}
 	return nil
+}
+
+// getRandomPorts returns a set of random port or panics on error.
+func getRandomPorts(n int) []int {
+	ports := make([]int, n)
+	for i := 0; i < n; i++ {
+		l, err := net.Listen("tcp", ":0")
+		if err != nil {
+			panic(err)
+		}
+		l.Close()
+		ports[i] = l.Addr().(*net.TCPAddr).Port
+	}
+
+	return ports
 }
