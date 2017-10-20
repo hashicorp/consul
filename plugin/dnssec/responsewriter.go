@@ -22,8 +22,7 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	// which zone it should be.
 	state := request.Request{W: d.ResponseWriter, Req: res}
 
-	qname := state.Name()
-	zone := plugin.Zones(d.d.zones).Matches(qname)
+	zone := plugin.Zones(d.d.zones).Matches(state.Name())
 	if zone == "" {
 		return d.ResponseWriter.WriteMsg(res)
 	}

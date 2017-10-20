@@ -35,19 +35,29 @@ func New(zones []string, keys []*DNSKEY, next plugin.Handler, c *cache.Cache) Dn
 }
 
 // Sign signs the message in state. it takes care of negative or nodata responses. It
-// uses NSEC black lies for authenticated denial of existence. Signatures
-// creates will be cached for a short while. By default we sign for 8 days,
+// uses NSEC black lies for authenticated denial of existence. For delegations it
+// will insert DS records and sign those.
+// Signatures will be cached for a short while. By default we sign for 8 days,
 // starting 3 hours ago.
 func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg {
 	req := state.Req
 
+	incep, expir := incepExpir(now)
+
 	mt, _ := response.Typify(req, time.Now().UTC()) // TODO(miek): need opt record here?
 	if mt == response.Delegation {
-		// TODO(miek): uh, signing DS record?!?!
+		ttl := req.Ns[0].Header().Ttl
+
+		ds := []dns.RR{}
+		for i := range d.keys {
+			ds = append(ds, d.keys[i].D)
+		}
+		if sigs, err := d.sign(ds, zone, ttl, incep, expir); err == nil {
+			req.Ns = append(req.Ns, ds...)
+			req.Ns = append(req.Ns, sigs...)
+		}
 		return req
 	}
-
-	incep, expir := incepExpir(now)
 
 	if mt == response.NameError || mt == response.NoData {
 		if req.Ns[0].Header().Rrtype != dns.TypeSOA || len(req.Ns) > 1 {

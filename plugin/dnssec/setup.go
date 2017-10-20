@@ -77,7 +77,7 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 		zones[i] = plugin.Host(zones[i]).Normalize()
 	}
 
-	// Check if each keys owner name can actually sign the zones we want them to sign
+	// Check if each keys owner name can actually sign the zones we want them to sign.
 	for _, k := range keys {
 		kname := plugin.Name(k.K.Header().Name)
 		ok := false
@@ -88,7 +88,7 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 			}
 		}
 		if !ok {
-			return zones, keys, capacity, fmt.Errorf("key %s (keyid: %d) can not sign any of the zones", string(kname), k.keytag)
+			return zones, keys, capacity, fmt.Errorf("key %s (keyid: %d) can not sign any of the zones", string(kname), k.tag)
 		}
 	}
 

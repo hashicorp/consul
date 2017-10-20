@@ -21,10 +21,10 @@ func TestZoneSigning(t *testing.T) {
 
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 1) {
-		t.Errorf("answer section should have 1 sig")
+		t.Errorf("Answer section should have 1 RRSIG")
 	}
 	if !section(m.Ns, 1) {
-		t.Errorf("authority section should have 1 sig")
+		t.Errorf("Authority section should have 1 RRSIG")
 	}
 }
 
@@ -40,7 +40,7 @@ func TestZoneSigningDouble(t *testing.T) {
 
 	key1, err := ParseKeyFile(fPub1, fPriv1)
 	if err != nil {
-		t.Fatalf("failed to parse key: %v\n", err)
+		t.Fatalf("Failed to parse key: %v\n", err)
 	}
 	d.keys = append(d.keys, key1)
 
@@ -48,10 +48,10 @@ func TestZoneSigningDouble(t *testing.T) {
 	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 2) {
-		t.Errorf("answer section should have 1 sig")
+		t.Errorf("Answer section should have 1 RRSIG")
 	}
 	if !section(m.Ns, 2) {
-		t.Errorf("authority section should have 1 sig")
+		t.Errorf("Authority section should have 1 RRSIG")
 	}
 }
 
@@ -64,7 +64,7 @@ func TestSigningDifferentZone(t *testing.T) {
 
 	key, err := ParseKeyFile(fPub, fPriv)
 	if err != nil {
-		t.Fatalf("failed to parse key: %v\n", err)
+		t.Fatalf("Failed to parse key: %v\n", err)
 	}
 
 	m := testMsgEx()
@@ -73,11 +73,11 @@ func TestSigningDifferentZone(t *testing.T) {
 	d := New([]string{"example.org."}, []*DNSKEY{key}, nil, c)
 	m = d.Sign(state, "example.org.", time.Now().UTC())
 	if !section(m.Answer, 1) {
-		t.Errorf("answer section should have 1 sig")
+		t.Errorf("Answer section should have 1 RRSIG")
 		t.Logf("%+v\n", m)
 	}
 	if !section(m.Ns, 1) {
-		t.Errorf("authority section should have 1 sig")
+		t.Errorf("Authority section should have 1 RRSIG")
 		t.Logf("%+v\n", m)
 	}
 }
@@ -91,7 +91,7 @@ func TestSigningCname(t *testing.T) {
 	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 1) {
-		t.Errorf("answer section should have 1 sig")
+		t.Errorf("Answer section should have 1 RRSIG")
 	}
 }
 
@@ -103,12 +103,24 @@ func TestZoneSigningDelegation(t *testing.T) {
 	m := testDelegationMsg()
 	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
-	if !section(m.Ns, 0) {
-		t.Errorf("authority section should have 0 sig")
+	if !section(m.Ns, 1) {
+		t.Errorf("Authority section should have 1 RRSIG")
 		t.Logf("%v\n", m)
 	}
+
+	ds := 0
+	for i := range m.Ns {
+		if _, ok := m.Ns[i].(*dns.DS); ok {
+			ds++
+		}
+	}
+	if ds != 1 {
+		t.Errorf("Authority section should have 1 DS")
+		t.Logf("%v\n", m)
+
+	}
 	if !section(m.Extra, 0) {
-		t.Errorf("answer section should have 0 sig")
+		t.Errorf("Answer section should have 0 RRSIGs")
 		t.Logf("%v\n", m)
 	}
 }
@@ -123,7 +135,7 @@ func TestSigningDname(t *testing.T) {
 	// We sign *everything* we see, also the synthesized CNAME.
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 3) {
-		t.Errorf("answer section should have 3 sig")
+		t.Errorf("Answer section should have 3 RRSIGs")
 	}
 }
 
@@ -137,7 +149,7 @@ func TestSigningEmpty(t *testing.T) {
 	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Ns, 2) {
-		t.Errorf("authority section should have 2 sig")
+		t.Errorf("Authority section should have 2 RRSIGs")
 	}
 }
 
