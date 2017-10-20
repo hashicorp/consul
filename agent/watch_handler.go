@@ -156,7 +156,7 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			// Log the output
-			logger.Printf("[DEBUG] agent: http watch handler '%s' output: %s", config.Path, outputStr)
+			logger.Printf("[TRACE] agent: http watch handler '%s' output: %s", config.Path, outputStr)
 		} else {
 			logger.Printf("[ERR] agent: http watch handler '%s' got '%s' with output: %s",
 				config.Path, resp.Status, outputStr)

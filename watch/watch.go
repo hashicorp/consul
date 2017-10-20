@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const DefaultTimeout = 10 * time.Second
+
 // Plan is the parsed version of a watch specification. A watch provides
 // the details of a query, which generates a view into the Consul data store.
 // This view is watched for changes and a handler is invoked to take any
@@ -177,13 +179,11 @@ func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error
 		config.Method = "POST"
 	}
 	if config.TimeoutRaw == "" {
-		config.Timeout = 10 * time.Second
+		config.Timeout = DefaultTimeout
+	} else if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
+		return nil, fmt.Errorf(fmt.Sprintf("Failed to parse timeout: %v", err))
 	} else {
-		if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse timeout: %v", err))
-		} else {
-			config.Timeout = timeout
-		}
+		config.Timeout = timeout
 	}
 
 	return &config, nil
