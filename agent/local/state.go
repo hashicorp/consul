@@ -335,6 +335,9 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("no check")
 	}
 
+	// clone the check since we will be modifying it.
+	check = check.Clone()
+
 	if l.discardCheckOutput.Load().(bool) {
 		check.Output = ""
 	}
