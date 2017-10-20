@@ -28,7 +28,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
 
 	// Verify the args.
-	if args.Node == "" || args.Address == "" {
+	if args.Node == "" || (args.Address == "" && !args.SkipNodeUpdate) {
 		return fmt.Errorf("Must provide node and address")
 	}
 	if args.ID != "" {

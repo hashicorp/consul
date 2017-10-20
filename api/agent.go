@@ -15,6 +15,10 @@ type AgentCheck struct {
 	Output      string
 	ServiceID   string
 	ServiceName string
+	HTTP        string
+	TCP         string
+	Interval    string
+	Timeout     string
 }
 
 // AgentService represents a service known to the agent

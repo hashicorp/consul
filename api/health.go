@@ -34,6 +34,11 @@ type HealthCheck struct {
 	ServiceID   string
 	ServiceName string
 	ServiceTags []string
+
+	HTTP     string
+	TCP      string
+	Interval string
+	Timeout  string
 }
 
 // HealthChecks is a collection of HealthCheck structs.
