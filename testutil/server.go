@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/test/porter"
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
@@ -111,17 +111,7 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
-	ports, err := porter.RandomPorts(6)
-	if err != nil {
-		if _, ok := err.(*porter.PorterExistErr); ok {
-			// Fall back in the case that the testutil server is being used
-			// without porter. This should NEVER be used for Consul's own
-			// unit tests. See comments for getRandomPorts() for more details.
-			ports = getRandomPorts(6)
-		} else {
-			panic(err)
-		}
-	}
+	ports := freeport.Get(6)
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
@@ -389,23 +379,4 @@ func (s *TestServer) waitForLeader() error {
 		return errors.New("failed waiting for leader")
 	}
 	return nil
-}
-
-// getRandomPorts returns a set of random port or panics on error. This
-// is here to support external uses of testutil which may not have porter,
-// but this has been shown not to work well with parallel tests (such as
-// Consul's unit tests). This fallback should NEVER be used for Consul's
-// own tests.
-func getRandomPorts(n int) []int {
-	ports := make([]int, n)
-	for i := 0; i < n; i++ {
-		l, err := net.Listen("tcp", ":0")
-		if err != nil {
-			panic(err)
-		}
-		l.Close()
-		ports[i] = l.Addr().(*net.TCPAddr).Port
-	}
-
-	return ports
 }
