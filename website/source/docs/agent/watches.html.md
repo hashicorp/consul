@@ -10,7 +10,7 @@ description: |-
 
 Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs, health
 checks) which is monitored for updates. When an update is detected, an external handler
-is invoked. A handler can be any executable. As an example, you could watch the status
+is invoked. A handler can be any executable or HTTP endpoint. As an example, you could watch the status
 of health checks and notify an external system when a check is critical.
 
 Watches are implemented using blocking queries in the [HTTP API](/api/index.html).
@@ -32,23 +32,66 @@ in a JSON body when using agent configuration or as CLI flags for the watch comm
 ## Handlers
 
 The watch configuration specifies the view of data to be monitored.
-Once that view is updated, the specified handler is invoked. The handler
-can be any executable.
+Once that view is updated, the specified handler is invoked. Supported handlers
+are any executable or HTTP endpoint. A handler receives JSON formatted data
+with invocation info, following a format that depends on the type of the watch.
+Each watch type documents the format type. Because they map directly to an HTTP
+API, handlers should expect the input to match the format of the API. A Consul
+index is also given, corresponding to the responses from the
+[HTTP API](/api/index.html). 
 
-A handler should read its input from stdin and expect to read
-JSON formatted data. The format of the data depends on the type of the
-watch. Each watch type documents the format type. Because they
-map directly to an HTTP API, handlers should expect the input to
-match the format of the API.
+### Executable
 
-Additionally, the `CONSUL_INDEX` environment variable will be set.
-This maps to the `X-Consul-Index` value in responses from the
-[HTTP API](/api/index.html).
+An executable handler reads the JSON invocation info from stdin. Additionally,
+the `CONSUL_INDEX` environment variable will be set to the Consul index
+Anything written to stdout is logged.
+
+Here is an example configuration, where `handler_type` is optionally set to
+`script`:
+
+```javascript
+{
+  "type": "key",
+  "key": "foo/bar/baz",
+  "handler_type": "script",
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+}
+```
 
 Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and
 would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be
 run without a shell. The `handler` field is deprecated, and you should include the shell in
 the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
+
+### HTTP endpoint
+
+A HTTP handler sends a HTTP request when a watch is invoked. The JSON
+invocation info is sent as a payload along the request. Consul index is sent in
+the header `X-Consul-Index`. Any response is logged.
+
+The HTTP handler can be configured by setting `handler_type` to `http`. The
+`http_handler_config` map must provide a `path` field with a URL to the HTTP
+endpoint. HTTP method is `POST` as a default, but can be set to any method.
+Though a JSON payload is sent in all cases. The `header`, `timeout` and
+`tls_skip_verify` field is also optional and configured the same way as in
+[HTTP checks](/docs/agent/checks.html).
+
+Here is an example configuration:
+
+```javascript
+{
+  "type": "key",
+  "key": "foo/bar/baz",
+  "handler_type": "http",
+  "http_handler_config": {
+    "path":"https://localhost:8000/watch",
+    "method": "POST",
+    "header": {"x-foo":["bar", "baz"]},
+    "timeout": "10s",
+    "tls_skip_verify": false
+  }
+}
+```
 
 ## Global Parameters
 
