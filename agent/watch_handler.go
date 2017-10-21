@@ -130,6 +130,7 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 			return
 		}
 		req = req.WithContext(ctx)
+		req.Header.Add("Content-Type", "application/json")
 		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
 		for key, values := range config.Header {
 			for _, val := range values {
