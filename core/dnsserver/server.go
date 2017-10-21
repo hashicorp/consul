@@ -280,7 +280,7 @@ func (s *Server) OnStartupComplete() {
 	}
 }
 
-// Tracer ... TODO: Add comment
+// Tracer returns the tracer in the server if defined.
 func (s *Server) Tracer() ot.Tracer {
 	if s.trace == nil {
 		return nil
@@ -308,7 +308,5 @@ const (
 	udp = 1
 )
 
-var (
-	// Quiet mode will not show any informative output on initialization.
-	Quiet bool
-)
+// Quiet mode will not show any informative output on initialization.
+var Quiet bool
