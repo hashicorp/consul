@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/test/porter"
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -41,10 +41,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports, err := porter.RandomPorts(3)
-	if err != nil {
-		t.Fatal("RandomPorts:", err)
-	}
+	ports := freeport.Get(3)
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"

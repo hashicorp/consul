@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/test/porter"
 	"github.com/hashicorp/consul/testutil/retry"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -297,10 +297,7 @@ func UniqueID() string {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource() config.Source {
-	ports, err := porter.RandomPorts(5)
-	if err != nil {
-		panic(err)
-	}
+	ports := freeport.Get(5)
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",

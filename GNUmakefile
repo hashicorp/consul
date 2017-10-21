@@ -62,11 +62,11 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: other-consul porter dev-build vet
+test: other-consul dev-build vet
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
 	go test -tags '$(GOTAGS)' -i ./...
-	porter go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
+	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
 	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
@@ -85,10 +85,6 @@ other-consul:
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
-
-porter:
-	@echo "--> Building port number service..."
-	go install github.com/hashicorp/consul/test/porter/cmd/porter
 
 cover:
 	go test $(GOFILES) --cover
