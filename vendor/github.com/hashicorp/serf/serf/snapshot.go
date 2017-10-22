@@ -2,7 +2,6 @@ package serf
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 /*
@@ -29,7 +27,6 @@ old events.
 
 const flushInterval = 500 * time.Millisecond
 const clockUpdateInterval = 500 * time.Millisecond
-const coordinateUpdateInterval = 60 * time.Second
 const tmpExt = ".compact"
 const snapshotErrorRecoveryInterval = 30 * time.Second
 
@@ -38,7 +35,6 @@ const snapshotErrorRecoveryInterval = 30 * time.Second
 type Snapshotter struct {
 	aliveNodes              map[string]string
 	clock                   *LamportClock
-	coordClient             *coordinate.Client
 	fh                      *os.File
 	buffered                *bufio.Writer
 	inCh                    <-chan Event
@@ -80,7 +76,6 @@ func NewSnapshotter(path string,
 	rejoinAfterLeave bool,
 	logger *log.Logger,
 	clock *LamportClock,
-	coordClient *coordinate.Client,
 	outCh chan<- Event,
 	shutdownCh <-chan struct{}) (chan<- Event, *Snapshotter, error) {
 	inCh := make(chan Event, 1024)
@@ -103,7 +98,6 @@ func NewSnapshotter(path string,
 	snap := &Snapshotter{
 		aliveNodes:       make(map[string]string),
 		clock:            clock,
-		coordClient:      coordClient,
 		fh:               fh,
 		buffered:         bufio.NewWriter(fh),
 		inCh:             inCh,
@@ -182,9 +176,6 @@ func (s *Snapshotter) stream() {
 	clockTicker := time.NewTicker(clockUpdateInterval)
 	defer clockTicker.Stop()
 
-	coordinateTicker := time.NewTicker(coordinateUpdateInterval)
-	defer coordinateTicker.Stop()
-
 	for {
 		select {
 		case <-s.leaveCh:
@@ -225,9 +216,6 @@ func (s *Snapshotter) stream() {
 
 		case <-clockTicker.C:
 			s.updateClock()
-
-		case <-coordinateTicker.C:
-			s.updateCoordinate()
 
 		case <-s.shutdownCh:
 			if err := s.buffered.Flush(); err != nil {
@@ -272,20 +260,6 @@ func (s *Snapshotter) updateClock() {
 	if lastSeen > s.lastClock {
 		s.lastClock = lastSeen
 		s.tryAppend(fmt.Sprintf("clock: %d\n", s.lastClock))
-	}
-}
-
-// updateCoordinate is called periodically to write out the current local
-// coordinate. It's safe to call this if coordinates aren't enabled (nil
-// client) and it will be a no-op.
-func (s *Snapshotter) updateCoordinate() {
-	if s.coordClient != nil {
-		encoded, err := json.Marshal(s.coordClient.GetCoordinate())
-		if err != nil {
-			s.logger.Printf("[ERR] serf: Failed to encode coordinate: %v", err)
-		} else {
-			s.tryAppend(fmt.Sprintf("coordinate: %s\n", encoded))
-		}
 	}
 }
 
@@ -403,23 +377,6 @@ func (s *Snapshotter) compact() error {
 		return err
 	}
 	offset += int64(n)
-
-	// Write out the coordinate.
-	if s.coordClient != nil {
-		encoded, err := json.Marshal(s.coordClient.GetCoordinate())
-		if err != nil {
-			fh.Close()
-			return err
-		}
-
-		line = fmt.Sprintf("coordinate: %s\n", encoded)
-		n, err = buf.WriteString(line)
-		if err != nil {
-			fh.Close()
-			return err
-		}
-		offset += int64(n)
-	}
 
 	// Flush the new snapshot
 	err = buf.Flush()
@@ -542,22 +499,7 @@ func (s *Snapshotter) replay() error {
 			s.lastQueryClock = LamportTime(timeInt)
 
 		} else if strings.HasPrefix(line, "coordinate: ") {
-			if s.coordClient == nil {
-				s.logger.Printf("[WARN] serf: Ignoring snapshot coordinates since they are disabled")
-				continue
-			}
-
-			coordStr := strings.TrimPrefix(line, "coordinate: ")
-			var coord coordinate.Coordinate
-			err := json.Unmarshal([]byte(coordStr), &coord)
-			if err != nil {
-				s.logger.Printf("[WARN] serf: Failed to decode coordinate: %v", err)
-				continue
-			}
-			if err := s.coordClient.SetCoordinate(&coord); err != nil {
-				s.logger.Printf("[WARN] serf: Failed to set coordinate: %v", err)
-				continue
-			}
+			continue // Ignores any coordinate persistence from old snapshots, serf should re-converge
 		} else if line == "leave" {
 			// Ignore a leave if we plan on re-joining
 			if s.rejoinAfterLeave {

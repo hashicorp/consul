@@ -314,7 +314,6 @@ func Create(conf *Config) (*Serf, error) {
 			conf.RejoinAfterLeave,
 			serf.logger,
 			&serf.clock,
-			serf.coordClient,
 			conf.EventCh,
 			serf.shutdownCh)
 		if err != nil {
