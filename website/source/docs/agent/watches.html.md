@@ -65,14 +65,15 @@ the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
 
 ### HTTP endpoint
 
-A HTTP handler sends a HTTP request when a watch is invoked. The JSON
-invocation info is sent as a payload along the request. 
-The response also contains the Consul index as a header named `X-Consul-Index`.
+An HTTP handler sends an HTTP request when a watch is invoked. The JSON invocation info is sent
+as a payload along the request. The response also contains the Consul index as a header named
+`X-Consul-Index`.
 
 The HTTP handler can be configured by setting `handler_type` to `http`. Additional handler options
-are set using `http_handler_config`. The only required parameter is the `path` field which specifies the URL to the HTTP
-endpoint. Consul uses `POST` as the default HTTP method, but this is also configurable.
-Other optional fields are `header`, `timeout` and`tls_skip_verify`. The watch invocation data is always sent as a JSON payload. 
+are set using `http_handler_config`. The only required parameter is the `path` field which specifies
+the URL to the HTTP endpoint. Consul uses `POST` as the default HTTP method, but this is also configurable.
+Other optional fields are `header`, `timeout` and`tls_skip_verify`. The watch invocation data is
+always sent as a JSON payload.
 
 Here is an example configuration:
 
