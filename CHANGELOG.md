@@ -6,7 +6,7 @@ FEATURES:
 
 IMPROVEMENTS:
 * agent: Watches in the Consul agent can now be configured to invoke a HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
-* agent: Serf snapshots no longer save network coordinate information. This enables recovery from errors upon agent restart. [[GH489-](https://github.com/hashicorp/serf/issues/489)]
+* agent: Serf snapshots no longer save network coordinate information. This enables recovery from errors upon agent restart. [[GH-489](https://github.com/hashicorp/serf/issues/489)]
 
 BUG FIXES:
 * agent: Consul 1.0 shipped with an issue where `Args` was erroneously named `ScriptArgs` for health check definitions in the /v1/agent/check/register and /v1/agent/service/register APIs. Added code to accept `Args` so that the JSON format matches that of health checks in configuration files. The `ScriptArgs` form will still be supported for backwards compatibility. [[GH-3587](https://github.com/hashicorp/consul/issues/3587)]
