@@ -32,8 +32,8 @@ in a JSON body when using agent configuration or as CLI flags for the watch comm
 ## Handlers
 
 The watch configuration specifies the view of data to be monitored.
-Once that view is updated, the specified handler is invoked. Supported handlers
-are any executable or HTTP endpoint. A handler receives JSON formatted data
+Once that view is updated, the specified handler is invoked. Handlers can be either an
+executable or a HTTP endpoint. A handler receives JSON formatted data
 with invocation info, following a format that depends on the type of the watch.
 Each watch type documents the format type. Because they map directly to an HTTP
 API, handlers should expect the input to match the format of the API. A Consul
@@ -66,15 +66,12 @@ the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
 ### HTTP endpoint
 
 A HTTP handler sends a HTTP request when a watch is invoked. The JSON
-invocation info is sent as a payload along the request. Consul index is sent in
-the header `X-Consul-Index`. Any response is logged.
+invocation info is sent as a payload along the request. The response contains the Consul index as a header named `X-Consul-Index`.
 
-The HTTP handler can be configured by setting `handler_type` to `http`. The
-`http_handler_config` map must provide a `path` field with a URL to the HTTP
-endpoint. HTTP method is `POST` as a default, but can be set to any method.
-Though a JSON payload is sent in all cases. The `header`, `timeout` and
-`tls_skip_verify` field is also optional and configured the same way as in
-[HTTP checks](/docs/agent/checks.html).
+The HTTP handler can be configured by setting `handler_type` to `http`. Additional handler options
+are set using `http_handler_config`. The only required parameter is the `path` field which specifies the URL to the HTTP
+endpoint. Consul uses `POST` as the default http method, but this can be set to any method.
+Other optional fields are `header`, `timeout` and`tls_skip_verify`. The watch invocation data is always sent as a JSON payload. 
 
 Here is an example configuration:
 
