@@ -1,14 +1,17 @@
 ## 1.0.1 (UNRELEASED)
 
 FEATURES:
+
 * agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
-* agent: Added defensive code to prevent out of range ping times from infecting network coordinates. Updates to the coordinate system with round trip times higher than 10 seconds will return an error.
+* agent: Watches in the Consul agent can now be configured to invoke a HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
 
 IMPROVEMENTS:
-* agent: Watches in the Consul agent can now be configured to invoke a HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
+
 * agent: Serf snapshots no longer save network coordinate information. This enables recovery from errors upon agent restart. [[GH-489](https://github.com/hashicorp/serf/issues/489)]
+* agent: Added defensive code to prevent out of range ping times from infecting network coordinates. Updates to the coordinate system with round trip times higher than 10 seconds will return an error.
 
 BUG FIXES:
+
 * agent: Consul 1.0 shipped with an issue where `Args` was erroneously named `ScriptArgs` for health check definitions in the /v1/agent/check/register and /v1/agent/service/register APIs. Added code to accept `Args` so that the JSON format matches that of health checks in configuration files. The `ScriptArgs` form will still be supported for backwards compatibility. [[GH-3587](https://github.com/hashicorp/consul/issues/3587)]
 * dns: Fixed an issue were components of a host name near the datacenter could be quietly ignored (eg. `foo.service.dc1.extra.consul` would silently ignore `.extra`); now an `NXDOMAIN error will be returned. [[GH-3200](https://github.com/hashicorp/consul/issues/3200)]
 
