@@ -2,20 +2,20 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 
-	"crypto/tls"
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-cleanhttp"
 	"golang.org/x/net/context"
-	"net/http"
 )
 
 const (

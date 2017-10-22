@@ -1,13 +1,14 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/watch"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/watch"
 )
 
 func TestMakeWatchHandler(t *testing.T) {

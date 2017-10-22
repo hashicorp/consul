@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/mapstructure"
-	"time"
 )
 
 const DefaultTimeout = 10 * time.Second
