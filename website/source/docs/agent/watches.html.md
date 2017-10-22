@@ -33,7 +33,7 @@ in a JSON body when using agent configuration or as CLI flags for the watch comm
 
 The watch configuration specifies the view of data to be monitored.
 Once that view is updated, the specified handler is invoked. Handlers can be either an
-executable or a HTTP endpoint. A handler receives JSON formatted data
+executable or an HTTP endpoint. A handler receives JSON formatted data
 with invocation info, following a format that depends on the type of the watch.
 Each watch type documents the format type. Because they map directly to an HTTP
 API, handlers should expect the input to match the format of the API. A Consul
