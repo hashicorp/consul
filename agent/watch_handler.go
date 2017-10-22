@@ -10,8 +10,12 @@ import (
 	"os/exec"
 	"strconv"
 
+	"crypto/tls"
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/context"
+	"net/http"
 )
 
 const (
@@ -84,6 +88,80 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 
 		// Log the output
 		logger.Printf("[DEBUG] agent: watch handler '%v' output: %s", handler, outputStr)
+	}
+	return fn
+}
+
+func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
+	logger := log.New(logOutput, "", log.LstdFlags)
+
+	fn := func(idx uint64, data interface{}) {
+		trans := cleanhttp.DefaultTransport()
+
+		// Skip SSL certificate verification if TLSSkipVerify is true
+		if trans.TLSClientConfig == nil {
+			trans.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: config.TLSSkipVerify,
+			}
+		} else {
+			trans.TLSClientConfig.InsecureSkipVerify = config.TLSSkipVerify
+		}
+
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
+		defer cancel()
+
+		// Create the HTTP client.
+		httpClient := &http.Client{
+			Transport: trans,
+		}
+
+		// Setup the input
+		var inp bytes.Buffer
+		enc := json.NewEncoder(&inp)
+		if err := enc.Encode(data); err != nil {
+			logger.Printf("[ERR] agent: Failed to encode data for http watch '%s': %v", config.Path, err)
+			return
+		}
+
+		req, err := http.NewRequest(config.Method, config.Path, &inp)
+		if err != nil {
+			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
+			return
+		}
+		req = req.WithContext(ctx)
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
+		for key, values := range config.Header {
+			for _, val := range values {
+				req.Header.Add(key, val)
+			}
+		}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", config.Path, err)
+			return
+		}
+		defer resp.Body.Close()
+
+		// Collect the output
+		output, _ := circbuf.NewBuffer(WatchBufSize)
+		io.Copy(output, resp.Body)
+
+		// Get the output, add a message about truncation
+		outputStr := string(output.Bytes())
+		if output.TotalWritten() > output.Size() {
+			outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
+				output.Size(), output.TotalWritten(), outputStr)
+		}
+
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			// Log the output
+			logger.Printf("[TRACE] agent: http watch handler '%s' output: %s", config.Path, outputStr)
+		} else {
+			logger.Printf("[ERR] agent: http watch handler '%s' got '%s' with output: %s",
+				config.Path, resp.Status, outputStr)
+		}
 	}
 	return fn
 }

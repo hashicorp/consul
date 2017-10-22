@@ -534,7 +534,13 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	// Compile the watches
 	var watchPlans []*watch.Plan
 	for _, params := range cfg.Watches {
-		// Parse the watches, excluding the handler
+		if handlerType, ok := params["handler_type"]; !ok {
+			params["handler_type"] = "script"
+		} else if handlerType != "http" && handlerType != "script" {
+			return fmt.Errorf("Handler type '%s' not recognized", params["handler_type"])
+		}
+
+		// Parse the watches, excluding 'handler' and 'args'
 		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
 		if err != nil {
 			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
@@ -563,11 +569,11 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		} else if hasArgs && !ok {
 			return fmt.Errorf("Watch args must be a list of strings")
 		}
-		if hasHandler && hasArgs {
-			return fmt.Errorf("Cannot define both watch handler and args")
+		if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
+			return fmt.Errorf("Only one watch handler allowed")
 		}
-		if !hasHandler && !hasArgs {
-			return fmt.Errorf("Must define either watch handler or args")
+		if !hasHandler && !hasArgs && wp.HandlerType != "http" {
+			return fmt.Errorf("Must define a watch handler")
 		}
 
 		// Store the watch plan
@@ -590,13 +596,14 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	for _, wp := range watchPlans {
 		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
-			var handler interface{}
 			if h, ok := wp.Exempt["handler"]; ok {
-				handler = h
+				wp.Handler = makeWatchHandler(a.LogOutput, h)
+			} else if h, ok := wp.Exempt["args"]; ok {
+				wp.Handler = makeWatchHandler(a.LogOutput, h)
 			} else {
-				handler = wp.Exempt["args"]
+				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
+				wp.Handler = makeHTTPWatchHandler(a.LogOutput, httpConfig)
 			}
-			wp.Handler = makeWatchHandler(a.LogOutput, handler)
 			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {
 				a.logger.Printf("[ERR] Failed to run watch: %v", err)
