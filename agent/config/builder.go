@@ -79,12 +79,6 @@ type Builder struct {
 // NewBuilder returns a new configuration builder based on the given command
 // line flags.
 func NewBuilder(flags Flags) (*Builder, error) {
-	// We expect all flags to be parsed and flags.Args to be empty.
-	// Therefore, we bail if we find unparsed args.
-	if len(flags.Args) > 0 {
-		return nil, fmt.Errorf("config: Unknown extra arguments: %v", flags.Args)
-	}
-
 	newSource := func(name string, v interface{}) Source {
 		b, err := json.MarshalIndent(v, "", "    ")
 		if err != nil {

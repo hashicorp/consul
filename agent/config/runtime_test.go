@@ -1886,14 +1886,10 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
 				// first parse the flags
-				flags := Flags{}
-				fs := flag.NewFlagSet("", flag.ContinueOnError)
-				AddFlags(fs, &flags)
-				err := fs.Parse(tt.args)
+				flags, err := ParseFlags(tt.args)
 				if err != nil {
 					t.Fatalf("ParseFlags failed: %s", err)
 				}
-				flags.Args = fs.Args()
 
 				// Then create a builder with the flags.
 				b, err := NewBuilder(flags)

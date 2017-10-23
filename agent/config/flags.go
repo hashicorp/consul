@@ -22,9 +22,17 @@ type Flags struct {
 
 	// HCL contains an arbitrary config in hcl format.
 	HCL []string
+}
 
-	// Args contains the remaining unparsed flags.
-	Args []string
+// ParseFlag parses the arguments into a Flags struct.
+func ParseFlags(args []string) (Flags, error) {
+	var f Flags
+	fs := flag.NewFlagSet("agent", flag.ContinueOnError)
+	AddFlags(fs, &f)
+	if err := fs.Parse(args); err != nil {
+		return Flags{}, err
+	}
+	return f, nil
 }
 
 // AddFlags adds the command line flags for the agent.
