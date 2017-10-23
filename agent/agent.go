@@ -268,7 +268,7 @@ func (a *Agent) Start() error {
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	a.sync = ae.NewStateSyner(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
