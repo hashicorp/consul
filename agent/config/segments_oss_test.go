@@ -16,7 +16,7 @@ func TestSegments(t *testing.T) {
 	tests := []configTest{
 		{
 			desc: "segment name not in OSS",
-			args: []string{
+			flags: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "server": true, "segment": "a" }`},
@@ -25,7 +25,7 @@ func TestSegments(t *testing.T) {
 		},
 		{
 			desc: "segment port must be set",
-			args: []string{
+			flags: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "segments":[{ "name":"x" }] }`},
@@ -34,7 +34,7 @@ func TestSegments(t *testing.T) {
 		},
 		{
 			desc: "segments not in OSS",
-			args: []string{
+			flags: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "segments":[{ "name":"x", "port": 123 }] }`},
