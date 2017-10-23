@@ -456,6 +456,7 @@ type RuntimeConfig struct {
 	// Datacenter is exposed via /v1/agent/self from here and
 	// used in lots of places like CLI commands. Treat this as an interface
 	// that must be stable.
+	// todo(fs): do we need this warning? RuntimeConfig was meant to be refactorable.
 	//
 	// hcl: datacenter = string
 	// flag: -datacenter string
@@ -466,6 +467,7 @@ type RuntimeConfig struct {
 	// NodeName is exposed via /v1/agent/self from here and
 	// used in lots of places like CLI commands. Treat this as an interface
 	// that must be stable.
+	// todo(fs): do we need this warning? RuntimeConfig was meant to be refactorable.
 	//
 	// hcl: node_name = string
 	// flag: -node string
@@ -506,11 +508,8 @@ type RuntimeConfig struct {
 	// flag: -bootstrap
 	Bootstrap bool
 
-	// BootstrapExpect tries to automatically bootstrap the Consul cluster, by
-	// having servers wait to bootstrap until enough servers join, and then
-	// performing the bootstrap process automatically. They will disable their
-	// automatic bootstrap process if they detect any servers that are part of
-	// an existing cluster, so it's safe to leave this set to a non-zero value.
+	// BootstrapExpect tries to automatically bootstrap the Consul cluster,
+	// by withholding peers until enough servers join.
 	//
 	// hcl: bootstrap_expect = int
 	// flag: -bootstrap-expect=int
