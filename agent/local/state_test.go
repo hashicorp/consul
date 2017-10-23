@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -20,7 +20,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
+	a := &agent.TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -113,9 +113,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		InSync:  true,
 	})
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	var services structs.IndexedNodeServices
 	req := structs.NodeSpecificRequest{
@@ -181,9 +180,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	// Remove one of the services
 	a.State.RemoveService("api")
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	retry.Run(t, func(r *retry.R) {
 		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
@@ -230,7 +228,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
+	a := &agent.TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -277,9 +275,8 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	req := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
@@ -351,7 +348,18 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 		}
 		a.State.AddCheck(chk, "")
 
-		if err := a.State.SyncFull(); err != nil {
+		// todo(fs): data race
+		// func() {
+		// 	a.State.RLock()
+		// 	defer a.State.RUnlock()
+
+		// 	// Sync the service once
+		// 	if err := a.State.syncService("mysql"); err != nil {
+		// 		t.Fatalf("err: %s", err)
+		// 	}
+		// }()
+		// todo(fs): is this correct?
+		if err := a.State.SyncChanges(); err != nil {
 			t.Fatal("sync failed: ", err)
 		}
 
@@ -410,7 +418,18 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 		}
 		a.State.AddCheck(chk2, "")
 
-		if err := a.State.SyncFull(); err != nil {
+		// todo(fs): data race
+		// func() {
+		// 	a.State.RLock()
+		// 	defer a.State.RUnlock()
+
+		// 	// Sync the service once
+		// 	if err := a.State.syncService("redis"); err != nil {
+		// 		t.Fatalf("err: %s", err)
+		// 	}
+		// }()
+		// todo(fs): is this correct?
+		if err := a.State.SyncChanges(); err != nil {
 			t.Fatal("sync failed: ", err)
 		}
 
@@ -503,9 +522,9 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 	a.State.AddService(srv2, token)
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	{
@@ -550,9 +569,8 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	// Now remove the service and re-sync
 	a.State.RemoveService("api")
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	{
@@ -601,7 +619,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
+	a := &agent.TestAgent{Name: t.Name(), NoInitialSync: true}
 	a.Start()
 	defer a.Shutdown()
 
@@ -676,9 +694,8 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		InSync: true,
 	})
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	req := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
@@ -752,9 +769,8 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	// Remove one of the checks
 	a.State.RemoveCheck("redis")
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	// Verify that we are in sync
 	retry.Run(t, func(r *retry.R) {
@@ -841,9 +857,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}
 	a.State.AddService(srv2, "root")
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	{
@@ -912,9 +928,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}
 	a.State.AddCheck(chk2, token)
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait.
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	retry.Run(t, func(r *retry.R) {
@@ -959,10 +975,8 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	// Now delete the check and wait for sync.
 	a.State.RemoveCheck("api-check")
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 	// Verify that we are in sync
 	retry.Run(t, func(r *retry.R) {
 		req := structs.NodeSpecificRequest{
@@ -1076,9 +1090,8 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 	a.State.AddCheck(check, "")
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
@@ -1159,9 +1172,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 	}
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait.
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that the output was synced back to the agent's value.
 	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
@@ -1197,9 +1210,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	// Now make an update that should be deferred.
 	a.State.UpdateCheck("web", api.HealthPassing, "deferred")
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait.
+	a.StartSync()
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that the output is still out of sync since there's a deferred
 	// update pending.
@@ -1259,9 +1272,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 
 	req := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
@@ -1292,10 +1304,8 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	// Trigger anti-entropy run and wait
+	a.StartSync()
 	// Wait for the sync - this should have been a sync of just the node info
 	retry.Run(t, func(r *retry.R) {
 		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
