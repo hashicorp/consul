@@ -3,10 +3,13 @@
 package freeport
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/mitchellh/go-testing-interface"
 )
 
 const (
@@ -72,16 +75,37 @@ func tcpAddr(ip string, port int) *net.TCPAddr {
 	return &net.TCPAddr{IP: net.ParseIP(ip), Port: port}
 }
 
-// Get returns a list of free ports from the allocated port block. It is safe
+// Get wraps the Free function and panics on any failure retrieving ports.
+func Get(n int) (ports []int) {
+	ports, err := Free(n)
+	if err != nil {
+		panic(err)
+	}
+
+	return ports
+}
+
+// GetT is suitable for use when retrieving unused ports in tests. If there is
+// an error retrieving free ports, the test will be failed.
+func GetT(t testing.T, n int) (ports []int) {
+	ports, err := Free(n)
+	if err != nil {
+		t.Fatalf("Failed retrieving free port: %v", err)
+	}
+
+	return ports
+}
+
+// Free returns a list of free ports from the allocated port block. It is safe
 // to call this method concurrently. Ports have been tested to be available on
 // 127.0.0.1 TCP but there is no guarantee that they will remain free in the
 // future.
-func Get(n int) (ports []int) {
+func Free(n int) (ports []int, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	if n > blockSize-1 {
-		panic("freeport: block size too small")
+		return nil, fmt.Errorf("freeport: block size too small")
 	}
 
 	for len(ports) < n {
@@ -103,5 +127,5 @@ func Get(n int) (ports []int) {
 		ports = append(ports, port)
 	}
 	// log.Println("[DEBUG] freeport: free ports:", ports)
-	return ports
+	return ports, nil
 }
