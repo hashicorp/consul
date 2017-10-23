@@ -1386,31 +1386,29 @@ OUTER:
 
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
-	reaped := make(map[string]bool)
-	for checkID, cs := range a.state.CriticalCheckStates() {
-		serviceID := cs.Check.ServiceID
-
+	reaped := make(map[string]struct{})
+	for checkID, check := range a.state.CriticalChecks() {
 		// There's nothing to do if there's no service.
-		if serviceID == "" {
+		if check.Check.ServiceID == "" {
 			continue
 		}
 
 		// There might be multiple checks for one service, so
 		// we don't need to reap multiple times.
-		if reaped[serviceID] {
+		serviceID := check.Check.ServiceID
+		if _, ok := reaped[serviceID]; ok {
 			continue
 		}
 
 		// See if there's a timeout.
-		// todo(fs): this looks fishy... why is there anoter data structure in the agent with its own lock?
 		a.checkLock.Lock()
-		timeout := a.checkReapAfter[checkID]
+		timeout, ok := a.checkReapAfter[checkID]
 		a.checkLock.Unlock()
 
 		// Reap, if necessary. We keep track of which service
 		// this is so that we won't try to remove it again.
-		if timeout > 0 && cs.CriticalFor() > timeout {
-			reaped[serviceID] = true
+		if ok && check.CriticalFor > timeout {
+			reaped[serviceID] = struct{}{}
 			a.RemoveService(serviceID, true)
 			a.logger.Printf("[INFO] agent: Check %q for service %q has been critical for too long; deregistered service",
 				checkID, serviceID)
