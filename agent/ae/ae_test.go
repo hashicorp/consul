@@ -3,12 +3,8 @@ package ae
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
-	"sync"
 	"testing"
-	"time"
 )
 
 func TestAE_scaleFactor(t *testing.T) {
@@ -94,59 +90,4 @@ func TestAE_Pause_ifNotPausedRun(t *testing.T) {
 	if got, want := err, errCalled; got != want {
 		t.Fatalf("got error %q want %q", got, want)
 	}
-}
-
-func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
-	shutdownCh := make(chan struct{})
-	state := &mock{
-		syncChanges: func() error {
-			close(shutdownCh)
-			return nil
-		},
-	}
-
-	// indicate that we have partial changes before starting Run
-	l := testSyncer(state, shutdownCh)
-	l.SyncChanges.Trigger()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		l.Run()
-	}()
-	wg.Wait()
-
-	if got, want := state.seq, []string{"full", "changes"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got call sequence %v want %v", got, want)
-	}
-}
-
-type mock struct {
-	seq                   []string
-	syncFull, syncChanges func() error
-}
-
-func (m *mock) SyncFull() error {
-	m.seq = append(m.seq, "full")
-	if m.syncFull != nil {
-		return m.syncFull()
-	}
-	return nil
-}
-
-func (m *mock) SyncChanges() error {
-	m.seq = append(m.seq, "changes")
-	if m.syncChanges != nil {
-		return m.syncChanges()
-	}
-	return nil
-}
-
-func testSyncer(state State, shutdownCh chan struct{}) *StateSyncer {
-	logger := log.New(os.Stderr, "", 0)
-	l := NewStateSyncer(state, 0, shutdownCh, logger)
-	l.stagger = func(d time.Duration) time.Duration { return d }
-	l.ClusterSize = func() int { return 1 }
-	return l
 }
