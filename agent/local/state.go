@@ -51,14 +51,6 @@ type ServiceState struct {
 	Deleted bool
 }
 
-// Clone returns a shallow copy of the object. The service record still
-// points to the original service record and must not be modified.
-func (s *ServiceState) Clone() *ServiceState {
-	s2 := new(ServiceState)
-	*s2 = *s
-	return s2
-}
-
 // CheckState describes the state of a health check record.
 type CheckState struct {
 	// Check is the local copy of the health check record.
@@ -85,15 +77,6 @@ type CheckState struct {
 	// Deleted is true when the health check record has been marked as
 	// deleted but has not been removed on the server yet.
 	Deleted bool
-}
-
-// Clone returns a shallow copy of the object. The check record and the
-// defer timer still point to the original values and must not be
-// modified.
-func (c *CheckState) Clone() *CheckState {
-	c2 := new(CheckState)
-	*c2 = *c
-	return c2
 }
 
 // Critical returns true when the health check is in critical state.
@@ -206,6 +189,9 @@ func (l *State) serviceToken(id string) string {
 // ensure it is registered
 // todo(fs): where is the persistence happening?
 func (l *State) AddService(service *structs.NodeService, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
 	if service == nil {
 		return fmt.Errorf("no service")
 	}
@@ -216,19 +202,13 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 		service.ID = service.Service
 	}
 
-	l.AddServiceState(&ServiceState{
+	l.services[service.ID] = &ServiceState{
 		Service: service,
 		Token:   token,
-	})
-	return nil
-}
-
-func (l *State) AddServiceState(s *ServiceState) {
-	l.Lock()
-	defer l.Unlock()
-
-	l.services[s.Service.ID] = s
+	}
 	l.changeMade()
+
+	return nil
 }
 
 // RemoveService is used to remove a service entry from the local state.
@@ -281,37 +261,6 @@ func (l *State) Services() map[string]*structs.NodeService {
 	return m
 }
 
-// ServiceState returns a shallow copy of the current service state
-// record. The service record still points to the original service
-// record and must not be modified.
-func (l *State) ServiceState(id string) *ServiceState {
-	l.RLock()
-	defer l.RUnlock()
-
-	s := l.services[id]
-	if s == nil || s.Deleted {
-		return nil
-	}
-	return s.Clone()
-}
-
-// ServiceStates returns a shallow copy of all service state records.
-// The service record still points to the original service record and
-// must not be modified.
-func (l *State) ServiceStates() map[string]*ServiceState {
-	l.RLock()
-	defer l.RUnlock()
-
-	m := make(map[string]*ServiceState)
-	for id, s := range l.services {
-		if s.Deleted {
-			continue
-		}
-		m[id] = s.Clone()
-	}
-	return m
-}
-
 // CheckToken is used to return the configured health check token for a
 // Check, or if none is configured, the default agent ACL token.
 func (l *State) CheckToken(checkID types.CheckID) string {
@@ -337,6 +286,9 @@ func (l *State) checkToken(id types.CheckID) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
 	if check == nil {
 		return fmt.Errorf("no check")
 	}
@@ -354,19 +306,13 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
-	l.AddCheckState(&CheckState{
+	l.checks[check.CheckID] = &CheckState{
 		Check: check,
 		Token: token,
-	})
-	return nil
-}
-
-func (l *State) AddCheckState(c *CheckState) {
-	l.Lock()
-	defer l.Unlock()
-
-	l.checks[c.Check.CheckID] = c
+	}
 	l.changeMade()
+
+	return nil
 }
 
 // RemoveCheck is used to remove a health check from the local state.
@@ -472,40 +418,17 @@ func (l *State) Check(id types.CheckID) *structs.HealthCheck {
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
 func (l *State) Checks() map[types.CheckID]*structs.HealthCheck {
+	l.RLock()
+	defer l.RUnlock()
+
 	m := make(map[types.CheckID]*structs.HealthCheck)
-	for id, c := range l.CheckStates() {
-		m[id] = c.Check
-	}
-	return m
-}
-
-// CheckState returns a shallow copy of the current health check state
-// record. The health check record and the deferred check still point to
-// the original values and must not be modified.
-func (l *State) CheckState(id types.CheckID) *CheckState {
-	l.RLock()
-	defer l.RUnlock()
-
-	c := l.checks[id]
-	if c == nil || c.Deleted {
-		return nil
-	}
-	return c.Clone()
-}
-
-// CheckStates returns a shallow copy of all health check state records.
-//  The health check records and the deferred checks still point to
-// the original values and must not be modified.
-func (l *State) CheckStates() map[types.CheckID]*CheckState {
-	l.RLock()
-	defer l.RUnlock()
-
-	m := make(map[types.CheckID]*CheckState)
 	for id, c := range l.checks {
 		if c.Deleted {
 			continue
 		}
-		m[id] = c.Clone()
+		c2 := new(structs.HealthCheck)
+		*c2 = *c.Check
+		m[id] = c2
 	}
 	return m
 }
@@ -521,7 +444,7 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 		if c.Deleted || !c.Critical() {
 			continue
 		}
-		m[id] = c.Clone()
+		m[id] = c
 	}
 	return m
 }

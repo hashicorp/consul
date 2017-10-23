@@ -173,7 +173,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := a.State.Services()
+		services := a.state.Services()
 		found := false
 	OUTER:
 		for name, info := range services {

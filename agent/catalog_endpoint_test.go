@@ -33,32 +33,22 @@ func TestCatalogRegister(t *testing.T) {
 		t.Fatalf("bad: %v", res)
 	}
 
-	// todo(fs): data race
-	// func() {
-	// 	a.State.Lock()
-	// 	defer a.State.Unlock()
+	// data race
+	func() {
+		a.state.Lock()
+		defer a.state.Unlock()
 
-	// 	// Service should be in sync
-	// 	if err := a.State.syncService("foo"); err != nil {
-	// 		t.Fatalf("err: %s", err)
-	// 	}
-	// 	if _, ok := a.State.serviceStatus["foo"]; !ok {
-	// 		t.Fatalf("bad: %#v", a.State.serviceStatus)
-	// 	}
-	// 	if !a.State.serviceStatus["foo"].inSync {
-	// 		t.Fatalf("should be in sync")
-	// 	}
-	// }()
-	if err := a.State.SyncChanges(); err != nil {
-		t.Fatal("sync failed: ", err)
-	}
-	s := a.State.ServiceState("foo")
-	if s == nil {
-		t.Fatal("service 'foo' missing")
-	}
-	if !s.InSync {
-		t.Fatalf("service 'foo' should be in sync")
-	}
+		// Service should be in sync
+		if err := a.state.syncService("foo"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if _, ok := a.state.serviceStatus["foo"]; !ok {
+			t.Fatalf("bad: %#v", a.state.serviceStatus)
+		}
+		if !a.state.serviceStatus["foo"].inSync {
+			t.Fatalf("should be in sync")
+		}
+	}()
 }
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
