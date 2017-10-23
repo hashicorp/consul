@@ -142,7 +142,6 @@ FullSync:
 			case <-s.SyncFull.Notif():
 				select {
 				case <-time.After(s.stagger(s.serverUpInterval)):
-					continue FullSync
 				case <-s.ShutdownCh:
 					return
 				}
@@ -150,11 +149,12 @@ FullSync:
 			// retry full sync after some time
 			// todo(fs): why don't we use s.Interval here?
 			case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
-				continue FullSync
 
 			case <-s.ShutdownCh:
 				return
 			}
+
+			continue
 		}
 
 		// do partial syncs until it is time for a full sync again
