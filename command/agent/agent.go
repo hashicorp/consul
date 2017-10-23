@@ -90,7 +90,6 @@ func (c *cmd) readConfig() *config.RuntimeConfig {
 		}
 		return nil
 	}
-	c.flagArgs.Args = c.flags.Args()
 
 	b, err := config.NewBuilder(c.flagArgs)
 	if err != nil {

@@ -32,10 +32,6 @@ func TestConfigFail(t *testing.T) {
 			out:  "==> datacenter cannot be empty\n",
 		},
 		{
-			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter=foo", "some-other-arg"},
-			out:  "==> config: Unknown extra arguments: [some-other-arg]\n",
-		},
-		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1"},
 			out:  "==> data_dir cannot be empty\n",
 		},
