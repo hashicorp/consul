@@ -86,7 +86,7 @@ type RuntimeConfig struct {
 
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
 	// reach the ACLDatacenter and the token is not in the cache.
-	// There are the following modes:
+	// There are two modes:
 	//   * allow - Allow all requests
 	//   * deny - Deny all requests
 	//   * extend-cache - Ignore the cache expiration, and allow cached
@@ -103,11 +103,7 @@ type RuntimeConfig struct {
 	// hcl: acl_enforce_version_8 = (true|false)
 	ACLEnforceVersion8 bool
 
-	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
-	// KV ACLs in Consul 1.0.
-	//
-	// See https://www.consul.io/docs/guides/acl.html#list-policy-for-keys for
-	// more details.
+	// ACLEnableKeyListPolicy ???
 	//
 	// hcl: acl_enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
