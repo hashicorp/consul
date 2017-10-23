@@ -520,55 +520,11 @@ type RuntimeConfig struct {
 	// hcl: cert_file = string
 	CertFile string
 
-	// CheckUpdateInterval controls the interval on which the output of a health check
-	// is updated if there is no change to the state. For example, a check in a steady
-	// state may run every 5 second generating a unique output (timestamp, etc), forcing
-	// constant writes. This allows Consul to defer the write for some period of time,
-	// reducing the write pressure when the state is steady.
-	//
-	// See also: DiscardCheckOutput
-	//
-	// hcl: check_update_interval = "duration"
 	CheckUpdateInterval time.Duration
-
-	Checks []*structs.CheckDefinition
-
-	// ClientAddrs contains the list of ip addresses the DNS, HTTP and HTTPS
-	// endpoints will bind to if the endpoints are enabled (ports > 0) and the
-	// addresses are not overwritten.
-	//
-	// The ip addresses must be provided as a space separated list of ip
-	// addresses and go-sockaddr templates.
-	//
-	// Client addresses cannot contain UNIX socket addresses since a socket
-	// cannot be shared across multiple endpoints (no ports). To use UNIX
-	// sockets configure it in 'addresses'.
-	//
-	// hcl: client_addr = string
-	// flag: -client string
-	ClientAddrs []*net.IPAddr
-
-	// DNSAddrs contains the list of TCP and UDP addresses the DNS server will
-	// bind to. If the DNS endpoint is disabled (ports.dns <= 0) the list is
-	// empty.
-	//
-	// The ip addresses are taken from 'addresses.dns' which should contain a
-	// space separated list of ip addresses and/or go-sockaddr templates.
-	//
-	// If 'addresses.dns' was not provided the 'client_addr' addresses are
-	// used.
-	//
-	// The DNS server cannot be bound to UNIX sockets.
-	//
-	// hcl: client_addr = string addresses { dns = string } ports { dns = int }
-	DNSAddrs []net.Addr
-
-	// DNSPort is the port the DNS server listens on. The default is 8600.
-	// Setting this to a value <= 0 disables the endpoint.
-	//
-	// hcl: ports { dns = int }
-	// flags: -dns-port int
-	DNSPort int
+	Checks              []*structs.CheckDefinition
+	ClientAddrs         []*net.IPAddr
+	DNSAddrs            []net.Addr
+	DNSPort             int
 
 	// DataDir is the path to the directory where the local state is stored.
 	//
@@ -582,23 +538,14 @@ type RuntimeConfig struct {
 	// flag: -dev
 	DevMode bool
 
-	// DisableAnonymousSignature is used to turn off the anonymous signature
-	// send with the update check. This is used to deduplicate messages.
-	//
-	// hcl: disable_anonymous_signature = (true|false)
 	DisableAnonymousSignature bool
-
-	// DisableCoordinates controls features related to network coordinates.
-	//
-	// hcl: disable_coordinates = (true|false)
-	DisableCoordinates bool
+	DisableCoordinates        bool
 
 	// DisableHostNodeID will prevent Consul from using information from the
 	// host to generate a node ID, and will cause Consul to generate a
 	// random ID instead.
 	//
 	// hcl: disable_host_node_id = (true|false)
-	// flag: -disable-host-node-id
 	DisableHostNodeID bool
 
 	// DisableKeyringFile disables writing the keyring to a file.
@@ -607,25 +554,8 @@ type RuntimeConfig struct {
 	// flag: -disable-keyring-file
 	DisableKeyringFile bool
 
-	// DisableRemoteExec is used to turn off the remote execution
-	// feature. This is for security to prevent unknown scripts from running.
-	//
-	// hcl: disable_remote_exec = (true|false)
-	DisableRemoteExec bool
-
-	// DisableUpdateCheck is used to turn off the automatic update and
-	// security bulletin checking.
-	//
-	// hcl: disable_update_check = (true|false)
+	DisableRemoteExec  bool
 	DisableUpdateCheck bool
-
-	// DiscardCheckOutput is used to turn off storing and comparing the
-	// output of health checks. This reduces the write rate on the server
-	// for checks with highly volatile output. (reloadable)
-	//
-	// See also: CheckUpdateInterval
-	//
-	// hcl: discard_check_output = (true|false)
 	DiscardCheckOutput bool
 
 	// EnableACLReplication is used to turn on ACL replication when using
@@ -642,27 +572,9 @@ type RuntimeConfig struct {
 	// hcl: enable_debug = (true|false)
 	EnableDebug bool
 
-	// EnableScriptChecks controls whether health checks which execute
-	// scripts are enabled. This includes regular script checks and Docker
-	// checks.
-	//
-	// hcl: enable_script_checks = (true|false)
-	// flag: -enable-script-checks
 	EnableScriptChecks bool
-
-	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
-	// on linux and OSX. Other platforms will generate an error.
-	//
-	// hcl: enable_syslog = (true|false)
-	// flag: -syslog
-	EnableSyslog bool
-
-	// EnableUI enables the statically-compiled assets for the Consul web UI and
-	// serves them at the default /ui/ endpoint automatically.
-	//
-	// hcl: enable_ui = (true|false)
-	// flag: -ui
-	EnableUI bool
+	EnableSyslog       bool
+	EnableUI           bool
 
 	// EncryptKey contains the encryption key to use for the Serf communication.
 	//
@@ -682,22 +594,10 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	HTTPAddrs []net.Addr
-
-	// HTTPPort is the port the HTTP server listens on. The default is 8500.
-	// Setting this to a value <= 0 disables the endpoint.
-	//
-	// hcl: ports { http = int }
-	// flags: -http-port int
-	HTTPPort int
-
+	HTTPAddrs  []net.Addr
+	HTTPPort   int
 	HTTPSAddrs []net.Addr
-
-	// HTTPSPort is the port the HTTP server listens on. The default is -1.
-	// Setting this to a value <= 0 disables the endpoint.
-	//
-	// hcl: ports { https = int }
-	HTTPSPort int
+	HTTPSPort  int
 
 	// KeyFile is used to provide a TLS key that is used for serving TLS
 	// connections. Must be provided to serve TLS connections.
@@ -705,9 +605,6 @@ type RuntimeConfig struct {
 	// hcl: key_file = string
 	KeyFile string
 
-	// ???
-	//
-	// hcl: leave_drain_time = "duration"
 	LeaveDrainTime time.Duration
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
@@ -746,18 +643,10 @@ type RuntimeConfig struct {
 	// flag: -non-voting-server
 	NonVotingServer bool
 
-	// PidFile is the file to store our PID in.
-	//
-	// hcl: pid_file = string
-	PidFile string
-
+	PidFile          string
 	RPCAdvertiseAddr *net.TCPAddr
 	RPCBindAddr      *net.TCPAddr
-
-	// ???
-	//
-	// hcl: rpc_hold_timeout = "duration"
-	RPCHoldTimeout time.Duration
+	RPCHoldTimeout   time.Duration
 
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
@@ -783,76 +672,15 @@ type RuntimeConfig struct {
 	// hcl: raft_protocol = int
 	RaftProtocol int
 
-	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
-	// another agent before deciding it's permanently gone. This can be used to
-	// control the time it takes to reap failed nodes from the cluster.
-	//
-	// hcl: reconnect_timeout = "duration"
-	ReconnectTimeoutLAN time.Duration
-
-	// ReconnectTimeoutWAN specifies the amount of time to wait to reconnect with
-	// another agent before deciding it's permanently gone. This can be used to
-	// control the time it takes to reap failed nodes from the cluster.
-	//
-	// hcl: reconnect_timeout = "duration"
-	ReconnectTimeoutWAN time.Duration
-
-	// RejoinAfterLeave controls our interaction with the cluster after leave.
-	// When set to false (default), a leave causes Consul to not rejoin
-	// the cluster until an explicit join is received. If this is set to
-	// true, we ignore the leave, and rejoin the cluster on start.
-	//
-	// hcl: rejoin_after_leave = (true|false)
-	// flag: -rejoin
-	RejoinAfterLeave bool
-
-	// RetryJoinIntervalLAN specifies the amount of time to wait in between join
-	// attempts on agent start. The minimum allowed value is 1 second and
-	// the default is 30s.
-	//
-	// hcl: retry_join = "duration"
-	RetryJoinIntervalLAN time.Duration
-
-	// RetryJoinIntervalWAN specifies the amount of time to wait in between join
-	// attempts on agent start. The minimum allowed value is 1 second and
-	// the default is 30s.
-	//
-	// hcl: retry_join_wan = "duration"
-	RetryJoinIntervalWAN time.Duration
-
-	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
-	// join with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
-	// details.
-	//
-	// hcl: retry_join = []string
-	// flag: -retry-join string -retry-join string
-	RetryJoinLAN []string
-
-	// RetryJoinMaxAttemptsLAN specifies the maximum number of times to retry
-	// joining a host on startup. This is useful for cases where we know the
-	// node will be online eventually.
-	//
-	// hcl: retry_max = int
-	// flag: -retry-max int
+	ReconnectTimeoutLAN     time.Duration
+	ReconnectTimeoutWAN     time.Duration
+	RejoinAfterLeave        bool
+	RetryJoinIntervalLAN    time.Duration
+	RetryJoinIntervalWAN    time.Duration
+	RetryJoinLAN            []string
 	RetryJoinMaxAttemptsLAN int
-
-	// RetryJoinMaxAttemptsWAN specifies the maximum number of times to retry
-	// joining a host on startup. This is useful for cases where we know the
-	// node will be online eventually.
-	//
-	// hcl: retry_max_wan = int
-	// flag: -retry-max-wan int
 	RetryJoinMaxAttemptsWAN int
-
-	// RetryJoinWAN is a list of addresses and/or go-discover expressions to
-	// join -wan with retry enabled. See
-	// https://www.consul.io/docs/agent/options.html#cloud-auto-joining for
-	// details.
-	//
-	// hcl: retry_join_wan = []string
-	// flag: -retry-join-wan string -retry-join-wan string
-	RetryJoinWAN []string
+	RetryJoinWAN            []string
 
 	// SegmentName is the network segment for this client to join.
 	// (Enterprise-only)
@@ -907,12 +735,8 @@ type RuntimeConfig struct {
 	// hcl: server_name = string
 	ServerName string
 
-	ServerPort int
-	Services   []*structs.ServiceDefinition
-
-	// Minimum Session TTL.
-	//
-	// hcl: session_ttl_min = "duration"
+	ServerPort    int
+	Services      []*structs.ServiceDefinition
 	SessionTTLMin time.Duration
 
 	// SkipLeaveOnInt controls if Serf skips a graceful leave when
@@ -922,27 +746,9 @@ type RuntimeConfig struct {
 	// hcl: skip_leave_on_interrupt = (true|false)
 	SkipLeaveOnInt bool
 
-	// StartJoinLAN is a list of addresses to attempt to join -wan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join = []string
-	// flag: -join string -join string
 	StartJoinAddrsLAN []string
-
-	// StartJoinWAN is a list of addresses to attempt to join -wan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join_wan = []string
-	// flag: -join-wan string -join-wan string
 	StartJoinAddrsWAN []string
-
-	// SyslogFacility is used to control where the syslog messages go
-	// By default, goes to LOCAL0
-	//
-	// hcl: syslog_facility = string
-	SyslogFacility string
+	SyslogFacility    string
 
 	// TLSCipherSuites is used to specify the list of supported ciphersuites.
 	//
@@ -1002,30 +808,10 @@ type RuntimeConfig struct {
 	// hcl: translate_wan_addrs = (true|false)
 	TranslateWANAddrs bool
 
-	// UIDir is the directory containing the Web UI resources.
-	// If provided, the UI endpoints will be enabled.
-	//
-	// hcl: ui_dir = string
-	// flag: -ui-dir string
-	UIDir string
-
-	// UnixSocketGroup contains the group of the file permissions when
-	// Consul binds to UNIX sockets.
-	//
-	// hcl: unix_sockets { group = string }
+	UIDir           string
 	UnixSocketGroup string
-
-	// UnixSocketMode contains the mode of the file permissions when
-	// Consul binds to UNIX sockets.
-	//
-	// hcl: unix_sockets { mode = string }
-	UnixSocketMode string
-
-	// UnixSocketUser contains the user of the file permissions when
-	// Consul binds to UNIX sockets.
-	//
-	// hcl: unix_sockets { user = string }
-	UnixSocketUser string
+	UnixSocketMode  string
+	UnixSocketUser  string
 
 	// VerifyIncoming is used to verify the authenticity of incoming
 	// connections. This means that TCP requests are forbidden, only allowing
