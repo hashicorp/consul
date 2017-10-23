@@ -29,3 +29,13 @@ func TestCacheLen(t *testing.T) {
 		t.Fatalf("Cache size should %d, got %d", 2, l)
 	}
 }
+
+func BenchmarkCache(b *testing.B) {
+	b.ReportAllocs()
+
+	c := New(4)
+	for n := 0; n < b.N; n++ {
+		c.Add(1, 1)
+		c.Get(1)
+	}
+}

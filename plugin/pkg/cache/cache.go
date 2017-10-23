@@ -95,19 +95,22 @@ func (s *shard) Remove(key uint32) {
 
 // Evict removes a random element from the cache.
 func (s *shard) Evict() {
-	s.Lock()
-	defer s.Unlock()
-
 	key := -1
+
+	s.RLock()
 	for k := range s.items {
 		key = int(k)
 		break
 	}
+	s.RUnlock()
+
 	if key == -1 {
 		// empty cache
 		return
 	}
-	delete(s.items, uint32(key))
+
+	// If this item is gone between the RUnlock and Lock race we don't care.
+	s.Remove(uint32(key))
 }
 
 // Get looks up the element indexed under key.
