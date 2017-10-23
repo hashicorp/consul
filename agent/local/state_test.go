@@ -1,7 +1,6 @@
 package local_test
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -1454,10 +1453,11 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 		ServiceID: "redis",
 		Status:    api.HealthPassing,
 	}
-	wantErr := errors.New(`Check "redis:1" refers to non-existent service "redis"`)
-	if got, want := l.AddCheck(chk, ""), wantErr; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got error %q want %q", got, want)
+	expectedErr := "ServiceID \"redis\" does not exist"
+	if err := l.AddCheck(chk, ""); err == nil || expectedErr != err.Error() {
+		t.Fatalf("Expected error when adding a check for a non-existent service but got %v", err)
 	}
+
 }
 
 func TestAgent_sendCoordinate(t *testing.T) {
