@@ -473,20 +473,7 @@ type RuntimeConfig struct {
 	// flag: -node string
 	NodeName string
 
-	// AdvertiseAddrLAN is the address we use for advertising our Serf, and
-	// Consul RPC IP. The address can be specified as an ip address or as a
-	// go-sockaddr template which resolves to a single ip address. If not
-	// specified, the bind address is used.
-	//
-	// hcl: advertise_addr = string
 	AdvertiseAddrLAN *net.IPAddr
-
-	// AdvertiseAddrWAN is the address we use for advertising our Serf, and
-	// Consul RPC IP. The address can be specified as an ip address or as a
-	// go-sockaddr template which resolves to a single ip address. If not
-	// specified, the bind address is used.
-	//
-	// hcl: advertise_addr_wan = string
 	AdvertiseAddrWAN *net.IPAddr
 
 	// BindAddr is used to control the address we bind to.
@@ -544,32 +531,6 @@ type RuntimeConfig struct {
 	// hcl: check_update_interval = "duration"
 	CheckUpdateInterval time.Duration
 
-	// Checks contains the provided check definitions.
-	//
-	// hcl: checks = [
-	//   {
-	//     id = string
-	//     name = string
-	//     notes = string
-	//     service_id = string
-	//     token = string
-	//     status = string
-	//     script = string
-	//     args = string
-	//     http = string
-	//     header = map[string][]string
-	//     method = string
-	//     tcp = string
-	//     interval = string
-	//     docker_container_id = string
-	//     shell = string
-	//     tls_skip_verify = (true|false)
-	//     timeout = "duration"
-	//     ttl = "duration"
-	//     deregister_critical_service_after = "duration"
-	//   },
-	//   ...
-	// ]
 	Checks []*structs.CheckDefinition
 
 	// ClientAddrs contains the list of ip addresses the DNS, HTTP and HTTPS
@@ -721,19 +682,6 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
-	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
-	// the list is empty.
-	//
-	// The addresses are taken from 'addresses.http' which should contain a
-	// space separated list of ip addresses, UNIX socket paths and/or
-	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-http.sock'.
-	//
-	// If 'addresses.http' was not provided the 'client_addr' addresses are
-	// used.
-	//
-	// hcl: client_addr = string addresses { http = string } ports { http = int }
 	HTTPAddrs []net.Addr
 
 	// HTTPPort is the port the HTTP server listens on. The default is 8500.
@@ -743,19 +691,6 @@ type RuntimeConfig struct {
 	// flags: -http-port int
 	HTTPPort int
 
-	// HTTPSAddrs contains the list of TCP addresses and UNIX sockets the HTTPS
-	// server will bind to. If the HTTPS endpoint is disabled (ports.https <=
-	// 0) the list is empty.
-	//
-	// The addresses are taken from 'addresses.https' which should contain a
-	// space separated list of ip addresses, UNIX socket paths and/or
-	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-https.sock'.
-	//
-	// If 'addresses.https' was not provided the 'client_addr' addresses are
-	// used.
-	//
-	// hcl: client_addr = string addresses { https = string } ports { https = int }
 	HTTPSAddrs []net.Addr
 
 	// HTTPSPort is the port the HTTP server listens on. The default is -1.
@@ -770,10 +705,9 @@ type RuntimeConfig struct {
 	// hcl: key_file = string
 	KeyFile string
 
-	// LeaveDrainTime is used to wait after a server has left the LAN Serf
-	// pool for RPCs to drain and new requests to be sent to other servers.
+	// ???
 	//
-	// hcl: performance { leave_drain_time = "duration" }
+	// hcl: leave_drain_time = "duration"
 	LeaveDrainTime time.Duration
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
@@ -817,26 +751,12 @@ type RuntimeConfig struct {
 	// hcl: pid_file = string
 	PidFile string
 
-	// RPCAdvertiseAddr is the TCP address Consul advertises for its RPC endpoint.
-	// By default this is the bind address on the default RPC Server port. If the
-	// advertise address is specified then it is used.
-	//
-	// hcl: bind_addr = string advertise_addr = string ports { server = int }
 	RPCAdvertiseAddr *net.TCPAddr
+	RPCBindAddr      *net.TCPAddr
 
-	// RPCBindAddr is the TCP address Consul will bind to for its RPC endpoint.
-	// By default this is the bind address on the default RPC Server port.
+	// ???
 	//
-	// hcl: bind_addr = string ports { server = int }
-	RPCBindAddr *net.TCPAddr
-
-	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
-	// This is used to paper over a loss of leadership by instead holding RPCs,
-	// so that the caller experiences a slow response rather than an error.
-	// This period is meant to be long enough for a leader election to take
-	// place, and a small jitter is applied to avoid a thundering herd.
-	//
-	// hcl: performance { rpc_hold_timeout = "duration" }
+	// hcl: rpc_hold_timeout = "duration"
 	RPCHoldTimeout time.Duration
 
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
@@ -966,51 +886,12 @@ type RuntimeConfig struct {
 	// ]
 	Segments []structs.NetworkSegment
 
-	// SerfAdvertiseAddrLAN is the TCP address which is used for advertising
-	// the LAN Gossip pool for both client and server. The address is the
-	// combination of AdvertiseAddrLAN and the SerfPortLAN. If the advertise
-	// address is not given the bind address is used.
-	//
-	// hcl: bind_addr = string advertise_addr = string ports { serf_lan = int }
 	SerfAdvertiseAddrLAN *net.TCPAddr
-
-	// SerfAdvertiseAddrWAN is the TCP address which is used for advertising
-	// the WAN Gossip pool on the server only. The address is the combination
-	// of AdvertiseAddrWAN and the SerfPortWAN. If the advertise address is not
-	// given the bind address is used.
-	//
-	// hcl: bind_addr = string advertise_addr_wan = string ports { serf_wan = int }
 	SerfAdvertiseAddrWAN *net.TCPAddr
-
-	// SerfBindAddrLAN is the address to bind the Serf LAN TCP and UDP
-	// listeners to. The ip address is either the default bind address or the
-	// 'serf_lan' address which can be either an ip address or a go-sockaddr
-	// template which resolves to a single ip address.
-	//
-	// hcl: bind_addr = string serf_lan = string ports { serf_lan = int }
-	// flag: -serf-lan string
-	SerfBindAddrLAN *net.TCPAddr
-
-	// SerfBindAddrWAN is the address to bind the Serf WAN TCP and UDP
-	// listeners to. The ip address is either the default bind address or the
-	// 'serf_wan' address which can be either an ip address or a go-sockaddr
-	// template which resolves to a single ip address.
-	//
-	// hcl: bind_addr = string serf_wan = string ports { serf_wan = int }
-	// flag: -serf-wan string
-	SerfBindAddrWAN *net.TCPAddr
-
-	// SerfPortLAN is the port used for the LAN Gossip pool for both client and server.
-	// The default is 8301.
-	//
-	// hcl: ports { serf_lan = int }
-	SerfPortLAN int
-
-	// SerfPortWAN is the port used for the WAN Gossip pool for the server only.
-	// The default is 8302.
-	//
-	// hcl: ports { serf_wan = int }
-	SerfPortWAN int
+	SerfBindAddrLAN      *net.TCPAddr
+	SerfBindAddrWAN      *net.TCPAddr
+	SerfPortLAN          int
+	SerfPortWAN          int
 
 	// ServerMode controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
@@ -1026,28 +907,8 @@ type RuntimeConfig struct {
 	// hcl: server_name = string
 	ServerName string
 
-	// ServerPort is the port the RPC server will bind to.
-	// The default is 8300.
-	//
-	// hcl: ports { server = int }
 	ServerPort int
-
-	// Services contains the provided service definitions:
-	//
-	// hcl: services = [
-	//   {
-	//     id = string
-	//     name = string
-	//     tags = []string
-	//     address = string
-	//     check = { check definiton }
-	//     checks = [ { check definition}, ... ]
-	//     token = string
-	//     enable_tag_override = (true|false)
-	//   },
-	//   ...
-	// ]
-	Services []*structs.ServiceDefinition
+	Services   []*structs.ServiceDefinition
 
 	// Minimum Session TTL.
 	//
@@ -1209,18 +1070,6 @@ type RuntimeConfig struct {
 	// hcl: verify_server_hostname = (true|false)
 	VerifyServerHostname bool
 
-	// Watches are used to monitor various endpoints and to invoke a
-	// handler to act appropriately. These are managed entirely in the
-	// agent layer using the standard APIs.
-	//
-	// See https://www.consul.io/docs/agent/watches.html for details.
-	//
-	// hcl: watches = [
-	//   { type=string ... },
-	//   { type=string ... },
-	//   ...
-	// ]
-	//
 	Watches []map[string]interface{}
 }
 
