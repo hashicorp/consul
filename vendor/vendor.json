@@ -67,6 +67,7 @@
 		{"path":"github.com/mitchellh/cli","checksumSHA1":"GzfpPGtV2UJH9hFsKwzGjKrhp/A=","revision":"dff723fff508858a44c1f4bd0911f00d73b0202f","revisionTime":"2017-09-05T22:10:09Z"},
 		{"path":"github.com/mitchellh/copystructure","checksumSHA1":"86nE93o1VIND0Doe8PuhCXnhUx0=","revision":"cdac8253d00f2ecf0a0b19fbff173a9a72de4f82","revisionTime":"2016-08-04T03:23:30Z"},
 		{"path":"github.com/mitchellh/go-homedir","checksumSHA1":"V/quM7+em2ByJbWBLOsEwnY3j/Q=","revision":"b8bc1bf767474819792c23f32d8286a45736f1c6","revisionTime":"2016-12-03T19:45:07Z"},
+		{"path":"github.com/mitchellh/go-testing-interface","checksumSHA1":"bDdhmDk8q6utWrccBhEOa6IoGkE=","revision":"a61a99592b77c9ba629d254a693acffaeb4b7e28","revisionTime":"2017-10-04T22:19:16Z"},
 		{"path":"github.com/mitchellh/mapstructure","checksumSHA1":"gILp4IL+xwXLH6tJtRLrnZ56F24=","revision":"06020f85339e21b2478f756a78e295255ffa4d6a","revisionTime":"2017-10-17T17:18:08Z"},
 		{"path":"github.com/mitchellh/reflectwalk","checksumSHA1":"mrqMlK6gqe//WsJSrJ1HgkPM0lM=","revision":"eecf4c70c626c7cfbb95c90195bc34d386c74ac6","revisionTime":"2015-05-27T15:31:53Z"},
 		{"path":"github.com/pascaldekloe/goe/verify","checksumSHA1":"5h+ERzHw3Rl2G0kFPxoJzxiA9s0=","revision":"07ebd1e2481f616a278ab431cf04cc5cf5ab3ebe","revisionTime":"2017-03-28T18:37:59Z"},
