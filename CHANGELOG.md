@@ -4,11 +4,13 @@ FEATURES:
 
 * agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
 * agent: Watches in the Consul agent can now be configured to invoke a HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
+* agent: DNS recursors can now be specified as [go-sockaddr](https://github.com/hashicorp/go-sockaddr) templates. [[GH-2932](https://github.com/hashicorp/consul/issues/2932)]
 
 IMPROVEMENTS:
 
 * agent: Serf snapshots no longer save network coordinate information. This enables recovery from errors upon agent restart. [[GH-489](https://github.com/hashicorp/serf/issues/489)]
 * agent: Added defensive code to prevent out of range ping times from infecting network coordinates. Updates to the coordinate system with round trip times higher than 10 seconds will return an error.
+* agent: The agent now warns when there are extra unparsed command line arguments and refuses to start. [[GH-3397](https://github.com/hashicorp/consul/issues/3397)]
 
 BUG FIXES:
 
