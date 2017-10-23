@@ -27,7 +27,7 @@ func TestAE_scaleFactor(t *testing.T) {
 	}
 }
 
-func TestAE_Pause_nestedPauseResume(t *testing.T) {
+func TestAE_nestedPauseResume(t *testing.T) {
 	t.Parallel()
 	l := NewStateSyner(nil, 0, nil, nil)
 	if l.Paused() != false {
@@ -59,21 +59,7 @@ func TestAE_Pause_nestedPauseResume(t *testing.T) {
 	l.Resume()
 }
 
-func TestAE_Pause_ResumeTriggersSyncChanges(t *testing.T) {
-	l := NewStateSyner(nil, 0, nil, nil)
-	l.Pause()
-	l.Resume()
-	select {
-	case <-l.SyncChanges.Notif():
-		// expected
-	case <-l.SyncFull.Notif():
-		t.Fatal("resume triggered SyncFull instead of SyncChanges")
-	default:
-		t.Fatal("resume did not trigger SyncFull")
-	}
-}
-
-func TestAE_Pause_ifNotPausedRun(t *testing.T) {
+func TestAE_ifNotPausedRun(t *testing.T) {
 	l := NewStateSyner(nil, 0, nil, nil)
 
 	errCalled := errors.New("f called")
