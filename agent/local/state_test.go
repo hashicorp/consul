@@ -1037,7 +1037,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatal("bad: %s", err)
 	}
 	if !inSync("web") {
 		t.Fatal("check should be in sync")
