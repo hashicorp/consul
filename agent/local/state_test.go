@@ -1011,18 +1011,16 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := NewTestAgent(t.Name(), `
 		discard_check_output = true
 		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
 	`)
 	defer a.Shutdown()
 
 	inSync := func(id string) bool {
-		s := a.State.CheckState(types.CheckID(id))
-		if s == nil {
-			return false
-		}
-		return s.InSync
+		a.state.Lock()
+		defer a.state.Unlock()
+		return a.state.checkStatus[types.CheckID(id)].inSync
 	}
 
 	// register a check
@@ -1033,7 +1031,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		Status:  api.HealthPassing,
 		Output:  "first output",
 	}
-	if err := a.State.AddCheck(check, ""); err != nil {
+	if err := a.state.AddCheck(check, ""); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 
@@ -1047,15 +1045,15 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 
 	// update the check with the same status but different output
 	// and the check should still be in sync.
-	a.State.UpdateCheck(check.CheckID, api.HealthPassing, "second output")
+	a.state.UpdateCheck(check.CheckID, api.HealthPassing, "second output")
 	if !inSync("web") {
 		t.Fatal("check should be in sync")
 	}
 
 	// disable discarding of check output and update the check again with different
 	// output. Then the check should be out of sync.
-	a.State.SetDiscardCheckOutput(false)
-	a.State.UpdateCheck(check.CheckID, api.HealthPassing, "third output")
+	a.state.SetDiscardCheckOutput(false)
+	a.state.UpdateCheck(check.CheckID, api.HealthPassing, "third output")
 	if inSync("web") {
 		t.Fatal("check should be out of sync")
 	}
@@ -1318,9 +1316,8 @@ func TestAgent_ServiceTokens(t *testing.T) {
 
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
-	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
-	l.TriggerSyncChanges = func() {}
+	lcfg := agent.LocalConfig(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`))
+	l := local.NewState(lcfg, nil, tokens, make(chan struct{}, 1))
 
 	l.AddService(&structs.NodeService{ID: "redis"}, "")
 
@@ -1347,9 +1344,8 @@ func TestAgent_CheckTokens(t *testing.T) {
 
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
-	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
-	l.TriggerSyncChanges = func() {}
+	lcfg := agent.LocalConfig(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`))
+	l := local.NewState(lcfg, nil, tokens, make(chan struct{}, 1))
 
 	// Returns default when no token is set
 	l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("mem")}, "")
@@ -1372,9 +1368,8 @@ func TestAgent_CheckTokens(t *testing.T) {
 
 func TestAgent_CheckCriticalTime(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
-	l.TriggerSyncChanges = func() {}
+	lcfg := agent.LocalConfig(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`))
+	l := local.NewState(lcfg, nil, new(token.Store), make(chan struct{}, 1))
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
 	l.AddService(svc, "")
@@ -1436,9 +1431,8 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
-	l.TriggerSyncChanges = func() {}
+	lcfg := agent.LocalConfig(config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`))
+	l := local.NewState(lcfg, nil, new(token.Store), make(chan struct{}, 1))
 
 	// Add a check for a service that does not exist and verify that it fails
 	checkID := types.CheckID("redis:1")
