@@ -1036,12 +1036,14 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	if err := a.State.AddCheck(check, ""); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatal("bad: %s", err)
-	}
-	if !inSync("web") {
-		t.Fatal("check should be in sync")
-	}
+
+	// wait until the check is in sync
+	retry.Run(t, func(r *retry.R) {
+		if inSync("web") {
+			return
+		}
+		r.FailNow()
+	})
 
 	// update the check with the same status but different output
 	// and the check should still be in sync.
