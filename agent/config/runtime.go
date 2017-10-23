@@ -19,15 +19,8 @@ import (
 // from files, flags and/or environment variables.
 type RuntimeConfig struct {
 	// non-user configurable values
-	AEInterval time.Duration
-
-	// ACLDisabledTTL is used by clients to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl_disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
+	AEInterval                 time.Duration
+	ACLDisabledTTL             time.Duration
 	CheckDeregisterIntervalMin time.Duration
 	CheckReapInterval          time.Duration
 	SegmentLimit               int
@@ -55,85 +48,17 @@ type RuntimeConfig struct {
 	ConsulSerfWANSuspicionMult       int
 	ConsulServerHealthInterval       time.Duration
 
-	// ACLAgentMasterToken is a special token that has full read and write
-	// privileges for this agent, and can be used to call agent endpoints
-	// when no servers are available.
-	//
-	// hcl: acl_agent_master_token = string
-	ACLAgentMasterToken string
-
-	// ACLAgentToken is the default token used to make requests for the agent
-	// itself, such as for registering itself with the catalog. If not
-	// configured, the 'acl_token' will be used.
-	//
-	// hcl: acl_agent_token = string
-	ACLAgentToken string
-
-	// ACLDatacenter is the central datacenter that holds authoritative
-	// ACL records. This must be the same for the entire cluster.
-	// If this is not set, ACLs are not enabled. Off by default.
-	//
-	// hcl: acl_datacenter = string
-	ACLDatacenter string
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
-	//
-	// hcl: acl_default_policy = ("allow"|"deny")
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the ACLDatacenter and the token is not in the cache.
-	// There are two modes:
-	//   * allow - Allow all requests
-	//   * deny - Deny all requests
-	//   * extend-cache - Ignore the cache expiration, and allow cached
-	//                    ACL's to be used to service requests. This
-	//                    is the default. If the ACL is not in the cache,
-	//                    this acts like deny.
-	//
-	// hcl: acl_down_policy = ("allow"|"deny"|"extend-cache")
-	ACLDownPolicy string
-
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	//
-	// hcl: acl_enforce_version_8 = (true|false)
-	ACLEnforceVersion8 bool
-
-	// ACLEnableKeyListPolicy ???
-	//
-	// hcl: acl_enable_key_list_policy = (true|false)
+	ACLAgentMasterToken    string
+	ACLAgentToken          string
+	ACLDatacenter          string
+	ACLDefaultPolicy       string
+	ACLDownPolicy          string
+	ACLEnforceVersion8     bool
 	ACLEnableKeyListPolicy bool
-
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
-	//
-	// hcl: acl_master_token = string
-	ACLMasterToken string
-
-	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
-	// order to replicate them locally. Setting this to a non-empty value
-	// also enables replication. Replication is only available in datacenters
-	// other than the ACLDatacenter.
-	//
-	// hcl: acl_replication_token = string
-	ACLReplicationToken string
-
-	// ACLTTL is used to control the time-to-live of cached ACLs . This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl_ttl = "duration"
-	ACLTTL time.Duration
-
-	// ACLToken is the default token used to make requests if a per-request
-	// token is not provided. If not configured the 'anonymous' token is used.
-	//
-	// hcl: acl_token = string
-	ACLToken string
+	ACLMasterToken         string
+	ACLReplicationToken    string
+	ACLTTL                 time.Duration
+	ACLToken               string
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -453,38 +378,29 @@ type RuntimeConfig struct {
 	Datacenter string
 	NodeName   string
 
-	AdvertiseAddrLAN          *net.IPAddr
-	AdvertiseAddrWAN          *net.IPAddr
-	BindAddr                  *net.IPAddr
-	Bootstrap                 bool
-	BootstrapExpect           int
-	CAFile                    string
-	CAPath                    string
-	CertFile                  string
-	CheckUpdateInterval       time.Duration
-	Checks                    []*structs.CheckDefinition
-	ClientAddrs               []*net.IPAddr
-	DNSAddrs                  []net.Addr
-	DNSPort                   int
-	DataDir                   string
-	DevMode                   bool
-	DisableAnonymousSignature bool
-	DisableCoordinates        bool
-	DisableHostNodeID         bool
-	DisableKeyringFile        bool
-	DisableRemoteExec         bool
-	DisableUpdateCheck        bool
-	DiscardCheckOutput        bool
-
-	// EnableACLReplication is used to turn on ACL replication when using
-	// /v1/agent/token/acl_replication_token to introduce the token, instead
-	// of setting acl_replication_token in the config. Setting the token via
-	// config will also set this to true for backward compatibility.
-	//
-	// hcl: enable_acl_replication = (true|false)
-	// todo(fs): rename to ACLEnableReplication
-	EnableACLReplication bool
-
+	AdvertiseAddrLAN            *net.IPAddr
+	AdvertiseAddrWAN            *net.IPAddr
+	BindAddr                    *net.IPAddr
+	Bootstrap                   bool
+	BootstrapExpect             int
+	CAFile                      string
+	CAPath                      string
+	CertFile                    string
+	CheckUpdateInterval         time.Duration
+	Checks                      []*structs.CheckDefinition
+	ClientAddrs                 []*net.IPAddr
+	DNSAddrs                    []net.Addr
+	DNSPort                     int
+	DataDir                     string
+	DevMode                     bool
+	DisableAnonymousSignature   bool
+	DisableCoordinates          bool
+	DisableHostNodeID           bool
+	DisableKeyringFile          bool
+	DisableRemoteExec           bool
+	DisableUpdateCheck          bool
+	DiscardCheckOutput          bool
+	EnableACLReplication        bool
 	EnableDebug                 bool
 	EnableScriptChecks          bool
 	EnableSyslog                bool
