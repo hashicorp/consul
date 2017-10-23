@@ -9,8 +9,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 func TestAE_scaleFactor(t *testing.T) {
@@ -79,20 +77,6 @@ func TestAE_Pause_ResumeTriggersSyncChanges(t *testing.T) {
 	}
 }
 
-func TestAE_staggerDependsOnClusterSize(t *testing.T) {
-	libRandomStagger = func(d time.Duration) time.Duration { return d }
-	defer func() { libRandomStagger = lib.RandomStagger }()
-
-	l := testSyncer()
-	if got, want := l.staggerFn(10*time.Millisecond), 10*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	l.ClusterSize = func() int { return 256 }
-	if got, want := l.staggerFn(10*time.Millisecond), 20*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-}
-
 func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	state := &mock{
@@ -122,29 +106,17 @@ func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
 }
 
 func TestAE_Run_Quit(t *testing.T) {
-	t.Run("Run panics without ClusterSize", func(t *testing.T) {
-		defer func() {
-			err := recover()
-			if err == nil {
-				t.Fatal("Run should panic")
-			}
-		}()
-		l := testSyncer()
-		l.ClusterSize = nil
-		l.Run()
-	})
-	t.Run("runFSM quits", func(t *testing.T) {
-		// start timer which explodes if runFSM does not quit
-		tm := time.AfterFunc(time.Second, func() { panic("timeout") })
+	// start timer which explodes if runFSM does not quit
+	tm := time.AfterFunc(time.Second, func() { panic("timeout") })
 
-		l := testSyncer()
-		l.runFSM(fullSyncState, func(fsmState) fsmState { return doneState })
-		// should just quit
-		tm.Stop()
-	})
+	l := testSyncer()
+	l.runFSM(fullSyncState, func(fsmState) fsmState { return doneState })
+	// should just quit
+	tm.Stop()
 }
 
 func TestAE_FSM(t *testing.T) {
+
 	t.Run("fullSyncState", func(t *testing.T) {
 		t.Run("Paused -> retryFullSyncState", func(t *testing.T) {
 			l := testSyncer()
@@ -248,69 +220,6 @@ func TestAE_FSM(t *testing.T) {
 				t.Fatalf("got state %v want %v", got, want)
 			}
 		})
-		t.Run("invalid event -> panic ", func(t *testing.T) {
-			defer func() {
-				err := recover()
-				if err == nil {
-					t.Fatal("invalid event should panic")
-				}
-			}()
-			test(event("invalid"), fsmState(""))
-		})
-	})
-	t.Run("invalid state -> panic ", func(t *testing.T) {
-		defer func() {
-			err := recover()
-			if err == nil {
-				t.Fatal("invalid state should panic")
-			}
-		}()
-		l := testSyncer()
-		l.nextFSMState(fsmState("invalid"))
-	})
-}
-
-func TestAE_RetrySyncFullEvent(t *testing.T) {
-	t.Run("trigger shutdownEvent", func(t *testing.T) {
-		l := testSyncer()
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger shutdownEvent during FullNotif", func(t *testing.T) {
-		l := testSyncer()
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		l.SyncFull.Trigger()
-		time.Sleep(100 * time.Millisecond)
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullNotifEvent", func(t *testing.T) {
-		l := testSyncer()
-		l.serverUpInterval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		l.SyncFull.Trigger()
-		if got, want := <-evch, syncFullNotifEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullTimerEvent", func(t *testing.T) {
-		l := testSyncer()
-		l.retryFailInterval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		if got, want := <-evch, syncFullTimerEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
 	})
 }
 
