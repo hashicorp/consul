@@ -279,7 +279,7 @@ func doIntegrationTests(t *testing.T, corefile string, testCases []test.Case) {
 	}
 	defer server.Stop()
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	for _, tc := range testCases {
 
