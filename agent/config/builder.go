@@ -726,11 +726,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("DNS address cannot be a unix socket")
 		}
 	}
-	for _, a := range rt.DNSRecursors {
-		if ipaddr.IsAny(a) {
-			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
-		}
-	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
 	}

@@ -1464,15 +1464,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "Advertise WAN address cannot be 0.0.0.0, :: or [::]",
 		},
 		{
-			desc: "recursors any",
-			flags: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{ "recursors": ["::"] }`},
-			hcl:  []string{`recursors = ["::"]`},
-			err:  "DNS recursor address cannot be 0.0.0.0, :: or [::]",
-		},
-		{
 			desc: "dns_config.udp_answer_limit invalid",
 			flags: []string{
 				`-data-dir=` + dataDir,
