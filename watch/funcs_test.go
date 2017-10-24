@@ -459,40 +459,50 @@ func TestEventWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
-	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if invoke == 0 {
-			if raw == nil {
-				return
-			}
-			v, ok := raw.([]*consulapi.UserEvent)
-			if !ok || len(v) == 0 || string(v[len(v)-1].Name) != "foo" {
-				t.Fatalf("Bad: %#v", raw)
-			}
-			invoke++
+		if raw == nil {
+			return
 		}
+		v, ok := raw.([]*consulapi.UserEvent)
+		if !ok || len(v) == 0 {
+			return // ignore
+		}
+		if string(v[len(v)-1].Name) != "foo" {
+			invoke <- errBadContent
+			return
+		}
+		invoke <- nil
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		defer plan.Stop()
-		time.Sleep(20 * time.Millisecond)
-
+		defer wg.Done()
 		event := a.Client().Event()
+
+		time.Sleep(20 * time.Millisecond)
 		params := &consulapi.UserEvent{Name: "foo"}
 		if _, _, err := event.Fire(params, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
 
-	err := plan.Run(a.HTTPAddr())
-	if err != nil {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if invoke == 0 {
-		t.Fatalf("bad: %v", invoke)
-	}
+	plan.Stop()
+	wg.Wait()
 }
 
 func mustParse(t *testing.T, q string) *watch.Plan {
