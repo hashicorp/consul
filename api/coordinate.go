@@ -66,3 +66,20 @@ func (c *Coordinate) Nodes(q *QueryOptions) ([]*CoordinateEntry, *QueryMeta, err
 	}
 	return out, qm, nil
 }
+
+// Update inserts or updates the LAN coordinate of a node.
+func (c *Coordinate) Update(coord *CoordinateEntry, q *WriteOptions) (*WriteMeta, error) {
+	r := c.c.newRequest("PUT", "/v1/coordinate/update")
+	r.setWriteOptions(q)
+	r.obj = coord
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+
+	return wm, nil
+}

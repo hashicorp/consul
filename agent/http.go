@@ -139,9 +139,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	if !s.agent.config.DisableCoordinates {
 		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
 		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+		handleFuncMetrics("/v1/coordinate/update", s.wrap(s.CoordinateUpdate))
 	} else {
 		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
 		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+		handleFuncMetrics("/v1/coordinate/update", s.wrap(coordinateDisabled))
 	}
 	handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
 	handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
