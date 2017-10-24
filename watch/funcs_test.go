@@ -281,49 +281,55 @@ func TestServiceWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
-	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if invoke == 0 {
-			if raw == nil {
-				return
-			}
-			v, ok := raw.([]*consulapi.ServiceEntry)
-			if ok && len(v) == 0 {
-				return
-			}
-			if !ok || v[0].Service.ID != "foo" {
-				t.Fatalf("Bad: %#v", raw)
-			}
-			invoke++
+		if raw == nil {
+			return // ignore
 		}
+		v, ok := raw.([]*consulapi.ServiceEntry)
+		if !ok || len(v) == 0 {
+			return // ignore
+		}
+		if v[0].Service.ID != "foo" {
+			invoke <- errBadContent
+			return
+		}
+		invoke <- nil
 	}
 
-	go func() {
-		time.Sleep(20 * time.Millisecond)
+	var wg sync.WaitGroup
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		agent := a.Client().Agent()
+
+		time.Sleep(20 * time.Millisecond)
 		reg := &consulapi.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
 			Tags: []string{"bar"},
 		}
-		agent.ServiceRegister(reg)
-
-		time.Sleep(20 * time.Millisecond)
-		plan.Stop()
-
-		agent.ServiceDeregister("foo")
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}()
 
-	err := plan.Run(a.HTTPAddr())
-	if err != nil {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if invoke == 0 {
-		t.Fatalf("bad: %v", invoke)
-	}
+	plan.Stop()
+	wg.Wait()
 }
 
 func TestChecksWatch_State(t *testing.T) {
