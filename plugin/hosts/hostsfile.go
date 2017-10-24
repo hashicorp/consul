@@ -36,7 +36,7 @@ func absDomainName(b string) string {
 
 // Hostsfile contains known host entries.
 type Hostsfile struct {
-	sync.Mutex
+	sync.RWMutex
 
 	// list of zones we are authoritive for
 	Origins []string
@@ -139,6 +139,8 @@ func (h *Hostsfile) Parse(file io.Reader) {
 			is[addr.String()] = append(is[addr.String()], name)
 		}
 	}
+	h.Lock()
+	defer h.Unlock()
 	h.byNameV4 = hsv4
 	h.byNameV6 = hsv6
 	h.byAddr = is
@@ -159,8 +161,8 @@ func ipVersion(s string) int {
 
 // LookupStaticHostV4 looks up the IPv4 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
+	defer h.RUnlock()
 	h.ReadHosts()
 	if len(h.byNameV4) != 0 {
 		if ips, ok := h.byNameV4[absDomainName(host)]; ok {
@@ -174,8 +176,8 @@ func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
 
 // LookupStaticHostV6 looks up the IPv6 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
+	defer h.RUnlock()
 	h.ReadHosts()
 	if len(h.byNameV6) != 0 {
 		if ips, ok := h.byNameV6[absDomainName(host)]; ok {
@@ -189,8 +191,8 @@ func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
 
 // LookupStaticAddr looks up the hosts for the given address from the hosts file.
 func (h *Hostsfile) LookupStaticAddr(addr string) []string {
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
+	defer h.RUnlock()
 	h.ReadHosts()
 	addr = parseLiteralIP(addr).String()
 	if addr == "" {
