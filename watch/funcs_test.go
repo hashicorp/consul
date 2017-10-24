@@ -1,23 +1,19 @@
-package watch
+package watch_test
 
 import (
-	"os"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/watch"
 )
 
-var consulAddr string
-
-func init() {
-	consulAddr = os.Getenv("CONSUL_ADDR")
-}
-
 func TestKeyWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -37,7 +33,7 @@ func TestKeyWatch(t *testing.T) {
 		defer plan.Stop()
 		time.Sleep(20 * time.Millisecond)
 
-		kv := plan.client.KV()
+		kv := a.Client().KV()
 		pair := &consulapi.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
@@ -58,7 +54,7 @@ func TestKeyWatch(t *testing.T) {
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -69,9 +65,9 @@ func TestKeyWatch(t *testing.T) {
 }
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	invoke := 0
 	deletedKeyWatchInvoked := 0
@@ -93,7 +89,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 		defer plan.Stop()
 		time.Sleep(20 * time.Millisecond)
 
-		kv := plan.client.KV()
+		kv := a.Client().KV()
 		pair := &consulapi.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
@@ -115,7 +111,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 		plan.Stop()
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -129,9 +125,9 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 }
 
 func TestKeyPrefixWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -154,7 +150,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 		defer plan.Stop()
 		time.Sleep(20 * time.Millisecond)
 
-		kv := plan.client.KV()
+		kv := a.Client().KV()
 		pair := &consulapi.KVPair{
 			Key: "foo/bar",
 		}
@@ -174,7 +170,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -185,9 +181,9 @@ func TestKeyPrefixWatch(t *testing.T) {
 }
 
 func TestServicesWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"services"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -207,7 +203,7 @@ func TestServicesWatch(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		plan.Stop()
 
-		agent := plan.client.Agent()
+		agent := a.Client().Agent()
 		reg := &consulapi.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
@@ -217,7 +213,7 @@ func TestServicesWatch(t *testing.T) {
 		agent.ServiceDeregister("foo")
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -228,9 +224,9 @@ func TestServicesWatch(t *testing.T) {
 }
 
 func TestNodesWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"nodes"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -250,7 +246,7 @@ func TestNodesWatch(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		plan.Stop()
 
-		catalog := plan.client.Catalog()
+		catalog := a.Client().Catalog()
 		reg := &consulapi.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -266,7 +262,7 @@ func TestNodesWatch(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -277,9 +273,9 @@ func TestNodesWatch(t *testing.T) {
 }
 
 func TestServiceWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -301,7 +297,7 @@ func TestServiceWatch(t *testing.T) {
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 
-		agent := plan.client.Agent()
+		agent := a.Client().Agent()
 		reg := &consulapi.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
@@ -315,7 +311,7 @@ func TestServiceWatch(t *testing.T) {
 		agent.ServiceDeregister("foo")
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -326,9 +322,9 @@ func TestServiceWatch(t *testing.T) {
 }
 
 func TestChecksWatch_State(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -350,7 +346,7 @@ func TestChecksWatch_State(t *testing.T) {
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 
-		catalog := plan.client.Catalog()
+		catalog := a.Client().Catalog()
 		reg := &consulapi.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -375,7 +371,7 @@ func TestChecksWatch_State(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -386,9 +382,9 @@ func TestChecksWatch_State(t *testing.T) {
 }
 
 func TestChecksWatch_Service(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -410,7 +406,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	go func() {
 		time.Sleep(20 * time.Millisecond)
 
-		catalog := plan.client.Catalog()
+		catalog := a.Client().Catalog()
 		reg := &consulapi.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -443,7 +439,7 @@ func TestChecksWatch_Service(t *testing.T) {
 		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -454,9 +450,9 @@ func TestChecksWatch_Service(t *testing.T) {
 }
 
 func TestEventWatch(t *testing.T) {
-	if consulAddr == "" {
-		t.Skip()
-	}
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -476,14 +472,14 @@ func TestEventWatch(t *testing.T) {
 		defer plan.Stop()
 		time.Sleep(20 * time.Millisecond)
 
-		event := plan.client.Event()
+		event := a.Client().Event()
 		params := &consulapi.UserEvent{Name: "foo"}
 		if _, _, err := event.Fire(params, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
 
-	err := plan.Run(consulAddr)
+	err := plan.Run(a.HTTPAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -491,4 +487,16 @@ func TestEventWatch(t *testing.T) {
 	if invoke == 0 {
 		t.Fatalf("bad: %v", invoke)
 	}
+}
+
+func mustParse(t *testing.T, q string) *watch.Plan {
+	var params map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &params); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := watch.Parse(params)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return plan
 }
