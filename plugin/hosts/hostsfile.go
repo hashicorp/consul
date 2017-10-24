@@ -78,8 +78,8 @@ func (h *Hostsfile) ReadHosts() {
 	if err == nil && h.mtime.Equal(stat.ModTime()) && h.size == stat.Size() {
 		h.RUnlock()
 		h.Lock()
-		defer h.Unlock()
 		h.expire = now.Add(cacheMaxAge)
+		h.Unlock()
 		return
 	}
 
