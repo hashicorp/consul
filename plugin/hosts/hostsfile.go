@@ -161,9 +161,9 @@ func ipVersion(s string) int {
 
 // LookupStaticHostV4 looks up the IPv4 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
+	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
-	h.ReadHosts()
 	if len(h.byNameV4) != 0 {
 		if ips, ok := h.byNameV4[absDomainName(host)]; ok {
 			ipsCp := make([]net.IP, len(ips))
@@ -176,9 +176,9 @@ func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
 
 // LookupStaticHostV6 looks up the IPv6 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
+	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
-	h.ReadHosts()
 	if len(h.byNameV6) != 0 {
 		if ips, ok := h.byNameV6[absDomainName(host)]; ok {
 			ipsCp := make([]net.IP, len(ips))
@@ -191,9 +191,9 @@ func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
 
 // LookupStaticAddr looks up the hosts for the given address from the hosts file.
 func (h *Hostsfile) LookupStaticAddr(addr string) []string {
+	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
-	h.ReadHosts()
 	addr = parseLiteralIP(addr).String()
 	if addr == "" {
 		return nil
