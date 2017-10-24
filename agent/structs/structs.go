@@ -482,10 +482,13 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 
-	HTTP     string `json:",omitempty"`
-	TCP      string `json:",omitempty"`
-	Interval string `json:",omitempty"`
-	Timeout  string `json:",omitempty"`
+	HTTP          string              `json:",omitempty"`
+	TLSSkipVerify bool                `json:",omitempty"`
+	Header        map[string][]string `json:",omitempty"`
+	Method        string              `json:",omitempty"`
+	TCP           string              `json:",omitempty"`
+	Interval      string              `json:",omitempty"`
+	Timeout       string              `json:",omitempty"`
 
 	RaftIndex
 }
