@@ -3,7 +3,7 @@
 FEATURES:
 
 * agent: (Consul Enterprise) Added [AWS KMS support](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html) for S3 snapshots using the snapshot agent.
-* agent: Watches in the Consul agent can now be configured to invoke a HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
+* agent: Watches in the Consul agent can now be configured to invoke an HTTP endpoint instead of an executable. [[GH-3305](https://github.com/hashicorp/consul/issues/3305)]
 * agent: DNS recursors can now be specified as [go-sockaddr](https://github.com/hashicorp/go-sockaddr) templates. [[GH-2932](https://github.com/hashicorp/consul/issues/2932)]
 
 IMPROVEMENTS:
