@@ -331,18 +331,20 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.Service, err error) {
 	zonePath := msg.Path(zone, "coredns")
 	err = errNoItems // Set to errNoItems to signal really nothing found, gets reset when name is matched.
+
 	var (
-		endpointsList []*api.Endpoints
-		serviceList   []*api.Service
-		idx           string
+		endpointsListFunc func() []*api.Endpoints
+		endpointsList     []*api.Endpoints
+		serviceList       []*api.Service
 	)
+
 	if wildcard(r.service) || wildcard(r.namespace) {
 		serviceList = k.APIConn.ServiceList()
-		endpointsList = k.APIConn.EndpointsList()
+		endpointsListFunc = func() []*api.Endpoints { return k.APIConn.EndpointsList() }
 	} else {
-		idx = r.service + "." + r.namespace
+		idx := r.service + "." + r.namespace
 		serviceList = k.APIConn.SvcIndex(idx)
-		endpointsList = k.APIConn.EpIndex(idx)
+		endpointsListFunc = func() []*api.Endpoints { return k.APIConn.EpIndex(idx) }
 	}
 
 	for _, svc := range serviceList {
@@ -359,6 +361,9 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 
 		// Endpoint query or headless service
 		if svc.Spec.ClusterIP == api.ClusterIPNone || r.endpoint != "" {
+			if endpointsList == nil {
+				endpointsList = endpointsListFunc()
+			}
 			for _, ep := range endpointsList {
 				if ep.ObjectMeta.Name != svc.Name || ep.ObjectMeta.Namespace != svc.Namespace {
 					continue
