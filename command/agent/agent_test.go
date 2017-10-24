@@ -130,21 +130,16 @@ func TestRetryJoin(t *testing.T) {
 
 func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
-	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
-	cfg := agent.TestConfig()
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
-	shutdownCh := make(chan struct{})
-	defer close(shutdownCh)
-
 	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", shutdownCh)
+	cmd := New(ui, "", "", "", "", nil)
 
 	args := []string{
-		"-bind", cfg.BindAddr.String(),
+		"-bind", "127.0.0.1",
 		"-data-dir", tmpDir,
-		"-retry-join", cfg.SerfBindAddrLAN.String(),
+		"-retry-join", "127.0.0.1:99",
 		"-retry-max", "1",
 		"-retry-interval", "10ms",
 	}
