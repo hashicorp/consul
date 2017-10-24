@@ -406,28 +406,30 @@ func TestChecksWatch_Service(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
-	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if invoke == 0 {
-			if raw == nil {
-				return
-			}
-			v, ok := raw.([]*consulapi.HealthCheck)
-			if len(v) == 0 {
-				return
-			}
-			if !ok || v[0].CheckID != "foobar" {
-				t.Fatalf("Bad: %#v", raw)
-			}
-			invoke++
+		if raw == nil {
+			return // ignore
 		}
+		v, ok := raw.([]*consulapi.HealthCheck)
+		if !ok || len(v) == 0 {
+			return // ignore
+		}
+		if v[0].CheckID != "foobar" {
+			invoke <- errBadContent
+			return
+		}
+		invoke <- nil
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		time.Sleep(20 * time.Millisecond)
-
+		defer wg.Done()
 		catalog := a.Client().Catalog()
+
+		time.Sleep(20 * time.Millisecond)
 		reg := &consulapi.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -444,30 +446,25 @@ func TestChecksWatch_Service(t *testing.T) {
 				ServiceID: "foobar",
 			},
 		}
-		_, err := catalog.Register(reg, nil)
-		if err != nil {
+		if _, err := catalog.Register(reg, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		time.Sleep(20 * time.Millisecond)
-		plan.Stop()
-
-		dereg := &consulapi.CatalogDeregistration{
-			Node:       "foobar",
-			Address:    "1.1.1.1",
-			Datacenter: "dc1",
-		}
-		catalog.Deregister(dereg, nil)
 	}()
 
-	err := plan.Run(a.HTTPAddr())
-	if err != nil {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if invoke == 0 {
-		t.Fatalf("bad: %v", invoke)
-	}
+	plan.Stop()
+	wg.Wait()
 }
 
 func TestEventWatch(t *testing.T) {
