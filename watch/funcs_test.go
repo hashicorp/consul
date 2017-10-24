@@ -71,60 +71,53 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
-	invoke := 0
-	deletedKeyWatchInvoked := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if raw == nil && deletedKeyWatchInvoked == 0 {
-			deletedKeyWatchInvoked++
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(*consulapi.KVPair)
+		if !ok || v == nil {
+			return // ignore
+		}
+		if string(v.Value) != "test" {
+			invoke <- errBadContent
 			return
 		}
-		if invoke == 0 {
-			v, ok := raw.(*consulapi.KVPair)
-			if !ok || v == nil || string(v.Value) != "test" {
-				t.Fatalf("Bad: %#v", raw)
-			}
-			invoke++
-		}
+		invoke <- nil
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		defer plan.Stop()
-		time.Sleep(20 * time.Millisecond)
-
+		defer wg.Done()
 		kv := a.Client().KV()
+
+		time.Sleep(20 * time.Millisecond)
 		pair := &consulapi.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
 		}
-		_, err := kv.Put(pair, nil)
-		if err != nil {
+		if _, err := kv.Put(pair, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		// Wait for the query to run
-		time.Sleep(20 * time.Millisecond)
-
-		// Delete the key
-		_, err = kv.DeleteTree("foo/bar", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		plan.Stop()
 	}()
 
-	err := plan.Run(a.HTTPAddr())
-	if err != nil {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if invoke != 1 {
-		t.Fatalf("expected watch plan to be invoked once but got %v", invoke)
-	}
 
-	if deletedKeyWatchInvoked != 1 {
-		t.Fatalf("expected watch plan to be invoked once on delete but got %v", deletedKeyWatchInvoked)
-	}
+	plan.Stop()
+	wg.Wait()
 }
 
 func TestKeyPrefixWatch(t *testing.T) {
