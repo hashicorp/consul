@@ -2,11 +2,11 @@ package agent
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
@@ -81,43 +81,42 @@ func TestConfigFail(t *testing.T) {
 
 func TestRetryJoin(t *testing.T) {
 	t.Parallel()
-	t.Skip("fs: skipping tests that use cmd.Run until signal handling is fixed")
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	cfg2 := agent.TestConfig()
-	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
-
-	doneCh := make(chan struct{})
 	shutdownCh := make(chan struct{})
 
-	defer func() {
-		close(shutdownCh)
-		<-doneCh
-	}()
-
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", version.Version, "", "", shutdownCh)
-
-	args := []string{
-		"-server",
-		"-bind", a.Config.BindAddr.String(),
-		"-data-dir", tmpDir,
-		"-node", fmt.Sprintf(`"%s"`, cfg2.NodeName),
-		"-advertise", a.Config.BindAddr.String(),
-		"-retry-join", a.Config.SerfBindAddrLAN.String(),
-		"-retry-interval", "1s",
-		"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
-		"-retry-interval-wan", "1s",
-	}
-
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		if code := cmd.Run(args); code != 0 {
-			log.Printf("bad: %d", code)
+		defer wg.Done()
+
+		tmpDir := testutil.TempDir(t, "consul")
+		defer os.RemoveAll(tmpDir)
+
+		args := []string{
+			"-server",
+			"-bind", a.Config.BindAddr.String(),
+			"-data-dir", tmpDir,
+			"-node", "Node 11111111-1111-1111-1111-111111111111",
+			"-node-id", "11111111-1111-1111-1111-111111111111",
+			"-advertise", a.Config.BindAddr.String(),
+			"-retry-join", a.Config.SerfBindAddrLAN.String(),
+			"-retry-interval", "1s",
+			"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
+			"-retry-interval-wan", "1s",
 		}
-		close(doneCh)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui, "", version.Version, "", "", shutdownCh)
+		// closing shutdownCh triggers a SIGINT which triggers shutdown without leave
+		// which will return 1
+		if code := cmd.Run(args); code != 1 {
+			t.Log(ui.ErrorWriter.String())
+			t.Fatalf("bad: %d", code)
+		}
 	}()
+
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
@@ -126,6 +125,9 @@ func TestRetryJoin(t *testing.T) {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
+
+	close(shutdownCh)
+	wg.Wait()
 }
 
 func TestRetryJoinFail(t *testing.T) {
