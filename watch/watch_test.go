@@ -7,6 +7,7 @@ import (
 )
 
 func TestParseBasic(t *testing.T) {
+	t.Parallel()
 	params := makeParams(t, `{"type":"key", "datacenter":"dc2", "token":"12345", "key":"foo"}`)
 	p, err := Parse(params)
 	if err != nil {
@@ -24,6 +25,7 @@ func TestParseBasic(t *testing.T) {
 }
 
 func TestParse_exempt(t *testing.T) {
+	t.Parallel()
 	params := makeParams(t, `{"type":"key", "key":"foo", "handler": "foobar"}`)
 	p, err := ParseExempt(params, []string{"handler"})
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 var errBadContent = errors.New("bad content")
 
 func TestKeyWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -68,6 +69,7 @@ func TestKeyWatch(t *testing.T) {
 }
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -121,6 +123,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 }
 
 func TestKeyPrefixWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -173,6 +176,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 }
 
 func TestServicesWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -226,6 +230,7 @@ func TestServicesWatch(t *testing.T) {
 }
 
 func TestNodesWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -276,6 +281,7 @@ func TestNodesWatch(t *testing.T) {
 }
 
 func TestServiceWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -331,6 +337,7 @@ func TestServiceWatch(t *testing.T) {
 }
 
 func TestChecksWatch_State(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -391,6 +398,7 @@ func TestChecksWatch_State(t *testing.T) {
 }
 
 func TestChecksWatch_Service(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -456,6 +464,7 @@ func TestChecksWatch_Service(t *testing.T) {
 }
 
 func TestEventWatch(t *testing.T) {
+	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
