@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
@@ -66,11 +68,27 @@ func (h *dnsContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			}
 			dups[za.String()] = za.String()
 
-			// Save the config to our master list, and key it for lookups
+			// Save the config to our master list, and key it for lookups.
 			cfg := &Config{
 				Zone:      za.Zone,
 				Port:      za.Port,
 				Transport: za.Transport,
+			}
+			if za.IPNet == nil {
+				h.saveConfig(za.String(), cfg)
+				continue
+			}
+
+			ones, bits := za.IPNet.Mask.Size()
+			if (bits-ones)%8 != 0 { // only do this for non-octet bounderies
+				cfg.FilterFunc = func(s string) bool {
+					// TODO(miek): strings.ToLower! Slow and allocates new string.
+					addr := dnsutil.ExtractAddressFromReverse(strings.ToLower(s))
+					if addr == "" {
+						return true
+					}
+					return za.IPNet.Contains(net.ParseIP(addr))
+				}
 			}
 			h.saveConfig(za.String(), cfg)
 		}

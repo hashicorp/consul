@@ -75,13 +75,14 @@ func (h Host) Normalize() string {
 
 	// The error can be ignore here, because this function is called after the corefile
 	// has already been vetted.
-	host, _, _ := SplitHostPort(s)
+	host, _, _, _ := SplitHostPort(s)
 	return Name(host).Normalize()
 }
 
 // SplitHostPort splits s up in a host and port portion, taking reverse address notation into account.
-// String the string s should *not* be prefixed with any protocols, i.e. dns://
-func SplitHostPort(s string) (host, port string, err error) {
+// String the string s should *not* be prefixed with any protocols, i.e. dns://. The returned ipnet is the
+// *net.IPNet that is used when the zone is a reverse and a netmask is given.
+func SplitHostPort(s string) (host, port string, ipnet *net.IPNet, err error) {
 	// If there is: :[0-9]+ on the end we assume this is the port. This works for (ascii) domain
 	// names and our reverse syntax, which always needs a /mask *before* the port.
 	// So from the back, find first colon, and then check if its a number.
@@ -89,7 +90,7 @@ func SplitHostPort(s string) (host, port string, err error) {
 
 	colon := strings.LastIndex(s, ":")
 	if colon == len(s)-1 {
-		return "", "", fmt.Errorf("expecting data after last colon: %q", s)
+		return "", "", nil, fmt.Errorf("expecting data after last colon: %q", s)
 	}
 	if colon != -1 {
 		if p, err := strconv.Atoi(s[colon+1:]); err == nil {
@@ -100,33 +101,34 @@ func SplitHostPort(s string) (host, port string, err error) {
 
 	// TODO(miek): this should take escaping into account.
 	if len(host) > 255 {
-		return "", "", fmt.Errorf("specified zone is too long: %d > 255", len(host))
+		return "", "", nil, fmt.Errorf("specified zone is too long: %d > 255", len(host))
 	}
 
 	_, d := dns.IsDomainName(host)
 	if !d {
-		return "", "", fmt.Errorf("zone is not a valid domain name: %s", host)
+		return "", "", nil, fmt.Errorf("zone is not a valid domain name: %s", host)
 	}
 
-	// Check if it parses as a reverse zone, if so we use that. Must be fully
-	// specified IP and mask and mask % 8 = 0.
-	ip, net, err := net.ParseCIDR(host)
+	// Check if it parses as a reverse zone, if so we use that. Must be fully specified IP and mask.
+	ip, n, err := net.ParseCIDR(host)
+	ones, bits := 0, 0
 	if err == nil {
 		if rev, e := dns.ReverseAddr(ip.String()); e == nil {
-			ones, bits := net.Mask.Size()
-			if (bits-ones)%8 == 0 {
-				offset, end := 0, false
-				for i := 0; i < (bits-ones)/8; i++ {
-					offset, end = dns.NextLabel(rev, offset)
-					if end {
-						break
-					}
+			ones, bits = n.Mask.Size()
+			// Get the first lower octet boundary to see what encompassing zone we should be authoritative for.
+			mod := (bits - ones) % 8
+			nearest := (bits - ones) + mod
+			offset, end := 0, false
+			for i := 0; i < nearest/8; i++ {
+				offset, end = dns.NextLabel(rev, offset)
+				if end {
+					break
 				}
-				host = rev[offset:]
 			}
+			host = rev[offset:]
 		}
 	}
-	return host, port, nil
+	return host, port, n, nil
 }
 
 // Duplicated from core/dnsserver/address.go !

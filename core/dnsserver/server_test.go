@@ -18,7 +18,7 @@ func (tp testPlugin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 
 func (tp testPlugin) Name() string { return "testplugin" }
 
-func testConfig(transport string) *Config {
+func testConfig(transport string, p plugin.Handler) *Config {
 	c := &Config{
 		Zone:       "example.com.",
 		Transport:  transport,
@@ -27,31 +27,31 @@ func testConfig(transport string) *Config {
 		Debug:      false,
 	}
 
-	c.AddPlugin(func(next plugin.Handler) plugin.Handler { return testPlugin{} })
+	c.AddPlugin(func(next plugin.Handler) plugin.Handler { return p })
 	return c
 }
 
 func TestNewServer(t *testing.T) {
-	_, err := NewServer("127.0.0.1:53", []*Config{testConfig("dns")})
+	_, err := NewServer("127.0.0.1:53", []*Config{testConfig("dns", testPlugin{})})
 	if err != nil {
-		t.Errorf("Expected no error for NewServer, got %s.", err)
+		t.Errorf("Expected no error for NewServer, got %s", err)
 	}
 
-	_, err = NewServergRPC("127.0.0.1:53", []*Config{testConfig("grpc")})
+	_, err = NewServergRPC("127.0.0.1:53", []*Config{testConfig("grpc", testPlugin{})})
 	if err != nil {
-		t.Errorf("Expected no error for NewServergRPC, got %s.", err)
+		t.Errorf("Expected no error for NewServergRPC, got %s", err)
 	}
 
-	_, err = NewServerTLS("127.0.0.1:53", []*Config{testConfig("tls")})
+	_, err = NewServerTLS("127.0.0.1:53", []*Config{testConfig("tls", testPlugin{})})
 	if err != nil {
-		t.Errorf("Expected no error for NewServerTLS, got %s.", err)
+		t.Errorf("Expected no error for NewServerTLS, got %s", err)
 	}
 }
 
 func BenchmarkCoreServeDNS(b *testing.B) {
-	s, err := NewServer("127.0.0.1:53", []*Config{testConfig("dns")})
+	s, err := NewServer("127.0.0.1:53", []*Config{testConfig("dns", testPlugin{})})
 	if err != nil {
-		b.Errorf("Expected no error for NewServer, got %s.", err)
+		b.Errorf("Expected no error for NewServer, got %s", err)
 	}
 
 	ctx := context.TODO()

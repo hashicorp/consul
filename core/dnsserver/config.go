@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 
 	"github.com/coredns/coredns/plugin"
+
 	"github.com/mholt/caddy"
 )
 
@@ -28,6 +29,11 @@ type Config struct {
 	// The transport we implement, normally just "dns" over TCP/UDP, but could be
 	// DNS-over-TLS or DNS-over-gRPC.
 	Transport string
+
+	// If this function is not nil it will be used to further filter access
+	// to this handler. The primary use is to limit access to a reverse zone
+	// on a non-octet boundary, i.e. /17
+	FilterFunc func(string) bool
 
 	// TLSConfig when listening for encrypted connections (gRPC, DNS-over-TLS).
 	TLSConfig *tls.Config

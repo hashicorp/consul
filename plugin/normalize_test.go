@@ -70,7 +70,7 @@ func TestNameNormalize(t *testing.T) {
 
 func TestHostNormalize(t *testing.T) {
 	hosts := []string{".:53", ".", "example.org:53", "example.org.", "example.org.:53", "example.org.",
-		"10.0.0.0/8:53", "10.in-addr.arpa.", "10.0.0.0/9", "10.0.0.0/9.",
+		"10.0.0.0/8:53", "10.in-addr.arpa.", "10.0.0.0/9", "10.in-addr.arpa.",
 		"dns://example.org", "example.org."}
 
 	for i := 0; i < len(hosts); i += 2 {
@@ -79,6 +79,34 @@ func TestHostNormalize(t *testing.T) {
 		actual := Host(ts).Normalize()
 		if expected != actual {
 			t.Errorf("Expected %v, got %v\n", expected, actual)
+		}
+	}
+}
+
+func TestSplitHostPortReverse(t *testing.T) {
+	tests := map[string]int{
+		"example.org.": 0,
+		"10.0.0.0/9":   32 - 9,
+		"10.0.0.0/8":   32 - 8,
+		"10.0.0.0/17":  32 - 17,
+		"10.0.0.0/0":   32 - 0,
+		"10.0.0.0/64":  0,
+		"10.0.0.0":     0,
+		"10.0.0":       0,
+		"2003::1/65":   128 - 65,
+	}
+	for in, expect := range tests {
+		_, _, n, err := SplitHostPort(in)
+		if err != nil {
+			t.Errorf("Expected no error, got %q for %s", in, err)
+		}
+		if n == nil {
+			continue
+		}
+		ones, bits := n.Mask.Size()
+		got := bits - ones
+		if got != expect {
+			t.Errorf("Expected %d, got %d for %s", expect, got, in)
 		}
 	}
 }

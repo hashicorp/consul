@@ -9,7 +9,7 @@ import (
 // into an IP address. This works for ipv4 or ipv6.
 //
 // 54.119.58.176.in-addr.arpa. becomes 176.58.119.54. If the conversion
-// failes the empty string is returned.
+// fails the empty string is returned.
 func ExtractAddressFromReverse(reverseName string) string {
 	search := ""
 

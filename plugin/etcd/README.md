@@ -84,11 +84,10 @@ when resolving external pointing CNAMEs.
 
 Reverse zones are supported. You need to make CoreDNS aware of the fact that you are also
 authoritative for the reverse. For instance if you want to add the reverse for 10.0.0.0/24, you'll
-need to add the zone `0.0.10.in-addr.arpa` to the list of zones. (The fun starts with IPv6 reverse zones
-in the ip6.arpa domain.) Showing a snippet of a Corefile:
+need to add the zone `0.0.10.in-addr.arpa` to the list of zones. Showing a snippet of a Corefile:
 
 ~~~
-etcd skydns.local 0.0.10.in-addr.arpa {
+etcd skydns.local 10.0.0.0/24 {
     stubzones
 ...
 ~~~

@@ -1,6 +1,7 @@
 package dnsserver
 
 import (
+	"net"
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
@@ -11,7 +12,8 @@ import (
 type zoneAddr struct {
 	Zone      string
 	Port      string
-	Transport string // dns, tls or grpc
+	Transport string     // dns, tls or grpc
+	IPNet     *net.IPNet // if reverse zone this hold the IPNet
 }
 
 // String return the string representation of z.
@@ -50,7 +52,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 		str = str[len(TransportGRPC+"://"):]
 	}
 
-	host, port, err := plugin.SplitHostPort(str)
+	host, port, ipnet, err := plugin.SplitHostPort(str)
 	if err != nil {
 		return zoneAddr{}, err
 	}
@@ -67,7 +69,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 		}
 	}
 
-	return zoneAddr{Zone: dns.Fqdn(host), Port: port, Transport: trans}, nil
+	return zoneAddr{Zone: dns.Fqdn(host), Port: port, Transport: trans, IPNet: ipnet}, nil
 }
 
 // Supported transports.

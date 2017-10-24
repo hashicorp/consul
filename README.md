@@ -155,9 +155,11 @@ IP addresses are also allowed. They are automatically converted to reverse zones
 ~~~
 Means you are authoritative for `0.0.10.in-addr.arpa.`.
 
-The netmask must be dividable by 8, if it is not the reverse conversion is not done. This also works
-for IPv6 addresses. If for some reason you want to serve a zone named `10.0.0.0/24` add the closing
-dot: `10.0.0.0/24.` as this also stops the conversion.
+This also works for IPv6 addresses. If for some reason you want to serve a zone named `10.0.0.0/24`
+add the closing dot: `10.0.0.0/24.` as this also stops the conversion.
+
+This even works for CIDR (See RFC 1518 and 1519) addressing, i.e `10.0.0.0/25`, CoreDNS will then
+check if the `in-addr` request falls in the correct range.
 
 Listening on TLS and for gRPC? Use:
 

@@ -40,7 +40,7 @@ type Server struct {
 	classChaos  bool               // allow non-INET class queries
 }
 
-// NewServer returns a new CoreDNS server and compiles all plugin in to it. By default CH class
+// NewServer returns a new CoreDNS server and compiles all plugins in to it. By default CH class
 // queries are blocked unless the chaos or proxy is loaded.
 func NewServer(addr string, group []*Config) (*Server, error) {
 
@@ -225,11 +225,22 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
-				rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
-				if !plugin.ClientWrite(rcode) {
-					DefaultErrorFunc(w, r, rcode)
+				if h.FilterFunc == nil {
+					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
+					if !plugin.ClientWrite(rcode) {
+						DefaultErrorFunc(w, r, rcode)
+					}
+					return
 				}
-				return
+				// FilterFunc is set, call it to see if we should use this handler.
+				// This is given to full query name.
+				if h.FilterFunc(q) {
+					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
+					if !plugin.ClientWrite(rcode) {
+						DefaultErrorFunc(w, r, rcode)
+					}
+					return
+				}
 			}
 			// The type is DS, keep the handler, but keep on searching as maybe we are serving
 			// the parent as well and the DS should be routed to it - this will probably *misroute* DS
@@ -244,8 +255,8 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		}
 	}
 
-	if dshandler != nil {
-		// DS request, and we found a zone, use the handler for the query
+	if r.Question[0].Qtype == dns.TypeDS && dshandler != nil {
+		// DS request, and we found a zone, use the handler for the query.
 		rcode, _ := dshandler.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)

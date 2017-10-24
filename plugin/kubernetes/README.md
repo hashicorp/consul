@@ -76,13 +76,12 @@ kubernetes [ZONES...] {
 
 ## Examples
 
-Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster.
-Also handle all `PTR` requests for `10.0.0.0/16` . Verify the existence of pods when answering pod
-requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block
-here:
+Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all
+`in-addr.arpa` `PTR` requests for `10.0.0.0/17` . Verify the existence of pods when answering pod
+requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block here:
 
 ~~~ txt
-10.0.0.0/16 cluster.local {
+10.0.0.0/17 cluster.local {
     kubernetes {
         pods verified
         upstream 10.102.3.10:53
