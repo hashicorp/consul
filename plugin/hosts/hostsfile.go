@@ -68,11 +68,17 @@ type Hostsfile struct {
 func (h *Hostsfile) ReadHosts() {
 	now := time.Now()
 
+	// Not deferring h.RUnlock() because we may need to remove the read lock and aquire a write lock
+	h.RLock()
 	if now.Before(h.expire) && len(h.byAddr) > 0 {
+		h.RUnlock()
 		return
 	}
 	stat, err := os.Stat(h.path)
 	if err == nil && h.mtime.Equal(stat.ModTime()) && h.size == stat.Size() {
+		h.RUnlock()
+		h.Lock()
+		defer h.Unlock()
 		h.expire = now.Add(cacheMaxAge)
 		return
 	}
@@ -83,10 +89,14 @@ func (h *Hostsfile) ReadHosts() {
 		if len(h.byAddr) == 0 && len(h.inline) > 0 {
 			h.Parse(nil)
 		}
+		h.RUnlock()
 		return
 	}
 	defer file.Close()
 
+	h.RUnlock()
+	h.Lock()
+	defer h.Unlock()
 	h.Parse(file)
 
 	// Update the data cache.
@@ -139,8 +149,6 @@ func (h *Hostsfile) Parse(file io.Reader) {
 			is[addr.String()] = append(is[addr.String()], name)
 		}
 	}
-	h.Lock()
-	defer h.Unlock()
 	h.byNameV4 = hsv4
 	h.byNameV6 = hsv6
 	h.byAddr = is
