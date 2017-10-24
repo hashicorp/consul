@@ -13,13 +13,22 @@ import (
 )
 
 var errBadContent = errors.New("bad content")
+var errTimeout = errors.New("timeout")
+
+var timeout = 5 * time.Second
+
+func makeInvokeCh() chan error {
+	ch := make(chan error)
+	time.AfterFunc(timeout, func() { ch <- errTimeout })
+	return ch
+}
 
 func TestKeyWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -73,7 +82,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -127,7 +136,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -180,7 +189,7 @@ func TestServicesWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -234,7 +243,7 @@ func TestNodesWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"nodes"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -285,7 +294,7 @@ func TestServiceWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -341,7 +350,7 @@ func TestChecksWatch_State(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -402,7 +411,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -468,7 +477,7 @@ func TestEventWatch(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	invoke := make(chan error)
+	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
