@@ -6,11 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/command/flags"
 	consulwatch "github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/cli"
@@ -173,11 +174,11 @@ func (c *cmd) Run(args []string) int {
 			// Create the command
 			var buf bytes.Buffer
 			var err error
-			var cmd *exec.Cmd
+			var cmd *osexec.Cmd
 			if !c.shell {
-				cmd, err = agent.ExecSubprocess(c.flags.Args())
+				cmd, err = exec.Subprocess(c.flags.Args())
 			} else {
-				cmd, err = agent.ExecScript(strings.Join(c.flags.Args(), " "))
+				cmd, err = exec.Script(strings.Join(c.flags.Args(), " "))
 			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))

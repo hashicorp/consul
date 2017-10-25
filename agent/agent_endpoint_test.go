@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -1127,7 +1128,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	t.Run("log output limit", func(t *testing.T) {
 		args := checkUpdate{
 			Status: api.HealthPassing,
-			Output: strings.Repeat("-= bad -=", 5*CheckBufSize),
+			Output: strings.Repeat("-= bad -=", 5*checks.BufSize),
 		}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
@@ -1146,7 +1147,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		// rough check that the output buffer was cut down so this test
 		// isn't super brittle.
 		state := a.State.Checks()["test"]
-		if state.Status != api.HealthPassing || len(state.Output) > 2*CheckBufSize {
+		if state.Status != api.HealthPassing || len(state.Output) > 2*checks.BufSize {
 			t.Fatalf("bad: %v", state)
 		}
 	})

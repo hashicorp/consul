@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/unique"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
@@ -111,7 +112,7 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := UniqueID()
+	id := unique.ID()
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
@@ -274,14 +275,6 @@ func (a *TestAgent) consulConfig() *consul.Config {
 		panic(err)
 	}
 	return c
-}
-
-func UniqueID() string {
-	id := strconv.FormatUint(rand.Uint64(), 36)
-	for len(id) < 16 {
-		id += " "
-	}
-	return id
 }
 
 // pickRandomPorts selects random ports from fixed size random blocks of

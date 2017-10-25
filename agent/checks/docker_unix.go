@@ -1,5 +1,5 @@
 // +build !windows
 
-package agent
+package checks
 
 const DefaultDockerHost = "unix:///var/run/docker.sock"

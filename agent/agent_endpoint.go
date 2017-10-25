@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -490,9 +491,9 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	}
 
 	total := len(update.Output)
-	if total > CheckBufSize {
+	if total > checks.BufSize {
 		update.Output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
-			update.Output[:CheckBufSize], CheckBufSize, total)
+			update.Output[:checks.BufSize], checks.BufSize, total)
 	}
 
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))

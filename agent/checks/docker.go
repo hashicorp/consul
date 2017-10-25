@@ -1,4 +1,4 @@
-package agent
+package checks
 
 import (
 	"bytes"
@@ -52,6 +52,10 @@ func NewDockerClient(host string, maxbuf int64) (*DockerClient, error) {
 		maxbuf:   maxbuf,
 		client:   client,
 	}, nil
+}
+
+func (c *DockerClient) Host() string {
+	return c.host
 }
 
 // ParseHost verifies that the given host strings is valid.
