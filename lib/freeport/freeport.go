@@ -40,11 +40,16 @@ var (
 	// mu guards nextPort
 	mu sync.Mutex
 
+	// once is used to do the initialization on the first call to retrieve free
+	// ports
+	once sync.Once
+
 	// port is the last allocated port.
 	port int
 )
 
-func init() {
+// initialize is used to initialize freeport.
+func initialize() {
 	if lowPort+maxBlocks*blockSize > 65535 {
 		panic("freeport: block size too big or too many blocks requested")
 	}
@@ -107,6 +112,9 @@ func Free(n int) (ports []int, err error) {
 	if n > blockSize-1 {
 		return nil, fmt.Errorf("freeport: block size too small")
 	}
+
+	// Reserve a port block
+	once.Do(initialize)
 
 	for len(ports) < n {
 		port++
