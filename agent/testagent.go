@@ -111,7 +111,7 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := UniqueID()
+	id := NodeID()
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
@@ -274,14 +274,6 @@ func (a *TestAgent) consulConfig() *consul.Config {
 		panic(err)
 	}
 	return c
-}
-
-func UniqueID() string {
-	id := strconv.FormatUint(rand.Uint64(), 36)
-	for len(id) < 16 {
-		id += " "
-	}
-	return id
 }
 
 // pickRandomPorts selects random ports from fixed size random blocks of

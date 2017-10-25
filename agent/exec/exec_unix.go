@@ -1,6 +1,6 @@
 // +build !windows
 
-package agent
+package exec
 
 import (
 	"os"
@@ -8,8 +8,8 @@ import (
 	"syscall"
 )
 
-// ExecScript returns a command to execute a script through a shell.
-func ExecScript(script string) (*exec.Cmd, error) {
+// Script returns a command to execute a script through a shell.
+func Script(script string) (*exec.Cmd, error) {
 	shell := "/bin/sh"
 	if other := os.Getenv("SHELL"); other != "" {
 		shell = other

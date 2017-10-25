@@ -9,10 +9,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"strconv"
 
 	"github.com/armon/circbuf"
+	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-cleanhttp"
 	"golang.org/x/net/context"
@@ -43,13 +44,13 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	logger := log.New(logOutput, "", log.LstdFlags)
 	fn := func(idx uint64, data interface{}) {
 		// Create the command
-		var cmd *exec.Cmd
+		var cmd *osexec.Cmd
 		var err error
 
 		if len(args) > 0 {
-			cmd, err = ExecSubprocess(args)
+			cmd, err = exec.Subprocess(args)
 		} else {
-			cmd, err = ExecScript(script)
+			cmd, err = exec.Script(script)
 		}
 		if err != nil {
 			logger.Printf("[ERR] agent: Failed to setup watch: %v", err)

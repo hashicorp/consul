@@ -21,6 +21,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
@@ -120,25 +121,25 @@ type Agent struct {
 	checkReapAfter map[types.CheckID]time.Duration
 
 	// checkMonitors maps the check ID to an associated monitor
-	checkMonitors map[types.CheckID]*CheckMonitor
+	checkMonitors map[types.CheckID]*checks.CheckMonitor
 
 	// checkHTTPs maps the check ID to an associated HTTP check
-	checkHTTPs map[types.CheckID]*CheckHTTP
+	checkHTTPs map[types.CheckID]*checks.CheckHTTP
 
 	// checkTCPs maps the check ID to an associated TCP check
-	checkTCPs map[types.CheckID]*CheckTCP
+	checkTCPs map[types.CheckID]*checks.CheckTCP
 
 	// checkTTLs maps the check ID to an associated check TTL
-	checkTTLs map[types.CheckID]*CheckTTL
+	checkTTLs map[types.CheckID]*checks.CheckTTL
 
 	// checkDockers maps the check ID to an associated Docker Exec based check
-	checkDockers map[types.CheckID]*CheckDocker
+	checkDockers map[types.CheckID]*checks.CheckDocker
 
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
 
 	// dockerClient is the client for performing docker health checks.
-	dockerClient *DockerClient
+	dockerClient *checks.DockerClient
 
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
@@ -206,11 +207,11 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		config:          c,
 		acls:            acls,
 		checkReapAfter:  make(map[types.CheckID]time.Duration),
-		checkMonitors:   make(map[types.CheckID]*CheckMonitor),
-		checkTTLs:       make(map[types.CheckID]*CheckTTL),
-		checkHTTPs:      make(map[types.CheckID]*CheckHTTP),
-		checkTCPs:       make(map[types.CheckID]*CheckTCP),
-		checkDockers:    make(map[types.CheckID]*CheckDocker),
+		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
+		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
+		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
+		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
+		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
@@ -1675,7 +1676,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkTTLs, check.CheckID)
 			}
 
-			ttl := &CheckTTL{
+			ttl := &checks.CheckTTL{
 				Notify:  a.State,
 				CheckID: check.CheckID,
 				TTL:     chkType.TTL,
@@ -1696,13 +1697,13 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkHTTPs, check.CheckID)
 			}
-			if chkType.Interval < MinInterval {
+			if chkType.Interval < checks.MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
-				chkType.Interval = MinInterval
+					check.CheckID, checks.MinInterval))
+				chkType.Interval = checks.MinInterval
 			}
 
-			http := &CheckHTTP{
+			http := &checks.CheckHTTP{
 				Notify:        a.State,
 				CheckID:       check.CheckID,
 				HTTP:          chkType.HTTP,
@@ -1721,13 +1722,13 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkTCPs, check.CheckID)
 			}
-			if chkType.Interval < MinInterval {
+			if chkType.Interval < checks.MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
-				chkType.Interval = MinInterval
+					check.CheckID, checks.MinInterval))
+				chkType.Interval = checks.MinInterval
 			}
 
-			tcp := &CheckTCP{
+			tcp := &checks.CheckTCP{
 				Notify:   a.State,
 				CheckID:  check.CheckID,
 				TCP:      chkType.TCP,
@@ -1743,10 +1744,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkDockers, check.CheckID)
 			}
-			if chkType.Interval < MinInterval {
+			if chkType.Interval < checks.MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
-				chkType.Interval = MinInterval
+					check.CheckID, checks.MinInterval))
+				chkType.Interval = checks.MinInterval
 			}
 			if chkType.Script != "" {
 				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
@@ -1755,16 +1756,16 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if a.dockerClient == nil {
-				dc, err := NewDockerClient(os.Getenv("DOCKER_HOST"), CheckBufSize)
+				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), checks.BufSize)
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
 					return err
 				}
-				a.logger.Printf("[DEBUG] agent: created docker client for %s", dc.host)
+				a.logger.Printf("[DEBUG] agent: created docker client for %s", dc.Host())
 				a.dockerClient = dc
 			}
 
-			dockerCheck := &CheckDocker{
+			dockerCheck := &checks.CheckDocker{
 				Notify:            a.State,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
@@ -1773,7 +1774,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
-				client:            a.dockerClient,
+				Client:            a.dockerClient,
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
@@ -1783,10 +1784,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkMonitors, check.CheckID)
 			}
-			if chkType.Interval < MinInterval {
+			if chkType.Interval < checks.MinInterval {
 				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval)
-				chkType.Interval = MinInterval
+					check.CheckID, checks.MinInterval)
+				chkType.Interval = checks.MinInterval
 			}
 			if chkType.Script != "" {
 				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
@@ -1794,7 +1795,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID)
 			}
 
-			monitor := &CheckMonitor{
+			monitor := &checks.CheckMonitor{
 				Notify:     a.State,
 				CheckID:    check.CheckID,
 				Script:     chkType.Script,
@@ -1922,7 +1923,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 // persistCheckState is used to record the check status into the data dir.
 // This allows the state to be restored on a later agent start. Currently
 // only useful for TTL based checks.
-func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error {
+func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string) error {
 	// Create the persisted state
 	state := persistedCheckState{
 		CheckID: check.CheckID,

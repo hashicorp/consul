@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"path"
 	"strings"
 	"sync"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -341,12 +342,12 @@ func (c *cmd) startChild(args []string, passStdin, shell bool) error {
 	}
 
 	// Create the command
-	var cmd *exec.Cmd
+	var cmd *osexec.Cmd
 	var err error
 	if !shell {
-		cmd, err = agent.ExecSubprocess(args)
+		cmd, err = exec.Subprocess(args)
 	} else {
-		cmd, err = agent.ExecScript(strings.Join(args, " "))
+		cmd, err = exec.Script(strings.Join(args, " "))
 	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error executing handler: %s", err))

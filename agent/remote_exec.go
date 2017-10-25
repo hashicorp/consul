@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"path"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -161,12 +162,12 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Create the exec.Cmd
 	a.logger.Printf("[INFO] agent: remote exec '%s'", script)
-	var cmd *exec.Cmd
+	var cmd *osexec.Cmd
 	var err error
 	if len(spec.Args) > 0 {
-		cmd, err = ExecSubprocess(spec.Args)
+		cmd, err = exec.Subprocess(spec.Args)
 	} else {
-		cmd, err = ExecScript(script)
+		cmd, err = exec.Script(script)
 	}
 	if err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
@@ -203,7 +204,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 		}
 
 		// Try to determine the exit code
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := err.(*osexec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				exitCh <- status.ExitStatus()
 				return

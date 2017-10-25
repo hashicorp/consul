@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -646,7 +647,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 	// Ensure a TTL is setup
 	if mon, ok := a.checkMonitors["mem"]; !ok {
 		t.Fatalf("missing mem monitor")
-	} else if mon.Interval != MinInterval {
+	} else if mon.Interval != checks.MinInterval {
 		t.Fatalf("bad mem monitor interval")
 	}
 }
@@ -680,7 +681,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	defer a.Shutdown()
 
 	// Create some state and persist it
-	ttl := &CheckTTL{
+	ttl := &checks.CheckTTL{
 		CheckID: "baz",
 		TTL:     time.Minute,
 	}
@@ -1764,7 +1765,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 	defer a.Shutdown()
 
 	// Create the TTL check to persist
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     10 * time.Minute,
 	}
@@ -1811,7 +1812,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 	defer a.Shutdown()
 
 	// Create a check whose state will expire immediately
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     0,
 	}
@@ -1877,7 +1878,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 
 	// Persist some state to the data dir
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     time.Minute,
 	}
