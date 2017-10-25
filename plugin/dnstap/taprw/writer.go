@@ -4,6 +4,7 @@ package taprw
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/coredns/coredns/plugin/dnstap/msg"
 
@@ -41,9 +42,9 @@ func (w ResponseWriter) DnstapError() error {
 	return w.err
 }
 
-// QueryEpoch sets the query epoch as reported by dnstap.
-func (w *ResponseWriter) QueryEpoch() {
-	w.queryEpoch = msg.Epoch()
+// SetQueryEpoch sets the query epoch as reported by dnstap.
+func (w *ResponseWriter) SetQueryEpoch() {
+	w.queryEpoch = uint64(time.Now().Unix())
 }
 
 // WriteMsg writes back the response to the client and THEN works on logging the request
@@ -51,7 +52,7 @@ func (w *ResponseWriter) QueryEpoch() {
 // Dnstap errors are to be checked by DnstapError.
 func (w *ResponseWriter) WriteMsg(resp *dns.Msg) (writeErr error) {
 	writeErr = w.ResponseWriter.WriteMsg(resp)
-	writeEpoch := msg.Epoch()
+	writeEpoch := uint64(time.Now().Unix())
 
 	b := w.TapBuilder()
 	b.TimeSec = w.queryEpoch

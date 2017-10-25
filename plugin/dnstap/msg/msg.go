@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"time"
 
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
@@ -101,16 +100,6 @@ func (d *Data) Pack(m *dns.Msg) error {
 	}
 	d.Packed = packed
 	return nil
-}
-
-// Epoch returns the epoch time in seconds.
-func Epoch() uint64 {
-	return uint64(time.Now().Unix())
-}
-
-// Epoch sets the dnstap message epoch.
-func (d *Data) Epoch() {
-	d.TimeSec = Epoch()
 }
 
 // ToClientResponse transforms Data into a client response message.

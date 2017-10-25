@@ -79,7 +79,7 @@ func (h Dnstap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	newCtx := context.WithValue(ctx, DnstapSendOption, &sendOption)
 
 	rw := &taprw.ResponseWriter{ResponseWriter: w, Tapper: &h, Query: r, Send: &sendOption}
-	rw.QueryEpoch()
+	rw.SetQueryEpoch()
 
 	code, err := plugin.NextOrFailure(h.Name(), h.Next, tapContext{newCtx, h}, rw, r)
 	if err != nil {

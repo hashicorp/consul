@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"testing"
+	"time"
 
 	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/plugin/dnstap/test"
@@ -18,7 +19,7 @@ func testCase(t *testing.T, ex Exchanger, q, r *dns.Msg, datq, datr *msg.Data) {
 	tapr := datr.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE)
 	ctx := test.Context{}
 	err := toDnstap(&ctx, "10.240.0.1:40212", ex,
-		request.Request{W: &mwtest.ResponseWriter{}, Req: q}, r, 0, 0)
+		request.Request{W: &mwtest.ResponseWriter{}, Req: q}, r, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func TestDnstap(t *testing.T) {
 }
 
 func TestNoDnstap(t *testing.T) {
-	err := toDnstap(context.TODO(), "", nil, request.Request{}, nil, 0, 0)
+	err := toDnstap(context.TODO(), "", nil, request.Request{}, nil, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}

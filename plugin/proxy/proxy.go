@@ -9,12 +9,9 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/dnstap"
-	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
-	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
@@ -89,20 +86,18 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			}
 
 			atomic.AddInt64(&host.Conns, 1)
-			queryEpoch := msg.Epoch()
 
 			RequestCount.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Add(1)
 
 			reply, backendErr = upstream.Exchanger().Exchange(ctx, host.Name, state)
 
-			respEpoch := msg.Epoch()
 			atomic.AddInt64(&host.Conns, -1)
 
 			if child != nil {
 				child.Finish()
 			}
 
-			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply, queryEpoch, respEpoch)
+			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply, start)
 
 			if backendErr == nil {
 				w.WriteMsg(reply)
@@ -171,43 +166,6 @@ func (p Proxy) match(state request.Request) (u Upstream) {
 
 // Name implements the Handler interface.
 func (p Proxy) Name() string { return "proxy" }
-
-func toDnstap(ctx context.Context, host string, ex Exchanger, state request.Request, reply *dns.Msg, queryEpoch, respEpoch uint64) (err error) {
-	if tapper := dnstap.TapperFromContext(ctx); tapper != nil {
-		// Query
-		b := tapper.TapBuilder()
-		b.TimeSec = queryEpoch
-		if err = b.HostPort(host); err != nil {
-			return
-		}
-		t := ex.Transport()
-		if t == "" {
-			t = state.Proto()
-		}
-		if t == "tcp" {
-			b.SocketProto = tap.SocketProtocol_TCP
-		} else {
-			b.SocketProto = tap.SocketProtocol_UDP
-		}
-		if err = b.Msg(state.Req); err != nil {
-			return
-		}
-		err = tapper.TapMessage(b.ToOutsideQuery(tap.Message_FORWARDER_QUERY))
-		if err != nil {
-			return
-		}
-
-		// Response
-		if reply != nil {
-			b.TimeSec = respEpoch
-			if err = b.Msg(reply); err != nil {
-				return
-			}
-			err = tapper.TapMessage(b.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE))
-		}
-	}
-	return
-}
 
 const (
 	defaultFailTimeout = 2 * time.Second
