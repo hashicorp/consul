@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/unique"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
@@ -112,7 +111,7 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := unique.ID()
+	id := NodeID()
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(

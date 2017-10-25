@@ -15,11 +15,19 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/mock"
-	"github.com/hashicorp/consul/agent/unique"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
+	uuid "github.com/hashicorp/go-uuid"
 )
+
+func uniqueID() string {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
 
 func TestCheckMonitor_Script(t *testing.T) {
 	tests := []struct {
@@ -39,7 +47,7 @@ func TestCheckMonitor_Script(t *testing.T) {
 				CheckID:  types.CheckID("foo"),
 				Script:   tt.script,
 				Interval: 25 * time.Millisecond,
-				Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 			}
 			check.Start()
 			defer check.Stop()
@@ -74,7 +82,7 @@ func TestCheckMonitor_Args(t *testing.T) {
 				CheckID:    types.CheckID("foo"),
 				ScriptArgs: tt.args,
 				Interval:   25 * time.Millisecond,
-				Logger:     log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+				Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 			}
 			check.Start()
 			defer check.Stop()
@@ -99,7 +107,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		ScriptArgs: []string{"sh", "-c", "sleep 1 && exit 0"},
 		Interval:   50 * time.Millisecond,
 		Timeout:    25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -123,7 +131,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		CheckID:    types.CheckID("foo"),
 		ScriptArgs: []string{"sh", "-c", "exit 0"},
 		Interval:   25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -148,7 +156,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		CheckID:    types.CheckID("foo"),
 		ScriptArgs: []string{"od", "-N", "81920", "/dev/urandom"},
 		Interval:   25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -168,7 +176,7 @@ func TestCheckTTL(t *testing.T) {
 		Notify:  notif,
 		CheckID: types.CheckID("foo"),
 		TTL:     200 * time.Millisecond,
-		Logger:  log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:  log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
@@ -292,7 +300,7 @@ func TestCheckHTTP(t *testing.T) {
 				Method:   tt.method,
 				Header:   tt.header,
 				Interval: 10 * time.Millisecond,
-				Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 			}
 			check.Start()
 			defer check.Stop()
@@ -328,7 +336,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		HTTP:     server.URL,
 		Timeout:  timeout,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -349,7 +357,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		CheckID:  types.CheckID("foo"),
 		HTTP:     "http://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -366,7 +374,7 @@ func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
 		CheckID:  "foo",
 		HTTP:     "https://foo.bar/baz",
 		Interval: 10 * time.Second,
-		Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 
 	check.Start()
@@ -398,7 +406,7 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      25 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 
@@ -430,7 +438,7 @@ func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_true"),
 		HTTP:          server.URL,
 		Interval:      5 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		TLSSkipVerify: true,
 	}
 	check.Start()
@@ -458,7 +466,7 @@ func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
 		CheckID:       types.CheckID("skipverify_false"),
 		HTTP:          server.URL,
 		Interval:      100 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		TLSSkipVerify: false,
 	}
 
@@ -505,7 +513,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 		CheckID:  types.CheckID("foo"),
 		TCP:      tcp,
 		Interval: 10 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, unique.ID(), log.LstdFlags),
+		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
