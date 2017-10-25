@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -42,16 +43,14 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var found bool
-	for _, g := range metrics.Gauges {
-		if g.Name == "consul.runtime.alloc_bytes" {
-			found = true
-			break
+	retry.Run(t, func(r *retry.R) {
+		for _, g := range metrics.Gauges {
+			if g.Name == "consul.runtime.alloc_bytes" {
+				return
+			}
 		}
-	}
-	if !found {
-		t.Fatalf("missing runtime metrics")
-	}
+		r.Fatalf("missing runtime metrics")
+	})
 }
 
 func TestAPI_AgentReload(t *testing.T) {
