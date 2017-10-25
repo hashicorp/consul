@@ -62,6 +62,8 @@ dependencies:
 
 (You can do the checkout and dependency resolution as a single step with: `go get github.com/coredns/coredns`.)
 
+Some of the dependencies require Go version 1.8 or later.
+
 And then `go build` as you would normally do:
 
     go build
