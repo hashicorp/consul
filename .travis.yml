@@ -15,18 +15,17 @@ git:
   depth: 3
 
 env:
-  - TEST_TYPE=coverage ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
-  - TEST_TYPE=integration ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
-  - TEST_TYPE=core ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
-  - TEST_TYPE=plugin ETCD_VERSION=2.3.1 K8S_VERSION=1.5.0 KUBECTL="docker exec hyperkube /hyperkube kubectl"
+  - TEST_TYPE=coverage ETCD_VERSION=2.3.1
+  - TEST_TYPE=integration ETCD_VERSION=2.3.1
+  - TEST_TYPE=core ETCD_VERSION=2.3.1
+  - TEST_TYPE=plugin ETCD_VERSION=2.3.1
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
 # is needed to have access to sudo in the test environment. Sudo is
-# needed to have docker in the test environment. Docker is needed to
-# launch a Kubernetes instance in the test environment.
-# (Dependencies are fun! :) )
+# needed to have docker in the test environment.
+
 before_install:
   - cat /proc/net/if_inet6
   - uname -a
@@ -36,17 +35,6 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
-  - docker run -d --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --volume=`pwd`/.travis:/travis --net=host --pid=host --privileged --name=hyperkube gcr.io/google_containers/hyperkube-amd64:v$K8S_VERSION /hyperkube kubelet --containerized --hostname-override=127.0.0.1 --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --allow-privileged --v=2
-  # Wait until kubectl is ready
-  - for i in {1..10}; do $KUBECTL version && break || sleep 5; done
-  - $KUBECTL version
-  - $KUBECTL config set-cluster test-doc --server=http://localhost:8080
-  - $KUBECTL config set-context test-doc --cluster=test-doc
-  - $KUBECTL config use-context test-doc
-  # Wait until k8s is ready
-  - for i in {1..30}; do $KUBECTL get nodes && break || sleep 5; done
-  - $KUBECTL create -f /travis/kubernetes/dns-test.yaml
-  - docker ps -a
 
 script:
   - make TEST_TYPE=$TEST_TYPE travis

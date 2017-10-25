@@ -31,21 +31,21 @@ godeps:
 .PHONY: travis
 travis: check
 ifeq ($(TEST_TYPE),core)
-	( cd request ; go test -v  -tags 'etcd k8s' -race ./... )
-	( cd core ; go test -v  -tags 'etcd k8s' -race  ./... )
-	( cd coremain go test -v  -tags 'etcd k8s' -race ./... )
+	( cd request ; go test -v  -tags 'etcd' -race ./... )
+	( cd core ; go test -v  -tags 'etcd' -race  ./... )
+	( cd coremain go test -v  -tags 'etcd' -race ./... )
 endif
 ifeq ($(TEST_TYPE),integration)
-	( cd test ; go test -v  -tags 'etcd k8s' -race ./... )
+	( cd test ; go test -v  -tags 'etcd' -race ./... )
 endif
 ifeq ($(TEST_TYPE),plugin)
-	( cd plugin ; go test -v  -tags 'etcd k8s' -race ./... )
+	( cd plugin ; go test -v  -tags 'etcd' -race ./... )
 endif
 ifeq ($(TEST_TYPE),coverage)
 	for d in `go list ./... | grep -v vendor`; do \
 		t=$$(date +%s); \
-		go test -i -tags 'etcd k8s' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
-		go test -v -tags 'etcd k8s' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
+		go test -i -tags 'etcd' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
+		go test -v -tags 'etcd' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
 		echo "Coverage test $$d took $$(($$(date +%s)-t)) seconds"; \
 		if [ -f cover.out ]; then \
 			cat cover.out >> coverage.txt; \
@@ -53,7 +53,6 @@ ifeq ($(TEST_TYPE),coverage)
 		fi; \
 	done
 endif
-
 
 core/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
 	go generate coredns.go
