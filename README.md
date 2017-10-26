@@ -55,16 +55,16 @@ here](https://coredns.io). If you do want to use CoreDNS in production, please l
 
 ## Compilation
 
-If you have the source of CoreDNS checked out in the appropriate place in your `GOPATH`, get all
-dependencies:
+Check out the project and do dependency resolution with:
 
-    go get ./...
-
-(You can do the checkout and dependency resolution as a single step with: `go get github.com/coredns/coredns`.)
+    go get github.com/coredns/coredns
 
 Some of the dependencies require Go version 1.8 or later.
 
-And then `go build` as you would normally do:
+(If you already have the source of CoreDNS checked out in the appropriate place in your `GOPATH`, you can get all
+dependencies with `go get ./...`.)
+
+Then use `go build` as you would normally do:
 
     go build
 
