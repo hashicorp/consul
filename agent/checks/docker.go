@@ -155,7 +155,7 @@ func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, e
 	uri := fmt.Sprintf("/exec/%s/start", execID)
 	b, code, err := c.call("POST", uri, data)
 	switch {
-	case err != nil:
+	case err != nil && !strings.Contains(err.Error(), "connection reset by peer"):
 		return nil, fmt.Errorf("start exec failed for container %s: %s", containerID, err)
 	case code == 200:
 		return b, nil
