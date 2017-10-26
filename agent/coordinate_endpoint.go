@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -85,22 +86,53 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	// Use empty list instead of nil.
-	if out.Coordinates == nil {
-		out.Coordinates = make(structs.Coordinates, 0)
+	return filterCoordinates(req, "", out.Coordinates), nil
+}
+
+// CoordinateNode returns the LAN node in the given datacenter, along with
+// raw network coordinates.
+func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
-	// Filter by segment if applicable
-	if v, ok := req.URL.Query()["segment"]; ok && len(v) > 0 {
-		segment := v[0]
-		filtered := make(structs.Coordinates, 0)
-		for _, coord := range out.Coordinates {
-			if coord.Segment == segment {
-				filtered = append(filtered, coord)
-			}
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var out structs.IndexedCoordinates
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Coordinate.ListNodes", &args, &out); err != nil {
+		sort.Sort(&sorter{out.Coordinates})
+		return nil, err
+	}
+
+	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
+	return filterCoordinates(req, node, out.Coordinates), nil
+}
+
+func filterCoordinates(req *http.Request, node string, in structs.Coordinates) structs.Coordinates {
+	out := structs.Coordinates{}
+
+	if in == nil {
+		return out
+	}
+
+	segment := ""
+	v, filterBySegment := req.URL.Query()["segment"]
+	if filterBySegment && len(v) > 0 {
+		segment = v[0]
+	}
+
+	for _, c := range in {
+		if node != "" && c.Node != node {
+			continue
 		}
-		out.Coordinates = filtered
+		if filterBySegment && c.Segment != segment {
+			continue
+		}
+		out = append(out, c)
 	}
-
-	return out.Coordinates, nil
+	return out
 }
