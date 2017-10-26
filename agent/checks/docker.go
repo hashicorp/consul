@@ -164,7 +164,7 @@ func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, e
 	case code == 409:
 		return nil, fmt.Errorf("start exec failed since container %s is paused or stopped", containerID)
 	default:
-		return nil, fmt.Errorf("start exec failed for container %s with status %d: %s", containerID, code, b)
+		return nil, fmt.Errorf("start exec failed for container %s with status %d: body: %s err: %s", containerID, code, b, err)
 	}
 }
 
