@@ -8,13 +8,15 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+var durations = NewDurationFixer("interval", "timeout", "deregistercriticalserviceafter")
+
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	var args structs.RegisterRequest
-	if err := decodeBody(req, &args, nil); err != nil {
+	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil

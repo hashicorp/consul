@@ -7,21 +7,22 @@ import (
 
 // AgentCheck represents a check known to the agent
 type AgentCheck struct {
-	Node          string
-	CheckID       string
-	Name          string
-	Status        string
-	Notes         string
-	Output        string
-	ServiceID     string
-	ServiceName   string
-	HTTP          string
-	Header        map[string][]string
-	Method        string
-	TLSSkipVerify bool
-	TCP           string
-	Interval      string
-	Timeout       string
+	Node                           string
+	CheckID                        string
+	Name                           string
+	Status                         string
+	Notes                          string
+	Output                         string
+	ServiceID                      string
+	ServiceName                    string
+	HTTP                           string
+	Header                         map[string][]string
+	Method                         string
+	TLSSkipVerify                  bool
+	TCP                            string
+	Interval                       ReadableDuration
+	Timeout                        ReadableDuration
+	DeregisterCriticalServiceAfter ReadableDuration
 }
 
 // AgentService represents a service known to the agent

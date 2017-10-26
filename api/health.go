@@ -35,13 +35,14 @@ type HealthCheck struct {
 	ServiceName string
 	ServiceTags []string
 
-	HTTP          string
-	Header        map[string][]string
-	Method        string
-	TLSSkipVerify bool
-	TCP           string
-	Interval      string
-	Timeout       string
+	HTTP                           string
+	Header                         map[string][]string
+	Method                         string
+	TLSSkipVerify                  bool
+	TCP                            string
+	Interval                       ReadableDuration
+	Timeout                        ReadableDuration
+	DeregisterCriticalServiceAfter ReadableDuration
 }
 
 // HealthChecks is a collection of HealthCheck structs.
