@@ -54,6 +54,13 @@ func NewDockerClient(host string, maxbuf int64) (*DockerClient, error) {
 	}, nil
 }
 
+func (c *DockerClient) Close() error {
+	if t, ok := c.client.Transport.(*http.Transport); ok {
+		t.CloseIdleConnections()
+	}
+	return nil
+}
+
 func (c *DockerClient) Host() string {
 	return c.host
 }
