@@ -54,6 +54,13 @@ func NewDockerClient(host string, maxbuf int64) (*DockerClient, error) {
 	}, nil
 }
 
+func (c *DockerClient) Close() error {
+	if t, ok := c.client.Transport.(*http.Transport); ok {
+		t.CloseIdleConnections()
+	}
+	return nil
+}
+
 func (c *DockerClient) Host() string {
 	return c.host
 }
@@ -151,11 +158,17 @@ func (c *DockerClient) CreateExec(containerID string, cmd []string) (string, err
 }
 
 func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, error) {
-	data := struct{ Detach, Tty bool }{Detach: false, Tty: true}
+	data := struct{ Detach, Tty bool }{Detach: false, Tty: false}
 	uri := fmt.Sprintf("/exec/%s/start", execID)
 	b, code, err := c.call("POST", uri, data)
 	switch {
-	case err != nil:
+	// todo(fs): https://github.com/hashicorp/consul/pull/3621
+	// todo(fs): for some reason the docker agent closes the connection during the
+	// todo(fs): io.Copy call in c.call which causes a "connection reset by peer" error
+	// todo(fs): even though both body and status code have been received. My current is
+	// todo(fs): that the docker agent closes this prematurely but I don't understand why.
+	// todo(fs): the code below ignores this error.
+	case err != nil && !strings.Contains(err.Error(), "connection reset by peer"):
 		return nil, fmt.Errorf("start exec failed for container %s: %s", containerID, err)
 	case code == 200:
 		return b, nil
@@ -164,7 +177,7 @@ func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, e
 	case code == 409:
 		return nil, fmt.Errorf("start exec failed since container %s is paused or stopped", containerID)
 	default:
-		return nil, fmt.Errorf("start exec failed for container %s with status %d: %s", containerID, code, b)
+		return nil, fmt.Errorf("start exec failed for container %s with status %d: body: %s err: %s", containerID, code, b, err)
 	}
 }
 
