@@ -42,7 +42,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	}
 	verify.Values(t, "", all, structs.Coordinates{})
 
-	coords, err := s.Coordinate("nope")
+	_, coords, err := s.Coordinate("nope", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -102,7 +102,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// Also verify the per-node coordinate interface.
 	for _, update := range updates {
-		coords, err := s.Coordinate(update.Node)
+		_, coords, err := s.Coordinate(update.Node, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -133,7 +133,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// And check the per-node coordinate version of the same thing.
 	for _, update := range updates {
-		coords, err := s.Coordinate(update.Node)
+		_, coords, err := s.Coordinate(update.Node, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -188,7 +188,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	}
 
 	// Make sure it's in there.
-	coords, err := s.Coordinate("node1")
+	_, coords, err := s.Coordinate("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -204,7 +204,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	}
 
 	// Make sure the coordinate is gone.
-	coords, err = s.Coordinate("node1")
+	_, coords, err = s.Coordinate("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

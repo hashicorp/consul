@@ -83,3 +83,24 @@ func (c *Coordinate) Update(coord *CoordinateEntry, q *WriteOptions) (*WriteMeta
 
 	return wm, nil
 }
+
+// Node is used to return the coordinates of a single in the LAN pool.
+func (c *Coordinate) Node(node string, q *QueryOptions) ([]*CoordinateEntry, *QueryMeta, error) {
+	r := c.c.newRequest("GET", "/v1/coordinate/node/"+node)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out []*CoordinateEntry
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
