@@ -174,3 +174,51 @@ $ curl \
 In **Consul Enterprise**, this may include multiple coordinates for the same node,
 each marked with a different `Segment`. Coordinates are only compatible within the same
 segment.
+
+## Update LAN Coordinates for a node
+
+This endpoint updates the LAN network coordinates for a node in a given
+datacenter.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `PUT`  | `/coordinate/update`         | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required |
+| ---------------- | ----------------- | ------------ |
+| `NO`             | `none`            | `node:write` |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+### Sample Payload
+
+```text
+{
+  "Node": "agent-one",
+  "Segment": "",
+  "Coord": {
+    "Adjustment": 0,
+    "Error": 1.5,
+    "Height": 0,
+    "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+  }
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    https://consul.rocks/v1/coordinate/update
+```
