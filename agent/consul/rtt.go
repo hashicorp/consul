@@ -22,7 +22,7 @@ func (s *Server) newNodeSorter(cs lib.CoordinateSet, nodes structs.Nodes) (sort.
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		other, err := state.Coordinate(node.Node)
+		_, other, err := state.Coordinate(node.Node, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,7 @@ func (s *Server) newServiceNodeSorter(cs lib.CoordinateSet, nodes structs.Servic
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		other, err := state.Coordinate(node.Node)
+		_, other, err := state.Coordinate(node.Node, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (s *Server) newHealthCheckSorter(cs lib.CoordinateSet, checks structs.Healt
 	state := s.fsm.State()
 	vec := make([]float64, len(checks))
 	for i, check := range checks {
-		other, err := state.Coordinate(check.Node)
+		_, other, err := state.Coordinate(check.Node, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +142,7 @@ func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes structs.C
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		other, err := state.Coordinate(node.Node.Node)
+		_, other, err := state.Coordinate(node.Node.Node, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +203,7 @@ func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interf
 	// There won't always be coordinates for the source node. If there are
 	// none then we can bail out because there's no meaning for the sort.
 	state := s.fsm.State()
-	cs, err := state.Coordinate(source.Node)
+	_, cs, err := state.Coordinate(source.Node, nil)
 	if err != nil {
 		return err
 	}

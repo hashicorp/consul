@@ -96,19 +96,19 @@ func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request)
 		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
-	args := structs.DCSpecificRequest{}
+	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
+	args := structs.NodeSpecificRequest{Node: node}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
 
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("Coordinate.ListNodes", &args, &out); err != nil {
+	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
 		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
 	}
 
-	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
 	return filterCoordinates(req, node, out.Coordinates), nil
 }
 
