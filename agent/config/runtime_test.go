@@ -178,6 +178,50 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-config-dir",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "a"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{"datacenter":"a"}`))
+			},
+		},
+		{
+			desc: "-config-file json",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-file`, filepath.Join(dataDir, "conf.json"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "a"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.json"), []byte(`{"datacenter":"a"}`))
+			},
+		},
+		{
+			desc: "-config-file hcl and json",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-file`, filepath.Join(dataDir, "conf.hcl"),
+				`-config-file`, filepath.Join(dataDir, "conf.json"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "b"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.hcl"), []byte(`datacenter = "a"`))
+				writeFile(filepath.Join(dataDir, "conf.json"), []byte(`{"datacenter":"b"}`))
+			},
+		},
+		{
 			desc: "-data-dir empty",
 			args: []string{
 				`-data-dir=`,
@@ -1892,6 +1936,15 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 				flags.Args = fs.Args()
 
+				if tt.pre != nil {
+					tt.pre()
+				}
+				defer func() {
+					if tt.post != nil {
+						tt.post()
+					}
+				}()
+
 				// Then create a builder with the flags.
 				b, err := NewBuilder(flags)
 				if err != nil {
@@ -1937,14 +1990,6 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 
 				// build/merge the config fragments
-				if tt.pre != nil {
-					tt.pre()
-				}
-				defer func() {
-					if tt.post != nil {
-						tt.post()
-					}
-				}()
 				rt, err := b.BuildAndValidate()
 				if err == nil && tt.err != "" {
 					t.Fatalf("got no error want %q", tt.err)
