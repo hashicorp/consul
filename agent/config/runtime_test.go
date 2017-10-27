@@ -1723,9 +1723,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			pre: func() {
 				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
 			},
-			post: func() {
-				os.Remove(filepath.Join(filepath.Join(dataDir, SerfLANKeyring)))
-			},
 			warns: []string{`WARNING: LAN keyring exists but -encrypt given, using keyring`},
 		},
 		{
@@ -1744,9 +1741,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			pre: func() {
 				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
-			},
-			post: func() {
-				os.Remove(filepath.Join(filepath.Join(dataDir, SerfWANKeyring)))
 			},
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},
@@ -1855,6 +1849,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 func testConfig(t *testing.T, tests []configTest, dataDir string) {
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
+			// clean data dir before every test
+			cleanDir(dataDir)
+
 			// when we test only flags then there are no JSON or HCL
 			// sources and we need to make only one pass over the
 			// tests.
@@ -4023,6 +4020,19 @@ func writeFile(path string, data []byte) {
 		panic(err)
 	}
 	if err := ioutil.WriteFile(path, data, 0640); err != nil {
+		panic(err)
+	}
+}
+
+func cleanDir(path string) {
+	root := path
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if path == root {
+			return nil
+		}
+		return os.RemoveAll(path)
+	})
+	if err != nil {
 		panic(err)
 	}
 }
