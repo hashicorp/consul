@@ -86,7 +86,7 @@ OUTER:
 		if oldIndex != 0 && reflect.DeepEqual(p.lastResult, result) {
 			continue
 		}
-		if p.lastIndex < oldIndex {
+		if p.Type != "event" && p.lastIndex < oldIndex {
 			p.lastIndex = 0
 		}
 
