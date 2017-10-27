@@ -362,6 +362,43 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-config-format=json",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-format=json`,
+				`-config-file`, filepath.Join(dataDir, "conf"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "a"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf"), []byte(`{"datacenter":"a"}`))
+			},
+		},
+		{
+			desc: "-config-format=hcl",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-format=hcl`,
+				`-config-file`, filepath.Join(dataDir, "conf"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "a"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf"), []byte(`datacenter = "a"`))
+			},
+		},
+		{
+			desc: "-config-format invalid",
+			args: []string{
+				`-config-format=foobar`,
+			},
+			err: "-config-format must be either 'hcl' or 'json'",
+		},
+		{
 			desc: "-http-port",
 			args: []string{
 				`-http-port=123`,
@@ -1976,14 +2013,14 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				// read the source fragements
 				for i, data := range srcs {
 					b.Sources = append(b.Sources, Source{
-						Name:   fmt.Sprintf("%s-%d", format, i),
+						Name:   fmt.Sprintf("src-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
 				}
 				for i, data := range tails {
 					b.Tail = append(b.Tail, Source{
-						Name:   fmt.Sprintf("%s-%d", format, i),
+						Name:   fmt.Sprintf("tail-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
@@ -3526,7 +3563,7 @@ func TestFullConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewBuilder: %s", err)
 			}
-			b.Sources = append(b.Sources, Source{Name: "full", Format: format, Data: data})
+			b.Sources = append(b.Sources, Source{Name: "full." + format, Data: data})
 			b.Tail = append(b.Tail, tail[format]...)
 			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 

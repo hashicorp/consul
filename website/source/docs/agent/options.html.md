@@ -125,6 +125,12 @@ will exit with an error at startup.
   For more information on the format of the configuration files, see the
   [Configuration Files](#configuration_files) section.
 
+* <a name="_config_format"></a><a href="#_config_format">`-config-format`</a> - The format
+  of the configuration files to load. Normally, Consul detects the format of the
+  config files from the ".json" or ".hcl" extension. Setting this option to
+  either "json" or "hcl" forces Consul to interpret any file with or without
+  extension to be interpreted in that format.
+
 * <a name="_data_dir"></a><a href="#_data_dir">`-data-dir`</a> - This flag provides
   a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.

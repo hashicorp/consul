@@ -119,7 +119,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 	b.Tail = append(b.Tail, newSource("flags.values", values))
 	for i, s := range b.Flags.HCL {
 		b.Tail = append(b.Tail, Source{
-			Name:   fmt.Sprintf("flags.hcl.%d", i),
+			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
 			Data:   s,
 		})
@@ -133,10 +133,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 // ReadPath reads a single config file or all files in a directory (but
 // not its sub-directories) and appends them to the list of config
-// sources. If path refers to a file then the format is assumed to be
-// JSON unless the file has a '.hcl' suffix. If path refers to a
-// directory then the format is determined by the suffix and only files
-// with a '.json' or '.hcl' suffix are processed.
+// sources.
 func (b *Builder) ReadPath(path string) ([]Source, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -172,11 +169,6 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		// skip files without json or hcl extension
-		if !strings.HasSuffix(fi.Name(), ".json") && !strings.HasSuffix(fi.Name(), ".hcl") {
-			continue
-		}
-
 		src, err := b.ReadFile(filepath.Join(path, fi.Name()))
 		if err != nil {
 			return nil, err
@@ -189,14 +181,11 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 // ReadFile parses a JSON or HCL config file and appends it to the list of
 // config sources.
 func (b *Builder) ReadFile(path string) (Source, error) {
-	if !strings.HasSuffix(path, ".json") && !strings.HasSuffix(path, ".hcl") {
-		return Source{}, fmt.Errorf(`Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, path)
-	}
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
 	}
-	return NewSource(path, string(data)), nil
+	return Source{Name: path, Data: string(data)}, nil
 }
 
 type byName []os.FileInfo
@@ -230,10 +219,24 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// merge config sources as follows
 	//
 
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
+		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
+	}
+
 	// build the list of config sources
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
-	srcs = append(srcs, b.Sources...)
+	for _, src := range b.Sources {
+		src.Format = FormatFrom(src.Name)
+		if configFormat != "" {
+			src.Format = configFormat
+		}
+		if src.Format == "" {
+			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
+		}
+		srcs = append(srcs, src)
+	}
 	srcs = append(srcs, b.Tail...)
 
 	// parse the config sources into a configuration
