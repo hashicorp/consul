@@ -70,19 +70,30 @@ commit:
 
 .PHONY: build
 build:
+	@echo Cleaning old builds
+	rm -rf build
 	@echo Building: linux  $(VERSION)
-	mkdir -p build/Linux      && $(MAKE) coredns BINARY=build/Linux/$(NAME) SYSTEM="GOOS=linux"
+	mkdir -p build/linux/$(ARCH)      && $(MAKE) coredns BINARY=build/linux/$(ARCH)/$(NAME) SYSTEM="GOOS=linux"
 	@echo Building: darwin $(VERSION)
-	mkdir -p build/Darwin     && $(MAKE) coredns BINARY=build/Darwin/$(NAME) SYSTEM="GOOS=darwin"
+	mkdir -p build/darwin/$(ARCH)     && $(MAKE) coredns BINARY=build/darwin/$(ARCH)/$(NAME) SYSTEM="GOOS=darwin"
 	@echo Building: arm    $(VERSION)
-	mkdir -p build/Linux/Arm  && $(MAKE) coredns BINARY=build/Linux/Arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm"
+	mkdir -p build/linux/arm  && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm"
+	@echo Building: arm64  $(VERSION)
+	mkdir -p build/linux/arm64 && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64"
+	@echo Building: ppc64  $(VERSION)
+	mkdir -p build/linux/ppc64 && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le"
+	@echo Building: s390x  $(VERSION)
+	mkdir -p build/linux/s390 && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x"
 
 .PHONY: tar
 tar:
 	rm -rf release && mkdir release
-	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/Linux $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_armv6l.tgz -C build/Linux/Arm $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/Darwin $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/linux/$(ARCH) $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/darwin/$(ARCH) $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_armv6l.tgz -C build/linux/arm $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_armv8l.tgz -C build/linux/arm64 $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz -C build/linux/ppc64 $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_s390x.tgz -C build/linux/s390 $(NAME)
 
 .PHONY: upload
 upload:
