@@ -7,7 +7,7 @@ import (
 
 const (
 	// minRate is the minimum rate at which we allow an action to be performed
-	// acorss the whole cluster. The value is once a day: 1 / (1 * time.Day)
+	// across the whole cluster. The value is once a day: 1 / (1 * time.Day)
 	minRate = 1.0 / 86400
 )
 
