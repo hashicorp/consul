@@ -1,43 +1,38 @@
 # Makefile for releasing CoreDNS
 #
-# The release binaries are built through docker run like
-# make coredns
+# The release is controlled from coremain/version.go. The version found there is
+# used to tag the git repo and to build the assets that are uploaded to github
+# (after some sanity checks).
 #
-# There advantage of the above command is that we could control reused
-# the binary generation from the default `Makefile`, instread of repeating
-# in `Makefile.release`.
+# The release should be accompanied by release notes published on coredns.io.
+# For example: https://coredns.io/2016/09/18/coredns-001-release/ Also send an
+# email to coredns-discuss@ to announce the new version.
 #
-# The release is controlled from coremain/version.go. The version found
-# there is used to tag the git repo and to build the assets that are
-# uploaded to github (after some sanity checks).
-#
-# The release should be accompanied by release notes published on
-# coredns.io. For example:
-# https://coredns.io/2016/09/18/coredns-001-release/
-# Also send an email to coredns-discuss@ to announce the new version.
-#
-# We use https://github.com/progrium/gh-release to automate github stuff
-# be sure to have that binary in your path.
+# We use https://github.com/progrium/gh-release to automate github stuff be sure
+# to have that binary in your path.
 #
 # Get a list of authors for this release with:
 #
-# git log --pretty=format:'%an' v001..master | sort -u
-# (where v001 is the previous release, obviously you'll need to adjust this)
-#
+# git log --pretty=format:'%an' v001..master | sort -u (where v001 is the
+# previous release, obviously you'll need to adjust this)
+# 
 # Steps:
+#
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
 # * Up the version in coremain/version.go
 # * Run: make -f Makefile.release release
-#   * will commit your change with 'Release $VERSION'
+#   * will *commit* your change with 'Release $VERSION'
 #   * push to github
 #   * build the release and do all that fluff.
 #
-# Steps for docker
+# Steps for docker:
+#
 # * Login into docker: docker login (should have push creds for coredns registry)
 # * Run: make -f Makefile.release docker
 #
-# Docker push should happen after you make the new release and uploaded it to Github.
+# Docker push should happen after you make the new release and uploaded it to
+# Github.
 
 ifeq (, $(shell which gh-release))
      $(error "No gh-release in $$PATH, install with `go get progrium/gh-release`")
@@ -71,22 +66,23 @@ commit:
 .PHONY: build
 build:
 	@echo Cleaning old builds
-	rm -rf build
+	rm -rf build && mkdir build
 	@echo Building: linux  $(VERSION)
-	mkdir -p build/linux/$(ARCH)      && $(MAKE) coredns BINARY=build/linux/$(ARCH)/$(NAME) SYSTEM="GOOS=linux"
+	mkdir -p build/linux/$(ARCH)      && $(MAKE) coredns BINARY=build/linux/$(ARCH)/$(NAME) SYSTEM="GOOS=linux" CHECKS=""
 	@echo Building: darwin $(VERSION)
-	mkdir -p build/darwin/$(ARCH)     && $(MAKE) coredns BINARY=build/darwin/$(ARCH)/$(NAME) SYSTEM="GOOS=darwin"
+	mkdir -p build/darwin/$(ARCH)     && $(MAKE) coredns BINARY=build/darwin/$(ARCH)/$(NAME) SYSTEM="GOOS=darwin" CHECKS=""
 	@echo Building: arm    $(VERSION)
-	mkdir -p build/linux/arm  && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm"
+	mkdir -p build/linux/arm  && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm" CHECKS=""
 	@echo Building: arm64  $(VERSION)
-	mkdir -p build/linux/arm64 && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64"
+	mkdir -p build/linux/arm64 && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64" CHECKS=""
 	@echo Building: ppc64  $(VERSION)
-	mkdir -p build/linux/ppc64 && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le"
+	mkdir -p build/linux/ppc64 && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le" CHECKS=""
 	@echo Building: s390x  $(VERSION)
-	mkdir -p build/linux/s390 && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x"
+	mkdir -p build/linux/s390 && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x" CHECKS=""
 
 .PHONY: tar
 tar:
+	@echo Cleaning old releases
 	rm -rf release && mkdir release
 	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/linux/$(ARCH) $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/darwin/$(ARCH) $(NAME)

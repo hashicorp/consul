@@ -1,13 +1,13 @@
+# Makefile for building CoreDNS
 GITCOMMIT:=$(shell git describe --dirty --always)
 BINARY:=coredns
 SYSTEM:=
+CHECKS:=check godeps
 
 all: coredns
 
-# Phony this to ensure we always build the binary.
-# TODO: Add .go file dependencies.
 .PHONY: coredns
-coredns: check godeps
+coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
