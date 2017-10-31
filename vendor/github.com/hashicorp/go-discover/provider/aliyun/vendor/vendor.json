@@ -1,0 +1,8 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{"path":"github.com/denverdino/aliyungo","checksumSHA1":"oZQsGuJDCBW6OoQBgEo6sOfkmi4=","revision":"d3308649c66113b99e257dd5c92fbfdd779380c3","revisionTime":"2017-09-26T05:51:00Z"}
+	],
+	"rootPath": "github.com/hashicorp/go-discover/provider/aliyun"
+}

@@ -21,16 +21,26 @@ sub packages. Additional providers can be added through the
 [Register](https://godoc.org/github.com/hashicorp/go-discover#Register)
 function.
 
- * Amazon AWS [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/aws)
- * Google Cloud [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/gce)
- * Microsoft Azure [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/azure)
- * SoftLayer [Config options](http://godoc.org/github.com/hashicorp/go-discover/provider/softlayer)
+ * Aliyun (Alibaba) Cloud [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/aliyun/aliyun_discover.go#L15-L28)
+ * Amazon AWS [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/aws/aws_discover.go#L19-L33)
+ * DigitalOcean [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/digitalocean/digitalocean_discover.go#L16-L24)
+ * Google Cloud [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/gce/gce_discover.go#L17-L37)
+ * Microsoft Azure [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/azure/azure_discover.go#L16-L30)
+ * Openstack [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/os/os_discover.go#L23-L38)
+ * Scaleway [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/scaleway/scaleway_discover.go#L14-L22)
+ * SoftLayer [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/softlayer/softlayer_discover.go#L16-L25)
 
 ### Config Example
 
 ```
+# Aliyun (Alibaba) Cloud
+provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=...
+
 # Amazon AWS
 provider=aws region=eu-west-1 tag_key=consul tag_value=... access_key_id=... secret_access_key=...
+
+# DigitalOcean
+provider=digitalocean region=... tag_name=... api_token=...
 
 # Google Cloud
 provider=gce project_name=... zone_pattern=eu-west-* tag_value=consul credentials_file=...
@@ -38,8 +48,15 @@ provider=gce project_name=... zone_pattern=eu-west-* tag_value=consul credential
 # Microsoft Azure
 provider=azure tag_name=consul tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=...
 
+# Openstack
+provider=os tag_key=consul tag_value=server username=... password=... auth_url=...
+
+# Scaleway
+provider=scaleway organization=my-org tag_name=consul-server token=... region=...
+
 # SoftLayer
 provider=softlayer datacenter=dal06 tag_value=consul username=... api_key=...
+
 ```
 
 ## Command Line Tool Usage
