@@ -9,12 +9,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 )
 
 func testHostsfile(file string) *Hostsfile {
-	h := &Hostsfile{expire: time.Now().Add(1 * time.Hour), Origins: []string{"."}}
-	h.Parse(strings.NewReader(file))
+	h := &Hostsfile{Origins: []string{"."}}
+	h.parseReader(strings.NewReader(file))
 	return h
 }
 

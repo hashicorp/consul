@@ -141,7 +141,7 @@ func TestHostsInlineParse(t *testing.T) {
 				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fallthrough)
 			}
 			for k, expectedVal := range test.expectedbyAddr {
-				if val, ok := h.byAddr[k]; !ok {
+				if val, ok := h.hmap.byAddr[k]; !ok {
 					t.Fatalf("Test %d expected %v, got no entry", i, k)
 				} else {
 					if len(expectedVal) != len(val) {

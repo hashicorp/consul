@@ -3,7 +3,6 @@ package hosts
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
@@ -13,8 +12,8 @@ import (
 )
 
 func TestLookupA(t *testing.T) {
-	h := Hosts{Next: test.ErrorHandler(), Hostsfile: &Hostsfile{expire: time.Now().Add(1 * time.Hour), Origins: []string{"."}}}
-	h.Parse(strings.NewReader(hostsExample))
+	h := Hosts{Next: test.ErrorHandler(), Hostsfile: &Hostsfile{Origins: []string{"."}}}
+	h.parseReader(strings.NewReader(hostsExample))
 
 	ctx := context.TODO()
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -25,6 +26,30 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("hosts", err)
 	}
 
+	parseChan := make(chan bool)
+
+	c.OnStartup(func() error {
+		h.readHosts()
+
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			for {
+				select {
+				case <-parseChan:
+					return
+				case <-ticker.C:
+					h.readHosts()
+				}
+			}
+		}()
+		return nil
+	})
+
+	c.OnShutdown(func() error {
+		close(parseChan)
+		return nil
+	})
+
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		h.Next = next
 		return h
@@ -35,12 +60,15 @@ func setup(c *caddy.Controller) error {
 
 func hostsParse(c *caddy.Controller) (Hosts, error) {
 	var h = Hosts{
-		Hostsfile: &Hostsfile{path: "/etc/hosts"},
+		Hostsfile: &Hostsfile{
+			path: "/etc/hosts",
+			hmap: newHostsMap(),
+		},
 	}
-	defer h.ReadHosts()
 
 	config := dnsserver.GetConfig(c)
 
+	inline := []string{}
 	for c.Next() {
 		args := c.RemainingArgs()
 		if len(args) >= 1 {
@@ -86,12 +114,15 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 			default:
 				if !h.Fallthrough {
 					line := strings.Join(append([]string{c.Val()}, c.RemainingArgs()...), " ")
-					h.inline = append(h.inline, line)
+					inline = append(inline, line)
 					continue
 				}
 				return h, c.Errf("unknown property '%s'", c.Val())
 			}
 		}
 	}
+
+	h.initInline(inline)
+
 	return h, nil
 }

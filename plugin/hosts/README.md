@@ -17,7 +17,8 @@ hosts [FILE [ZONES...]] {
 ~~~
 
 * **FILE** the hosts file to read and parse. If the path is relative the path from the *root*
-  directive will be prepended to it. Defaults to /etc/hosts if omitted
+  directive will be prepended to it. Defaults to /etc/hosts if omitted. We scan the file for changes 
+  every 5 seconds.
 * **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
    are used.
 * **INLINE** the hosts file contents inlined in Corefile. If there are any lines before fallthrough

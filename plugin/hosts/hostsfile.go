@@ -19,8 +19,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 )
 
-const cacheMaxAge = 5 * time.Second
-
 func parseLiteralIP(addr string) net.IP {
 	if i := strings.Index(addr, "%"); i >= 0 {
 		// discard ipv6 zone
@@ -34,13 +32,7 @@ func absDomainName(b string) string {
 	return plugin.Name(b).Normalize()
 }
 
-// Hostsfile contains known host entries.
-type Hostsfile struct {
-	sync.RWMutex
-
-	// list of zones we are authoritive for
-	Origins []string
-
+type hostsMap struct {
 	// Key for the list of literal IP addresses must be a host
 	// name. It would be part of DNS labels, a FQDN or an absolute
 	// FQDN.
@@ -52,71 +44,80 @@ type Hostsfile struct {
 	// including IPv6 address with zone identifier.
 	// We don't support old-classful IP address notation.
 	byAddr map[string][]string
-
-	// inline saves the hosts file is inlined in Corefile
-	// We need a copy here as we want to use inline to override
-	// the default /etc/hosts
-	inline []string
-
-	expire time.Time
-	path   string
-	mtime  time.Time
-	size   int64
 }
 
-// ReadHosts determines if the cached data needs to be updated based on the size and modification time of the hostsfile.
-func (h *Hostsfile) ReadHosts() {
-	now := time.Now()
-
-	// Not deferring h.RUnlock() because we may need to remove the read lock and aquire a write lock
-	h.RLock()
-	if now.Before(h.expire) && len(h.byAddr) > 0 {
-		h.RUnlock()
-		return
+func newHostsMap() *hostsMap {
+	return &hostsMap{
+		byNameV4: make(map[string][]net.IP),
+		byNameV6: make(map[string][]net.IP),
+		byAddr:   make(map[string][]string),
 	}
-	stat, err := os.Stat(h.path)
-	if err == nil && h.mtime.Equal(stat.ModTime()) && h.size == stat.Size() {
-		h.RUnlock()
-		h.Lock()
-		h.expire = now.Add(cacheMaxAge)
-		h.Unlock()
-		return
-	}
+}
 
-	var file *os.File
-	if file, _ = os.Open(h.path); file == nil {
-		// If this is the first time then we will try to parse inline
-		if len(h.byAddr) == 0 && len(h.inline) > 0 {
-			h.Parse(nil)
-		}
-		h.RUnlock()
+// Hostsfile contains known host entries.
+type Hostsfile struct {
+	sync.RWMutex
+
+	// list of zones we are authoritive for
+	Origins []string
+
+	// hosts maps for lookups
+	hmap *hostsMap
+
+	// inline saves the hosts file that is inlined in a Corefile.
+	// We need a copy here as we want to use it to initialize the maps for parse.
+	inline *hostsMap
+
+	// path to the hosts file
+	path string
+
+	// mtime and size are only read and modified by a single goroutine
+	mtime time.Time
+	size  int64
+}
+
+// readHosts determines if the cached data needs to be updated based on the size and modification time of the hostsfile.
+func (h *Hostsfile) readHosts() {
+	file, err := os.Open(h.path)
+	if err != nil {
+		// We already log a warning if the file doesn't exist or can't be opened on setup. No need to return the error here.
 		return
 	}
 	defer file.Close()
 
-	h.RUnlock()
+	stat, err := file.Stat()
+	if err == nil && h.mtime.Equal(stat.ModTime()) && h.size == stat.Size() {
+		return
+	}
+
 	h.Lock()
 	defer h.Unlock()
-	h.Parse(file)
+	h.parseReader(file)
 
 	// Update the data cache.
-	h.expire = now.Add(cacheMaxAge)
 	h.mtime = stat.ModTime()
 	h.size = stat.Size()
 }
 
-// Parse reads the hostsfile and populates the byName and byAddr maps.
-func (h *Hostsfile) Parse(file io.Reader) {
-	hsv4 := make(map[string][]net.IP)
-	hsv6 := make(map[string][]net.IP)
-	is := make(map[string][]string)
-
-	var readers []io.Reader
-	if file != nil {
-		readers = append(readers, file)
+func (h *Hostsfile) initInline(inline []string) {
+	if len(inline) == 0 {
+		return
 	}
-	readers = append(readers, strings.NewReader(strings.Join(h.inline, "\n")))
-	scanner := bufio.NewScanner(io.MultiReader(readers...))
+
+	hmap := newHostsMap()
+	h.inline = h.parse(strings.NewReader(strings.Join(inline, "\n")), hmap)
+	*h.hmap = *h.inline
+}
+
+func (h *Hostsfile) parseReader(r io.Reader) {
+	h.hmap = h.parse(r, h.inline)
+}
+
+// Parse reads the hostsfile and populates the byName and byAddr maps.
+func (h *Hostsfile) parse(r io.Reader, override *hostsMap) *hostsMap {
+	hmap := newHostsMap()
+
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if i := bytes.Index(line, []byte{'#'}); i >= 0 {
@@ -140,18 +141,31 @@ func (h *Hostsfile) Parse(file io.Reader) {
 			}
 			switch ver {
 			case 4:
-				hsv4[name] = append(hsv4[name], addr)
+				hmap.byNameV4[name] = append(hmap.byNameV4[name], addr)
 			case 6:
-				hsv6[name] = append(hsv6[name], addr)
+				hmap.byNameV6[name] = append(hmap.byNameV6[name], addr)
 			default:
 				continue
 			}
-			is[addr.String()] = append(is[addr.String()], name)
+			hmap.byAddr[addr.String()] = append(hmap.byAddr[addr.String()], name)
 		}
 	}
-	h.byNameV4 = hsv4
-	h.byNameV6 = hsv6
-	h.byAddr = is
+
+	if override == nil {
+		return hmap
+	}
+
+	for name := range override.byNameV4 {
+		hmap.byNameV4[name] = append(hmap.byNameV4[name], override.byNameV4[name]...)
+	}
+	for name := range override.byNameV4 {
+		hmap.byNameV6[name] = append(hmap.byNameV6[name], override.byNameV6[name]...)
+	}
+	for addr := range override.byAddr {
+		hmap.byAddr[addr] = append(hmap.byAddr[addr], override.byAddr[addr]...)
+	}
+
+	return hmap
 }
 
 // ipVersion returns what IP version was used textually
@@ -169,11 +183,10 @@ func ipVersion(s string) int {
 
 // LookupStaticHostV4 looks up the IPv4 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
-	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
-	if len(h.byNameV4) != 0 {
-		if ips, ok := h.byNameV4[absDomainName(host)]; ok {
+	if len(h.hmap.byNameV4) != 0 {
+		if ips, ok := h.hmap.byNameV4[absDomainName(host)]; ok {
 			ipsCp := make([]net.IP, len(ips))
 			copy(ipsCp, ips)
 			return ipsCp
@@ -184,11 +197,10 @@ func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
 
 // LookupStaticHostV6 looks up the IPv6 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
-	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
-	if len(h.byNameV6) != 0 {
-		if ips, ok := h.byNameV6[absDomainName(host)]; ok {
+	if len(h.hmap.byNameV6) != 0 {
+		if ips, ok := h.hmap.byNameV6[absDomainName(host)]; ok {
 			ipsCp := make([]net.IP, len(ips))
 			copy(ipsCp, ips)
 			return ipsCp
@@ -199,15 +211,14 @@ func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
 
 // LookupStaticAddr looks up the hosts for the given address from the hosts file.
 func (h *Hostsfile) LookupStaticAddr(addr string) []string {
-	h.ReadHosts()
 	h.RLock()
 	defer h.RUnlock()
 	addr = parseLiteralIP(addr).String()
 	if addr == "" {
 		return nil
 	}
-	if len(h.byAddr) != 0 {
-		if hosts, ok := h.byAddr[addr]; ok {
+	if len(h.hmap.byAddr) != 0 {
+		if hosts, ok := h.hmap.byAddr[addr]; ok {
 			hostsCp := make([]string, len(hosts))
 			copy(hostsCp, hosts)
 			return hostsCp
