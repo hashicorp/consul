@@ -38,7 +38,10 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 		return nil, e
 	}
 
-	dk := k.(*dns.DNSKEY)
+	dk, ok := k.(*dns.DNSKEY)
+	if !ok {
+		return nil, errors.New("no public key found")
+	}
 	p, e := dk.ReadPrivateKey(f, privFile)
 	if e != nil {
 		return nil, e
@@ -50,7 +53,7 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 	if s, ok := p.(*ecdsa.PrivateKey); ok {
 		return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: s, tag: dk.KeyTag()}, nil
 	}
-	return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: nil, tag: 0}, errors.New("no known private key found")
+	return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: nil, tag: 0}, errors.New("no private key found")
 }
 
 // getDNSKEY returns the correct DNSKEY to the client. Signatures are added when do is true.

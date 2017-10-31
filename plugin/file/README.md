@@ -44,9 +44,22 @@ file DBFILE [ZONES... ] {
 Load the `example.org` zone from `example.org.signed` and allow transfers to the internet, but send
 notifies to 10.240.1.1
 
+~~~ corefile
+example.org {
+    file example.org.signed {
+        transfer to *
+        transfer to 10.240.1.1
+    }
+}
 ~~~
-file example.org.signed example.org {
-    transfer to *
-    transfer to 10.240.1.1
+
+Or use a single zone file for multiple zones:
+
+~~~
+. {
+    file example.org.signed example.org example.net {
+        transfer to *
+        transfer to 10.240.1.1
+    }
 }
 ~~~
