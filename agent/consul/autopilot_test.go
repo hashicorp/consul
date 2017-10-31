@@ -133,6 +133,85 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 	})
 }
 
+func TestAutopilot_RollingUpdate(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	conf := func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+	}
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Join the servers to s1, and wait until they are all promoted to
+	// voters.
+	servers := []*Server{s1, s2, s3}
+	for _, s := range servers[1:] {
+		joinLAN(t, s, s1)
+	}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
+
+	// Add one more server like we are doing a rolling update.
+	dir4, s4 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+	joinLAN(t, s1, s4)
+	servers = append(servers, s4)
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
+
+	// Now kill one of the "old" nodes like we are doing a rolling update.
+	s3.Shutdown()
+
+	isVoter := func() bool {
+		future := s1.raft.GetConfiguration()
+		if err := future.Error(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		for _, s := range future.Configuration().Servers {
+			if string(s.ID) == string(s4.config.NodeID) {
+				return s.Suffrage == raft.Voter
+			}
+		}
+		t.Fatalf("didn't find s4")
+		return false
+	}
+
+	// Wait for s4 to stabilize, get promoted to a voter, and for s3 to be
+	// removed.
+	servers = []*Server{s1, s2, s4}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+		if !isVoter() {
+			r.Fatalf("should be a voter")
+		}
+	})
+}
+
 func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
@@ -196,6 +275,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -206,10 +286,8 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	defer s2.Shutdown()
 	joinLAN(t, s2, s1)
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	// Wait for the new server to be added as a non-voter, but make sure
-	// it doesn't get promoted to a voter even after ServerStabilizationTime,
-	// because that would result in an even-numbered quorum count.
+	// Make sure we see it as a nonvoter initially. We wait until half
+	// the stabilization period has passed.
 	retry.Run(t, func(r *retry.R) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
@@ -217,7 +295,6 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		servers := future.Configuration().Servers
-
 		if len(servers) != 2 {
 			r.Fatalf("bad: %v", servers)
 		}
@@ -231,20 +308,12 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		if !health.Healthy {
 			r.Fatalf("bad: %v", health)
 		}
-		if time.Since(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime {
+		if time.Since(health.StableSince) < s1.config.AutopilotConfig.ServerStabilizationTime/2 {
 			r.Fatal("stable period not elapsed")
 		}
 	})
 
-	// Now add another server and make sure they both get promoted to voters after stabilization
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.Bootstrap = false
-		c.RaftConfig.ProtocolVersion = 3
-	})
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
-	joinLAN(t, s3, s1)
+	// Make sure it ends up as a voter.
 	retry.Run(t, func(r *retry.R) {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
@@ -252,13 +321,10 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 
 		servers := future.Configuration().Servers
-		if len(servers) != 3 {
+		if len(servers) != 2 {
 			r.Fatalf("bad: %v", servers)
 		}
 		if servers[1].Suffrage != raft.Voter {
-			r.Fatalf("bad: %v", servers)
-		}
-		if servers[2].Suffrage != raft.Voter {
 			r.Fatalf("bad: %v", servers)
 		}
 	})
