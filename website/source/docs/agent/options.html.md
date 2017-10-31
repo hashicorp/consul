@@ -278,12 +278,12 @@ will exit with an error at startup.
     region which have the given `tag_key` and `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=aws tag_key=xxx tag_value=xxx"
+    $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=aws tag_key=xxx tag_value=xxx"]
+      "retry_join": ["provider=aws tag_key=... tag_value=..."]
     }
     ```
 
@@ -297,7 +297,7 @@ will exit with an error at startup.
 
     #### Authentication &amp; Precedence
 
-    - Static credentials `access_key_id=xxx secret_access_key=xxx`
+    - Static credentials `access_key_id=... secret_access_key=...`
     - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
     - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
     - ECS task role metadata (container-specific).
@@ -316,12 +316,12 @@ will exit with an error at startup.
     subscription.
 
     ```sh
-    $ consul agent -retry-join "provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"
+    $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"]
+      "retry_join": ["provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."]
     }
     ```
 
@@ -338,12 +338,12 @@ will exit with an error at startup.
     project which have the given `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=gce project_name=xxx tag_value=xxx"
+    $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=gce project_name=xxx tag_value=xxx"]
+      "retry_join": ["provider=gce project_name=... tag_value=..."]
     }
     ```
 
@@ -373,12 +373,12 @@ will exit with an error at startup.
     datacenter with the given `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"
+    $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... username=... api_key=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"]
+      "retry_join": ["provider=softlayer datacenter=... tag_value=... username=... api_key=..."]
     }
     ```
 
