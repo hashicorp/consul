@@ -141,7 +141,7 @@ func (c *DockerClient) CreateExec(containerID string, cmd []string) (string, err
 	b, code, err := c.call("POST", uri, data)
 	switch {
 	case err != nil:
-		return "", fmt.Errorf("create exec failed for container %s: %s", containerID, err)
+		return "", fmt.Errorf("create exec failed for container %s: %v", containerID, err)
 	case code == 201:
 		var resp struct{ Id string }
 		if err = json.NewDecoder(bytes.NewReader(b.Bytes())).Decode(&resp); err != nil {
@@ -169,7 +169,7 @@ func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, e
 	// todo(fs): that the docker agent closes this prematurely but I don't understand why.
 	// todo(fs): the code below ignores this error.
 	case err != nil && !strings.Contains(err.Error(), "connection reset by peer"):
-		return nil, fmt.Errorf("start exec failed for container %s: %s", containerID, err)
+		return nil, fmt.Errorf("start exec failed for container %s: %v", containerID, err)
 	case code == 200:
 		return b, nil
 	case code == 404:
@@ -177,7 +177,7 @@ func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, e
 	case code == 409:
 		return nil, fmt.Errorf("start exec failed since container %s is paused or stopped", containerID)
 	default:
-		return nil, fmt.Errorf("start exec failed for container %s with status %d: body: %s err: %s", containerID, code, b, err)
+		return nil, fmt.Errorf("start exec failed for container %s with status %d: body: %s err: %v", containerID, code, b, err)
 	}
 }
 
@@ -190,7 +190,7 @@ func (c *DockerClient) InspectExec(containerID, execID string) (int, error) {
 	case code == 200:
 		var resp struct{ ExitCode int }
 		if err := json.NewDecoder(bytes.NewReader(b.Bytes())).Decode(&resp); err != nil {
-			return 0, fmt.Errorf("inspect exec response for container %s cannot be parsed: %s", containerID, err)
+			return 0, fmt.Errorf("inspect exec response for container %s cannot be parsed: %v", containerID, err)
 		}
 		return resp.ExitCode, nil
 	case code == 404:
