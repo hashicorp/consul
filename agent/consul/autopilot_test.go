@@ -181,6 +181,9 @@ func TestAutopilot_RollingUpdate(t *testing.T) {
 		}
 	})
 
+	// Now kill one of the "old" nodes like we are doing a rolling update.
+	s3.Shutdown()
+
 	isVoter := func() bool {
 		future := s1.raft.GetConfiguration()
 		if err := future.Error(); err != nil {
@@ -195,16 +198,8 @@ func TestAutopilot_RollingUpdate(t *testing.T) {
 		return false
 	}
 
-	// Make sure s4 hasn't yet been promoted as a voter since that would
-	// be an even quorum.
-	if isVoter() {
-		t.Fatalf("should not be a voter")
-	}
-
-	// Now kill one of the "old" nodes like we are doing a rolling update.
-	s3.Shutdown()
-
-	// Wait for s4 to get promoted to a voter, and for s3 to be removed.
+	// Wait for s4 to stabilize, get promoted to a voter, and for s3 to be
+	// removed.
 	servers = []*Server{s1, s2, s4}
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft(servers))
