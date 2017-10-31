@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -50,16 +51,8 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send an update for the first node.
@@ -201,16 +194,8 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send an update for the first node. This should go through since we
@@ -309,16 +294,8 @@ func TestCoordinate_ListNodes(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar", "baz"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send coordinate updates for a few nodes.
@@ -515,16 +492,8 @@ func TestCoordinate_Node(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send coordinate updates for each node.
@@ -582,16 +551,8 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send an update for the first node. This should go through since we
@@ -645,4 +606,20 @@ node "node1" {
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func registerNodes(nodes []string, codec rpc.ClientCodec) error {
+	for _, node := range nodes {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       node,
+			Address:    "127.0.0.1",
+		}
+		var reply struct{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

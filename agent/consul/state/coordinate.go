@@ -46,8 +46,7 @@ func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.Coordina
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "coordinates")
+	tableIdx := maxIndexTxn(tx, "coordinates")
 
 	iter, err := tx.Get("coordinates", "node", node)
 	if err != nil {
@@ -60,7 +59,7 @@ func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.Coordina
 		coord := raw.(*structs.Coordinate)
 		results[coord.Segment] = coord.Coord
 	}
-	return idx, results, nil
+	return tableIdx, results, nil
 }
 
 // Coordinates queries for all nodes with coordinates.

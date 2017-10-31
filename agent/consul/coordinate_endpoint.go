@@ -201,8 +201,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		})
 }
 
-// ListNodes returns the list of nodes with their raw network coordinates (if no
-// coordinates are available for a node it won't appear in this list).
+// Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
 	if done, err := c.srv.forward("Coordinate.Node", args, args, reply); done {
 		return err
