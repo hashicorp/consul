@@ -16,11 +16,15 @@ type Flags struct {
 	// that should be read.
 	ConfigFiles []string
 
+	// ConfigFormat forces all config files to be interpreted as this
+	// format independent of their extension.
+	ConfigFormat *string
+
+	// HCL contains an arbitrary config in hcl format.
 	// DevMode indicates whether the agent should be started in development
 	// mode. This cannot be configured in a config file.
 	DevMode *bool
 
-	// HCL contains an arbitrary config in hcl format.
 	HCL []string
 
 	// Args contains the remaining unparsed flags.
@@ -57,6 +61,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.ClientAddr, "client", "Sets the address to bind for client access. This includes RPC, DNS, HTTP and HTTPS (if configured).")
 	add(&f.ConfigFiles, "config-dir", "Path to a directory to read configuration files from. This will read every file ending in '.json' as configuration in this directory in alphabetical order. Can be specified multiple times.")
 	add(&f.ConfigFiles, "config-file", "Path to a JSON file to read configuration from. Can be specified multiple times.")
+	add(&f.ConfigFormat, "config-format", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	add(&f.Config.DataDir, "data-dir", "Path to a data directory to store agent state.")
 	add(&f.Config.Datacenter, "datacenter", "Datacenter of the agent.")
 	add(&f.DevMode, "dev", "Starts the agent in development mode.")
