@@ -240,8 +240,8 @@ will exit with an error at startup.
     [go-discover](https://github.com/hashicorp/go-discover) library for doing
     automatic cluster joining using cloud metadata. To use retry-join with a
     supported cloud provider, specify the configuration on the command line or
-    configuration file as a `key=value key=value ...` string. 
-	
+    configuration file as a `key=value key=value ...` string.
+
 	In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
 	practical purposes you need to replace spaces with `+` signs.
 
@@ -404,7 +404,7 @@ will exit with an error at startup.
 
 * <a name="_retry_join_wan"></a><a href="#_retry_join_wan">`-retry-join-wan`</a> - Similar
   to [`retry-join`](#_retry_join) but allows retrying a wan join if the first attempt fails.
-  This is useful for cases where we know the address will become available eventually. 
+  This is useful for cases where we know the address will become available eventually.
   As of Consul 0.9.3 [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
 
 * <a name="_retry_interval_wan"></a><a href="#_retry_interval_wan">`-retry-interval-wan`</a> - Time
@@ -1037,7 +1037,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
   domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
   outside of the "consul." domain, the query will be resolved upstream. As of Consul 1.0.1 recursors
-  can be provided as IP addresses or as go-sockaddr templates. IP addresses are resolved in order, 
+  can be provided as IP addresses or as go-sockaddr templates. IP addresses are resolved in order,
   and duplicates are ignored.
 
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent
