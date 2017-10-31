@@ -3,6 +3,8 @@ package api
 import (
 	"testing"
 
+	"strings"
+
 	"github.com/hashicorp/consul/testutil/retry"
 )
 
@@ -51,7 +53,7 @@ func TestAPI_CoordinateNode(t *testing.T) {
 	coordinate := c.Coordinate()
 	retry.Run(t, func(r *retry.R) {
 		_, _, err := coordinate.Node(s.Config.NodeName, nil)
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "Unexpected response code: 404") {
 			r.Fatal(err)
 		}
 

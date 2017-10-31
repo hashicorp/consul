@@ -555,27 +555,44 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Send an update for the first node. This should go through since we
-	// don't have version 8 ACLs enforced yet.
+	coord := generateRandomCoordinate()
 	req := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
-		Coord:      generateRandomCoordinate(),
+		Coord:      coord,
 	}
 	var out struct{}
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Try a read for the first node. This should go through since we
+	// don't have version 8 ACLs enforced yet.
+	arg := structs.NodeSpecificRequest{
+		Node:       "node1",
+		Datacenter: "dc1",
+	}
+	resp := structs.IndexedCoordinates{}
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if len(resp.Coordinates) != 1 ||
+			resp.Coordinates[0].Node != "node1" {
+			r.Fatalf("bad: %v", resp.Coordinates)
+		}
+		verify.Values(t, "", resp.Coordinates[0].Coord, coord)
+	})
+
 	// Now turn on version 8 enforcement and try again.
 	s1.config.ACLEnforceVersion8 = true
-	err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out)
+	err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL that can write to the node.
-	arg := structs.ACLRequest{
+	// Create an ACL that can read from the node.
+	aclReq := structs.ACLRequest{
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
@@ -583,26 +600,26 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 			Type: structs.ACLTypeClient,
 			Rules: `
 node "node1" {
-	policy = "write"
+	policy = "read"
 }
 `,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &aclReq, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// With the token, it should now go through.
-	req.Token = id
-	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out); err != nil {
+	arg.Token = id
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// But it should be blocked for the other node.
-	req.Node = "node2"
-	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out)
+	arg.Node = "node2"
+	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
