@@ -388,6 +388,99 @@ will exit with an error at startup.
     - `username` (required) - the username to use for auth.
     - `api_key` (required) - the api key to use for auth.
 
+    ### Aliyun (Alibaba Cloud)
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("aliyun" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_key` (required) - the key of the tag to auto-join on.
+    - `tag_value` (required) - the value of the tag to auto-join on.
+    - `access_key_id` (required) -the access key to use for auth.
+    - `access_key_secret` (required) - the secret key to use for auth.
+
+	The required RAM permission is `ecs:DescribeInstances`.
+	It is recommended you make a dedicated key used only for auto-joining.
+
+    ### Digital Ocean
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_name`.
+
+    ```sh
+    $ consul agent -retry-join "provider=digitalocean region=... tag_name=... api_token=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=digitalocean region=... tag_name=... api_token=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("digitalocean" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_name` (required) - the value of the tag to auto-join on.
+    - `api_token` (required) -the token to use for auth.
+
+    ### Openstack
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("os" in this case).
+    - `tag_key` (required) - the key of the tag to auto-join on.
+    - `tag_value` (required) - the value of the tag to auto-join on.
+    - `project_id` (optional) - the id of the project (tenant id).
+    - `username` (optional) - the username to use for auth.
+    - `password` (optional) - the password to use for auth.
+    - `token` (optional) - the token to use for auth.
+    - `auth_url` (optional) - the identity endpoint to use for auth.
+    - `insecure` (optional) - indicates whether the API certificate should not be checked. Any value means `true`.
+
+    The configuration can also be provided by environment variables.
+
+    ### Scaleway
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consul-server token=... region=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=scaleway organization=my-org tag_name=consul-server token=... region=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("scaleway" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_name` (required) - the name of the tag to auto-join on.
+    - `organization` (optional) - the organization access key to use for auth.
+    - `token` (optional) - the token to use for auth.
+
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
 
