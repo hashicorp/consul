@@ -243,3 +243,49 @@ func TestCoordinate_Node(t *testing.T) {
 		t.Fatalf("bad: %v", resp.Code)
 	}
 }
+
+func TestCoordinate_Update(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register the node.
+	reg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+	}
+	var reply struct{}
+	if err := a.RPC("Catalog.Register", &reg, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Update the coordinates and wait for it to complete.
+	coord := coordinate.NewCoordinate(coordinate.DefaultConfig())
+	coord.Height = -5.0
+	body := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Coord:      coord,
+	}
+	req, _ := http.NewRequest("PUT", "/v1/coordinate/update", jsonReader(body))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.CoordinateUpdate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(300 * time.Millisecond)
+
+	// Query back and check the coordinates are present.
+	args := structs.NodeSpecificRequest{Node: "foo", Datacenter: "dc1"}
+	var coords structs.IndexedCoordinates
+	if err := a.RPC("Coordinate.Node", &args, &coords); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	coordinates := coords.Coordinates
+	if len(coordinates) != 1 ||
+		coordinates[0].Node != "foo" {
+		t.Fatalf("bad: %v", coordinates)
+	}
+}

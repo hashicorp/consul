@@ -138,3 +138,25 @@ func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordi
 	}
 	return out
 }
+
+// CoordinateUpdate inserts or updates the LAN coordinate of a node.
+func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
+
+	args := structs.CoordinateUpdateRequest{}
+	if err := decodeBody(req, &args, nil); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		return nil, nil
+	}
+	s.parseDC(req, &args.Datacenter)
+
+	var reply struct{}
+	if err := s.agent.RPC("Coordinate.Update", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}

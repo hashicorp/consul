@@ -69,8 +69,15 @@ The table below shows this endpoint's support for
     treated as a service level health check, instead of a node level health
     check. The `Status` must be one of `passing`, `warning`, or `critical`.
 
+    The `Definition` field can be provided with details for a TCP or HTTP health
+    check. For more information, see the [Health Checks](/docs/agent/checks.html) page.
+
     Multiple checks can be provided by replacing `Check` with `Checks` and
     sending an array of `Check` objects.
+
+- `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
+  node part of the registration. Useful in the case where only a health check
+  or service entry on a node needs to be updated.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
@@ -106,8 +113,15 @@ and vice versa. A catalog entry can have either, neither, or both.
     "Name": "Redis health check",
     "Notes": "Script based health check",
     "Status": "passing",
-    "ServiceID": "redis1"
-  }
+    "ServiceID": "redis1",
+    "Definition": {
+      "TCP": "localhost:8888",
+      "Interval": "5s",
+      "Timeout": "1s",
+      "DeregisterCriticalServiceAfter": "30s"
+    }
+  },
+  "SkipNodeUpdate": false
 }
 ```
 

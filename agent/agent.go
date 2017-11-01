@@ -1407,7 +1407,7 @@ func (a *Agent) reapServicesInternal() {
 }
 
 // reapServices is a long running goroutine that looks for checks that have been
-// critical too long and dregisters their associated services.
+// critical too long and deregisters their associated services.
 func (a *Agent) reapServices() {
 	for {
 		select {

@@ -482,7 +482,20 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 
+	Definition HealthCheckDefinition
+
 	RaftIndex
+}
+
+type HealthCheckDefinition struct {
+	HTTP                           string               `json:",omitempty"`
+	TLSSkipVerify                  bool                 `json:",omitempty"`
+	Header                         map[string][]string  `json:",omitempty"`
+	Method                         string               `json:",omitempty"`
+	TCP                            string               `json:",omitempty"`
+	Interval                       api.ReadableDuration `json:",omitempty"`
+	Timeout                        api.ReadableDuration `json:",omitempty"`
+	DeregisterCriticalServiceAfter api.ReadableDuration `json:",omitempty"`
 }
 
 // IsSame checks if one HealthCheck is the same as another, without looking

@@ -78,6 +78,45 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 	}
 }
 
+func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Register a node
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Update it with a blank address, should fail.
+	arg.Address = ""
+	arg.Service = &structs.NodeService{
+		Service: "db",
+		Port:    8000,
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err == nil || err.Error() != "Must provide address if SkipNodeUpdate is not set" {
+		t.Fatalf("got error %v want 'Must provide address...'", err)
+	}
+
+	// Set SkipNodeUpdate, should succeed
+	arg.SkipNodeUpdate = true
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCatalog_Register_NodeID(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

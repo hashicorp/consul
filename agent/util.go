@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	osuser "os/user"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -112,4 +114,57 @@ func ForwardSignals(cmd *exec.Cmd, logFn func(error), shutdownCh <-chan struct{}
 			}
 		}
 	}()
+}
+
+type durationFixer map[string]bool
+
+func NewDurationFixer(fields ...string) durationFixer {
+	d := make(map[string]bool)
+	for _, field := range fields {
+		d[field] = true
+	}
+	return d
+}
+
+// FixupDurations is used to handle parsing any field names in the map to time.Durations
+func (d durationFixer) FixupDurations(raw interface{}) error {
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	for key, val := range rawMap {
+		switch val.(type) {
+		case map[string]interface{}:
+			if err := d.FixupDurations(val); err != nil {
+				return err
+			}
+
+		case []interface{}:
+			for _, v := range val.([]interface{}) {
+				if err := d.FixupDurations(v); err != nil {
+					return err
+				}
+			}
+
+		case []map[string]interface{}:
+			for _, v := range val.([]map[string]interface{}) {
+				if err := d.FixupDurations(v); err != nil {
+					return err
+				}
+			}
+
+		default:
+			if d[strings.ToLower(key)] {
+				// Convert a string value into an integer
+				if vStr, ok := val.(string); ok {
+					dur, err := time.ParseDuration(vStr)
+					if err != nil {
+						return err
+					}
+					rawMap[key] = dur
+				}
+			}
+		}
+	}
+	return nil
 }

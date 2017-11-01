@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -220,7 +219,8 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		s.parseToken(req, &args.Token)
 
 		var conf api.AutopilotConfiguration
-		if err := decodeBody(req, &conf, FixupConfigDurations); err != nil {
+		durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
+		if err := decodeBody(req, &conf, durations.FixupDurations); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Error parsing autopilot config: %v", err)
 			return nil, nil
@@ -263,29 +263,6 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT"}}
 	}
-}
-
-// FixupConfigDurations is used to handle parsing the duration fields in
-// the Autopilot config struct
-func FixupConfigDurations(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	for key, val := range rawMap {
-		if strings.ToLower(key) == "lastcontactthreshold" ||
-			strings.ToLower(key) == "serverstabilizationtime" {
-			// Convert a string value into an integer
-			if vStr, ok := val.(string); ok {
-				dur, err := time.ParseDuration(vStr)
-				if err != nil {
-					return err
-				}
-				rawMap[key] = dur
-			}
-		}
-	}
-	return nil
 }
 
 // OperatorServerHealth is used to get the health of the servers in the local DC
