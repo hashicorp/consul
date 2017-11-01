@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -85,22 +86,55 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	// Use empty list instead of nil.
-	if out.Coordinates == nil {
-		out.Coordinates = make(structs.Coordinates, 0)
+	return filterCoordinates(req, out.Coordinates), nil
+}
+
+// CoordinateNode returns the LAN node in the given datacenter, along with
+// raw network coordinates.
+func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
-	// Filter by segment if applicable
-	if v, ok := req.URL.Query()["segment"]; ok && len(v) > 0 {
-		segment := v[0]
-		filtered := make(structs.Coordinates, 0)
-		for _, coord := range out.Coordinates {
-			if coord.Segment == segment {
-				filtered = append(filtered, coord)
-			}
+	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
+	args := structs.NodeSpecificRequest{Node: node}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var out structs.IndexedCoordinates
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
+		return nil, err
+	}
+
+	result := filterCoordinates(req, out.Coordinates)
+	if len(result) == 0 {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
+	return result, nil
+}
+
+func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordinates {
+	out := structs.Coordinates{}
+
+	if in == nil {
+		return out
+	}
+
+	segment := ""
+	v, filterBySegment := req.URL.Query()["segment"]
+	if filterBySegment && len(v) > 0 {
+		segment = v[0]
+	}
+
+	for _, c := range in {
+		if filterBySegment && c.Segment != segment {
+			continue
 		}
-		out.Coordinates = filtered
+		out = append(out, c)
 	}
-
-	return out.Coordinates, nil
+	return out
 }

@@ -140,3 +140,106 @@ func TestCoordinate_Nodes(t *testing.T) {
 		t.Fatalf("bad: %v", coordinates)
 	}
 }
+
+func TestCoordinate_Node(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Make sure we get a 404 with no coordinates.
+	req, _ := http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CoordinateNode(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+
+	// Register the nodes.
+	nodes := []string{"foo", "bar"}
+	for _, node := range nodes {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       node,
+			Address:    "127.0.0.1",
+		}
+		var reply struct{}
+		if err := a.RPC("Catalog.Register", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Send some coordinates for a few nodes, waiting a little while for the
+	// batch update to run.
+	arg1 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Segment:    "alpha",
+		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
+	}
+	var out struct{}
+	if err := a.RPC("Coordinate.Update", &arg1, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg2 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Coord:      coordinate.NewCoordinate(coordinate.DefaultConfig()),
+	}
+	if err := a.RPC("Coordinate.Update", &arg2, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(300 * time.Millisecond)
+
+	// Query back and check the nodes are present.
+	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNode(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates := obj.(structs.Coordinates)
+	if len(coordinates) != 1 ||
+		coordinates[0].Node != "foo" {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
+	// Filter on a nonexistant node segment
+	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=nope", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNode(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+
+	// Filter on a real node segment
+	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=alpha", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNode(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates = obj.(structs.Coordinates)
+	if len(coordinates) != 1 || coordinates[0].Node != "foo" {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
+	// Make sure the empty filter works
+	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.CoordinateNode(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+}

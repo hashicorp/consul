@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"net/rpc"
 	"os"
 	"strings"
 	"testing"
@@ -50,16 +51,8 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send an update for the first node.
@@ -86,13 +79,13 @@ func TestCoordinate_Update(t *testing.T) {
 	// Make sure the updates did not yet apply because the update period
 	// hasn't expired.
 	state := s1.fsm.State()
-	c, err := state.Coordinate("node1")
+	_, c, err := state.Coordinate("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	verify.Values(t, "", c, lib.CoordinateSet{})
 
-	c, err = state.Coordinate("node2")
+	_, c, err = state.Coordinate("node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -107,7 +100,7 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Wait a while and the updates should get picked up.
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
-	c, err = state.Coordinate("node1")
+	_, c, err = state.Coordinate("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -116,7 +109,7 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	verify.Values(t, "", c, expected)
 
-	c, err = state.Coordinate("node2")
+	_, c, err = state.Coordinate("node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -155,7 +148,7 @@ func TestCoordinate_Update(t *testing.T) {
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	numDropped := 0
 	for i := 0; i < spamLen; i++ {
-		c, err = state.Coordinate(fmt.Sprintf("bogusnode%d", i))
+		_, c, err = state.Coordinate(fmt.Sprintf("bogusnode%d", i), nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -201,16 +194,8 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"node1", "node2"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send an update for the first node. This should go through since we
@@ -309,16 +294,8 @@ func TestCoordinate_ListNodes(t *testing.T) {
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar", "baz"}
-	for _, node := range nodes {
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       node,
-			Address:    "127.0.0.1",
-		}
-		var reply struct{}
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
 	}
 
 	// Send coordinate updates for a few nodes.
@@ -501,4 +478,165 @@ node "foo" {
 	if len(resp.Coordinates) != 1 || resp.Coordinates[0].Node != "foo" {
 		t.Fatalf("bad: %#v", resp.Coordinates)
 	}
+}
+
+func TestCoordinate_Node(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register some nodes.
+	nodes := []string{"foo", "bar"}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
+	}
+
+	// Send coordinate updates for each node.
+	arg1 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Coord:      generateRandomCoordinate(),
+	}
+	var out struct{}
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg1, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg2 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Coord:      generateRandomCoordinate(),
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now query back for a specific node (make sure we only get coordinates for foo).
+	retry.Run(t, func(r *retry.R) {
+		arg := structs.NodeSpecificRequest{
+			Node:       "foo",
+			Datacenter: "dc1",
+		}
+		resp := structs.IndexedCoordinates{}
+		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if len(resp.Coordinates) != 1 ||
+			resp.Coordinates[0].Node != "foo" {
+			r.Fatalf("bad: %v", resp.Coordinates)
+		}
+		verify.Values(t, "", resp.Coordinates[0].Coord, arg1.Coord) // foo
+	})
+}
+
+func TestCoordinate_Node_ACLDeny(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register some nodes.
+	nodes := []string{"node1", "node2"}
+	if err := registerNodes(nodes, codec); err != nil {
+		t.Fatal(err)
+	}
+
+	coord := generateRandomCoordinate()
+	req := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+		Coord:      coord,
+	}
+	var out struct{}
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try a read for the first node. This should go through since we
+	// don't have version 8 ACLs enforced yet.
+	arg := structs.NodeSpecificRequest{
+		Node:       "node1",
+		Datacenter: "dc1",
+	}
+	resp := structs.IndexedCoordinates{}
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if len(resp.Coordinates) != 1 ||
+			resp.Coordinates[0].Node != "node1" {
+			r.Fatalf("bad: %v", resp.Coordinates)
+		}
+		verify.Values(t, "", resp.Coordinates[0].Coord, coord)
+	})
+
+	// Now turn on version 8 enforcement and try again.
+	s1.config.ACLEnforceVersion8 = true
+	err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create an ACL that can read from the node.
+	aclReq := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+node "node1" {
+	policy = "read"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &aclReq, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With the token, it should now go through.
+	arg.Token = id
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// But it should be blocked for the other node.
+	arg.Node = "node2"
+	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Node", &arg, &resp)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func registerNodes(nodes []string, codec rpc.ClientCodec) error {
+	for _, node := range nodes {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       node,
+			Address:    "127.0.0.1",
+		}
+		var reply struct{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

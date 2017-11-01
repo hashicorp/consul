@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil/retry"
@@ -33,6 +34,25 @@ func TestAPI_CoordinateNodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		_, _, err := coordinate.Nodes(nil)
 		if err != nil {
+			r.Fatal(err)
+		}
+
+		// There's not a good way to populate coordinates without
+		// waiting for them to calculate and update, so the best
+		// we can do is call the endpoint and make sure we don't
+		// get an error.
+	})
+}
+
+func TestAPI_CoordinateNode(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	coordinate := c.Coordinate()
+	retry.Run(t, func(r *retry.R) {
+		_, _, err := coordinate.Node(s.Config.NodeName, nil)
+		if err != nil && !strings.Contains(err.Error(), "Unexpected response code: 404") {
 			r.Fatal(err)
 		}
 

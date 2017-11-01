@@ -350,6 +350,7 @@ func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
 		{"GET", "/v1/catalog/services"},
 		{"GET", "/v1/coordinate/datacenters"},
 		{"GET", "/v1/coordinate/nodes"},
+		{"GET", "/v1/coordinate/node/"},
 		{"PUT", "/v1/event/fire/"},
 		{"GET", "/v1/event/list"},
 		{"GET", "/v1/health/checks/"},

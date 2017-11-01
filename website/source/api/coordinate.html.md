@@ -71,7 +71,7 @@ In **Consul Enterprise**, this will include coordinates for user-added network
 areas as well, as indicated by the `AreaID`. Coordinates are only compatible
 within the same area.
 
-## Read LAN Coordinates
+## Read LAN Coordinates for all nodes
 
 This endpoint returns the LAN network coordinates for all nodes in a given
 datacenter.
@@ -94,12 +94,73 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
+- `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
+  If left blank, this will query for the default segment when connecting to a server and
+  the agent's own segment when connecting to a client (clients can only be part of one
+  network segment). When querying a server, setting this to the special string `_all`
+  will show members in all segments.
 
 ### Sample Request
 
 ```text
 $ curl \
     https://consul.rocks/v1/coordinate/nodes
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "Node": "agent-one",
+    "Segment": "",
+    "Coord": {
+      "Adjustment": 0,
+      "Error": 1.5,
+      "Height": 0,
+      "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+    }
+  }
+]
+```
+
+In **Consul Enterprise**, this may include multiple coordinates for the same node,
+each marked with a different `Segment`. Coordinates are only compatible within the same
+segment.
+
+## Read LAN Coordinates for a node
+
+This endpoint returns the LAN network coordinates for the given node.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/coordinate/node/:node`     | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required |
+| ---------------- | ----------------- | ------------ |
+| `YES`            | `all`             | `node:read`  |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+- `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
+  If left blank, this will query for the default segment when connecting to a server and
+  the agent's own segment when connecting to a client (clients can only be part of one
+  network segment). When querying a server, setting this to the special string `_all`
+  will show members in all segments.
+
+### Sample Request
+
+```text
+$ curl \
+    https://consul.rocks/v1/coordinate/node/agent-one
 ```
 
 ### Sample Response
