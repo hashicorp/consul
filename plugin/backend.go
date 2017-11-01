@@ -26,6 +26,17 @@ type ServiceBackend interface {
 
 	// IsNameError return true if err indicated a record not found condition
 	IsNameError(err error) bool
+
+	Transferer
+}
+
+// Transferer defines an interface for backends that provide AXFR of all records.
+type Transferer interface {
+	// Serial returns a SOA serial number to construct a SOA record.
+	Serial(state request.Request) uint32
+
+	// MinTTL returns the minimum TTL to be used in the SOA record.
+	MinTTL(state request.Request) uint32
 }
 
 // Options are extra options that can be specified for a lookup.

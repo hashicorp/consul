@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"time"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
@@ -371,11 +370,11 @@ func SOA(b ServiceBackend, zone string, state request.Request, opt Options) ([]d
 	soa := &dns.SOA{Hdr: header,
 		Mbox:    Mbox,
 		Ns:      Ns,
-		Serial:  uint32(time.Now().Unix()),
+		Serial:  b.Serial(state),
 		Refresh: 7200,
 		Retry:   1800,
 		Expire:  86400,
-		Minttl:  minTTL,
+		Minttl:  b.MinTTL(state),
 	}
 	return []dns.RR{soa}, nil
 }
@@ -404,7 +403,4 @@ func newAddress(s msg.Service, name string, ip net.IP, what uint16) dns.RR {
 	return &dns.AAAA{Hdr: hdr, AAAA: ip}
 }
 
-const (
-	minTTL     = 60
-	hostmaster = "hostmaster"
-)
+const hostmaster = "hostmaster"
