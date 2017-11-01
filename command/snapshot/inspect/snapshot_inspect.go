@@ -59,6 +59,7 @@ func (c *cmd) Run(args []string) int {
 	meta, err := snapshot.Verify(f)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
+		return 1
 	}
 
 	var b bytes.Buffer
@@ -70,6 +71,7 @@ func (c *cmd) Run(args []string) int {
 	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
 	if err = tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
+		return 1
 	}
 
 	c.UI.Info(b.String())

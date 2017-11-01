@@ -125,6 +125,12 @@ will exit with an error at startup.
   For more information on the format of the configuration files, see the
   [Configuration Files](#configuration_files) section.
 
+* <a name="_config_format"></a><a href="#_config_format">`-config-format`</a> - The format
+  of the configuration files to load. Normally, Consul detects the format of the
+  config files from the ".json" or ".hcl" extension. Setting this option to
+  either "json" or "hcl" forces Consul to interpret any file with or without
+  extension to be interpreted in that format.
+
 * <a name="_data_dir"></a><a href="#_data_dir">`-data-dir`</a> - This flag provides
   a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
@@ -240,8 +246,8 @@ will exit with an error at startup.
     [go-discover](https://github.com/hashicorp/go-discover) library for doing
     automatic cluster joining using cloud metadata. To use retry-join with a
     supported cloud provider, specify the configuration on the command line or
-    configuration file as a `key=value key=value ...` string. 
-	
+    configuration file as a `key=value key=value ...` string.
+
 	In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
 	practical purposes you need to replace spaces with `+` signs.
 
@@ -278,12 +284,12 @@ will exit with an error at startup.
     region which have the given `tag_key` and `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=aws tag_key=xxx tag_value=xxx"
+    $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=aws tag_key=xxx tag_value=xxx"]
+      "retry_join": ["provider=aws tag_key=... tag_value=..."]
     }
     ```
 
@@ -297,7 +303,7 @@ will exit with an error at startup.
 
     #### Authentication &amp; Precedence
 
-    - Static credentials `access_key_id=xxx secret_access_key=xxx`
+    - Static credentials `access_key_id=... secret_access_key=...`
     - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
     - Shared credentials file (`~/.aws/credentials` or the path specified by `AWS_SHARED_CREDENTIALS_FILE`)
     - ECS task role metadata (container-specific).
@@ -316,12 +322,12 @@ will exit with an error at startup.
     subscription.
 
     ```sh
-    $ consul agent -retry-join "provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"
+    $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=azure tag_name=xxx tag_value=xxx tenant_id=xxx client_id=xxx subscription_id=xxx secret_access_key=xxx"]
+      "retry_join": ["provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."]
     }
     ```
 
@@ -338,12 +344,12 @@ will exit with an error at startup.
     project which have the given `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=gce project_name=xxx tag_value=xxx"
+    $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=gce project_name=xxx tag_value=xxx"]
+      "retry_join": ["provider=gce project_name=... tag_value=..."]
     }
     ```
 
@@ -373,12 +379,12 @@ will exit with an error at startup.
     datacenter with the given `tag_value`.
 
     ```sh
-    $ consul agent -retry-join "provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"
+    $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... username=... api_key=..."
     ```
 
     ```json
     {
-      "retry_join": ["provider=softlayer datacenter=xxx tag_value=xxx username=xxx api_key=xxx"]
+      "retry_join": ["provider=softlayer datacenter=... tag_value=... username=... api_key=..."]
     }
     ```
 
@@ -387,6 +393,99 @@ will exit with an error at startup.
     - `tag_value` (required) - the value of the tag to auto-join on.
     - `username` (required) - the username to use for auth.
     - `api_key` (required) - the api key to use for auth.
+
+    ### Aliyun (Alibaba Cloud)
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=aliyun region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("aliyun" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_key` (required) - the key of the tag to auto-join on.
+    - `tag_value` (required) - the value of the tag to auto-join on.
+    - `access_key_id` (required) -the access key to use for auth.
+    - `access_key_secret` (required) - the secret key to use for auth.
+
+	The required RAM permission is `ecs:DescribeInstances`.
+	It is recommended you make a dedicated key used only for auto-joining.
+
+    ### Digital Ocean
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_name`.
+
+    ```sh
+    $ consul agent -retry-join "provider=digitalocean region=... tag_name=... api_token=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=digitalocean region=... tag_name=... api_token=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("digitalocean" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_name` (required) - the value of the tag to auto-join on.
+    - `api_token` (required) -the token to use for auth.
+
+    ### Openstack
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=os tag_key=consul tag_value=server username=... password=... auth_url=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("os" in this case).
+    - `tag_key` (required) - the key of the tag to auto-join on.
+    - `tag_value` (required) - the value of the tag to auto-join on.
+    - `project_id` (optional) - the id of the project (tenant id).
+    - `username` (optional) - the username to use for auth.
+    - `password` (optional) - the password to use for auth.
+    - `token` (optional) - the token to use for auth.
+    - `auth_url` (optional) - the identity endpoint to use for auth.
+    - `insecure` (optional) - indicates whether the API certificate should not be checked. Any value means `true`.
+
+    The configuration can also be provided by environment variables.
+
+    ### Scaleway
+
+    This returns the first private IP address of all servers for the given
+    `region` with the given `tag_key` and `tag_value`.
+
+    ```sh
+    $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consul-server token=... region=..."
+    ```
+
+    ```json
+    {
+      "retry_join": ["provider=scaleway organization=my-org tag_name=consul-server token=... region=..."]
+    }
+    ```
+
+    - `provider` (required) - the name of the provider ("scaleway" in this case).
+    - `region` (required) - the name of the region.
+    - `tag_name` (required) - the name of the tag to auto-join on.
+    - `organization` (optional) - the organization access key to use for auth.
+    - `token` (optional) - the token to use for auth.
 
 * <a name="_retry_interval"></a><a href="#_retry_interval">`-retry-interval`</a> - Time
   to wait between join attempts. Defaults to 30s.
@@ -404,7 +503,7 @@ will exit with an error at startup.
 
 * <a name="_retry_join_wan"></a><a href="#_retry_join_wan">`-retry-join-wan`</a> - Similar
   to [`retry-join`](#_retry_join) but allows retrying a wan join if the first attempt fails.
-  This is useful for cases where we know the address will become available eventually. 
+  This is useful for cases where we know the address will become available eventually.
   As of Consul 0.9.3 [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
 
 * <a name="_retry_interval_wan"></a><a href="#_retry_interval_wan">`-retry-interval-wan`</a> - Time
@@ -1037,7 +1136,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
   domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
   outside of the "consul." domain, the query will be resolved upstream. As of Consul 1.0.1 recursors
-  can be provided as IP addresses or as go-sockaddr templates. IP addresses are resolved in order, 
+  can be provided as IP addresses or as go-sockaddr templates. IP addresses are resolved in order,
   and duplicates are ignored.
 
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent

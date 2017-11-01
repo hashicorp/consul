@@ -110,14 +110,16 @@ func NewBuilder(flags Flags) (*Builder, error) {
 	slices, values := b.splitSlicesAndValues(b.Flags.Config)
 	b.Head = append(b.Head, newSource("flags.slices", slices))
 	for _, path := range b.Flags.ConfigFiles {
-		if err := b.ReadPath(path); err != nil {
+		sources, err := b.ReadPath(path)
+		if err != nil {
 			return nil, err
 		}
+		b.Sources = append(b.Sources, sources...)
 	}
 	b.Tail = append(b.Tail, newSource("flags.values", values))
 	for i, s := range b.Flags.HCL {
 		b.Tail = append(b.Tail, Source{
-			Name:   fmt.Sprintf("flags.hcl.%d", i),
+			Name:   fmt.Sprintf("flags-%d.hcl", i),
 			Format: "hcl",
 			Data:   s,
 		})
@@ -131,64 +133,59 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 // ReadPath reads a single config file or all files in a directory (but
 // not its sub-directories) and appends them to the list of config
-// sources. If path refers to a file then the format is assumed to be
-// JSON unless the file has a '.hcl' suffix. If path refers to a
-// directory then the format is determined by the suffix and only files
-// with a '.json' or '.hcl' suffix are processed.
-func (b *Builder) ReadPath(path string) error {
+// sources.
+func (b *Builder) ReadPath(path string) ([]Source, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("config: Open failed on %s. %s", path, err)
+		return nil, fmt.Errorf("config: Open failed on %s. %s", path, err)
 	}
 	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
-		return fmt.Errorf("config: Stat failed on %s. %s", path, err)
+		return nil, fmt.Errorf("config: Stat failed on %s. %s", path, err)
 	}
 
 	if !fi.IsDir() {
-		return b.ReadFile(path)
+		src, err := b.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return []Source{src}, nil
 	}
 
 	fis, err := f.Readdir(-1)
 	if err != nil {
-		return fmt.Errorf("config: Readdir failed on %s. %s", path, err)
+		return nil, fmt.Errorf("config: Readdir failed on %s. %s", path, err)
 	}
 
 	// sort files by name
 	sort.Sort(byName(fis))
 
+	var sources []Source
 	for _, fi := range fis {
 		// do not recurse into sub dirs
 		if fi.IsDir() {
 			continue
 		}
 
-		// skip files without json or hcl extension
-		if !strings.HasSuffix(fi.Name(), ".json") && !strings.HasSuffix(fi.Name(), ".hcl") {
-			continue
+		src, err := b.ReadFile(filepath.Join(path, fi.Name()))
+		if err != nil {
+			return nil, err
 		}
-
-		if err := b.ReadFile(filepath.Join(path, fi.Name())); err != nil {
-			return err
-		}
+		sources = append(sources, src)
 	}
-	return nil
+	return sources, nil
 }
 
 // ReadFile parses a JSON or HCL config file and appends it to the list of
 // config sources.
-func (b *Builder) ReadFile(path string) error {
-	if !strings.HasSuffix(path, ".json") && !strings.HasSuffix(path, ".hcl") {
-		return fmt.Errorf(`Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, path)
-	}
+func (b *Builder) ReadFile(path string) (Source, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
+		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
 	}
-	b.Sources = append(b.Sources, NewSource(path, string(data)))
-	return nil
+	return Source{Name: path, Data: string(data)}, nil
 }
 
 type byName []os.FileInfo
@@ -222,10 +219,24 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// merge config sources as follows
 	//
 
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
+		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
+	}
+
 	// build the list of config sources
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
-	srcs = append(srcs, b.Sources...)
+	for _, src := range b.Sources {
+		src.Format = FormatFrom(src.Name)
+		if configFormat != "" {
+			src.Format = configFormat
+		}
+		if src.Format == "" {
+			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
+		}
+		srcs = append(srcs, src)
+	}
 	srcs = append(srcs, b.Tail...)
 
 	// parse the config sources into a configuration

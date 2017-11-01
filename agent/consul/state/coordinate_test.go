@@ -42,7 +42,8 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	}
 	verify.Values(t, "", all, structs.Coordinates{})
 
-	_, coords, err := s.Coordinate("nope", nil)
+	coordinateWs := memdb.NewWatchSet()
+	_, coords, err := s.Coordinate("nope", coordinateWs)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -63,7 +64,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if err := s.CoordinateBatchUpdate(1, updates); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if watchFired(ws) {
+	if watchFired(ws) || watchFired(coordinateWs) {
 		t.Fatalf("bad")
 	}
 
@@ -79,13 +80,22 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	}
 	verify.Values(t, "", all, structs.Coordinates{})
 
+	coordinateWs = memdb.NewWatchSet()
+	idx, coords, err = s.Coordinate("node1", coordinateWs)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
 	// Register the nodes then do the update again.
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterNode(t, s, 2, "node2")
 	if err := s.CoordinateBatchUpdate(3, updates); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !watchFired(ws) {
+	if !watchFired(ws) || !watchFired(coordinateWs) {
 		t.Fatalf("bad")
 	}
 
@@ -101,10 +111,15 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	verify.Values(t, "", all, updates)
 
 	// Also verify the per-node coordinate interface.
-	for _, update := range updates {
-		_, coords, err := s.Coordinate(update.Node, nil)
+	nodeWs := make([]memdb.WatchSet, len(updates))
+	for i, update := range updates {
+		nodeWs[i] = memdb.NewWatchSet()
+		idx, coords, err := s.Coordinate(update.Node, nodeWs[i])
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+		if idx != 3 {
+			t.Fatalf("bad index: %d", idx)
 		}
 		expected := lib.CoordinateSet{
 			"": update.Coord,
@@ -120,6 +135,11 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
+	for _, ws := range nodeWs {
+		if !watchFired(ws) {
+			t.Fatalf("bad")
+		}
+	}
 
 	// Verify it got applied.
 	idx, all, err = s.Coordinates(nil)
@@ -133,9 +153,12 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// And check the per-node coordinate version of the same thing.
 	for _, update := range updates {
-		_, coords, err := s.Coordinate(update.Node, nil)
+		idx, coords, err := s.Coordinate(update.Node, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+		if idx != 4 {
+			t.Fatalf("bad index: %d", idx)
 		}
 		expected := lib.CoordinateSet{
 			"": update.Coord,

@@ -21,15 +21,15 @@ type Source struct {
 	Data   string
 }
 
-func NewSource(name, data string) Source {
-	return Source{Name: name, Format: FormatFrom(name), Data: data}
-}
-
 func FormatFrom(name string) string {
-	if strings.HasSuffix(name, ".hcl") {
+	switch {
+	case strings.HasSuffix(name, ".json"):
+		return "json"
+	case strings.HasSuffix(name, ".hcl"):
 		return "hcl"
+	default:
+		return ""
 	}
-	return "json"
 }
 
 // Parse parses a config fragment in either JSON or HCL format.

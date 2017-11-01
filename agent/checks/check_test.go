@@ -646,7 +646,7 @@ func TestCheck_Docker(t *testing.T) {
 					fmt.Fprint(w, "some output")
 				},
 			},
-			out:   regexp.MustCompile("^start exec failed for container 123 with status 999: some output$"),
+			out:   regexp.MustCompile("^start exec failed for container 123 with status 999: body: some output err: <nil>$"),
 			state: api.HealthCritical,
 		},
 		{

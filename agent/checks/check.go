@@ -573,6 +573,7 @@ func (c *CheckDocker) Stop() {
 }
 
 func (c *CheckDocker) run() {
+	defer c.Client.Close()
 	firstWait := lib.RandomStagger(c.Interval)
 	next := time.After(firstWait)
 	for {

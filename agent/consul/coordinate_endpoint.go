@@ -139,9 +139,6 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		// We don't enforce the sentinel policy here, since at this time
-		// sentinel only applies to creating or updating node or service
-		// info, not updating coordinates.
 		if !rule.NodeWrite(args.Node, nil) {
 			return acl.ErrPermissionDenied
 		}
@@ -201,8 +198,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		})
 }
 
-// ListNodes returns the list of nodes with their raw network coordinates (if no
-// coordinates are available for a node it won't appear in this list).
+// Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
 	if done, err := c.srv.forward("Coordinate.Node", args, args, reply); done {
 		return err
@@ -214,10 +210,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 		return err
 	}
 	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		// We don't enforce the sentinel policy here, since at this time
-		// sentinel only applies to creating or updating node or service
-		// info, not updating coordinates.
-		if !rule.NodeWrite(args.Node, nil) {
+		if !rule.NodeRead(args.Node) {
 			return acl.ErrPermissionDenied
 		}
 	}

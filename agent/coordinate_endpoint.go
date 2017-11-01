@@ -86,7 +86,7 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	return filterCoordinates(req, "", out.Coordinates), nil
+	return filterCoordinates(req, out.Coordinates), nil
 }
 
 // CoordinateNode returns the LAN node in the given datacenter, along with
@@ -105,14 +105,19 @@ func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request)
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
-		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
 	}
 
-	return filterCoordinates(req, node, out.Coordinates), nil
+	result := filterCoordinates(req, out.Coordinates)
+	if len(result) == 0 {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
+	return result, nil
 }
 
-func filterCoordinates(req *http.Request, node string, in structs.Coordinates) structs.Coordinates {
+func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordinates {
 	out := structs.Coordinates{}
 
 	if in == nil {
@@ -126,9 +131,6 @@ func filterCoordinates(req *http.Request, node string, in structs.Coordinates) s
 	}
 
 	for _, c := range in {
-		if node != "" && c.Node != node {
-			continue
-		}
 		if filterBySegment && c.Segment != segment {
 			continue
 		}

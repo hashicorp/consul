@@ -1776,6 +1776,9 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Logger:            a.logger,
 				Client:            a.dockerClient,
 			}
+			if prev := a.checkDockers[check.CheckID]; prev != nil {
+				prev.Stop()
+			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
 

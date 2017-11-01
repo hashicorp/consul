@@ -1,0 +1,10 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{"path":"github.com/nicolai86/scaleway-sdk/api","checksumSHA1":"ROp7ZtwHdxYKpmwycOxbOOXNnzo=","revision":"33df10cad9fff60467a3dcb992d5340c2b9a8046","revisionTime":"2017-09-17T18:57:50Z"},
+		{"path":"golang.org/x/net/context","checksumSHA1":"GtamqiJoL7PGHsN454AoffBFMa8=","revision":"c73622c77280266305273cb545f54516ced95b93","revisionTime":"2017-06-11T01:16:46Z"},
+		{"path":"golang.org/x/sync/errgroup","checksumSHA1":"S0DP7Pn7sZUmXc55IzZnNvERu6s=","revision":"8e0aa688b654ef28caa72506fa5ec8dba9fc7690","revisionTime":"2017-07-19T03:38:01Z"}
+	],
+	"rootPath": "github.com/hashicorp/go-discover/provider/scaleway"
+}

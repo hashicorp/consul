@@ -386,17 +386,22 @@ func TestServer_LeaveLeader(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	// Second server not in bootstrap mode
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	// Try to join
-	joinLAN(t, s2, s1)
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantPeers(s1, 3))
+		r.Check(wantPeers(s2, 3))
+		r.Check(wantPeers(s3, 3))
+	})
 	// Issue a leave to the leader
 	var leader *Server
 	switch {
@@ -404,6 +409,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 		leader = s1
 	case s2.IsLeader():
 		leader = s2
+	case s3.IsLeader():
+		leader = s3
 	default:
 		t.Fatal("no leader")
 	}
@@ -413,8 +420,9 @@ func TestServer_LeaveLeader(t *testing.T) {
 
 	// Should lose a peer
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 1))
-		r.Check(wantPeers(s2, 1))
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
+		r.Check(wantPeers(s3, 2))
 	})
 }
 
