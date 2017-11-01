@@ -35,6 +35,12 @@ type HealthCheck struct {
 	ServiceName string
 	ServiceTags []string
 
+	Definition HealthCheckDefinition
+}
+
+// HealthCheckDefinition is used to store the details about
+// a health check's execution.
+type HealthCheckDefinition struct {
 	HTTP                           string
 	Header                         map[string][]string
 	Method                         string

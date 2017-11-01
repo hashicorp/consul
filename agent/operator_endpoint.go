@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -264,56 +263,6 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT"}}
 	}
-}
-
-type durationFixer map[string]struct{}
-
-func NewDurationFixer(fields ...string) durationFixer {
-	d := make(map[string]struct{})
-	for _, field := range fields {
-		d[field] = struct{}{}
-	}
-	return d
-}
-
-// FixupDurations is used to handle parsing any field names in the map to time.Durations
-func (d durationFixer) FixupDurations(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	for key, val := range rawMap {
-		if key == "NodeMeta" {
-			continue
-		}
-
-		switch val.(type) {
-		case map[string]interface{}:
-			if err := d.FixupDurations(val); err != nil {
-				return err
-			}
-
-		case []interface{}:
-			for _, v := range val.([]interface{}) {
-				if err := d.FixupDurations(v); err != nil {
-					return err
-				}
-			}
-
-		default:
-			if _, ok := d[strings.ToLower(key)]; ok {
-				// Convert a string value into an integer
-				if vStr, ok := val.(string); ok {
-					dur, err := time.ParseDuration(vStr)
-					if err != nil {
-						return err
-					}
-					rawMap[key] = dur
-				}
-			}
-		}
-	}
-	return nil
 }
 
 // OperatorServerHealth is used to get the health of the servers in the local DC

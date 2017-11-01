@@ -4,8 +4,10 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestStringHash(t *testing.T) {
@@ -73,4 +75,47 @@ func TestSetFilePermissions(t *testing.T) {
 	if fi.Mode().String() != "-rwxrwxrwx" {
 		t.Fatalf("bad: %s", fi.Mode())
 	}
+}
+
+func TestDurationFixer(t *testing.T) {
+	obj := map[string]interface{}{
+		"key1": []map[string]interface{}{
+			{
+				"subkey1": "10s",
+			},
+			{
+				"subkey2": "5d",
+			},
+		},
+		"key2": map[string]interface{}{
+			"subkey3": "30s",
+			"subkey4": "20m",
+		},
+		"key3": "11s",
+		"key4": "49h",
+	}
+	expected := map[string]interface{}{
+		"key1": []map[string]interface{}{
+			{
+				"subkey1": 10 * time.Second,
+			},
+			{
+				"subkey2": "5d",
+			},
+		},
+		"key2": map[string]interface{}{
+			"subkey3": "30s",
+			"subkey4": 20 * time.Minute,
+		},
+		"key3": "11s",
+		"key4": 49 * time.Hour,
+	}
+
+	fixer := NewDurationFixer("key4", "subkey1", "subkey4")
+	if err := fixer.FixupDurations(obj); err != nil {
+		t.Fatal(err)
+	}
+
+	// Ensure we only processed the intended fieldnames
+	verify.Values(t, "", obj, expected)
 }

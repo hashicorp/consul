@@ -92,7 +92,7 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retryer := &retry.Timer{Timeout: 10 * time.Second, Wait: 1 * time.Second}
+	retryer := &retry.Timer{Timeout: 5 * time.Second, Wait: 1 * time.Second}
 	retry.RunWith(retryer, t, func(r *retry.R) {
 		coords, _, err := coord.Node(node, nil)
 		if err != nil {

@@ -28,8 +28,11 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
 
 	// Verify the args.
-	if args.Node == "" || (args.Address == "" && !args.SkipNodeUpdate) {
-		return fmt.Errorf("Must provide node and address")
+	if args.Node == "" {
+		return fmt.Errorf("Must provide node")
+	}
+	if args.Address == "" && !args.SkipNodeUpdate {
+		return fmt.Errorf("Must provide address if SkipNodeUpdate is not set")
 	}
 	if args.ID != "" {
 		if _, err := uuid.ParseUUID(string(args.ID)); err != nil {
