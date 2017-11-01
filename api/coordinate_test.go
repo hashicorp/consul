@@ -1,9 +1,8 @@
 package api
 
 import (
-	"testing"
-
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/consul/testutil/retry"
 )

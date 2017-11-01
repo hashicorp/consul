@@ -105,7 +105,6 @@ func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request)
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Coordinate.Node", &args, &out); err != nil {
-		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
 	}
 

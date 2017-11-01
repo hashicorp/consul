@@ -194,7 +194,7 @@ func TestCoordinate_Node(t *testing.T) {
 	}
 	time.Sleep(300 * time.Millisecond)
 
-	// Query back and check the nodes are present and sorted correctly.
+	// Query back and check the nodes are present.
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CoordinateNode(resp, req)
