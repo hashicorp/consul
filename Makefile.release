@@ -42,7 +42,7 @@ ifeq (, $(shell which gh-release))
 endif
 
 ifeq (, $(shell which manifest-tool))
-     $(error "No manifest-tool in $PATH, install with `go get github.com/estesp/manifest-tool")
+     $(error "No manifest-tool in $$PATH, install with `go get github.com/estesp/manifest-tool")
 endif
 
 NAME:=coredns
@@ -51,6 +51,7 @@ GITHUB:=coredns
 DOCKER:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 GITCOMMIT:=$(shell git describe --dirty --always)
+LINUX_ARCH=amd64 arm arm64 ppc64le s390x
 
 all:
 	@echo Use the 'release' target to start a release
@@ -73,29 +74,21 @@ commit:
 build:
 	@echo Cleaning old builds
 	rm -rf build && mkdir build
-	@echo Building: linux  $(VERSION)
-	mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/amd64/$(NAME) SYSTEM="GOOS=linux GOARCH=amd64" CHECKS=""
 	@echo Building: darwin $(VERSION)
 	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS=""
-	@echo Building: arm    $(VERSION)
-	mkdir -p build/linux/arm    && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm" CHECKS=""
-	@echo Building: arm64  $(VERSION)
-	mkdir -p build/linux/arm64  && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64" CHECKS=""
-	@echo Building: ppc64  $(VERSION)
-	mkdir -p build/linux/ppc64  && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le" CHECKS=""
-	@echo Building: s390x  $(VERSION)
-	mkdir -p build/linux/s390   && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x" CHECKS=""
+	for arch in $(LINUX_ARCH); do \
+	    @echo Building: linux/$$arch  $(VERSION) ;\
+	    mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" ;\
+	done
 
 .PHONY: tar
 tar:
 	@echo Cleaning old releases
 	rm -rf release && mkdir release
-	tar -zcf release/$(NAME)_$(VERSION)_linux_amd64.tgz -C build/linux/amd64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin/amd64 $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_arm.tgz -C build/linux/arm $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_arm64.tgz -C build/linux/arm64 $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz -C build/linux/ppc64 $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_s390x.tgz -C build/linux/s390 $(NAME)
+	for arch in $(LINUX_ARCH); do \
+	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
+	done
 
 .PHONY: upload
 upload:
@@ -103,37 +96,19 @@ upload:
 	gh-release create $(GITHUB)/$(NAME) $(VERSION)
 
 .PHONY: docker-build
-docker-build:
-	tar -xzf release/$(NAME)_$(VERSION)_linux_amd64.tgz
-	docker build -t coredns .
-	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-amd64
-
-	tar -xzf release/$(NAME)_$(VERSION)_linux_arm.tgz
-	docker build -t coredns .
-	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-arm
-
-	tar -xzf release/$(NAME)_$(VERSION)_linux_arm64.tgz
-	docker build -t coredns .
-	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-arm64
-
-	tar -xzf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz
-	docker build -t coredns .
-	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-ppc64le
-
-	tar -xzf release/$(NAME)_$(VERSION)_linux_s390x.tgz
-	docker build -t coredns .
-	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-s390x
-
+docker-build: tar
+	for arch in $(LINUX_ARCH); do \
+	    tar -xzf release/$(NAME)_$(VERSION)_linux_$$arch.tgz ;\
+	    docker build -t coredns . ;\
+	    docker tag coredns $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
+	done
 
 .PHONY: docker-upload
 docker-upload:
 	@echo Pushing: $(VERSION)
-	docker push $(DOCKER_IMAGE_NAME):coredns-amd64
-	docker push $(DOCKER_IMAGE_NAME):coredns-arm
-	docker push $(DOCKER_IMAGE_NAME):coredns-arm64
-	docker push $(DOCKER_IMAGE_NAME):coredns-ppc64le
-	docker push $(DOCKER_IMAGE_NAME):coredns-s390x
-
+	for arch in $(LINUX_ARCH); do \
+	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch \;
+	done
 	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
 	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
 
