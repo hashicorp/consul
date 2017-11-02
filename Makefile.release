@@ -29,6 +29,9 @@
 # Steps for docker:
 #
 # * Login into docker: docker login (should have push creds for coredns registry)
+# * We use the manifest-tool from https://github.com/estesp/manifest-tool to build the manifest list
+# * Make sure you have the binary in your path.
+#
 # * Run: make -f Makefile.release docker
 #
 # Docker push should happen after you make the new release and uploaded it to
@@ -36,6 +39,10 @@
 
 ifeq (, $(shell which gh-release))
      $(error "No gh-release in $$PATH, install with `go get github.com/progrium/gh-release`")
+endif
+
+ifeq (, $(shell which manifest-tool))
+     $(error "No manifest-tool in $PATH, install with `go get github.com/estesp/manifest-tool")
 endif
 
 NAME:=coredns
@@ -85,8 +92,8 @@ tar:
 	rm -rf release && mkdir release
 	tar -zcf release/$(NAME)_$(VERSION)_linux_amd64.tgz -C build/linux/amd64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin/amd64 $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_armv6l.tgz -C build/linux/arm $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_linux_armv8l.tgz -C build/linux/arm64 $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_arm.tgz -C build/linux/arm $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_arm64.tgz -C build/linux/arm64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz -C build/linux/ppc64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_linux_s390x.tgz -C build/linux/s390 $(NAME)
 
@@ -97,16 +104,38 @@ upload:
 
 .PHONY: docker-build
 docker-build:
-	$(MAKE) coredns SYSTEM="GOOS=linux"
-	docker build -t $(DOCKER_IMAGE_NAME) .
-	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
+	tar -xzf release/$(NAME)_$(VERSION)_linux_amd64.tgz
+	docker build -t coredns .
+	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-amd64
+
+	tar -xzf release/$(NAME)_$(VERSION)_linux_arm.tgz
+	docker build -t coredns .
+	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-arm
+
+	tar -xzf release/$(NAME)_$(VERSION)_linux_arm64.tgz
+	docker build -t coredns .
+	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-arm64
+
+	tar -xzf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz
+	docker build -t coredns .
+	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-ppc64le
+
+	tar -xzf release/$(NAME)_$(VERSION)_linux_s390x.tgz
+	docker build -t coredns .
+	docker tag coredns $(DOCKER_IMAGE_NAME):coredns-s390x
+
 
 .PHONY: docker-upload
 docker-upload:
 	@echo Pushing: $(VERSION)
-	docker tag $(DOCKER_IMAGE_NAME):latest $(DOCKER_IMAGE_NAME):$(VERSION)
-	docker push $(DOCKER_IMAGE_NAME):latest
-	docker push $(DOCKER_IMAGE_NAME):$(VERSION)
+	docker push $(DOCKER_IMAGE_NAME):coredns-amd64
+	docker push $(DOCKER_IMAGE_NAME):coredns-arm
+	docker push $(DOCKER_IMAGE_NAME):coredns-arm64
+	docker push $(DOCKER_IMAGE_NAME):coredns-ppc64le
+	docker push $(DOCKER_IMAGE_NAME):coredns-s390x
+
+	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
+	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
 
 .PHONY: clean
 clean:
