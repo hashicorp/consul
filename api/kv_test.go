@@ -30,7 +30,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 	// Put a key that begins with a '/', this should fail
 	invalidKey := "/test"
 	p := &KVPair{Key: invalidKey, Flags: 42, Value: value}
-	if _, err := kv.Put(p, nil); err == nil {
+	if _, err := kv.Put(p, nil); err != nil {
 		t.Fatalf("Invalid key not detected: %s", invalidKey)
 	}
 
