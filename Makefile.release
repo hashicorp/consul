@@ -35,12 +35,11 @@
 # Github.
 
 ifeq (, $(shell which gh-release))
-     $(error "No gh-release in $$PATH, install with `go get progrium/gh-release`")
+     $(error "No gh-release in $$PATH, install with `go get github.com/progrium/gh-release`")
 endif
 
 NAME:=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
-ARCH:=$(shell uname -m)
 GITHUB:=coredns
 DOCKER:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
@@ -68,24 +67,24 @@ build:
 	@echo Cleaning old builds
 	rm -rf build && mkdir build
 	@echo Building: linux  $(VERSION)
-	mkdir -p build/linux/$(ARCH)      && $(MAKE) coredns BINARY=build/linux/$(ARCH)/$(NAME) SYSTEM="GOOS=linux" CHECKS=""
+	mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/amd64/$(NAME) SYSTEM="GOOS=linux GOARCH=amd64" CHECKS=""
 	@echo Building: darwin $(VERSION)
-	mkdir -p build/darwin/$(ARCH)     && $(MAKE) coredns BINARY=build/darwin/$(ARCH)/$(NAME) SYSTEM="GOOS=darwin" CHECKS=""
+	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS=""
 	@echo Building: arm    $(VERSION)
-	mkdir -p build/linux/arm  && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm" CHECKS=""
+	mkdir -p build/linux/arm    && $(MAKE) coredns BINARY=build/linux/arm/$(NAME) SYSTEM="GOOS=linux GOARCH=arm" CHECKS=""
 	@echo Building: arm64  $(VERSION)
-	mkdir -p build/linux/arm64 && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64" CHECKS=""
+	mkdir -p build/linux/arm64  && $(MAKE) coredns BINARY=build/linux/arm64/$(NAME) SYSTEM="GOOS=linux GOARCH=arm64" CHECKS=""
 	@echo Building: ppc64  $(VERSION)
-	mkdir -p build/linux/ppc64 && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le" CHECKS=""
+	mkdir -p build/linux/ppc64  && $(MAKE) coredns BINARY=build/linux/ppc64/$(NAME) SYSTEM="GOOS=linux GOARCH=ppc64le" CHECKS=""
 	@echo Building: s390x  $(VERSION)
-	mkdir -p build/linux/s390 && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x" CHECKS=""
+	mkdir -p build/linux/s390   && $(MAKE) coredns BINARY=build/linux/s390/$(NAME) SYSTEM="GOOS=linux GOARCH=s390x" CHECKS=""
 
 .PHONY: tar
 tar:
 	@echo Cleaning old releases
 	rm -rf release && mkdir release
-	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/linux/$(ARCH) $(NAME)
-	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/darwin/$(ARCH) $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_linux_amd64.tgz -C build/linux/amd64 $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin/amd64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_linux_armv6l.tgz -C build/linux/arm $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_linux_armv8l.tgz -C build/linux/arm64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_linux_ppc64le.tgz -C build/linux/ppc64 $(NAME)
